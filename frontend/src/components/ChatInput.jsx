@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Box, TextField, IconButton, Paper } from '@mui/material';
-import { AttachFile, Mic, Send } from '@mui/icons-material';
+import { AttachFile, MicOutlined, Send } from '@mui/icons-material';
 
 export default function ChatInput({ onSend, disabled }) {
   const [message, setMessage] = useState('');
@@ -110,9 +110,9 @@ export default function ChatInput({ onSend, disabled }) {
         <IconButton
           onClick={toggleSpeechRecognition}
           disabled={disabled}
-          sx={{ color: isRecording ? 'red' : 'inherit' }}
+          color={isRecording ? 'error' : 'primary'}
         >
-          <Mic />
+          <MicOutlined />
         </IconButton>
 
         <IconButton

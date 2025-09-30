@@ -35,6 +35,9 @@ cd "${containerCwd}"
   --allowedTools "WebFetch" \\
   --allowedTools "Bash(curl:*)" \\
   --allowedTools "Read(${containerCwd}/**)" \\
+  --allowedTools "Bash(python3:*)" \\
+  --allowedTools "Bash(pytest:*)" \\
+  --allowedTools "Write(./**/*.py)" \\
   --allowedTools "Edit(${containerCwd}/out/**)" \\
   --allowedTools "Write(${containerCwd}/out/**)" \\
   --allowedTools "MultiEdit(${containerCwd}/out/**)" \\
