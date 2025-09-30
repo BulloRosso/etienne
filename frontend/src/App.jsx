@@ -1,34 +1,51 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Container, TextField, Button, Stack, Grid, Paper, List, ListItem, ListItemText } from '@mui/material';
-import ResponsePane from './components/ResponsePane.tsx';
-import TokenConsumptionPane from './components/TokenConsumptionPane.tsx';
-
-const API = ''; // use Vite proxy to backend
+import { AppBar, Toolbar, Typography, Box } from '@mui/material';
+import ChatPane from './components/ChatPane';
+import ArtifactsPane from './components/ArtifactsPane';
+import SplitLayout from './components/SplitLayout';
+import ProjectMenu from './components/ProjectMenu';
 
 export default function App() {
   const [project, setProject] = useState('demo1');
-  const [prompt, setPrompt] = useState('Create two files under out/: a.txt and b.txt with short content.');
   const [streaming, setStreaming] = useState(false);
-  const [response, setResponse] = useState('');
-  const [sessionId, setSessionId] = useState('');
-  const [usage, setUsage] = useState();
+  const [messages, setMessages] = useState([]);
   const [files, setFiles] = useState([]);
+  const [sessionId, setSessionId] = useState('');
 
   const esRef = useRef(null);
+  const currentMessageRef = useRef(null);
+  const currentUsageRef = useRef(null);
 
   useEffect(() => () => { esRef.current?.close(); }, []);
 
-  const run = async () => {
-    setResponse(''); setFiles([]); setUsage(undefined); setStreaming(true);
+  const formatTime = () => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const handleSendMessage = async (messageText) => {
+    // Add user message
+    setMessages(prev => [...prev, {
+      role: 'user',
+      text: messageText,
+      timestamp: formatTime()
+    }]);
+
+    setStreaming(true);
+    currentMessageRef.current = { role: 'assistant', text: '', timestamp: formatTime() };
+    currentUsageRef.current = null;
+
+    // Ensure project file exists
     await fetch(`/api/claude/addFile`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ project_dir: project, file_name: 'CLAUDE.md', file_content: `# ${project}\n` })
     });
 
+    // Stream prompt
     const url = new URL(`/api/claude/streamPrompt`, window.location.origin);
     url.searchParams.set('project_dir', project);
-    url.searchParams.set('prompt', prompt);
+    url.searchParams.set('prompt', messageText);
 
     const es = new EventSource(url.toString());
     esRef.current = es;
@@ -37,12 +54,36 @@ export default function App() {
       const { session_id } = JSON.parse(e.data);
       setSessionId(session_id);
     });
+
     es.addEventListener('stdout', (e) => {
       const { chunk } = JSON.parse(e.data);
-      setResponse((s) => s + chunk);
+      currentMessageRef.current.text += chunk;
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMsg = newMessages[newMessages.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant') {
+          newMessages[newMessages.length - 1] = { ...currentMessageRef.current };
+        } else {
+          newMessages.push({ ...currentMessageRef.current });
+        }
+        return newMessages;
+      });
     });
+
     es.addEventListener('usage', (e) => {
-      setUsage(JSON.parse(e.data));
+      const usage = JSON.parse(e.data);
+      currentUsageRef.current = usage;
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMsg = newMessages[newMessages.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant') {
+          newMessages[newMessages.length - 1] = {
+            ...currentMessageRef.current,
+            usage
+          };
+        }
+        return newMessages;
+      });
     });
 
     const fetchFile = async (path) => {
@@ -56,58 +97,66 @@ export default function App() {
         return next;
       });
     };
+
     es.addEventListener('file_added', (e) => { fetchFile(JSON.parse(e.data).path); });
     es.addEventListener('file_changed', (e) => { fetchFile(JSON.parse(e.data).path); });
 
-    const stop = () => { es.close(); setStreaming(false); };
+    const stop = () => {
+      es.close();
+      setStreaming(false);
+      // Finalize message
+      if (currentMessageRef.current.text) {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastMsg = newMessages[newMessages.length - 1];
+          if (lastMsg && lastMsg.role === 'assistant') {
+            newMessages[newMessages.length - 1] = {
+              ...currentMessageRef.current,
+              usage: currentUsageRef.current
+            };
+          }
+          return newMessages;
+        });
+      }
+    };
+
     es.addEventListener('completed', stop);
     es.addEventListener('error', stop);
   };
 
+  const handleProjectChange = (newProject) => {
+    setProject(newProject);
+    setMessages([]);
+    setFiles([]);
+    setSessionId('');
+    esRef.current?.close();
+    setStreaming(false);
+  };
+
   return (
-    <>
-      <AppBar position="static"><Toolbar><Typography variant="h6">Assistant Tester: Multi Project Separation</Typography></Toolbar></AppBar>
-      <Container maxWidth={false} sx={{ mt:2, py: 2, px: 2 }}>
-        <Grid container spacing={0} sx={{ gap: '10px' }}>
-          <Grid item xs={12} sx={{ width: 'calc(20% - 7px)', flexBasis: 'calc(20% - 7px)', maxWidth: 'calc(20% - 7px)' }}>
-            <Stack spacing={2}>
-              <TextField
-                label="Prompt"
-                value={prompt}
-                onChange={e => setPrompt(e.target.value)}
-                multiline
-                rows={6}
-                fullWidth
-              />
-              <Stack direction="row" spacing={2}>
-                <TextField label="Project" value={project} onChange={e => setProject(e.target.value)} size="small" sx={{ flex: 1 }} />
-                <Button variant="contained" onClick={run} disabled={streaming}>Run</Button>
-                <Button variant="outlined" onClick={() => { esRef.current?.close(); setStreaming(false); }} disabled={!streaming}>Stop</Button>
-              </Stack>
-            </Stack>
-          </Grid>
-          <Grid item xs={12} sx={{ width: 'calc(40% - 7px)', flexBasis: 'calc(40% - 7px)', maxWidth: 'calc(40% - 7px)' }}>
-            <Stack spacing={0}>
-              <ResponsePane streaming={streaming} text={response} sessionId={sessionId} />
-              {usage && <TokenConsumptionPane usage={usage} />}
-            </Stack>
-          </Grid>
-          <Grid item xs={12} sx={{ width: 'calc(40% - 7px)', flexBasis: 'calc(40% - 7px)', maxWidth: 'calc(40% - 7px)' }}>
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Files</Typography>
-              <List dense>
-                {files.map(f => (
-                  <ListItem key={f.path} alignItems="flex-start" sx={{ display: 'block' }}>
-                    <ListItemText primary={f.path} secondary={
-                      <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{f.content}</pre>
-                    } />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
-    </>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <AppBar position="static" sx={{ zIndex: 10 }}>
+        <Toolbar>
+          <Typography variant="h6">Assistant Tester: Multi Project Separation</Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
+            [{project}]
+          </Typography>
+          {sessionId && (
+            <Typography variant="caption" sx={{ mr: 2, opacity: 0.7 }}>
+              Session: {sessionId}
+            </Typography>
+          )}
+          <ProjectMenu currentProject={project} onProjectChange={handleProjectChange} />
+        </Toolbar>
+      </AppBar>
+
+      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        <SplitLayout
+          left={<ChatPane messages={messages} onSendMessage={handleSendMessage} streaming={streaming} />}
+          right={<ArtifactsPane files={files} />}
+        />
+      </Box>
+    </Box>
   );
 }

@@ -16,6 +16,9 @@ export class ClaudeController {
   @Get('listFiles')
   listFiles(@Query() dto: ListFilesDto) { return this.svc.listFiles(dto.project_dir, dto.sub_dir); }
 
+  @Get('listProjects')
+  listProjects() { return this.svc.listProjects(); }
+
   @Sse('streamPrompt')
   streamPrompt(@Query('project_dir') projectDir: string, @Query('prompt') prompt: string): Observable<MessageEvent> {
     return this.svc.streamPrompt(projectDir, prompt);

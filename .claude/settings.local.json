@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(docker inspect:*)"
+      "Bash(docker inspect:*)",
+      "Bash(git push:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

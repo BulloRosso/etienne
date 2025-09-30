@@ -47,6 +47,18 @@ export class ClaudeService {
     return entries.map(e => ({ name: e.name, isDir: e.isDirectory() }));
   }
 
+  public async listProjects() {
+    try {
+      const entries = await fs.readdir(this.config.hostRoot, { withFileTypes: true });
+      const projects = entries
+        .filter(e => e.isDirectory())
+        .map(e => e.name);
+      return { projects };
+    } catch {
+      return { projects: [] };
+    }
+  }
+
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error
   streamPrompt(projectDir: string, prompt: string): Observable<MessageEvent> {
     return new Observable<MessageEvent>((observer) => {

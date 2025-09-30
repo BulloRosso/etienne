@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Paper, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 type Usage = { input_tokens?: number; output_tokens?: number; total_tokens?: number; model?: string };
 
@@ -12,13 +12,13 @@ export default function TokenConsumptionPane({ usage }: Props) {
   const model = usage?.model ?? 'n/a';
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, backgroundColor: '#efefef', fontFamily: 'Roboto' }}>
+    <Box sx={{ p: 2, backgroundColor: '#efefef', fontFamily: 'Roboto', mb: 1 }}>
       <Typography sx={{ fontFamily: 'Roboto', fontSize: '80%' }}>
         <strong>Model:</strong> {model}
       </Typography>
       <Typography sx={{ fontFamily: 'Roboto', fontSize: '80%' }}>
-        <strong>Last Request:</strong> {inputTokens} Input + {outputTokens} Output = {totalTokens} Tokens total
+        {inputTokens} Input + {outputTokens} Output = <strong>{totalTokens}</strong> Tokens total
       </Typography>
-    </Paper>
+    </Box>
   );
 }
