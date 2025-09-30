@@ -47,7 +47,7 @@ export default function ChatPane({ messages, onSendMessage, streaming }) {
         <div ref={messagesEndRef} />
       </Box>
 
-      <Box sx={{ p: 0, pt: 0 }}>
+      <Box sx={{ p: 0, pb: 0 }}>
         <ChatInput onSend={onSendMessage} disabled={streaming} />
       </Box>
     </Box>

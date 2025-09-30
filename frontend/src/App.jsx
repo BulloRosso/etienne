@@ -57,7 +57,9 @@ export default function App() {
 
     es.addEventListener('stdout', (e) => {
       const { chunk } = JSON.parse(e.data);
-      currentMessageRef.current.text += chunk;
+      // Trim leading linebreaks only if this is the first chunk
+      const textToAdd = currentMessageRef.current.text === '' ? chunk.trimStart() : chunk;
+      currentMessageRef.current.text += textToAdd;
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMsg = newMessages[newMessages.length - 1];

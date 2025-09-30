@@ -74,7 +74,7 @@ export default function ChatInput({ onSend, disabled }) {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 1, borderRadius: 0 }}>
+    <Paper elevation={3} sx={{ p: 1, pr: 0, pl: 0, borderRadius: 0, pb: 2.5, pt: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0 }}>
         <input
           type="file"
@@ -104,6 +104,7 @@ export default function ChatInput({ onSend, disabled }) {
           disabled={disabled}
           variant="outlined"
           size="small"
+          sx={{ pr: 1}}
         />
 
         <IconButton
