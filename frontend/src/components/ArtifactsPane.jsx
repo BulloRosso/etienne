@@ -3,6 +3,7 @@ import { Box, Tabs, Tab } from '@mui/material';
 import FilesPanel from './FilesPanel';
 import Strategy from './Strategy';
 import Filesystem from './Filesystem';
+import PermissionList from './PermissionList';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -25,6 +26,7 @@ export default function ArtifactsPane({ files, projectName }) {
         <Tab label="Live Changes" />
         <Tab label="Strategy" />
         <Tab label="Filesystem" />
+        <Tab label="Permissions" />
       </Tabs>
       <TabPanel value={tabValue} index={0}>
         <FilesPanel files={files} />
@@ -34,6 +36,9 @@ export default function ArtifactsPane({ files, projectName }) {
       </TabPanel>
       <TabPanel value={tabValue} index={2}>
         <Filesystem projectName={projectName} />
+      </TabPanel>
+      <TabPanel value={tabValue} index={3}>
+        <PermissionList projectName={projectName} />
       </TabPanel>
     </Box>
   );

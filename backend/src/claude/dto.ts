@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsArray } from 'class-validator';
 
 export class SendPromptDto {
   @IsString() @IsNotEmpty() project_dir!: string;
@@ -32,4 +32,13 @@ export class SaveStrategyDto {
 
 export class GetFilesystemDto {
   @IsString() @IsNotEmpty() projectName!: string;
+}
+
+export class GetPermissionsDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+}
+
+export class SavePermissionsDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+  @IsArray() @IsString({ each: true }) allowedTools!: string[];
 }

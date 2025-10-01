@@ -88,6 +88,29 @@ export class ClaudeService {
     return { success: true };
   }
 
+  public async getPermissions(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const permissionsPath = join(root, 'data', 'permissions.json');
+
+    try {
+      const content = await fs.readFile(permissionsPath, 'utf8');
+      const parsed = JSON.parse(content);
+      return { allowedTools: parsed.allowedTools || this.config.defaultAllowedTools };
+    } catch {
+      return { allowedTools: this.config.defaultAllowedTools };
+    }
+  }
+
+  public async savePermissions(projectDir: string, allowedTools: string[]) {
+    const root = await this.ensureProject(projectDir);
+    const dataDir = join(root, 'data');
+    const permissionsPath = join(dataDir, 'permissions.json');
+
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(permissionsPath, JSON.stringify({ allowedTools }, null, 2), 'utf8');
+    return { success: true };
+  }
+
   public async getFilesystem(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
 
@@ -152,8 +175,11 @@ export class ClaudeService {
         watcher.on('add', (abs) => observer.next({ type: 'file_added', data: { path: rel(abs) } }));
         watcher.on('change', (abs) => observer.next({ type: 'file_changed', data: { path: rel(abs) } }));
 
+        // Load permissions
+        const { allowedTools } = await this.getPermissions(projectDir);
+
         // Build script and docker args
-        const script = buildClaudeScript({ containerCwd, envHome, resumeArg });
+        const script = buildClaudeScript({ containerCwd, envHome, resumeArg, allowedTools });
         const args = [
           'exec',
           '-w', containerCwd,

@@ -2,10 +2,15 @@ export interface ScriptOptions {
   containerCwd: string;
   envHome: string;
   resumeArg: string;
+  allowedTools: string[];
 }
 
 export function buildClaudeScript(options: ScriptOptions): string {
-  const { containerCwd, envHome, resumeArg } = options;
+  const { containerCwd, envHome, resumeArg, allowedTools } = options;
+
+  const allowedToolsArgs = allowedTools
+    .map(tool => `  --allowedTools "${tool}"`)
+    .join(' \\\n');
 
   return `
 set -euo pipefail
@@ -31,18 +36,7 @@ cd "${containerCwd}"
   --verbose \\
   --include-partial-messages \\
   --permission-mode acceptEdits \\
-  --allowedTools "Task" \\
-  --allowedTools "WebFetch" \\
-  --allowedTools "Bash(curl:*)" \\
-  --allowedTools "Read(${containerCwd}/**)" \\
-  --allowedTools "Bash(python3:*)" \\
-  --allowedTools "Bash(pytest:*)" \\
-  --allowedTools "Bash(pip:*)" \\
-  --allowedTools "Write(./**/*.py)" \\
-  --allowedTools "Edit(${containerCwd}/out/**)" \\
-  --allowedTools "Write(${containerCwd}/out/**)" \\
-  --allowedTools "MultiEdit(${containerCwd}/out/**)" \\
-  --allowedTools "NotebookEdit(${containerCwd}/out/**)" \\
+${allowedToolsArgs} \\
   ${resumeArg}
 `;
 }
