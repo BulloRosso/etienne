@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Query, Sse } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { ClaudeService } from './claude.service';
-import { AddFileDto, GetFileDto, ListFilesDto } from './dto';
+import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetFilesystemDto } from './dto';
 
 @Controller('api/claude')
 export class ClaudeController {
@@ -18,6 +18,15 @@ export class ClaudeController {
 
   @Get('listProjects')
   listProjects() { return this.svc.listProjects(); }
+
+  @Post('strategy')
+  getStrategy(@Body() dto: GetStrategyDto) { return this.svc.getStrategy(dto.projectName); }
+
+  @Post('strategy/save')
+  saveStrategy(@Body() dto: SaveStrategyDto) { return this.svc.saveStrategy(dto.projectName, dto.content); }
+
+  @Post('filesystem')
+  getFilesystem(@Body() dto: GetFilesystemDto) { return this.svc.getFilesystem(dto.projectName); }
 
   @Sse('streamPrompt')
   streamPrompt(@Query('project_dir') projectDir: string, @Query('prompt') prompt: string): Observable<MessageEvent> {

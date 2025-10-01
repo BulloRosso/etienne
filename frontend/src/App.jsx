@@ -156,7 +156,7 @@ export default function App() {
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
           left={<ChatPane messages={messages} onSendMessage={handleSendMessage} streaming={streaming} />}
-          right={<ArtifactsPane files={files} />}
+          right={<ArtifactsPane files={files} projectName={project} />}
         />
       </Box>
     </Box>

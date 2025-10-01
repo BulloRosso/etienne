@@ -20,3 +20,16 @@ export class ListFilesDto {
   @IsString() @IsNotEmpty() project_dir!: string;
   @IsOptional() @IsString() sub_dir?: string;
 }
+
+export class GetStrategyDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+}
+
+export class SaveStrategyDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+  @IsString() @IsNotEmpty() content!: string;
+}
+
+export class GetFilesystemDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+}

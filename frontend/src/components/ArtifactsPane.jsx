@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Box, Tabs, Tab } from '@mui/material';
 import FilesPanel from './FilesPanel';
+import Strategy from './Strategy';
+import Filesystem from './Filesystem';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -14,16 +16,24 @@ function TabPanel({ children, value, index }) {
   );
 }
 
-export default function ArtifactsPane({ files }) {
+export default function ArtifactsPane({ files, projectName }) {
   const [tabValue, setTabValue] = useState(0);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-        <Tab label="Files" />
+        <Tab label="Live Changes" />
+        <Tab label="Strategy" />
+        <Tab label="Filesystem" />
       </Tabs>
       <TabPanel value={tabValue} index={0}>
         <FilesPanel files={files} />
+      </TabPanel>
+      <TabPanel value={tabValue} index={1}>
+        <Strategy projectName={projectName} />
+      </TabPanel>
+      <TabPanel value={tabValue} index={2}>
+        <Filesystem projectName={projectName} />
       </TabPanel>
     </Box>
   );

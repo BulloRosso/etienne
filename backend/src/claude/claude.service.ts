@@ -28,6 +28,17 @@ export class ClaudeService {
   public async addFile(projectDir: string, fileName: string, content: string) {
     const root = await this.ensureProject(projectDir);
     const filePath = join(root, fileName);
+
+    // Don't overwrite CLAUDE.md if it already exists
+    if (fileName === 'CLAUDE.md') {
+      try {
+        await fs.access(filePath);
+        return { ok: true, path: filePath, skipped: true };
+      } catch {
+        // File doesn't exist, create it
+      }
+    }
+
     await fs.mkdir(norm(join(filePath, '..')), { recursive: true });
     await fs.writeFile(filePath, content, 'utf8');
     return { ok: true, path: filePath };
@@ -57,6 +68,61 @@ export class ClaudeService {
     } catch {
       return { projects: [] };
     }
+  }
+
+  public async getStrategy(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const claudeMdPath = join(root, 'CLAUDE.md');
+    try {
+      const content = await fs.readFile(claudeMdPath, 'utf8');
+      return { content };
+    } catch {
+      return { content: `# ${projectDir}\n` };
+    }
+  }
+
+  public async saveStrategy(projectDir: string, content: string) {
+    const root = await this.ensureProject(projectDir);
+    const claudeMdPath = join(root, 'CLAUDE.md');
+    await fs.writeFile(claudeMdPath, content, 'utf8');
+    return { success: true };
+  }
+
+  public async getFilesystem(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+
+    const buildTree = async (dirPath: string, basePath: string): Promise<any[]> => {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      const sorted = entries.sort((a, b) => a.name.localeCompare(b.name));
+
+      const items = await Promise.all(
+        sorted.map(async (entry) => {
+          const fullPath = join(dirPath, entry.name);
+          const relativePath = fullPath.slice(basePath.length + 1).replace(/\\/g, '/');
+
+          if (entry.isDirectory()) {
+            const children = await buildTree(fullPath, basePath);
+            return {
+              id: relativePath,
+              label: entry.name,
+              type: 'folder',
+              children
+            };
+          } else {
+            return {
+              id: relativePath,
+              label: entry.name,
+              type: 'file'
+            };
+          }
+        })
+      );
+
+      return items;
+    };
+
+    const tree = await buildTree(root, root);
+    return { tree };
   }
 
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error

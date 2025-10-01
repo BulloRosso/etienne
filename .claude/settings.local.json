@@ -3,7 +3,9 @@
     "allow": [
       "Bash(docker inspect:*)",
       "Bash(git push:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker exec:*)",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []

@@ -27,6 +27,7 @@ cd "${containerCwd}"
 
 "$CLAUDE_BIN" \\
   --print "$CLAUDE_PROMPT" \\
+  --append-system-prompt "$(cat "${containerCwd}/CLAUDE.md" 2>/dev/null || echo '')" \\
   --output-format stream-json \\
   --verbose \\
   --include-partial-messages \\
@@ -37,6 +38,7 @@ cd "${containerCwd}"
   --allowedTools "Read(${containerCwd}/**)" \\
   --allowedTools "Bash(python3:*)" \\
   --allowedTools "Bash(pytest:*)" \\
+  --allowedTools "Bash(pip:*)" \\
   --allowedTools "Write(./**/*.py)" \\
   --allowedTools "Edit(${containerCwd}/out/**)" \\
   --allowedTools "Write(${containerCwd}/out/**)" \\
