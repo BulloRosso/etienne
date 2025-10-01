@@ -42,3 +42,11 @@ export class SavePermissionsDto {
   @IsString() @IsNotEmpty() projectName!: string;
   @IsArray() @IsString({ each: true }) allowedTools!: string[];
 }
+
+export class GetAssistantDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+}
+
+export class GetChatHistoryDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+}

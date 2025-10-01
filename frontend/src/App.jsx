@@ -18,6 +18,57 @@ export default function App() {
 
   useEffect(() => () => { esRef.current?.close(); }, []);
 
+  // Load initial project data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const assistantRes = await fetch('/api/claude/assistant', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ projectName: project })
+        });
+        const assistantData = await assistantRes.json();
+        const greeting = assistantData?.assistant?.greeting;
+
+        const historyRes = await fetch('/api/claude/chat/history', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ projectName: project })
+        });
+        const historyData = await historyRes.json();
+        const chatMessages = historyData?.messages || [];
+
+        const loadedMessages = [];
+        if (greeting) {
+          loadedMessages.push({
+            role: 'assistant',
+            text: greeting,
+            timestamp: formatTime()
+          });
+        }
+
+        chatMessages.forEach(msg => {
+          loadedMessages.push({
+            role: msg.isAgent ? 'assistant' : 'user',
+            text: msg.message,
+            timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }),
+            usage: msg.costs
+          });
+        });
+
+        setMessages(loadedMessages);
+      } catch (err) {
+        console.error('Failed to load initial chat data:', err);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
   const formatTime = () => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -126,13 +177,63 @@ export default function App() {
     es.addEventListener('error', stop);
   };
 
-  const handleProjectChange = (newProject) => {
+  const handleProjectChange = async (newProject) => {
     setProject(newProject);
     setMessages([]);
     setFiles([]);
     setSessionId('');
     esRef.current?.close();
     setStreaming(false);
+
+    // Load assistant greeting
+    try {
+      const assistantRes = await fetch('/api/claude/assistant', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ projectName: newProject })
+      });
+      const assistantData = await assistantRes.json();
+      const greeting = assistantData?.assistant?.greeting;
+
+      // Load chat history
+      const historyRes = await fetch('/api/claude/chat/history', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ projectName: newProject })
+      });
+      const historyData = await historyRes.json();
+      const chatMessages = historyData?.messages || [];
+
+      // Build message list
+      const loadedMessages = [];
+
+      // Add greeting as first message if it exists
+      if (greeting) {
+        loadedMessages.push({
+          role: 'assistant',
+          text: greeting,
+          timestamp: formatTime()
+        });
+      }
+
+      // Add chat history messages
+      chatMessages.forEach(msg => {
+        loadedMessages.push({
+          role: msg.isAgent ? 'assistant' : 'user',
+          text: msg.message,
+          timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }),
+          usage: msg.costs
+        });
+      });
+
+      setMessages(loadedMessages);
+    } catch (err) {
+      console.error('Failed to load chat history:', err);
+    }
   };
 
   return (

@@ -19,7 +19,7 @@ export default function ChatMessage({ role, text, timestamp, usage }) {
           elevation={2}
           sx={{
             p: 2,
-            pb: isUser? 2 : 0,
+            pb: isUser || !isUser && !usage ? 2 : 0,
             backgroundColor: isUser ? '#fff' : '#f5f5f5',
             borderRadius: 2,
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'

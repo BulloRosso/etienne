@@ -10,6 +10,7 @@ import { norm, safeRoot } from './utils/path.utils';
 import { extractText, parseSession, parseUsage, createJsonLineParser } from './parsers/stream-parser';
 import { buildClaudeScript } from './builders/script-builder';
 import { ClaudeConfig } from './config/claude.config';
+import { ChatPersistence } from './chat.persistence';
 
 @Injectable()
 export class ClaudeService {
@@ -111,6 +112,30 @@ export class ClaudeService {
     return { success: true };
   }
 
+  public async getAssistant(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const assistantPath = join(root, 'data', 'assistant.json');
+
+    try {
+      const content = await fs.readFile(assistantPath, 'utf8');
+      return JSON.parse(content);
+    } catch {
+      return { assistant: { greeting: '' } };
+    }
+  }
+
+  public async getChatHistory(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const historyPath = join(root, 'data', 'chat.history.json');
+
+    try {
+      const content = await fs.readFile(historyPath, 'utf8');
+      return JSON.parse(content);
+    } catch {
+      return { messages: [] };
+    }
+  }
+
   public async getFilesystem(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
 
@@ -196,6 +221,7 @@ export class ClaudeService {
 
         let usage: Usage = {};
         let announcedSession = false;
+        let assistantText = '';
 
         // Announce existing session immediately if resuming
         if (sessionId) {
@@ -203,7 +229,12 @@ export class ClaudeService {
           announcedSession = true;
         }
 
-        const emitText = (s: string) => { if (s) observer.next({ type: 'stdout', data: { chunk: s } }); };
+        const emitText = (s: string) => {
+          if (s) {
+            assistantText += s;
+            observer.next({ type: 'stdout', data: { chunk: s } });
+          }
+        };
 
         const onJsonLine = (evt: ClaudeEvent) => {
           if (evt.type === 'system') {
@@ -236,12 +267,40 @@ export class ClaudeService {
 
         const flushLines = createJsonLineParser(emitText, onJsonLine);
 
-        child.stdout.on('data', (b) => flushLines(b.toString('utf8')));
+        child.stdout.on('data', (b) => {
+          const chunk = b.toString('utf8');
+          flushLines(chunk);
+        });
         child.stderr.on('data', (b) => emitText(b.toString('utf8')));
 
         child.on('close', async (code) => {
           clearTimeout(killTimer);
           await watcher.close().catch(() => void 0);
+
+          // Persist chat messages
+          try {
+            const chatPersistence = new ChatPersistence(projectRoot);
+            const timestamp = new Date().toISOString();
+
+            await chatPersistence.appendMessages([
+              {
+                timestamp,
+                isAgent: false,
+                message: prompt,
+                costs: undefined
+              },
+              {
+                timestamp,
+                isAgent: true,
+                message: assistantText,
+                costs: usage
+              }
+            ]);
+          } catch (err) {
+            // Don't fail the request if persistence fails
+            console.error('Failed to persist chat history:', err);
+          }
+
           observer.next({ type: 'completed', data: { exitCode: code ?? 0, usage } });
           observer.complete();
         });
