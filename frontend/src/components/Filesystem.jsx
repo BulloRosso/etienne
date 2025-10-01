@@ -58,11 +58,11 @@ export default function Filesystem({ projectName }) {
 
       const slots = isFolder
         ? {
-            expandIcon: () => <FolderOutlined />,
-            collapseIcon: () => <FolderOpenOutlined />
+            expandIcon: () => <FolderOutlined sx={{ color: '#999' }} />,
+            collapseIcon: () => <FolderOpenOutlined sx={{ color: '#999' }} />
           }
         : {
-            icon: () => <DescriptionOutlined />
+            icon: () => <DescriptionOutlined sx={{ color: '#999' }} />
           };
 
       return (
@@ -87,15 +87,15 @@ export default function Filesystem({ projectName }) {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '96%', p: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, height: '96%', p: 2, mr: '0px' }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      <Box sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1, overflow: 'auto', width: '100%', p: '20px' }}>
-        <SimpleTreeView>
+      <Box sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1, overflow: 'auto', p: '0px' }}>
+        <SimpleTreeView sx={{ fontSize: '90%', fontWeight: 300 }}>
           {renderTree(filterSystemFiles(tree))}
         </SimpleTreeView>
       </Box>
