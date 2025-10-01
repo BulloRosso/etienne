@@ -27,7 +27,6 @@ cd "${containerCwd}"
 
 "$CLAUDE_BIN" \\
   --print "$CLAUDE_PROMPT" \\
-  --append-system-prompt "$(cat "${containerCwd}/CLAUDE.md" 2>/dev/null || echo '')" \\
   --output-format stream-json \\
   --verbose \\
   --include-partial-messages \\

@@ -156,6 +156,7 @@ export class ClaudeService {
         const script = buildClaudeScript({ containerCwd, envHome, resumeArg });
         const args = [
           'exec',
+          '-w', containerCwd,
           '-e', `ANTHROPIC_API_KEY=${this.config.anthropicKey}`,
           '-e', `CLAUDE_PROMPT=${prompt}`,
           ...(sessionId ? ['-e', `SESSION_ID=${sessionId}`] : []),

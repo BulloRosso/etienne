@@ -5,7 +5,8 @@
       "Bash(git push:*)",
       "Bash(curl:*)",
       "Bash(docker exec:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

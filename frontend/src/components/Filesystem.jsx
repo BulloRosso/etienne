@@ -94,7 +94,7 @@ export default function Filesystem({ projectName }) {
         </Alert>
       )}
 
-      <Box sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1, overflow: 'auto', p: '0px' }}>
+      <Box sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1, overflow: 'auto', p: 1, mr: '0px' }}>
         <SimpleTreeView sx={{ fontSize: '90%', fontWeight: 300 }}>
           {renderTree(filterSystemFiles(tree))}
         </SimpleTreeView>
