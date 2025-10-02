@@ -27,4 +27,96 @@ export class ClaudeConfig {
       'NotebookEdit(${containerCwd}/out/**)',
     ];
   }
+
+  getActiveEventsHooks(projectName: string): any {
+    const createHookCommand = (eventType: string) =>
+      `jq -c '. + {event_type: "${eventType}", timestamp: (now | todate)}' | curl -X POST http://host.docker.internal:6060/api/interceptors/in -H 'Content-Type: application/json' -H 'X-Claude-Code-Project: ${projectName}' -H 'X-Claude-Event: ${eventType}' -d @- -s`;
+
+    return {
+      hooks: {
+        UserPromptSubmit: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('UserPromptSubmit')
+              }
+            ]
+          }
+        ],
+        PreToolUse: [
+          {
+            matcher: '',
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('PreToolUse')
+              }
+            ]
+          }
+        ],
+        PostToolUse: [
+          {
+            matcher: '',
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('PostToolUse')
+              }
+            ]
+          }
+        ],
+        Notification: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('Notification')
+              }
+            ]
+          }
+        ],
+        Stop: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('Stop')
+              }
+            ]
+          }
+        ],
+        SubagentStop: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('SubagentStop')
+              }
+            ]
+          }
+        ],
+        PreCompact: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('PreCompact')
+              }
+            ]
+          }
+        ],
+        SessionStart: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: createHookCommand('SessionStart')
+              }
+            ]
+          }
+        ]
+      }
+    };
+  }
 }

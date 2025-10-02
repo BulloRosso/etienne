@@ -4,6 +4,7 @@ import FilesPanel from './FilesPanel';
 import Strategy from './Strategy';
 import Filesystem from './Filesystem';
 import PermissionList from './PermissionList';
+import Interceptors from './Interceptors';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -27,6 +28,7 @@ export default function ArtifactsPane({ files, projectName }) {
         <Tab label="Strategy" />
         <Tab label="Filesystem" />
         <Tab label="Permissions" />
+        <Tab label="Interceptors" />
       </Tabs>
       <TabPanel value={tabValue} index={0}>
         <FilesPanel files={files} />
@@ -39,6 +41,9 @@ export default function ArtifactsPane({ files, projectName }) {
       </TabPanel>
       <TabPanel value={tabValue} index={3}>
         <PermissionList projectName={projectName} />
+      </TabPanel>
+      <TabPanel value={tabValue} index={4}>
+        <Interceptors projectName={projectName} />
       </TabPanel>
     </Box>
   );

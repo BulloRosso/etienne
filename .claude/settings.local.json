@@ -6,7 +6,11 @@
       "Bash(curl:*)",
       "Bash(docker exec:*)",
       "Bash(npm install)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(dir C:DataGitHubclaude-multitenant)",
+      "Bash(timeout:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []

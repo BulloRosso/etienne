@@ -21,8 +21,20 @@ export class ClaudeService {
     const root = safeRoot(this.config.hostRoot, projectDir);
     await fs.mkdir(join(root, 'data'), { recursive: true });
     await fs.mkdir(join(root, 'out'), { recursive: true });
+    await fs.mkdir(join(root, '.claude'), { recursive: true });
+
     const cm = join(root, 'CLAUDE.md');
     try { await fs.access(cm); } catch { await fs.writeFile(cm, `# ${projectDir}\n`); }
+
+    // Create .claude/settings.json with interceptor hooks
+    const settingsPath = join(root, '.claude', 'settings.json');
+    try {
+      await fs.access(settingsPath);
+    } catch {
+      const hooksConfig = this.config.getActiveEventsHooks(projectDir);
+      await fs.writeFile(settingsPath, JSON.stringify(hooksConfig, null, 2), 'utf8');
+    }
+
     return root;
   }
 
