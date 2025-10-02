@@ -50,3 +50,12 @@ export class GetAssistantDto {
 export class GetChatHistoryDto {
   @IsString() @IsNotEmpty() projectName!: string;
 }
+
+export class GetMcpConfigDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+}
+
+export class SaveMcpConfigDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+  @IsNotEmpty() mcpServers!: Record<string, any>;
+}

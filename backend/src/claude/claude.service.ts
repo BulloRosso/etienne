@@ -148,6 +148,27 @@ export class ClaudeService {
     }
   }
 
+  public async getMcpConfig(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const mcpConfigPath = join(root, '.mcp.json');
+
+    try {
+      const content = await fs.readFile(mcpConfigPath, 'utf8');
+      const parsed = JSON.parse(content);
+      return parsed;
+    } catch {
+      return { mcpServers: {} };
+    }
+  }
+
+  public async saveMcpConfig(projectDir: string, mcpServers: Record<string, any>) {
+    const root = await this.ensureProject(projectDir);
+    const mcpConfigPath = join(root, '.mcp.json');
+
+    await fs.writeFile(mcpConfigPath, JSON.stringify({ mcpServers }, null, 2), 'utf8');
+    return { success: true };
+  }
+
   public async getFilesystem(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
 

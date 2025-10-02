@@ -5,6 +5,7 @@ import Strategy from './Strategy';
 import Filesystem from './Filesystem';
 import PermissionList from './PermissionList';
 import Interceptors from './Interceptors';
+import MCPServerConfiguration from './MCPServerConfiguration';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -28,6 +29,7 @@ export default function ArtifactsPane({ files, projectName }) {
         <Tab label="Strategy" />
         <Tab label="Filesystem" />
         <Tab label="Permissions" />
+        <Tab label="MCP" />
         <Tab label="Interceptors" />
       </Tabs>
       <TabPanel value={tabValue} index={0}>
@@ -43,6 +45,9 @@ export default function ArtifactsPane({ files, projectName }) {
         <PermissionList projectName={projectName} />
       </TabPanel>
       <TabPanel value={tabValue} index={4}>
+        <MCPServerConfiguration projectName={projectName} />
+      </TabPanel>
+      <TabPanel value={tabValue} index={5}>
         <Interceptors projectName={projectName} />
       </TabPanel>
     </Box>

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Query, Sse } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { ClaudeService } from './claude.service';
-import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto } from './dto';
+import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
 
 @Controller('api/claude')
 export class ClaudeController {
@@ -39,6 +39,12 @@ export class ClaudeController {
 
   @Post('chat/history')
   getChatHistory(@Body() dto: GetChatHistoryDto) { return this.svc.getChatHistory(dto.projectName); }
+
+  @Post('mcp/config')
+  getMcpConfig(@Body() dto: GetMcpConfigDto) { return this.svc.getMcpConfig(dto.projectName); }
+
+  @Post('mcp/config/save')
+  saveMcpConfig(@Body() dto: SaveMcpConfigDto) { return this.svc.saveMcpConfig(dto.projectName, dto.mcpServers); }
 
   @Sse('streamPrompt')
   streamPrompt(@Query('project_dir') projectDir: string, @Query('prompt') prompt: string): Observable<MessageEvent> {
