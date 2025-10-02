@@ -39,7 +39,7 @@ export default function Filesystem({ projectName }) {
 
     return nodes.filter(node => {
       // Filter out CLAUDE.md in root and data folder
-      if (node.label === 'CLAUDE.md' || node.label === 'data') {
+      if (node.label === 'CLAUDE.md' || node.label === 'data' || node.label === '.claude') {
         return false;
       }
 
