@@ -9,14 +9,139 @@ export default function App() {
   const [project, setProject] = useState('demo1');
   const [streaming, setStreaming] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [structuredMessages, setStructuredMessages] = useState([]);
   const [files, setFiles] = useState([]);
   const [sessionId, setSessionId] = useState('');
 
   const esRef = useRef(null);
+  const interceptorEsRef = useRef(null);
   const currentMessageRef = useRef(null);
   const currentUsageRef = useRef(null);
+  const activeToolCallsRef = useRef(new Map());
 
-  useEffect(() => () => { esRef.current?.close(); }, []);
+  useEffect(() => () => {
+    esRef.current?.close();
+    interceptorEsRef.current?.close();
+  }, []);
+
+  // Connect to interceptors SSE stream
+  useEffect(() => {
+    if (!project) return;
+
+    // Close existing connection
+    if (interceptorEsRef.current) {
+      interceptorEsRef.current.close();
+    }
+
+    const es = new EventSource(`/api/interceptors/stream/${project}`);
+    interceptorEsRef.current = es;
+
+    es.addEventListener('interceptor', (e) => {
+      const event = JSON.parse(e.data);
+
+      // Log ALL interceptor events for debugging
+      console.log('Interceptor event:', event.type, event.data);
+
+      // Handle hooks (PreToolUse, PostToolUse)
+      if (event.type === 'hook') {
+        const hookData = event.data;
+        const eventType = hookData.event_type;
+
+        // Log for debugging
+        console.log('Hook event:', eventType, hookData);
+
+        if (eventType === 'PreToolUse') {
+          // Tool call started
+          const toolName = hookData.tool_name;
+          const toolInput = hookData.tool_input;
+
+          if (!toolName) {
+            console.warn('Could not find tool_name in PreToolUse hook:', hookData);
+            return;
+          }
+
+          const callId = `tool_${hookData.timestamp || Date.now()}`;
+          activeToolCallsRef.current.set(callId, {
+            toolName,
+            args: toolInput,
+            timestamp: hookData.timestamp || Date.now()
+          });
+
+          setStructuredMessages(prev => [...prev, {
+            id: callId,
+            type: 'tool_call',
+            toolName,
+            args: toolInput,
+            status: 'running',
+            callId
+          }]);
+        } else if (eventType === 'PostToolUse') {
+          // Tool call completed
+          const toolName = hookData.tool_name;
+          const toolResponse = hookData.tool_response;
+
+          if (!toolName) {
+            console.warn('Could not find tool_name in PostToolUse hook:', hookData);
+            return;
+          }
+
+          // Find the matching PreToolUse
+          const matchingCall = Array.from(activeToolCallsRef.current.entries())
+            .find(([_, data]) => data.toolName === toolName);
+
+          if (matchingCall) {
+            const [callId] = matchingCall;
+            activeToolCallsRef.current.delete(callId);
+
+            // Extract result from tool_response if it's an object
+            // For TodoWrite, pass the entire response object
+            let result;
+            if (toolName === 'TodoWrite' && toolResponse) {
+              result = toolResponse;
+            } else {
+              result = toolResponse?.result || toolResponse?.output || JSON.stringify(toolResponse) || 'Completed';
+            }
+
+            setStructuredMessages(prev => prev.map(msg =>
+              msg.callId === callId
+                ? { ...msg, status: 'complete', result, args: toolName === 'TodoWrite' ? toolResponse : msg.args }
+                : msg
+            ));
+          } else {
+            console.warn('Could not find matching PreToolUse for PostToolUse:', toolName);
+          }
+        }
+      } else if (event.type === 'event') {
+        // Handle other events (Notification, UserPromptSubmit, etc.)
+        const eventData = event.data;
+        const eventType = eventData.event_type;
+
+        console.log('Event (not hook):', eventType, eventData);
+
+        // Check if this is a permission-related notification
+        if (eventType === 'Notification' && eventData.message) {
+          const msg = eventData.message.toLowerCase();
+          if (msg.includes('permission') || msg.includes('allow') || msg.includes('grant')) {
+            // This might be a permission request
+            setStructuredMessages(prev => [...prev, {
+              id: `perm_${Date.now()}`,
+              type: 'permission_request',
+              permissionId: `perm_${Date.now()}`,
+              message: eventData.message
+            }]);
+          }
+        }
+      }
+    });
+
+    es.onerror = () => {
+      console.error('Interceptor SSE connection error');
+    };
+
+    return () => {
+      es.close();
+    };
+  }, [project]);
 
   // Load initial project data
   useEffect(() => {
@@ -85,6 +210,8 @@ export default function App() {
     setStreaming(true);
     currentMessageRef.current = { role: 'assistant', text: '', timestamp: formatTime() };
     currentUsageRef.current = null;
+    activeToolCallsRef.current.clear(); // Clear any pending tool calls
+    setStructuredMessages([]); // Clear previous structured messages
 
     // Ensure project file exists
     await fetch(`/api/claude/addFile`, {
@@ -180,6 +307,7 @@ export default function App() {
   const handleProjectChange = async (newProject) => {
     setProject(newProject);
     setMessages([]);
+    setStructuredMessages([]);
     setFiles([]);
     setSessionId('');
     esRef.current?.close();
@@ -256,7 +384,7 @@ export default function App() {
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
-          left={<ChatPane messages={messages} onSendMessage={handleSendMessage} streaming={streaming} />}
+          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} />}
           right={<ArtifactsPane files={files} projectName={project} />}
         />
       </Box>

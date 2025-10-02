@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 import { posixProjectPath } from '../common/path.util';
 import { Usage, MessageEvent, ClaudeEvent } from './types';
 import { norm, safeRoot } from './utils/path.utils';
-import { extractText, parseSession, parseUsage, createJsonLineParser } from './parsers/stream-parser';
+import { extractText, parseSession, parseUsage, createJsonLineParser, ClaudeCodeStructuredParser } from './parsers/stream-parser';
 import { buildClaudeScript } from './builders/script-builder';
 import { ClaudeConfig } from './config/claude.config';
 import { ChatPersistence } from './chat.persistence';
@@ -256,6 +256,9 @@ export class ClaudeService {
         let announcedSession = false;
         let assistantText = '';
 
+        // Initialize structured parser
+        const structuredParser = new ClaudeCodeStructuredParser();
+
         // Announce existing session immediately if resuming
         if (sessionId) {
           observer.next({ type: 'session', data: { session_id: sessionId, model: undefined } });
@@ -266,6 +269,12 @@ export class ClaudeService {
           if (s) {
             assistantText += s;
             observer.next({ type: 'stdout', data: { chunk: s } });
+
+            // Parse for structured events
+            const structuredEvents = structuredParser.parseChunk(s);
+            for (const evt of structuredEvents) {
+              observer.next({ type: evt.type as any, data: evt });
+            }
           }
         };
 

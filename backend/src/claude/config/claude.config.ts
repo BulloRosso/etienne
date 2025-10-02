@@ -15,6 +15,7 @@ export class ClaudeConfig {
     this.defaultAllowedTools = [
       'Task',
       'WebFetch',
+      'WebSearch',
       'Bash(curl:*)',
       'Read(${containerCwd}/**)',
       'Bash(python3:*)',
