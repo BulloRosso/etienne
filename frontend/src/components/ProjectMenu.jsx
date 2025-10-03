@@ -11,14 +11,17 @@ import {
   TextField,
   Button,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Box,
+  Typography
 } from '@mui/material';
-import { Menu as MenuIcon, Folder, Add } from '@mui/icons-material';
+import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close } from '@mui/icons-material';
 
 export default function ProjectMenu({ currentProject, onProjectChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
 
   useEffect(() => {
@@ -77,6 +80,15 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
     }
   };
 
+  const handleAboutOpen = () => {
+    setAboutOpen(true);
+    handleMenuClose();
+  };
+
+  const handleAboutClose = () => {
+    setAboutOpen(false);
+  };
+
   return (
     <>
       <IconButton
@@ -100,6 +112,16 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
           horizontal: 'right',
         }}
       >
+        <MenuItem onClick={handleAboutOpen}>
+          <ListItemIcon>
+            <InfoOutlined fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>About...</ListItemText>
+        </MenuItem>
+        <Divider />
+        <MenuItem disabled sx={{ opacity: '1 !important' }}>
+          <ListItemText>Choose project:</ListItemText>
+        </MenuItem>
         {projects.map((project) => (
           <MenuItem
             key={project}
@@ -107,7 +129,7 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
             selected={project === currentProject}
           >
             <ListItemIcon>
-              <Folder fontSize="small" />
+              <FolderOutlined fontSize="small" />
             </ListItemIcon>
             <ListItemText>{project}</ListItemText>
           </MenuItem>
@@ -115,7 +137,7 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
         <Divider />
         <MenuItem onClick={handleNewProject}>
           <ListItemIcon>
-            <Add fontSize="small" />
+            <AddOutlined fontSize="small" />
           </ListItemIcon>
           <ListItemText>New Project</ListItemText>
         </MenuItem>
@@ -142,6 +164,41 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
           <Button onClick={handleDialogClose}>Cancel</Button>
           <Button onClick={handleCreateProject} variant="contained">Create</Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog open={aboutOpen} onClose={handleAboutClose} maxWidth="md" >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          About Etienne
+          <IconButton onClick={handleAboutClose} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center', p: 2 }}>
+            <Box sx={{ flex: '0 0 auto' }}>
+              <img
+                src="/etienne-logo.png"
+                alt="Etienne Logo"
+                style={{ height: '400px', width: 'auto' }}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography>
+                <strong>Headless Claude Code</strong>
+                <br />
+                A learner project for AI system engineers.
+              </Typography>
+              <Box component="ul" sx={{ color: 'text.secondary', mt: 2, pl: 2 }}>
+                <li>see hooks and events in action</li>
+                <li>learn how to build a live preview</li>
+                <li>play around with permissions</li>
+                <li>understand multi-tenant project organization</li>
+                <li>manage content in the Claude workspace</li>
+                <li>observe session management files</li>
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
       </Dialog>
     </>
   );

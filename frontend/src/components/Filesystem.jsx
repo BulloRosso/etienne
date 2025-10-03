@@ -87,7 +87,7 @@ export default function Filesystem({ projectName }) {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, height: '96%', p: 2, mr: '0px' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', p: 2, mr: '0px' }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}

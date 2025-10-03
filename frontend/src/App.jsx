@@ -79,10 +79,24 @@ export default function App() {
           // Tool call completed
           const toolName = hookData.tool_name;
           const toolResponse = hookData.tool_response;
+          const toolInput = hookData.tool_input;
 
           if (!toolName) {
             console.warn('Could not find tool_name in PostToolUse hook:', hookData);
             return;
+          }
+
+          // Dispatch claudeHook event for file operations
+          const fileOperationTools = ['Edit', 'Write', 'NotebookEdit'];
+          if (fileOperationTools.includes(toolName) && toolInput?.file_path) {
+            const claudeHookEvent = new CustomEvent('claudeHook', {
+              detail: {
+                hook: 'PostHook',
+                file: toolInput.file_path
+              }
+            });
+            window.dispatchEvent(claudeHookEvent);
+            console.log('Dispatched claudeHook for file:', toolInput.file_path);
           }
 
           // Find the matching PreToolUse
