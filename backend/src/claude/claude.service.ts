@@ -35,6 +35,19 @@ export class ClaudeService {
       await fs.writeFile(settingsPath, JSON.stringify(hooksConfig, null, 2), 'utf8');
     }
 
+    // Create data/assistant.json with initial greeting
+    const assistantPath = join(root, 'data', 'assistant.json');
+    try {
+      await fs.access(assistantPath);
+    } catch {
+      const assistantConfig = {
+        assistant: {
+          greeting: 'Welcome to your new Etienne project. Please **change the system prompt** before we begin - for example give this agent the role web designer or spreadsheet expert.'
+        }
+      };
+      await fs.writeFile(assistantPath, JSON.stringify(assistantConfig, null, 2), 'utf8');
+    }
+
     return root;
   }
 
