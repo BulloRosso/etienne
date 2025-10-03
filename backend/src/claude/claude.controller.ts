@@ -47,7 +47,12 @@ export class ClaudeController {
   saveMcpConfig(@Body() dto: SaveMcpConfigDto) { return this.svc.saveMcpConfig(dto.projectName, dto.mcpServers); }
 
   @Sse('streamPrompt')
-  streamPrompt(@Query('project_dir') projectDir: string, @Query('prompt') prompt: string): Observable<MessageEvent> {
-    return this.svc.streamPrompt(projectDir, prompt);
+  streamPrompt(
+    @Query('project_dir') projectDir: string,
+    @Query('prompt') prompt: string,
+    @Query('agentMode') agentMode?: string,
+    @Query('aiModel') aiModel?: string
+  ): Observable<MessageEvent> {
+    return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel);
   }
 }

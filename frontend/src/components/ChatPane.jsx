@@ -9,11 +9,9 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import { StructuredMessage } from './StructuredMessage';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming, mode, onModeChange, aiModel, onAiModelChange }) {
   const messagesEndRef = useRef(null);
-  const [mode, setMode] = useState('work'); // 'work' or 'planning'
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [aiModel, setAiModel] = useState('claude'); // 'claude' or 'openai'
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,13 +28,12 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
   };
 
   const handleModeChange = (event, newMode) => {
-    if (newMode !== null) {
-      setMode(newMode);
+    if (newMode !== null && onModeChange) {
+      onModeChange(newMode);
     }
   };
 
   const handleSettingsSave = () => {
-    // TODO: Save settings to backend
     console.log('Settings saved:', { aiModel });
     setSettingsOpen(false);
   };
@@ -81,7 +78,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               }
             }}
           >
-            <ToggleButton value="planning" title="Planning Mode">
+            <ToggleButton value="plan" title="Planning Mode">
               <LuBrain size={16} />
             </ToggleButton>
             <ToggleButton value="work" title="Work Mode">
@@ -196,8 +193,8 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               value={aiModel}
               exclusive
               onChange={(e, newModel) => {
-                if (newModel !== null) {
-                  setAiModel(newModel);
+                if (newModel !== null && onAiModelChange) {
+                  onAiModelChange(newModel);
                 }
               }}
               fullWidth
@@ -210,7 +207,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                 }
               }}
             >
-              <ToggleButton value="claude">
+              <ToggleButton value="anthropic">
                 Anthropic Claude 4.5
               </ToggleButton>
               <ToggleButton value="openai">

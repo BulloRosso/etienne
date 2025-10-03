@@ -220,7 +220,7 @@ export class ClaudeService {
   }
 
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error
-  streamPrompt(projectDir: string, prompt: string): Observable<MessageEvent> {
+  streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string): Observable<MessageEvent> {
     return new Observable<MessageEvent>((observer) => {
       const run = async () => {
         const projectRoot = await this.ensureProject(projectDir);
@@ -249,17 +249,27 @@ export class ClaudeService {
         // Load permissions
         const { allowedTools } = await this.getPermissions(projectDir);
 
+        // Determine planning mode
+        const planningMode = agentMode === 'plan';
+
         // Build script and docker args
-        const script = buildClaudeScript({ containerCwd, envHome, resumeArg, allowedTools });
+        const script = buildClaudeScript({ containerCwd, envHome, resumeArg, allowedTools, planningMode });
         const args = [
           'exec',
           '-w', containerCwd,
           '-e', `ANTHROPIC_API_KEY=${this.config.anthropicKey}`,
           '-e', `CLAUDE_PROMPT=${prompt}`,
           ...(sessionId ? ['-e', `SESSION_ID=${sessionId}`] : []),
-          this.config.container,
-          'bash', '-lc', script
         ];
+
+        // Add OpenAI environment variables if using OpenAI model
+        if (aiModel === 'openai') {
+          args.push('-e', `OPENAI_API_KEY=${process.env.OPENAI_API_KEY || ''}`);
+          args.push('-e', `CLAUDE_MODEL=${process.env.CLAUDE_MODEL || 'openai/gpt-5-mini'}`);
+          args.push('-e', `OPENAI_BASE_URL=${process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'}`);
+        }
+
+        args.push(this.config.container, 'bash', '-lc', script);
 
         // Spawn docker process
         const child = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });

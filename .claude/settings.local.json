@@ -10,7 +10,8 @@
       "Bash(dir C:DataGitHubclaude-multitenant)",
       "Bash(timeout:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

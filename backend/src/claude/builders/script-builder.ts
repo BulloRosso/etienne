@@ -3,14 +3,17 @@ export interface ScriptOptions {
   envHome: string;
   resumeArg: string;
   allowedTools: string[];
+  planningMode?: boolean;
 }
 
 export function buildClaudeScript(options: ScriptOptions): string {
-  const { containerCwd, envHome, resumeArg, allowedTools } = options;
+  const { containerCwd, envHome, resumeArg, allowedTools, planningMode } = options;
 
   const allowedToolsArgs = allowedTools
     .map(tool => `  --allowedTools "${tool}"`)
     .join(' \\\n');
+
+  const planningArg = planningMode ? '--permission-mode plan\\' : '';
 
   return `set -euo pipefail
 export PATH="/usr/local/share/npm-global/bin:/usr/local/bin:/usr/bin:$PATH"
@@ -40,6 +43,7 @@ cd "$containerCwd"
   --include-partial-messages \\
   --permission-mode acceptEdits \\
 ${allowedToolsArgs} \\
+  ${planningArg}
   ${resumeArg}
 `;
 }

@@ -12,6 +12,8 @@ export default function App() {
   const [structuredMessages, setStructuredMessages] = useState([]);
   const [files, setFiles] = useState([]);
   const [sessionId, setSessionId] = useState('');
+  const [mode, setMode] = useState('work'); // 'plan' or 'work'
+  const [aiModel, setAiModel] = useState('anthropic'); // 'anthropic' or 'openai'
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -238,6 +240,8 @@ export default function App() {
     const url = new URL(`/api/claude/streamPrompt`, window.location.origin);
     url.searchParams.set('project_dir', project);
     url.searchParams.set('prompt', messageText);
+    url.searchParams.set('agentMode', mode);
+    url.searchParams.set('aiModel', aiModel);
 
     const es = new EventSource(url.toString());
     esRef.current = es;
@@ -398,7 +402,7 @@ export default function App() {
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
-          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} />}
+          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} />}
           right={<ArtifactsPane files={files} projectName={project} />}
         />
       </Box>
