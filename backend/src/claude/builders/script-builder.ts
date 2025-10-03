@@ -13,7 +13,7 @@ export function buildClaudeScript(options: ScriptOptions): string {
     .map(tool => `  --allowedTools "${tool}"`)
     .join(' \\\n');
 
-  const planningArg = planningMode ? '--permission-mode plan\\' : '';
+  const permissionMode = planningMode ? 'plan' : 'acceptEdits';
 
   return `set -euo pipefail
 export PATH="/usr/local/share/npm-global/bin:/usr/local/bin:/usr/bin:$PATH"
@@ -41,9 +41,8 @@ cd "$containerCwd"
   --output-format stream-json \\
   --verbose \\
   --include-partial-messages \\
-  --permission-mode acceptEdits \\
+  --permission-mode ${permissionMode} \\
 ${allowedToolsArgs} \\
-  ${planningArg}
   ${resumeArg}
 `;
 }

@@ -195,6 +195,7 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
                 <li>understand multi-tenant project organization</li>
                 <li>manage content in the Claude workspace</li>
                 <li>observe session management files</li>
+                <li>use local or OpenAI reference via the integrated model proxy</li>
               </Box>
             </Box>
           </Box>

@@ -264,9 +264,10 @@ export class ClaudeService {
 
         // Add OpenAI environment variables if using OpenAI model
         if (aiModel === 'openai') {
-          args.push('-e', `OPENAI_API_KEY=${process.env.OPENAI_API_KEY || ''}`);
-          args.push('-e', `CLAUDE_MODEL=${process.env.CLAUDE_MODEL || 'openai/gpt-5-mini'}`);
-          args.push('-e', `OPENAI_BASE_URL=${process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'}`);
+          console.log(`🔄 Using OpenAI proxy: ${process.env.ANTHROPIC_BASE_URL} → ${process.env.ANTHROPIC_MODEL}`);
+          args.push('-e', `ANTHROPIC_BASE_URL=${process.env.ANTHROPIC_BASE_URL || 'https://api.openai.com/v1'}`);
+          args.push('-e', `ANTHROPIC_AUTH_TOKEN=${process.env.ANTHROPIC_AUTH_TOKEN || process.env.OPENAI_API_KEY || ''}`);
+          args.push('-e', `ANTHROPIC_MODEL=${process.env.ANTHROPIC_MODEL || 'gpt-4o-mini'}`);
         }
 
         args.push(this.config.container, 'bash', '-lc', script);
