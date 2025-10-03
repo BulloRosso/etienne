@@ -174,12 +174,12 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center', p: 2 }}>
+          <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', p: 2 }}>
             <Box sx={{ flex: '0 0 auto' }}>
               <img
                 src="/etienne-logo.png"
                 alt="Etienne Logo"
-                style={{ height: '400px', width: 'auto' }}
+                style={{ height: '220px', width: 'auto' }}
               />
             </Box>
             <Box sx={{ flex: 1 }}>
@@ -197,6 +197,11 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
                 <li>observe session management files</li>
                 <li>use local or OpenAI reference via the integrated model proxy</li>
               </Box>
+              <img
+                src="/building-blocks.jpg"
+                alt="Building Blocks"
+                style={{ height: '300px', width: 'auto', marginTop: '16px' }}
+              />
             </Box>
           </Box>
         </DialogContent>
