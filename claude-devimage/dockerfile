@@ -1,24 +1,3 @@
-# Claude Multi-Tenant
-
-## Components
-
-* /frontend contains the React/Vite/Typescript browser frontend running on :5000
-* /backend contains the nest.js/node.js 20 API backend running on :6060
-* a docker image name claude-code contains the latest Claude Code developer image
-
-The goal of the the project is to manage isolated projects in a central mounted volume /workspace with a single Docker container.
-
-### How to start claude code container
-```bash
-docker run -it \
-  --name claude-code \
-  -v C:/Data/GitHub/claude-multitenant/workspace:/workspace \
-  -e ANTHROPIC_API_KEY=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 \
-  claude-code
-```
-
-### claude-code docker file
-```
 FROM node:20
 
 ARG TZ
@@ -118,4 +97,3 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
   chmod 0440 /etc/sudoers.d/node-firewall
 USER node
-```
