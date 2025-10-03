@@ -44,7 +44,7 @@ export default function ArtifactsPane({ files, projectName }) {
         </Tooltip>
       </Box>
       <TabPanel value={tabValue} index={0}>
-        <FilesPanel files={files} />
+        <FilesPanel files={files} projectName={projectName} />
       </TabPanel>
       <TabPanel value={tabValue} index={1}>
         <Strategy projectName={projectName} />

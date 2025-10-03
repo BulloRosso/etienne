@@ -3,8 +3,10 @@ import { ClaudeController } from './claude/claude.controller';
 import { ClaudeService } from './claude/claude.service';
 import { InterceptorsController } from './interceptors/interceptors.controller';
 import { InterceptorsService } from './interceptors/interceptors.service';
+import { ContentManagementModule } from './content-management/content-management.module';
 
 @Module({
+  imports: [ContentManagementModule],
   controllers: [ClaudeController, InterceptorsController],
   providers: [ClaudeService, InterceptorsService],
 })
