@@ -5,6 +5,7 @@ import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import CloudDownloadOutlinedIcon from '@mui/icons-material/CloudDownloadOutlined';
+import TerminalIcon from '@mui/icons-material/Terminal';
 
 // Tool icon mapping
 const TOOL_ICONS = {
@@ -13,6 +14,7 @@ const TOOL_ICONS = {
   'Edit': EditOutlinedIcon,
   'WebSearch': SearchOutlinedIcon,
   'WebFetch': CloudDownloadOutlinedIcon,
+  'Bash': TerminalIcon,
 };
 
 // Tool call component - compact version

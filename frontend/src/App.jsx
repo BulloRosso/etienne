@@ -368,7 +368,7 @@ export default function App() {
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" sx={{ zIndex: 10 }}>
         <Toolbar>
-          <Typography variant="h6">Assistant Tester: Multi Project Separation</Typography>
+          <Typography variant="h6">Etienne: Headless Claude Code</Typography>
           <Box sx={{ flexGrow: 1 }} />
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
             [{project}]
