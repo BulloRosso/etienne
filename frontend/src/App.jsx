@@ -14,6 +14,10 @@ export default function App() {
   const [sessionId, setSessionId] = useState('');
   const [mode, setMode] = useState('work'); // 'plan' or 'work'
   const [aiModel, setAiModel] = useState('anthropic'); // 'anthropic' or 'openai'
+  const [showBackgroundInfo, setShowBackgroundInfo] = useState(() => {
+    const saved = localStorage.getItem('showBackgroundInfo');
+    return saved === 'true' ? true : false;
+  });
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -215,6 +219,13 @@ export default function App() {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
+  const handleShowBackgroundInfoChange = (value) => {
+    setShowBackgroundInfo(value);
+    localStorage.setItem('showBackgroundInfo', value.toString());
+    // Clear the closed toasts state so all toasts can be shown again
+    localStorage.removeItem('closedBackgroundInfo');
+  };
+
   const handleSendMessage = async (messageText) => {
     // Add user message
     setMessages(prev => [...prev, {
@@ -402,8 +413,8 @@ export default function App() {
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
-          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} />}
-          right={<ArtifactsPane files={files} projectName={project} />}
+          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} />}
+          right={<ArtifactsPane files={files} projectName={project} showBackgroundInfo={showBackgroundInfo} />}
         />
       </Box>
     </Box>

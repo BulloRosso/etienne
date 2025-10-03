@@ -2,15 +2,20 @@ import React from 'react';
 import { List, ListItem, ListItemText, Box, Typography } from '@mui/material';
 import { CiFileOn } from 'react-icons/ci';
 import LiveHTMLPreview from './LiveHTMLPreview';
+import BackgroundInfo from './BackgroundInfo';
 
-export default function FilesPanel({ files, projectName }) {
+export default function FilesPanel({ files, projectName, showBackgroundInfo }) {
   const isHtmlFile = (filename) => {
     return filename && (filename.endsWith('.html') || filename.endsWith('.htm'));
   };
 
   return (
-    <List dense sx={{ height: '100%', overflow: 'auto' }}>
-      {files.map(f => (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 2, pb: 0 }}>
+        <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
+      </Box>
+      <List dense sx={{ flex: 1, overflow: 'auto' }}>
+        {files.map(f => (
         <ListItem key={f.path} alignItems="flex-start" sx={{ display: 'block' }}>
           {isHtmlFile(f.path) ? (
             <Box sx={{ width: '100%', mb: 2 }}>
@@ -46,6 +51,7 @@ export default function FilesPanel({ files, projectName }) {
           )}
         </ListItem>
       ))}
-    </List>
+      </List>
+    </Box>
   );
 }

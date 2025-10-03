@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, IconButton, Modal, Typography, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Box, IconButton, Modal, Typography, Button, ToggleButton, ToggleButtonGroup, FormControlLabel, Checkbox } from '@mui/material';
 import { LuBrain } from "react-icons/lu";
 import { HiOutlineWrench } from "react-icons/hi2";
 import { GiSettingsKnobs } from "react-icons/gi";
@@ -9,7 +9,7 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import { StructuredMessage } from './StructuredMessage';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming, mode, onModeChange, aiModel, onAiModelChange }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange }) {
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -199,6 +199,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               }}
               fullWidth
               sx={{
+                mb: 3,
                 '& .MuiToggleButton-root.Mui-selected': {
                   backgroundColor: '#bbdefb',
                   '&:hover': {
@@ -214,6 +215,23 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                 OpenAI GPT-5
               </ToggleButton>
             </ToggleButtonGroup>
+
+            <Typography variant="body1" sx={{ mb: 1 }}>
+              Display Options
+            </Typography>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showBackgroundInfo}
+                  onChange={(e) => {
+                    if (onShowBackgroundInfoChange) {
+                      onShowBackgroundInfoChange(e.target.checked);
+                    }
+                  }}
+                />
+              }
+              label="Show background info"
+            />
           </Box>
 
           {/* Modal Footer */}

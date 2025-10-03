@@ -19,8 +19,9 @@ import {
 } from '@mui/material';
 import { Save, Add, Delete, Edit as EditIcon, Check, Close } from '@mui/icons-material';
 import axios from 'axios';
+import BackgroundInfo from './BackgroundInfo';
 
-export default function MCPServerConfiguration({ projectName }) {
+export default function MCPServerConfiguration({ projectName, showBackgroundInfo }) {
   const [servers, setServers] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -164,6 +165,7 @@ export default function MCPServerConfiguration({ projectName }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '96%', p: 2 }}>
+      <BackgroundInfo infoId="integrations" showBackgroundInfo={showBackgroundInfo} />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}

@@ -20,7 +20,7 @@ function TabPanel({ children, value, index }) {
   );
 }
 
-export default function ArtifactsPane({ files, projectName }) {
+export default function ArtifactsPane({ files, projectName, showBackgroundInfo }) {
   const [tabValue, setTabValue] = useState(0);
   const [filesystemDrawerOpen, setFilesystemDrawerOpen] = useState(false);
 
@@ -44,19 +44,19 @@ export default function ArtifactsPane({ files, projectName }) {
         </Tooltip>
       </Box>
       <TabPanel value={tabValue} index={0}>
-        <FilesPanel files={files} projectName={projectName} />
+        <FilesPanel files={files} projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
       </TabPanel>
       <TabPanel value={tabValue} index={1}>
-        <Strategy projectName={projectName} />
+        <Strategy projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
       </TabPanel>
       <TabPanel value={tabValue} index={2}>
-        <PermissionList projectName={projectName} />
+        <PermissionList projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
       </TabPanel>
       <TabPanel value={tabValue} index={3}>
-        <MCPServerConfiguration projectName={projectName} />
+        <MCPServerConfiguration projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
       </TabPanel>
       <TabPanel value={tabValue} index={4}>
-        <Interceptors projectName={projectName} />
+        <Interceptors projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
       </TabPanel>
 
       <Drawer
@@ -71,7 +71,7 @@ export default function ArtifactsPane({ files, projectName }) {
         }}
       >
         <Box sx={{ height: '100%', overflow: 'auto' }}>
-          <Filesystem projectName={projectName} />
+          <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
         </Box>
       </Drawer>
     </Box>

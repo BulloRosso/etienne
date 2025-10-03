@@ -15,8 +15,9 @@ import {
   Typography
 } from '@mui/material';
 import axios from 'axios';
+import BackgroundInfo from './BackgroundInfo';
 
-export default function Interceptors({ projectName }) {
+export default function Interceptors({ projectName, showBackgroundInfo }) {
   const [mode, setMode] = useState('events'); // 'events' or 'hooks'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +146,7 @@ export default function Interceptors({ projectName }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '96%', p: 2 }}>
+      <BackgroundInfo infoId="interceptors" showBackgroundInfo={showBackgroundInfo} />
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
         <ToggleButtonGroup
           value={mode}

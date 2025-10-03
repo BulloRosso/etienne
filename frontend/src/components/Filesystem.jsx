@@ -7,8 +7,9 @@ import FolderOutlined from '@mui/icons-material/FolderOutlined';
 import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
 import axios from 'axios';
+import BackgroundInfo from './BackgroundInfo';
 
-export default function Filesystem({ projectName }) {
+export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -88,6 +89,7 @@ export default function Filesystem({ projectName }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', p: 2, mr: '0px' }}>
+      <BackgroundInfo infoId="filesystem" showBackgroundInfo={showBackgroundInfo} />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
