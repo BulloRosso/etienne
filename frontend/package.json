@@ -10,6 +10,7 @@
     "@emotion/styled": "^11.14.1",
     "@monaco-editor/react": "^4.6.0",
     "@mui/icons-material": "^7.3.2",
+    "@mui/lab": "^7.0.1-beta.18",
     "@mui/material": "^7.3.2",
     "@mui/x-tree-view": "^7.22.2",
     "axios": "^1.7.9",

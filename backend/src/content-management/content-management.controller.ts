@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Put, Param, Res, Body, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ContentManagementService } from './content-management.service';
 
 @Controller('api/workspace')
@@ -16,5 +17,62 @@ export class ContentManagementController {
 
     res.setHeader('Content-Type', mimeType);
     res.send(content);
+  }
+
+  @Delete(':project/files/*')
+  async deleteFile(
+    @Param('project') project: string,
+    @Param('0') filepath: string,
+  ) {
+    return await this.contentManagementService.deleteFileOrFolder(project, filepath);
+  }
+
+  @Post(':project/files/move')
+  async moveFile(
+    @Param('project') project: string,
+    @Body() body: { sourcePath: string; destinationPath: string }
+  ) {
+    return await this.contentManagementService.moveFileOrFolder(
+      project,
+      body.sourcePath,
+      body.destinationPath
+    );
+  }
+
+  @Put(':project/files/rename')
+  async renameFile(
+    @Param('project') project: string,
+    @Body() body: { filepath: string; newName: string }
+  ) {
+    return await this.contentManagementService.renameFileOrFolder(
+      project,
+      body.filepath,
+      body.newName
+    );
+  }
+
+  @Post(':project/files/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(
+    @Param('project') project: string,
+    @Body() body: { filepath: string },
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return await this.contentManagementService.uploadFile(
+      project,
+      body.filepath,
+      file.buffer
+    );
+  }
+
+  @Post(':project/files/create-folder')
+  async createFolder(
+    @Param('project') project: string,
+    @Body() body: { folderPath: string }
+  ) {
+    return await this.contentManagementService.createFolder(
+      project,
+      body.folderPath
+    );
   }
 }
