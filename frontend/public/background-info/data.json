@@ -17,7 +17,7 @@
     },
     {
       "infoId": "integrations",
-      "content": "**Integrations** configure Model Context Protocol (MCP) servers that extend Claude's capabilities. MCP servers can provide additional tools, resources, and prompts to Claude through standardized interfaces. You can connect to servers via STDIO (local processes) or HTTP/SSE (remote services). Each integration requires proper authentication and configuration to work correctly.",
+      "content": "**Integrations** configure Model Context Protocol (**MCP**) servers that extend Eteinnes's capabilities by connecting to external data/systems. \n\r There is sample implementation available on https://host.docker.internal:6060/mcp and /sse which returns items of a pet store.",
       "icon": "react-icons/md"
     },
     {

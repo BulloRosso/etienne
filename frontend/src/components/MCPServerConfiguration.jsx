@@ -15,26 +15,38 @@ import {
   TextField,
   Select,
   MenuItem,
-  FormControl
+  FormControl,
+  Tooltip
 } from '@mui/material';
-import { Save, Add, Delete, Edit as EditIcon, Check, Close } from '@mui/icons-material';
+import { Add, Delete, Edit as EditIcon, Check, Close, Key } from '@mui/icons-material';
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function MCPServerConfiguration({ projectName, showBackgroundInfo }) {
   const [servers, setServers] = useState({});
+  const [originalServers, setOriginalServers] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [editingKey, setEditingKey] = useState(null);
   const [editValue, setEditValue] = useState(null);
-  const [newServer, setNewServer] = useState({ name: '', transport: 'stdio', url: '', command: '', args: '', auth: '' });
+  const [newServer, setNewServer] = useState({ name: '', transport: 'http', url: '', command: '', args: '', auth: '' });
   const [hoveredKey, setHoveredKey] = useState(null);
+  const [nameError, setNameError] = useState('');
 
   useEffect(() => {
     loadConfig();
   }, [projectName]);
+
+  // Validate server name: only lowercase, numbers, underscore, and hyphen
+  const validateServerName = (name) => {
+    const validPattern = /^[a-z0-9_-]+$/;
+    return validPattern.test(name);
+  };
+
+  // Check if there are unsaved changes
+  const hasChanges = JSON.stringify(servers) !== JSON.stringify(originalServers);
 
   const loadConfig = async () => {
     setLoading(true);
@@ -43,7 +55,9 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       const response = await axios.post('/api/claude/mcp/config', {
         projectName
       });
-      setServers(response.data.mcpServers || {});
+      const loadedServers = response.data.mcpServers || {};
+      setServers(loadedServers);
+      setOriginalServers(loadedServers);
     } catch (err) {
       setError('Failed to load MCP configuration');
       console.error('Load MCP config error:', err);
@@ -61,6 +75,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
         projectName,
         mcpServers: servers
       });
+      setOriginalServers(servers); // Update original after successful save
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -72,23 +87,34 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
   };
 
   const handleAdd = () => {
-    if (newServer.name.trim()) {
-      const serverConfig = {};
+    const trimmedName = newServer.name.trim();
 
-      if (newServer.transport === 'stdio') {
-        serverConfig.command = newServer.command || 'npx';
-        serverConfig.args = newServer.args ? newServer.args.split(' ').filter(a => a) : [];
-      } else {
-        serverConfig.type = newServer.transport;
-        serverConfig.url = newServer.url;
-        if (newServer.auth) {
-          serverConfig.headers = { Authorization: newServer.auth };
-        }
-      }
-
-      setServers({ ...servers, [newServer.name.trim()]: serverConfig });
-      setNewServer({ name: '', transport: 'stdio', url: '', command: '', args: '', auth: '' });
+    if (!trimmedName) {
+      setNameError('Server name is required');
+      return;
     }
+
+    if (!validateServerName(trimmedName)) {
+      setNameError('Server name can only contain lowercase letters, numbers, underscores, and hyphens');
+      return;
+    }
+
+    setNameError('');
+    const serverConfig = {};
+
+    if (newServer.transport === 'stdio') {
+      serverConfig.command = newServer.command || 'npx';
+      serverConfig.args = newServer.args ? newServer.args.split(' ').filter(a => a) : [];
+    } else {
+      serverConfig.type = newServer.transport;
+      serverConfig.url = newServer.url;
+      if (newServer.auth) {
+        serverConfig.headers = { Authorization: newServer.auth };
+      }
+    }
+
+    setServers({ ...servers, [trimmedName]: serverConfig });
+    setNewServer({ name: '', transport: 'http', url: '', command: '', args: '', auth: '' });
   };
 
   const handleDelete = (key) => {
@@ -112,27 +138,36 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
   };
 
   const handleSaveEdit = () => {
-    if (editValue.name.trim()) {
-      const serverConfig = {};
+    const trimmedName = editValue.name.trim();
 
-      if (editValue.transport === 'stdio') {
-        serverConfig.command = editValue.command || 'npx';
-        serverConfig.args = editValue.args ? editValue.args.split(' ').filter(a => a) : [];
-      } else {
-        serverConfig.type = editValue.transport;
-        serverConfig.url = editValue.url;
-        if (editValue.auth) {
-          serverConfig.headers = { Authorization: editValue.auth };
-        }
-      }
-
-      const updated = { ...servers };
-      if (editingKey !== editValue.name) {
-        delete updated[editingKey];
-      }
-      updated[editValue.name.trim()] = serverConfig;
-      setServers(updated);
+    if (!trimmedName) {
+      return;
     }
+
+    if (!validateServerName(trimmedName)) {
+      setError('Server name can only contain lowercase letters, numbers, underscores, and hyphens');
+      return;
+    }
+
+    const serverConfig = {};
+
+    if (editValue.transport === 'stdio') {
+      serverConfig.command = editValue.command || 'npx';
+      serverConfig.args = editValue.args ? editValue.args.split(' ').filter(a => a) : [];
+    } else {
+      serverConfig.type = editValue.transport;
+      serverConfig.url = editValue.url;
+      if (editValue.auth) {
+        serverConfig.headers = { Authorization: editValue.auth };
+      }
+    }
+
+    const updated = { ...servers };
+    if (editingKey !== trimmedName) {
+      delete updated[editingKey];
+    }
+    updated[trimmedName] = serverConfig;
+    setServers(updated);
     setEditingKey(null);
     setEditValue(null);
   };
@@ -184,7 +219,11 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
               <TableCell><strong>Name</strong></TableCell>
               <TableCell><strong>Transport</strong></TableCell>
               <TableCell><strong>URL/CMD</strong></TableCell>
-              <TableCell><strong>Auth</strong></TableCell>
+              <TableCell>
+                <Tooltip title="Authentication key/credentials">
+                  <Key fontSize="small" />
+                </Tooltip>
+              </TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -317,7 +356,12 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                   size="small"
                   placeholder="Server name..."
                   value={newServer.name}
-                  onChange={(e) => setNewServer({ ...newServer, name: e.target.value })}
+                  onChange={(e) => {
+                    setNewServer({ ...newServer, name: e.target.value });
+                    setNameError('');
+                  }}
+                  error={!!nameError}
+                  helperText={nameError}
                 />
               </TableCell>
               <TableCell>
@@ -382,9 +426,8 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Button
           variant="contained"
-          startIcon={<Save />}
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !hasChanges}
         >
           {saving ? 'Saving...' : 'Save'}
         </Button>

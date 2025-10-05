@@ -117,13 +117,29 @@ export class ClaudeService {
   public async getPermissions(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
     const permissionsPath = join(root, 'data', 'permissions.json');
+    const settingsJsonPath = join(root, '.claude', 'settings.json');
 
+    // Load base permissions from permissions.json
+    let basePermissions: string[];
     try {
       const content = await fs.readFile(permissionsPath, 'utf8');
       const parsed = JSON.parse(content);
-      return { allowedTools: parsed.allowedTools || this.config.defaultAllowedTools };
+      basePermissions = parsed.allowedTools || this.config.defaultAllowedTools;
     } catch {
-      return { allowedTools: this.config.defaultAllowedTools };
+      basePermissions = this.config.defaultAllowedTools;
+    }
+
+    // Load MCP permissions from settings.json and merge
+    try {
+      const settingsContent = await fs.readFile(settingsJsonPath, 'utf8');
+      const settingsJson = JSON.parse(settingsContent);
+      const mcpPermissions = (settingsJson.allowedTools || []).filter((tool: string) => tool.startsWith('mcp__'));
+
+      // Merge: base permissions + MCP permissions
+      return { allowedTools: [...basePermissions, ...mcpPermissions] };
+    } catch {
+      // If settings.json doesn't exist or has no MCP permissions, just return base
+      return { allowedTools: basePermissions };
     }
   }
 
@@ -183,11 +199,19 @@ export class ClaudeService {
     // Update .claude/.claude.json with enabled MCP servers
     await this.updateClaudeJsonServers(projectDir, mcpServers);
 
+    // Force new session by deleting session ID so MCP config is loaded
+    const sessionPath = join(root, 'data', 'session.id');
+    try {
+      await fs.unlink(sessionPath);
+    } catch {
+      // Session file might not exist yet - that's OK
+    }
+
     return { success: true };
   }
 
   /**
-   * Update enabledMcpjsonServers in .claude/settings.json
+   * Update enabledMcpjsonServers and allowedTools in .claude/settings.json
    */
   private async updateClaudeJsonServers(projectDir: string, mcpServers: Record<string, any>): Promise<void> {
     const root = safeRoot(this.config.hostRoot, projectDir);
@@ -209,6 +233,18 @@ export class ClaudeService {
 
       // Update enabledMcpjsonServers with server names
       settingsJson.enabledMcpjsonServers = serverNames;
+
+      // Update allowedTools to grant permission for all MCP server tools
+      // Format: "mcp__servername" grants all tools from that server
+      const existingAllowedTools = settingsJson.allowedTools || [];
+
+      // Filter out old MCP permissions (those starting with "mcp__")
+      const nonMcpTools = existingAllowedTools.filter((tool: string) => !tool.startsWith('mcp__'));
+
+      // Add new MCP server permissions
+      const mcpServerPermissions = serverNames.map(serverName => `mcp__${serverName}`);
+
+      settingsJson.allowedTools = [...nonMcpTools, ...mcpServerPermissions];
 
       // Ensure .claude directory exists
       await fs.mkdir(join(root, '.claude'), { recursive: true });
