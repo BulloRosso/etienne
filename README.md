@@ -1,4 +1,4 @@
-# Etienne
+# Etienne - Headless Claude Code
 
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 
@@ -17,6 +17,8 @@ An example for learning the internals, integrations and configuration details of
 ## SETUP
 
 ### API Keys
+We use **Anthropic Sonnet 4.5** via an console account (default). If you want to switch to OpenAI then you need to add an OpenAI API account and your preferred model as well.
+
 You need to create an .env file inside the backend directory:
 ```
 # Anthropic API Key (used for direct Claude API calls)
@@ -53,4 +55,4 @@ cd frontend
 npm i
 npm run dev
 ```
-The open your browser with http://localhost:5000
+Then **open your browser** with http://localhost:5000
