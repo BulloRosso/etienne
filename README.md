@@ -1,6 +1,6 @@
 # Etienne
 
-[[/docs/images/etienne-logo.jpg|Etienne Logo]]
+[![/docs/images/etienne-logo.jpg|Etienne Logo]]
 
 How to use Claude Code 2.0 in non-interactive mode to build a agent engine for virtual collaborator use cases.
 
