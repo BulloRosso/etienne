@@ -12,7 +12,16 @@
       "Bash(npm run build:*)",
       "Bash(npm run:*)",
       "Bash(npm install:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(test:*)",
+      "Bash(cat:*)",
+      "Bash(/dev/null)",
+      "Bash(npx tsc:*)",
+      "Bash(awk:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

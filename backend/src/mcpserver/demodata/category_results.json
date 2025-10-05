@@ -1,0 +1,259 @@
+{
+  "categories": [
+    {
+      "name": "birds",
+      "items": [
+        {
+          "sku": "BRD-001",
+          "title": "Yellow Cockatiel",
+          "description": "Friendly birds with an attitude. These charming cockatiels are known for their playful personalities and beautiful yellow crests.",
+          "price_euro": 95,
+          "items_available": 3,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Nymphicus_hollandicus_-perching_on_a_branch-8a.jpg/320px-Nymphicus_hollandicus_-perching_on_a_branch-8a.jpg"
+        },
+        {
+          "sku": "BRD-002",
+          "title": "African Grey Parrot",
+          "description": "Highly intelligent and talkative parrots. Known for their exceptional ability to mimic human speech and solve puzzles.",
+          "price_euro": 120,
+          "items_available": 2,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Red_Factor_African_Grey_Parrot.jpg/320px-Red_Factor_African_Grey_Parrot.jpg"
+        },
+        {
+          "sku": "BRD-003",
+          "title": "Budgerigar (Budgie)",
+          "description": "Small, colorful, and social parakeets perfect for beginners. Easy to care for and delightful companions.",
+          "price_euro": 25,
+          "items_available": 12,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Melopsittacus_undulatus_-budgerigar_sitting.jpg/320px-Melopsittacus_undulatus_-budgerigar_sitting.jpg"
+        },
+        {
+          "sku": "BRD-004",
+          "title": "Lovebird Pair",
+          "description": "Affectionate and vibrant small parrots that bond strongly with their partners. Sold as bonded pairs.",
+          "price_euro": 75,
+          "items_available": 4,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Agapornis_roseicollis_-bird_in_cage-8a.jpg/320px-Agapornis_roseicollis_-bird_in_cage-8a.jpg"
+        },
+        {
+          "sku": "BRD-005",
+          "title": "Canary",
+          "description": "Beautiful singing birds with melodious voices. Perfect for those who enjoy bird song.",
+          "price_euro": 45,
+          "items_available": 8,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Serinus_canaria_-Parque_Rural_del_Nublo%2C_Gran_Canaria%2C_Spain_-male-8.jpg/320px-Serinus_canaria_-Parque_Rural_del_Nublo%2C_Gran_Canaria%2C_Spain_-male-8.jpg"
+        },
+        {
+          "sku": "BRD-006",
+          "title": "Zebra Finch",
+          "description": "Hardy and social small birds with distinctive zebra-like markings. Great for small aviaries.",
+          "price_euro": 18,
+          "items_available": 15,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Taeniopygia_guttata_-Bird_Kingdom%2C_Niagara_Falls%2C_Ontario%2C_Canada_-pair-8a.jpg/320px-Taeniopygia_guttata_-Bird_Kingdom%2C_Niagara_Falls%2C_Ontario%2C_Canada_-pair-8a.jpg"
+        },
+        {
+          "sku": "BRD-007",
+          "title": "Blue Macaw",
+          "description": "Stunning large parrots with brilliant blue plumage. Intelligent and require experienced handlers.",
+          "price_euro": 115,
+          "items_available": 1,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Hyacinth_Macaw_2.jpg/320px-Hyacinth_Macaw_2.jpg"
+        },
+        {
+          "sku": "BRD-008",
+          "title": "Green Parakeet",
+          "description": "Vibrant green parakeets with playful dispositions. Enjoy social interaction and learning tricks.",
+          "price_euro": 55,
+          "items_available": 6,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Psittacula_krameri_-eating_seeds-8a.jpg/320px-Psittacula_krameri_-eating_seeds-8a.jpg"
+        },
+        {
+          "sku": "BRD-009",
+          "title": "Diamond Dove",
+          "description": "Gentle and quiet doves perfect for peaceful environments. Easy to care for and beautiful to watch.",
+          "price_euro": 35,
+          "items_available": 7,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Diamond_Dove_%28Geopelia_cuneata%29.jpg/320px-Diamond_Dove_%28Geopelia_cuneata%29.jpg"
+        },
+        {
+          "sku": "BRD-010",
+          "title": "Conure",
+          "description": "Energetic and colorful medium-sized parrots. Very social and love to play and interact.",
+          "price_euro": 85,
+          "items_available": 5,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Aratinga_solstitialis_-pet-8a.jpg/320px-Aratinga_solstitialis_-pet-8a.jpg"
+        }
+      ]
+    },
+    {
+      "name": "cats",
+      "items": [
+        {
+          "sku": "CAT-001",
+          "title": "Persian Kitten",
+          "description": "Fluffy long-haired kittens with sweet, gentle personalities. Known for their luxurious coats and calm demeanor.",
+          "price_euro": 110,
+          "items_available": 2,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Doll_face_silver_Persian.jpg/320px-Doll_face_silver_Persian.jpg"
+        },
+        {
+          "sku": "CAT-002",
+          "title": "British Shorthair",
+          "description": "Stocky and round-faced cats with plush coats. Easy-going and great with families.",
+          "price_euro": 95,
+          "items_available": 4,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Britishblue.jpg/320px-Britishblue.jpg"
+        },
+        {
+          "sku": "CAT-003",
+          "title": "Siamese Cat",
+          "description": "Elegant cats with striking blue eyes and color-pointed coats. Very vocal and social.",
+          "price_euro": 88,
+          "items_available": 3,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Siam_lilacpoint.jpg/320px-Siam_lilacpoint.jpg"
+        },
+        {
+          "sku": "CAT-004",
+          "title": "Maine Coon",
+          "description": "Large, friendly cats with tufted ears and bushy tails. Gentle giants of the cat world.",
+          "price_euro": 118,
+          "items_available": 2,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Maine_Coon_cat_by_Tomitheos.JPG/320px-Maine_Coon_cat_by_Tomitheos.JPG"
+        },
+        {
+          "sku": "CAT-005",
+          "title": "Domestic Shorthair Kitten",
+          "description": "Adorable mixed breed kittens with diverse colors and patterns. Healthy and playful companions.",
+          "price_euro": 45,
+          "items_available": 8,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Kittyply_edit1.jpg/320px-Kittyply_edit1.jpg"
+        },
+        {
+          "sku": "CAT-006",
+          "title": "Ragdoll Cat",
+          "description": "Docile and affectionate cats that go limp when picked up. Perfect lap cats with beautiful blue eyes.",
+          "price_euro": 105,
+          "items_available": 3,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Ragdoll_from_Gatil_Ragbelas.jpg/320px-Ragdoll_from_Gatil_Ragbelas.jpg"
+        },
+        {
+          "sku": "CAT-007",
+          "title": "Bengal Kitten",
+          "description": "Wild-looking cats with leopard-like spots. Active, playful, and athletic companions.",
+          "price_euro": 115,
+          "items_available": 2,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Paintedcats_Red_Star_standing.jpg/320px-Paintedcats_Red_Star_standing.jpg"
+        },
+        {
+          "sku": "CAT-008",
+          "title": "Scottish Fold",
+          "description": "Unique cats with folded ears and round faces. Sweet-natured and adaptable to various living situations.",
+          "price_euro": 98,
+          "items_available": 3,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Adult_Scottish_Fold.jpg/320px-Adult_Scottish_Fold.jpg"
+        },
+        {
+          "sku": "CAT-009",
+          "title": "Russian Blue",
+          "description": "Elegant grey cats with emerald green eyes. Quiet, intelligent, and form strong bonds with owners.",
+          "price_euro": 92,
+          "items_available": 4,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Russian_Blue_001.jpg/320px-Russian_Blue_001.jpg"
+        },
+        {
+          "sku": "CAT-010",
+          "title": "Tabby Cat",
+          "description": "Classic striped or spotted cats with M-shaped forehead markings. Friendly and adaptable personalities.",
+          "price_euro": 38,
+          "items_available": 10,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Orange_tabby_cat_sitting_on_fallen_leaves-Hisashi-01A.jpg/320px-Orange_tabby_cat_sitting_on_fallen_leaves-Hisashi-01A.jpg"
+        }
+      ]
+    },
+    {
+      "name": "dogs",
+      "items": [
+        {
+          "sku": "DOG-001",
+          "title": "Golden Retriever Puppy",
+          "description": "Friendly and intelligent puppies known for their gentle temperament. Perfect family dogs.",
+          "price_euro": 112,
+          "items_available": 3,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Golden_Retriever_with_tennis_ball.jpg/320px-Golden_Retriever_with_tennis_ball.jpg"
+        },
+        {
+          "sku": "DOG-002",
+          "title": "French Bulldog",
+          "description": "Compact, muscular dogs with bat-like ears. Affectionate, playful, and great for apartment living.",
+          "price_euro": 118,
+          "items_available": 2,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/2008-07-28_Dog_at_Frolick_Field.jpg/320px-2008-07-28_Dog_at_Frolick_Field.jpg"
+        },
+        {
+          "sku": "DOG-003",
+          "title": "Beagle Puppy",
+          "description": "Small to medium-sized hounds with excellent sense of smell. Curious, friendly, and energetic.",
+          "price_euro": 78,
+          "items_available": 5,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Beagle_600.jpg/320px-Beagle_600.jpg"
+        },
+        {
+          "sku": "DOG-004",
+          "title": "German Shepherd",
+          "description": "Intelligent and versatile working dogs. Loyal, confident, and excellent guardians.",
+          "price_euro": 105,
+          "items_available": 3,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/German_Shepherd_-_DSC_0346_%2810096362833%29.jpg/320px-German_Shepherd_-_DSC_0346_%2810096362833%29.jpg"
+        },
+        {
+          "sku": "DOG-005",
+          "title": "Labrador Retriever",
+          "description": "Outgoing and friendly dogs that make wonderful companions. Great with children and easy to train.",
+          "price_euro": 95,
+          "items_available": 4,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Labrador_on_Quantock_%282175262184%29.jpg/320px-Labrador_on_Quantock_%282175262184%29.jpg"
+        },
+        {
+          "sku": "DOG-006",
+          "title": "Pomeranian",
+          "description": "Small, fluffy dogs with fox-like faces. Vivacious, bold, and love to be the center of attention.",
+          "price_euro": 68,
+          "items_available": 6,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Pomeranian_orange-sable_Coco.jpg/320px-Pomeranian_orange-sable_Coco.jpg"
+        },
+        {
+          "sku": "DOG-007",
+          "title": "Dachshund (Miniature)",
+          "description": "Long-bodied, short-legged dogs with playful personalities. Clever, lively, and courageous.",
+          "price_euro": 72,
+          "items_available": 4,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Dachshund_brown_puppy.jpg/320px-Dachshund_brown_puppy.jpg"
+        },
+        {
+          "sku": "DOG-008",
+          "title": "Shih Tzu",
+          "description": "Toy dogs with long, flowing coats. Affectionate, outgoing, and bred to be companion animals.",
+          "price_euro": 82,
+          "items_available": 5,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Shih_Tzu_in_Tallinn.JPG/320px-Shih_Tzu_in_Tallinn.JPG"
+        },
+        {
+          "sku": "DOG-009",
+          "title": "Border Collie Puppy",
+          "description": "Highly intelligent herding dogs with intense focus. Athletic, energetic, and excel at dog sports.",
+          "price_euro": 88,
+          "items_available": 3,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Border_Collie_600.jpg/320px-Border_Collie_600.jpg"
+        },
+        {
+          "sku": "DOG-010",
+          "title": "Cocker Spaniel",
+          "description": "Medium-sized sporting dogs with silky coats. Gentle, happy, and make wonderful family pets.",
+          "price_euro": 79,
+          "items_available": 4,
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Cocker_spaniel_called_Tony.jpg/320px-Cocker_spaniel_called_Tony.jpg"
+        }
+      ]
+    }
+  ]
+}
