@@ -35,7 +35,7 @@ OPENAI_API_KEY=sk-proj-...MsA
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-## Install Claude Code 2.0 inside a docker container
+### Install Claude Code 2.0 inside a docker container
 The name of the container needs to be claude-code (this is the entrypoint for the backend).
 You will find a dockerfile with pre-installed python and pip libs in this project - this enables your agents to write and
 execute Python 3.x scripts when solving problems.
