@@ -1,6 +1,6 @@
 # Etienne
 
-![Etienne Logo](/docs/images/etienne-logo.png)
+<img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="300">
 
 How to use Claude Code 2.0 in non-interactive mode to build a agent engine for virtual collaborator use cases.
 
