@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import chokidar from 'chokidar';
 import { join } from 'path';
 import { Observable } from 'rxjs';
+import axios from 'axios';
 import { posixProjectPath } from '../common/path.util';
 import { Usage, MessageEvent, ClaudeEvent } from './types';
 import { norm, safeRoot } from './utils/path.utils';
@@ -295,7 +296,7 @@ export class ClaudeService {
   }
 
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error
-  streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string): Observable<MessageEvent> {
+  streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string, memoryEnabled?: boolean): Observable<MessageEvent> {
     return new Observable<MessageEvent>((observer) => {
       const run = async () => {
         const projectRoot = await this.ensureProject(projectDir);
@@ -304,6 +305,36 @@ export class ClaudeService {
 
         if (!containerCwd.startsWith('/') || !envHome.startsWith('/')) {
           throw new Error(`invalid container paths: cwd=${containerCwd} home=${envHome}`);
+        }
+
+        // Memory integration
+        let enhancedPrompt = prompt;
+        const userId = 'user'; // Default user ID for single-user system
+
+        if (memoryEnabled) {
+          try {
+            const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
+
+            // Search for relevant memories
+            const searchResponse = await axios.post(
+              `${memoryBaseUrl}/search?project=${encodeURIComponent(projectDir)}`,
+              {
+                query: prompt,
+                user_id: userId,
+                limit: 5
+              }
+            );
+
+            const memories = searchResponse.data.results || [];
+
+            if (memories.length > 0) {
+              const memoryContext = memories.map((m: any) => m.memory).join('\n- ');
+              enhancedPrompt = `[Context from previous conversations:\n- ${memoryContext}]\n\n${prompt}`;
+            }
+          } catch (error: any) {
+            console.error('Failed to fetch memories:', error.message);
+            // Continue without memories on error
+          }
         }
 
         const sessionPath = join(projectRoot, 'data', 'session.id');
@@ -333,7 +364,7 @@ export class ClaudeService {
           'exec',
           '-w', containerCwd,
           '-e', `ANTHROPIC_API_KEY=${this.config.anthropicKey}`,
-          '-e', `CLAUDE_PROMPT=${prompt}`,
+          '-e', `CLAUDE_PROMPT=${enhancedPrompt}`,
           ...(sessionId ? ['-e', `SESSION_ID=${sessionId}`] : []),
         ];
 
@@ -440,6 +471,32 @@ export class ClaudeService {
           } catch (err) {
             // Don't fail the request if persistence fails
             console.error('Failed to persist chat history:', err);
+          }
+
+          // Extract and store memories if enabled
+          if (memoryEnabled && assistantText) {
+            try {
+              const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
+
+              await axios.post(
+                `${memoryBaseUrl}?project=${encodeURIComponent(projectDir)}`,
+                {
+                  messages: [
+                    { role: 'user', content: prompt },
+                    { role: 'assistant', content: assistantText }
+                  ],
+                  user_id: userId,
+                  metadata: {
+                    session_id: sessionId,
+                    source: 'chat',
+                    timestamp: new Date().toISOString()
+                  }
+                }
+              );
+            } catch (error: any) {
+              console.error('Failed to store memories:', error.message);
+              // Don't fail the request if memory storage fails
+            }
           }
 
           observer.next({ type: 'completed', data: { exitCode: code ?? 0, usage } });

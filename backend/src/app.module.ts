@@ -6,9 +6,10 @@ import { InterceptorsService } from './interceptors/interceptors.service';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { ModelProxyModule } from './modelproxy/modelproxy.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
+import { MemoriesModule } from './memories/memories.module';
 
 @Module({
-  imports: [ContentManagementModule, ModelProxyModule, McpServerModule],
+  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule],
   controllers: [ClaudeController, InterceptorsController],
   providers: [ClaudeService, InterceptorsService],
 })

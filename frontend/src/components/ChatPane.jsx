@@ -12,6 +12,10 @@ import { StructuredMessage } from './StructuredMessage';
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange }) {
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [memoryEnabled, setMemoryEnabled] = useState(() => {
+    const saved = localStorage.getItem('memoryEnabled');
+    return saved === 'true';
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -217,6 +221,26 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             </ToggleButtonGroup>
 
             <Typography variant="body1" sx={{ mb: 1 }}>
+              Features
+            </Typography>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={memoryEnabled}
+                  onChange={(e) => {
+                    const value = e.target.checked;
+                    setMemoryEnabled(value);
+                    localStorage.setItem('memoryEnabled', value.toString());
+                    // Dispatch custom event for same-window storage changes
+                    window.dispatchEvent(new Event('memoryChanged'));
+                  }}
+                />
+              }
+              label="Long Term Memory"
+              sx={{ mb: 1 }}
+            />
+
+            <Typography variant="body1" sx={{ mb: 1, mt: 2 }}>
               Display Options
             </Typography>
             <FormControlLabel

@@ -51,8 +51,10 @@ export class ClaudeController {
     @Query('project_dir') projectDir: string,
     @Query('prompt') prompt: string,
     @Query('agentMode') agentMode?: string,
-    @Query('aiModel') aiModel?: string
+    @Query('aiModel') aiModel?: string,
+    @Query('memoryEnabled') memoryEnabled?: string
   ): Observable<MessageEvent> {
-    return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel);
+    const memoryEnabledBool = memoryEnabled === 'true';
+    return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel, memoryEnabledBool);
   }
 }

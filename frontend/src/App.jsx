@@ -254,6 +254,12 @@ export default function App() {
     url.searchParams.set('agentMode', mode);
     url.searchParams.set('aiModel', aiModel);
 
+    // Add memory enabled parameter
+    const memoryEnabled = localStorage.getItem('memoryEnabled') === 'true';
+    if (memoryEnabled) {
+      url.searchParams.set('memoryEnabled', 'true');
+    }
+
     const es = new EventSource(url.toString());
     esRef.current = es;
 
