@@ -1,12 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField } from '@mui/material';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
 import ProjectMenu from './components/ProjectMenu';
 import BudgetIndicator from './components/BudgetIndicator';
 import SchedulingOverview from './components/SchedulingOverview';
-import { TbCalendarTime } from 'react-icons/tb';
+import { TbCalendarTime, TbPresentation } from 'react-icons/tb';
+import { IoInformationCircle } from "react-icons/io5";
 
 export default function App() {
   const [project, setProject] = useState('demo1');
@@ -20,6 +21,8 @@ export default function App() {
   const [budgetSettings, setBudgetSettings] = useState({ enabled: false, limit: 0 });
   const [hasTasks, setHasTasks] = useState(false);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const [presentationText, setPresentationText] = useState('');
   const [showBackgroundInfo, setShowBackgroundInfo] = useState(() => {
     const saved = localStorage.getItem('showBackgroundInfo');
     return saved === 'true' ? true : false;
@@ -540,6 +543,15 @@ export default function App() {
             </IconButton>
           )}
           <Box sx={{ flexGrow: 1 }} />
+          <IconButton
+            color="inherit"
+            onClick={() => setPresentationOpen(true)}
+            sx={{ opacity: 0.5 }}
+            title="Presentation"
+          >
+            <TbPresentation size={24} />
+          </IconButton>
+          <Box sx={{ flexGrow: 1 }} />
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
             [{project}]
           </Typography>
@@ -573,6 +585,65 @@ export default function App() {
         }}
         project={project}
       />
+
+      <Modal
+        open={presentationOpen}
+        onClose={() => {
+          setPresentationOpen(false);
+          setPresentationText('');
+        }}
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          paddingTop: '30px'
+        }}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'transparent'
+          }
+        }}
+      >
+        <Box
+          sx={{
+            width: '70%',
+            height: '100px',
+            bgcolor: 'background.paper',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            outline: 'none',
+            borderRight: '6px solid darkorange',
+            padding: '0 20px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+          }}
+        >
+          <IoInformationCircle size={48} color="darkorange" style={{ marginRight: '20px', flexShrink: 0 }} />
+          <TextField
+            value={presentationText}
+            onChange={(e) => setPresentationText(e.target.value)}
+            variant="standard"
+            fullWidth
+            InputProps={{
+              disableUnderline: true,
+              style: {
+                textAlign: 'center',
+                color: 'darkorange',
+                fontSize: '2rem'
+              }
+            }}
+            inputProps={{
+              style: {
+                textAlign: 'center'
+              },
+              autoComplete: 'off',
+              autoCorrect: 'off',
+              autoCapitalize: 'off',
+              spellCheck: 'false'
+            }}
+          />
+        </Box>
+      </Modal>
     </Box>
   );
 }
