@@ -7,10 +7,12 @@ import { ContentManagementModule } from './content-management/content-management
 import { ModelProxyModule } from './modelproxy/modelproxy.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
 import { MemoriesModule } from './memories/memories.module';
+import { BudgetMonitoringModule } from './budget-monitoring/budget-monitoring.module';
+import { BudgetMonitoringService } from './budget-monitoring/budget-monitoring.service';
 
 @Module({
-  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule],
+  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule],
   controllers: [ClaudeController, InterceptorsController],
-  providers: [ClaudeService, InterceptorsService],
+  providers: [ClaudeService, InterceptorsService, BudgetMonitoringService],
 })
 export class AppModule {}

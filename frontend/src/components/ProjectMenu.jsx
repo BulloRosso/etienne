@@ -15,15 +15,18 @@ import {
   Box,
   Typography,
   Tabs,
-  Tab
+  Tab,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
-import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close } from '@mui/icons-material';
+import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
 
-export default function ProjectMenu({ currentProject, onProjectChange }) {
+export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [budgetSettingsOpen, setBudgetSettingsOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -93,6 +96,39 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
     setCurrentTab(0);
   };
 
+  const handleBudgetSettingsOpen = () => {
+    setBudgetSettingsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleBudgetSettingsClose = () => {
+    setBudgetSettingsOpen(false);
+  };
+
+  const handleBudgetToggle = async (event) => {
+    const enabled = event.target.checked;
+
+    try {
+      const response = await fetch(`/api/budget-monitoring/${currentProject}/settings`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          enabled,
+          limit: budgetSettings?.limit || 0
+        })
+      });
+
+      if (response.ok && onBudgetSettingsChange) {
+        onBudgetSettingsChange({
+          enabled,
+          limit: budgetSettings?.limit || 0
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update budget settings:', error);
+    }
+  };
+
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
   };
@@ -125,6 +161,12 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
             <InfoOutlined fontSize="small" />
           </ListItemIcon>
           <ListItemText>About...</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleBudgetSettingsOpen}>
+          <ListItemIcon>
+            <Assessment fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Budget Settings</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
@@ -249,6 +291,34 @@ export default function ProjectMenu({ currentProject, onProjectChange }) {
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={budgetSettingsOpen} onClose={handleBudgetSettingsClose} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Budget Monitoring
+          <IconButton onClick={handleBudgetSettingsClose} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={budgetSettings?.enabled || false}
+                  onChange={handleBudgetToggle}
+                />
+              }
+              label="Enable Budget Monitoring"
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              Track AI inference costs for this project
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleBudgetSettingsClose}>Close</Button>
+        </DialogActions>
       </Dialog>
     </>
   );

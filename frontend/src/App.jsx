@@ -4,6 +4,7 @@ import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
 import ProjectMenu from './components/ProjectMenu';
+import BudgetIndicator from './components/BudgetIndicator';
 
 export default function App() {
   const [project, setProject] = useState('demo1');
@@ -14,6 +15,7 @@ export default function App() {
   const [sessionId, setSessionId] = useState('');
   const [mode, setMode] = useState('work'); // 'plan' or 'work'
   const [aiModel, setAiModel] = useState('anthropic'); // 'anthropic' or 'openai'
+  const [budgetSettings, setBudgetSettings] = useState({ enabled: false, limit: 0 });
   const [showBackgroundInfo, setShowBackgroundInfo] = useState(() => {
     const saved = localStorage.getItem('showBackgroundInfo');
     return saved === 'true' ? true : false;
@@ -214,6 +216,24 @@ export default function App() {
     loadInitialData();
   }, []);
 
+  // Load budget settings when project changes
+  useEffect(() => {
+    const loadBudgetSettings = async () => {
+      try {
+        const response = await fetch(`/api/budget-monitoring/${project}/settings`);
+        const settings = await response.json();
+        setBudgetSettings(settings || { enabled: false, limit: 0 });
+      } catch (err) {
+        console.error('Failed to load budget settings:', err);
+        setBudgetSettings({ enabled: false, limit: 0 });
+      }
+    };
+
+    if (project) {
+      loadBudgetSettings();
+    }
+  }, [project]);
+
   const formatTime = () => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -394,6 +414,11 @@ export default function App() {
       });
 
       setMessages(loadedMessages);
+
+      // Load budget settings for the new project
+      const budgetRes = await fetch(`/api/budget-monitoring/${newProject}/settings`);
+      const budgetData = await budgetRes.json();
+      setBudgetSettings(budgetData || { enabled: false, limit: 0 });
     } catch (err) {
       console.error('Failed to load chat history:', err);
     }
@@ -404,6 +429,11 @@ export default function App() {
       <AppBar position="static" sx={{ zIndex: 10 }}>
         <Toolbar>
           <Typography variant="h6">Etienne: Headless Claude Code</Typography>
+          <BudgetIndicator
+            project={project}
+            budgetSettings={budgetSettings}
+            onSettingsChange={setBudgetSettings}
+          />
           <Box sx={{ flexGrow: 1 }} />
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
             [{project}]
@@ -413,7 +443,12 @@ export default function App() {
               Session: {sessionId}
             </Typography>
           )}
-          <ProjectMenu currentProject={project} onProjectChange={handleProjectChange} />
+          <ProjectMenu
+            currentProject={project}
+            onProjectChange={handleProjectChange}
+            budgetSettings={budgetSettings}
+            onBudgetSettingsChange={setBudgetSettings}
+          />
         </Toolbar>
       </AppBar>
 

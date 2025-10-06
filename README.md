@@ -33,6 +33,16 @@ ANTHROPIC_AUTH_TOKEN=sk-ant-api03-...AA
 # OpenAI API settings (used by our proxy service to call OpenAI)
 OPENAI_API_KEY=sk-proj-...MsA
 OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Memory Management Configuration
+MEMORY_MANAGEMENT_URL=http://localhost:6060/api/memories
+MEMORY_DECAY_DAYS=6
+WORKSPACE_ROOT=C:/Data/GitHub/claude-multitenant/workspace
+
+# Budget Control Configuration
+COSTS_CURRENCY_UNIT=EUR
+COSTS_PER_MIO_INPUT_TOKENS=3.0
+COSTS_PER_MIO_OUTPUT_TOKENS=15.0
 ```
 
 ### Install Claude Code 2.0 inside a docker container
@@ -114,3 +124,12 @@ Then **open your browser** with http://localhost:5000
 | `/api/memories/:user_id` | GET | Retrieves all memories for a user with optional limit. Applies memory decay filter based on configuration. |
 | `/api/memories/:memory_id` | DELETE | Deletes a specific memory by ID for a given user. |
 | `/api/memories` | DELETE | Deletes all memories for a specific user from the project. |
+
+### BudgetMonitoringController (`/api/budget-monitoring`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/budget-monitoring/:project/current` | GET | Returns current accumulated costs, number of requests, and currency for a project. Used to initialize the budget indicator. |
+| `/api/budget-monitoring/:project/all` | GET | Retrieves all cost entries from costs.json, sorted from newest to oldest. Each entry includes timestamp, tokens, request cost, and accumulated costs. |
+| `/api/budget-monitoring/:project/settings` | GET | Gets the budget monitoring settings (enabled status and limit) for a project. |
+| `/api/budget-monitoring/:project/settings` | POST | Saves budget monitoring settings (enabled/disabled and cost limit). Body: `{ enabled: boolean, limit: number }` |
+| `/api/budget-monitoring/:project/stream` | GET (SSE) | Streams real-time budget updates via Server-Sent Events. Emits events whenever costs are tracked after Claude Code responses. |

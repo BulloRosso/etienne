@@ -21,7 +21,9 @@
       "Bash(taskkill:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(tasklist)",
+      "Bash(npx kill-port:*)"
     ],
     "deny": [],
     "ask": []

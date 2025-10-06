@@ -12,11 +12,16 @@ import { extractText, parseSession, parseUsage, createJsonLineParser, ClaudeCode
 import { buildClaudeScript } from './builders/script-builder';
 import { ClaudeConfig } from './config/claude.config';
 import { ChatPersistence } from './chat.persistence';
+import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 
 @Injectable()
 export class ClaudeService {
   private readonly config = new ClaudeConfig();
   private queues = new Map<string, Promise<unknown>>();
+
+  constructor(
+    private readonly budgetMonitoringService: BudgetMonitoringService
+  ) {}
 
   private async ensureProject(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
@@ -471,6 +476,24 @@ export class ClaudeService {
           } catch (err) {
             // Don't fail the request if persistence fails
             console.error('Failed to persist chat history:', err);
+          }
+
+          // Track budget costs if we have token usage
+          if (usage.input_tokens && usage.output_tokens) {
+            try {
+              console.log(`Tracking costs for project ${projectDir}: ${usage.input_tokens} input, ${usage.output_tokens} output tokens`);
+              await this.budgetMonitoringService.trackCosts(
+                projectDir,
+                usage.input_tokens,
+                usage.output_tokens
+              );
+              console.log('Budget costs tracked successfully');
+            } catch (err) {
+              console.error('Failed to track budget costs:', err);
+              // Don't fail the request if budget tracking fails
+            }
+          } else {
+            console.log('No token usage data available for budget tracking:', usage);
           }
 
           // Extract and store memories if enabled (fire-and-forget)

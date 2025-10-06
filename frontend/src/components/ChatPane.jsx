@@ -182,7 +182,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             p: 2,
             borderBottom: '1px solid #e0e0e0'
           }}>
-            <Typography variant="h6">Settings</Typography>
+            <Typography variant="h6">AI Core Settings</Typography>
             <IconButton onClick={() => setSettingsOpen(false)} size="small">
               <IoClose size={20} />
             </IconButton>
