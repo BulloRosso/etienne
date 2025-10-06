@@ -473,30 +473,29 @@ export class ClaudeService {
             console.error('Failed to persist chat history:', err);
           }
 
-          // Extract and store memories if enabled
+          // Extract and store memories if enabled (fire-and-forget)
           if (memoryEnabled && assistantText) {
-            try {
-              const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
+            const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
 
-              await axios.post(
-                `${memoryBaseUrl}?project=${encodeURIComponent(projectDir)}`,
-                {
-                  messages: [
-                    { role: 'user', content: prompt },
-                    { role: 'assistant', content: assistantText }
-                  ],
-                  user_id: userId,
-                  metadata: {
-                    session_id: sessionId,
-                    source: 'chat',
-                    timestamp: new Date().toISOString()
-                  }
+            // Fire-and-forget: don't await, let it run in background
+            axios.post(
+              `${memoryBaseUrl}?project=${encodeURIComponent(projectDir)}`,
+              {
+                messages: [
+                  { role: 'user', content: prompt },
+                  { role: 'assistant', content: assistantText }
+                ],
+                user_id: userId,
+                metadata: {
+                  session_id: sessionId,
+                  source: 'chat',
+                  timestamp: new Date().toISOString()
                 }
-              );
-            } catch (error: any) {
+              }
+            ).catch((error: any) => {
               console.error('Failed to store memories:', error.message);
               // Don't fail the request if memory storage fails
-            }
+            });
           }
 
           observer.next({ type: 'completed', data: { exitCode: code ?? 0, usage } });

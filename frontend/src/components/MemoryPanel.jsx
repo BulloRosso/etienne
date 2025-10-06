@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { TbTimelineEvent } from 'react-icons/tb';
+import { AiOutlineDelete } from 'react-icons/ai';
 
 export default function MemoryPanel({ projectName, onClose }) {
   const [memories, setMemories] = useState([]);
@@ -18,19 +19,44 @@ export default function MemoryPanel({ projectName, onClose }) {
 
     try {
       const userId = 'user'; // Default user ID for single-user system
-      const response = await fetch(`/api/memories/${userId}?project=${encodeURIComponent(projectName)}&limit=100`);
+      const url = `/api/memories/${userId}?project=${encodeURIComponent(projectName)}&limit=100`;
+      console.log('Loading memories from:', url);
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error('Failed to load memories');
+        const errorText = await response.text();
+        console.error('Memory API error:', response.status, errorText);
+        throw new Error(`Failed to load memories: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Memories loaded:', data);
       setMemories(data.results || []);
     } catch (err) {
       console.error('Failed to load memories:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteMemory = async (memoryId) => {
+    try {
+      const userId = 'user';
+      const url = `/api/memories/${memoryId}?user_id=${userId}&project=${encodeURIComponent(projectName)}`;
+      const response = await fetch(url, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete memory');
+      }
+
+      // Refresh the list
+      await loadMemories();
+    } catch (err) {
+      console.error('Failed to delete memory:', err);
+      setError(err.message);
     }
   };
 
@@ -98,10 +124,14 @@ export default function MemoryPanel({ projectName, onClose }) {
                   mb: 1,
                   backgroundColor: '#fafafa',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5'
+                    backgroundColor: '#f5f5f5',
+                    '& .delete-icon': {
+                      opacity: 1
+                    }
                   },
                   alignItems: 'flex-start',
-                  flexDirection: 'column'
+                  flexDirection: 'column',
+                  position: 'relative'
                 }}
               >
                 <Box sx={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
@@ -126,7 +156,26 @@ export default function MemoryPanel({ projectName, onClose }) {
                       variant: 'body2',
                       sx: { fontWeight: 500 }
                     }}
+                    sx={{ pr: 5 }}
                   />
+                  <IconButton
+                    className="delete-icon"
+                    onClick={() => handleDeleteMemory(memory.id)}
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      right: 8,
+                      top: 8,
+                      opacity: 0,
+                      transition: 'opacity 0.2s',
+                      color: '#d32f2f',
+                      '&:hover': {
+                        backgroundColor: 'rgba(211, 47, 47, 0.08)'
+                      }
+                    }}
+                  >
+                    <AiOutlineDelete size={20} />
+                  </IconButton>
                 </Box>
               </ListItem>
             ))}

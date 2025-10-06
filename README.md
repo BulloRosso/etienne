@@ -56,3 +56,61 @@ npm i
 npm run dev
 ```
 Then **open your browser** with http://localhost:5000
+
+## API Endpoints
+
+### ClaudeController (`/api/claude`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/claude/addFile` | POST | Adds a file to a project's workspace. Creates project directories if they don't exist. |
+| `/api/claude/getFile` | GET | Retrieves the content of a specific file from a project. |
+| `/api/claude/listFiles` | GET | Lists all files and directories in a project's subdirectory. |
+| `/api/claude/listProjects` | GET | Returns a list of all available projects in the workspace. |
+| `/api/claude/strategy` | POST | Retrieves the CLAUDE.md strategy/prompt file for a project. |
+| `/api/claude/strategy/save` | POST | Saves the CLAUDE.md strategy/prompt file for a project. |
+| `/api/claude/filesystem` | POST | Returns the complete filesystem tree structure for a project. |
+| `/api/claude/permissions` | POST | Gets the list of allowed tools/permissions for a project. |
+| `/api/claude/permissions/save` | POST | Updates the allowed tools/permissions configuration for a project. |
+| `/api/claude/assistant` | POST | Retrieves the assistant configuration including greeting message. |
+| `/api/claude/chat/history` | POST | Gets the chat history for a project from the persistence layer. |
+| `/api/claude/mcp/config` | POST | Retrieves the MCP server configuration from .mcp.json file. |
+| `/api/claude/mcp/config/save` | POST | Saves MCP server configuration and updates Claude settings accordingly. |
+| `/api/claude/streamPrompt` | GET (SSE) | Streams Claude Code execution with real-time updates via Server-Sent Events. Supports memory-enabled prompts. |
+
+### InterceptorsController (`/api/interceptors`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/interceptors/in` | POST | Receives interceptor events from Claude Code hooks (PreToolUse, PostToolUse, etc.). |
+| `/api/interceptors/hooks/:project` | GET | Returns all hook events (PreToolUse, PostToolUse) for a specific project. |
+| `/api/interceptors/events/:project` | GET | Returns all general events (Notification, UserPromptSubmit) for a project. |
+| `/api/interceptors/stream/:project` | GET (SSE) | Streams interceptor events in real-time via Server-Sent Events for live UI updates. |
+
+### ContentManagementController (`/api/workspace`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/workspace/:project/files/*` | GET | Retrieves file content from the workspace with appropriate MIME type headers. |
+| `/api/workspace/:project/files/*` | DELETE | Deletes a file or folder from the project workspace. |
+| `/api/workspace/:project/files/move` | POST | Moves a file or folder from source path to destination path. |
+| `/api/workspace/:project/files/rename` | PUT | Renames a file or folder to a new name. |
+| `/api/workspace/:project/files/upload` | POST | Uploads a file to the specified path in the project workspace. |
+| `/api/workspace/:project/files/create-folder` | POST | Creates a new folder at the specified path in the workspace. |
+
+### ModelProxyController (`/api/modelproxy`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/modelproxy/v1/messages` | POST | Proxies Anthropic-formatted requests to OpenAI API with response translation. Enables Claude Code to use OpenAI models. |
+
+### McpServerController (`/`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/mcp` | ALL | Handles MCP (Model Context Protocol) streamable HTTP transport. Supports GET for SSE connections, POST for messages, DELETE for session termination. |
+| `/sse` | ALL | Legacy SSE transport endpoint for MCP connections. Maintained for backwards compatibility with older MCP clients. |
+
+### MemoriesController (`/api/memories`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/memories` | POST | Extracts and stores memories from conversation messages using OpenAI for fact extraction. Returns added/updated/deleted memories. |
+| `/api/memories/search` | POST | Searches for relevant memories based on a query string. Returns ranked results using keyword matching. |
+| `/api/memories/:user_id` | GET | Retrieves all memories for a user with optional limit. Applies memory decay filter based on configuration. |
+| `/api/memories/:memory_id` | DELETE | Deletes a specific memory by ID for a given user. |
+| `/api/memories` | DELETE | Deletes all memories for a specific user from the project. |

@@ -16,7 +16,7 @@ export class ChatPersistence {
   private historyPath: string;
 
   constructor(projectRoot: string) {
-    this.historyPath = join(projectRoot, 'data', 'chat.history.json');
+    this.historyPath = join(projectRoot, '.etienne', 'chat.history.json');
   }
 
   async loadHistory(): Promise<ChatHistory> {
