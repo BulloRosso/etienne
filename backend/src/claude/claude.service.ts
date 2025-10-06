@@ -312,11 +312,17 @@ export class ClaudeService {
           throw new Error(`invalid container paths: cwd=${containerCwd} home=${envHome}`);
         }
 
-        // Memory integration
+        // Check if this is a new session (first request)
+        const sessionPath = join(projectRoot, 'data', 'session.id');
+        let sessionId = '';
+        try { sessionId = (await fs.readFile(sessionPath, 'utf8')).trim(); } catch { /* first run */ }
+        const isFirstRequest = !sessionId;
+
+        // Memory integration - only append memories on first request
         let enhancedPrompt = prompt;
         const userId = 'user'; // Default user ID for single-user system
 
-        if (memoryEnabled) {
+        if (memoryEnabled && isFirstRequest) {
           try {
             const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
 
@@ -341,10 +347,6 @@ export class ClaudeService {
             // Continue without memories on error
           }
         }
-
-        const sessionPath = join(projectRoot, 'data', 'session.id');
-        let sessionId = '';
-        try { sessionId = (await fs.readFile(sessionPath, 'utf8')).trim(); } catch { /* first run */ }
         const resumeArg = sessionId ? `--resume "$SESSION_ID"` : '--continue';
 
         // Setup file watcher
