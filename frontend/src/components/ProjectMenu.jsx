@@ -20,13 +20,16 @@ import {
   FormControlLabel
 } from '@mui/material';
 import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
+import { TbCalendarTime } from 'react-icons/tb';
+import SchedulingOverview from './SchedulingOverview';
 
-export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange }) {
+export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [budgetSettingsOpen, setBudgetSettingsOpen] = useState(false);
+  const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -105,6 +108,19 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setBudgetSettingsOpen(false);
   };
 
+  const handleSchedulingOpen = () => {
+    setSchedulingOpen(true);
+    handleMenuClose();
+  };
+
+  const handleSchedulingClose = () => {
+    setSchedulingOpen(false);
+    // Notify parent that tasks may have changed
+    if (onTasksChange) {
+      onTasksChange();
+    }
+  };
+
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
 
@@ -167,6 +183,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <Assessment fontSize="small" />
           </ListItemIcon>
           <ListItemText>Budget Settings</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleSchedulingOpen}>
+          <ListItemIcon>
+            <TbCalendarTime fontSize="small" style={{ fontSize: '20px' }} />
+          </ListItemIcon>
+          <ListItemText>Scheduling</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
@@ -320,6 +342,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <Button onClick={handleBudgetSettingsClose}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <SchedulingOverview
+        open={schedulingOpen}
+        onClose={handleSchedulingClose}
+        project={currentProject}
+      />
     </>
   );
 }

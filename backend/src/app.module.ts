@@ -9,9 +9,10 @@ import { McpServerModule } from './mcpserver/mcp-server.module';
 import { MemoriesModule } from './memories/memories.module';
 import { BudgetMonitoringModule } from './budget-monitoring/budget-monitoring.module';
 import { BudgetMonitoringService } from './budget-monitoring/budget-monitoring.service';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
-  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule],
+  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule],
   controllers: [ClaudeController, InterceptorsController],
   providers: [ClaudeService, InterceptorsService, BudgetMonitoringService],
 })

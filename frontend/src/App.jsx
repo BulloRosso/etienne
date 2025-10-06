@@ -1,10 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton } from '@mui/material';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
 import ProjectMenu from './components/ProjectMenu';
 import BudgetIndicator from './components/BudgetIndicator';
+import SchedulingOverview from './components/SchedulingOverview';
+import { TbCalendarTime } from 'react-icons/tb';
 
 export default function App() {
   const [project, setProject] = useState('demo1');
@@ -16,6 +18,8 @@ export default function App() {
   const [mode, setMode] = useState('work'); // 'plan' or 'work'
   const [aiModel, setAiModel] = useState('anthropic'); // 'anthropic' or 'openai'
   const [budgetSettings, setBudgetSettings] = useState({ enabled: false, limit: 0 });
+  const [hasTasks, setHasTasks] = useState(false);
+  const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [showBackgroundInfo, setShowBackgroundInfo] = useState(() => {
     const saved = localStorage.getItem('showBackgroundInfo');
     return saved === 'true' ? true : false;
@@ -234,6 +238,87 @@ export default function App() {
     }
   }, [project]);
 
+  // Function to refresh task count
+  const refreshTaskCount = async () => {
+    if (!project) return;
+    try {
+      const response = await fetch(`/api/scheduler/${project}/tasks`);
+      const data = await response.json();
+      setHasTasks((data.tasks || []).length > 0);
+    } catch (err) {
+      console.error('Failed to load tasks:', err);
+      setHasTasks(false);
+    }
+  };
+
+  // Load scheduled tasks when project changes
+  useEffect(() => {
+    refreshTaskCount();
+  }, [project]);
+
+  // Poll for chat refresh from scheduled tasks (every 3 seconds)
+  useEffect(() => {
+    if (!project) return;
+
+    const pollChatRefresh = async () => {
+      try {
+        const response = await fetch(`/api/interceptors/chat/${project}`);
+        const data = await response.json();
+
+        if (data.needsRefresh) {
+          console.log('Chat refresh triggered by scheduled task');
+          // Reload chat history
+          const historyRes = await fetch('/api/claude/chat/history', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ projectName: project })
+          });
+          const historyData = await historyRes.json();
+          const chatMessages = historyData?.messages || [];
+
+          // Get assistant greeting
+          const assistantRes = await fetch('/api/claude/assistant', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ projectName: project })
+          });
+          const assistantData = await assistantRes.json();
+          const greeting = assistantData?.assistant?.greeting;
+
+          const loadedMessages = [];
+          if (greeting) {
+            loadedMessages.push({
+              role: 'assistant',
+              text: greeting,
+              timestamp: formatTime()
+            });
+          }
+
+          chatMessages.forEach(msg => {
+            loadedMessages.push({
+              role: msg.isAgent ? 'assistant' : 'user',
+              text: msg.message,
+              timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
+              usage: msg.costs
+            });
+          });
+
+          setMessages(loadedMessages);
+        }
+      } catch (err) {
+        console.error('Failed to poll chat refresh:', err);
+      }
+    };
+
+    const intervalId = setInterval(pollChatRefresh, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [project]);
+
   const formatTime = () => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -419,6 +504,16 @@ export default function App() {
       const budgetRes = await fetch(`/api/budget-monitoring/${newProject}/settings`);
       const budgetData = await budgetRes.json();
       setBudgetSettings(budgetData || { enabled: false, limit: 0 });
+
+      // Check if project has scheduled tasks
+      try {
+        const tasksRes = await fetch(`/api/scheduler/${newProject}/tasks`);
+        const tasksData = await tasksRes.json();
+        setHasTasks((tasksData.tasks || []).length > 0);
+      } catch (err) {
+        console.error('Failed to load tasks:', err);
+        setHasTasks(false);
+      }
     } catch (err) {
       console.error('Failed to load chat history:', err);
     }
@@ -434,6 +529,16 @@ export default function App() {
             budgetSettings={budgetSettings}
             onSettingsChange={setBudgetSettings}
           />
+          {hasTasks && (
+            <IconButton
+              color="inherit"
+              onClick={() => setSchedulingOpen(true)}
+              sx={{ ml: 3 }}
+              title="Scheduled Tasks"
+            >
+              <TbCalendarTime size={24} />
+            </IconButton>
+          )}
           <Box sx={{ flexGrow: 1 }} />
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
             [{project}]
@@ -448,6 +553,7 @@ export default function App() {
             onProjectChange={handleProjectChange}
             budgetSettings={budgetSettings}
             onBudgetSettingsChange={setBudgetSettings}
+            onTasksChange={refreshTaskCount}
           />
         </Toolbar>
       </AppBar>
@@ -458,6 +564,15 @@ export default function App() {
           right={<ArtifactsPane files={files} projectName={project} showBackgroundInfo={showBackgroundInfo} />}
         />
       </Box>
+
+      <SchedulingOverview
+        open={schedulingOpen}
+        onClose={() => {
+          setSchedulingOpen(false);
+          refreshTaskCount();
+        }}
+        project={project}
+      />
     </Box>
   );
 }

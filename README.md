@@ -133,3 +133,14 @@ Then **open your browser** with http://localhost:5000
 | `/api/budget-monitoring/:project/settings` | GET | Gets the budget monitoring settings (enabled status and limit) for a project. |
 | `/api/budget-monitoring/:project/settings` | POST | Saves budget monitoring settings (enabled/disabled and cost limit). Body: `{ enabled: boolean, limit: number }` |
 | `/api/budget-monitoring/:project/stream` | GET (SSE) | Streams real-time budget updates via Server-Sent Events. Emits events whenever costs are tracked after Claude Code responses. |
+
+### SchedulerController (`/api/scheduler`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/scheduler/:project/tasks` | GET | Retrieves all scheduled task definitions for a project. Returns array of tasks with id, name, prompt, cronExpression, and timeZone. |
+| `/api/scheduler/:project/history` | GET | Retrieves task execution history for a project, sorted newest to oldest. Includes timestamp, task name, response, error status, duration, and token usage. |
+| `/api/scheduler/:project/tasks` | POST | Updates the complete list of task definitions for a project. Body: `{ tasks: TaskDefinition[] }` |
+| `/api/scheduler/:project/task/:taskId` | GET | Retrieves a single task definition by its ID. Returns 404 if task not found. |
+| `/api/scheduler/:project/task` | POST | Creates a new scheduled task. Body: `{ id, name, prompt, cronExpression, timeZone }`. Task will be immediately registered with the scheduler. |
+| `/api/scheduler/:project/task/:taskId` | PUT | Updates an existing task by ID. Body: `{ id, name, prompt, cronExpression, timeZone }`. Cron job will be updated dynamically. |
+| `/api/scheduler/:project/task/:taskId` | DELETE | Deletes a task by ID and removes its associated cron job. Returns error if task not found. |

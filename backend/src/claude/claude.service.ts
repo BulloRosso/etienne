@@ -301,7 +301,7 @@ export class ClaudeService {
   }
 
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error
-  streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string, memoryEnabled?: boolean): Observable<MessageEvent> {
+  streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string, memoryEnabled?: boolean, skipChatPersistence?: boolean): Observable<MessageEvent> {
     return new Observable<MessageEvent>((observer) => {
       const run = async () => {
         const projectRoot = await this.ensureProject(projectDir);
@@ -456,32 +456,34 @@ export class ClaudeService {
           clearTimeout(killTimer);
           await watcher.close().catch(() => void 0);
 
-          // Persist chat messages
-          try {
-            const chatPersistence = new ChatPersistence(projectRoot);
-            const timestamp = new Date().toISOString();
+          // Persist chat messages (unless skipChatPersistence is true, e.g., for scheduled tasks)
+          if (!skipChatPersistence) {
+            try {
+              const chatPersistence = new ChatPersistence(projectRoot);
+              const timestamp = new Date().toISOString();
 
-            await chatPersistence.appendMessages([
-              {
-                timestamp,
-                isAgent: false,
-                message: prompt,
-                costs: undefined
-              },
-              {
-                timestamp,
-                isAgent: true,
-                message: assistantText,
-                costs: usage
-              }
-            ]);
-          } catch (err) {
-            // Don't fail the request if persistence fails
-            console.error('Failed to persist chat history:', err);
+              await chatPersistence.appendMessages([
+                {
+                  timestamp,
+                  isAgent: false,
+                  message: prompt,
+                  costs: undefined
+                },
+                {
+                  timestamp,
+                  isAgent: true,
+                  message: assistantText,
+                  costs: usage
+                }
+              ]);
+            } catch (err) {
+              // Don't fail the request if persistence fails
+              console.error('Failed to persist chat history:', err);
+            }
           }
 
-          // Track budget costs if we have token usage
-          if (usage.input_tokens && usage.output_tokens) {
+          // Track budget costs if we have token usage (unless skipChatPersistence, which means scheduler handles it)
+          if (!skipChatPersistence && usage.input_tokens && usage.output_tokens) {
             try {
               console.log(`Tracking costs for project ${projectDir}: ${usage.input_tokens} input, ${usage.output_tokens} output tokens`);
               await this.budgetMonitoringService.trackCosts(

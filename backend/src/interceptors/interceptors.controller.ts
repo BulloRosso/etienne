@@ -1,11 +1,15 @@
 import { Controller, Get, Post, Body, Param, Headers, Sse } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 import { InterceptorsService } from './interceptors.service';
+import { SchedulerService } from '../scheduler/scheduler.service';
 import { GetInterceptorsDto } from './dto';
 
 @Controller('api/interceptors')
 export class InterceptorsController {
-  constructor(private readonly svc: InterceptorsService) {}
+  constructor(
+    private readonly svc: InterceptorsService,
+    private readonly schedulerService: SchedulerService
+  ) {}
 
   @Post('in')
   receiveInterceptor(
@@ -36,5 +40,14 @@ export class InterceptorsController {
         data: event
       } as any))
     );
+  }
+
+  @Get('chat/:project')
+  checkChatRefresh(@Param('project') project: string) {
+    const needsRefresh = this.schedulerService.checkChatRefresh(project);
+    if (needsRefresh) {
+      this.schedulerService.clearChatRefresh(project);
+    }
+    return { needsRefresh };
   }
 }
