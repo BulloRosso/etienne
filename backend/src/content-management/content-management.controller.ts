@@ -75,4 +75,18 @@ export class ContentManagementController {
       body.folderPath
     );
   }
+
+  @Post(':project/attachments/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAttachment(
+    @Param('project') project: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    const filepath = `.attachments/${file.originalname}`;
+    return await this.contentManagementService.uploadFile(
+      project,
+      filepath,
+      file.buffer
+    );
+  }
 }

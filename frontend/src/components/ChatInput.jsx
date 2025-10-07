@@ -1,11 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Box, TextField, IconButton, Paper } from '@mui/material';
 import { AttachFile, MicOutlined, Send } from '@mui/icons-material';
+import { useProject } from '../contexts/ProjectContext';
 
 export default function ChatInput({ onSend, disabled }) {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const recognitionRef = useRef(null);
+  const { currentProject } = useProject();
 
   const handleSend = () => {
     if (message.trim()) {
@@ -14,11 +17,40 @@ export default function ChatInput({ onSend, disabled }) {
     }
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // TODO: Implement file upload
-      console.log('File upload:', file);
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0 || !currentProject) return;
+
+    setUploading(true);
+    const uploadedFiles = [];
+
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`/api/workspace/${currentProject}/attachments/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          uploadedFiles.push(file.name);
+        } else {
+          console.error(`Failed to upload ${file.name}`);
+        }
+      }
+
+      if (uploadedFiles.length > 0) {
+        const fileList = uploadedFiles.join(', ');
+        const appendText = `Please have a look at ${fileList} in the .attachments folder. I want to `;
+        setMessage((prev) => prev ? `${prev}\n\n${appendText}` : appendText);
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -79,11 +111,12 @@ export default function ChatInput({ onSend, disabled }) {
         <input
           type="file"
           id="file-upload"
+          multiple
           style={{ display: 'none' }}
           onChange={handleFileUpload}
         />
         <label htmlFor="file-upload">
-          <IconButton component="span" disabled={disabled}>
+          <IconButton component="span" disabled={disabled || uploading}>
             <AttachFile />
           </IconButton>
         </label>
