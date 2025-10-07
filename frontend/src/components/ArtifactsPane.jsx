@@ -147,7 +147,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
               <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
             )}
             {filesystemTabValue === 1 && (
-              <CheckpointsPane projectName={projectName} />
+              <CheckpointsPane projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
             )}
           </Box>
         </Box>
@@ -165,7 +165,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         }}
       >
         <Box sx={{ height: '100%', overflow: 'auto' }}>
-          <MemoryPanel projectName={projectName} onClose={() => setMemoryDrawerOpen(false)} />
+          <MemoryPanel projectName={projectName} onClose={() => setMemoryDrawerOpen(false)} showBackgroundInfo={showBackgroundInfo} />
         </Box>
       </Drawer>
     </Box>

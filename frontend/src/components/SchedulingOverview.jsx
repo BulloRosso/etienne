@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import { Close, Add, Delete, Edit, ExpandMore, ExpandLess } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
+import BackgroundInfo from './BackgroundInfo';
 
 const timezones = [
   'UTC',
@@ -127,7 +128,7 @@ const formatScheduleDisplay = (cronExpression) => {
   return `${daysText} at ${hour}:${minute}`;
 };
 
-export default function SchedulingOverview({ open, onClose, project }) {
+export default function SchedulingOverview({ open, onClose, project, showBackgroundInfo }) {
   const [currentTab, setCurrentTab] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [history, setHistory] = useState([]);
@@ -277,11 +278,15 @@ export default function SchedulingOverview({ open, onClose, project }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Scheduled Tasks 
+        Scheduled Tasks
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
+
+      <Box sx={{ px: 3, pt: 2 }}>
+        <BackgroundInfo infoId="scheduled-input" showBackgroundInfo={showBackgroundInfo} />
+      </Box>
 
       <Tabs value={currentTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
         <Tab label="Task Definitions" />

@@ -19,8 +19,9 @@ import {
 import { MdOutlineRestorePage } from 'react-icons/md';
 import { IoMdAdd } from 'react-icons/io';
 import axios from 'axios';
+import BackgroundInfo from './BackgroundInfo';
 
-export default function CheckpointsPane({ projectName }) {
+export default function CheckpointsPane({ projectName, showBackgroundInfo }) {
   const [checkpoints, setCheckpoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -155,6 +156,8 @@ export default function CheckpointsPane({ projectName }) {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+      <BackgroundInfo infoId="checkpoints" showBackgroundInfo={showBackgroundInfo} />
+
       {/* Create new checkpoint */}
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         <TextField

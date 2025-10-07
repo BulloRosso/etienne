@@ -39,7 +39,7 @@ const percentageIcons = [
   TbPercentage100
 ];
 
-export default function BudgetIndicator({ project, budgetSettings, onSettingsChange }) {
+export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentCosts, setCurrentCosts] = useState(0);
   const [numberOfRequests, setNumberOfRequests] = useState(0);
@@ -148,6 +148,7 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
           onClose={handleDrawerClose}
           onSettingsChange={onSettingsChange}
           refreshKey={refreshKey}
+          showBackgroundInfo={showBackgroundInfo}
         />
       </Drawer>
     </>

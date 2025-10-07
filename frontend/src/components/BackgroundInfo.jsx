@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
-import { MdInfoOutline, MdOutlineSecurity } from 'react-icons/md';
+import { IoIosGitPullRequest } from 'react-icons/io';
+import { MdInfoOutline, MdOutlineSecurity, MdOutlineScheduleSend } from 'react-icons/md';
 import { VscDebugDisconnect } from 'react-icons/vsc';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import { PiEyeThin } from 'react-icons/pi';
 import { AiOutlineProduct } from 'react-icons/ai';
+import { SiPostgresql } from 'react-icons/si';
+import { GiPayMoney } from 'react-icons/gi';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -122,7 +125,11 @@ function getIconComponent(iconPath) {
     'PiEyeThin': PiEyeThin,
     'MdOutlineSecurity': MdOutlineSecurity,
     'AiOutlineProduct': AiOutlineProduct,
-    'MdInfoOutline': MdInfoOutline
+    'MdInfoOutline': MdInfoOutline,
+    'SiPostgresql': SiPostgresql,
+    'IoIosGitPullRequest': IoIosGitPullRequest,
+    'MdOutlineScheduleSend': MdOutlineScheduleSend,
+    'GiPayMoney': GiPayMoney
   };
 
   return iconMap[iconPath] || MdInfoOutline;

@@ -553,6 +553,7 @@ export default function App() {
               project={currentProject}
               budgetSettings={budgetSettings}
               onSettingsChange={setBudgetSettings}
+              showBackgroundInfo={showBackgroundInfo}
             />
           )}
           {hasTasks && currentProject && (
@@ -607,6 +608,7 @@ export default function App() {
           refreshTaskCount();
         }}
         project={currentProject}
+        showBackgroundInfo={showBackgroundInfo}
       />
 
       <Modal

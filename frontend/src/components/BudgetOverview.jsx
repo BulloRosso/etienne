@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import BudgetSettings from './BudgetSettings';
+import BackgroundInfo from './BackgroundInfo';
 
 const getCurrencySymbol = (currency) => {
   const symbols = {
@@ -34,7 +35,8 @@ export default function BudgetOverview({
   budgetSettings,
   onClose,
   onSettingsChange,
-  refreshKey
+  refreshKey,
+  showBackgroundInfo
 }) {
   const [recentCosts, setRecentCosts] = useState([]);
   const [totalRequests, setTotalRequests] = useState(numberOfRequests);
@@ -86,6 +88,8 @@ export default function BudgetOverview({
           <Close />
         </IconButton>
       </Box>
+
+      <BackgroundInfo infoId="budget-control" showBackgroundInfo={showBackgroundInfo} />
 
       {/* Summary boxes */}
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>

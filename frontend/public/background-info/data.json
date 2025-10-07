@@ -29,6 +29,26 @@
       "infoId": "filesystem",
       "content": "**Filesystem Browser** displays your project's directory structure and files. This read-only view helps you understand the project layout without leaving the interface. System files like CLAUDE.md and .claude directories are hidden by default but can be shown using the checkbox. Click the refresh button to update the view after file changes.",
       "icon": "react-icons/md"
+    },
+    {
+      "infoId": "memory",
+      "content": "**Long Term Memory** remembers important preferences on a per project base. The backend contains a Mem0 compatible implementation - you have to adjust the extraction prompt for your use cases.",
+      "icon": "SiPostgresql"
+    },
+    {
+      "infoId": "checkpoints",
+      "content": "**Checkpoints** are a way to restore the projects filesystem to a prior named state. The backend contains a local git server based provider which uses git/rsync in the claude-code container.",
+      "icon": "IoIosGitPullRequest"
+    },
+    {
+      "infoId": "scheduled-input",
+      "content": "**Scheduled Input** Sends a prepared user message to the model on a regular base. The messages appear in the message pane with the task name as prefix.",
+      "icon": "MdOutlineScheduleSend"
+    },
+    {
+      "infoId": "budget-control",
+      "content": "**Budget Control** allows the user to track the expenses in a workspace. The amount is calculated by input and output token consumption in the backend. Adjust or refine the .env preset values for a precise calculation.",
+      "icon": "GiPayMoney"
     }
   ]
 }

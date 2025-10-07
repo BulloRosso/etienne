@@ -3,8 +3,9 @@ import { Box, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText
 import { IoClose } from 'react-icons/io5';
 import { TbTimelineEvent } from 'react-icons/tb';
 import { AiOutlineDelete } from 'react-icons/ai';
+import BackgroundInfo from './BackgroundInfo';
 
-export default function MemoryPanel({ projectName, onClose }) {
+export default function MemoryPanel({ projectName, onClose, showBackgroundInfo }) {
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -90,6 +91,8 @@ export default function MemoryPanel({ projectName, onClose }) {
 
       {/* Content */}
       <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+        <BackgroundInfo infoId="memory" showBackgroundInfo={showBackgroundInfo} />
+
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <CircularProgress />
