@@ -8,9 +8,10 @@ import BudgetIndicator from './components/BudgetIndicator';
 import SchedulingOverview from './components/SchedulingOverview';
 import { TbCalendarTime, TbPresentation } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
+import { useProject } from './contexts/ProjectContext.jsx';
 
 export default function App() {
-  const [project, setProject] = useState('demo1');
+  const { currentProject, projectExists, setProject } = useProject();
   const [streaming, setStreaming] = useState(false);
   const [messages, setMessages] = useState([]);
   const [structuredMessages, setStructuredMessages] = useState([]);
@@ -41,14 +42,14 @@ export default function App() {
 
   // Connect to interceptors SSE stream
   useEffect(() => {
-    if (!project) return;
+    if (!currentProject) return;
 
     // Close existing connection
     if (interceptorEsRef.current) {
       interceptorEsRef.current.close();
     }
 
-    const es = new EventSource(`/api/interceptors/stream/${project}`);
+    const es = new EventSource(`/api/interceptors/stream/${currentProject}`);
     interceptorEsRef.current = es;
 
     es.addEventListener('interceptor', (e) => {
@@ -170,16 +171,18 @@ export default function App() {
     return () => {
       es.close();
     };
-  }, [project]);
+  }, [currentProject]);
 
   // Load initial project data
   useEffect(() => {
+    if (!currentProject) return;
+
     const loadInitialData = async () => {
       try {
         const assistantRes = await fetch('/api/claude/assistant', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ projectName: project })
+          body: JSON.stringify({ projectName: currentProject })
         });
         const assistantData = await assistantRes.json();
         const greeting = assistantData?.assistant?.greeting;
@@ -187,7 +190,7 @@ export default function App() {
         const historyRes = await fetch('/api/claude/chat/history', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ projectName: project })
+          body: JSON.stringify({ projectName: currentProject })
         });
         const historyData = await historyRes.json();
         const chatMessages = historyData?.messages || [];
@@ -221,13 +224,13 @@ export default function App() {
     };
 
     loadInitialData();
-  }, []);
+  }, [currentProject]);
 
   // Load budget settings when project changes
   useEffect(() => {
     const loadBudgetSettings = async () => {
       try {
-        const response = await fetch(`/api/budget-monitoring/${project}/settings`);
+        const response = await fetch(`/api/budget-monitoring/${currentProject}/settings`);
         const settings = await response.json();
         setBudgetSettings(settings || { enabled: false, limit: 0 });
       } catch (err) {
@@ -236,16 +239,16 @@ export default function App() {
       }
     };
 
-    if (project) {
+    if (currentProject) {
       loadBudgetSettings();
     }
-  }, [project]);
+  }, [currentProject]);
 
   // Function to refresh task count
   const refreshTaskCount = async () => {
-    if (!project) return;
+    if (!currentProject) return;
     try {
-      const response = await fetch(`/api/scheduler/${project}/tasks`);
+      const response = await fetch(`/api/scheduler/${currentProject}/tasks`);
       const data = await response.json();
       setHasTasks((data.tasks || []).length > 0);
     } catch (err) {
@@ -257,15 +260,15 @@ export default function App() {
   // Load scheduled tasks when project changes
   useEffect(() => {
     refreshTaskCount();
-  }, [project]);
+  }, [currentProject]);
 
   // Poll for chat refresh from scheduled tasks (every 3 seconds)
   useEffect(() => {
-    if (!project) return;
+    if (!currentProject) return;
 
     const pollChatRefresh = async () => {
       try {
-        const response = await fetch(`/api/interceptors/chat/${project}`);
+        const response = await fetch(`/api/interceptors/chat/${currentProject}`);
         const data = await response.json();
 
         if (data.needsRefresh) {
@@ -274,7 +277,7 @@ export default function App() {
           const historyRes = await fetch('/api/claude/chat/history', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ projectName: project })
+            body: JSON.stringify({ projectName: currentProject })
           });
           const historyData = await historyRes.json();
           const chatMessages = historyData?.messages || [];
@@ -283,7 +286,7 @@ export default function App() {
           const assistantRes = await fetch('/api/claude/assistant', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ projectName: project })
+            body: JSON.stringify({ projectName: currentProject })
           });
           const assistantData = await assistantRes.json();
           const greeting = assistantData?.assistant?.greeting;
@@ -320,7 +323,7 @@ export default function App() {
     const intervalId = setInterval(pollChatRefresh, 3000);
 
     return () => clearInterval(intervalId);
-  }, [project]);
+  }, [currentProject]);
 
   const formatTime = () => {
     const now = new Date();
@@ -352,12 +355,12 @@ export default function App() {
     await fetch(`/api/claude/addFile`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ project_dir: project, file_name: 'CLAUDE.md', file_content: `# ${project}\n` })
+      body: JSON.stringify({ project_dir: currentProject, file_name: 'CLAUDE.md', file_content: `# ${currentProject}\n` })
     });
 
     // Stream prompt
     const url = new URL(`/api/claude/streamPrompt`, window.location.origin);
-    url.searchParams.set('project_dir', project);
+    url.searchParams.set('project_dir', currentProject);
     url.searchParams.set('prompt', messageText);
     url.searchParams.set('agentMode', mode);
     url.searchParams.set('aiModel', aiModel);
@@ -411,7 +414,7 @@ export default function App() {
 
     const fetchFile = async (path) => {
       const q = new URL(`/api/claude/getFile`, window.location.origin);
-      q.searchParams.set('project_dir', project);
+      q.searchParams.set('project_dir', currentProject);
       q.searchParams.set('file_name', path);
       const r = await fetch(q.toString());
       const j = await r.json();
@@ -527,12 +530,14 @@ export default function App() {
       <AppBar position="static" sx={{ zIndex: 10 }}>
         <Toolbar>
           <Typography variant="h6">Etienne: Headless Claude Code</Typography>
-          <BudgetIndicator
-            project={project}
-            budgetSettings={budgetSettings}
-            onSettingsChange={setBudgetSettings}
-          />
-          {hasTasks && (
+          {currentProject && (
+            <BudgetIndicator
+              project={currentProject}
+              budgetSettings={budgetSettings}
+              onSettingsChange={setBudgetSettings}
+            />
+          )}
+          {hasTasks && currentProject && (
             <IconButton
               color="inherit"
               onClick={() => setSchedulingOpen(true)}
@@ -553,7 +558,7 @@ export default function App() {
           </IconButton>
           <Box sx={{ flexGrow: 1 }} />
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
-            [{project}]
+            [{currentProject || 'Select/Create a Project'}]
           </Typography>
           {sessionId && (
             <Typography variant="caption" sx={{ mr: 2, opacity: 0.7 }}>
@@ -561,7 +566,7 @@ export default function App() {
             </Typography>
           )}
           <ProjectMenu
-            currentProject={project}
+            currentProject={currentProject}
             onProjectChange={handleProjectChange}
             budgetSettings={budgetSettings}
             onBudgetSettingsChange={setBudgetSettings}
@@ -572,8 +577,8 @@ export default function App() {
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
-          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} />}
-          right={<ArtifactsPane files={files} projectName={project} showBackgroundInfo={showBackgroundInfo} />}
+          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} />}
+          right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} />}
         />
       </Box>
 
@@ -583,7 +588,7 @@ export default function App() {
           setSchedulingOpen(false);
           refreshTaskCount();
         }}
-        project={project}
+        project={currentProject}
       />
 
       <Modal

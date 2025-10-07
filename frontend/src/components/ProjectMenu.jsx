@@ -178,13 +178,13 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           </ListItemIcon>
           <ListItemText>About...</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleBudgetSettingsOpen}>
+        <MenuItem onClick={handleBudgetSettingsOpen} disabled={!currentProject}>
           <ListItemIcon>
             <Assessment fontSize="small" />
           </ListItemIcon>
           <ListItemText>Budget Settings</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleSchedulingOpen}>
+        <MenuItem onClick={handleSchedulingOpen} disabled={!currentProject}>
           <ListItemIcon>
             <TbCalendarTime fontSize="small" style={{ fontSize: '20px' }} />
           </ListItemIcon>

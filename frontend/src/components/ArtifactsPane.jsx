@@ -22,7 +22,7 @@ function TabPanel({ children, value, index }) {
   );
 }
 
-export default function ArtifactsPane({ files, projectName, showBackgroundInfo }) {
+export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true }) {
   const [tabValue, setTabValue] = useState(0);
   const [filesystemDrawerOpen, setFilesystemDrawerOpen] = useState(false);
   const [memoryDrawerOpen, setMemoryDrawerOpen] = useState(false);
@@ -55,12 +55,12 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo }
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
           <Tab label="Live Changes" />
-          <Tab label="System Prompt" />
-          <Tab label="Permissions" />
-          <Tab label="Integrations" />
-          <Tab label="Interceptors" />
+          {projectExists && <Tab label="System Prompt" />}
+          {projectExists && <Tab label="Permissions" />}
+          {projectExists && <Tab label="Integrations" />}
+          {projectExists && <Tab label="Interceptors" />}
         </Tabs>
-        {memoryEnabled && (
+        {memoryEnabled && projectExists && (
           <Tooltip title="Agent Memory Enabled">
             <IconButton
               onClick={() => setMemoryDrawerOpen(true)}
@@ -70,30 +70,36 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo }
             </IconButton>
           </Tooltip>
         )}
-        <Tooltip title="Filesystem Browser">
-          <IconButton
-            onClick={() => setFilesystemDrawerOpen(true)}
-            sx={{ mr: 1 }}
-          >
-            <PiFolders />
-          </IconButton>
-        </Tooltip>
+        {projectExists && (
+          <Tooltip title="Filesystem Browser">
+            <IconButton
+              onClick={() => setFilesystemDrawerOpen(true)}
+              sx={{ mr: 1 }}
+            >
+              <PiFolders />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
       <TabPanel value={tabValue} index={0}>
         <FilesPanel files={files} projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
       </TabPanel>
-      <TabPanel value={tabValue} index={1}>
-        <Strategy projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-      </TabPanel>
-      <TabPanel value={tabValue} index={2}>
-        <PermissionList projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-      </TabPanel>
-      <TabPanel value={tabValue} index={3}>
-        <MCPServerConfiguration projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-      </TabPanel>
-      <TabPanel value={tabValue} index={4}>
-        <Interceptors projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-      </TabPanel>
+      {projectExists && (
+        <>
+          <TabPanel value={tabValue} index={1}>
+            <Strategy projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+          </TabPanel>
+          <TabPanel value={tabValue} index={2}>
+            <PermissionList projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+          </TabPanel>
+          <TabPanel value={tabValue} index={3}>
+            <MCPServerConfiguration projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+          </TabPanel>
+          <TabPanel value={tabValue} index={4}>
+            <Interceptors projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+          </TabPanel>
+        </>
+      )}
 
       <Drawer
         anchor="right"

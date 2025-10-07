@@ -9,7 +9,7 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import { StructuredMessage } from './StructuredMessage';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true }) {
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(() => {
@@ -158,7 +158,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       </Box>
 
       <Box sx={{ p: 0, pb: 0 }}>
-        <ChatInput onSend={onSendMessage} disabled={streaming} />
+        <ChatInput onSend={onSendMessage} disabled={streaming || !projectExists} />
       </Box>
 
       {/* Settings Modal */}
@@ -227,6 +227,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               control={
                 <Checkbox
                   checked={memoryEnabled}
+                  disabled={!projectExists}
                   onChange={(e) => {
                     const value = e.target.checked;
                     setMemoryEnabled(value);
