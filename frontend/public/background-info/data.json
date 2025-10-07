@@ -3,27 +3,27 @@
     {
       "infoId": "live-changes",
       "content": "**Live Changes** displays files that Claude creates or modifies in real-time during your conversation. This panel automatically updates as Claude works on your project, showing you the exact content of each file. HTML files are rendered with a live preview iframe, allowing you to see the results immediately. This gives you instant visibility into Claude's work without leaving the chat interface.",
-      "icon": "react-icons/md"
+      "icon": "AiOutlineProduct"
     },
     {
       "infoId": "system-prompt",
       "content": "**System Prompt** defines the behavior and personality of your Claude assistant. This markdown document acts as instructions that Claude follows throughout your conversation. You can customize how Claude responds, set project-specific guidelines, and define the scope of work. Changes take effect immediately in new chat sessions.",
-      "icon": "react-icons/md"
+      "icon": "LiaHatCowboySideSolid"
     },
     {
       "infoId": "permissions",
       "content": "**Permissions** control which tools and commands Claude can use in your project. Add allowed tools to grant Claude specific capabilities like file operations, network requests, or system commands. This security feature helps you maintain control over what actions Claude can perform. Remember to save your changes after adding or removing permissions.",
-      "icon": "react-icons/md"
+      "icon": "MdOutlineSecurity"
     },
     {
       "infoId": "integrations",
       "content": "**Integrations** configure Model Context Protocol (**MCP**) servers that extend Eteinnes's capabilities by connecting to external data/systems. \n\r There is sample implementation available on https://host.docker.internal:6060/mcp and /sse which returns items of a pet store.",
-      "icon": "react-icons/md"
+      "icon": "VscDebugDisconnect"
     },
     {
       "infoId": "interceptors",
       "content": "**Interceptors** provide real-time monitoring of Claude's activity in your project. Events show general activities and notifications, while Hooks capture specific tool usage moments (before and after execution). This visibility helps you understand Claude's decision-making process and debug issues. Use the filter fields to search through the activity log efficiently.",
-      "icon": "react-icons/md"
+      "icon": "PiEyeThin"
     },
     {
       "infoId": "filesystem",

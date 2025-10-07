@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
-import { MdInfoOutline } from 'react-icons/md';
+import { MdInfoOutline, MdOutlineSecurity } from 'react-icons/md';
+import { VscDebugDisconnect } from 'react-icons/vsc';
+import { LiaHatCowboySideSolid } from 'react-icons/lia';
+import { PiEyeThin } from 'react-icons/pi';
+import { AiOutlineProduct } from 'react-icons/ai';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -112,8 +116,14 @@ export default function BackgroundInfo({ infoId, showBackgroundInfo }) {
 
 // Helper function to dynamically get icon component from react-icons
 function getIconComponent(iconPath) {
-  // iconPath format: "react-icons/md/MdSecurity"
-  // For simplicity, we'll just use the default icon for now
-  // In a production app, you'd want to import and map all possible icons
-  return MdInfoOutline;
+  const iconMap = {
+    'VscDebugDisconnect': VscDebugDisconnect,
+    'LiaHatCowboySideSolid': LiaHatCowboySideSolid,
+    'PiEyeThin': PiEyeThin,
+    'MdOutlineSecurity': MdOutlineSecurity,
+    'AiOutlineProduct': AiOutlineProduct,
+    'MdInfoOutline': MdInfoOutline
+  };
+
+  return iconMap[iconPath] || MdInfoOutline;
 }

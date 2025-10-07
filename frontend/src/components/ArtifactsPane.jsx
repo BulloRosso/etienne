@@ -73,11 +73,11 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
-          <Tab label="Live Changes" />
-          {projectExists && <Tab label="System Prompt" />}
+          <Tab label="Artifacts" />
+          {projectExists && <Tab label="Role" />}
           {projectExists && <Tab label="Permissions" />}
-          {projectExists && <Tab label="Integrations" />}
-          {projectExists && <Tab label="Interceptors" />}
+          {projectExists && <Tab label="Connectivity" />}
+          {projectExists && <Tab label="Observability" />}
         </Tabs>
         {memoryEnabled && projectExists && (
           <Tooltip title="Agent Memory Enabled">
