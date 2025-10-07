@@ -9,6 +9,7 @@ import PermissionList from './PermissionList';
 import Interceptors from './Interceptors';
 import MCPServerConfiguration from './MCPServerConfiguration';
 import MemoryPanel from './MemoryPanel';
+import CheckpointsPane from './CheckpointsPane';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 
 function TabPanel({ children, value, index }) {
@@ -26,6 +27,7 @@ function TabPanel({ children, value, index }) {
 export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true }) {
   const [tabValue, setTabValue] = useState(0);
   const [filesystemDrawerOpen, setFilesystemDrawerOpen] = useState(false);
+  const [filesystemTabValue, setFilesystemTabValue] = useState(0);
   const [memoryDrawerOpen, setMemoryDrawerOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(false);
 
@@ -131,8 +133,23 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           },
         }}
       >
-        <Box sx={{ height: '100%', overflow: 'auto' }}>
-          <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Tabs
+            value={filesystemTabValue}
+            onChange={(e, newValue) => setFilesystemTabValue(newValue)}
+            sx={{ borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab label="Files" />
+            <Tab label="Checkpoints" />
+          </Tabs>
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            {filesystemTabValue === 0 && (
+              <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+            )}
+            {filesystemTabValue === 1 && (
+              <CheckpointsPane projectName={projectName} />
+            )}
+          </Box>
         </Box>
       </Drawer>
 
