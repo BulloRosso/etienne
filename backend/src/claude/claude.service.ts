@@ -13,6 +13,8 @@ import { buildClaudeScript } from './builders/script-builder';
 import { ClaudeConfig } from './config/claude.config';
 import { ChatPersistence } from './chat.persistence';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
+import { GuardrailsService } from '../input-guardrails/guardrails.service';
+import { sanitize_user_message } from '../input-guardrails/index';
 
 @Injectable()
 export class ClaudeService {
@@ -20,7 +22,8 @@ export class ClaudeService {
   private queues = new Map<string, Promise<unknown>>();
 
   constructor(
-    private readonly budgetMonitoringService: BudgetMonitoringService
+    private readonly budgetMonitoringService: BudgetMonitoringService,
+    private readonly guardrailsService: GuardrailsService
   ) {}
 
   private async ensureProject(projectDir: string) {
@@ -315,8 +318,33 @@ export class ClaudeService {
         try { sessionId = (await fs.readFile(sessionPath, 'utf8')).trim(); } catch { /* first run */ }
         const isFirstRequest = !sessionId;
 
+        // Apply input guardrails
+        let sanitizedPrompt = prompt;
+        let guardrailsTriggered = false;
+        let triggeredPlugins: string[] = [];
+        let detections: Record<string, string[]> = {};
+
+        try {
+          const guardrailsConfig = await this.guardrailsService.getConfig(projectDir);
+          if (guardrailsConfig.enabled.length > 0) {
+            const sanitizationResult = sanitize_user_message(prompt, guardrailsConfig.enabled);
+            sanitizedPrompt = sanitizationResult.sanitizedText;
+
+            // Log if any sensitive data was detected
+            if (sanitizationResult.triggeredPlugins.length > 0) {
+              guardrailsTriggered = true;
+              triggeredPlugins = sanitizationResult.triggeredPlugins;
+              detections = sanitizationResult.detections;
+              console.log(`🛡️ Guardrails triggered for ${projectDir}:`, sanitizationResult.triggeredPlugins);
+            }
+          }
+        } catch (error: any) {
+          console.error('Failed to apply guardrails:', error.message);
+          // Continue with original prompt on error
+        }
+
         // Memory integration - only append memories on first request
-        let enhancedPrompt = prompt;
+        let enhancedPrompt = sanitizedPrompt;
         const userId = 'user'; // Default user ID for single-user system
 
         if (memoryEnabled && isFirstRequest) {
@@ -327,7 +355,7 @@ export class ClaudeService {
             const searchResponse = await axios.post(
               `${memoryBaseUrl}/search?project=${encodeURIComponent(projectDir)}`,
               {
-                query: prompt,
+                query: sanitizedPrompt,
                 user_id: userId,
                 limit: 5
               }
@@ -337,7 +365,7 @@ export class ClaudeService {
 
             if (memories.length > 0) {
               const memoryContext = memories.map((m: any) => m.memory).join('\n- ');
-              enhancedPrompt = `[Context from previous conversations:\n- ${memoryContext}]\n\n${prompt}`;
+              enhancedPrompt = `[Context from previous conversations:\n- ${memoryContext}]\n\n${sanitizedPrompt}`;
             }
           } catch (error: any) {
             console.error('Failed to fetch memories:', error.message);
@@ -355,6 +383,18 @@ export class ClaudeService {
         const rel = (abs: string) => abs.slice(projectRoot.length + 1).replace(/\\/g, '/');
         watcher.on('add', (abs) => observer.next({ type: 'file_added', data: { path: rel(abs) } }));
         watcher.on('change', (abs) => observer.next({ type: 'file_changed', data: { path: rel(abs) } }));
+
+        // Emit guardrails event if triggered
+        if (guardrailsTriggered) {
+          observer.next({
+            type: 'guardrails_triggered',
+            data: {
+              plugins: triggeredPlugins,
+              detections,
+              count: Object.values(detections).reduce((sum, arr) => sum + arr.length, 0)
+            }
+          });
+        }
 
         // Load permissions
         const { allowedTools } = await this.getPermissions(projectDir);
@@ -463,7 +503,7 @@ export class ClaudeService {
                 {
                   timestamp,
                   isAgent: false,
-                  message: prompt,
+                  message: sanitizedPrompt,
                   costs: undefined
                 },
                 {
@@ -506,7 +546,7 @@ export class ClaudeService {
               `${memoryBaseUrl}?project=${encodeURIComponent(projectDir)}`,
               {
                 messages: [
-                  { role: 'user', content: prompt },
+                  { role: 'user', content: sanitizedPrompt },
                   { role: 'assistant', content: assistantText }
                 ],
                 user_id: userId,

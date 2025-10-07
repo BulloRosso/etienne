@@ -6,6 +6,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import CloudDownloadOutlinedIcon from '@mui/icons-material/CloudDownloadOutlined';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import { IoHandRightOutline } from 'react-icons/io5';
 
 // Tool icon mapping
 const TOOL_ICONS = {
@@ -245,6 +246,42 @@ export const ThinkingMessage = ({ content }) => (
   </Paper>
 );
 
+// Guardrails warning component
+export const GuardrailsWarningMessage = ({ plugins, count, detections }) => {
+  const pluginsList = plugins.join(', ');
+
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        m: 2,
+        backgroundColor: '#ffebee',
+        borderLeft: '4px solid #c62828',
+        border: '1px solid #c62828'
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+        <IoHandRightOutline size={24} style={{ color: '#c62828' }} />
+        <Typography variant="subtitle2" sx={{ color: '#c62828', fontWeight: 'bold' }}>
+          Input Guardrails Triggered
+        </Typography>
+      </Box>
+      <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
+        Sensitive information was detected and redacted from your message before being sent to the AI model.
+      </Typography>
+      <Box sx={{ mt: 1.5 }}>
+        <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>
+          Detected: {pluginsList}
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+          {count} {count === 1 ? 'item' : 'items'} redacted
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
+
 // Structured message router
 export const StructuredMessage = ({ message, onPermissionResponse }) => {
   if (!message || !message.type) return null;
@@ -284,6 +321,15 @@ export const StructuredMessage = ({ message, onPermissionResponse }) => {
 
     case 'error':
       return <ErrorMessageComponent message={message.message} details={message.details} />;
+
+    case 'guardrails_warning':
+      return (
+        <GuardrailsWarningMessage
+          plugins={message.plugins}
+          count={message.count}
+          detections={message.detections}
+        />
+      );
 
     default:
       return null;

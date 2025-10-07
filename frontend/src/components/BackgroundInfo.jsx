@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, IconButton } from '@mui/material';
-import { IoClose } from 'react-icons/io5';
+import { IoClose, IoHandRightOutline } from 'react-icons/io5';
 import { IoIosGitPullRequest } from 'react-icons/io';
 import { MdInfoOutline, MdOutlineSecurity, MdOutlineScheduleSend } from 'react-icons/md';
 import { VscDebugDisconnect } from 'react-icons/vsc';
@@ -129,7 +129,8 @@ function getIconComponent(iconPath) {
     'SiPostgresql': SiPostgresql,
     'IoIosGitPullRequest': IoIosGitPullRequest,
     'MdOutlineScheduleSend': MdOutlineScheduleSend,
-    'GiPayMoney': GiPayMoney
+    'GiPayMoney': GiPayMoney,
+    'IoHandRightOutline': IoHandRightOutline
   };
 
   return iconMap[iconPath] || MdInfoOutline;

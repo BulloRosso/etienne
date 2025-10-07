@@ -21,15 +21,18 @@ import {
 } from '@mui/material';
 import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
 import { TbCalendarTime } from 'react-icons/tb';
+import { IoHandRightOutline } from 'react-icons/io5';
 import SchedulingOverview from './SchedulingOverview';
+import GuardrailsSettings from './GuardrailsSettings';
 
-export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange }) {
+export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [budgetSettingsOpen, setBudgetSettingsOpen] = useState(false);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
+  const [guardrailsOpen, setGuardrailsOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -121,6 +124,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     }
   };
 
+  const handleGuardrailsOpen = () => {
+    setGuardrailsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleGuardrailsClose = () => {
+    setGuardrailsOpen(false);
+  };
+
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
 
@@ -189,6 +201,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <TbCalendarTime fontSize="small" style={{ fontSize: '20px' }} />
           </ListItemIcon>
           <ListItemText>Scheduling</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleGuardrailsOpen} disabled={!currentProject}>
+          <ListItemIcon>
+            <IoHandRightOutline fontSize="small" style={{ fontSize: '20px' }} />
+          </ListItemIcon>
+          <ListItemText>Guardrails</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
@@ -347,6 +365,13 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         open={schedulingOpen}
         onClose={handleSchedulingClose}
         project={currentProject}
+      />
+
+      <GuardrailsSettings
+        open={guardrailsOpen}
+        onClose={handleGuardrailsClose}
+        project={currentProject}
+        showBackgroundInfo={showBackgroundInfo}
       />
     </>
   );

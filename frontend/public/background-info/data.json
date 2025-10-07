@@ -49,6 +49,11 @@
       "infoId": "budget-control",
       "content": "**Budget Control** allows the user to track the expenses in a workspace. The amount is calculated by input and output token consumption in the backend. Adjust or refine the .env preset values for a precise calculation.",
       "icon": "GiPayMoney"
+    },
+    {
+      "infoId": "input-guardrails",
+      "content": "**Input Guardrails** prevent sensitive information from ever reaching the AI model. The guardrails service provides a plugin system which makes it easy to register more tamper-proof guardrails than the included examples",
+      "icon": "IoHandRightOutline"
     }
   ]
 }

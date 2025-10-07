@@ -11,9 +11,10 @@ import { BudgetMonitoringModule } from './budget-monitoring/budget-monitoring.mo
 import { BudgetMonitoringService } from './budget-monitoring/budget-monitoring.service';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { CheckpointsModule } from './checkpoints/checkpoints.module';
+import { GuardrailsModule } from './input-guardrails/guardrails.module';
 
 @Module({
-  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule],
+  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule],
   controllers: [ClaudeController, InterceptorsController],
   providers: [ClaudeService, InterceptorsService, BudgetMonitoringService],
 })

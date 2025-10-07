@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Tabs, Tab, Drawer, IconButton, Tooltip } from '@mui/material';
 import { PiFolders } from 'react-icons/pi';
 import { BiMemoryCard } from 'react-icons/bi';
+import { IoHandRightOutline } from 'react-icons/io5';
 import FilesPanel from './FilesPanel';
 import Strategy from './Strategy';
 import Filesystem from './Filesystem';
@@ -10,6 +11,7 @@ import Interceptors from './Interceptors';
 import MCPServerConfiguration from './MCPServerConfiguration';
 import MemoryPanel from './MemoryPanel';
 import CheckpointsPane from './CheckpointsPane';
+import GuardrailsSettings from './GuardrailsSettings';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 
 function TabPanel({ children, value, index }) {
@@ -30,6 +32,8 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   const [filesystemTabValue, setFilesystemTabValue] = useState(0);
   const [memoryDrawerOpen, setMemoryDrawerOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(false);
+  const [guardrailsEnabled, setGuardrailsEnabled] = useState(false);
+  const [guardrailsModalOpen, setGuardrailsModalOpen] = useState(false);
 
   // Check if memory is enabled from localStorage
   useEffect(() => {
@@ -52,6 +56,37 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
       window.removeEventListener('memoryChanged', handleMemoryChange);
     };
   }, []);
+
+  // Check if guardrails are enabled
+  useEffect(() => {
+    const checkGuardrailsEnabled = async () => {
+      if (!projectName) {
+        setGuardrailsEnabled(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/guardrails/${projectName}/input`);
+        if (response.ok) {
+          const data = await response.json();
+          setGuardrailsEnabled(data.config?.enabled?.length > 0);
+        }
+      } catch (error) {
+        console.error('Failed to check guardrails:', error);
+        setGuardrailsEnabled(false);
+      }
+    };
+
+    checkGuardrailsEnabled();
+
+    // Custom event for guardrails changes
+    const handleGuardrailsChange = () => checkGuardrailsEnabled();
+    window.addEventListener('guardrailsChanged', handleGuardrailsChange);
+
+    return () => {
+      window.removeEventListener('guardrailsChanged', handleGuardrailsChange);
+    };
+  }, [projectName]);
 
   // Listen for file preview requests
   useEffect(() => {
@@ -81,6 +116,16 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           {projectExists && <Tab label="Connectivity" />}
           {projectExists && <Tab label="Observability" />}
         </Tabs>
+        {guardrailsEnabled && projectExists && (
+          <Tooltip title="Input Guardrails Active">
+            <IconButton
+              onClick={() => setGuardrailsModalOpen(true)}
+              sx={{ mr: 1, color: '#c62828' }}
+            >
+              <IoHandRightOutline size={24} />
+            </IconButton>
+          </Tooltip>
+        )}
         {memoryEnabled && projectExists && (
           <Tooltip title="Agent Memory Enabled">
             <IconButton
@@ -168,6 +213,13 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           <MemoryPanel projectName={projectName} onClose={() => setMemoryDrawerOpen(false)} showBackgroundInfo={showBackgroundInfo} />
         </Box>
       </Drawer>
+
+      <GuardrailsSettings
+        open={guardrailsModalOpen}
+        onClose={() => setGuardrailsModalOpen(false)}
+        project={projectName}
+        showBackgroundInfo={showBackgroundInfo}
+      />
     </Box>
   );
 }

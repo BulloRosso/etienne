@@ -445,6 +445,17 @@ export default function App() {
     es.addEventListener('file_added', (e) => { fetchFile(JSON.parse(e.data).path, currentProject); });
     es.addEventListener('file_changed', (e) => { fetchFile(JSON.parse(e.data).path, currentProject); });
 
+    es.addEventListener('guardrails_triggered', (e) => {
+      const { plugins, count, detections } = JSON.parse(e.data);
+      setStructuredMessages(prev => [...prev, {
+        id: `guardrails_${Date.now()}`,
+        type: 'guardrails_warning',
+        plugins,
+        count,
+        detections
+      }]);
+    });
+
     const stop = () => {
       es.close();
       setStreaming(false);
@@ -590,6 +601,7 @@ export default function App() {
             budgetSettings={budgetSettings}
             onBudgetSettingsChange={setBudgetSettings}
             onTasksChange={refreshTaskCount}
+            showBackgroundInfo={showBackgroundInfo}
           />
         </Toolbar>
       </AppBar>
