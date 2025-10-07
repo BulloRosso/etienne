@@ -173,14 +173,11 @@ export class ClaudeService {
 
   public async getChatHistory(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
-    const historyPath = join(root, 'data', 'chat.history.json');
-
-    try {
-      const content = await fs.readFile(historyPath, 'utf8');
-      return JSON.parse(content);
-    } catch {
-      return { messages: [] };
-    }
+    console.log(`[getChatHistory] projectDir: ${projectDir}, root: ${root}`);
+    const chatPersistence = new ChatPersistence(root);
+    const history = await chatPersistence.loadHistory();
+    console.log(`[getChatHistory] Loaded ${history.messages.length} messages`);
+    return history;
   }
 
   public async getMcpConfig(projectDir: string) {

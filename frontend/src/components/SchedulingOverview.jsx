@@ -140,7 +140,7 @@ export default function SchedulingOverview({ open, onClose, project }) {
     id: '',
     name: '',
     prompt: '',
-    timeZone: 'UTC'
+    timeZone: 'Europe/Berlin'
   });
   const [scheduleHour, setScheduleHour] = useState('09');
   const [scheduleMinute, setScheduleMinute] = useState('00');
@@ -183,7 +183,7 @@ export default function SchedulingOverview({ open, onClose, project }) {
       id: `task_${Date.now()}`,
       name: '',
       prompt: '',
-      timeZone: 'UTC'
+      timeZone: 'Europe/Berlin'
     });
     setScheduleHour('09');
     setScheduleMinute('00');

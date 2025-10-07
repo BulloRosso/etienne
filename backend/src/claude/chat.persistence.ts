@@ -21,9 +21,13 @@ export class ChatPersistence {
 
   async loadHistory(): Promise<ChatHistory> {
     try {
+      console.log(`[ChatPersistence] Reading from: ${this.historyPath}`);
       const content = await fs.readFile(this.historyPath, 'utf8');
-      return JSON.parse(content);
-    } catch {
+      const parsed = JSON.parse(content);
+      console.log(`[ChatPersistence] Successfully read ${parsed.messages?.length || 0} messages`);
+      return parsed;
+    } catch (error: any) {
+      console.error(`[ChatPersistence] Error loading history: ${error.message}`);
       return { messages: [] };
     }
   }
