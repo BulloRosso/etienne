@@ -48,4 +48,5 @@ export const ClaudeEvents = {
   PROCESS_STATE: 'claude:process_state',
   THINKING: 'claude:thinking',
   USER_MESSAGE: 'claude:user_message',
+  FILE_PREVIEW_REQUEST: 'claude:file_preview_request',
 };

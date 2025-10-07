@@ -161,7 +161,7 @@ export class SchedulerService implements OnModuleInit {
           {
             timestamp,
             isAgent: false,
-            message: `[Scheduled: ${task.name}] ${task.prompt}`,
+            message: `[Scheduled: ${task.name}]\n\r ${task.prompt}`,
             costs: undefined
           },
           {

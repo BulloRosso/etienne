@@ -9,6 +9,7 @@ import SchedulingOverview from './components/SchedulingOverview';
 import { TbCalendarTime, TbPresentation } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
+import { claudeEventBus, ClaudeEvents } from './eventBus';
 
 export default function App() {
   const { currentProject, projectExists, setProject } = useProject();
@@ -330,6 +331,35 @@ export default function App() {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
+  // Fetch file content and add/update it in the files list
+  const fetchFile = async (path, projectDir) => {
+    const q = new URL(`/api/claude/getFile`, window.location.origin);
+    q.searchParams.set('project_dir', projectDir);
+    q.searchParams.set('file_name', path);
+    const r = await fetch(q.toString());
+    const j = await r.json();
+    setFiles((arr) => {
+      const next = arr.filter(x => x.path !== path).concat([{ path, content: j.content }]);
+      return next;
+    });
+  };
+
+  // Listen for file preview requests
+  useEffect(() => {
+    const handleFilePreview = (data) => {
+      if (data.action === 'html-preview' && data.filePath && data.projectName) {
+        // Fetch and add the file to the files list
+        fetchFile(data.filePath, data.projectName);
+      }
+    };
+
+    const unsubscribe = claudeEventBus.subscribe(ClaudeEvents.FILE_PREVIEW_REQUEST, handleFilePreview);
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const handleShowBackgroundInfoChange = (value) => {
     setShowBackgroundInfo(value);
     localStorage.setItem('showBackgroundInfo', value.toString());
@@ -412,20 +442,8 @@ export default function App() {
       });
     });
 
-    const fetchFile = async (path) => {
-      const q = new URL(`/api/claude/getFile`, window.location.origin);
-      q.searchParams.set('project_dir', currentProject);
-      q.searchParams.set('file_name', path);
-      const r = await fetch(q.toString());
-      const j = await r.json();
-      setFiles((arr) => {
-        const next = arr.filter(x => x.path !== path).concat([{ path, content: j.content }]);
-        return next;
-      });
-    };
-
-    es.addEventListener('file_added', (e) => { fetchFile(JSON.parse(e.data).path); });
-    es.addEventListener('file_changed', (e) => { fetchFile(JSON.parse(e.data).path); });
+    es.addEventListener('file_added', (e) => { fetchFile(JSON.parse(e.data).path, currentProject); });
+    es.addEventListener('file_changed', (e) => { fetchFile(JSON.parse(e.data).path, currentProject); });
 
     const stop = () => {
       es.close();

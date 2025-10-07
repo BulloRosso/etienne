@@ -9,6 +9,7 @@ import PermissionList from './PermissionList';
 import Interceptors from './Interceptors';
 import MCPServerConfiguration from './MCPServerConfiguration';
 import MemoryPanel from './MemoryPanel';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -47,6 +48,24 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
     return () => {
       window.removeEventListener('storage', checkMemoryEnabled);
       window.removeEventListener('memoryChanged', handleMemoryChange);
+    };
+  }, []);
+
+  // Listen for file preview requests
+  useEffect(() => {
+    const handleFilePreview = (data) => {
+      if (data.action === 'html-preview') {
+        // Close filesystem drawer
+        setFilesystemDrawerOpen(false);
+        // Switch to Live Changes tab (tab 0)
+        setTabValue(0);
+      }
+    };
+
+    const unsubscribe = claudeEventBus.subscribe(ClaudeEvents.FILE_PREVIEW_REQUEST, handleFilePreview);
+
+    return () => {
+      unsubscribe();
     };
   }, []);
 

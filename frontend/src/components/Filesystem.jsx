@@ -17,7 +17,7 @@ import {
   Typography,
   Tooltip
 } from '@mui/material';
-import { Refresh, Delete, Edit, Upload, MoreVert, ExpandMore, ChevronRight } from '@mui/icons-material';
+import { Refresh, Delete, Edit, Upload, MoreVert, ExpandMore, ChevronRight, Preview } from '@mui/icons-material';
 import { TreeView } from '@mui/x-tree-view/TreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { PiFolderThin, PiFolderOpenThin, PiUploadLight } from "react-icons/pi";
@@ -25,6 +25,7 @@ import { IoDocumentOutline } from "react-icons/io5";
 import { MdOutlineCreateNewFolder } from "react-icons/md";
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
+import { filePreviewHandler } from '../services/FilePreviewHandler';
 
 export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [tree, setTree] = useState([]);
@@ -163,6 +164,15 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   const handleDeleteCancel = () => {
     setDeleteDialog({ open: false, node: null });
+  };
+
+  // Handle file preview
+  const handlePreviewClick = () => {
+    if (contextMenu?.node && contextMenu.node.type !== 'folder') {
+      const filePath = getNodePath(contextMenu.node.id);
+      filePreviewHandler.handlePreview(filePath, projectName);
+    }
+    handleCloseContextMenu();
   };
 
   // Handle new folder
@@ -488,6 +498,12 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             : undefined
         }
       >
+        {contextMenu?.node?.type !== 'folder' && (
+          <MenuItem onClick={handlePreviewClick}>
+            <Preview fontSize="small" sx={{ mr: 1 }} />
+            Open for preview
+          </MenuItem>
+        )}
         <MenuItem onClick={handleRenameClick}>
           <Edit fontSize="small" sx={{ mr: 1 }} />
           Rename

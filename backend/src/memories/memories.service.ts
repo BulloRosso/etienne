@@ -53,6 +53,18 @@ export class MemoriesService {
   }
 
   /**
+   * Strip markdown code fences from JSON response
+   */
+  private stripMarkdownFences(content: string): string {
+    // Remove ```json or ``` markers if present
+    return content
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/, '')
+      .replace(/\s*```$/, '')
+      .trim();
+  }
+
+  /**
    * Get the path to the memories.json file for a given project
    */
   private getMemoryFilePath(projectName: string): string {
@@ -184,7 +196,8 @@ ${conversationText}
       );
 
       const content = response.data.choices[0].message.content.trim();
-      const result: MemoryExtractionResult = JSON.parse(content);
+      const cleanedContent = this.stripMarkdownFences(content);
+      const result: MemoryExtractionResult = JSON.parse(cleanedContent);
       return result.facts || [];
     } catch (error: any) {
       console.error('Error extracting facts:', error.response?.data || error.message);
@@ -286,7 +299,8 @@ Return ONLY a valid JSON object:
       );
 
       const content = response.data.choices[0].message.content.trim();
-      const result: MemoryUpdateResult = JSON.parse(content);
+      const cleanedContent = this.stripMarkdownFences(content);
+      const result: MemoryUpdateResult = JSON.parse(cleanedContent);
       return result;
     } catch (error: any) {
       console.error('Error updating memories:', error.response?.data || error.message);
