@@ -6,9 +6,10 @@ import { TaskStorageService } from './task-storage.service';
 import { ClaudeService } from '../claude/claude.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { GuardrailsModule } from '../input-guardrails/guardrails.module';
+import { OutputGuardrailsModule } from '../output-guardrails/output-guardrails.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), GuardrailsModule],
+  imports: [ScheduleModule.forRoot(), GuardrailsModule, OutputGuardrailsModule],
   controllers: [SchedulerController],
   providers: [SchedulerService, TaskStorageService, ClaudeService, BudgetMonitoringService],
   exports: [SchedulerService],

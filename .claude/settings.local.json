@@ -23,7 +23,9 @@
       "Bash(findstr:*)",
       "Bash(grep:*)",
       "Bash(tasklist)",
-      "Bash(npx kill-port:*)"
+      "Bash(npx kill-port:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "ask": []

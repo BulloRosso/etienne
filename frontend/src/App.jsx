@@ -456,6 +456,16 @@ export default function App() {
       }]);
     });
 
+    es.addEventListener('output_guardrails_triggered', (e) => {
+      const { violations, count } = JSON.parse(e.data);
+      setStructuredMessages(prev => [...prev, {
+        id: `output_guardrails_${Date.now()}`,
+        type: 'output_guardrails_warning',
+        violations,
+        count
+      }]);
+    });
+
     const stop = () => {
       es.close();
       setStreaming(false);

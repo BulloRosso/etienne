@@ -15,6 +15,7 @@ import { ChatPersistence } from './chat.persistence';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { GuardrailsService } from '../input-guardrails/guardrails.service';
 import { sanitize_user_message } from '../input-guardrails/index';
+import { OutputGuardrailsService } from '../output-guardrails/output-guardrails.service';
 
 @Injectable()
 export class ClaudeService {
@@ -23,7 +24,8 @@ export class ClaudeService {
 
   constructor(
     private readonly budgetMonitoringService: BudgetMonitoringService,
-    private readonly guardrailsService: GuardrailsService
+    private readonly guardrailsService: GuardrailsService,
+    private readonly outputGuardrailsService: OutputGuardrailsService
   ) {}
 
   private async ensureProject(projectDir: string) {
@@ -430,6 +432,11 @@ export class ClaudeService {
         let announcedSession = false;
         let assistantText = '';
 
+        // Check if output guardrails are enabled
+        const outputGuardrailsConfig = await this.outputGuardrailsService.getConfig(projectDir);
+        const shouldBufferOutput = outputGuardrailsConfig.enabled;
+        let bufferedChunks: string[] = [];
+
         // Initialize structured parser
         const structuredParser = new ClaudeCodeStructuredParser();
 
@@ -442,12 +449,18 @@ export class ClaudeService {
         const emitText = (s: string) => {
           if (s) {
             assistantText += s;
-            observer.next({ type: 'stdout', data: { chunk: s } });
 
-            // Parse for structured events
-            const structuredEvents = structuredParser.parseChunk(s);
-            for (const evt of structuredEvents) {
-              observer.next({ type: evt.type as any, data: evt });
+            // If output guardrails enabled, buffer instead of streaming
+            if (shouldBufferOutput) {
+              bufferedChunks.push(s);
+            } else {
+              observer.next({ type: 'stdout', data: { chunk: s } });
+
+              // Parse for structured events
+              const structuredEvents = structuredParser.parseChunk(s);
+              for (const evt of structuredEvents) {
+                observer.next({ type: evt.type as any, data: evt });
+              }
             }
           }
         };
@@ -492,6 +505,44 @@ export class ClaudeService {
         child.on('close', async (code) => {
           clearTimeout(killTimer);
           await watcher.close().catch(() => void 0);
+
+          // Apply output guardrails if enabled
+          if (shouldBufferOutput && assistantText) {
+            try {
+              console.log('🛡️ Applying output guardrails...');
+              const guardrailResult = await this.outputGuardrailsService.checkGuardrail(assistantText, projectDir);
+
+              // Emit guardrails event if triggered
+              if (guardrailResult.guardrailTriggered) {
+                observer.next({
+                  type: 'output_guardrails_triggered',
+                  data: {
+                    violations: guardrailResult.violations,
+                    count: guardrailResult.violations.length,
+                    runtimeMilliseconds: guardrailResult.runtimeMilliseconds
+                  }
+                });
+                console.log(`🛡️ Output guardrails triggered: ${guardrailResult.violations.join(', ')}`);
+              }
+
+              // Use modified content if guardrails were triggered
+              const finalText = guardrailResult.modifiedContent;
+              assistantText = finalText;
+
+              // Now emit the final (possibly modified) text
+              observer.next({ type: 'stdout', data: { chunk: finalText } });
+
+              // Parse for structured events
+              const structuredEvents = structuredParser.parseChunk(finalText);
+              for (const evt of structuredEvents) {
+                observer.next({ type: evt.type as any, data: evt });
+              }
+            } catch (error: any) {
+              console.error('Failed to apply output guardrails:', error.message);
+              // Continue with original text on error
+              observer.next({ type: 'stdout', data: { chunk: assistantText } });
+            }
+          }
 
           // Persist chat messages (unless skipChatPersistence is true, e.g., for scheduled tasks)
           if (!skipChatPersistence) {

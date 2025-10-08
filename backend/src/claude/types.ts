@@ -8,7 +8,7 @@ export type Usage = {
 export type MessageEvent = {
   type: 'session' | 'stdout' | 'usage' | 'file_added' | 'file_changed' | 'completed' | 'error' |
         'user_message' | 'tool_call' | 'permission_request' | 'subagent_start' | 'subagent_end' |
-        'thinking' | 'tool_result';
+        'thinking' | 'tool_result' | 'guardrails_triggered' | 'output_guardrails_triggered';
   data: any;
 };
 

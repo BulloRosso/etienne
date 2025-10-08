@@ -12,10 +12,13 @@ import { BudgetMonitoringService } from './budget-monitoring/budget-monitoring.s
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { CheckpointsModule } from './checkpoints/checkpoints.module';
 import { GuardrailsModule } from './input-guardrails/guardrails.module';
+import { GuardrailsService } from './input-guardrails/guardrails.service';
+import { OutputGuardrailsModule } from './output-guardrails/output-guardrails.module';
+import { OutputGuardrailsService } from './output-guardrails/output-guardrails.service';
 
 @Module({
-  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule],
+  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule],
   controllers: [ClaudeController, InterceptorsController],
-  providers: [ClaudeService, InterceptorsService, BudgetMonitoringService],
+  providers: [ClaudeService, InterceptorsService, BudgetMonitoringService, GuardrailsService, OutputGuardrailsService],
 })
 export class AppModule {}

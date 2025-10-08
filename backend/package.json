@@ -17,6 +17,7 @@
     "class-validator": "^0.14.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "openai": "^6.2.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },
