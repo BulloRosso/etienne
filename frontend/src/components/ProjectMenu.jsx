@@ -74,20 +74,22 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   };
 
   const handleCreateProject = async () => {
-    if (newProjectName.trim()) {
+    const projectName = newProjectName.trim();
+    // Validate: only lowercase letters, numbers, hyphens, max 30 characters
+    if (projectName && /^[a-z0-9-]{1,30}$/.test(projectName)) {
       // Create project by creating a CLAUDE.md file
       await fetch('/api/claude/addFile', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          project_dir: newProjectName.trim(),
+          project_dir: projectName,
           file_name: 'CLAUDE.md',
-          file_content: `# ${newProjectName.trim()}\n`
+          file_content: `# ${projectName}\n`
         })
       });
 
       await fetchProjects();
-      onProjectChange(newProjectName.trim());
+      onProjectChange(projectName);
       handleDialogClose();
     }
   };
@@ -212,7 +214,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
           <ListItemText>Choose project:</ListItemText>
         </MenuItem>
-        {projects.map((project) => (
+        {projects.filter(project => !project.startsWith('.')).map((project) => (
           <MenuItem
             key={project}
             onClick={() => handleProjectSelect(project)}
@@ -242,12 +244,19 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             label="Project Name"
             fullWidth
             value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Only allow lowercase letters, numbers, and hyphens, max 30 characters
+              if (value === '' || (/^[a-z0-9-]*$/.test(value) && value.length <= 30)) {
+                setNewProjectName(value);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleCreateProject();
               }
             }}
+            helperText="Only lowercase letters, numbers, and hyphens (max 30 characters)"
           />
         </DialogContent>
         <DialogActions>
