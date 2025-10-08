@@ -210,7 +210,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         }}
       >
         <Box sx={{ height: '100%', overflow: 'auto' }}>
-          <MemoryPanel projectName={projectName} onClose={() => setMemoryDrawerOpen(false)} showBackgroundInfo={showBackgroundInfo} />
+          <MemoryPanel projectName={projectName} onClose={() => setMemoryDrawerOpen(false)} showBackgroundInfo={showBackgroundInfo} isOpen={memoryDrawerOpen} />
         </Box>
       </Drawer>
 

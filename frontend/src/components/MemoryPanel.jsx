@@ -5,7 +5,7 @@ import { TbTimelineEvent } from 'react-icons/tb';
 import { AiOutlineDelete } from 'react-icons/ai';
 import BackgroundInfo from './BackgroundInfo';
 
-export default function MemoryPanel({ projectName, onClose, showBackgroundInfo }) {
+export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, isOpen }) {
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,6 +13,13 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo }
   useEffect(() => {
     loadMemories();
   }, [projectName]);
+
+  // Refresh memories whenever the panel is opened
+  useEffect(() => {
+    if (isOpen) {
+      loadMemories();
+    }
+  }, [isOpen]);
 
   const loadMemories = async () => {
     setLoading(true);

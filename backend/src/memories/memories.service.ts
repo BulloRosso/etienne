@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import axios from 'axios';
+import { InterceptorsService } from '../interceptors/interceptors.service';
 
 interface Memory {
   id: string;
@@ -47,7 +48,7 @@ export class MemoriesService {
   private readonly workspaceRoot: string;
   private readonly memoryDecayDays: number;
 
-  constructor() {
+  constructor(private readonly interceptorsService: InterceptorsService) {
     this.workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace';
     this.memoryDecayDays = parseInt(process.env.MEMORY_DECAY_DAYS || '6', 10);
   }
@@ -330,6 +331,14 @@ Return ONLY a valid JSON object:
         message: 'No new information found to store'
       };
     }
+
+    // Emit SSE event for memory extraction
+    this.interceptorsService.addInterceptor(projectName, {
+      event_type: 'MemoryExtracted',
+      facts,
+      count: facts.length,
+      timestamp: new Date().toISOString(),
+    });
 
     // Read existing memories
     const existingMemories = await this.readMemories(projectName);

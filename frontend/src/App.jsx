@@ -143,11 +143,21 @@ export default function App() {
           }
         }
       } else if (event.type === 'event') {
-        // Handle other events (Notification, UserPromptSubmit, etc.)
+        // Handle other events (Notification, UserPromptSubmit, MemoryExtracted, etc.)
         const eventData = event.data;
         const eventType = eventData.event_type;
 
         console.log('Event (not hook):', eventType, eventData);
+
+        // Check if this is a memory extraction event
+        if (eventType === 'MemoryExtracted') {
+          setStructuredMessages(prev => [...prev, {
+            id: `memory_${Date.now()}`,
+            type: 'memory_extracted',
+            facts: eventData.facts || [],
+            count: eventData.count || 0
+          }]);
+        }
 
         // Check if this is a permission-related notification
         if (eventType === 'Notification' && eventData.message) {
@@ -413,7 +423,8 @@ export default function App() {
       const { chunk } = JSON.parse(e.data);
       // Trim leading linebreaks only if this is the first chunk
       const textToAdd = currentMessageRef.current.text === '' ? chunk.trimStart() : chunk;
-      currentMessageRef.current.text += textToAdd;
+      // Add a line break after each chunk
+      currentMessageRef.current.text += textToAdd + '\n';
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMsg = newMessages[newMessages.length - 1];
@@ -469,6 +480,12 @@ export default function App() {
     const stop = () => {
       es.close();
       setStreaming(false);
+
+      // Mark all structured messages as complete
+      setStructuredMessages(prev => prev.map(msg =>
+        msg.status === 'running' ? { ...msg, status: 'complete' } : msg
+      ));
+
       // Finalize message
       if (currentMessageRef.current.text) {
         setMessages(prev => {

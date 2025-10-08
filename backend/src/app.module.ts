@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ClaudeController } from './claude/claude.controller';
 import { ClaudeService } from './claude/claude.service';
-import { InterceptorsController } from './interceptors/interceptors.controller';
-import { InterceptorsService } from './interceptors/interceptors.service';
+import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { ModelProxyModule } from './modelproxy/modelproxy.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -17,8 +16,8 @@ import { OutputGuardrailsModule } from './output-guardrails/output-guardrails.mo
 import { OutputGuardrailsService } from './output-guardrails/output-guardrails.service';
 
 @Module({
-  imports: [ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule],
-  controllers: [ClaudeController, InterceptorsController],
-  providers: [ClaudeService, InterceptorsService, BudgetMonitoringService, GuardrailsService, OutputGuardrailsService],
+  imports: [InterceptorsModule, ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule],
+  controllers: [ClaudeController],
+  providers: [ClaudeService, BudgetMonitoringService, GuardrailsService, OutputGuardrailsService],
 })
 export class AppModule {}

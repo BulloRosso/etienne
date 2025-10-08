@@ -293,6 +293,48 @@ export const GuardrailsWarningMessage = ({ plugins, count, detections, violation
   );
 };
 
+// Memory extracted component
+export const MemoryExtractedMessage = ({ facts, count }) => {
+  const displayFacts = facts && facts.length > 0 ? facts.slice(0, 3) : [];
+  const hasMore = facts && facts.length > 3;
+
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        m: 2,
+        backgroundColor: '#e3f2fd',
+        borderLeft: '4px solid #2196f3',
+        border: '1px solid #2196f3'
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ color: '#1565c0', fontWeight: 'bold' }}>
+          💡 Memory Extracted
+        </Typography>
+      </Box>
+      <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
+        Extracted {count} {count === 1 ? 'fact' : 'facts'} from the conversation for future reference.
+      </Typography>
+      {displayFacts.length > 0 && (
+        <Box sx={{ mt: 1.5 }}>
+          {displayFacts.map((fact, idx) => (
+            <Typography key={idx} variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+              • {fact}
+            </Typography>
+          ))}
+          {hasMore && (
+            <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+              ... and {facts.length - 3} more
+            </Typography>
+          )}
+        </Box>
+      )}
+    </Paper>
+  );
+};
+
 // Structured message router
 export const StructuredMessage = ({ message, onPermissionResponse }) => {
   if (!message || !message.type) return null;
@@ -349,6 +391,14 @@ export const StructuredMessage = ({ message, onPermissionResponse }) => {
           violations={message.violations}
           count={message.count}
           type="output"
+        />
+      );
+
+    case 'memory_extracted':
+      return (
+        <MemoryExtractedMessage
+          facts={message.facts}
+          count={message.count}
         />
       );
 
