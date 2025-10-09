@@ -12,6 +12,7 @@ import MCPServerConfiguration from './MCPServerConfiguration';
 import MemoryPanel from './MemoryPanel';
 import CheckpointsPane from './CheckpointsPane';
 import GuardrailsSettings from './GuardrailsSettings';
+import HealthToast from './HealthToast';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 
 function TabPanel({ children, value, index }) {
@@ -107,7 +108,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   }, []);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
           <Tab label="Artifacts" />
@@ -220,6 +221,8 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         project={projectName}
         showBackgroundInfo={showBackgroundInfo}
       />
+
+      <HealthToast />
     </Box>
   );
 }

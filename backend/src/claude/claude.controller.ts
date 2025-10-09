@@ -19,6 +19,9 @@ export class ClaudeController {
   @Get('listProjects')
   listProjects() { return this.svc.listProjects(); }
 
+  @Get('health')
+  health() { return this.svc.checkHealth(); }
+
   @Post('strategy')
   getStrategy(@Body() dto: GetStrategyDto) { return this.svc.getStrategy(dto.projectName); }
 

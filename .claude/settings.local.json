@@ -25,7 +25,13 @@
       "Bash(tasklist)",
       "Bash(npx kill-port:*)",
       "Bash(mkdir:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(time docker inspect:*)",
+      "Bash(time docker:*)",
+      "Bash(for i in {1..10})",
+      "Bash(do echo \"Test $i:\")",
+      "Bash(time curl:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
