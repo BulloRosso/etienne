@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography } from '@mui/material';
+import { Box, Paper, IconButton, Tooltip } from '@mui/material';
+import { TbCloudDataConnection } from 'react-icons/tb';
+import { IoClose } from 'react-icons/io5';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
 export default function HealthToast() {
   const [error, setError] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const checkHealth = async () => {
     try {
@@ -49,6 +52,30 @@ export default function HealthToast() {
   const htmlContent = marked(error);
   const sanitizedHtml = DOMPurify.sanitize(htmlContent);
 
+  // If toast is not open, show just the icon button
+  if (!isOpen) {
+    return (
+      <Tooltip title="System Health Error - Click to view details">
+        <IconButton
+          onClick={() => setIsOpen(true)}
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            backgroundColor: '#c62828',
+            color: 'white',
+            zIndex: 1000,
+            '&:hover': {
+              backgroundColor: '#b71c1c'
+            }
+          }}
+        >
+          <TbCloudDataConnection size={24} />
+        </IconButton>
+      </Tooltip>
+    );
+  }
+
   return (
     <Paper
       elevation={8}
@@ -60,11 +87,23 @@ export default function HealthToast() {
         backgroundColor: '#ffebee',
         borderTop: '3px solid #c62828',
         padding: 2,
+        paddingRight: 5,
         zIndex: 1000,
         maxHeight: '300px',
         overflow: 'auto'
       }}
     >
+      <IconButton
+        onClick={() => setIsOpen(false)}
+        sx={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          color: '#c62828'
+        }}
+      >
+        <IoClose size={20} />
+      </IconButton>
       <Box
         sx={{
           '& h1': { fontSize: '1.2rem', marginTop: 0 },
