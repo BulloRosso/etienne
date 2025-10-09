@@ -31,7 +31,8 @@
       "Bash(for i in {1..10})",
       "Bash(do echo \"Test $i:\")",
       "Bash(time curl:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

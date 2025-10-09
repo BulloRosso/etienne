@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { Box, TextField, IconButton, Paper } from '@mui/material';
 import { AttachFile, MicOutlined, Send } from '@mui/icons-material';
+import { BsStopCircle } from 'react-icons/bs';
 import { useProject } from '../contexts/ProjectContext';
 
-export default function ChatInput({ onSend, disabled }) {
+export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -14,6 +15,13 @@ export default function ChatInput({ onSend, disabled }) {
     if (message.trim()) {
       onSend(message);
       setMessage('');
+    }
+  };
+
+  const handleStop = () => {
+    if (onAbort) {
+      onAbort();
+      // Keep the message text so user can edit and retry
     }
   };
 
@@ -107,6 +115,21 @@ export default function ChatInput({ onSend, disabled }) {
 
   return (
     <Paper elevation={3} sx={{ p: 1, pr: 0, pl: 0, borderRadius: 0, pb: 2.5, pt: 2 }}>
+      <style>
+        {`
+          @keyframes rotateIcon {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          .rotating-icon {
+            animation: rotateIcon 2s linear infinite;
+          }
+        `}
+      </style>
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0 }}>
         <input
           type="file"
@@ -116,7 +139,7 @@ export default function ChatInput({ onSend, disabled }) {
           onChange={handleFileUpload}
         />
         <label htmlFor="file-upload">
-          <IconButton component="span" disabled={disabled || uploading}>
+          <IconButton component="span" disabled={disabled || uploading || streaming}>
             <AttachFile />
           </IconButton>
         </label>
@@ -134,7 +157,7 @@ export default function ChatInput({ onSend, disabled }) {
             }
           }}
           placeholder="Type your message..."
-          disabled={disabled}
+          disabled={disabled || streaming}
           variant="outlined"
           size="small"
           sx={{ pr: 1}}
@@ -142,19 +165,30 @@ export default function ChatInput({ onSend, disabled }) {
 
         <IconButton
           onClick={toggleSpeechRecognition}
-          disabled={disabled}
+          disabled={disabled || streaming}
           color={isRecording ? 'error' : 'primary'}
         >
           <MicOutlined />
         </IconButton>
 
-        <IconButton
-          onClick={handleSend}
-          disabled={disabled || !message.trim()}
-          color="primary"
-        >
-          <Send />
-        </IconButton>
+        {streaming ? (
+          <IconButton
+            onClick={handleStop}
+            disabled={disabled}
+            sx={{ color: '#c62828' }}
+            className="rotating-icon"
+          >
+            <BsStopCircle size={24} />
+          </IconButton>
+        ) : (
+          <IconButton
+            onClick={handleSend}
+            disabled={disabled || !message.trim()}
+            color="primary"
+          >
+            <Send />
+          </IconButton>
+        )}
       </Box>
     </Paper>
   );

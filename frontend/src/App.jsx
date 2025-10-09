@@ -29,6 +29,7 @@ export default function App() {
     const saved = localStorage.getItem('showBackgroundInfo');
     return saved === 'true' ? true : false;
   });
+  const [currentProcessId, setCurrentProcessId] = useState(null);
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -411,12 +412,23 @@ export default function App() {
       url.searchParams.set('memoryEnabled', 'true');
     }
 
+    // Add maxTurns parameter
+    const maxTurns = localStorage.getItem('maxTurns');
+    if (maxTurns) {
+      url.searchParams.set('maxTurns', maxTurns);
+    }
+
     const es = new EventSource(url.toString());
     esRef.current = es;
 
     es.addEventListener('session', (e) => {
-      const { session_id } = JSON.parse(e.data);
-      setSessionId(session_id);
+      const data = JSON.parse(e.data);
+      if (data.session_id) {
+        setSessionId(data.session_id);
+      }
+      if (data.process_id) {
+        setCurrentProcessId(data.process_id);
+      }
     });
 
     es.addEventListener('stdout', (e) => {
@@ -480,6 +492,7 @@ export default function App() {
     const stop = () => {
       es.close();
       setStreaming(false);
+      setCurrentProcessId(null);
 
       // Mark all structured messages as complete
       setStructuredMessages(prev => prev.map(msg =>
@@ -504,6 +517,21 @@ export default function App() {
 
     es.addEventListener('completed', stop);
     es.addEventListener('error', stop);
+  };
+
+  const handleAbort = async () => {
+    if (currentProcessId) {
+      try {
+        await fetch(`/api/claude/abort/${currentProcessId}`, {
+          method: 'POST'
+        });
+        esRef.current?.close();
+        setStreaming(false);
+        setCurrentProcessId(null);
+      } catch (error) {
+        console.error('Failed to abort process:', error);
+      }
+    }
   };
 
   const handleProjectChange = async (newProject) => {
@@ -635,7 +663,7 @@ export default function App() {
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
-          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} />}
+          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} />}
           right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} />}
         />
       </Box>

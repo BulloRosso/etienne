@@ -24,6 +24,7 @@ const execAsync = promisify(exec);
 export class ClaudeService {
   private readonly config = new ClaudeConfig();
   private queues = new Map<string, Promise<unknown>>();
+  private processes = new Map<string, any>(); // Store process references by processId
 
   constructor(
     private readonly budgetMonitoringService: BudgetMonitoringService,
@@ -389,7 +390,7 @@ export class ClaudeService {
   }
 
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error
-  streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string, memoryEnabled?: boolean, skipChatPersistence?: boolean): Observable<MessageEvent> {
+  streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string, memoryEnabled?: boolean, skipChatPersistence?: boolean, maxTurns?: number): Observable<MessageEvent> {
     return new Observable<MessageEvent>((observer) => {
       const run = async () => {
         const projectRoot = await this.ensureProject(projectDir);
@@ -491,7 +492,7 @@ export class ClaudeService {
         const planningMode = agentMode === 'plan';
 
         // Build script and docker args
-        const script = buildClaudeScript({ containerCwd, envHome, resumeArg, allowedTools, planningMode });
+        const script = buildClaudeScript({ containerCwd, envHome, resumeArg, allowedTools, planningMode, maxTurns });
         const args = [
           'exec',
           '-w', containerCwd,
@@ -512,6 +513,8 @@ export class ClaudeService {
 
         // Spawn docker process
         const child = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+        const processId = `${projectDir}_${Date.now()}`;
+        this.processes.set(processId, child);
         const killTimer = setTimeout(() => child.kill('SIGKILL'), this.config.timeoutMs);
 
         let usage: Usage = {};
@@ -528,7 +531,7 @@ export class ClaudeService {
 
         // Announce existing session immediately if resuming
         if (sessionId) {
-          observer.next({ type: 'session', data: { session_id: sessionId, model: undefined } });
+          observer.next({ type: 'session', data: { session_id: sessionId, process_id: processId, model: undefined } });
           announcedSession = true;
         }
 
@@ -561,7 +564,7 @@ export class ClaudeService {
               if (sid) {
                 announcedSession = true;
                 sessionId = sid;
-                observer.next({ type: 'session', data: { session_id: sessionId, model: sModel } });
+                observer.next({ type: 'session', data: { session_id: sessionId, process_id: processId, model: sModel } });
                 fs.mkdir(join(projectRoot, 'data'), { recursive: true })
                   .then(() => fs.writeFile(sessionPath, sessionId, 'utf8'))
                   .catch(() => void 0);
@@ -590,6 +593,7 @@ export class ClaudeService {
 
         child.on('close', async (code) => {
           clearTimeout(killTimer);
+          this.processes.delete(processId);
           await watcher.close().catch(() => void 0);
 
           // Apply output guardrails if enabled
@@ -705,6 +709,7 @@ export class ClaudeService {
 
         child.on('error', async (err) => {
           clearTimeout(killTimer);
+          this.processes.delete(processId);
           await watcher.close().catch(() => void 0);
           observer.next({ type: 'error', data: { message: String(err) } });
           observer.complete();
@@ -719,5 +724,19 @@ export class ClaudeService {
 
       return () => void 0;
     });
+  }
+
+  public async abortProcess(processId: string) {
+    const child = this.processes.get(processId);
+    if (child) {
+      try {
+        child.kill('SIGTERM');
+        this.processes.delete(processId);
+        return { success: true, message: 'Process terminated' };
+      } catch (error: any) {
+        return { success: false, message: error.message };
+      }
+    }
+    return { success: false, message: 'Process not found' };
   }
 }

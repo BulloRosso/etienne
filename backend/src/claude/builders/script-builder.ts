@@ -4,16 +4,20 @@ export interface ScriptOptions {
   resumeArg: string;
   allowedTools: string[];
   planningMode?: boolean;
+  maxTurns?: number;
 }
 
 export function buildClaudeScript(options: ScriptOptions): string {
-  const { containerCwd, envHome, resumeArg, allowedTools, planningMode } = options;
+  const { containerCwd, envHome, resumeArg, allowedTools, planningMode, maxTurns } = options;
 
   const allowedToolsArgs = allowedTools
     .map(tool => `  --allowedTools "${tool}"`)
     .join(' \\\n');
 
   const permissionMode = planningMode ? 'plan' : 'acceptEdits';
+
+  // Only add --max-turns if maxTurns is defined and > 0 (0 means unlimited)
+  const maxTurnsArg = (maxTurns && maxTurns > 0) ? `--max-turns ${maxTurns}` : '';
 
   return `set -euo pipefail
 export PATH="/usr/local/share/npm-global/bin:/usr/local/bin:/usr/bin:$PATH"
@@ -43,6 +47,6 @@ cd "$containerCwd"
   --include-partial-messages \\
   --permission-mode ${permissionMode} \\
 ${allowedToolsArgs} \\
-  ${resumeArg}
+  ${maxTurnsArg ? `${maxTurnsArg} \\\n  ` : ''}${resumeArg}
 `;
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Sse } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Sse, Param } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { ClaudeService } from './claude.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
@@ -55,9 +55,16 @@ export class ClaudeController {
     @Query('prompt') prompt: string,
     @Query('agentMode') agentMode?: string,
     @Query('aiModel') aiModel?: string,
-    @Query('memoryEnabled') memoryEnabled?: string
+    @Query('memoryEnabled') memoryEnabled?: string,
+    @Query('maxTurns') maxTurns?: string
   ): Observable<MessageEvent> {
     const memoryEnabledBool = memoryEnabled === 'true';
-    return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel, memoryEnabledBool);
+    const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
+    return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel, memoryEnabledBool, false, maxTurnsNum);
+  }
+
+  @Post('abort/:processId')
+  async abortProcess(@Param('processId') processId: string) {
+    return this.svc.abortProcess(processId);
   }
 }

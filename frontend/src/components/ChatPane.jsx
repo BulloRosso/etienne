@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, IconButton, Modal, Typography, Button, ToggleButton, ToggleButtonGroup, FormControlLabel, Checkbox } from '@mui/material';
+import { Box, IconButton, Modal, Typography, Button, ToggleButton, ToggleButtonGroup, FormControlLabel, Checkbox, TextField } from '@mui/material';
 import { LuBrain } from "react-icons/lu";
 import { HiOutlineWrench } from "react-icons/hi2";
 import { GiSettingsKnobs } from "react-icons/gi";
@@ -9,12 +9,16 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import { StructuredMessage } from './StructuredMessage';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true }) {
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(() => {
     const saved = localStorage.getItem('memoryEnabled');
     return saved === 'true';
+  });
+  const [maxTurns, setMaxTurns] = useState(() => {
+    const saved = localStorage.getItem('maxTurns');
+    return saved ? parseInt(saved, 10) : 5;
   });
 
   const scrollToBottom = () => {
@@ -158,7 +162,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       </Box>
 
       <Box sx={{ p: 0, pb: 0 }}>
-        <ChatInput onSend={onSendMessage} disabled={streaming || !projectExists} />
+        <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} />
       </Box>
 
       {/* Settings Modal */}
@@ -240,6 +244,25 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               label="Long Term Memory"
               sx={{ mb: 1 }}
             />
+
+            <Box sx={{ mb: 2, mt: 2 }}>
+              <Typography variant="body1" sx={{ mb: 1 }}>
+                Maximum Agentic Loops
+              </Typography>
+              <TextField
+                type="number"
+                value={maxTurns}
+                onChange={(e) => {
+                  const value = Math.max(0, parseInt(e.target.value) || 0);
+                  setMaxTurns(value);
+                  localStorage.setItem('maxTurns', value.toString());
+                }}
+                size="small"
+                sx={{ width: "180px" }}
+                inputProps={{ min: 0, step: 1 }}
+                helperText="0 = unlimited cycles"
+              />
+            </Box>
 
             <Typography variant="body1" sx={{ mb: 1, mt: 2 }}>
               Display Options
