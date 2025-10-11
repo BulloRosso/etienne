@@ -3,6 +3,9 @@ import { Box, TextField, IconButton, Paper } from '@mui/material';
 import { AttachFile, MicOutlined, Send } from '@mui/icons-material';
 import { BsStopCircle } from 'react-icons/bs';
 import { useProject } from '../contexts/ProjectContext';
+import { SlMicrophone } from "react-icons/sl";
+import { GoArrowUp } from "react-icons/go";
+import { GoPlus } from "react-icons/go";
 
 export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
   const [message, setMessage] = useState('');
@@ -140,7 +143,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
         />
         <label htmlFor="file-upload">
           <IconButton component="span" disabled={disabled || uploading || streaming}>
-            <AttachFile />
+            <GoPlus />
           </IconButton>
         </label>
 
@@ -168,7 +171,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
           disabled={disabled || streaming}
           color={isRecording ? 'error' : 'primary'}
         >
-          <MicOutlined />
+          <SlMicrophone />
         </IconButton>
 
         {streaming ? (
@@ -186,7 +189,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
             disabled={disabled || !message.trim()}
             color="primary"
           >
-            <Send />
+            <GoArrowUp />
           </IconButton>
         )}
       </Box>
