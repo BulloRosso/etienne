@@ -15,9 +15,10 @@ import { GuardrailsService } from './input-guardrails/guardrails.service';
 import { OutputGuardrailsModule } from './output-guardrails/output-guardrails.module';
 import { OutputGuardrailsService } from './output-guardrails/output-guardrails.service';
 import { SessionsModule } from './sessions/sessions.module';
+import { SubagentsModule } from './subagents/subagents.module';
 
 @Module({
-  imports: [InterceptorsModule, ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule],
+  imports: [InterceptorsModule, ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule],
   controllers: [ClaudeController],
   providers: [ClaudeService, BudgetMonitoringService, GuardrailsService, OutputGuardrailsService],
 })

@@ -22,8 +22,10 @@ import {
 import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
 import { TbCalendarTime } from 'react-icons/tb';
 import { IoHandRightOutline } from 'react-icons/io5';
+import { RiRobot2Line } from 'react-icons/ri';
 import SchedulingOverview from './SchedulingOverview';
 import GuardrailsSettings from './GuardrailsSettings';
+import SubagentConfiguration from './SubagentConfiguration';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -33,6 +35,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [budgetSettingsOpen, setBudgetSettingsOpen] = useState(false);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [guardrailsOpen, setGuardrailsOpen] = useState(false);
+  const [subagentsOpen, setSubagentsOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -135,6 +138,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setGuardrailsOpen(false);
   };
 
+  const handleSubagentsOpen = () => {
+    setSubagentsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleSubagentsClose = () => {
+    setSubagentsOpen(false);
+  };
+
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
 
@@ -209,6 +221,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <IoHandRightOutline fontSize="small" style={{ fontSize: '20px' }} />
           </ListItemIcon>
           <ListItemText>Guardrails</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleSubagentsOpen} disabled={!currentProject}>
+          <ListItemIcon>
+            <RiRobot2Line fontSize="small" style={{ fontSize: '20px' }} />
+          </ListItemIcon>
+          <ListItemText>Subagents</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
@@ -382,6 +400,18 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         project={currentProject}
         showBackgroundInfo={showBackgroundInfo}
       />
+
+      <Dialog open={subagentsOpen} onClose={handleSubagentsClose} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Subagents Configuration
+          <IconButton onClick={handleSubagentsClose} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ height: '70vh', p: 0 }}>
+          <SubagentConfiguration project={currentProject} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

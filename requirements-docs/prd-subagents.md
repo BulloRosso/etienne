@@ -1,5 +1,22 @@
 # Subagents
-I want to be able configure subagents for Claude Code, which are described in separate  Markdown files with YAML frontmatter and stored in workspace/<project>/.claude/
+
+## Frontend
+I want to add a new project menu item "Subagents" with the icon import { RiRobot2Line } from "react-icons/ri"; in the frontend.
+
+This item should only be enabled if a project is loaded.
+
+We need a new modal dialog showing the component SubagentConfiguration.jsx which allows us to create or edit the files in workspace/<project>/.claude/agents/*
+
+Each subagent is defined as a new file and we want to treat this name as items in a list which is displayed in the SubagentConfiguration component: We list the name and the description of the components. There is the option to delete an icon from the list and to add a new one. If we click on a list item we can edit it
+
+### Agent Details
+The agent details allow us to enter name, description, model as text fields. The tools can be picked from the ones defined in .mcp.json with a chips component.
+Below the tools line there is a light themed monaco editor which allows us to provide the agent's system prompt. 
+
+## Backend
+We need a new module in the backend /subagents which has a controller and service file. It exposes its api endpoints under api/subagents
+
+Each subagent is described in separate Markdown files with YAML frontmatter and stored in workspace/<project>/.claude/agents/<agent name>.md
 
 This is an example for my-agent.md:
 ```
@@ -185,11 +202,3 @@ Provide findings in priority order:
 Include specific file locations and remediation suggestions for each issue.
 ```
 
-## Enhancing our hooks & events system to identify subagents
-Distinguishing Agents in Logs
-Since each subagent operates in its own context but still within the same session:
-
-SubagentStop event = Subagent completed
-Stop event = Main agent completed
-Session ID = Same for main agent and its subagents
-Tool name "Task" = Main agent delegating to subagent

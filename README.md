@@ -144,3 +144,105 @@ Then **open your browser** with http://localhost:5000
 | `/api/scheduler/:project/task` | POST | Creates a new scheduled task. Body: `{ id, name, prompt, cronExpression, timeZone }`. Task will be immediately registered with the scheduler. |
 | `/api/scheduler/:project/task/:taskId` | PUT | Updates an existing task by ID. Body: `{ id, name, prompt, cronExpression, timeZone }`. Cron job will be updated dynamically. |
 | `/api/scheduler/:project/task/:taskId` | DELETE | Deletes a task by ID and removes its associated cron job. Returns error if task not found. |
+
+### SessionsController (`/api/sessions`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/sessions/:projectname` | GET | Retrieves all sessions for a project with AI-generated summaries sorted by timestamp (newest first). Returns session metadata including sessionId, timestamp, and summary. Automatically generates missing summaries before returning. |
+| `/api/sessions/:projectname/:sessionId/history` | GET | Retrieves the complete message history for a specific session from the `.etienne/chat.history-<sessionId>.jsonl` file. Returns messages array with timestamps and content. |
+
+### SubagentsController (`/api/subagents`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/subagents/:project` | GET | Lists all subagents configured for a project. Reads from `.claude/agents/*.md` files and returns name, description, tools, model, and system prompt for each. |
+| `/api/subagents/:project/:name` | GET | Retrieves a specific subagent configuration by name. Returns 404 if the subagent file doesn't exist. |
+| `/api/subagents/:project` | POST | Creates a new subagent. Body: `{ name, description, tools?, model?, systemPrompt }`. Creates markdown file with YAML frontmatter in `.claude/agents/` directory. |
+| `/api/subagents/:project/:name` | PUT | Updates an existing subagent configuration. Supports renaming by providing new name in config body. Deletes old file if name changed. |
+| `/api/subagents/:project/:name` | DELETE | Deletes a subagent by removing its configuration file from `.claude/agents/`. Returns error if subagent not found. |
+
+### GuardrailsController (`/api/guardrails`)
+| Path | Verb | Description |
+|------|------|-------------|
+| `/api/guardrails/:project/input` | GET | Retrieves input guardrails configuration from `.etienne/input-guardrails.json`. Returns array of enabled guardrail types (CreditCard, IPAddress, Email, URL, IBAN). |
+| `/api/guardrails/:project/input` | POST | Updates input guardrails configuration. Body: `{ enabled: string[] }`. Enabled array contains guardrail type names to activate for PII detection and redaction. |
+| `/api/guardrails/:project/output` | GET | Retrieves output guardrails configuration from `.etienne/output-guardrails.json`. Returns enabled status, custom prompt, and violations enum array. |
+| `/api/guardrails/:project/output` | POST | Updates output guardrails configuration. Body: `{ enabled?: boolean, prompt?: string, violationsEnum?: string[] }`. Controls post-processing LLM-based content filtering. |
+
+## Spec-driven Development
+
+This project follows a specification-driven development approach. All features are documented as Product Requirements Documents (PRDs) in the `/requirements-docs` folder. Below is a comprehensive overview of all features, categorized by their role in the system.
+
+### Claude Control (inner agentic cycle)
+
+These features directly control or modify how Claude Code operates internally:
+
+* **Subagents** ([/requirements-docs/prd-subagents.md](requirements-docs/prd-subagents.md))
+  Enables creation and management of specialized subagents that Claude can delegate tasks to autonomously. Each subagent is defined with a name, description, custom system prompt, restricted tool access, and model selection. Subagents allow for specialized workflows like code review, testing, and debugging to be triggered automatically based on context.
+
+* **Permissions** ([/requirements-docs/prd-permissions.md](requirements-docs/prd-permissions.md))
+  Provides granular control over which tools Claude Code can use through a configurable permissions system. Permissions are stored per-project in `.claude/permissions.json` and define allowed tools with glob patterns (e.g., `Write(./**/*.py)`, `Bash(python3:*)`). This enables sandboxing and safety constraints for different project contexts.
+
+* **MCP Servers** ([/requirements-docs/prd-mcp-servers.md](requirements-docs/prd-mcp-servers.md))
+  Enables integration of Model Context Protocol (MCP) servers to extend Claude's capabilities with external tools and data sources. Each project can configure MCP servers in `.mcp.json` with settings for transport type (SSE/HTTP/STDOUT), authentication, and endpoints. MCP servers provide custom tools that become available to Claude during task execution.
+
+* **Interceptors** ([/requirements-docs/prd-interceptors.md](requirements-docs/prd-interceptors.md))
+  Implements real-time tracking and tracing of Claude Code's behavior through hooks and events. All tool calls (PreToolUse/PostToolUse) and system events are captured, stored in-memory, and streamed to the frontend via SSE. This provides complete visibility into the agentic cycle for debugging, monitoring, and understanding Claude's decision-making process.
+
+* **Cancel and Limit Agentic Cycle** ([/requirements-docs/prd-cancel-and-limit-agentic-cycle.md](requirements-docs/prd-cancel-and-limit-agentic-cycle.md))
+  Provides user control over long-running agentic loops through configurable max-turns limits and a process abortion mechanism. Users can set a maximum number of agentic cycles (default: 5, 0=unlimited) and abort running processes via a stop button. This prevents runaway costs and allows quick iteration during development.
+
+* **Strategy** ([/requirements-docs/prd-strategy.md](requirements-docs/prd-strategy.md))
+  Allows per-project customization of Claude's system prompt through a `CLAUDE.md` file in the project root. Users can edit the strategy file directly in a Monaco editor to define the agent's role, behavior, domain knowledge, and task-specific instructions. This enables tailoring Claude's behavior for different project types and workflows.
+
+* **Input Guardrails** ([/requirements-docs/prd-input-guardrails.md](requirements-docs/prd-input-guardrails.md))
+  Implements a plugin-based system to detect and redact sensitive information from user input before it reaches the AI model. Built-in plugins detect credit cards (with Luhn validation), IP addresses (IPv4/IPv6), emails, URLs, and IBANs. Each project can configure which guardrails are active via `.etienne/input-guardrails.json`.
+
+* **Output Guardrails** ([/requirements-docs/prd-output-guardrails.md](requirements-docs/prd-output-guardrails.md))
+  Provides LLM-based post-processing to inspect and redact policy violations from Claude Code's responses. Uses a customizable prompt with GPT-4o-mini to detect violations, replace them with placeholders, and emit violation events to the frontend. When enabled, response streaming is disabled to allow buffering and content modification before delivery.
+
+### Complementary Features (to the agentic cycle)
+
+These features enhance or support the agentic cycle but don't directly control it:
+
+* **Session Management** ([/requirements-docs/prd-session-management.md](requirements-docs/prd-session-management.md))
+  Implements multi-session conversation management with automatic summarization and persistence. Sessions are stored in separate JSONL files (`.etienne/chat.history-<sessionId>.jsonl`) with a session index in `chat.sessions.json`. Users can start new sessions, resume previous conversations, and view AI-generated summaries of past sessions.
+
+* **Scheduling Subsystem** ([/requirements-docs/prd-scheduling-subsystem.md](requirements-docs/prd-scheduling-subsystem.md))
+  Provides cron-based task scheduling using NestJS Schedule to automatically invoke Claude Code with predefined prompts. Task definitions include name, prompt, cron expression, and timezone. Execution history tracks timestamp, response, errors, duration, and token usage. Supports daily, weekly, or custom scheduling patterns.
+
+* **Checkpoints** ([/requirements-docs/prd-checkpoints.md](requirements-docs/prd-checkpoints.md))
+  Implements Git-based backup and restore functionality for project workspaces. Creates versioned snapshots of project files with descriptive commit messages, stores them in `/workspace/.checkpoints`, and allows rolling back to any previous state. Operates via Docker exec in development and direct Git commands in production.
+
+* **Budget Control** ([/requirements-docs/prd-budget-control.md](requirements-docs/prd-budget-control.md))
+  Tracks and visualizes AI inference costs on a per-project basis. Records input/output tokens and calculates costs based on configurable rates in `.env`. Displays real-time budget indicators with percentage-based icons (0-100%) and alerts when limits are exceeded. Stores detailed cost history in `.etienne/costs.json` sorted from newest to oldest.
+
+* **Long-term Memory** ([/requirements-docs/prd-long-term-memory.md](requirements-docs/prd-long-term-memory.md))
+  Implements agentic memory extraction and retrieval using GPT-4o-mini for fact extraction from conversations. Stores structured memories in `.etienne/memories.json` with automatic decay based on configurable time windows. Supports memory search, update, and deletion. Extracted facts include personal information, preferences, goals, habits, skills, and context.
+
+* **Chat Persistence** ([/requirements-docs/prd-chat-persistence.md](requirements-docs/prd-chat-persistence.md))
+  Provides persistent storage of chat history and initial assistant greetings. Chat messages are stored in `chat.history.json` with timestamps, role indicators (user/agent), message content, and cost data. Assistant greetings are configured per-project in `assistant.json` and displayed as the first message when loading a project.
+
+### Other
+
+UI/UX features, administrative tools, and system utilities:
+
+* **System Diagnosis** ([/requirements-docs/prd-system-diagnosis.md](requirements-docs/prd-system-diagnosis.md))
+  Implements health checks for the backend and Claude Code Docker container. Frontend polls `/api/claude/health` every 10 seconds to detect issues like missing Docker, container not running, or unsupported Claude versions. Displays persistent markdown-formatted toast notifications with troubleshooting instructions when errors are detected.
+
+* **Help System** ([/requirements-docs/prd-help-system.md](requirements-docs/prd-help-system.md))
+  Provides contextual background information through dismissible toast components. Each component displays markdown-formatted help text with optional icons, stored in `/public/background-info/data.json`. Help toasts appear in key UI sections (strategy, permissions, integrations, interceptors, filesystem) and can be toggled on/off in settings.
+
+* **Filesystem** ([/requirements-docs/prd-filesystem.md](requirements-docs/prd-filesystem.md))
+  Displays project file structure in a hierarchical tree view using MUI SimpleTreeView. Shows folders with expand/collapse icons and files with document icons. Provides a refresh button to reload the tree structure. Backend API returns sorted directory listings with all files and folders in the project workspace.
+
+* **Structured Chat Responses** ([/requirements-docs/prd-structured-chat-responses.md](requirements-docs/prd-structured-chat-responses.md))
+  Migrates from plain text streaming to structured event-based response handling. Parses Claude Code stdout into specialized components for user messages, tool calls (with running/complete states), permission requests (with approve/deny buttons), errors, and subagent activity. Maintains the existing interceptors system for hooks and events.
+
+* **Live HTML Preview** ([/requirements-docs/prd-live-html-preview.md](requirements-docs/prd-live-html-preview.md))
+  Provides real-time preview of HTML files in an iframe with automatic refresh when files are modified. Listens for PostHook events via the interceptors system and reloads the preview when Claude makes changes to HTML files. Uses sandboxed iframes with controlled permissions for security.
+
+* **Refactoring File Explorer** ([/requirements-docs/prd-refactoring-fileexplorer.md](requirements-docs/prd-refactoring-fileexplorer.md))
+  Enhances the filesystem component with drag-and-drop file uploads, inline renaming, file/folder deletion, and drag-to-move functionality. Implements Material Design styled tree with folder open/closed states and document icons. Backend API supports DELETE, POST, and PUT operations for file management in `/api/workspace/:project/files/`.
+
+* **Frontend State** ([/requirements-docs/prd-frontend-state.md](requirements-docs/prd-frontend-state.md))
+  Manages frontend state persistence using localStorage to remember the currently loaded project. Controls UI element visibility and enabled/disabled states based on whether a project is loaded. Validates that stored projects exist in the workspace on startup and gracefully handles missing projects.
