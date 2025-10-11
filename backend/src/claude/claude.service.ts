@@ -12,7 +12,7 @@ import { norm, safeRoot } from './utils/path.utils';
 import { extractText, parseSession, parseUsage, createJsonLineParser, ClaudeCodeStructuredParser } from './parsers/stream-parser';
 import { buildClaudeScript } from './builders/script-builder';
 import { ClaudeConfig } from './config/claude.config';
-import { ChatPersistence } from './chat.persistence';
+import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { GuardrailsService } from '../input-guardrails/guardrails.service';
 import { sanitize_user_message } from '../input-guardrails/index';
@@ -29,7 +29,8 @@ export class ClaudeService {
   constructor(
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly guardrailsService: GuardrailsService,
-    private readonly outputGuardrailsService: OutputGuardrailsService
+    private readonly outputGuardrailsService: OutputGuardrailsService,
+    private readonly sessionsService: SessionsService
   ) {}
 
   private async ensureProject(projectDir: string) {
@@ -180,11 +181,10 @@ export class ClaudeService {
     }
   }
 
-  public async getChatHistory(projectDir: string) {
+  public async getChatHistory(projectDir: string, sessionId?: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
-    console.log(`[getChatHistory] projectDir: ${projectDir}, root: ${root}`);
-    const chatPersistence = new ChatPersistence(root);
-    const history = await chatPersistence.loadHistory();
+    console.log(`[getChatHistory] projectDir: ${projectDir}, root: ${root}, sessionId: ${sessionId || 'current'}`);
+    const history = await this.sessionsService.loadHistory(root, sessionId);
     console.log(`[getChatHistory] Loaded ${history.messages.length} messages`);
     return history;
   }
@@ -461,7 +461,8 @@ export class ClaudeService {
             // Continue without memories on error
           }
         }
-        const resumeArg = sessionId ? `--resume "$SESSION_ID"` : '--continue';
+        // Only use --resume if we have a sessionId. For new sessions, don't pass any resume flag.
+        const resumeArg = sessionId ? `--resume "$SESSION_ID"` : '';
 
         // Setup file watcher
         const watcher = chokidar.watch(join(projectRoot, 'out'), {
@@ -635,12 +636,11 @@ export class ClaudeService {
           }
 
           // Persist chat messages (unless skipChatPersistence is true, e.g., for scheduled tasks)
-          if (!skipChatPersistence) {
+          if (!skipChatPersistence && sessionId) {
             try {
-              const chatPersistence = new ChatPersistence(projectRoot);
               const timestamp = new Date().toISOString();
 
-              await chatPersistence.appendMessages([
+              await this.sessionsService.appendMessages(projectRoot, sessionId, [
                 {
                   timestamp,
                   isAgent: false,
@@ -724,6 +724,22 @@ export class ClaudeService {
 
       return () => void 0;
     });
+  }
+
+  public async clearSession(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const sessionPath = join(root, 'data', 'session.id');
+
+    try {
+      await fs.unlink(sessionPath);
+      return { success: true, message: 'Session cleared' };
+    } catch (error: any) {
+      // If file doesn't exist, that's fine
+      if (error.code === 'ENOENT') {
+        return { success: true, message: 'No session to clear' };
+      }
+      return { success: false, message: error.message };
+    }
   }
 
   public async abortProcess(processId: string) {

@@ -67,4 +67,9 @@ export class ClaudeController {
   async abortProcess(@Param('processId') processId: string) {
     return this.svc.abortProcess(processId);
   }
+
+  @Post('clearSession/:projectDir')
+  async clearSession(@Param('projectDir') projectDir: string) {
+    return this.svc.clearSession(projectDir);
+  }
 }

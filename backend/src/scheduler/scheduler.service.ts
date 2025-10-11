@@ -4,7 +4,7 @@ import { CronJob } from 'cron';
 import { TaskStorageService } from './task-storage.service';
 import { TaskDefinition, TaskHistoryEntry } from './interfaces/task.interface';
 import { ClaudeService } from '../claude/claude.service';
-import { ChatPersistence } from '../claude/chat.persistence';
+import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { join } from 'path';
 
@@ -19,6 +19,7 @@ export class SchedulerService implements OnModuleInit {
     private readonly storageService: TaskStorageService,
     private readonly claudeService: ClaudeService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
+    private readonly sessionsService: SessionsService,
   ) {}
 
   async onModuleInit() {
@@ -148,31 +149,36 @@ export class SchedulerService implements OnModuleInit {
       this.logger.log(`Task ${task.name} completed in ${duration}ms with ${inputTokens} input and ${outputTokens} output tokens`);
 
       // Persist to chat history with [Scheduled: taskname] prefix
+      // Get the most recent session to continue it
       try {
         const projectRoot = join(this.workspaceRoot, project);
-        const chatPersistence = new ChatPersistence(projectRoot);
+        const mostRecentSessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
 
-        const costs = inputTokens > 0 || outputTokens > 0 ? {
-          input_tokens: inputTokens,
-          output_tokens: outputTokens
-        } : undefined;
+        if (mostRecentSessionId) {
+          const costs = inputTokens > 0 || outputTokens > 0 ? {
+            input_tokens: inputTokens,
+            output_tokens: outputTokens
+          } : undefined;
 
-        await chatPersistence.appendMessages([
-          {
-            timestamp,
-            isAgent: false,
-            message: `[Scheduled: ${task.name}]\n\r ${task.prompt}`,
-            costs: undefined
-          },
-          {
-            timestamp,
-            isAgent: true,
-            message: fullResponse || 'Task completed successfully',
-            costs
-          }
-        ]);
+          await this.sessionsService.appendMessages(projectRoot, mostRecentSessionId, [
+            {
+              timestamp,
+              isAgent: false,
+              message: `[Scheduled: ${task.name}]\n\r ${task.prompt}`,
+              costs: undefined
+            },
+            {
+              timestamp,
+              isAgent: true,
+              message: fullResponse || 'Task completed successfully',
+              costs
+            }
+          ]);
 
-        this.logger.log(`Task ${task.name} persisted to chat history`);
+          this.logger.log(`Task ${task.name} persisted to session ${mostRecentSessionId}`);
+        } else {
+          this.logger.warn(`Task ${task.name}: No recent session found, skipping persistence`);
+        }
       } catch (error: any) {
         this.logger.warn(`Failed to persist task ${task.name} to chat history: ${error.message}`);
       }

@@ -4,14 +4,18 @@ import { LuBrain } from "react-icons/lu";
 import { HiOutlineWrench } from "react-icons/hi2";
 import { GiSettingsKnobs } from "react-icons/gi";
 import { IoClose } from "react-icons/io5";
+import { RiChatNewLine } from "react-icons/ri";
+import { PiCaretCircleDownLight } from "react-icons/pi";
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import { StructuredMessage } from './StructuredMessage';
+import SessionPane from './SessionPane';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false }) {
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(() => {
     const saved = localStorage.getItem('memoryEnabled');
     return saved === 'true';
@@ -44,6 +48,22 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
   const handleSettingsSave = () => {
     console.log('Settings saved:', { aiModel });
     setSettingsOpen(false);
+  };
+
+  const handleNewSession = () => {
+    if (onSessionChange) {
+      onSessionChange(null); // null means start a new session
+    }
+  };
+
+  const handleResumeSession = () => {
+    setSessionPaneOpen(true);
+  };
+
+  const handleSessionSelect = (sessionId) => {
+    if (onSessionChange) {
+      onSessionChange(sessionId);
+    }
   };
 
   // Check if we should show typing indicator (streaming but no assistant response yet, or assistant response is empty)
@@ -98,14 +118,39 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           </Typography>
         </Box>
 
-        {/* Settings Button */}
-        <IconButton
-          onClick={() => setSettingsOpen(true)}
-          title="Settings"
-          sx={{ color: '#333' }}
-        >
-          <GiSettingsKnobs size={24} />
-        </IconButton>
+        {/* Right-aligned buttons */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Start New Session Button - only visible if hasActiveSession */}
+          {hasActiveSession && (
+            <IconButton
+              onClick={handleNewSession}
+              title="Start New Session"
+              sx={{ color: '#1976d2' }}
+            >
+              <RiChatNewLine size={19} />
+            </IconButton>
+          )}
+
+          {/* Resume Session Button - only visible if hasSessions */}
+          {hasSessions && (
+            <IconButton
+              onClick={handleResumeSession}
+              title="Resume Session"
+              sx={{ color: '#333' }}
+            >
+              <PiCaretCircleDownLight size={24} />
+            </IconButton>
+          )}
+
+          {/* Settings Button */}
+          <IconButton
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+            sx={{ color: '#333' }}
+          >
+            <GiSettingsKnobs size={24} />
+          </IconButton>
+        </Box>
       </Box>
 
       {/* Messages Area */}
@@ -295,6 +340,14 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           </Box>
         </Box>
       </Modal>
+
+      {/* Session Pane */}
+      <SessionPane
+        open={sessionPaneOpen}
+        onClose={() => setSessionPaneOpen(false)}
+        projectName={projectName}
+        onSessionSelect={handleSessionSelect}
+      />
     </Box>
   );
 }

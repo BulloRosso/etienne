@@ -19,6 +19,27 @@ export function buildClaudeScript(options: ScriptOptions): string {
   // Only add --max-turns if maxTurns is defined and > 0 (0 means unlimited)
   const maxTurnsArg = (maxTurns && maxTurns > 0) ? `--max-turns ${maxTurns}` : '';
 
+  // Build the command with optional resume arg
+  const commandParts = [
+    '"$CLAUDE_BIN"',
+    '  --print "$CLAUDE_PROMPT"',
+    '  --output-format stream-json',
+    '  --verbose',
+    '  --include-partial-messages',
+    `  --permission-mode ${permissionMode}`,
+    allowedToolsArgs,
+  ];
+
+  if (maxTurnsArg) {
+    commandParts.push(`  ${maxTurnsArg}`);
+  }
+
+  if (resumeArg) {
+    commandParts.push(`  ${resumeArg}`);
+  }
+
+  const command = commandParts.join(' \\\n');
+
   return `set -euo pipefail
 export PATH="/usr/local/share/npm-global/bin:/usr/local/bin:/usr/bin:$PATH"
 
@@ -40,13 +61,6 @@ export CLAUDE_CONFIG_DIR="$envHome"
 mkdir -p "$HOME" "$containerCwd"
 cd "$containerCwd"
 
-"$CLAUDE_BIN" \\
-  --print "$CLAUDE_PROMPT" \\
-  --output-format stream-json \\
-  --verbose \\
-  --include-partial-messages \\
-  --permission-mode ${permissionMode} \\
-${allowedToolsArgs} \\
-  ${maxTurnsArg ? `${maxTurnsArg} \\\n  ` : ''}${resumeArg}
+${command}
 `;
 }

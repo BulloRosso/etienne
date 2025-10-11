@@ -18,6 +18,8 @@ export default function App() {
   const [structuredMessages, setStructuredMessages] = useState([]);
   const [files, setFiles] = useState([]);
   const [sessionId, setSessionId] = useState('');
+  const [currentSessionId, setCurrentSessionId] = useState(null); // Track which session we're viewing
+  const [hasSessions, setHasSessions] = useState(false); // Track if sessions exist
   const [mode, setMode] = useState('work'); // 'plan' or 'work'
   const [aiModel, setAiModel] = useState('anthropic'); // 'anthropic' or 'openai'
   const [budgetSettings, setBudgetSettings] = useState({ enabled: false, limit: 0 });
@@ -183,6 +185,24 @@ export default function App() {
     return () => {
       es.close();
     };
+  }, [currentProject]);
+
+  // Check if sessions exist for the current project
+  useEffect(() => {
+    if (!currentProject) return;
+
+    const checkSessions = async () => {
+      try {
+        const response = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+        const data = await response.json();
+        setHasSessions(data.success && data.sessions && data.sessions.length > 0);
+      } catch (err) {
+        console.error('Failed to check sessions:', err);
+        setHasSessions(false);
+      }
+    };
+
+    checkSessions();
   }, [currentProject]);
 
   // Load initial project data
@@ -513,6 +533,18 @@ export default function App() {
           return newMessages;
         });
       }
+
+      // Refresh sessions list (a new session may have been created)
+      if (currentProject) {
+        fetch(`/api/sessions/${encodeURIComponent(currentProject)}`)
+          .then(res => res.json())
+          .then(data => {
+            setHasSessions(data.success && data.sessions && data.sessions.length > 0);
+          })
+          .catch(err => {
+            console.error('Failed to refresh sessions:', err);
+          });
+      }
     };
 
     es.addEventListener('completed', stop);
@@ -534,38 +566,66 @@ export default function App() {
     }
   };
 
-  const handleProjectChange = async (newProject) => {
-    setProject(newProject);
-    setMessages([]);
-    setStructuredMessages([]);
-    setFiles([]);
-    setSessionId('');
-    esRef.current?.close();
-    setStreaming(false);
+  const handleSessionChange = async (newSessionId) => {
+    // If newSessionId is null, start a new session (clear current session)
+    if (newSessionId === null) {
+      setCurrentSessionId(null);
+      setSessionId('');
+      setMessages([]);
+      setStructuredMessages([]);
 
-    // Load assistant greeting
+      // Clear the session.id file on the backend
+      try {
+        await fetch(`/api/claude/clearSession/${encodeURIComponent(currentProject)}`, {
+          method: 'POST'
+        });
+      } catch (err) {
+        console.error('Failed to clear session on backend:', err);
+      }
+
+      // Load just the greeting
+      try {
+        const assistantRes = await fetch('/api/claude/assistant', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ projectName: currentProject })
+        });
+        const assistantData = await assistantRes.json();
+        const greeting = assistantData?.assistant?.greeting;
+
+        if (greeting) {
+          setMessages([{
+            role: 'assistant',
+            text: greeting,
+            timestamp: formatTime()
+          }]);
+        }
+      } catch (err) {
+        console.error('Failed to load greeting:', err);
+      }
+      return;
+    }
+
+    // Load specific session
+    setCurrentSessionId(newSessionId);
+    setSessionId(newSessionId);
+
     try {
+      // Load session history
+      const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${newSessionId}/history`);
+      const historyData = await historyRes.json();
+      const chatMessages = historyData?.messages || [];
+
+      // Load greeting
       const assistantRes = await fetch('/api/claude/assistant', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectName: newProject })
+        body: JSON.stringify({ projectName: currentProject })
       });
       const assistantData = await assistantRes.json();
       const greeting = assistantData?.assistant?.greeting;
 
-      // Load chat history
-      const historyRes = await fetch('/api/claude/chat/history', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectName: newProject })
-      });
-      const historyData = await historyRes.json();
-      const chatMessages = historyData?.messages || [];
-
-      // Build message list
       const loadedMessages = [];
-
-      // Add greeting as first message if it exists
       if (greeting) {
         loadedMessages.push({
           role: 'assistant',
@@ -574,7 +634,6 @@ export default function App() {
         });
       }
 
-      // Add chat history messages
       chatMessages.forEach(msg => {
         loadedMessages.push({
           role: msg.isAgent ? 'assistant' : 'user',
@@ -589,6 +648,85 @@ export default function App() {
       });
 
       setMessages(loadedMessages);
+      setStructuredMessages([]);
+    } catch (err) {
+      console.error('Failed to load session history:', err);
+    }
+  };
+
+  const handleProjectChange = async (newProject) => {
+    setProject(newProject);
+    setMessages([]);
+    setStructuredMessages([]);
+    setFiles([]);
+    setSessionId('');
+    setCurrentSessionId(null);
+    setHasSessions(false);
+    esRef.current?.close();
+    setStreaming(false);
+
+    try {
+      // Check if sessions exist
+      const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(newProject)}`);
+      const sessionsData = await sessionsRes.json();
+      const hasExistingSessions = sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0;
+      setHasSessions(hasExistingSessions);
+
+      // Load assistant greeting
+      const assistantRes = await fetch('/api/claude/assistant', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ projectName: newProject })
+      });
+      const assistantData = await assistantRes.json();
+      const greeting = assistantData?.assistant?.greeting;
+
+      // If sessions exist, automatically load the most recent one
+      if (hasExistingSessions && sessionsData.sessions.length > 0) {
+        const mostRecentSession = sessionsData.sessions[0]; // Already sorted by timestamp descending
+        setCurrentSessionId(mostRecentSession.sessionId);
+        setSessionId(mostRecentSession.sessionId);
+
+        // Load the most recent session's history
+        const historyRes = await fetch(`/api/sessions/${encodeURIComponent(newProject)}/${mostRecentSession.sessionId}/history`);
+        const historyData = await historyRes.json();
+        const chatMessages = historyData?.messages || [];
+
+        const loadedMessages = [];
+        if (greeting) {
+          loadedMessages.push({
+            role: 'assistant',
+            text: greeting,
+            timestamp: formatTime()
+          });
+        }
+
+        chatMessages.forEach(msg => {
+          loadedMessages.push({
+            role: msg.isAgent ? 'assistant' : 'user',
+            text: msg.message,
+            timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }),
+            usage: msg.costs
+          });
+        });
+
+        setMessages(loadedMessages);
+      } else {
+        // No sessions exist, just show the greeting
+        const loadedMessages = [];
+        if (greeting) {
+          loadedMessages.push({
+            role: 'assistant',
+            text: greeting,
+            timestamp: formatTime()
+          });
+        }
+        setMessages(loadedMessages);
+      }
 
       // Load budget settings for the new project
       const budgetRes = await fetch(`/api/budget-monitoring/${newProject}/settings`);
@@ -605,7 +743,7 @@ export default function App() {
         setHasTasks(false);
       }
     } catch (err) {
-      console.error('Failed to load chat history:', err);
+      console.error('Failed to load project data:', err);
     }
   };
 
@@ -663,8 +801,8 @@ export default function App() {
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
-          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} />}
-          right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} />}
+          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} />}
+          right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} />}
         />
       </Box>
 
