@@ -188,6 +188,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
             onClick={handleSend}
             disabled={disabled || !message.trim()}
             color="primary"
+            sx={{ backgroundColor: "#DEEBF7" }}
           >
             <GoArrowUp />
           </IconButton>

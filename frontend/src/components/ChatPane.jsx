@@ -99,7 +99,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             size="small"
             sx={{
               '& .MuiToggleButton-root.Mui-selected': {
-                backgroundColor: '#bbdefb',
+                backgroundColor: '#DEEBF7',
                 '&:hover': {
                   backgroundColor: '#90caf9'
                 }
