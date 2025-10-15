@@ -12,14 +12,18 @@ In production deploymenents all components can be packaged inside a single Conta
 ## IT Scenario
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
 
+<div align="center">
 <img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="700">
+</div>
 
 It proposes to focus your development efforts on the business layer instead on the AI layer.
 
 ## Components in Scope
 Often home-grown AI systems neglect many of the requirements in regard of observability and usability.
 
+<div align="center">
 <img src="/docs/images/agent-components.jpg" alt="Agent Components" width="700">
+</div>
 
 This template demonstrates the seamless integration over many base technologies like MCP, git, cron, http proxies and shell scripting.
 
