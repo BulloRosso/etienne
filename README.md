@@ -40,13 +40,13 @@ An example for learning the internals, integrations and configuration details of
 
 ### Basic Functionality (Inner Agentic Loop)
 
-[![Youtube Video](https://img.youtube.com/vi/zjoiCkf6LhM/0.jpg)](https://www.youtube.com/watch?v=zjoiCkf6LhM)
+[![Youtube Video](https://img.youtube.com/vi/ljInSy96zkY/0.jpg)](https://youtu.be/ljInSy96zkY)
 
 [Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform](https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/)
 
 ### Enhanced Functionality (Outer Agentic Loop)
 
-[![Youtube Video](https://img.youtube.com/vi/o-1VXTT6g3g/0.jpg)](https://www.youtube.com/watch?v=o-1VXTT6g3g)
+[![Youtube Video](https://img.youtube.com/vi/o-1VXTT6g3g/0.jpg)](https://youtu.be/o-1VXTT6g3g)
 
 [Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/)
 
