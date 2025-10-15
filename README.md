@@ -1,6 +1,6 @@
 # Etienne - Headless Claude Code
 
-<img src="/docs/images/etienne-logo.png" alt="Etienne Logo" style="margin:0 auto" width="200">
+<img src="/docs/images/etienne-logo.png" alt="Etienne Logo" style="display: block; margin: 0 auto;" width="200">
 
 How to use Claude Code 2.0 in non-interactive mode to build a agent engine for **virtual collaborator use cases**.
 
