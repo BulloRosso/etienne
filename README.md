@@ -6,9 +6,19 @@ How to use Claude Code 2.0 in non-interactive mode to build a agent engine for v
 
 Contains a node.js/nest.js backend and React/Vite frontend which operate on an existing Claude Code 2.0 Docker devcontainer.
 
+## IT Scenario
+This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
+
+<img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="500">
+
+## Technologies in Scope
+<img src="/docs/images/agent-components.jpg" alt="Agent Components" width="600">
+
+## Intended Use
 An example for learning the internals, integrations and configuration details of Claude Code with the "-p" command line parameter in multi-tenant scenarios.
 
 ## Architecture
+
 <img src="/docs/images/building-blocks.jpg" alt="Architecture Diagram" width="500">
 
 ## Live Demonstrations
