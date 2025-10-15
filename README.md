@@ -11,8 +11,18 @@ An example for learning the internals, integrations and configuration details of
 ## Architecture
 <img src="/docs/images/building-blocks.jpg" alt="Architecture Diagram" width="500">
 
-## Demo
+## Live Demonstrations
+
+### Basic Functionality (Agentic Loop)
 [![Youtube Video](https://img.youtube.com/vi/zjoiCkf6LhM/0.jpg)](https://www.youtube.com/watch?v=zjoiCkf6LhM)
+
+![Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/)
+
+### Enhanced Functionality ()
+[![Youtube Video](https://img.youtube.com/vi/o-1VXTT6g3g/0.jpg)](https://www.youtube.com/watch?v=o-1VXTT6g3g)
+
+https://www.youtube.com/watch?v=o-1VXTT6g3g
+![Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/)
 
 ## SETUP
 
