@@ -4,10 +4,10 @@
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
 
-How to use Claude Code 2.0 in non-interactive mode to build a agent engine for **virtual collaborator use cases**.
+How to use Claude Code 2.0 in non-interactive mode to build an agent engine for **virtual collaborator use cases**.
 
 Contains a node.js/nest.js backend and React/Vite frontend which operate on an existing Claude Code 2.0 Docker devcontainer.
-In production deploymenents all components can be packaged inside a single Container.
+In production deployments all components can be packaged inside a single Container.
 
 ## IT Scenario
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
@@ -32,20 +32,24 @@ An example for learning the internals, integrations and configuration details of
 
 ## Architecture
 
+<div align="center">
 <img src="/docs/images/building-blocks.jpg" alt="Architecture Diagram" width="500">
+</div>
 
 ## Live Demonstrations
 
 ### Basic Functionality (Inner Agentic Loop)
+<div align="center">
 [![Youtube Video](https://img.youtube.com/vi/zjoiCkf6LhM/0.jpg)](https://www.youtube.com/watch?v=zjoiCkf6LhM)
 
 [Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform](https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/)
-
+</div>
 ### Enhanced Functionality (Outer Agentic Loop)
+<div align="center">
 [![Youtube Video](https://img.youtube.com/vi/o-1VXTT6g3g/0.jpg)](https://www.youtube.com/watch?v=o-1VXTT6g3g)
 
 [Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/)
-
+</div>
 ## SETUP
 
 ### API Keys
