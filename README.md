@@ -2,17 +2,24 @@
 
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 
-How to use Claude Code 2.0 in non-interactive mode to build a agent engine for virtual collaborator use cases.
+How to use Claude Code 2.0 in non-interactive mode to build a agent engine for **virtual collaborator use cases**.
 
 Contains a node.js/nest.js backend and React/Vite frontend which operate on an existing Claude Code 2.0 Docker devcontainer.
+In production deploymenents all components can be packaged inside a single Container.
 
 ## IT Scenario
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
 
 <img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="700">
 
-## Technologies in Scope
+It proposes to focus your development efforts on the business layer instead on the AI layer.
+
+## Components in Scope
+Often home-grown AI systems neglect many of the requirements in regard of observability and usability.
+
 <img src="/docs/images/agent-components.jpg" alt="Agent Components" width="700">
+
+This template demonstrates the seamless integration over many base technologies like MCP, git, cron, http proxies and shell scripting.
 
 ## Intended Use
 An example for learning the internals, integrations and configuration details of Claude Code with the "-p" command line parameter in multi-tenant scenarios.
