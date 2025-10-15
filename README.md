@@ -9,10 +9,10 @@ Contains a node.js/nest.js backend and React/Vite frontend which operate on an e
 ## IT Scenario
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
 
-<img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="500">
+<img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="700">
 
 ## Technologies in Scope
-<img src="/docs/images/agent-components.jpg" alt="Agent Components" width="600">
+<img src="/docs/images/agent-components.jpg" alt="Agent Components" width="700">
 
 ## Intended Use
 An example for learning the internals, integrations and configuration details of Claude Code with the "-p" command line parameter in multi-tenant scenarios.
