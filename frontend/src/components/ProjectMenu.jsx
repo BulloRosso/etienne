@@ -23,9 +23,11 @@ import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Ass
 import { TbCalendarTime } from 'react-icons/tb';
 import { IoHandRightOutline } from 'react-icons/io5';
 import { RiRobot2Line } from 'react-icons/ri';
+import { FcElectricalSensor } from 'react-icons/fc';
 import SchedulingOverview from './SchedulingOverview';
 import GuardrailsSettings from './GuardrailsSettings';
 import SubagentConfiguration from './SubagentConfiguration';
+import MQTTSettings from './MQTTSettings';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -36,6 +38,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [guardrailsOpen, setGuardrailsOpen] = useState(false);
   const [subagentsOpen, setSubagentsOpen] = useState(false);
+  const [externalEventsOpen, setExternalEventsOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -147,6 +150,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setSubagentsOpen(false);
   };
 
+  const handleExternalEventsOpen = () => {
+    setExternalEventsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleExternalEventsClose = () => {
+    setExternalEventsOpen(false);
+  };
+
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
 
@@ -227,6 +239,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <RiRobot2Line fontSize="small" style={{ fontSize: '20px' }} />
           </ListItemIcon>
           <ListItemText>Subagents</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleExternalEventsOpen} disabled={!currentProject}>
+          <ListItemIcon>
+            <FcElectricalSensor fontSize="small" style={{ fontSize: '20px' }} />
+          </ListItemIcon>
+          <ListItemText>External Events</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
@@ -412,6 +430,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <SubagentConfiguration project={currentProject} />
         </DialogContent>
       </Dialog>
+
+      <MQTTSettings
+        open={externalEventsOpen}
+        onClose={handleExternalEventsClose}
+        project={currentProject}
+      />
     </>
   );
 }

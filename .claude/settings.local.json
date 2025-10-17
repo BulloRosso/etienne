@@ -32,7 +32,8 @@
       "Bash(do echo \"Test $i:\")",
       "Bash(time curl:*)",
       "Bash(done)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

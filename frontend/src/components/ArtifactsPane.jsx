@@ -93,7 +93,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if (data.action === 'html-preview') {
+      if (data.action === 'html-preview' || data.action === 'json-preview') {
         // Close filesystem drawer
         setFilesystemDrawerOpen(false);
         // Switch to Live Changes tab (tab 0)

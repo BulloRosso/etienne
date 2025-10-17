@@ -3,11 +3,16 @@ import { List, ListItem, ListItemText, Box, Typography } from '@mui/material';
 import { CiFileOn } from 'react-icons/ci';
 import { BsRobot } from 'react-icons/bs';
 import LiveHTMLPreview from './LiveHTMLPreview';
+import JSONViewer from './JSONViewer';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo }) {
   const isHtmlFile = (filename) => {
     return filename && (filename.endsWith('.html') || filename.endsWith('.htm'));
+  };
+
+  const isJsonFile = (filename) => {
+    return filename && filename.endsWith('.json');
   };
 
   return (
@@ -60,6 +65,25 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo }) {
                   }}
                 >
                   <LiveHTMLPreview filename={f.path} projectName={projectName} />
+                </Box>
+              </Box>
+            ) : isJsonFile(f.path) ? (
+              <Box sx={{ width: '100%', mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <CiFileOn />
+                  {f.path}
+                </Typography>
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '800px',
+                    resize: 'vertical',
+                    overflow: 'auto',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <JSONViewer filename={f.path} projectName={projectName} />
                 </Box>
               </Box>
             ) : (

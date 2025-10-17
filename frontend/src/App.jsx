@@ -378,7 +378,7 @@ export default function App() {
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if (data.action === 'html-preview' && data.filePath && data.projectName) {
+      if ((data.action === 'html-preview' || data.action === 'json-preview') && data.filePath && data.projectName) {
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }
