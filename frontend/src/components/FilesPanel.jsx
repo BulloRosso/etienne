@@ -3,6 +3,7 @@ import { Box, Typography, Tab, Tabs, IconButton, Menu, MenuItem, Divider } from 
 import { BsRobot } from 'react-icons/bs';
 import { IoClose } from 'react-icons/io5';
 import { BsThreeDotsVertical } from 'react-icons/bs';
+import { CiFileOn } from 'react-icons/ci';
 import LiveHTMLPreview from './LiveHTMLPreview';
 import JSONViewer from './JSONViewer';
 import MarkdownViewer from './MarkdownViewer';
@@ -12,15 +13,36 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const [activeTab, setActiveTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [visibleIndices, setVisibleIndices] = useState([]);
+  const prevFilesRef = React.useRef([]);
   const MAX_VISIBLE_TABS = 6;
 
   // Initialize visible indices when files change
   useEffect(() => {
+    const prevFiles = prevFilesRef.current;
+
+    // Check if a new file was added
+    if (files.length > prevFiles.length) {
+      // Find the newly added file
+      const newFile = files.find(f => !prevFiles.some(pf => pf.path === f.path));
+      if (newFile) {
+        const newFileIndex = files.indexOf(newFile);
+        // Add new file to visible indices at the beginning and make it active
+        const newVisibleIndices = [newFileIndex, ...visibleIndices.filter(i => i !== newFileIndex)].slice(0, MAX_VISIBLE_TABS);
+        setVisibleIndices(newVisibleIndices);
+        setActiveTab(0);
+        prevFilesRef.current = files;
+        return;
+      }
+    }
+
+    // Otherwise, reset visible indices to first MAX_VISIBLE_TABS files
     const newIndices = files.map((_, i) => i).slice(0, MAX_VISIBLE_TABS);
     setVisibleIndices(newIndices);
     if (files.length > 0 && activeTab >= files.length) {
       setActiveTab(0);
     }
+
+    prevFilesRef.current = files;
   }, [files]);
 
   // Reset active tab if it exceeds visible indices
@@ -187,25 +209,26 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#393939' }}>
       <Box sx={{ p: 2, pb: 0 }}>
         <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
       </Box>
 
       {/* Tab Strip */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: '#393939' }}>
         <Tabs
           value={activeTab}
           onChange={(e, newValue) => setActiveTab(newValue)}
           variant="scrollable"
           scrollButtons="auto"
-          sx={{ flex: 1, minHeight: 32, '& .MuiTabs-indicator': { backgroundColor: '#ff8c00' } }}
+          sx={{ flex: 1, minHeight: 32, '& .MuiTabs-indicator': { backgroundColor: 'gold' } }}
         >
           {visibleFiles.map((file, index) => (
             <Tab
               key={file.path}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <CiFileOn size={14} style={{ color: '#ffffff' }} />
                   <span>{getFilename(file.path)}</span>
                   <IconButton
                     size="small"
@@ -213,7 +236,8 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                     sx={{
                       p: 0.25,
                       ml: 0.5,
-                      '&:hover': { backgroundColor: 'rgba(0,0,0,0.1)' }
+                      color: '#ffffff',
+                      '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
                     }}
                   >
                     <IoClose size={12} />
@@ -226,8 +250,8 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                 minWidth: 60,
                 padding: '4px 8px',
                 fontSize: '0.75rem',
-                color: 'text.secondary',
-                '&.Mui-selected': { color: '#ff8c00' }
+                color: '#ffffff',
+                '&.Mui-selected': { color: 'gold' }
               }}
             />
           ))}
@@ -238,7 +262,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           <>
             <IconButton
               onClick={handleOverflowMenuOpen}
-              sx={{ mx: 1 }}
+              sx={{ mx: 1, color: '#ffffff' }}
               size="small"
             >
               <BsThreeDotsVertical />
@@ -269,7 +293,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
       </Box>
 
       {/* Content Area */}
-      <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative', backgroundColor: '#ffffff' }}>
         {visibleFiles[activeTab] && renderFileContent(visibleFiles[activeTab])}
       </Box>
     </Box>

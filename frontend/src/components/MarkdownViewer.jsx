@@ -106,7 +106,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
           sx={{
             position: 'absolute',
             top: 8,
-            right: 8,
+            right: 18,
             zIndex: 1000,
             bgcolor: 'background.paper',
             boxShadow: 1,
