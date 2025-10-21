@@ -28,6 +28,8 @@ class FilePreviewHandler {
       this.handleHtmlPreview(filePath, projectName);
     } else if (extension === 'json') {
       this.handleJsonPreview(filePath, projectName);
+    } else if (extension === 'md') {
+      this.handleMarkdownPreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -69,6 +71,25 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'json-preview'
+    });
+  }
+
+  /**
+   * Handle Markdown file preview
+   * @param {string} filePath - The path to the Markdown file
+   * @param {string} projectName - The project name
+   */
+  handleMarkdownPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Markdown preview for', filePath);
+
+    // Publish event to:
+    // 1. Close the filesystem drawer
+    // 2. Activate the Live Changes tab (tab 0)
+    // 3. Add/update the file in the files list
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'markdown-preview'
     });
   }
 

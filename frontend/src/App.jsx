@@ -375,10 +375,15 @@ export default function App() {
     });
   };
 
+  // Handle closing a single tab
+  const handleCloseTab = (path) => {
+    setFiles(files => files.filter(f => f.path !== path));
+  };
+
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if ((data.action === 'html-preview' || data.action === 'json-preview') && data.filePath && data.projectName) {
+      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview') && data.filePath && data.projectName) {
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }
@@ -802,7 +807,7 @@ export default function App() {
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <SplitLayout
           left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} />}
-          right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} />}
+          right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} />}
         />
       </Box>
 

@@ -28,7 +28,7 @@ function TabPanel({ children, value, index }) {
   );
 }
 
-export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview }) {
+export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab }) {
   const [tabValue, setTabValue] = useState(0);
   const [filesystemDrawerOpen, setFilesystemDrawerOpen] = useState(false);
   const [filesystemTabValue, setFilesystemTabValue] = useState(0);
@@ -93,7 +93,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if (data.action === 'html-preview' || data.action === 'json-preview') {
+      if (data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview') {
         // Close filesystem drawer
         setFilesystemDrawerOpen(false);
         // Switch to Live Changes tab (tab 0)
@@ -160,7 +160,13 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         )}
       </Box>
       <TabPanel value={tabValue} index={0}>
-        <FilesPanel files={files} projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+        <FilesPanel
+          files={files}
+          projectName={projectName}
+          showBackgroundInfo={showBackgroundInfo}
+          onCloseTab={onCloseTab}
+          onCloseAll={onClearPreview}
+        />
       </TabPanel>
       {projectExists && (
         <>

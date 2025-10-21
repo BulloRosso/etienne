@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 export default function JSONViewer({ filename, projectName, className = '' }) {
   const [jsonContent, setJsonContent] = useState('');
@@ -45,6 +46,11 @@ export default function JSONViewer({ filename, projectName, className = '' }) {
   useEffect(() => {
     fetchJsonContent();
   }, [filename, projectName, refreshKey]);
+
+  // Handler for manual reload
+  const handleReload = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   // Listen for file changes via claudeHook events
   useEffect(() => {
@@ -93,7 +99,27 @@ export default function JSONViewer({ filename, projectName, className = '' }) {
   }
 
   return (
-    <Box className={className} height="100%" width="100%">
+    <Box className={className} height="100%" width="100%" position="relative">
+      <Tooltip title="Reload file">
+        <IconButton
+          onClick={handleReload}
+          disabled={loading}
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 1000,
+            bgcolor: 'background.paper',
+            boxShadow: 1,
+            '&:hover': {
+              bgcolor: 'action.hover'
+            }
+          }}
+          size="small"
+        >
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
       <Editor
         height="100%"
         defaultLanguage="json"
