@@ -209,13 +209,13 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#393939' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#13579b' }}>
       <Box sx={{ p: 2, pb: 0 }}>
         <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
       </Box>
 
       {/* Tab Strip */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: '#393939' }}>
+      <Box sx={{ borderBottom: 0, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: '#13579b' }}>
         <Tabs
           value={activeTab}
           onChange={(e, newValue) => setActiveTab(newValue)}
@@ -293,7 +293,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
       </Box>
 
       {/* Content Area */}
-      <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative', backgroundColor: '#ffffff' }}>
+      <Box sx={{ flex: 1, overflow: 'hidden', border: 0, position: 'relative', backgroundColor: '#ffffff' }}>
         {visibleFiles[activeTab] && renderFileContent(visibleFiles[activeTab])}
       </Box>
     </Box>

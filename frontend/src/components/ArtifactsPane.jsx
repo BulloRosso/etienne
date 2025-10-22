@@ -3,7 +3,6 @@ import { Box, Tabs, Tab, Drawer, IconButton, Tooltip } from '@mui/material';
 import { PiFolders } from 'react-icons/pi';
 import { BiMemoryCard } from 'react-icons/bi';
 import { IoHandRightOutline } from 'react-icons/io5';
-import { CgPlayListRemove } from 'react-icons/cg';
 import FilesPanel from './FilesPanel';
 import Strategy from './Strategy';
 import Filesystem from './Filesystem';
@@ -118,16 +117,6 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           {projectExists && <Tab label="Connectivity" />}
           {projectExists && <Tab label="Observability" />}
         </Tabs>
-        {tabValue === 0 && files.length > 0 && onClearPreview && (
-          <Tooltip title="Clear Preview">
-            <IconButton
-              onClick={onClearPreview}
-              sx={{ mr: 1 }}
-            >
-              <CgPlayListRemove size={20} />
-            </IconButton>
-          </Tooltip>
-        )}
         {guardrailsEnabled && projectExists && (
           <Tooltip title="Input Guardrails Active">
             <IconButton
@@ -152,7 +141,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           <Tooltip title="Filesystem Browser">
             <IconButton
               onClick={() => setFilesystemDrawerOpen(true)}
-              sx={{ mr: 1 }}
+              sx={{ mr: '12px' }}
             >
               <PiFolders />
             </IconButton>
