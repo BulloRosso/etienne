@@ -30,6 +30,8 @@ class FilePreviewHandler {
       this.handleJsonPreview(filePath, projectName);
     } else if (extension === 'md') {
       this.handleMarkdownPreview(filePath, projectName);
+    } else if (extension === 'mermaid') {
+      this.handleMermaidPreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -90,6 +92,25 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'markdown-preview'
+    });
+  }
+
+  /**
+   * Handle Mermaid file preview
+   * @param {string} filePath - The path to the Mermaid file
+   * @param {string} projectName - The project name
+   */
+  handleMermaidPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Mermaid preview for', filePath);
+
+    // Publish event to:
+    // 1. Close the filesystem drawer
+    // 2. Activate the Live Changes tab (tab 0)
+    // 3. Add/update the file in the files list
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'mermaid-preview'
     });
   }
 

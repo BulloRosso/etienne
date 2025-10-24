@@ -7,6 +7,7 @@ import { CiFileOn } from 'react-icons/ci';
 import LiveHTMLPreview from './LiveHTMLPreview';
 import JSONViewer from './JSONViewer';
 import MarkdownViewer from './MarkdownViewer';
+import MermaidViewer from './MermaidViewer';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll }) {
@@ -62,6 +63,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
 
   const isMarkdownFile = (filename) => {
     return filename && filename.endsWith('.md');
+  };
+
+  const isMermaidFile = (filename) => {
+    return filename && filename.endsWith('.mermaid');
   };
 
   const getFilename = (path) => {
@@ -162,6 +167,22 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           }}
         >
           <MarkdownViewer filename={file.path} projectName={projectName} />
+        </Box>
+      );
+    }
+
+    if (isMermaidFile(file.path)) {
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <MermaidViewer filename={file.path} projectName={projectName} />
         </Box>
       );
     }

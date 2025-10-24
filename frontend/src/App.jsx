@@ -117,6 +117,30 @@ export default function App() {
             });
             window.dispatchEvent(claudeHookEvent);
             console.log('Dispatched claudeHook for file:', toolInput.file_path);
+
+            // Auto-preview files with supported extensions
+            const filePath = toolInput.file_path;
+            const extension = filePath.split('.').pop()?.toLowerCase();
+            const supportedExtensions = ['html', 'htm', 'json', 'md', 'mermaid'];
+
+            if (supportedExtensions.includes(extension)) {
+              // Extract relative path from absolute path
+              // filePath is like: C:\Data\GitHub\claude-multitenant\workspace\weather-report\diagrams\project-a.mermaid
+              // We need: diagrams/project-a.mermaid
+              const pathParts = filePath.split(/[/\\]/);
+              const workspaceIndex = pathParts.findIndex(p => p === 'workspace');
+
+              if (workspaceIndex !== -1 && pathParts.length > workspaceIndex + 2) {
+                // Skip workspace and project dir, get the rest
+                const relativePath = pathParts.slice(workspaceIndex + 2).join('/');
+                console.log(`Auto-previewing ${extension} file:`, relativePath);
+
+                // Add a small delay to ensure file is written to disk
+                setTimeout(() => {
+                  fetchFile(relativePath, currentProject);
+                }, 300);
+              }
+            }
           }
 
           // Find the matching PreToolUse
@@ -383,7 +407,7 @@ export default function App() {
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview') && data.filePath && data.projectName) {
+      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview') && data.filePath && data.projectName) {
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }
