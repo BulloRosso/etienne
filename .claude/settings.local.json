@@ -33,7 +33,19 @@
       "Bash(time curl:*)",
       "Bash(done)",
       "Bash(dir:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(python test_connection.py:*)",
+      "Bash(docker cp:*)",
+      "Bash(pip install:*)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(docker-compose restart:*)",
+      "Bash(python test_cross_provider.py:*)",
+      "Bash(python:*)",
+      "WebFetch(domain:platform.openai.com)"
     ],
     "deny": [],
     "ask": []

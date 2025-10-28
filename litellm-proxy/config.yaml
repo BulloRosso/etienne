@@ -1,0 +1,48 @@
+model_list:
+  # Native Claude model names route to OpenAI backends ONLY
+  # Claude Code will use these native names
+
+  # claude-sonnet-4-5 -> OpenAI GPT-5-Codex (NO Anthropic passthrough)
+  - model_name: claude-sonnet-4-5
+    litellm_params:
+      model: openai/gpt-5-codex
+      api_key: os.environ/OPENAI_API_KEY
+      max_tokens: 8192
+
+  # claude-haiku-4-5 -> OpenAI GPT-5-mini (NO Anthropic passthrough)
+  - model_name: claude-haiku-4-5
+    litellm_params:
+      model: openai/gpt-5-mini
+      api_key: os.environ/OPENAI_API_KEY
+      max_tokens: 4096
+
+  # Direct OpenAI model names (optional, for reference)
+  - model_name: gpt-5-codex
+    litellm_params:
+      model: openai/gpt-5-codex
+      api_key: os.environ/OPENAI_API_KEY
+      max_tokens: 8192
+
+  - model_name: gpt-5-mini
+    litellm_params:
+      model: openai/gpt-5-mini
+      api_key: os.environ/OPENAI_API_KEY
+      max_tokens: 4096
+
+# Router settings for easy switching
+router_settings:
+  model_group_alias:
+    "claude-smart": "claude-sonnet-4-5"    # Routes to GPT-5-Codex
+    "claude-fast": "claude-haiku-4-5"      # Routes to GPT-5-mini
+    "claude-code": "claude-sonnet-4-5"     # Routes to GPT-5-Codex
+
+# LiteLLM settings optimized for Claude 4 proxy
+litellm_settings:
+  forward_client_headers_to_llm_api: true
+  drop_params: false
+  add_function_to_prompt: false
+  set_verbose: false
+  
+general_settings:
+  master_key: "sk-1234"
+  store_model_in_db: False

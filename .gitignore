@@ -34,6 +34,9 @@ Thumbs.db
 # Workspace data
 workspace/
 
+# Python test env
+litellm-env
+
 # Session data
 *.session
 
