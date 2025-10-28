@@ -39,9 +39,11 @@ router_settings:
 # LiteLLM settings optimized for Claude 4 proxy
 litellm_settings:
   forward_client_headers_to_llm_api: true
-  drop_params: false
+  drop_params: true  # Drop incompatible params during translation
   add_function_to_prompt: false
-  set_verbose: false
+  set_verbose: true  # Enable verbose logging for debugging
+  # Suppress tool translation for problematic tools
+  disable_streaming_logging: false
   
 general_settings:
   master_key: "sk-1234"

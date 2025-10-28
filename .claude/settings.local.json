@@ -45,7 +45,8 @@
       "Bash(docker-compose restart:*)",
       "Bash(python test_cross_provider.py:*)",
       "Bash(python:*)",
-      "WebFetch(domain:platform.openai.com)"
+      "WebFetch(domain:platform.openai.com)",
+      "Bash(docker-compose pull:*)"
     ],
     "deny": [],
     "ask": []

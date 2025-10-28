@@ -239,8 +239,11 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
 
           {/* Modal Content */}
           <Box sx={{ p: 3 }}>
-            <Typography variant="body1" sx={{ mb: 2 }}>
+            <Typography variant="body1" sx={{ mb: 1 }}>
               AI Model
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 2, color: '#666', fontSize: '0.875rem', fontStyle: 'italic' }}>
+              OpenAI requires LiteLLM proxy Docker Container up and running on port :4000
             </Typography>
             <ToggleButtonGroup
               value={aiModel}

@@ -53,22 +53,18 @@ An example for learning the internals, integrations and configuration details of
 ## SETUP
 
 ### API Keys
-We use **Anthropic Sonnet 4.5** via an console account (default). If you want to switch to OpenAI then you need to add an OpenAI API account and your preferred model as well.
+We use **Anthropic Sonnet 4.5** via console account (default). To use OpenAI models (GPT-5-Codex, GPT-5-mini), configure the LiteLLM proxy.
 
 You need to create an .env file inside the backend directory:
 ```
-# Anthropic API Key (used for direct Claude API calls)
+# Anthropic API Key (used for direct Claude API calls when aiModel=claude)
 ANTHROPIC_API_KEY=sk-ant-api03-...AA
 
-# OpenAI Configuration via our custom proxy (used when aiModel=openai)
-# Claude Code calls our proxy at port 6060, which translates to OpenAI API
-ANTHROPIC_MODEL=gpt-4.1-mini
-ANTHROPIC_BASE_URL=http://host.docker.internal:6060/api/modelproxy
-ANTHROPIC_AUTH_TOKEN=sk-ant-api03-...AA
-
-# OpenAI API settings (used by our proxy service to call OpenAI)
-OPENAI_API_KEY=sk-proj-...MsA
-OPENAI_BASE_URL=https://api.openai.com/v1
+# LiteLLM Proxy Configuration (used when aiModel=openai)
+# LiteLLM translates Anthropic API format to OpenAI backends
+# Claude Code → LiteLLM Proxy (:4000) → OpenAI (gpt-5-codex, gpt-5-mini)
+# Configuration is in litellm-proxy/config.yaml
+# Master key configured in litellm-proxy/.env
 
 # Memory Management Configuration
 MEMORY_MANAGEMENT_URL=http://localhost:6060/api/memories
@@ -80,6 +76,27 @@ COSTS_CURRENCY_UNIT=EUR
 COSTS_PER_MIO_INPUT_TOKENS=3.0
 COSTS_PER_MIO_OUTPUT_TOKENS=15.0
 ```
+
+### LiteLLM Proxy Setup (for OpenAI models)
+
+If you want to use OpenAI models (GPT-5-Codex, GPT-5-mini), you need to set up the LiteLLM proxy:
+
+1. Create `litellm-proxy/.env` file:
+```
+OPENAI_API_KEY=sk-proj-...MsA
+LITELLM_MASTER_KEY=sk-1234
+LITELLM_SALT_KEY=sk-5678
+```
+
+2. Start the LiteLLM proxy:
+```bash
+cd litellm-proxy
+docker-compose up -d
+```
+
+The proxy will be available at `http://localhost:4000` and will translate between Anthropic and OpenAI API formats automatically.
+
+For more details, see [litellm-proxy/README.md](litellm-proxy/README.md).
 
 ### Install Claude Code 2.0 inside a docker container
 The name of the container needs to be claude-code (this is the entrypoint for the backend).
@@ -140,11 +157,6 @@ Then **open your browser** with http://localhost:5000
 | `/api/workspace/:project/files/rename` | PUT | Renames a file or folder to a new name. |
 | `/api/workspace/:project/files/upload` | POST | Uploads a file to the specified path in the project workspace. |
 | `/api/workspace/:project/files/create-folder` | POST | Creates a new folder at the specified path in the workspace. |
-
-### ModelProxyController (`/api/modelproxy`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/modelproxy/v1/messages` | POST | Proxies Anthropic-formatted requests to OpenAI API with response translation. Enables Claude Code to use OpenAI models. |
 
 ### McpServerController (`/`)
 | Path | Verb | Description |

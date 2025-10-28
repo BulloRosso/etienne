@@ -3,7 +3,6 @@ import { ClaudeController } from './claude/claude.controller';
 import { ClaudeService } from './claude/claude.service';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
-import { ModelProxyModule } from './modelproxy/modelproxy.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
 import { MemoriesModule } from './memories/memories.module';
 import { BudgetMonitoringModule } from './budget-monitoring/budget-monitoring.module';
@@ -19,7 +18,7 @@ import { SubagentsModule } from './subagents/subagents.module';
 import { ExternalEventsModule } from './external-events/external-events.module';
 
 @Module({
-  imports: [InterceptorsModule, ContentManagementModule, ModelProxyModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule],
+  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule],
   controllers: [ClaudeController],
   providers: [ClaudeService, BudgetMonitoringService, GuardrailsService, OutputGuardrailsService],
 })

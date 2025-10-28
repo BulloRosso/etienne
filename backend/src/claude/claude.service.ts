@@ -502,12 +502,18 @@ export class ClaudeService {
           ...(sessionId ? ['-e', `SESSION_ID=${sessionId}`] : []),
         ];
 
-        // Add OpenAI environment variables if using OpenAI model
+        // Route OpenAI models through LiteLLM proxy
+        // LiteLLM translates Anthropic API format to OpenAI backends (gpt-5-codex, gpt-5-mini)
         if (aiModel === 'openai') {
-          console.log(`🔄 Using OpenAI proxy: ${process.env.ANTHROPIC_BASE_URL} → ${process.env.ANTHROPIC_MODEL}`);
-          args.push('-e', `ANTHROPIC_BASE_URL=${process.env.ANTHROPIC_BASE_URL || 'https://api.openai.com/v1'}`);
-          args.push('-e', `ANTHROPIC_AUTH_TOKEN=${process.env.ANTHROPIC_AUTH_TOKEN || process.env.OPENAI_API_KEY || ''}`);
-          args.push('-e', `ANTHROPIC_MODEL=${process.env.ANTHROPIC_MODEL || 'gpt-4o-mini'}`);
+          // Determine which Claude model name to use based on aiModel variant
+          // claude-sonnet-4-5 routes to gpt-5-codex in litellm
+          // claude-haiku-4-5 routes to gpt-5-mini in litellm
+          const claudeModel = 'claude-sonnet-4-5'; // Default to sonnet (you can make this configurable)
+
+          console.log(`🔄 Using LiteLLM proxy: Claude Code → http://host.docker.internal:4000 → OpenAI (${claudeModel})`);
+          args.push('-e', `ANTHROPIC_BASE_URL=http://host.docker.internal:4000`);
+          args.push('-e', `ANTHROPIC_API_KEY=sk-1234`); // LiteLLM master key (Claude Code uses ANTHROPIC_API_KEY)
+          args.push('-e', `ANTHROPIC_MODEL=${claudeModel}`);
         }
 
         args.push(this.config.container, 'bash', '-lc', script);
