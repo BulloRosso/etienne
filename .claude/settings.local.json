@@ -46,7 +46,11 @@
       "Bash(python test_cross_provider.py:*)",
       "Bash(python:*)",
       "WebFetch(domain:platform.openai.com)",
-      "Bash(docker-compose pull:*)"
+      "Bash(docker-compose pull:*)",
+      "WebFetch(domain:docs.diffbot.com)",
+      "Bash(node test_diffbot.js:*)",
+      "Bash(del:*)",
+      "Bash(node test_diffbot_limit.js:*)"
     ],
     "deny": [],
     "ask": []

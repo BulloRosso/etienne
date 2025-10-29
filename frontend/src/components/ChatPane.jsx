@@ -268,7 +268,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                 Anthropic Claude 4.5
               </ToggleButton>
               <ToggleButton value="openai">
-                OpenAI GPT-5
+                OpenAI GPT-4
               </ToggleButton>
             </ToggleButtonGroup>
 

@@ -6,6 +6,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { ToolService } from './types';
 import { demoToolsService } from './demotools';
+import { diffbotToolsService } from './diffbot-tools';
 
 /**
  * MCP Server Service
@@ -41,6 +42,7 @@ export class McpServerService implements OnModuleInit {
     // Register all tool services here
     this.toolServices = [
       demoToolsService,
+      diffbotToolsService,
       // Add more tool services here:
       // importedToolService,
     ];

@@ -1,40 +1,38 @@
 model_list:
   # Native Claude model names route to OpenAI backends ONLY
   # Claude Code will use these native names
+  # Model Mapping Strategy:
+  #   SMALL_MODEL:  claude-haiku  → gpt-4o-mini
+  #   MIDDLE_MODEL: claude-sonnet → gpt-4o
+  #   BIG_MODEL:    claude-opus   → o1
 
-  # claude-sonnet-4-5 -> OpenAI GPT-5-Codex (NO Anthropic passthrough)
-  - model_name: claude-sonnet-4-5
-    litellm_params:
-      model: openai/gpt-5-codex
-      api_key: os.environ/OPENAI_API_KEY
-      max_tokens: 8192
-
-  # claude-haiku-4-5 -> OpenAI GPT-5-mini (NO Anthropic passthrough)
+  # SMALL_MODEL: claude-haiku-4-5 -> OpenAI gpt-4o-mini (NO Anthropic passthrough)
   - model_name: claude-haiku-4-5
     litellm_params:
-      model: openai/gpt-5-mini
+      model: openai/gpt-4o-mini
       api_key: os.environ/OPENAI_API_KEY
       max_tokens: 4096
 
-  # Direct OpenAI model names (optional, for reference)
-  - model_name: gpt-5-codex
+  # MIDDLE_MODEL: claude-sonnet-4-5 -> OpenAI gpt-4o (NO Anthropic passthrough)
+  - model_name: claude-sonnet-4-5
     litellm_params:
-      model: openai/gpt-5-codex
+      model: openai/gpt-4o
       api_key: os.environ/OPENAI_API_KEY
       max_tokens: 8192
 
-  - model_name: gpt-5-mini
+  # BIG_MODEL: claude-opus-4-5 -> OpenAI o1 (NO Anthropic passthrough)
+  - model_name: claude-opus-4-5
     litellm_params:
-      model: openai/gpt-5-mini
+      model: openai/o1
       api_key: os.environ/OPENAI_API_KEY
-      max_tokens: 4096
+      max_tokens: 16384
 
 # Router settings for easy switching
 router_settings:
   model_group_alias:
-    "claude-smart": "claude-sonnet-4-5"    # Routes to GPT-5-Codex
-    "claude-fast": "claude-haiku-4-5"      # Routes to GPT-5-mini
-    "claude-code": "claude-sonnet-4-5"     # Routes to GPT-5-Codex
+    "claude-smart": "claude-opus-4-5"      # BIG_MODEL: Routes to o1
+    "claude-fast": "claude-haiku-4-5"      # SMALL_MODEL: Routes to gpt-4o-mini
+    "claude-code": "claude-sonnet-4-5"     # MIDDLE_MODEL: Routes to gpt-4o
 
 # LiteLLM settings optimized for Claude 4 proxy
 litellm_settings:

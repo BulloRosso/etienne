@@ -25,13 +25,14 @@ Claude Code receives response
 
 ## Model Routing
 
-| Claude Model Name | OpenAI Backend | Use Case |
-|-------------------|----------------|----------|
-| `claude-sonnet-4-5` | `gpt-5-codex` | Complex coding tasks, multi-file projects |
-| `claude-haiku-4-5` | `gpt-5-mini` | Quick tasks, simple functions |
-| `claude-smart` (alias) | `gpt-5-codex` | Alias for sonnet |
-| `claude-fast` (alias) | `gpt-5-mini` | Alias for haiku |
-| `claude-code` (alias) | `gpt-5-codex` | Alias for sonnet |
+| Claude Model Name | OpenAI Backend | Tier | Use Case |
+|-------------------|----------------|------|----------|
+| `claude-haiku-4-5` | `gpt-4o-mini` | SMALL_MODEL | Quick tasks, simple queries |
+| `claude-sonnet-4-5` | `gpt-4o` | MIDDLE_MODEL | Standard coding tasks, analysis |
+| `claude-opus-4-5` | `o1` | BIG_MODEL | Complex reasoning, advanced tasks |
+| `claude-fast` (alias) | `gpt-4o-mini` | SMALL_MODEL | Alias for haiku |
+| `claude-code` (alias) | `gpt-4o` | MIDDLE_MODEL | Alias for sonnet |
+| `claude-smart` (alias) | `o1` | BIG_MODEL | Alias for opus |
 
 ## Setup
 
@@ -52,18 +53,28 @@ The `config.yaml` file defines the model routing:
 
 ```yaml
 model_list:
-  # Native Claude model names route to OpenAI backends ONLY
-  - model_name: claude-sonnet-4-5
-    litellm_params:
-      model: openai/gpt-5-codex
-      api_key: os.environ/OPENAI_API_KEY
-      max_tokens: 8192
+  # Model Mapping Strategy:
+  #   SMALL_MODEL:  claude-haiku  → gpt-4o-mini
+  #   MIDDLE_MODEL: claude-sonnet → gpt-4o
+  #   BIG_MODEL:    claude-opus   → o1
 
   - model_name: claude-haiku-4-5
     litellm_params:
-      model: openai/gpt-5-mini
+      model: openai/gpt-4o-mini
       api_key: os.environ/OPENAI_API_KEY
       max_tokens: 4096
+
+  - model_name: claude-sonnet-4-5
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+      max_tokens: 8192
+
+  - model_name: claude-opus-4-5
+    litellm_params:
+      model: openai/o1
+      api_key: os.environ/OPENAI_API_KEY
+      max_tokens: 16384
 
 general_settings:
   master_key: "sk-1234"
@@ -217,5 +228,6 @@ Both GPT-5-Codex and GPT-5-mini support function calling.
 
 - **No Anthropic API calls**: All requests route to OpenAI, Anthropic API key is not used
 - **Format transparency**: Claude Code doesn't know it's using OpenAI models
-- **Cost optimization**: Use `claude-haiku-4-5` (→ gpt-5-mini) for cost-sensitive tasks
-- **Performance**: Use `claude-sonnet-4-5` (→ gpt-5-codex) for complex coding tasks
+- **Cost optimization**: Use `claude-haiku-4-5` (→ gpt-4o-mini) for cost-sensitive tasks
+- **Standard tasks**: Use `claude-sonnet-4-5` (→ gpt-4o) for most coding tasks
+- **Complex reasoning**: Use `claude-opus-4-5` (→ o1) for advanced problem-solving

@@ -62,7 +62,10 @@ ANTHROPIC_API_KEY=sk-ant-api03-...AA
 
 # LiteLLM Proxy Configuration (used when aiModel=openai)
 # LiteLLM translates Anthropic API format to OpenAI backends
-# Claude Code → LiteLLM Proxy (:4000) → OpenAI (gpt-5-codex, gpt-5-mini)
+# Model Mapping Strategy:
+#   SMALL_MODEL:  claude-haiku  → gpt-4o-mini
+#   MIDDLE_MODEL: claude-sonnet → gpt-4o
+#   BIG_MODEL:    claude-opus   → o1
 # Configuration is in litellm-proxy/config.yaml
 # Master key configured in litellm-proxy/.env
 
@@ -79,7 +82,7 @@ COSTS_PER_MIO_OUTPUT_TOKENS=15.0
 
 ### LiteLLM Proxy Setup (for OpenAI models)
 
-If you want to use OpenAI models (GPT-5-Codex, GPT-5-mini), you need to set up the LiteLLM proxy:
+If you want to use OpenAI models (gpt-4o-mini, gpt-4o, o1), you need to set up the LiteLLM proxy:
 
 1. Create `litellm-proxy/.env` file:
 ```
