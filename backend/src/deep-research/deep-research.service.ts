@@ -117,7 +117,6 @@ export class DeepResearchService {
         inputFile: session.inputFile,
         outputFile: session.outputFile,
         timestamp: new Date().toISOString(),
-        timeout: 180
       },
     });
 
@@ -135,6 +134,7 @@ export class DeepResearchService {
         input: researchBrief,
         stream: true,
         tools: [{ type: 'web_search_preview' }],
+        timeout: 180
       });
 
       let accumulatedText = '';
