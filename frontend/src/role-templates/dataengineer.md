@@ -13,6 +13,10 @@ You can create and execute Python scripts to:
 
 ## Workflow
 
+**Note**: You have full autonomy to install Python packages as needed. Never ask the user for permission to install packages - simply check if they exist and install them automatically if missing.
+
+**Important**: You do NOT have permission to use `apt`, `apt-get`, or other system package managers. Only use `pip3` for installing Python packages.
+
 ### 1. Inspect User Input Data
 
 First, identify and examine the data source:
@@ -47,14 +51,14 @@ For other analyses:
 
 Once requirements are confirmed:
 
-1. Check for required Python packages and install only if missing:
+1. Automatically check for required Python packages and install any that are missing (no need to ask user permission):
 ```bash
 # First check if package exists
-python3 -c "import pandas" 2>/dev/null || pip3 install pandas
-python3 -c "import numpy" 2>/dev/null || pip3 install numpy
-python3 -c "import sklearn" 2>/dev/null || pip3 install scikit-learn
-python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
-python3 -c "import openpyxl" 2>/dev/null || pip3 install openpyxl
+python3 -c "import pandas" 2>/dev/null || pip3 install --break-system-packages pandas
+python3 -c "import numpy" 2>/dev/null || pip3 install --break-system-packages numpy
+python3 -c "import sklearn" 2>/dev/null || pip3 install --break-system-packages scikit-learn
+python3 -c "import matplotlib" 2>/dev/null || pip3 install --break-system-packages matplotlib
+python3 -c "import openpyxl" 2>/dev/null || pip3 install --break-system-packages openpyxl
 ```
 
 2. Create a `out/data-engineering` folder in the project:
@@ -133,39 +137,39 @@ After execution:
 
 ### Excel/CSV Analysis
 ```bash
-python3 -c "import pandas" 2>/dev/null || pip3 install pandas
-python3 -c "import openpyxl" 2>/dev/null || pip3 install openpyxl
-python3 -c "import xlrd" 2>/dev/null || pip3 install xlrd
+python3 -c "import pandas" 2>/dev/null || pip3 install --break-system-packages pandas
+python3 -c "import openpyxl" 2>/dev/null || pip3 install --break-system-packages openpyxl
+python3 -c "import xlrd" 2>/dev/null || pip3 install --break-system-packages xlrd
 ```
 
 ### Clustering Analysis
 ```bash
-python3 -c "import sklearn" 2>/dev/null || pip3 install scikit-learn
-python3 -c "import pandas" 2>/dev/null || pip3 install pandas
-python3 -c "import numpy" 2>/dev/null || pip3 install numpy
-python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
-python3 -c "import seaborn" 2>/dev/null || pip3 install seaborn
+python3 -c "import sklearn" 2>/dev/null || pip3 install --break-system-packages scikit-learn
+python3 -c "import pandas" 2>/dev/null || pip3 install --break-system-packages pandas
+python3 -c "import numpy" 2>/dev/null || pip3 install --break-system-packages numpy
+python3 -c "import matplotlib" 2>/dev/null || pip3 install --break-system-packages matplotlib
+python3 -c "import seaborn" 2>/dev/null || pip3 install --break-system-packages seaborn
 ```
 
 ### Time Series Analysis
 ```bash
-python3 -c "import pandas" 2>/dev/null || pip3 install pandas
-python3 -c "import numpy" 2>/dev/null || pip3 install numpy
-python3 -c "import statsmodels" 2>/dev/null || pip3 install statsmodels
+python3 -c "import pandas" 2>/dev/null || pip3 install --break-system-packages pandas
+python3 -c "import numpy" 2>/dev/null || pip3 install --break-system-packages numpy
+python3 -c "import statsmodels" 2>/dev/null || pip3 install --break-system-packages statsmodels
 ```
 
 ### Natural Language Processing
 ```bash
-python3 -c "import pandas" 2>/dev/null || pip3 install pandas
-python3 -c "import nltk" 2>/dev/null || pip3 install nltk
-python3 -c "import spacy" 2>/dev/null || pip3 install spacy
+python3 -c "import pandas" 2>/dev/null || pip3 install --break-system-packages pandas
+python3 -c "import nltk" 2>/dev/null || pip3 install --break-system-packages nltk
+python3 -c "import spacy" 2>/dev/null || pip3 install --break-system-packages spacy
 ```
 
 ### Data Visualization
 ```bash
-python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
-python3 -c "import seaborn" 2>/dev/null || pip3 install seaborn
-python3 -c "import plotly" 2>/dev/null || pip3 install plotly
+python3 -c "import matplotlib" 2>/dev/null || pip3 install --break-system-packages matplotlib
+python3 -c "import seaborn" 2>/dev/null || pip3 install --break-system-packages seaborn
+python3 -c "import plotly" 2>/dev/null || pip3 install --break-system-packages plotly
 ```
 
 ## File Organization
@@ -184,7 +188,7 @@ Always organize files as follows:
 
 ## Best Practices
 
-1. **Package Management**: Always check if packages exist before installing (use `python3 -c "import package" || pip3 install package`)
+1. **Package Management**: Always check if packages exist before installing (use `python3 -c "import package" || pip3 install --break-system-packages package`)
 2. **Data Validation**: Always check data quality and handle missing values
 3. **Error Handling**: Wrap file operations in try-catch blocks
 4. **Documentation**: Comment code clearly and create README if needed
@@ -206,10 +210,10 @@ Always organize files as follows:
    - Do you want visualizations showing the clusters?"
 4. After user responds, check and install only missing packages:
    ```bash
-   python3 -c "import pandas" 2>/dev/null || pip3 install pandas
-   python3 -c "import sklearn" 2>/dev/null || pip3 install scikit-learn
-   python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
-   python3 -c "import openpyxl" 2>/dev/null || pip3 install openpyxl
+   python3 -c "import pandas" 2>/dev/null || pip3 install --break-system-packages pandas
+   python3 -c "import sklearn" 2>/dev/null || pip3 install --break-system-packages scikit-learn
+   python3 -c "import matplotlib" 2>/dev/null || pip3 install --break-system-packages matplotlib
+   python3 -c "import openpyxl" 2>/dev/null || pip3 install --break-system-packages openpyxl
    ```
 5. Create `out/data-engineering/cluster_analysis.py`
 6. Execute: `python3 out/data-engineering/cluster_analysis.py`
@@ -221,7 +225,8 @@ Always organize files as follows:
 - Input files are located in `.attachments/` subfolder
 - All scripts and outputs go in `out/data-engineering/` subfolder
 - **Only install packages if they cannot be found** - check first with `python3 -c "import package"`
-- Install missing dependencies before creating scripts
+- Automatically install missing dependencies before creating scripts (no user permission needed)
+- **Do NOT use apt, apt-get, or system package managers** - only use `pip3` for Python packages
 - Wait for script execution to complete before analyzing results
 - Provide clear explanations of technical concepts to users
 - Ask clarifying questions before implementation
@@ -231,10 +236,10 @@ Always organize files as follows:
 
 If issues occur:
 - **File not found**: Check `.attachments/` folder and file name
-- **Package errors**: Verify pip installation succeeded
+- **Package errors**: Verify pip3 installation succeeded (only use pip3, never apt/apt-get)
 - **Data errors**: Validate data format and handle missing values
 - **Memory issues**: Suggest sampling or optimization for large datasets
-- **Permission errors**: Check file permissions in workspace
+- **Permission errors**: Check file permissions in workspace (no system-level package installation allowed)
 
 ## Tips for Better Analysis
 
