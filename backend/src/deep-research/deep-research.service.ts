@@ -134,7 +134,6 @@ export class DeepResearchService {
         input: researchBrief,
         stream: true,
         tools: [{ type: 'web_search_preview' }],
-        timeout: 180
       });
 
       let accumulatedText = '';
@@ -169,6 +168,7 @@ export class DeepResearchService {
           // Web search events
           case 'response.web_search_call.in_progress':
             this.logger.debug(`Full OpenAI event structure for web_search_call.in_progress: ${JSON.stringify(event, null, 2)}`);
+            // Note: query is not available in this event, will come in output_item.done
             this.emitEvent(projectName, {
               type: 'Research.web_search.in_progress',
               data: {
@@ -177,8 +177,6 @@ export class DeepResearchService {
                 outputFile: session.outputFile,
                 item_id: (event as any).item_id,
                 output_index: (event as any).output_index,
-                query: (event as any).call?.query || (event as any).query,
-                search_type: (event as any).call?.type || (event as any).type,
                 timestamp: new Date().toISOString(),
               },
             });
@@ -187,9 +185,7 @@ export class DeepResearchService {
           case 'response.web_search_call.searching':
             // Debug: log the full event structure to understand OpenAI's format
             this.logger.debug(`Full OpenAI event structure for web_search_call.searching: ${JSON.stringify(event, null, 2)}`);
-            const searchQuery = (event as any).call?.query || (event as any).query;
-            const searchStatus = (event as any).status;
-            this.logger.debug(`Extracted query: ${searchQuery}, status: ${searchStatus}`);
+            // Note: query is not available in this event, will come in output_item.done
             this.emitEvent(projectName, {
               type: 'Research.web_search.searching',
               data: {
@@ -198,8 +194,6 @@ export class DeepResearchService {
                 outputFile: session.outputFile,
                 item_id: (event as any).item_id,
                 output_index: (event as any).output_index,
-                query: searchQuery,
-                status: searchStatus,
                 timestamp: new Date().toISOString(),
               },
             });
@@ -207,9 +201,8 @@ export class DeepResearchService {
 
           case 'response.web_search_call.completed':
             this.logger.debug(`Full OpenAI event structure for web_search_call.completed: ${JSON.stringify(event, null, 2)}`);
-            const completedCall = (event as any).call;
-            const results = completedCall?.results || (event as any).results;
-            const resultCount = results ? results.length : 0;
+            // Note: Results are not available in this event, they come in output_item.done
+            // The event only signals completion
             this.emitEvent(projectName, {
               type: 'Research.web_search.completed',
               data: {
@@ -218,15 +211,6 @@ export class DeepResearchService {
                 outputFile: session.outputFile,
                 item_id: (event as any).item_id,
                 output_index: (event as any).output_index,
-                query: completedCall?.query || (event as any).query,
-                result_count: resultCount,
-                results: results ? results.map((r: any) => ({
-                  title: r.title,
-                  url: r.url,
-                  snippet: r.snippet, // Full snippet (not truncated)
-                  content: r.content, // Full page content if available
-                  metadata: r.metadata, // Additional metadata
-                })) : [],
                 timestamp: new Date().toISOString(),
               },
             });
@@ -278,24 +262,47 @@ export class DeepResearchService {
             // Get the full accumulated content for this item
             const fullContent = this.outputItemContent.get(sessionId)?.get(doneItem?.id) || '';
 
+            // Build event data based on item type
+            const eventData: any = {
+              sessionId,
+              inputFile: session.inputFile,
+              outputFile: session.outputFile,
+              item_id: doneItem?.id,
+              item_type: doneItem?.type,
+              output_index: (event as any).output_index,
+              content_preview: this.extractContentPreview(doneItem),
+              full_content: fullContent, // The complete content for this item
+              timestamp: new Date().toISOString(),
+            };
+
+            // Add reasoning information if available
+            if (doneItem?.type === 'reasoning' && doneItem.summary) {
+              // summary is an array, join it if it has items
+              const summaryText = Array.isArray(doneItem.summary)
+                ? doneItem.summary.join(' ')
+                : String(doneItem.summary || '');
+
+              if (summaryText) {
+                eventData.reasoning = {
+                  summary: summaryText,
+                  question: doneItem.question,
+                };
+              }
+            }
+
+            // Add web search query and results if available
+            if (doneItem?.type === 'web_search_call' && doneItem.action) {
+              eventData.web_search = {
+                query: doneItem.action.query,
+                action_type: doneItem.action.type, // 'search', 'open_page', etc.
+                url: doneItem.action.url,
+                results: doneItem.results || [],
+              };
+            }
+
             this.emitEvent(projectName, {
               type: 'Research.output_item.done',
-              data: {
-                sessionId,
-                inputFile: session.inputFile,
-                outputFile: session.outputFile,
-                item_id: doneItem?.id,
-                item_type: doneItem?.type,
-                output_index: (event as any).output_index,
-                content_preview: this.extractContentPreview(doneItem),
-                full_content: fullContent, // The complete content for this item
-                // Capture reasoning information if available
-                reasoning: doneItem?.type === 'reasoning' ? {
-                  summary: doneItem.summary,
-                  question: doneItem.question,
-                } : undefined,
-                timestamp: new Date().toISOString(),
-              },
+              data: eventData,
             });
             break;
 

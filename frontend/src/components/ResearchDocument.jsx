@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, CircularProgress, Typography, Paper } from '@mui/material';
+import { Box, CircularProgress, Typography, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { ToolCallMessage } from './StructuredMessage';
@@ -23,10 +23,13 @@ export default function ResearchDocument({ input, output, projectName }) {
   const [error, setError] = useState(null);
   const [startTime, setStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [clickedLink, setClickedLink] = useState(null);
   const eventSourceRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const refreshIntervalRef = useRef(null);
+  const contentRef = useRef(null);
 
   // Debug logging
   useEffect(() => {
@@ -404,6 +407,85 @@ export default function ResearchDocument({ input, output, projectName }) {
     }
   }, [fileExists, loading, projectName, output]);
 
+  // Click handler for links in rendered markdown
+  useEffect(() => {
+    if (!fileExists || loading || !contentRef.current) return;
+
+    const handleLinkClick = (e) => {
+      // Only intercept if target is a link
+      if (e.target.tagName === 'A' && e.target.href) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const url = e.target.href;
+        setClickedLink(url);
+        setModalOpen(true);
+      }
+    };
+
+    const contentElement = contentRef.current;
+    contentElement.addEventListener('click', handleLinkClick);
+
+    return () => {
+      contentElement.removeEventListener('click', handleLinkClick);
+    };
+  }, [fileExists, loading]);
+
+  // Handle opening link in new tab
+  const handleShowInTab = () => {
+    if (clickedLink) {
+      window.open(clickedLink, '_blank', 'noopener,noreferrer');
+    }
+    setModalOpen(false);
+    setClickedLink(null);
+  };
+
+  // Handle validation - create validator file
+  const handleValidate = async () => {
+    if (!clickedLink) return;
+
+    try {
+      // Extract host from URL
+      const url = new URL(clickedLink);
+      const host = url.hostname;
+
+      // Generate 6-digit random number
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
+
+      // Create filename
+      const filename = `${host}-${randomNum}.validator`;
+      const filepath = `validation/${filename}`;
+
+      // Create the file content (empty or with URL as content)
+      const content = `URL: ${clickedLink}\nCreated: ${new Date().toISOString()}\n`;
+
+      // Upload the file using the workspace API
+      const formData = new FormData();
+      formData.append('file', new Blob([content], { type: 'text/plain' }));
+      formData.append('filepath', filepath);
+
+      const response = await fetch(
+        `/api/workspace/${encodeURIComponent(projectName)}/files/upload`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to create validator file: ${response.statusText}`);
+      }
+
+      console.log(`Validator file created: ${filepath}`);
+    } catch (error) {
+      console.error('Error creating validator file:', error);
+      alert(`Error creating validator file: ${error.message}`);
+    }
+
+    setModalOpen(false);
+    setClickedLink(null);
+  };
+
   // Render research in progress view
   if (!fileExists) {
     return (
@@ -606,6 +688,34 @@ export default function ResearchDocument({ input, output, projectName }) {
                   <Typography variant="subtitle2" color="success.main" gutterBottom>
                     ✓ Output Item Completed ({event.item_type || 'unknown'})
                   </Typography>
+
+                  {/* Web search information */}
+                  {event.web_search && (
+                    <Box sx={{ mt: 1, p: 1.5, backgroundColor: '#e3f2fd', borderRadius: 1, borderLeft: '3px solid #2196f3' }}>
+                      {event.web_search.query && (
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 'bold', mb: 0.5 }}>
+                          <strong>Search Query:</strong> {event.web_search.query}
+                        </Typography>
+                      )}
+                      {event.web_search.action_type && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                          <strong>Action:</strong> {event.web_search.action_type}
+                        </Typography>
+                      )}
+                      {event.web_search.url && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                          <strong>URL:</strong> {event.web_search.url}
+                        </Typography>
+                      )}
+                      {event.web_search.results && event.web_search.results.length > 0 && (
+                        <Typography variant="body2" color="success.main" sx={{ fontSize: '0.8rem', mt: 0.5 }}>
+                          <strong>Results:</strong> {event.web_search.results.length}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Reasoning information */}
                   {event.reasoning && (
                     <Box sx={{ mt: 1, p: 1.5, backgroundColor: '#e8f5e9', borderRadius: 1, borderLeft: '3px solid #4caf50' }}>
                       {event.reasoning.question && (
@@ -620,6 +730,8 @@ export default function ResearchDocument({ input, output, projectName }) {
                       )}
                     </Box>
                   )}
+
+                  {/* Full content display */}
                   {event.full_content && (
                     <Box
                       sx={{
@@ -642,7 +754,9 @@ export default function ResearchDocument({ input, output, projectName }) {
                       {event.full_content}
                     </Box>
                   )}
-                  {!event.full_content && !event.reasoning && event.content_preview && (
+
+                  {/* Fallback to content preview */}
+                  {!event.full_content && !event.reasoning && !event.web_search && event.content_preview && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
                       {event.content_preview.length > 60 ? event.content_preview.substring(0, 60) + '...' : event.content_preview}
                     </Typography>
@@ -788,89 +902,119 @@ export default function ResearchDocument({ input, output, projectName }) {
   }
 
   return (
-    <Box
-      sx={{
-        height: '100%',
-        overflow: 'auto',
-        p: 3,
-        '& h1': {
-          fontSize: '2em',
-          fontWeight: 'bold',
-          marginTop: '0.67em',
-          marginBottom: '0.67em',
-          borderBottom: '1px solid #eaecef',
-          paddingBottom: '0.3em'
-        },
-        '& h2': {
-          fontSize: '1.5em',
-          fontWeight: 'bold',
-          marginTop: '0.83em',
-          marginBottom: '0.83em',
-          borderBottom: '1px solid #eaecef',
-          paddingBottom: '0.3em'
-        },
-        '& h3': {
-          fontSize: '1.17em',
-          fontWeight: 'bold',
-          marginTop: '1em',
-          marginBottom: '1em'
-        },
-        '& p': {
-          marginTop: '1em',
-          marginBottom: '1em',
-          lineHeight: '1.6'
-        },
-        '& ul, & ol': {
-          marginTop: '1em',
-          marginBottom: '1em',
-          paddingLeft: '2em'
-        },
-        '& code': {
-          backgroundColor: '#f6f8fa',
-          borderRadius: '3px',
-          padding: '0.2em 0.4em',
-          fontFamily: 'monospace',
-          fontSize: '0.9em'
-        },
-        '& pre': {
-          backgroundColor: '#f6f8fa',
-          borderRadius: '6px',
-          padding: '16px',
+    <>
+      <Box
+        ref={contentRef}
+        sx={{
+          height: '100%',
           overflow: 'auto',
-          marginTop: '1em',
-          marginBottom: '1em'
-        },
-        '& blockquote': {
-          borderLeft: '4px solid #dfe2e5',
-          paddingLeft: '1em',
-          marginLeft: 0,
-          color: '#6a737d',
-          marginTop: '1em',
-          marginBottom: '1em'
-        },
-        '& table': {
-          borderCollapse: 'collapse',
-          width: '100%',
-          marginTop: '1em',
-          marginBottom: '1em'
-        },
-        '& table th, & table td': {
-          border: '1px solid #dfe2e5',
-          padding: '6px 13px'
-        },
-        '& table th': {
-          fontWeight: 'bold',
-          backgroundColor: '#f6f8fa'
-        },
-        '& a': {
-          color: '#0366d6',
-          textDecoration: 'none',
-          '&:hover': {
-            textDecoration: 'underline'
+          p: 3,
+          '& h1': {
+            fontSize: '2em',
+            fontWeight: 'bold',
+            marginTop: '0.67em',
+            marginBottom: '0.67em',
+            borderBottom: '1px solid #eaecef',
+            paddingBottom: '0.3em'
+          },
+          '& h2': {
+            fontSize: '1.5em',
+            fontWeight: 'bold',
+            marginTop: '0.83em',
+            marginBottom: '0.83em',
+            borderBottom: '1px solid #eaecef',
+            paddingBottom: '0.3em'
+          },
+          '& h3': {
+            fontSize: '1.17em',
+            fontWeight: 'bold',
+            marginTop: '1em',
+            marginBottom: '1em'
+          },
+          '& p': {
+            marginTop: '1em',
+            marginBottom: '1em',
+            lineHeight: '1.6'
+          },
+          '& ul, & ol': {
+            marginTop: '1em',
+            marginBottom: '1em',
+            paddingLeft: '2em'
+          },
+          '& code': {
+            backgroundColor: '#f6f8fa',
+            borderRadius: '3px',
+            padding: '0.2em 0.4em',
+            fontFamily: 'monospace',
+            fontSize: '0.9em'
+          },
+          '& pre': {
+            backgroundColor: '#f6f8fa',
+            borderRadius: '6px',
+            padding: '16px',
+            overflow: 'auto',
+            marginTop: '1em',
+            marginBottom: '1em'
+          },
+          '& blockquote': {
+            borderLeft: '4px solid #dfe2e5',
+            paddingLeft: '1em',
+            marginLeft: 0,
+            color: '#6a737d',
+            marginTop: '1em',
+            marginBottom: '1em'
+          },
+          '& table': {
+            borderCollapse: 'collapse',
+            width: '100%',
+            marginTop: '1em',
+            marginBottom: '1em'
+          },
+          '& table th, & table td': {
+            border: '1px solid #dfe2e5',
+            padding: '6px 13px'
+          },
+          '& table th': {
+            fontWeight: 'bold',
+            backgroundColor: '#f6f8fa'
+          },
+          '& a': {
+            color: '#0366d6',
+            textDecoration: 'none',
+            cursor: 'pointer',
+            '&:hover': {
+              textDecoration: 'underline'
+            }
           }
-        }
-      }}
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
-    />
+        }}
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
+
+      {/* Link Validation Modal */}
+      <Dialog
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setClickedLink(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Validate or show content?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+            {clickedLink ? decodeURIComponent(clickedLink) : ''}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleValidate} variant="contained" color="primary">
+            Validate
+          </Button>
+          <Button onClick={handleShowInTab} variant="outlined">
+            Show in new browser tab
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

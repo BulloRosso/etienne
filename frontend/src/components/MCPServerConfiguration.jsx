@@ -31,7 +31,14 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
   const [success, setSuccess] = useState(false);
   const [editingKey, setEditingKey] = useState(null);
   const [editValue, setEditValue] = useState(null);
-  const [newServer, setNewServer] = useState({ name: '', transport: 'http', url: '', command: '', args: '', auth: '' });
+  const [newServer, setNewServer] = useState({
+    name: 'internetretrieval',
+    transport: 'http',
+    url: 'http://host.docker.internal:6060/mcp',
+    command: '',
+    args: '',
+    auth: 'test123'
+  });
   const [hoveredKey, setHoveredKey] = useState(null);
   const [nameError, setNameError] = useState('');
 
@@ -114,7 +121,14 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     }
 
     setServers({ ...servers, [trimmedName]: serverConfig });
-    setNewServer({ name: '', transport: 'http', url: '', command: '', args: '', auth: '' });
+    setNewServer({
+      name: 'internetretrieval',
+      transport: 'http',
+      url: 'http://host.docker.internal:6060/mcp',
+      command: '',
+      args: '',
+      auth: 'Bearer test123'
+    });
   };
 
   const handleDelete = (key) => {
