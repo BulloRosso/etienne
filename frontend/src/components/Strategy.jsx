@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, CircularProgress, Alert } from '@mui/material';
+import { Box, Button, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import { Save } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
+
+// Import role templates
+const roleTemplates = import.meta.glob('../role-templates/*.md', { as: 'raw', eager: true });
 
 export default function Strategy({ projectName, showBackgroundInfo }) {
   const [content, setContent] = useState('');
@@ -11,6 +14,30 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
+
+  // Process role templates into sorted array
+  const getRoleOptions = () => {
+    return Object.keys(roleTemplates)
+      .map(path => {
+        // Extract filename without extension from path like '../role-templates/researcher.md'
+        const filename = path.split('/').pop().replace('.md', '');
+        // Capitalize first letter
+        const label = filename.charAt(0).toUpperCase() + filename.slice(1);
+        return { value: path, label, filename };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  const handleRoleChange = (event) => {
+    const selectedPath = event.target.value;
+    setSelectedRole(selectedPath);
+
+    if (selectedPath && roleTemplates[selectedPath]) {
+      // Replace content with the selected role template
+      setContent(roleTemplates[selectedPath]);
+    }
+  };
 
   useEffect(() => {
     loadStrategy();
@@ -91,15 +118,37 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
         />
       </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<Save />}
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Save'}
-        </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+        <FormControl sx={{ minWidth: 200 }} size="small">
+          <InputLabel id="predefined-role-label">Predefined Role</InputLabel>
+          <Select
+            labelId="predefined-role-label"
+            id="predefined-role-select"
+            value={selectedRole}
+            label="Predefined Role"
+            onChange={handleRoleChange}
+          >
+            <MenuItem value="">
+              <em>None</em>
+            </MenuItem>
+            {getRoleOptions().map(role => (
+              <MenuItem key={role.value} value={role.value}>
+                {role.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<Save />}
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

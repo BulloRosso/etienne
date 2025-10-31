@@ -211,6 +211,59 @@ export default function App() {
     };
   }, [currentProject]);
 
+  // Listen for deep research events and auto-open research files
+  useEffect(() => {
+    if (!currentProject) return;
+
+    const researchEs = new EventSource(`/api/deep-research/${encodeURIComponent(currentProject)}/stream`);
+
+    researchEs.addEventListener('Research.started', (e) => {
+      const data = JSON.parse(e.data);
+      console.log('Research started:', data);
+
+      // Auto-open the research file (even though it doesn't exist yet)
+      // The ResearchDocument component will show progress
+      const file = {
+        path: data.outputFile,
+        content: '', // Empty content, component handles polling
+        type: 'research'
+      };
+
+      setFiles(prevFiles => {
+        // Check if file already exists in the list
+        const exists = prevFiles.some(f => f.path === data.outputFile);
+        if (exists) {
+          return prevFiles;
+        }
+        return [...prevFiles, file];
+      });
+
+      // Don't show structured messages in chat - all progress shown in ResearchDocument component only
+    });
+
+    researchEs.addEventListener('Research.completed', (e) => {
+      const data = JSON.parse(e.data);
+      console.log('Research completed:', data);
+
+      // Don't show structured messages in chat - all progress shown in ResearchDocument component only
+    });
+
+    researchEs.addEventListener('Research.error', (e) => {
+      const data = JSON.parse(e.data);
+      console.error('Research error:', data);
+
+      // Don't show structured messages in chat - all progress shown in ResearchDocument component only
+    });
+
+    researchEs.onerror = () => {
+      console.error('Research SSE connection error');
+    };
+
+    return () => {
+      researchEs.close();
+    };
+  }, [currentProject]);
+
   // Check if sessions exist for the current project
   useEffect(() => {
     if (!currentProject) return;
@@ -407,7 +460,7 @@ export default function App() {
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview') && data.filePath && data.projectName) {
+      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview' || data.action === 'research-preview') && data.filePath && data.projectName) {
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }

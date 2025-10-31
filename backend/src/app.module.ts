@@ -16,9 +16,10 @@ import { OutputGuardrailsService } from './output-guardrails/output-guardrails.s
 import { SessionsModule } from './sessions/sessions.module';
 import { SubagentsModule } from './subagents/subagents.module';
 import { ExternalEventsModule } from './external-events/external-events.module';
+import { DeepResearchModule } from './deep-research/deep-research.module';
 
 @Module({
-  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule],
+  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule],
   controllers: [ClaudeController],
   providers: [ClaudeService, BudgetMonitoringService, GuardrailsService, OutputGuardrailsService],
 })

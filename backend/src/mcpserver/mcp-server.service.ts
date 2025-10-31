@@ -7,6 +7,8 @@ import {
 import { ToolService } from './types';
 import { demoToolsService } from './demotools';
 import { diffbotToolsService } from './diffbot-tools';
+import { createDeepResearchToolsService } from './deep-research-tools';
+import { DeepResearchService } from '../deep-research/deep-research.service';
 
 /**
  * MCP Server Service
@@ -25,7 +27,7 @@ export class McpServerService implements OnModuleInit {
   private toolMap = new Map<string, ToolService>();
   public readonly server: Server;
 
-  constructor() {
+  constructor(private readonly deepResearchService: DeepResearchService) {
     // Initialize the MCP SDK Server
     this.server = new Server(
       {
@@ -43,8 +45,7 @@ export class McpServerService implements OnModuleInit {
     this.toolServices = [
       demoToolsService,
       diffbotToolsService,
-      // Add more tool services here:
-      // importedToolService,
+      createDeepResearchToolsService(deepResearchService),
     ];
 
     // Set up SDK request handlers

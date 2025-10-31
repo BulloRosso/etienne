@@ -50,7 +50,12 @@
       "WebFetch(domain:docs.diffbot.com)",
       "Bash(node test_diffbot.js:*)",
       "Bash(del:*)",
-      "Bash(node test_diffbot_limit.js:*)"
+      "Bash(node test_diffbot_limit.js:*)",
+      "Bash(where:*)",
+      "Bash(echo:*)",
+      "Read(//c/Users/ralph/**)",
+      "Bash(shopt:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

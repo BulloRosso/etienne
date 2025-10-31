@@ -8,6 +8,7 @@ import LiveHTMLPreview from './LiveHTMLPreview';
 import JSONViewer from './JSONViewer';
 import MarkdownViewer from './MarkdownViewer';
 import MermaidViewer from './MermaidViewer';
+import ResearchDocument from './ResearchDocument';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll }) {
@@ -67,6 +68,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
 
   const isMermaidFile = (filename) => {
     return filename && filename.endsWith('.mermaid');
+  };
+
+  const isResearchFile = (filename) => {
+    return filename && filename.endsWith('.research');
   };
 
   const getFilename = (path) => {
@@ -183,6 +188,29 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           }}
         >
           <MermaidViewer filename={file.path} projectName={projectName} />
+        </Box>
+      );
+    }
+
+    if (isResearchFile(file.path)) {
+      // For research files, we need to extract input and output from the file path
+      // The ResearchDocument component expects input and output parameters
+      // For now, we'll use the file path as the output and assume no input file tracking needed
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <ResearchDocument
+            input=""
+            output={file.path}
+            projectName={projectName}
+          />
         </Box>
       );
     }

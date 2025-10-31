@@ -335,6 +335,98 @@ export const MemoryExtractedMessage = ({ facts, count }) => {
   );
 };
 
+// Research started component
+export const ResearchStartedMessage = ({ inputFile, outputFile, sessionId }) => (
+  <Paper
+    variant="outlined"
+    sx={{
+      p: 2,
+      m: 2,
+      backgroundColor: '#e8f5e9',
+      borderLeft: '4px solid #4caf50',
+      border: '1px solid #4caf50'
+    }}
+  >
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+      <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+        🔬 Deep Research Started
+      </Typography>
+    </Box>
+    <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
+      Starting comprehensive research analysis...
+    </Typography>
+    <Box sx={{ mt: 1.5 }}>
+      <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
+        Input: {inputFile}
+      </Typography>
+      <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+        Output: {outputFile}
+      </Typography>
+    </Box>
+  </Paper>
+);
+
+// Research completed component
+export const ResearchCompletedMessage = ({ outputFile, citations }) => (
+  <Paper
+    variant="outlined"
+    sx={{
+      p: 2,
+      m: 2,
+      backgroundColor: '#e8f5e9',
+      borderLeft: '4px solid #4caf50',
+      border: '1px solid #4caf50'
+    }}
+  >
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+      <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+        ✅ Research Completed
+      </Typography>
+    </Box>
+    <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
+      Deep research analysis finished successfully.
+    </Typography>
+    <Box sx={{ mt: 1.5 }}>
+      <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
+        Results: {outputFile}
+      </Typography>
+      {citations && citations.length > 0 && (
+        <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+          {citations.length} citation{citations.length !== 1 ? 's' : ''} included
+        </Typography>
+      )}
+    </Box>
+  </Paper>
+);
+
+// Research error component
+export const ResearchErrorMessage = ({ outputFile, error }) => (
+  <Paper
+    variant="outlined"
+    sx={{
+      p: 2,
+      m: 2,
+      backgroundColor: '#ffebee',
+      borderLeft: '4px solid #f44336',
+      border: '1px solid #f44336'
+    }}
+  >
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+      <Typography variant="subtitle2" sx={{ color: '#c62828', fontWeight: 'bold' }}>
+        ❌ Research Failed
+      </Typography>
+    </Box>
+    <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
+      {error || 'An error occurred during research.'}
+    </Typography>
+    <Box sx={{ mt: 1.5 }}>
+      <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
+        Output file: {outputFile}
+      </Typography>
+    </Box>
+  </Paper>
+);
+
 // Structured message router
 export const StructuredMessage = ({ message, onPermissionResponse }) => {
   if (!message || !message.type) return null;
@@ -399,6 +491,31 @@ export const StructuredMessage = ({ message, onPermissionResponse }) => {
         <MemoryExtractedMessage
           facts={message.facts}
           count={message.count}
+        />
+      );
+
+    case 'research_started':
+      return (
+        <ResearchStartedMessage
+          inputFile={message.inputFile}
+          outputFile={message.outputFile}
+          sessionId={message.sessionId}
+        />
+      );
+
+    case 'research_completed':
+      return (
+        <ResearchCompletedMessage
+          outputFile={message.outputFile}
+          citations={message.citations}
+        />
+      );
+
+    case 'research_error':
+      return (
+        <ResearchErrorMessage
+          outputFile={message.outputFile}
+          error={message.error}
         />
       );
 
