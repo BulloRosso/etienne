@@ -456,12 +456,18 @@ export default function ResearchDocument({ input, output, projectName }) {
       const filename = `${host}-${randomNum}.validator`;
       const filepath = `validation/${filename}`;
 
-      // Create the file content (empty or with URL as content)
-      const content = `URL: ${clickedLink}\nCreated: ${new Date().toISOString()}\n`;
+      // Create the file content in JSON format
+      const validatorData = {
+        url: clickedLink,
+        hostname: host,
+        created: new Date().toISOString(),
+        status: 'pending'
+      };
+      const content = JSON.stringify(validatorData, null, 2);
 
       // Upload the file using the workspace API
       const formData = new FormData();
-      formData.append('file', new Blob([content], { type: 'text/plain' }));
+      formData.append('file', new Blob([content], { type: 'application/json' }));
       formData.append('filepath', filepath);
 
       const response = await fetch(
