@@ -459,7 +459,12 @@ export default function ResearchDocument({ input, output, projectName }) {
                   </Typography>
                   {event.query && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                      Query: {event.query.length > 60 ? event.query.substring(0, 60) + '...' : event.query}
+                      <strong>Query:</strong> {event.query}
+                    </Typography>
+                  )}
+                  {event.search_type && (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                      <strong>Type:</strong> {event.search_type}
                     </Typography>
                   )}
                 </Box>
@@ -472,7 +477,12 @@ export default function ResearchDocument({ input, output, projectName }) {
                   </Typography>
                   {event.query && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                      Query: {event.query.length > 60 ? event.query.substring(0, 60) + '...' : event.query}
+                      <strong>Query:</strong> {event.query}
+                    </Typography>
+                  )}
+                  {event.status && (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                      <strong>Status:</strong> {event.status}
                     </Typography>
                   )}
                 </Box>
@@ -484,9 +494,38 @@ export default function ResearchDocument({ input, output, projectName }) {
                     ✓ Web Search Completed
                   </Typography>
                   {event.query && (
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                      Query: {event.query.length > 60 ? event.query.substring(0, 60) + '...' : event.query}
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic', mb: 0.5 }}>
+                      <strong>Query:</strong> {event.query}
                     </Typography>
+                  )}
+                  {event.result_count !== undefined && (
+                    <Typography variant="body2" color="success.main" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                      <strong>Results Found:</strong> {event.result_count}
+                    </Typography>
+                  )}
+                  {event.results && event.results.length > 0 && (
+                    <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold', mb: 0.5 }}>
+                        Top Results:
+                      </Typography>
+                      {event.results.slice(0, 3).map((result, idx) => (
+                        <Box key={idx} sx={{ mb: 1 }}>
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
+                            {result.title}
+                          </Typography>
+                          {result.url && (
+                            <Typography variant="body2" sx={{ fontSize: '0.7rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                              {result.url}
+                            </Typography>
+                          )}
+                          {result.snippet && (
+                            <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                              {result.snippet}
+                            </Typography>
+                          )}
+                        </Box>
+                      ))}
+                    </Box>
                   )}
                 </Box>
               )}
@@ -494,9 +533,23 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.output_item.added' && (
                 <Box>
                   <Typography variant="subtitle2" color="info.main" gutterBottom>
-                    🧠 Processing Output Item ({event.item_type || 'unknown'})
+                    {event.item_type === 'reasoning' ? '🤔' : '🧠'} Processing Output Item ({event.item_type || 'unknown'})
                   </Typography>
-                  {event.content_preview && (
+                  {event.reasoning && (
+                    <Box sx={{ mt: 1, p: 1.5, backgroundColor: '#fff3e0', borderRadius: 1, borderLeft: '3px solid #ff9800' }}>
+                      {event.reasoning.question && (
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 'bold', mb: 0.5 }}>
+                          <strong>Question:</strong> {event.reasoning.question}
+                        </Typography>
+                      )}
+                      {event.reasoning.summary && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
+                          <strong>Summary:</strong> {event.reasoning.summary}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                  {!event.reasoning && event.content_preview && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
                       {event.content_preview.length > 60 ? event.content_preview.substring(0, 60) + '...' : event.content_preview}
                     </Typography>
@@ -509,7 +562,21 @@ export default function ResearchDocument({ input, output, projectName }) {
                   <Typography variant="subtitle2" color="success.main" gutterBottom>
                     ✓ Output Item Completed ({event.item_type || 'unknown'})
                   </Typography>
-                  {event.content_preview && (
+                  {event.reasoning && (
+                    <Box sx={{ mt: 1, p: 1.5, backgroundColor: '#e8f5e9', borderRadius: 1, borderLeft: '3px solid #4caf50' }}>
+                      {event.reasoning.question && (
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 'bold', mb: 0.5 }}>
+                          <strong>Question:</strong> {event.reasoning.question}
+                        </Typography>
+                      )}
+                      {event.reasoning.summary && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
+                          <strong>Summary:</strong> {event.reasoning.summary}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                  {!event.reasoning && event.content_preview && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
                       {event.content_preview.length > 60 ? event.content_preview.substring(0, 60) + '...' : event.content_preview}
                     </Typography>

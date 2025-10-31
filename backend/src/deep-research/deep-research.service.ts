@@ -163,6 +163,7 @@ export class DeepResearchService {
 
           // Web search events
           case 'response.web_search_call.in_progress':
+            this.logger.debug(`Full OpenAI event structure for web_search_call.in_progress: ${JSON.stringify(event, null, 2)}`);
             this.emitEvent(projectName, {
               type: 'Research.web_search.in_progress',
               data: {
@@ -172,6 +173,7 @@ export class DeepResearchService {
                 item_id: (event as any).item_id,
                 output_index: (event as any).output_index,
                 query: (event as any).call?.query || (event as any).query,
+                search_type: (event as any).call?.type || (event as any).type,
                 timestamp: new Date().toISOString(),
               },
             });
@@ -181,7 +183,8 @@ export class DeepResearchService {
             // Debug: log the full event structure to understand OpenAI's format
             this.logger.debug(`Full OpenAI event structure for web_search_call.searching: ${JSON.stringify(event, null, 2)}`);
             const searchQuery = (event as any).call?.query || (event as any).query;
-            this.logger.debug(`Extracted query: ${searchQuery}`);
+            const searchStatus = (event as any).status;
+            this.logger.debug(`Extracted query: ${searchQuery}, status: ${searchStatus}`);
             this.emitEvent(projectName, {
               type: 'Research.web_search.searching',
               data: {
@@ -191,12 +194,17 @@ export class DeepResearchService {
                 item_id: (event as any).item_id,
                 output_index: (event as any).output_index,
                 query: searchQuery,
+                status: searchStatus,
                 timestamp: new Date().toISOString(),
               },
             });
             break;
 
           case 'response.web_search_call.completed':
+            this.logger.debug(`Full OpenAI event structure for web_search_call.completed: ${JSON.stringify(event, null, 2)}`);
+            const completedCall = (event as any).call;
+            const results = completedCall?.results || (event as any).results;
+            const resultCount = results ? results.length : 0;
             this.emitEvent(projectName, {
               type: 'Research.web_search.completed',
               data: {
@@ -205,7 +213,13 @@ export class DeepResearchService {
                 outputFile: session.outputFile,
                 item_id: (event as any).item_id,
                 output_index: (event as any).output_index,
-                query: (event as any).call?.query || (event as any).query,
+                query: completedCall?.query || (event as any).query,
+                result_count: resultCount,
+                results: results ? results.map((r: any) => ({
+                  title: r.title,
+                  url: r.url,
+                  snippet: r.snippet?.substring(0, 150) // Limit snippet length
+                })) : [],
                 timestamp: new Date().toISOString(),
               },
             });
@@ -213,32 +227,46 @@ export class DeepResearchService {
 
           // Output item events
           case 'response.output_item.added':
+            this.logger.debug(`Full OpenAI event structure for output_item.added: ${JSON.stringify(event, null, 2)}`);
+            const addedItem = (event as any).item;
             this.emitEvent(projectName, {
               type: 'Research.output_item.added',
               data: {
                 sessionId,
                 inputFile: session.inputFile,
                 outputFile: session.outputFile,
-                item_id: (event as any).item?.id,
-                item_type: (event as any).item?.type,
+                item_id: addedItem?.id,
+                item_type: addedItem?.type,
                 output_index: (event as any).output_index,
-                content_preview: this.extractContentPreview((event as any).item),
+                content_preview: this.extractContentPreview(addedItem),
+                // Capture reasoning information if available
+                reasoning: addedItem?.type === 'reasoning' ? {
+                  summary: addedItem.summary,
+                  question: addedItem.question,
+                } : undefined,
                 timestamp: new Date().toISOString(),
               },
             });
             break;
 
           case 'response.output_item.done':
+            this.logger.debug(`Full OpenAI event structure for output_item.done: ${JSON.stringify(event, null, 2)}`);
+            const doneItem = (event as any).item;
             this.emitEvent(projectName, {
               type: 'Research.output_item.done',
               data: {
                 sessionId,
                 inputFile: session.inputFile,
                 outputFile: session.outputFile,
-                item_id: (event as any).item?.id,
-                item_type: (event as any).item?.type,
+                item_id: doneItem?.id,
+                item_type: doneItem?.type,
                 output_index: (event as any).output_index,
-                content_preview: this.extractContentPreview((event as any).item),
+                content_preview: this.extractContentPreview(doneItem),
+                // Capture reasoning information if available
+                reasoning: doneItem?.type === 'reasoning' ? {
+                  summary: doneItem.summary,
+                  question: doneItem.question,
+                } : undefined,
                 timestamp: new Date().toISOString(),
               },
             });
@@ -317,8 +345,8 @@ export class DeepResearchService {
                 sessionId,
                 inputFile: session.inputFile,
                 outputFile: session.outputFile,
-                citations: finalResponse.citations || [],
-                toolResults: finalResponse.tool_results || [],
+                citations: (finalResponse as any).citations || [],
+                toolResults: (finalResponse as any).tool_results || [],
                 timestamp: new Date().toISOString(),
               },
             });
