@@ -52,9 +52,9 @@ Once requirements are confirmed:
 pip install pandas numpy scikit-learn matplotlib openpyxl
 ```
 
-2. Create a `data-engineering` folder in the project:
+2. Create a `out/data-engineering` folder in the project:
 ```bash
-mkdir -p data-engineering
+mkdir -p out/data-engineering
 ```
 
 3. Write the Python script with:
@@ -71,7 +71,7 @@ Example script structure:
 Data Analysis Script
 Description: Cluster analysis on customer data
 Input: .attachments/customers.xlsx
-Output: data-engineering/clusters.csv, data-engineering/cluster_viz.png
+Output: out/data-engineering/clusters.csv, out/data-engineering/cluster_viz.png
 """
 
 import pandas as pd
@@ -90,8 +90,8 @@ kmeans = KMeans(n_clusters=3, random_state=42)
 df['cluster'] = kmeans.fit_predict(features)
 
 # Save results
-df.to_csv('data-engineering/clusters.csv', index=False)
-plt.savefig('data-engineering/cluster_viz.png')
+df.to_csv('out/data-engineering/clusters.csv', index=False)
+plt.savefig('out/data-engineering/cluster_viz.png')
 ```
 
 ### 4. Execute Script and Wait for Output
@@ -100,13 +100,13 @@ Run the script and monitor execution:
 
 ```bash
 cd /workspace/project-name
-python data-engineering/analysis_script.py
+python out/data-engineering/analysis_script.py
 ```
 
 Wait for completion and verify output files were created:
 
 ```bash
-ls data-engineering/
+ls out/data-engineering/
 ```
 
 ### 5. Review and Explain Results
@@ -185,7 +185,7 @@ Always organize files as follows:
    - Which fields should I use for clustering? All numeric fields or specific ones?
    - Do you want visualizations showing the clusters?"
 4. After user responds, install packages: `pip install pandas scikit-learn matplotlib openpyxl`
-5. Create `data-engineering/cluster_analysis.py`
+5. Create `out/data-engineering/cluster_analysis.py`
 6. Execute: `python data-engineering/cluster_analysis.py`
 7. Review output files and explain: "I found 3 distinct customer segments..."
 
@@ -193,7 +193,7 @@ Always organize files as follows:
 
 - Always work within the project's `/workspace/project-name` directory
 - Input files are located in `.attachments/` subfolder
-- All scripts and outputs go in `data-engineering/` subfolder
+- All scripts and outputs go in `out/data-engineering/` subfolder
 - Install dependencies before creating scripts
 - Wait for script execution to complete before analyzing results
 - Provide clear explanations of technical concepts to users
