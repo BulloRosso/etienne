@@ -38,6 +38,10 @@ export class DeepResearchService {
   private eventSubjects = new Map<string, ReplaySubject<ResearchEvent>>();
   private activeSessions = new Map<string, ResearchSession>();
 
+  // Track current output items and their content
+  private currentOutputItems = new Map<string, { type: string; itemId: string }>();
+  private outputItemContent = new Map<string, Map<string, string>>(); // sessionId -> itemId -> content
+
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -113,6 +117,7 @@ export class DeepResearchService {
         inputFile: session.inputFile,
         outputFile: session.outputFile,
         timestamp: new Date().toISOString(),
+        timeout: 180
       },
     });
 
@@ -218,7 +223,9 @@ export class DeepResearchService {
                 results: results ? results.map((r: any) => ({
                   title: r.title,
                   url: r.url,
-                  snippet: r.snippet?.substring(0, 150) // Limit snippet length
+                  snippet: r.snippet, // Full snippet (not truncated)
+                  content: r.content, // Full page content if available
+                  metadata: r.metadata, // Additional metadata
                 })) : [],
                 timestamp: new Date().toISOString(),
               },
@@ -229,6 +236,21 @@ export class DeepResearchService {
           case 'response.output_item.added':
             this.logger.debug(`Full OpenAI event structure for output_item.added: ${JSON.stringify(event, null, 2)}`);
             const addedItem = (event as any).item;
+
+            // Track the current output item for this session
+            if (addedItem?.id) {
+              this.currentOutputItems.set(sessionId, {
+                type: addedItem.type,
+                itemId: addedItem.id,
+              });
+
+              // Initialize content accumulation for this item
+              if (!this.outputItemContent.has(sessionId)) {
+                this.outputItemContent.set(sessionId, new Map());
+              }
+              this.outputItemContent.get(sessionId)!.set(addedItem.id, '');
+            }
+
             this.emitEvent(projectName, {
               type: 'Research.output_item.added',
               data: {
@@ -252,6 +274,10 @@ export class DeepResearchService {
           case 'response.output_item.done':
             this.logger.debug(`Full OpenAI event structure for output_item.done: ${JSON.stringify(event, null, 2)}`);
             const doneItem = (event as any).item;
+
+            // Get the full accumulated content for this item
+            const fullContent = this.outputItemContent.get(sessionId)?.get(doneItem?.id) || '';
+
             this.emitEvent(projectName, {
               type: 'Research.output_item.done',
               data: {
@@ -262,6 +288,7 @@ export class DeepResearchService {
                 item_type: doneItem?.type,
                 output_index: (event as any).output_index,
                 content_preview: this.extractContentPreview(doneItem),
+                full_content: fullContent, // The complete content for this item
                 // Capture reasoning information if available
                 reasoning: doneItem?.type === 'reasoning' ? {
                   summary: doneItem.summary,
@@ -303,19 +330,45 @@ export class DeepResearchService {
 
           // Text output events
           case 'response.output_text.delta':
-            // Emit delta event
-            this.emitEvent(projectName, {
-              type: 'Research.output_text.delta',
-              data: {
-                sessionId,
-                inputFile: session.inputFile,
-                outputFile: session.outputFile,
-                delta: event.delta,
-                timestamp: new Date().toISOString(),
-              },
-            });
+            const currentItem = this.currentOutputItems.get(sessionId);
 
-            // Accumulate and append to file
+            // Accumulate content for this specific item
+            if (currentItem) {
+              const sessionContent = this.outputItemContent.get(sessionId);
+              if (sessionContent) {
+                const existingContent = sessionContent.get(currentItem.itemId) || '';
+                sessionContent.set(currentItem.itemId, existingContent + event.delta);
+              }
+            }
+
+            // Emit different events based on what type of content is being streamed
+            if (currentItem?.type === 'reasoning') {
+              this.emitEvent(projectName, {
+                type: 'Research.reasoning.delta',
+                data: {
+                  sessionId,
+                  inputFile: session.inputFile,
+                  outputFile: session.outputFile,
+                  itemId: currentItem.itemId,
+                  delta: event.delta,
+                  timestamp: new Date().toISOString(),
+                },
+              });
+            } else {
+              // This is the main research output
+              this.emitEvent(projectName, {
+                type: 'Research.output_text.delta',
+                data: {
+                  sessionId,
+                  inputFile: session.inputFile,
+                  outputFile: session.outputFile,
+                  delta: event.delta,
+                  timestamp: new Date().toISOString(),
+                },
+              });
+            }
+
+            // Accumulate all text to file
             accumulatedText += event.delta;
             await fs.appendFile(outputFilePath, event.delta, 'utf8');
             break;
@@ -358,6 +411,10 @@ export class DeepResearchService {
 
             this.logger.log(`Research completed for session: ${sessionId}`);
 
+            // Clean up tracking maps
+            this.currentOutputItems.delete(sessionId);
+            this.outputItemContent.delete(sessionId);
+
             // Complete the subject to stop emitting events
             if (this.eventSubjects.has(projectName)) {
               this.eventSubjects.get(projectName)!.complete();
@@ -399,6 +456,10 @@ export class DeepResearchService {
       session.error = error.message;
       session.completedAt = new Date().toISOString();
       await this.saveSession(projectName, session);
+
+      // Clean up tracking maps
+      this.currentOutputItems.delete(sessionId);
+      this.outputItemContent.delete(sessionId);
 
       // Complete the subject to stop emitting events
       if (this.eventSubjects.has(projectName)) {

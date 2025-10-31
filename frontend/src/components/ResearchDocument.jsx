@@ -26,6 +26,7 @@ export default function ResearchDocument({ input, output, projectName }) {
   const eventSourceRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const refreshIntervalRef = useRef(null);
 
   // Debug logging
   useEffect(() => {
@@ -287,6 +288,25 @@ export default function ResearchDocument({ input, output, projectName }) {
       }
     });
 
+    // Reasoning delta events
+    eventSource.addEventListener('Research.reasoning.delta', (e) => {
+      const data = JSON.parse(e.data);
+      console.log('Research.reasoning.delta event received');
+      if (isForThisResearch(data)) {
+        setEvents(prev => {
+          const first = prev[0];
+          // Accumulate reasoning deltas at the front
+          if (first && first.type === 'Research.reasoning.delta' && first.itemId === data.itemId) {
+            return [
+              { ...first, delta: (first.delta || '') + data.delta },
+              ...prev.slice(1)
+            ];
+          }
+          return [{ type: 'Research.reasoning.delta', ...data }, ...prev]; // Add to front
+        });
+      }
+    });
+
     eventSource.addEventListener('Research.output_text.done', (e) => {
       const data = JSON.parse(e.data);
       console.log('Research.output_text.done event received');
@@ -359,6 +379,30 @@ export default function ResearchDocument({ input, output, projectName }) {
       };
     }
   }, [startTime, fileExists]);
+
+  // Auto-refresh markdown content every 5 seconds when file exists and is displayed
+  useEffect(() => {
+    if (fileExists && !loading) {
+      console.log('Setting up auto-refresh for markdown content every 5 seconds');
+
+      // Refresh immediately on mount
+      fetchMarkdownContent();
+
+      // Set up interval to refresh every 5 seconds
+      refreshIntervalRef.current = setInterval(() => {
+        console.log('Auto-refreshing markdown content...');
+        fetchMarkdownContent();
+      }, 5000);
+
+      return () => {
+        if (refreshIntervalRef.current) {
+          console.log('Cleaning up auto-refresh interval');
+          clearInterval(refreshIntervalRef.current);
+          refreshIntervalRef.current = null;
+        }
+      };
+    }
+  }, [fileExists, loading, projectName, output]);
 
   // Render research in progress view
   if (!fileExists) {
@@ -576,7 +620,29 @@ export default function ResearchDocument({ input, output, projectName }) {
                       )}
                     </Box>
                   )}
-                  {!event.reasoning && event.content_preview && (
+                  {event.full_content && (
+                    <Box
+                      sx={{
+                        mt: 1,
+                        p: 1.5,
+                        backgroundColor: event.item_type === 'reasoning' ? '#fff3e0' : '#f9f9f9',
+                        borderRadius: 1,
+                        borderLeft: event.item_type === 'reasoning' ? '3px solid #ff9800' : '3px solid #2196f3',
+                        maxHeight: '300px',
+                        overflow: 'auto',
+                        fontFamily: 'monospace',
+                        fontSize: '0.8rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 'bold', mb: 0.5 }}>
+                        {event.item_type === 'reasoning' ? 'Reasoning Content:' : 'Content:'}
+                      </Typography>
+                      {event.full_content}
+                    </Box>
+                  )}
+                  {!event.full_content && !event.reasoning && event.content_preview && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
                       {event.content_preview.length > 60 ? event.content_preview.substring(0, 60) + '...' : event.content_preview}
                     </Typography>
@@ -603,7 +669,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.output_text.delta' && (
                 <Box>
                   <Typography variant="subtitle2" color="primary" gutterBottom>
-                    Generating Content
+                    📝 Generating Content
                   </Typography>
                   <Box
                     sx={{
@@ -611,6 +677,32 @@ export default function ResearchDocument({ input, output, projectName }) {
                       p: 1.5,
                       backgroundColor: '#f9f9f9',
                       borderRadius: 1,
+                      borderLeft: '3px solid #2196f3',
+                      maxHeight: '200px',
+                      overflow: 'auto',
+                      fontFamily: 'monospace',
+                      fontSize: '0.85rem',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    {event.delta}
+                  </Box>
+                </Box>
+              )}
+
+              {event.type === 'Research.reasoning.delta' && (
+                <Box>
+                  <Typography variant="subtitle2" color="warning.main" gutterBottom>
+                    🤔 Reasoning in Progress
+                  </Typography>
+                  <Box
+                    sx={{
+                      mt: 1,
+                      p: 1.5,
+                      backgroundColor: '#fff3e0',
+                      borderRadius: 1,
+                      borderLeft: '3px solid #ff9800',
                       maxHeight: '200px',
                       overflow: 'auto',
                       fontFamily: 'monospace',

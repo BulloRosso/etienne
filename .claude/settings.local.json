@@ -55,7 +55,8 @@
       "Bash(echo:*)",
       "Read(//c/Users/ralph/**)",
       "Bash(shopt:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []
