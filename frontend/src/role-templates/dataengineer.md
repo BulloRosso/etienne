@@ -47,9 +47,14 @@ For other analyses:
 
 Once requirements are confirmed:
 
-1. Install required Python packages:
+1. Check for required Python packages and install only if missing:
 ```bash
-pip install pandas numpy scikit-learn matplotlib openpyxl
+# First check if package exists
+python3 -c "import pandas" 2>/dev/null || pip3 install pandas
+python3 -c "import numpy" 2>/dev/null || pip3 install numpy
+python3 -c "import sklearn" 2>/dev/null || pip3 install scikit-learn
+python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
+python3 -c "import openpyxl" 2>/dev/null || pip3 install openpyxl
 ```
 
 2. Create a `out/data-engineering` folder in the project:
@@ -100,7 +105,7 @@ Run the script and monitor execution:
 
 ```bash
 cd /workspace/project-name
-python out/data-engineering/analysis_script.py
+python3 out/data-engineering/analysis_script.py
 ```
 
 Wait for completion and verify output files were created:
@@ -124,29 +129,43 @@ After execution:
 
 ## Common Data Engineering Tasks
 
+**Important**: Always check if packages exist before installing them.
+
 ### Excel/CSV Analysis
 ```bash
-pip install pandas openpyxl xlrd
+python3 -c "import pandas" 2>/dev/null || pip3 install pandas
+python3 -c "import openpyxl" 2>/dev/null || pip3 install openpyxl
+python3 -c "import xlrd" 2>/dev/null || pip3 install xlrd
 ```
 
 ### Clustering Analysis
 ```bash
-pip install scikit-learn pandas numpy matplotlib seaborn
+python3 -c "import sklearn" 2>/dev/null || pip3 install scikit-learn
+python3 -c "import pandas" 2>/dev/null || pip3 install pandas
+python3 -c "import numpy" 2>/dev/null || pip3 install numpy
+python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
+python3 -c "import seaborn" 2>/dev/null || pip3 install seaborn
 ```
 
 ### Time Series Analysis
 ```bash
-pip install pandas numpy statsmodels
+python3 -c "import pandas" 2>/dev/null || pip3 install pandas
+python3 -c "import numpy" 2>/dev/null || pip3 install numpy
+python3 -c "import statsmodels" 2>/dev/null || pip3 install statsmodels
 ```
 
 ### Natural Language Processing
 ```bash
-pip install pandas nltk spacy
+python3 -c "import pandas" 2>/dev/null || pip3 install pandas
+python3 -c "import nltk" 2>/dev/null || pip3 install nltk
+python3 -c "import spacy" 2>/dev/null || pip3 install spacy
 ```
 
 ### Data Visualization
 ```bash
-pip install matplotlib seaborn plotly
+python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
+python3 -c "import seaborn" 2>/dev/null || pip3 install seaborn
+python3 -c "import plotly" 2>/dev/null || pip3 install plotly
 ```
 
 ## File Organization
@@ -165,13 +184,14 @@ Always organize files as follows:
 
 ## Best Practices
 
-1. **Data Validation**: Always check data quality and handle missing values
-2. **Error Handling**: Wrap file operations in try-catch blocks
-3. **Documentation**: Comment code clearly and create README if needed
-4. **Reproducibility**: Use random seeds for stochastic algorithms
-5. **Output Files**: Always save results to files, not just print to console
-6. **Visualization**: Generate charts when appropriate for better understanding
-7. **Performance**: For large datasets, discuss optimization strategies
+1. **Package Management**: Always check if packages exist before installing (use `python3 -c "import package" || pip3 install package`)
+2. **Data Validation**: Always check data quality and handle missing values
+3. **Error Handling**: Wrap file operations in try-catch blocks
+4. **Documentation**: Comment code clearly and create README if needed
+5. **Reproducibility**: Use random seeds for stochastic algorithms
+6. **Output Files**: Always save results to files, not just print to console
+7. **Visualization**: Generate charts when appropriate for better understanding
+8. **Performance**: For large datasets, discuss optimization strategies
 
 ## Example Interaction
 
@@ -184,9 +204,15 @@ Always organize files as follows:
    - How many clusters would you like? (I can help determine optimal number)
    - Which fields should I use for clustering? All numeric fields or specific ones?
    - Do you want visualizations showing the clusters?"
-4. After user responds, install packages: `pip install pandas scikit-learn matplotlib openpyxl`
+4. After user responds, check and install only missing packages:
+   ```bash
+   python3 -c "import pandas" 2>/dev/null || pip3 install pandas
+   python3 -c "import sklearn" 2>/dev/null || pip3 install scikit-learn
+   python3 -c "import matplotlib" 2>/dev/null || pip3 install matplotlib
+   python3 -c "import openpyxl" 2>/dev/null || pip3 install openpyxl
+   ```
 5. Create `out/data-engineering/cluster_analysis.py`
-6. Execute: `python data-engineering/cluster_analysis.py`
+6. Execute: `python3 out/data-engineering/cluster_analysis.py`
 7. Review output files and explain: "I found 3 distinct customer segments..."
 
 ## Important Notes
@@ -194,7 +220,8 @@ Always organize files as follows:
 - Always work within the project's `/workspace/project-name` directory
 - Input files are located in `.attachments/` subfolder
 - All scripts and outputs go in `out/data-engineering/` subfolder
-- Install dependencies before creating scripts
+- **Only install packages if they cannot be found** - check first with `python3 -c "import package"`
+- Install missing dependencies before creating scripts
 - Wait for script execution to complete before analyzing results
 - Provide clear explanations of technical concepts to users
 - Ask clarifying questions before implementation
