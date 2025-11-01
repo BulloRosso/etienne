@@ -118,7 +118,7 @@
           "description": "Large, friendly cats with tufted ears and bushy tails. Gentle giants of the cat world.",
           "price_euro": 118,
           "items_available": 2,
-          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Maine_Coon_cat_by_Tomitheos.JPG/320px-Maine_Coon_cat_by_Tomitheos.JPG"
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Maine_Coon_Cat_List_Characteristics.jpg/1200px-Maine_Coon_Cat_List_Characteristics.jpg?20200216202242"
         },
         {
           "sku": "CAT-005",
@@ -158,7 +158,7 @@
           "description": "Elegant grey cats with emerald green eyes. Quiet, intelligent, and form strong bonds with owners.",
           "price_euro": 92,
           "items_available": 4,
-          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Russian_Blue_001.jpg/320px-Russian_Blue_001.jpg"
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Russisch_Blau_Katze_of_Blue_Sinfonie.JPG?20120128184150"
         },
         {
           "sku": "CAT-010",
@@ -166,7 +166,7 @@
           "description": "Classic striped or spotted cats with M-shaped forehead markings. Friendly and adaptable personalities.",
           "price_euro": 38,
           "items_available": 10,
-          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Orange_tabby_cat_sitting_on_fallen_leaves-Hisashi-01A.jpg/320px-Orange_tabby_cat_sitting_on_fallen_leaves-Hisashi-01A.jpg"
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Sibirischer_tiger_de_edit02.jpg/640px-Sibirischer_tiger_de_edit02.jpg"
         }
       ]
     },
@@ -219,7 +219,7 @@
           "description": "Small, fluffy dogs with fox-like faces. Vivacious, bold, and love to be the center of attention.",
           "price_euro": 68,
           "items_available": 6,
-          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Pomeranian_orange-sable_Coco.jpg/320px-Pomeranian_orange-sable_Coco.jpg"
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Pomeranian-tb.png/640px-Pomeranian-tb.png"
         },
         {
           "sku": "DOG-007",
@@ -239,11 +239,11 @@
         },
         {
           "sku": "DOG-009",
-          "title": "Border Collie Puppy",
+          "title": "Border Collie",
           "description": "Highly intelligent herding dogs with intense focus. Athletic, energetic, and excel at dog sports.",
           "price_euro": 88,
           "items_available": 3,
-          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Border_Collie_600.jpg/320px-Border_Collie_600.jpg"
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Border_Collie_Macho_Blue_Tricolour_%28Brix%2C_Los_Baganes_Border_Collie%29.jpg/640px-Border_Collie_Macho_Blue_Tricolour_%28Brix%2C_Los_Baganes_Border_Collie%29.jpg"
         },
         {
           "sku": "DOG-010",
@@ -251,7 +251,7 @@
           "description": "Medium-sized sporting dogs with silky coats. Gentle, happy, and make wonderful family pets.",
           "price_euro": 79,
           "items_available": 4,
-          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Cocker_spaniel_called_Tony.jpg/320px-Cocker_spaniel_called_Tony.jpg"
+          "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Cocker_Spaniel_Puppy.jpg/640px-Cocker_Spaniel_Puppy.jpg"
         }
       ]
     }

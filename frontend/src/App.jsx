@@ -98,7 +98,7 @@ export default function App() {
         } else if (eventType === 'PostToolUse') {
           // Tool call completed
           const toolName = hookData.tool_name;
-          const toolResponse = hookData.tool_response;
+          const toolResponse = hookData.tool_output || hookData.tool_response; // tool_output is the actual response
           const toolInput = hookData.tool_input;
 
           if (!toolName) {
@@ -125,21 +125,18 @@ export default function App() {
 
             if (supportedExtensions.includes(extension)) {
               // Extract relative path from absolute path
-              // filePath is like: C:\Data\GitHub\claude-multitenant\workspace\weather-report\diagrams\project-a.mermaid
-              // We need: diagrams/project-a.mermaid
-              const pathParts = filePath.split(/[/\\]/);
-              const workspaceIndex = pathParts.findIndex(p => p === 'workspace');
+              const relativePath = extractRelativePath(filePath);
+              console.log(`[Auto-preview] File created: ${filePath}`);
+              console.log(`[Auto-preview] Extension: ${extension}`);
+              console.log(`[Auto-preview] Relative path: ${relativePath}`);
+              console.log(`[Auto-preview] Current project: ${currentProject}`);
+              console.log(`[Auto-preview] Waiting 800ms before fetching...`);
 
-              if (workspaceIndex !== -1 && pathParts.length > workspaceIndex + 2) {
-                // Skip workspace and project dir, get the rest
-                const relativePath = pathParts.slice(workspaceIndex + 2).join('/');
-                console.log(`Auto-previewing ${extension} file:`, relativePath);
-
-                // Add a small delay to ensure file is written to disk
-                setTimeout(() => {
-                  fetchFile(relativePath, currentProject);
-                }, 300);
-              }
+              // Increase delay to ensure file is fully written to disk
+              setTimeout(() => {
+                console.log(`[Auto-preview] Now fetching file: ${relativePath}`);
+                fetchFile(relativePath, currentProject);
+              }, 800);
             }
           }
 
@@ -439,17 +436,72 @@ export default function App() {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
+  // Extract relative path from absolute path
+  const extractRelativePath = (absolutePath) => {
+    // absolutePath is like: C:\Data\GitHub\claude-multitenant\workspace\pet-store-4\out\vogel-angebote.html
+    // We need: out/vogel-angebote.html
+    const pathParts = absolutePath.split(/[/\\]/);
+    const workspaceIndex = pathParts.findIndex(p => p === 'workspace');
+
+    if (workspaceIndex !== -1 && pathParts.length > workspaceIndex + 2) {
+      // Skip workspace and project dir, get the rest
+      return pathParts.slice(workspaceIndex + 2).join('/');
+    }
+
+    // If it's already a relative path, return as-is
+    return absolutePath;
+  };
+
   // Fetch file content and add/update it in the files list
-  const fetchFile = async (path, projectDir) => {
-    const q = new URL(`/api/claude/getFile`, window.location.origin);
-    q.searchParams.set('project_dir', projectDir);
-    q.searchParams.set('file_name', path);
-    const r = await fetch(q.toString());
-    const j = await r.json();
-    setFiles((arr) => {
-      const next = arr.filter(x => x.path !== path).concat([{ path, content: j.content }]);
-      return next;
-    });
+  const fetchFile = async (path, projectDir, retries = 3, delayMs = 500) => {
+    console.log(`[fetchFile] Attempting to fetch: ${path} from project: ${projectDir}`);
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const q = new URL(`/api/claude/getFile`, window.location.origin);
+        q.searchParams.set('project_dir', projectDir);
+        q.searchParams.set('file_name', path);
+
+        console.log(`[fetchFile] Attempt ${attempt + 1}/${retries}: ${q.toString()}`);
+        const r = await fetch(q.toString());
+
+        if (!r.ok) {
+          const errorText = await r.text();
+          console.error(`[fetchFile] HTTP ${r.status}: ${errorText}`);
+
+          // If it's a 404 and we have retries left, wait and retry
+          if (r.status === 404 && attempt < retries - 1) {
+            console.log(`[fetchFile] File not found, retrying in ${delayMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+
+          throw new Error(`HTTP ${r.status}: ${errorText}`);
+        }
+
+        const j = await r.json();
+        console.log(`[fetchFile] Successfully fetched: ${path}`);
+
+        setFiles((arr) => {
+          const next = arr.filter(x => x.path !== path).concat([{ path, content: j.content }]);
+          return next;
+        });
+
+        return; // Success, exit the retry loop
+
+      } catch (error) {
+        console.error(`[fetchFile] Attempt ${attempt + 1} failed:`, error);
+
+        // If this was the last attempt, give up
+        if (attempt === retries - 1) {
+          console.error(`[fetchFile] All ${retries} attempts failed for: ${path}`);
+          return;
+        }
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   };
 
   // Handle closing a single tab
@@ -567,8 +619,40 @@ export default function App() {
       });
     });
 
-    es.addEventListener('file_added', (e) => { fetchFile(JSON.parse(e.data).path, currentProject); });
-    es.addEventListener('file_changed', (e) => { fetchFile(JSON.parse(e.data).path, currentProject); });
+    es.addEventListener('file_added', (e) => {
+      const absolutePath = JSON.parse(e.data).path;
+      const relativePath = extractRelativePath(absolutePath);
+      console.log(`[file_added] Absolute: ${absolutePath}, Relative: ${relativePath}`);
+
+      // Dispatch claudeHook event for LiveHTMLPreview to refresh
+      const claudeHookEvent = new CustomEvent('claudeHook', {
+        detail: {
+          hook: 'PostHook',
+          file: absolutePath
+        }
+      });
+      window.dispatchEvent(claudeHookEvent);
+      console.log('[file_added] Dispatched claudeHook event for:', absolutePath);
+
+      fetchFile(relativePath, currentProject);
+    });
+    es.addEventListener('file_changed', (e) => {
+      const absolutePath = JSON.parse(e.data).path;
+      const relativePath = extractRelativePath(absolutePath);
+      console.log(`[file_changed] Absolute: ${absolutePath}, Relative: ${relativePath}`);
+
+      // Dispatch claudeHook event for LiveHTMLPreview to refresh
+      const claudeHookEvent = new CustomEvent('claudeHook', {
+        detail: {
+          hook: 'PostHook',
+          file: absolutePath
+        }
+      });
+      window.dispatchEvent(claudeHookEvent);
+      console.log('[file_changed] Dispatched claudeHook event for:', absolutePath);
+
+      fetchFile(relativePath, currentProject);
+    });
 
     es.addEventListener('guardrails_triggered', (e) => {
       const { plugins, count, detections } = JSON.parse(e.data);

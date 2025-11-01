@@ -28,7 +28,7 @@ export default function ChatMessage({ role, text, timestamp, usage }) {
       mb: 2,
       px: 2
     }}>
-      <Box sx={{ maxWidth: '70%' }}>
+      <Box sx={{ maxWidth: isUser ? '70%' : '88%' }}>
         <Paper
           elevation={2}
           sx={{

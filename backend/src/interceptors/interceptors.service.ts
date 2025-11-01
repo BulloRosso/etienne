@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Subject } from 'rxjs';
 
 export interface InterceptorEvent {
@@ -10,6 +10,8 @@ export interface InterceptorEvent {
 
 @Injectable()
 export class InterceptorsService {
+  private readonly logger = new Logger(InterceptorsService.name);
+
   // In-memory storage per project
   private hooks = new Map<string, any[]>();
   private events = new Map<string, any[]>();
@@ -22,11 +24,13 @@ export class InterceptorsService {
     const item = { ...data, timestamp };
 
     // Determine if this is a hook or event based on the X-Claude-Event header
-    // Events: UserPromptSubmit, Notification, Stop, SubagentStop, PreCompact, SessionStart
+    // Events: UserPromptSubmit, Notification, Stop, SubagentStop, PreCompact, SessionStart, file_added, file_changed
     // Hooks: PreToolUse, PostToolUse
     const eventType = data.event_type || '';
     const isHook = ['PreToolUse', 'PostToolUse'].includes(eventType);
     const type = isHook ? 'hook' : 'event';
+
+    this.logger.debug(`Adding interceptor for ${project}: type=${type}, event_type=${eventType}`);
 
     // Store in appropriate collection
     if (isHook) {

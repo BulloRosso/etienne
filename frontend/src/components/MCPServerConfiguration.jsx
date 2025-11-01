@@ -213,7 +213,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
   const serverEntries = Object.entries(servers);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '96%', p: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
       <BackgroundInfo infoId="integrations" showBackgroundInfo={showBackgroundInfo} />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>

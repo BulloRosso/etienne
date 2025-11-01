@@ -6,6 +6,9 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import CloudDownloadOutlinedIcon from '@mui/icons-material/CloudDownloadOutlined';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import LoopIcon from '@mui/icons-material/Loop';
 import { IoHandRightOutline } from 'react-icons/io5';
 
 // Tool icon mapping
@@ -16,6 +19,88 @@ const TOOL_ICONS = {
   'WebSearch': SearchOutlinedIcon,
   'WebFetch': CloudDownloadOutlinedIcon,
   'Bash': TerminalIcon,
+};
+
+// TodoList Display Component - shows full todo list with icons
+const TodoListDisplay = ({ todos }) => {
+  if (!todos || !Array.isArray(todos) || todos.length === 0) {
+    return (
+      <Box sx={{ mb: 1, px: 2 }}>
+        <Paper sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+          <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
+            No tasks
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ mb: 1, px: 2 }}>
+      <Paper sx={{ p: 2, backgroundColor: '#fafafa', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+        {todos.map((todo, index) => {
+          const isCompleted = todo.status === 'completed';
+          const isInProgress = todo.status === 'in_progress';
+
+          // Choose icon based on status
+          let IconComponent;
+          let iconColor = '#555';
+          let iconSx = { fontSize: '20px' };
+
+          if (isCompleted) {
+            IconComponent = CheckBoxOutlinedIcon;
+            iconColor = '#999';
+          } else if (isInProgress) {
+            IconComponent = LoopIcon;
+            iconColor = '#2196f3';
+            iconSx = { ...iconSx, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } };
+          } else {
+            IconComponent = CheckBoxOutlineBlankIcon;
+            iconColor = '#555';
+          }
+
+          // Text styling based on status
+          const textColor = isCompleted ? '#999' : '#333';
+          const textDecoration = isCompleted ? 'line-through' : 'none';
+          const opacity = isCompleted ? 0.7 : 1;
+          const backgroundColor = isInProgress ? '#e3f2fd' : 'transparent';
+
+          // Use activeForm for in_progress, content otherwise
+          const displayText = isInProgress ? (todo.activeForm || todo.content) : todo.content;
+
+          return (
+            <Box
+              key={index}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                py: 0.75,
+                px: 1,
+                borderRadius: 1,
+                backgroundColor,
+                opacity,
+                transition: 'background-color 0.2s ease'
+              }}
+            >
+              <IconComponent sx={{ ...iconSx, color: iconColor }} />
+              <Typography
+                variant="body2"
+                sx={{
+                  color: textColor,
+                  textDecoration,
+                  flex: 1,
+                  fontSize: '0.9rem'
+                }}
+              >
+                {displayText}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Paper>
+    </Box>
+  );
 };
 
 // Tool call component - compact version
@@ -81,6 +166,12 @@ export const ToolCallMessage = ({ toolName, args, status, result }) => {
     // Truncate to 60 characters (not for TodoWrite)
     return text.length > 60 ? text.substring(0, 60) + '...' : text;
   };
+
+  // Special rendering for TodoWrite - use full list display
+  if (toolName === 'TodoWrite') {
+    const todos = args?.todos || args?.newTodos || args?.oldTodos;
+    return <TodoListDisplay todos={todos} />;
+  }
 
   const argsPreview = formatArgs(args);
   const isRunning = status === 'running';

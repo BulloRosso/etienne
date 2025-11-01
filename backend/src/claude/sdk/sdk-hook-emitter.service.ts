@@ -176,4 +176,42 @@ export class SdkHookEmitterService {
     this.logger.debug(`Emitting PreCompact for ${projectName}`);
     this.interceptorsService.addInterceptor(projectName, event);
   }
+
+  /**
+   * Emit file_added event (for Write tool)
+   */
+  emitFileAdded(projectName: string, data: {
+    path: string;
+    timestamp?: string;
+    session_id?: string;
+  }) {
+    const event = {
+      event_type: 'file_added',
+      timestamp: data.timestamp || new Date().toISOString(),
+      path: data.path,
+      session_id: data.session_id,
+    };
+
+    this.logger.debug(`Emitting file_added for ${projectName}: ${data.path}`);
+    this.interceptorsService.addInterceptor(projectName, event);
+  }
+
+  /**
+   * Emit file_changed event (for Edit/MultiEdit tools)
+   */
+  emitFileChanged(projectName: string, data: {
+    path: string;
+    timestamp?: string;
+    session_id?: string;
+  }) {
+    const event = {
+      event_type: 'file_changed',
+      timestamp: data.timestamp || new Date().toISOString(),
+      path: data.path,
+      session_id: data.session_id,
+    };
+
+    this.logger.debug(`Emitting file_changed for ${projectName}: ${data.path}`);
+    this.interceptorsService.addInterceptor(projectName, event);
+  }
 }

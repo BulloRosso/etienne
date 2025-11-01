@@ -60,7 +60,9 @@
       "Bash(node test/sdk-test.mjs:*)",
       "Bash(nul)",
       "Bash(git checkout:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(xargs kill -9)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

@@ -21,16 +21,27 @@ export default function LiveHTMLPreview({ filename, projectName, className = '' 
       if (event.type === 'claudeHook' && event.detail) {
         const { hook, file } = event.detail;
 
+        console.log('[LiveHTMLPreview] Received claudeHook:', { hook, file, currentFilename: filename });
+
         if (hook === 'PostHook' && file) {
           // Handle both absolute and relative paths
           const normalizedFile = file.replace(/\\/g, '/');
           const normalizedFilename = filename.replace(/\\/g, '/');
 
+          console.log('[LiveHTMLPreview] Normalized paths:', { normalizedFile, normalizedFilename });
+
           // Check if paths match (exact match or file ends with filename)
-          if (normalizedFile === normalizedFilename || normalizedFile.endsWith('/' + normalizedFilename)) {
-            console.log('LiveHTMLPreview: Refreshing iframe for', filename);
+          const exactMatch = normalizedFile === normalizedFilename;
+          const endsWithMatch = normalizedFile.endsWith('/' + normalizedFilename);
+
+          console.log('[LiveHTMLPreview] Match check:', { exactMatch, endsWithMatch });
+
+          if (exactMatch || endsWithMatch) {
+            console.log('[LiveHTMLPreview] ✓ Match found! Refreshing iframe for', filename);
             // Force iframe refresh by updating key
             setRefreshKey(prev => prev + 1);
+          } else {
+            console.log('[LiveHTMLPreview] ✗ No match for', filename);
           }
         }
       }

@@ -36,9 +36,10 @@ export class ClaudeSdkService {
       agentMode?: string;
       maxTurns?: number;
       allowedTools?: string[];
+      hooks?: any;  // Hook handlers from orchestrator
     } = {}
   ) {
-    const { sessionId, agentMode, maxTurns, allowedTools } = options;
+    const { sessionId, agentMode, maxTurns, allowedTools, hooks } = options;
 
     try {
       // Ensure SDK is loaded
@@ -53,8 +54,14 @@ export class ClaudeSdkService {
       // Load permissions if not provided
       const tools = allowedTools || await this.loadPermissions(projectDir);
 
-      // Use bypassPermissions mode to avoid permission prompts
-      const permissionMode = 'bypassPermissions';
+      // Map agentMode to permissionMode
+      // - 'plan': Planning mode - Claude creates a plan without executing tools
+      // - 'work': Work mode - Claude executes tools and makes changes
+      // - undefined/other: Default to bypassPermissions to ensure hooks are called
+      const planningMode = agentMode === 'plan';
+      const permissionMode = planningMode ? 'plan' : 'bypassPermissions';
+
+      this.logger.log(`Agent mode: ${agentMode || 'default'} → Permission mode: ${permissionMode}`);
 
       // Configure SDK options
       const queryOptions = {
@@ -71,10 +78,14 @@ export class ClaudeSdkService {
         maxTurns: maxTurns || 20,
         settingSources: ['project' as const],
         includePartialMessages: true,  // Enable true streaming with partial message events
-        ...(sessionId && { resume: sessionId })
+        ...(sessionId && { resume: sessionId }),
+        ...(hooks && { hooks })  // Add hooks if provided
       };
 
       this.logger.log(`Starting SDK conversation for project: ${projectDir} (cwd: ${projectRoot}), session: ${sessionId || 'new'}`);
+      this.logger.log(`Hooks passed to SDK: ${!!hooks}, PreToolUse: ${hooks?.PreToolUse?.length || 0}, PostToolUse: ${hooks?.PostToolUse?.length || 0}`);
+      this.logger.log(`Query options keys: ${Object.keys(queryOptions).join(', ')}`);
+      this.logger.log(`Hooks in queryOptions: ${!!queryOptions.hooks}`);
 
       // Stream conversation via SDK
       for await (const message of this.query({

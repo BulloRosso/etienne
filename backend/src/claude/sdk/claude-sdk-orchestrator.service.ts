@@ -82,6 +82,9 @@ export class ClaudeSdkOrchestratorService {
     let usage: Usage = {};
     const startTime = Date.now();
 
+    // Track tool calls to correlate PreToolUse with PostToolUse
+    const toolCallMap = new Map<string, { name: string; input: any }>();
+
     try {
       // Check if this is a new session or resuming
       sessionId = await this.sessionManager.loadSessionId(projectDir);
@@ -158,8 +161,99 @@ export class ClaudeSdkOrchestratorService {
       const outputGuardrailsConfig = await this.outputGuardrailsService.getConfig(projectDir);
       const shouldBufferOutput = outputGuardrailsConfig.enabled;
 
+      // Configure SDK hooks - per official documentation format
+      // Named hook functions with correct 3-parameter signature
+      const preToolUseHook = async (input: any, toolUseID: string | undefined, options: { signal: AbortSignal }) => {
+        this.logger.log(`🪝 PreToolUse hook called: ${input.tool_name}`);
+        this.logger.debug(`🪝 PreToolUse input: ${JSON.stringify(input).substring(0, 500)}`);
+
+        // Store tool call info using toolUseID
+        const callId = toolUseID || `tool_${Date.now()}`;
+        toolCallMap.set(callId, {
+          name: input.tool_name,
+          input: input.tool_input
+        });
+
+        // Emit PreToolUse hook event
+        this.hookEmitter.emitPreToolUse(projectDir, {
+          tool_name: input.tool_name,
+          tool_input: input.tool_input,
+          call_id: callId,
+          session_id: sessionId,
+          timestamp: new Date().toISOString()
+        });
+
+        return { continue: true };
+      };
+
+      const postToolUseHook = async (input: any, toolUseID: string | undefined, options: { signal: AbortSignal }) => {
+        this.logger.log(`🪝 PostToolUse hook called: ${input.tool_name}`);
+        this.logger.debug(`🪝 PostToolUse input: ${JSON.stringify(input).substring(0, 500)}`);
+
+        const callId = toolUseID || `tool_${Date.now()}`;
+        const toolCall = toolCallMap.get(callId);
+
+        // Emit PostToolUse hook event
+        this.hookEmitter.emitPostToolUse(projectDir, {
+          tool_name: input.tool_name,
+          tool_output: input.tool_response,
+          call_id: callId,
+          session_id: sessionId,
+          timestamp: new Date().toISOString()
+        });
+
+        // Emit file events for Write/Edit tools
+        if (toolCall) {
+          const { name, input: toolInput } = toolCall;
+
+          if (name === 'Write' && toolInput?.file_path) {
+            this.hookEmitter.emitFileAdded(projectDir, {
+              path: toolInput.file_path,
+              session_id: sessionId,
+              timestamp: new Date().toISOString()
+            });
+            observer.next({
+              type: 'file_added',
+              data: { path: toolInput.file_path }
+            });
+          } else if ((name === 'Edit' || name === 'MultiEdit') && toolInput?.file_path) {
+            this.hookEmitter.emitFileChanged(projectDir, {
+              path: toolInput.file_path,
+              session_id: sessionId,
+              timestamp: new Date().toISOString()
+            });
+            observer.next({
+              type: 'file_changed',
+              data: { path: toolInput.file_path }
+            });
+          } else if (name === 'NotebookEdit' && toolInput?.notebook_path) {
+            this.hookEmitter.emitFileChanged(projectDir, {
+              path: toolInput.notebook_path,
+              session_id: sessionId,
+              timestamp: new Date().toISOString()
+            });
+            observer.next({
+              type: 'file_changed',
+              data: { path: toolInput.notebook_path }
+            });
+          }
+
+          // Clean up
+          toolCallMap.delete(callId);
+        }
+
+        return { continue: true };
+      };
+
+      // Correct hook configuration format per official SDK documentation
+      const hooks = {
+        PreToolUse: [{ hooks: [preToolUseHook] }],  // No matcher = match all tools
+        PostToolUse: [{ hooks: [postToolUseHook] }]
+      };
+
       // Stream conversation via SDK
       this.logger.log(`Starting SDK stream for project: ${projectDir}, session: ${sessionId || 'new'}`);
+      this.logger.log(`Hooks configured: PreToolUse=${!!hooks.PreToolUse}, PostToolUse=${!!hooks.PostToolUse}`);
 
       for await (const sdkMessage of this.claudeSdkService.streamConversation(
         projectDir,
@@ -167,10 +261,14 @@ export class ClaudeSdkOrchestratorService {
         {
           sessionId,
           agentMode,
-          maxTurns
+          maxTurns,
+          hooks
         }
       )) {
         this.logger.debug(`📨 SDK Message: type=${sdkMessage.type}, subtype=${sdkMessage.subtype || 'none'}`);
+
+        // Log full message structure for debugging (first 1000 chars)
+        this.logger.debug(`📨 Full message structure: ${JSON.stringify(sdkMessage).substring(0, 1000)}`);
 
         // Handle session initialization
         if (SdkMessageTransformer.isSessionInit(sdkMessage)) {
@@ -216,37 +314,7 @@ export class ClaudeSdkOrchestratorService {
           continue;
         }
 
-        // Handle tool result messages
-        if (sdkMessage.type === 'tool_result') {
-          const toolName = (sdkMessage as any).tool_name || 'unknown';
-          const toolOutput = (sdkMessage as any).content || (sdkMessage as any).result;
-          const callId = (sdkMessage as any).tool_use_id || `tool_${Date.now()}`;
-          const error = (sdkMessage as any).error || (sdkMessage as any).is_error ? 'Tool execution failed' : undefined;
-
-          // Emit PostToolUse hook
-          this.hookEmitter.emitPostToolUse(projectDir, {
-            tool_name: toolName,
-            tool_output: toolOutput,
-            call_id: callId,
-            session_id: sessionId,
-            timestamp: new Date().toISOString(),
-            error
-          });
-
-          // Emit tool completion event for frontend
-          observer.next({
-            type: 'tool',
-            data: {
-              toolName: toolName,
-              status: 'complete',
-              callId: callId,
-              output: toolOutput,
-              error
-            }
-          });
-
-          continue;
-        }
+        // Note: Tool result handling is now done via SDK hooks (PreToolUse/PostToolUse)
 
         // Collect assistant text (but don't emit it - we already streamed it via deltas)
         if (SdkMessageTransformer.isAssistant(sdkMessage)) {
@@ -268,16 +336,8 @@ export class ClaudeSdkOrchestratorService {
               } else if (block.type === 'tool_use') {
                 const toolCallId = block.id || `tool_${Date.now()}`;
 
-                // Emit PreToolUse hook
-                this.hookEmitter.emitPreToolUse(projectDir, {
-                  tool_name: block.name,
-                  tool_input: block.input,
-                  call_id: toolCallId,
-                  session_id: sessionId,
-                  timestamp: new Date().toISOString()
-                });
-
-                // Emit tool event for frontend
+                // Note: PreToolUse hook is now handled by SDK hooks
+                // Just emit tool event for frontend UI
                 observer.next({
                   type: 'tool',
                   data: {

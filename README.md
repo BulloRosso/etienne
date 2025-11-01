@@ -133,7 +133,7 @@ Then **open your browser** with http://localhost:5000
 | `/api/claude/chat/history` | POST | Gets the chat history for a project from the persistence layer. |
 | `/api/claude/mcp/config` | POST | Retrieves the MCP server configuration from .mcp.json file. |
 | `/api/claude/mcp/config/save` | POST | Saves MCP server configuration and updates Claude settings accordingly. |
-| `/api/claude/streamPrompt` | GET (SSE) | Streams Claude Code execution with real-time updates via Server-Sent Events. Supports memory-enabled prompts. |
+| `/api/claude/streamPrompt/sdk` | GET (SSE) | Streams Claude Code execution with real-time updates via Server-Sent Events. Supports memory-enabled prompts. |
 
 ### InterceptorsController (`/api/interceptors`)
 | Path | Verb | Description |
