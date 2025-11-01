@@ -4,10 +4,9 @@
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
 
-How to use Claude Code 2.0 in non-interactive mode to build an agent engine for **virtual collaborator use cases**.
+How to use Claude Code 2.0 with the Anthropic Agent SDK to build an agent engine for **virtual collaborator use cases**.
 
-Contains a node.js/nest.js backend and React/Vite frontend which operate on an existing Claude Code 2.0 Docker devcontainer.
-In production deployments all components can be packaged inside a single Container.
+Contains a node.js/nest.js backend and React/Vite frontend. In production deployments all components can be packaged into a Docker Container.
 
 ## IT Scenario
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
@@ -100,13 +99,6 @@ docker-compose up -d
 The proxy will be available at `http://localhost:4000` and will translate between Anthropic and OpenAI API formats automatically.
 
 For more details, see [litellm-proxy/README.md](litellm-proxy/README.md).
-
-### Install Claude Code 2.0 inside a docker container
-The name of the container needs to be claude-code (this is the entrypoint for the backend).
-You will find a dockerfile with pre-installed python and pip libs in this project - this enables your agents to write and
-execute Python 3.x scripts when solving problems.
-
-Of course the container should be running when you start up the services of Etienne.
 
 ### Starting up the services
 Start the backend on :6060
@@ -312,7 +304,7 @@ The frontend includes specialized preview components for various file types thro
 | `.mermaid` | [MermaidViewer](frontend/src/components/MermaidViewer.jsx) | Renders Mermaid diagrams (flowcharts, sequence diagrams, etc.) |
 | `.research` | [ResearchDocument](frontend/src/components/ResearchDocument.jsx) | Specialized viewer for research documents with structured content |
 | `.jpg`, `.jpeg`, `.png`, `.gif` | [ImageViewer](frontend/src/components/ImageViewer.jsx) | Displays images at original size with extracted header metadata (dimensions, bit depth, color type, compression) |
-| `.xls`, `.xlsx` | [ExcelViewer](frontend/src/components/ExcelViewer.jsx) | Interactive Excel spreadsheet viewer using SheetJS and x-spreadsheet with multi-sheet support, formatting preservation, and Excel-like grid interface |
+| `.xls`, `.xlsx` | [ExcelViewer](frontend/src/components/ExcelViewer.jsx) | Interactive Excel spreadsheet viewer using SheetJS and wolf-table with multi-sheet support, scrollable/resizable cells, Roboto font, and read-only mode |
 
 ### How It Works
 
