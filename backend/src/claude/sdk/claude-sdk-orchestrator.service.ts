@@ -164,85 +164,97 @@ export class ClaudeSdkOrchestratorService {
       // Configure SDK hooks - per official documentation format
       // Named hook functions with correct 3-parameter signature
       const preToolUseHook = async (input: any, toolUseID: string | undefined, options: { signal: AbortSignal }) => {
-        this.logger.log(`🪝 PreToolUse hook called: ${input.tool_name}`);
-        this.logger.debug(`🪝 PreToolUse input: ${JSON.stringify(input).substring(0, 500)}`);
+        try {
+          this.logger.log(`🪝 PreToolUse hook called: ${input.tool_name}`);
+          this.logger.debug(`🪝 PreToolUse input: ${JSON.stringify(input).substring(0, 500)}`);
 
-        // Store tool call info using toolUseID
-        const callId = toolUseID || `tool_${Date.now()}`;
-        toolCallMap.set(callId, {
-          name: input.tool_name,
-          input: input.tool_input
-        });
+          // Store tool call info using toolUseID
+          const callId = toolUseID || `tool_${Date.now()}`;
+          toolCallMap.set(callId, {
+            name: input.tool_name,
+            input: input.tool_input
+          });
 
-        // Emit PreToolUse hook event
-        this.hookEmitter.emitPreToolUse(projectDir, {
-          tool_name: input.tool_name,
-          tool_input: input.tool_input,
-          call_id: callId,
-          session_id: sessionId,
-          timestamp: new Date().toISOString()
-        });
+          // Emit PreToolUse hook event
+          this.hookEmitter.emitPreToolUse(projectDir, {
+            tool_name: input.tool_name,
+            tool_input: input.tool_input,
+            call_id: callId,
+            session_id: sessionId,
+            timestamp: new Date().toISOString()
+          });
 
-        return { continue: true };
+          return { continue: true };
+        } catch (hookError: any) {
+          this.logger.error(`Error in PreToolUse hook: ${hookError.message}`, hookError.stack);
+          // Continue anyway - don't block tool execution
+          return { continue: true };
+        }
       };
 
       const postToolUseHook = async (input: any, toolUseID: string | undefined, options: { signal: AbortSignal }) => {
-        this.logger.log(`🪝 PostToolUse hook called: ${input.tool_name}`);
-        this.logger.debug(`🪝 PostToolUse input: ${JSON.stringify(input).substring(0, 500)}`);
+        try {
+          this.logger.log(`🪝 PostToolUse hook called: ${input.tool_name}`);
+          this.logger.debug(`🪝 PostToolUse input: ${JSON.stringify(input).substring(0, 500)}`);
 
-        const callId = toolUseID || `tool_${Date.now()}`;
-        const toolCall = toolCallMap.get(callId);
+          const callId = toolUseID || `tool_${Date.now()}`;
+          const toolCall = toolCallMap.get(callId);
 
-        // Emit PostToolUse hook event
-        this.hookEmitter.emitPostToolUse(projectDir, {
-          tool_name: input.tool_name,
-          tool_output: input.tool_response,
-          call_id: callId,
-          session_id: sessionId,
-          timestamp: new Date().toISOString()
-        });
+          // Emit PostToolUse hook event
+          this.hookEmitter.emitPostToolUse(projectDir, {
+            tool_name: input.tool_name,
+            tool_output: input.tool_response,
+            call_id: callId,
+            session_id: sessionId,
+            timestamp: new Date().toISOString()
+          });
 
-        // Emit file events for Write/Edit tools
-        if (toolCall) {
-          const { name, input: toolInput } = toolCall;
+          // Emit file events for Write/Edit tools
+          if (toolCall) {
+            const { name, input: toolInput } = toolCall;
 
-          if (name === 'Write' && toolInput?.file_path) {
-            this.hookEmitter.emitFileAdded(projectDir, {
-              path: toolInput.file_path,
-              session_id: sessionId,
-              timestamp: new Date().toISOString()
-            });
-            observer.next({
-              type: 'file_added',
-              data: { path: toolInput.file_path }
-            });
-          } else if ((name === 'Edit' || name === 'MultiEdit') && toolInput?.file_path) {
-            this.hookEmitter.emitFileChanged(projectDir, {
-              path: toolInput.file_path,
-              session_id: sessionId,
-              timestamp: new Date().toISOString()
-            });
-            observer.next({
-              type: 'file_changed',
-              data: { path: toolInput.file_path }
-            });
-          } else if (name === 'NotebookEdit' && toolInput?.notebook_path) {
-            this.hookEmitter.emitFileChanged(projectDir, {
-              path: toolInput.notebook_path,
-              session_id: sessionId,
-              timestamp: new Date().toISOString()
-            });
-            observer.next({
-              type: 'file_changed',
-              data: { path: toolInput.notebook_path }
-            });
+            if (name === 'Write' && toolInput?.file_path) {
+              this.hookEmitter.emitFileAdded(projectDir, {
+                path: toolInput.file_path,
+                session_id: sessionId,
+                timestamp: new Date().toISOString()
+              });
+              observer.next({
+                type: 'file_added',
+                data: { path: toolInput.file_path }
+              });
+            } else if ((name === 'Edit' || name === 'MultiEdit') && toolInput?.file_path) {
+              this.hookEmitter.emitFileChanged(projectDir, {
+                path: toolInput.file_path,
+                session_id: sessionId,
+                timestamp: new Date().toISOString()
+              });
+              observer.next({
+                type: 'file_changed',
+                data: { path: toolInput.file_path }
+              });
+            } else if (name === 'NotebookEdit' && toolInput?.notebook_path) {
+              this.hookEmitter.emitFileChanged(projectDir, {
+                path: toolInput.notebook_path,
+                session_id: sessionId,
+                timestamp: new Date().toISOString()
+              });
+              observer.next({
+                type: 'file_changed',
+                data: { path: toolInput.notebook_path }
+              });
+            }
+
+            // Clean up
+            toolCallMap.delete(callId);
           }
 
-          // Clean up
-          toolCallMap.delete(callId);
+          return { continue: true };
+        } catch (hookError: any) {
+          this.logger.error(`Error in PostToolUse hook: ${hookError.message}`, hookError.stack);
+          // Continue anyway - don't block continuation
+          return { continue: true };
         }
-
-        return { continue: true };
       };
 
       // Correct hook configuration format per official SDK documentation
@@ -255,20 +267,22 @@ export class ClaudeSdkOrchestratorService {
       this.logger.log(`Starting SDK stream for project: ${projectDir}, session: ${sessionId || 'new'}`);
       this.logger.log(`Hooks configured: PreToolUse=${!!hooks.PreToolUse}, PostToolUse=${!!hooks.PostToolUse}`);
 
-      for await (const sdkMessage of this.claudeSdkService.streamConversation(
-        projectDir,
-        enhancedPrompt,
-        {
-          sessionId,
-          agentMode,
-          maxTurns,
-          hooks
-        }
-      )) {
-        this.logger.debug(`📨 SDK Message: type=${sdkMessage.type}, subtype=${sdkMessage.subtype || 'none'}`);
+      try {
+        for await (const sdkMessage of this.claudeSdkService.streamConversation(
+          projectDir,
+          enhancedPrompt,
+          {
+            sessionId,
+            agentMode,
+            maxTurns,
+            hooks
+          }
+        )) {
+          try {
+            this.logger.debug(`📨 SDK Message: type=${sdkMessage.type}, subtype=${sdkMessage.subtype || 'none'}`);
 
-        // Log full message structure for debugging (first 1000 chars)
-        this.logger.debug(`📨 Full message structure: ${JSON.stringify(sdkMessage).substring(0, 1000)}`);
+            // Log full message structure for debugging (first 1000 chars)
+            this.logger.debug(`📨 Full message structure: ${JSON.stringify(sdkMessage).substring(0, 1000)}`);
 
         // Handle session initialization
         if (SdkMessageTransformer.isSessionInit(sdkMessage)) {
@@ -283,6 +297,8 @@ export class ClaudeSdkOrchestratorService {
             model: model,
             timestamp: new Date().toISOString()
           });
+
+          this.logger.log(`✨ Session initialized: ${newSessionId} with model: ${model}`);
 
           const sessionEvent = SdkMessageTransformer.transform(sdkMessage);
           if (sessionEvent) {
@@ -335,6 +351,9 @@ export class ClaudeSdkOrchestratorService {
                 }
               } else if (block.type === 'tool_use') {
                 const toolCallId = block.id || `tool_${Date.now()}`;
+
+                this.logger.log(`🔧 Tool execution started: ${block.name} (ID: ${toolCallId})`);
+                this.logger.debug(`🔧 Tool input: ${JSON.stringify(block.input).substring(0, 500)}`);
 
                 // Note: PreToolUse hook is now handled by SDK hooks
                 // Just emit tool event for frontend UI
@@ -433,6 +452,31 @@ export class ClaudeSdkOrchestratorService {
         if (transformed && !shouldBufferOutput) {
           observer.next(transformed);
         }
+          } catch (messageError: any) {
+            // Catch errors in individual message processing
+            // Log but don't terminate the stream
+            this.logger.error(`Error processing SDK message: ${messageError.message}`, messageError.stack);
+            observer.next({
+              type: 'error',
+              data: {
+                message: `Message processing error: ${messageError.message}`,
+                recoverable: true
+              }
+            });
+            // Continue processing next message
+          }
+        }
+      } catch (streamError: any) {
+        // Catch errors in the entire stream
+        this.logger.error(`Stream error in SDK conversation: ${streamError.message}`, streamError.stack);
+        observer.next({
+          type: 'error',
+          data: {
+            message: `Stream error: ${streamError.message}`,
+            recoverable: false
+          }
+        });
+        // Don't throw - let the stream complete gracefully
       }
 
       // Persist chat messages

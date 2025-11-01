@@ -66,11 +66,10 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
     }
   };
 
-  // Check if we should show typing indicator (streaming but no assistant response yet, or assistant response is empty)
+  // Check if we should show typing indicator (streaming but no assistant response yet)
   const showTypingIndicator = streaming && (
     messages.length === 0 ||
-    messages[messages.length - 1].role !== 'assistant' ||
-    !messages[messages.length - 1].text
+    messages[messages.length - 1].role !== 'assistant'
   );
 
   return (

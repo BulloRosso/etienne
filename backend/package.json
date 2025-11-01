@@ -2,7 +2,7 @@
   "name": "claude-backend",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_ENV=development node -r ts-node/register/transpile-only src/main.ts"
+    "dev": "cross-env NODE_ENV=development node -r ts-node/register/transpile-only src/main.ts 2>&1 | tee -a runtime.log"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.19.1",

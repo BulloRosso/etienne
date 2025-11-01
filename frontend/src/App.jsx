@@ -597,7 +597,10 @@ export default function App() {
         if (lastMsg && lastMsg.role === 'assistant') {
           newMessages[newMessages.length - 1] = { ...currentMessageRef.current };
         } else {
-          newMessages.push({ ...currentMessageRef.current });
+          // Only add message to state if there's actual content
+          if (currentMessageRef.current.text.trim()) {
+            newMessages.push({ ...currentMessageRef.current });
+          }
         }
         return newMessages;
       });
@@ -712,6 +715,47 @@ export default function App() {
           });
       }
     };
+
+    // Listen for tool execution events
+    es.addEventListener('tool', (e) => {
+      const data = JSON.parse(e.data);
+      console.log('Tool event:', data);
+
+      setStructuredMessages(prev => {
+        const existing = prev.find(msg => msg.id === data.callId);
+        if (existing) {
+          // Update existing tool call with new status
+          return prev.map(msg =>
+            msg.id === data.callId
+              ? {
+                  ...msg,
+                  type: 'tool_call',
+                  toolName: data.toolName,
+                  args: data.input,
+                  status: data.status,
+                  result: data.result
+                }
+              : msg
+          );
+        } else {
+          // For TodoWrite, remove all previous TodoWrite entries to show only the latest
+          const isTodoWrite = data.toolName === 'TodoWrite';
+          const filteredPrev = isTodoWrite
+            ? prev.filter(msg => msg.toolName !== 'TodoWrite')
+            : prev;
+
+          // Add new tool call
+          return [...filteredPrev, {
+            id: data.callId,
+            type: 'tool_call',
+            toolName: data.toolName,
+            args: data.input,
+            status: data.status,
+            result: data.result
+          }];
+        }
+      });
+    });
 
     es.addEventListener('completed', stop);
     es.addEventListener('error', stop);

@@ -94,7 +94,9 @@ export class McpServerService implements OnModuleInit {
 
       try {
         // Execute the tool
+        this.logger.log(`🔧 Executing tool: ${name} with args: ${JSON.stringify(args || {}).substring(0, 200)}`);
         const result = await service.execute(name, args || {});
+        this.logger.log(`✅ Tool ${name} executed successfully`);
 
         return {
           content: [
@@ -105,8 +107,24 @@ export class McpServerService implements OnModuleInit {
           ],
         };
       } catch (error) {
-        this.logger.error(`Error executing tool ${name}: ${error.message}`);
-        throw new Error(`Tool execution failed: ${error.message}`);
+        // Log the error but return it as content instead of throwing
+        // This prevents the error from terminating the stream
+        this.logger.error(`❌ Error executing tool ${name}: ${error.message}`, error.stack);
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                error: true,
+                tool: name,
+                message: error.message,
+                details: error.stack || 'No stack trace available'
+              }, null, 2),
+            },
+          ],
+          isError: true,
+        };
       }
     });
   }
