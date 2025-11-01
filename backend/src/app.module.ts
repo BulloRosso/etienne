@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ClaudeController } from './claude/claude.controller';
 import { ClaudeService } from './claude/claude.service';
+import { ClaudeSdkService } from './claude/sdk/claude-sdk.service';
+import { SdkSessionManagerService } from './claude/sdk/sdk-session-manager.service';
+import { SdkHookEmitterService } from './claude/sdk/sdk-hook-emitter.service';
+import { ClaudeSdkOrchestratorService } from './claude/sdk/claude-sdk-orchestrator.service';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -14,6 +18,7 @@ import { GuardrailsService } from './input-guardrails/guardrails.service';
 import { OutputGuardrailsModule } from './output-guardrails/output-guardrails.module';
 import { OutputGuardrailsService } from './output-guardrails/output-guardrails.service';
 import { SessionsModule } from './sessions/sessions.module';
+import { SessionsService } from './sessions/sessions.service';
 import { SubagentsModule } from './subagents/subagents.module';
 import { ExternalEventsModule } from './external-events/external-events.module';
 import { DeepResearchModule } from './deep-research/deep-research.module';
@@ -21,6 +26,16 @@ import { DeepResearchModule } from './deep-research/deep-research.module';
 @Module({
   imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule],
   controllers: [ClaudeController],
-  providers: [ClaudeService, BudgetMonitoringService, GuardrailsService, OutputGuardrailsService],
+  providers: [
+    ClaudeService,
+    ClaudeSdkService,
+    SdkSessionManagerService,
+    SdkHookEmitterService,
+    ClaudeSdkOrchestratorService,
+    BudgetMonitoringService,
+    GuardrailsService,
+    OutputGuardrailsService,
+    SessionsService
+  ],
 })
 export class AppModule {}

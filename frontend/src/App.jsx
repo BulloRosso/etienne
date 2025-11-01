@@ -460,7 +460,7 @@ export default function App() {
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview' || data.action === 'research-preview') && data.filePath && data.projectName) {
+      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview' || data.action === 'research-preview' || data.action === 'image-preview' || data.action === 'excel-preview') && data.filePath && data.projectName) {
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }
@@ -502,7 +502,7 @@ export default function App() {
     });
 
     // Stream prompt
-    const url = new URL(`/api/claude/streamPrompt`, window.location.origin);
+    const url = new URL(`/api/claude/streamPrompt/sdk`, window.location.origin);
     url.searchParams.set('project_dir', currentProject);
     url.searchParams.set('prompt', messageText);
     url.searchParams.set('agentMode', mode);
@@ -537,8 +537,8 @@ export default function App() {
       const { chunk } = JSON.parse(e.data);
       // Trim leading linebreaks only if this is the first chunk
       const textToAdd = currentMessageRef.current.text === '' ? chunk.trimStart() : chunk;
-      // Add a line break after each chunk
-      currentMessageRef.current.text += textToAdd + '\n';
+      // Don't add extra line breaks - the chunk already contains proper formatting
+      currentMessageRef.current.text += textToAdd;
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMsg = newMessages[newMessages.length - 1];

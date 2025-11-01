@@ -34,6 +34,10 @@ class FilePreviewHandler {
       this.handleMermaidPreview(filePath, projectName);
     } else if (extension === 'research') {
       this.handleResearchPreview(filePath, projectName);
+    } else if (extension === 'jpg' || extension === 'jpeg' || extension === 'png' || extension === 'gif') {
+      this.handleImagePreview(filePath, projectName);
+    } else if (extension === 'xls' || extension === 'xlsx') {
+      this.handleExcelPreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -132,6 +136,44 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'research-preview'
+    });
+  }
+
+  /**
+   * Handle Image file preview
+   * @param {string} filePath - The path to the Image file
+   * @param {string} projectName - The project name
+   */
+  handleImagePreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Image preview for', filePath);
+
+    // Publish event to:
+    // 1. Close the filesystem drawer
+    // 2. Activate the Live Changes tab (tab 0)
+    // 3. Add/update the file in the files list
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'image-preview'
+    });
+  }
+
+  /**
+   * Handle Excel file preview
+   * @param {string} filePath - The path to the Excel file
+   * @param {string} projectName - The project name
+   */
+  handleExcelPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Excel preview for', filePath);
+
+    // Publish event to:
+    // 1. Close the filesystem drawer
+    // 2. Activate the Live Changes tab (tab 0)
+    // 3. Add/update the file in the files list
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'excel-preview'
     });
   }
 

@@ -1,11 +1,15 @@
 import { Controller, Get, Post, Body, Query, Sse, Param } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { ClaudeService } from './claude.service';
+import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
 
 @Controller('api/claude')
 export class ClaudeController {
-  constructor(private readonly svc: ClaudeService) {}
+  constructor(
+    private readonly svc: ClaudeService,
+    private readonly sdkOrchestrator: ClaudeSdkOrchestratorService
+  ) {}
 
   @Post('addFile')
   addFile(@Body() dto: AddFileDto) { return this.svc.addFile(dto.project_dir, dto.file_name, dto.file_content); }
@@ -61,6 +65,26 @@ export class ClaudeController {
     const memoryEnabledBool = memoryEnabled === 'true';
     const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
     return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel, memoryEnabledBool, false, maxTurnsNum);
+  }
+
+  @Sse('streamPrompt/sdk')
+  streamPromptSdk(
+    @Query('project_dir') projectDir: string,
+    @Query('prompt') prompt: string,
+    @Query('agentMode') agentMode?: string,
+    @Query('memoryEnabled') memoryEnabled?: string,
+    @Query('maxTurns') maxTurns?: string
+  ): Observable<MessageEvent> {
+    const memoryEnabledBool = memoryEnabled === 'true';
+    const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
+    return this.sdkOrchestrator.streamPrompt(
+      projectDir,
+      prompt,
+      agentMode,
+      memoryEnabledBool,
+      false,
+      maxTurnsNum
+    );
   }
 
   @Post('abort/:processId')

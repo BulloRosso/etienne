@@ -9,6 +9,8 @@ import JSONViewer from './JSONViewer';
 import MarkdownViewer from './MarkdownViewer';
 import MermaidViewer from './MermaidViewer';
 import ResearchDocument from './ResearchDocument';
+import ImageViewer from './ImageViewer';
+import ExcelViewer from './ExcelViewer';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll }) {
@@ -72,6 +74,15 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
 
   const isResearchFile = (filename) => {
     return filename && filename.endsWith('.research');
+  };
+
+  const isImageFile = (filename) => {
+    return filename && (filename.endsWith('.jpg') || filename.endsWith('.jpeg') ||
+                        filename.endsWith('.png') || filename.endsWith('.gif'));
+  };
+
+  const isExcelFile = (filename) => {
+    return filename && (filename.endsWith('.xls') || filename.endsWith('.xlsx'));
   };
 
   const getFilename = (path) => {
@@ -211,6 +222,38 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
             output={file.path}
             projectName={projectName}
           />
+        </Box>
+      );
+    }
+
+    if (isImageFile(file.path)) {
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <ImageViewer filename={file.path} projectName={projectName} />
+        </Box>
+      );
+    }
+
+    if (isExcelFile(file.path)) {
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <ExcelViewer filename={file.path} projectName={projectName} />
         </Box>
       );
     }

@@ -68,7 +68,11 @@ USER node
 
 # Install global packages
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
-ENV PATH=$PATH:/usr/local/share/npm-global/bin
+ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/bin
+# Replace line 72 with:
+RUN PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") && \
+    echo "export PYTHONPATH=/home/node/.local/lib/python${PYTHON_VERSION}/site-packages" >> /home/node/.bashrc && \
+    echo "export PYTHONPATH=/home/node/.local/lib/python${PYTHON_VERSION}/site-packages" >> /home/node/.zshrc
 
 # Set the default shell to zsh rather than sh
 ENV SHELL=/bin/zsh
@@ -85,11 +89,20 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
   -a "source /usr/share/doc/fzf/examples/completion.zsh" \
   -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  -a "export PATH=\$PATH:/home/node/.local/bin" \
   -x
 
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
+# Install Python packages for data analysis
+RUN pip3 install --user --no-cache-dir --break-system-packages \
+  pandas \
+  numpy \
+  openpyxl \
+  scikit-learn \
+  matplotlib \
+  seaborn
 
 # Copy and set up firewall script
 # COPY init-firewall.sh /usr/local/bin/

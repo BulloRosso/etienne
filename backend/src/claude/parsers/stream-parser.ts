@@ -209,10 +209,10 @@ export class ClaudeCodeStructuredParser {
 export function createJsonLineParser(
   onText: (text: string) => void,
   onJson: (evt: ClaudeEvent) => void
-): (chunk: string) => void {
+): { flushLines: (chunk: string) => void; flush: () => void } {
   let buf = '';
 
-  return (chunk: string) => {
+  const flushLines = (chunk: string) => {
     buf += chunk;
     for (;;) {
       const idx = buf.indexOf('\n');
@@ -232,4 +232,13 @@ export function createJsonLineParser(
       }
     }
   };
+
+  const flush = () => {
+    if (buf.trim()) {
+      onText(buf);
+      buf = '';
+    }
+  };
+
+  return { flushLines, flush };
 }

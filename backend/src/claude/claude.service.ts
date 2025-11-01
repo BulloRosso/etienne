@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { spawn, exec } from 'child_process';
+import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import chokidar from 'chokidar';
 import { join } from 'path';
 import { Observable } from 'rxjs';
 import axios from 'axios';
-import { promisify } from 'util';
 import { posixProjectPath } from '../common/path.util';
 import { Usage, MessageEvent, ClaudeEvent } from './types';
 import { norm, safeRoot } from './utils/path.utils';
@@ -17,8 +16,6 @@ import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.
 import { GuardrailsService } from '../input-guardrails/guardrails.service';
 import { sanitize_user_message } from '../input-guardrails/index';
 import { OutputGuardrailsService } from '../output-guardrails/output-guardrails.service';
-
-const execAsync = promisify(exec);
 
 @Injectable()
 export class ClaudeService {
@@ -166,6 +163,16 @@ export class ClaudeService {
 
     await fs.mkdir(dataDir, { recursive: true });
     await fs.writeFile(permissionsPath, JSON.stringify({ allowedTools }, null, 2), 'utf8');
+
+    // Force new session so permissions are reloaded
+    // This ensures the agent picks up the new permissions on the next request
+    const sessionPath = join(root, 'data', 'session.id');
+    try {
+      await fs.unlink(sessionPath);
+    } catch {
+      // Session file might not exist yet - that's OK
+    }
+
     return { success: true };
   }
 
@@ -307,86 +314,8 @@ export class ClaudeService {
   }
 
   public async checkHealth() {
-    const containerName = this.config.container;
-    const timeout = 8000; // 8 second timeout for all commands (Windows Docker can be slow)
-
-    // Helper function to execute command with timeout
-    const execWithTimeout = async (command: string): Promise<{ stdout: string; stderr: string }> => {
-      return Promise.race([
-        execAsync(command),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Command timeout')), timeout)
-        )
-      ]);
-    };
-
-    try {
-      // Step 1: Check if Docker is installed
-      try {
-        await execWithTimeout('docker --version');
-      } catch (error: any) {
-        return {
-          healthy: false,
-          error: '**Docker not installed or not running**\n\nThe docker command is not available. Please ensure Docker is installed and running.'
-        };
-      }
-
-      // Step 2: Check if Docker container exists and is running
-      try {
-        const { stdout } = await execWithTimeout(`docker inspect --format="{{.State.Running}}" ${containerName}`);
-        const isRunning = stdout.trim() === 'true';
-
-        if (!isRunning) {
-          return {
-            healthy: false,
-            error: '**Docker Container not running**\n\nThe container "claude-code" exists but is not running. Please start the container.'
-          };
-        }
-      } catch (error: any) {
-        return {
-          healthy: false,
-          error: '**Docker Container not found**\n\nThe container "claude-code" does not exist. Please create the container.'
-        };
-      }
-
-      // Step 3: Check Claude version (zsh is the default shell in the container)
-      try {
-        const { stdout, stderr } = await execWithTimeout(`docker exec ${containerName} zsh -c "claude --version"`);
-
-        // Check if there's any output (stdout or stderr might contain the version)
-        const output = stdout + stderr;
-        const versionMatch = output.match(/(\d+\.\d+\.\d+)/);
-
-        if (!versionMatch) {
-          return {
-            healthy: false,
-            error: '**Claude not found in the Docker container**\n\nCould not execute "claude --version" or parse version output. Please ensure Claude Code is installed in the container.'
-          };
-        }
-
-        const version = versionMatch[1];
-        const majorVersion = parseInt(version.split('.')[0], 10);
-
-        if (majorVersion !== 2) {
-          return {
-            healthy: false,
-            error: `**Unsupported Claude Code version (must be 2.x)**\n\nFound version ${version}. Please upgrade to Claude Code 2.x.`
-          };
-        }
-      } catch (error: any) {
-        return {
-          healthy: false,
-          error: '**Claude not found in the Docker container**\n\nFailed to execute "claude --version" in the container. Please ensure Claude Code is installed.'
-        };
-      }
-
-      return { healthy: true };
-    } catch (error: any) {
-      return {
-        healthy: false,
-        error: `**System health check failed**\n\n${error.message}`
-      };
-    }
+    // Basic health check - backend is responding
+    return { healthy: true };
   }
 
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error
@@ -590,15 +519,30 @@ export class ClaudeService {
           if (text) emitText(text);
         };
 
-        const flushLines = createJsonLineParser(emitText, onJsonLine);
+        const { flushLines, flush } = createJsonLineParser(emitText, onJsonLine);
 
         child.stdout.on('data', (b) => {
           const chunk = b.toString('utf8');
           flushLines(chunk);
         });
-        child.stderr.on('data', (b) => emitText(b.toString('utf8')));
+        child.stderr.on('data', (b) => {
+          const text = b.toString('utf8');
+          emitText(text);
+
+          // Check for common Claude Code error patterns
+          if (text.includes('ECONNREFUSED') || text.includes('ETIMEDOUT') ||
+              text.includes('MaxTokensExceeded') || text.includes('rate_limit') ||
+              text.includes('ENOTFOUND') || text.includes('EHOSTUNREACH') ||
+              text.includes('invalid_api_key') || text.includes('permission_denied') ||
+              text.includes('overloaded_error') || text.includes('Error:')) {
+            console.error(`[Claude Code Error - ${projectDir}]:`, text.trim());
+          }
+        });
 
         child.on('close', async (code) => {
+          // Flush any remaining buffered content before closing
+          flush();
+
           clearTimeout(killTimer);
           this.processes.delete(processId);
           await watcher.close().catch(() => void 0);
