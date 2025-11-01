@@ -209,6 +209,18 @@ export class ClaudeSdkOrchestratorService {
             timestamp: new Date().toISOString()
           });
 
+          // Emit tool completion event for frontend UI
+          observer.next({
+            type: 'tool',
+            data: {
+              toolName: input.tool_name,
+              status: 'complete',
+              callId: callId,
+              input: toolCall?.input,
+              result: input.tool_response
+            }
+          });
+
           // Emit file events for Write/Edit tools
           if (toolCall) {
             const { name, input: toolInput } = toolCall;
