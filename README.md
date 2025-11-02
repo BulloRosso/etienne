@@ -1,8 +1,7 @@
-# Etienne - Headless Claude Code
-
 <div align="center">
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
+# Etienne - Headless Claude Code
 
 Demonstrates to use Claude Code 2.0 with the **Anthropic Agent SDK** to build an agent engine for **virtual collaborator use cases**.
 
@@ -14,7 +13,7 @@ This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend
 
 In production deployments all components will be packaged together into a Docker Container which mounts a workspace folder for data.
 
-## IT Scenario
+## IT Budget Situation
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
 
 <div align="center">
@@ -333,7 +332,7 @@ The frontend includes specialized preview components for various file types thro
 The preview system is integrated with the [Interceptors](requirements-docs/prd-interceptors.md) feature to automatically refresh previews when files are modified by Claude Code.
 
 # Maintainer
-Brought to you by **[e-ntegration GmbH](https://e-ntegration.de)**.
+Brought to you by **[e-ntegration GmbH](https://e-ntegration.de)**, Nürnberg, Germany.
 
 <div align="center">
 <img src="/docs/images/etienne-in-action.jpg" alt="Etienne in action" width="900">
