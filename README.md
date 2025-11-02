@@ -73,14 +73,8 @@ You need to create an .env file inside the backend directory:
 # Anthropic API Key (used for direct Claude API calls when aiModel=claude)
 ANTHROPIC_API_KEY=sk-ant-api03-...AA
 
-# LiteLLM Proxy Configuration (used when aiModel=openai)
-# LiteLLM translates Anthropic API format to OpenAI backends
-# Model Mapping Strategy:
-#   SMALL_MODEL:  claude-haiku  → gpt-4o-mini
-#   MIDDLE_MODEL: claude-sonnet → gpt-4o
-#   BIG_MODEL:    claude-opus   → o1
-# Configuration is in litellm-proxy/config.yaml
-# Master key configured in litellm-proxy/.env
+# Local data directory root for all projects
+WORKSPACE_ROOT=C:/Data/GitHub/claude-multitenant/workspace
 
 # Only used for deep research module (optional), enter any string but don't remove(!)
 OPENAI_API_KEY=34343434343434
@@ -88,34 +82,12 @@ OPENAI_API_KEY=34343434343434
 # Memory Management Configuration
 MEMORY_MANAGEMENT_URL=http://localhost:6060/api/memories
 MEMORY_DECAY_DAYS=6
-WORKSPACE_ROOT=C:/Data/GitHub/claude-multitenant/workspace
 
 # Budget Control Configuration
 COSTS_CURRENCY_UNIT=EUR
 COSTS_PER_MIO_INPUT_TOKENS=3.0
 COSTS_PER_MIO_OUTPUT_TOKENS=15.0
 ```
-
-### LiteLLM Proxy Setup (for OpenAI models)
-
-If you want to use OpenAI models (gpt-4o-mini, gpt-4o, o1), you need to set up the LiteLLM proxy:
-
-1. Create `litellm-proxy/.env` file:
-```
-OPENAI_API_KEY=sk-proj-...MsA
-LITELLM_MASTER_KEY=sk-1234
-LITELLM_SALT_KEY=sk-5678
-```
-
-2. Start the LiteLLM proxy:
-```bash
-cd litellm-proxy
-docker-compose up -d
-```
-
-The proxy will be available at `http://localhost:4000` and will translate between Anthropic and OpenAI API formats automatically.
-
-For more details, see [litellm-proxy/README.md](litellm-proxy/README.md).
 
 ### Starting up the services
 Start the backend on :6060
