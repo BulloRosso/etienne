@@ -14,6 +14,15 @@ This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend
 
 In production deployments all components will be packaged together into a Docker Container which mounts a workspace folder for data.
 
+# What does it do?
+Etienne contains all the typical components you would need to recreate the user experience of Claude.ai or the ChatGPT web interface.
+
+<div align="center">
+<img src="/docs/images/what-it-does.jpg" alt="Buy and Build" width="800">
+</div>
+
+It is called a seed project, because all implementations are functional but minimal. You can start with a working system and tweak/evolve it in any way you want...
+
 ## IT Budget Situation
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
 
