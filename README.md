@@ -14,7 +14,7 @@ This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend
 
 In production deployments all components will be packaged together into a Docker Container which mounts a workspace folder for data.
 
-# What does it do?
+# Value Proposition
 Etienne contains all the typical components you would need to recreate the user experience of Claude.ai or the ChatGPT web interface.
 
 <div align="center">
