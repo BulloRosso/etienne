@@ -1,6 +1,7 @@
 <div align="center">
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
+
 # Etienne - Headless Claude Code
 
 Demonstrates to use Claude Code 2.0 with the **Anthropic Agent SDK** to build an agent engine for **virtual collaborator use cases**.
