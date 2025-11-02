@@ -340,12 +340,12 @@ Brought to you by **[e-ntegration GmbH](https://e-ntegration.de)**.
 </div>
 
 Read more on LinkedIn:
-* [Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform](https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BBUG2kPq7SYOUPEWe6K%2Fa8w%3D%3D)
-* [Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BTsivHHo3Qv2OLIEEOFHc%2Bg%3D%3D)
-* [Etienne's Memories: How Claude Code-based AI Agents Build Knowledge Over Time](https://www.linkedin.com/pulse/etiennes-memories-how-claude-code-based-ai-agents-over-navasardyan-sryie/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3B%2FJo4MpgFSuugxeosOacbkQ%3D%3D)
-* [How Etienne Solves AI's Last Mile Problem: Bringing AI to Where the Data Lives](https://www.linkedin.com/pulse/how-etienne-solves-ais-last-mile-problem-bringing-ai-data-ralph-a97ue/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BvV%2FbKqi4RPO0cITOpWKOow%3D%3D)
-* [The Autopsy of Claude Code: an inspiring Lesson in AI System Engineering](https://www.linkedin.com/pulse/autopsy-claude-code-inspiring-lesson-ai-system-ralph-g%C3%B6llner-zlyye/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BTsivHHo3Qv2OLIEEOFHc%2Bg%3D%3D)
+* Building Etienne: [ How We Turned Claude Code 2.0 into an AI Agent Platform](https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BBUG2kPq7SYOUPEWe6K%2Fa8w%3D%3D)
+* Understanding Etienne: [Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BTsivHHo3Qv2OLIEEOFHc%2Bg%3D%3D)
+* Etienne's Memories: [ How Claude Code-based AI Agents Build Knowledge Over Time](https://www.linkedin.com/pulse/etiennes-memories-how-claude-code-based-ai-agents-over-navasardyan-sryie/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3B%2FJo4MpgFSuugxeosOacbkQ%3D%3D)
+* How Etienne Solves AI's Last Mile Problem: [Bringing AI to Where the Data Lives](https://www.linkedin.com/pulse/how-etienne-solves-ais-last-mile-problem-bringing-ai-data-ralph-a97ue/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BvV%2FbKqi4RPO0cITOpWKOow%3D%3D)
+* The Autopsy of Claude Code: [an inspiring Lesson in AI System Engineering](https://www.linkedin.com/pulse/autopsy-claude-code-inspiring-lesson-ai-system-ralph-g%C3%B6llner-zlyye/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BTsivHHo3Qv2OLIEEOFHc%2Bg%3D%3D)
 * [How Anthropic Silently Solved the Problem of Advanced Agents with Claude Code](https://www.linkedin.com/pulse/how-anthropic-silently-solved-problem-advanced-agents-ralph-g%C3%B6llner-gvz6e/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BvV%2FbKqi4RPO0cITOpWKOow%3D%3D)
-* [Fearing Etienne: How Forward-Deployed GenAI Engineers Will Replace Consulting and Software Development Teams](https://www.linkedin.com/pulse/fearing-etienne-how-forward-deployed-genai-engineers-navasardyan-v9wje/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BvV%2FbKqi4RPO0cITOpWKOow%3D%3D)
+* Fearing Etienne: [How Forward-Deployed GenAI Engineers Will Replace Consulting and Software Development Teams](https://www.linkedin.com/pulse/fearing-etienne-how-forward-deployed-genai-engineers-navasardyan-v9wje/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BvV%2FbKqi4RPO0cITOpWKOow%3D%3D)
 
 **Happy building!**
