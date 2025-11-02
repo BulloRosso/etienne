@@ -26,7 +26,8 @@ import {
   ToggleButton,
   ToggleButtonGroup
 } from '@mui/material';
-import { Close, Add, Delete, Edit, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { Close, Add, DeleteOutline, Edit, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { TbCalendarTime } from 'react-icons/tb';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
 
@@ -277,21 +278,37 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Scheduled Tasks
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <TbCalendarTime size={24} />
+          Scheduled Tasks
+        </Box>
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
 
-      <Box sx={{ px: 3, pt: 2 }}>
+      <Box sx={{ px: 3, pt: 1 }}>
         <BackgroundInfo infoId="scheduled-input" showBackgroundInfo={showBackgroundInfo} />
       </Box>
 
-      <Tabs value={currentTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
-        <Tab label="Task Definitions" />
-        <Tab label="History" />
-      </Tabs>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 3 }}>
+        <Tabs value={currentTab} onChange={handleTabChange} sx={{ borderBottom: 0 }}>
+          <Tab label="Task Definitions" />
+          <Tab label="History" />
+        </Tabs>
+        {currentTab === 0 && !showTaskForm && (
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Add />}
+            onClick={handleAddTask}
+            sx={{ mb: 1 }}
+          >
+            Add Task
+          </Button>
+        )}
+      </Box>
 
       <DialogContent sx={{ minHeight: 400 }}>
         {/* Task Definitions Tab */}
@@ -299,21 +316,11 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
           <Box>
             {!showTaskForm ? (
               <>
-                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={handleAddTask}
-                  >
-                    Add Task
-                  </Button>
-                </Box>
-
                 <TableContainer component={Paper} variant="outlined">
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Name</TableCell>
+                        <TableCell sx={{ bgcolor: '#efefef' }}>Task</TableCell>
                         <TableCell>Schedule</TableCell>
                         <TableCell>Timezone</TableCell>
                         <TableCell align="right">Actions</TableCell>
@@ -329,7 +336,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                       ) : (
                         tasks.map((task) => (
                           <TableRow key={task.id}>
-                            <TableCell>{task.name}</TableCell>
+                            <TableCell sx={{ bgcolor: '#efefef', fontWeight: 'bold' }}>{task.name}</TableCell>
                             <TableCell>{formatScheduleDisplay(task.cronExpression)}</TableCell>
                             <TableCell>{task.timeZone || 'UTC'}</TableCell>
                             <TableCell align="right">
@@ -337,7 +344,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                                 <Edit fontSize="small" />
                               </IconButton>
                               <IconButton size="small" onClick={() => handleDeleteTask(task.id)} color="error">
-                                <Delete fontSize="small" />
+                                <DeleteOutline fontSize="small" />
                               </IconButton>
                             </TableCell>
                           </TableRow>
