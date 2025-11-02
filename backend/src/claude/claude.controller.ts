@@ -89,7 +89,23 @@ export class ClaudeController {
 
   @Post('abort/:processId')
   async abortProcess(@Param('processId') processId: string) {
-    return this.svc.abortProcess(processId);
+    console.log(`[ClaudeController] Abort request received for process: ${processId}`);
+
+    // Try to abort legacy process first
+    const legacyResult = await this.svc.abortProcess(processId);
+    if (legacyResult.success) {
+      console.log(`[ClaudeController] Successfully aborted legacy process: ${processId}`);
+      return legacyResult;
+    }
+
+    // If not found in legacy processes, try SDK orchestrator
+    if (processId.startsWith('sdk_')) {
+      console.log(`[ClaudeController] Attempting SDK orchestrator abort for: ${processId}`);
+      return this.sdkOrchestrator.abortProcess(processId);
+    }
+
+    console.log(`[ClaudeController] Process not found: ${processId}`);
+    return legacyResult;
   }
 
   @Post('clearSession/:projectDir')

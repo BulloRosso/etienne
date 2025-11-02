@@ -4,9 +4,13 @@
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
 
-How to use Claude Code 2.0 with the Anthropic Agent SDK to build an agent engine for **virtual collaborator use cases**.
+How to use Claude Code 2.0 with the **Anthropic Agent SDK** to build an agent engine for **virtual collaborator use cases**.
 
-Contains a node.js/nest.js backend and React/Vite frontend. In production deployments all components can be packaged into a Docker Container.
+<div align="center">
+<img src="/docs/images/raw-architecture.jpg" alt="Etienne Logo" width="500">
+</div>
+
+This repo contains a node.js/nest.js backend and React/Vite frontend. In production deployments all components will be packaged into a Docker Container.
 
 ## IT Scenario
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".

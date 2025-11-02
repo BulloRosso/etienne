@@ -12,6 +12,7 @@ export class ClaudeSdkService {
   private readonly logger = new Logger(ClaudeSdkService.name);
   private readonly config = new ClaudeConfig();
   private query: any = null;
+  private readonly abortControllers = new Map<string, AbortController>();
 
   /**
    * Lazy load the SDK to avoid require() of ESM
@@ -37,9 +38,17 @@ export class ClaudeSdkService {
       maxTurns?: number;
       allowedTools?: string[];
       hooks?: any;  // Hook handlers from orchestrator
+      processId?: string;  // Process ID for abort tracking
     } = {}
   ) {
-    const { sessionId, agentMode, maxTurns, allowedTools, hooks } = options;
+    const { sessionId, agentMode, maxTurns, allowedTools, hooks, processId } = options;
+
+    // Create abort controller for this stream
+    const abortController = new AbortController();
+    if (processId) {
+      this.abortControllers.set(processId, abortController);
+      this.logger.log(`Registered abort controller for process: ${processId}`);
+    }
 
     try {
       // Ensure SDK is loaded
@@ -78,6 +87,7 @@ export class ClaudeSdkService {
         maxTurns: maxTurns || 20,
         settingSources: ['project' as const],
         includePartialMessages: true,  // Enable true streaming with partial message events
+        abortController: abortController,  // Pass abort controller to SDK
         ...(sessionId && { resume: sessionId }),
         ...(hooks && { hooks })  // Add hooks if provided
       };
@@ -97,9 +107,35 @@ export class ClaudeSdkService {
 
       this.logger.log(`SDK conversation completed for project: ${projectDir}`);
     } catch (error: any) {
-      this.logger.error(`SDK conversation failed: ${error.message}`, error.stack);
+      // Check if this was an abort
+      if (error.name === 'AbortError' || abortController.signal.aborted) {
+        this.logger.log(`SDK conversation aborted for process: ${processId}`);
+      } else {
+        this.logger.error(`SDK conversation failed: ${error.message}`, error.stack);
+      }
       throw error;
+    } finally {
+      // Clean up abort controller
+      if (processId) {
+        this.abortControllers.delete(processId);
+        this.logger.log(`Cleaned up abort controller for process: ${processId}`);
+      }
     }
+  }
+
+  /**
+   * Abort a running SDK conversation stream
+   */
+  public abortStream(processId: string): boolean {
+    const controller = this.abortControllers.get(processId);
+    if (controller) {
+      this.logger.log(`Aborting SDK stream for process: ${processId}`);
+      controller.abort();
+      this.abortControllers.delete(processId);
+      return true;
+    }
+    this.logger.warn(`No active stream found for process: ${processId}`);
+    return false;
   }
 
   /**

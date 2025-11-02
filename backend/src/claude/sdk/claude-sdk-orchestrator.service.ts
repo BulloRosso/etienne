@@ -44,7 +44,16 @@ export class ClaudeSdkOrchestratorService {
     skipChatPersistence?: boolean,
     maxTurns?: number
   ): Observable<MessageEvent> {
+    // Generate process ID for abort tracking
+    const processId = `sdk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     return new Observable<MessageEvent>((observer) => {
+      // Emit process ID immediately so frontend can track it
+      observer.next({
+        type: 'session',
+        data: { process_id: processId }
+      });
+
       this.runStreamPrompt(
         observer,
         projectDir,
@@ -52,7 +61,8 @@ export class ClaudeSdkOrchestratorService {
         agentMode,
         memoryEnabled,
         skipChatPersistence,
-        maxTurns
+        maxTurns,
+        processId
       ).catch((error) => {
         this.logger.error(`Stream prompt failed: ${error.message}`, error.stack);
         observer.error(error);
@@ -74,7 +84,8 @@ export class ClaudeSdkOrchestratorService {
     agentMode?: string,
     memoryEnabled?: boolean,
     skipChatPersistence?: boolean,
-    maxTurns?: number
+    maxTurns?: number,
+    processId?: string
   ): Promise<void> {
     const userId = 'user'; // Default user ID
     let sessionId: string | undefined;
@@ -287,7 +298,8 @@ export class ClaudeSdkOrchestratorService {
             sessionId,
             agentMode,
             maxTurns,
-            hooks
+            hooks,
+            processId
           }
         )) {
           try {
@@ -568,6 +580,20 @@ export class ClaudeSdkOrchestratorService {
         data: { message: error.message }
       });
       observer.complete();
+    }
+  }
+
+  /**
+   * Abort a running SDK stream
+   */
+  public abortProcess(processId: string) {
+    const success = this.claudeSdkService.abortStream(processId);
+    if (success) {
+      this.logger.log(`Successfully aborted SDK process: ${processId}`);
+      return { success: true, message: 'SDK stream aborted' };
+    } else {
+      this.logger.warn(`Failed to abort SDK process: ${processId} (not found)`);
+      return { success: false, message: 'SDK stream not found' };
     }
   }
 }
