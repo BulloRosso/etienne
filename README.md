@@ -4,13 +4,15 @@
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
 
-How to use Claude Code 2.0 with the **Anthropic Agent SDK** to build an agent engine for **virtual collaborator use cases**.
+Demonstrates to use Claude Code 2.0 with the **Anthropic Agent SDK** to build an agent engine for **virtual collaborator use cases**.
 
 <div align="center">
 <img src="/docs/images/raw-architecture.jpg" alt="Etienne Logo" width="500">
 </div>
 
-This repo contains a node.js/nest.js backend and React/Vite frontend. In production deployments all components will be packaged into a Docker Container.
+This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend** (the "head") . 
+
+In production deployments all components will be packaged together into a Docker Container which mounts a workspace folder for data.
 
 ## IT Scenario
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
@@ -22,7 +24,7 @@ This template is in the middle between "Buy a complete AI agent solution" and "B
 It proposes to focus your development efforts on the business layer instead on the AI layer.
 
 ## Components in Scope
-Often home-grown AI systems neglect many of the requirements in regard of observability and usability.
+Often home-grown AI systems neglect many of the requirements in regard to **observability and usability**.
 
 <div align="center">
 <img src="/docs/images/agent-components.jpg" alt="Agent Components" width="700">
@@ -31,7 +33,15 @@ Often home-grown AI systems neglect many of the requirements in regard of observ
 This template demonstrates the seamless integration over many base technologies like MCP, git, cron, http proxies and shell scripting.
 
 ## Intended Use
-An example for learning the internals, integrations and configuration details of Claude Code with the "-p" command line parameter in multi-tenant scenarios.
+An example for learning the internals, integrations and configuration details of Claude Code combined with the Agent SDK. Best used by
+forward-deployed engineers to draft a first solution on-site with the customer.
+
+<div align="center">
+<img src="/docs/images/forward-deployed-engineer.jpg" alt="Forward deployed engineer" width="500">
+</div>
+
+The engineer uses claude code to modify the seed projects (frontend and backend) during breakout sessions. Claude Code in this case is 
+used to modify a claude-code/agents SDK seed projects.
 
 ## Architecture
 
