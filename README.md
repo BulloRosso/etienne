@@ -8,7 +8,7 @@ Demonstrates to use Claude Code 2.0 with the **Anthropic Agent SDK** to build an
 
 <div align="center">
 <img src="/docs/images/raw-architecture.jpg" alt="Etienne Logo" width="500">
-</div>
+</div> 
 
 This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend** (the "head") . 
 
