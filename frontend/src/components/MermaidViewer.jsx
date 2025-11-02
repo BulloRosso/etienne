@@ -100,13 +100,33 @@ export default function MermaidViewer({ filename, projectName, className = '' })
   // Listen for file changes via claudeHook events
   useEffect(() => {
     const handleClaudeHook = (event) => {
-      const { hook, file } = event.detail || {};
+      // Check if this is a PostHook event for our file
+      if (event.type === 'claudeHook' && event.detail) {
+        const { hook, file } = event.detail;
 
-      // If this is a PostHook event and it matches our filename
-      if (hook === 'PostHook' && file && file.includes(filename)) {
-        console.log(`MermaidViewer: Detected change to ${filename}, reloading...`);
-        // Increment refresh key to trigger reload
-        setRefreshKey(prev => prev + 1);
+        console.log('[MermaidViewer] Received claudeHook:', { hook, file, currentFilename: filename });
+
+        if (hook === 'PostHook' && file) {
+          // Handle both absolute and relative paths
+          const normalizedFile = file.replace(/\\/g, '/');
+          const normalizedFilename = filename.replace(/\\/g, '/');
+
+          console.log('[MermaidViewer] Normalized paths:', { normalizedFile, normalizedFilename });
+
+          // Check if paths match (exact match or file ends with filename)
+          const exactMatch = normalizedFile === normalizedFilename;
+          const endsWithMatch = normalizedFile.endsWith('/' + normalizedFilename);
+
+          console.log('[MermaidViewer] Match check:', { exactMatch, endsWithMatch });
+
+          if (exactMatch || endsWithMatch) {
+            console.log('[MermaidViewer] ✓ Match found! Refreshing diagram for', filename);
+            // Increment refresh key to trigger reload
+            setRefreshKey(prev => prev + 1);
+          } else {
+            console.log('[MermaidViewer] ✗ No match for', filename);
+          }
+        }
       }
     };
 

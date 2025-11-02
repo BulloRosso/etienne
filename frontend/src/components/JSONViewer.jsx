@@ -55,13 +55,33 @@ export default function JSONViewer({ filename, projectName, className = '' }) {
   // Listen for file changes via claudeHook events
   useEffect(() => {
     const handleClaudeHook = (event) => {
-      const { hook, file } = event.detail || {};
+      // Check if this is a PostHook event for our file
+      if (event.type === 'claudeHook' && event.detail) {
+        const { hook, file } = event.detail;
 
-      // If this is a PostHook event and it matches our filename
-      if (hook === 'PostHook' && file && file.includes(filename)) {
-        console.log(`JSONViewer: Detected change to ${filename}, reloading...`);
-        // Increment refresh key to trigger reload
-        setRefreshKey(prev => prev + 1);
+        console.log('[JSONViewer] Received claudeHook:', { hook, file, currentFilename: filename });
+
+        if (hook === 'PostHook' && file) {
+          // Handle both absolute and relative paths
+          const normalizedFile = file.replace(/\\/g, '/');
+          const normalizedFilename = filename.replace(/\\/g, '/');
+
+          console.log('[JSONViewer] Normalized paths:', { normalizedFile, normalizedFilename });
+
+          // Check if paths match (exact match or file ends with filename)
+          const exactMatch = normalizedFile === normalizedFilename;
+          const endsWithMatch = normalizedFile.endsWith('/' + normalizedFilename);
+
+          console.log('[JSONViewer] Match check:', { exactMatch, endsWithMatch });
+
+          if (exactMatch || endsWithMatch) {
+            console.log('[JSONViewer] ✓ Match found! Refreshing content for', filename);
+            // Increment refresh key to trigger reload
+            setRefreshKey(prev => prev + 1);
+          } else {
+            console.log('[JSONViewer] ✗ No match for', filename);
+          }
+        }
       }
     };
 
