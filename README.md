@@ -37,7 +37,7 @@ An example for learning the internals, integrations and configuration details of
 forward-deployed engineers to draft a first solution on-site with the customer.
 
 <div align="center">
-<img src="/docs/images/forward-deployed-engineer.jpg" alt="Forward deployed engineer" width="500">
+<img src="/docs/images/forward-deployed-engineer.jpg" alt="Forward deployed engineer" width="700">
 </div>
 
 The engineer uses claude code to modify the seed projects (frontend and backend) during breakout sessions. Claude Code in this case is 
@@ -81,6 +81,9 @@ ANTHROPIC_API_KEY=sk-ant-api03-...AA
 #   BIG_MODEL:    claude-opus   → o1
 # Configuration is in litellm-proxy/config.yaml
 # Master key configured in litellm-proxy/.env
+
+# Only used for deep research module (optional), enter any string but don't remove(!)
+OPENAI_API_KEY=34343434343434
 
 # Memory Management Configuration
 MEMORY_MANAGEMENT_URL=http://localhost:6060/api/memories
