@@ -20,7 +20,7 @@ import {
   FormControlLabel
 } from '@mui/material';
 import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
-import { TbCalendarTime } from 'react-icons/tb';
+import { TbCalendarTime, TbPalette } from 'react-icons/tb';
 import { IoHandRightOutline } from 'react-icons/io5';
 import { RiRobot2Line } from 'react-icons/ri';
 import { FcElectricalSensor } from 'react-icons/fc';
@@ -28,8 +28,9 @@ import SchedulingOverview from './SchedulingOverview';
 import GuardrailsSettings from './GuardrailsSettings';
 import SubagentConfiguration from './SubagentConfiguration';
 import MQTTSettings from './MQTTSettings';
+import CustomUI from './CustomUI';
 
-export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo }) {
+export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -39,7 +40,11 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [guardrailsOpen, setGuardrailsOpen] = useState(false);
   const [subagentsOpen, setSubagentsOpen] = useState(false);
   const [externalEventsOpen, setExternalEventsOpen] = useState(false);
+  const [customUIOpen, setCustomUIOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [customizeUI, setCustomizeUI] = useState(false);
+  const [projectsWithUI, setProjectsWithUI] = useState([]);
+  const [copyFromProject, setCopyFromProject] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
 
   useEffect(() => {
@@ -77,6 +82,41 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const handleDialogClose = () => {
     setDialogOpen(false);
     setNewProjectName('');
+    setCustomizeUI(false);
+    setCopyFromProject('');
+  };
+
+  const fetchProjectsWithUI = async () => {
+    try {
+      const response = await fetch('/api/workspace/projects-with-ui');
+      const data = await response.json();
+      setProjectsWithUI(data || []);
+    } catch (error) {
+      console.error('Failed to fetch projects with UI:', error);
+    }
+  };
+
+  const handleCustomizeUIToggle = (event) => {
+    const checked = event.target.checked;
+    setCustomizeUI(checked);
+    if (checked) {
+      fetchProjectsWithUI();
+    }
+  };
+
+  const handleCopyUIConfig = async () => {
+    if (!copyFromProject) return;
+
+    try {
+      const response = await fetch(`/api/workspace/${copyFromProject}/user-interface`);
+      if (response.ok) {
+        const config = await response.json();
+        // Store for later use after project creation
+        window._pendingUIConfig = config;
+      }
+    } catch (error) {
+      console.error('Failed to copy UI config:', error);
+    }
   };
 
   const handleCreateProject = async () => {
@@ -93,6 +133,20 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           file_content: `# ${projectName}\n`
         })
       });
+
+      // If customizeUI is enabled and we have a pending config, save it
+      if (customizeUI && window._pendingUIConfig) {
+        try {
+          await fetch(`/api/workspace/${projectName}/user-interface`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(window._pendingUIConfig)
+          });
+          delete window._pendingUIConfig;
+        } catch (error) {
+          console.error('Failed to save UI config:', error);
+        }
+      }
 
       await fetchProjects();
       onProjectChange(projectName);
@@ -157,6 +211,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleExternalEventsClose = () => {
     setExternalEventsOpen(false);
+  };
+
+  const handleCustomUIOpen = () => {
+    setCustomUIOpen(true);
+    handleMenuClose();
+  };
+
+  const handleCustomUIClose = () => {
+    setCustomUIOpen(false);
   };
 
   const handleBudgetToggle = async (event) => {
@@ -246,6 +309,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           </ListItemIcon>
           <ListItemText>External Events</ListItemText>
         </MenuItem>
+        <MenuItem onClick={handleCustomUIOpen} disabled={!currentProject}>
+          <ListItemIcon>
+            <TbPalette fontSize="small" style={{ fontSize: '20px' }} />
+          </ListItemIcon>
+          <ListItemText>Customize UI</ListItemText>
+        </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
           <ListItemText>Choose project:</ListItemText>
@@ -271,7 +340,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         </MenuItem>
       </Menu>
 
-      <Dialog open={dialogOpen} onClose={handleDialogClose}>
+      <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth="sm" fullWidth>
         <DialogTitle>Create New Project</DialogTitle>
         <DialogContent>
           <TextField
@@ -288,12 +357,66 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
               }
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !customizeUI) {
                 handleCreateProject();
               }
             }}
             helperText="Only lowercase letters, numbers, and hyphens (max 30 characters)"
+            sx={{ mb: 2 }}
           />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={customizeUI}
+                onChange={handleCustomizeUIToggle}
+                size="small"
+              />
+            }
+            label="Customize UI"
+          />
+
+          {customizeUI && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+              {projectsWithUI.length > 0 ? (
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Copy UI configuration from existing project:
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField
+                      select
+                      size="small"
+                      label="Copy from"
+                      value={copyFromProject}
+                      onChange={(e) => setCopyFromProject(e.target.value)}
+                      sx={{ flex: 1 }}
+                      SelectProps={{ native: true }}
+                    >
+                      <option value="">Select a project...</option>
+                      {projectsWithUI.map((proj) => (
+                        <option key={proj} value={proj}>
+                          {proj}
+                        </option>
+                      ))}
+                    </TextField>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleCopyUIConfig}
+                      disabled={!copyFromProject}
+                    >
+                      Copy
+                    </Button>
+                  </Box>
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No projects with UI customization found. You can customize the UI after creating the project.
+                </Typography>
+              )}
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDialogClose}>Cancel</Button>
@@ -436,6 +559,26 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         onClose={handleExternalEventsClose}
         project={currentProject}
       />
+
+      <Dialog open={customUIOpen} onClose={handleCustomUIClose} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Customize UI
+          <IconButton onClick={handleCustomUIClose} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <CustomUI
+            project={currentProject}
+            onSave={(config) => {
+              if (onUIConfigChange) {
+                onUIConfigChange(config);
+              }
+              handleCustomUIClose();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

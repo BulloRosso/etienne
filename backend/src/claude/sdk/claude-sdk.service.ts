@@ -57,9 +57,6 @@ export class ClaudeSdkService {
       // Get the absolute path to the project workspace directory
       const projectRoot = safeRoot(this.config.hostRoot, projectDir);
 
-      // Load system prompt from CLAUDE.md
-      const systemPrompt = await this.loadSystemPrompt(projectDir);
-
       // Load permissions if not provided
       const tools = allowedTools || await this.loadPermissions(projectDir);
 
@@ -73,15 +70,12 @@ export class ClaudeSdkService {
       this.logger.log(`Agent mode: ${agentMode || 'default'} → Permission mode: ${permissionMode}`);
 
       // Configure SDK options
+      // Note: systemPrompt is not included - Claude Code SDK will automatically
+      // pick it up from .claude/CLAUDE.md in the project directory
       const queryOptions = {
         model: 'claude-sonnet-4-5',
         apiKey: process.env.ANTHROPIC_API_KEY,  // Use direct API calls, not CLI process
         cwd: projectRoot,  // Set working directory to workspace/<project>
-        systemPrompt: {
-          type: 'preset' as const,
-          preset: 'claude_code' as const,
-          append: systemPrompt
-        },
         allowedTools: tools,
         permissionMode: permissionMode as any,
         maxTurns: maxTurns || 20,
@@ -136,23 +130,6 @@ export class ClaudeSdkService {
     }
     this.logger.warn(`No active stream found for process: ${processId}`);
     return false;
-  }
-
-  /**
-   * Load system prompt from CLAUDE.md file
-   */
-  private async loadSystemPrompt(projectDir: string): Promise<string> {
-    const root = safeRoot(this.config.hostRoot, projectDir);
-    const claudeMdPath = join(root, 'CLAUDE.md');
-
-    try {
-      const content = await fs.readFile(claudeMdPath, 'utf8');
-      this.logger.debug(`Loaded system prompt from ${claudeMdPath}`);
-      return content;
-    } catch {
-      this.logger.debug(`No CLAUDE.md found, using default for ${projectDir}`);
-      return `# ${projectDir}\n`;
-    }
   }
 
   /**

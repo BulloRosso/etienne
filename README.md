@@ -122,8 +122,8 @@ Then **open your browser** with http://localhost:5000
 | `/api/claude/getFile` | GET | Retrieves the content of a specific file from a project. |
 | `/api/claude/listFiles` | GET | Lists all files and directories in a project's subdirectory. |
 | `/api/claude/listProjects` | GET | Returns a list of all available projects in the workspace. |
-| `/api/claude/strategy` | POST | Retrieves the CLAUDE.md strategy/prompt file for a project. |
-| `/api/claude/strategy/save` | POST | Saves the CLAUDE.md strategy/prompt file for a project. |
+| `/api/claude/strategy` | POST | Retrieves the `.claude/CLAUDE.md` strategy/prompt file for a project. |
+| `/api/claude/strategy/save` | POST | Saves the `.claude/CLAUDE.md` strategy/prompt file for a project. |
 | `/api/claude/filesystem` | POST | Returns the complete filesystem tree structure for a project. |
 | `/api/claude/permissions` | POST | Gets the list of allowed tools/permissions for a project. |
 | `/api/claude/permissions/save` | POST | Updates the allowed tools/permissions configuration for a project. |
@@ -233,7 +233,7 @@ These features directly control or modify how Claude Code operates internally:
   Provides user control over long-running agentic loops through configurable max-turns limits and a process abortion mechanism. Users can set a maximum number of agentic cycles (default: 5, 0=unlimited) and abort running processes via a stop button. This prevents runaway costs and allows quick iteration during development.
 
 * **Strategy** ([/requirements-docs/prd-strategy.md](requirements-docs/prd-strategy.md))
-  Allows per-project customization of Claude's system prompt through a `CLAUDE.md` file in the project root. Users can edit the strategy file directly in a Monaco editor to define the agent's role, behavior, domain knowledge, and task-specific instructions. This enables tailoring Claude's behavior for different project types and workflows.
+  Allows per-project customization of Claude's system prompt through a `.claude/CLAUDE.md` file. Users can edit the strategy file directly in a Monaco editor to define the agent's role, behavior, domain knowledge, and task-specific instructions. This enables tailoring Claude's behavior for different project types and workflows.
 
 * **Input Guardrails** ([/requirements-docs/prd-input-guardrails.md](requirements-docs/prd-input-guardrails.md))
   Implements a plugin-based system to detect and redact sensitive information from user input before it reaches the AI model. Built-in plugins detect credit cards (with Luhn validation), IP addresses (IPv4/IPv6), emails, URLs, and IBANs. Each project can configure which guardrails are active via `.etienne/input-guardrails.json`.

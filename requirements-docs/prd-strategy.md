@@ -1,8 +1,8 @@
 # Strategy feature
 
-The strategy for a project is in a markdown file at the root folder named CLAUDE.md.
+The strategy for a project is in a markdown file located at `.claude/CLAUDE.md` within the project directory.
 
-The user can edit this file in the fronend.
+The user can edit this file in the frontend.
 
 We will use axios for calling REST APIs.
 
@@ -16,9 +16,9 @@ The content of CLAUDE.md is displayed in monaco code editor with light theme whi
 Below the monaco code editor there is a right aligned button "Save" which calls POST api/strategy.
 
 ## Backend
-We have these API endpoints to process the CLAUDE.md file inside a project directory. All endpoints are content type application/json.
+We have these API endpoints to process the `.claude/CLAUDE.md` file inside a project directory. All endpoints are content type application/json.
 
-Each JSON contains a parameter "projectName" which is passed in the JSON. 
+Each JSON contains a parameter "projectName" which is passed in the JSON.
 
-1. GET api/strategy returns the content of CLAUDE.md
-2. POST api/strategy saves the passed content to CLAUDE.md
+1. GET api/strategy returns the content of `.claude/CLAUDE.md`
+2. POST api/strategy saves the passed content to `.claude/CLAUDE.md`

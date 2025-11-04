@@ -6,6 +6,7 @@ import SplitLayout from './components/SplitLayout';
 import ProjectMenu from './components/ProjectMenu';
 import BudgetIndicator from './components/BudgetIndicator';
 import SchedulingOverview from './components/SchedulingOverview';
+import WelcomePage from './components/WelcomePage';
 import { TbCalendarTime, TbPresentation } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
@@ -32,6 +33,8 @@ export default function App() {
     return saved === 'true' ? true : false;
   });
   const [currentProcessId, setCurrentProcessId] = useState(null);
+  const [uiConfig, setUiConfig] = useState(null);
+  const [showWelcomePage, setShowWelcomePage] = useState(false);
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -864,6 +867,29 @@ export default function App() {
     }
   };
 
+  const loadUIConfig = async (projectName) => {
+    try {
+      const response = await fetch(`/api/workspace/${projectName}/user-interface`);
+      if (response.ok) {
+        const config = await response.json();
+        setUiConfig(config);
+        // Show welcome page if config exists and has welcome data
+        if (config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length)) {
+          setShowWelcomePage(true);
+        } else {
+          setShowWelcomePage(false);
+        }
+      } else {
+        setUiConfig(null);
+        setShowWelcomePage(false);
+      }
+    } catch (error) {
+      console.error('Failed to load UI config:', error);
+      setUiConfig(null);
+      setShowWelcomePage(false);
+    }
+  };
+
   const handleProjectChange = async (newProject) => {
     setProject(newProject);
     setMessages([]);
@@ -874,6 +900,9 @@ export default function App() {
     setHasSessions(false);
     esRef.current?.close();
     setStreaming(false);
+
+    // Load UI configuration
+    await loadUIConfig(newProject);
 
     try {
       // Check if sessions exist
@@ -959,9 +988,18 @@ export default function App() {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static" sx={{ zIndex: 10 }}>
+      <AppBar
+        position="static"
+        sx={{
+          zIndex: 10,
+          backgroundColor: uiConfig?.appBar?.backgroundColor,
+          color: uiConfig?.appBar?.fontColor,
+        }}
+      >
         <Toolbar>
-          <Typography variant="h6">Etienne: Headless Claude Code</Typography>
+          <Typography variant="h6">
+            {uiConfig?.appBar?.title || 'Etienne: Headless Claude Code'}
+          </Typography>
           {currentProject && (
             <BudgetIndicator
               project={currentProject}
@@ -1005,15 +1043,31 @@ export default function App() {
             onBudgetSettingsChange={setBudgetSettings}
             onTasksChange={refreshTaskCount}
             showBackgroundInfo={showBackgroundInfo}
+            onUIConfigChange={(config) => {
+              setUiConfig(config);
+              if (config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length)) {
+                setShowWelcomePage(true);
+              }
+            }}
           />
         </Toolbar>
       </AppBar>
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
-        <SplitLayout
-          left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} />}
-          right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} />}
-        />
+        {showWelcomePage ? (
+          <WelcomePage
+            welcomeConfig={uiConfig?.welcomePage}
+            onSendMessage={(message) => {
+              setShowWelcomePage(false);
+              handleSendMessage(message);
+            }}
+          />
+        ) : (
+          <SplitLayout
+            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} />}
+            right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} />}
+          />
+        )}
       </Box>
 
       <SchedulingOverview

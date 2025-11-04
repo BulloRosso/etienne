@@ -61,7 +61,7 @@ ClaudeSdkOrchestratorService
 - ✅ Budget monitoring (token tracking)
 - ✅ Chat persistence (history)
 - ✅ Tool permissions
-- ✅ System prompts (CLAUDE.md)
+- ✅ System prompts (.claude/CLAUDE.md)
 
 ## Usage
 
@@ -124,11 +124,10 @@ Core service that interfaces with the Agent SDK.
 
 **Key Methods:**
 - `streamConversation()`: Async generator that yields SDK messages
-- `loadSystemPrompt()`: Reads CLAUDE.md from project directory
 - `loadPermissions()`: Reads allowedTools from permissions.json
 
 **Configuration:**
-- System prompts use preset + append pattern
+- System prompts automatically loaded by Claude Code SDK from `.claude/CLAUDE.md`
 - Tools loaded from project permissions
 - Session resumption via `resume` option
 
@@ -199,15 +198,13 @@ MEMORY_MANAGEMENT_URL=http://localhost:6060/api/memories
 
 ### System Prompts
 
-System prompts are loaded from `CLAUDE.md` in project directories:
+System prompts are automatically loaded by the Claude Code SDK from `.claude/CLAUDE.md` in project directories:
 
 ```
-/workspace/myproject/CLAUDE.md
+/workspace/myproject/.claude/CLAUDE.md
 ```
 
-The SDK uses a **preset + append** pattern:
-- Base: Claude Code preset (includes tool instructions)
-- Append: Content from CLAUDE.md
+The SDK automatically picks up the system prompt from this location without needing to pass it explicitly in the query options.
 
 ### Permissions
 

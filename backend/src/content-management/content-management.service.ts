@@ -258,4 +258,91 @@ export class ContentManagementService {
       throw new BadRequestException(`Failed to create folder: ${error.message}`);
     }
   }
+
+  /**
+   * Get user interface configuration
+   */
+  async getUserInterfaceConfig(projectName: string): Promise<any> {
+    try {
+      const root = safeRoot(this.config.hostRoot, projectName);
+      const configPath = join(root, '.etienne', 'user-interface.json');
+
+      try {
+        const content = await fs.readFile(configPath, 'utf-8');
+        return JSON.parse(content);
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          return null; // File doesn't exist, return null
+        }
+        throw error;
+      }
+    } catch (error) {
+      // Return null for any file not found errors
+      if (error.code === 'ENOENT') {
+        return null;
+      }
+      // For path traversal or other security errors, rethrow
+      if (error.message === 'Path traversal') {
+        throw error;
+      }
+      // For other errors, return null (file system issues, permission problems, etc.)
+      console.warn(`Could not read UI config for project ${projectName}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Save user interface configuration
+   */
+  async saveUserInterfaceConfig(
+    projectName: string,
+    config: any
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const root = safeRoot(this.config.hostRoot, projectName);
+      const configDir = join(root, '.etienne');
+      const configPath = join(configDir, 'user-interface.json');
+
+      // Ensure .etienne directory exists
+      await fs.mkdir(configDir, { recursive: true });
+
+      // Write configuration
+      await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+
+      return {
+        success: true,
+        message: 'UI configuration saved successfully'
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to save UI configuration: ${error.message}`);
+    }
+  }
+
+  /**
+   * List all projects that have a user-interface.json file
+   */
+  async listProjectsWithUIConfig(): Promise<string[]> {
+    try {
+      const workspaceRoot = this.config.hostRoot;
+      const entries = await fs.readdir(workspaceRoot, { withFileTypes: true });
+
+      const projectsWithUI: string[] = [];
+
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const configPath = join(workspaceRoot, entry.name, '.etienne', 'user-interface.json');
+          try {
+            await fs.access(configPath);
+            projectsWithUI.push(entry.name);
+          } catch {
+            // File doesn't exist, skip this project
+          }
+        }
+      }
+
+      return projectsWithUI;
+    } catch (error) {
+      throw new BadRequestException(`Failed to list projects with UI config: ${error.message}`);
+    }
+  }
 }

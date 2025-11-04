@@ -89,4 +89,23 @@ export class ContentManagementController {
       file.buffer
     );
   }
+
+  @Get(':project/user-interface')
+  async getUserInterface(@Param('project') project: string, @Res() res: Response) {
+    const config = await this.contentManagementService.getUserInterfaceConfig(project);
+    return res.json(config);
+  }
+
+  @Post(':project/user-interface')
+  async saveUserInterface(
+    @Param('project') project: string,
+    @Body() config: any
+  ) {
+    return await this.contentManagementService.saveUserInterfaceConfig(project, config);
+  }
+
+  @Get('projects-with-ui')
+  async getProjectsWithUI() {
+    return await this.contentManagementService.listProjectsWithUIConfig();
+  }
 }

@@ -6,7 +6,20 @@
 * /backend contains the nest.js/node.js 20 API backend running on :6060
 * a docker image name claude-code contains the latest Claude Code developer image
 
-The goal of the the project is to manage isolated projects in a central mounted volume /workspace with a single Docker container.
+The goal of the the project is to manage isolated projects in a central mounted volume /workspace.
+
+## Project Structure
+
+Each project in the workspace follows this structure:
+```
+workspace/<project-name>/
+├── .claude/
+│   ├── CLAUDE.md          # System prompt/role definition for Claude Code
+│   └── settings.json      # Project-specific Claude Code settings
+├── data/
+│   └── permissions.json   # Tool permissions
+└── out/                   # Output files
+```
 
 ### How to start claude code container
 ```bash

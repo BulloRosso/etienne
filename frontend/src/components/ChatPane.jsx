@@ -12,7 +12,7 @@ import TypingIndicator from './TypingIndicator';
 import { StructuredMessage } from './StructuredMessage';
 import SessionPane from './SessionPane';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig }) {
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
@@ -51,8 +51,16 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
   };
 
   const handleNewSession = () => {
-    if (onSessionChange) {
-      onSessionChange(null); // null means start a new session
+    // Check if we should show welcome page
+    if (uiConfig?.welcomePage && (uiConfig.welcomePage.message || uiConfig.welcomePage.quickActions?.length)) {
+      if (onShowWelcomePage) {
+        onShowWelcomePage();
+      }
+    } else {
+      // Default behavior: start a new session
+      if (onSessionChange) {
+        onSessionChange(null); // null means start a new session
+      }
     }
   };
 

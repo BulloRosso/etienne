@@ -36,7 +36,7 @@ export class ClaudeService {
     await fs.mkdir(join(root, 'out'), { recursive: true });
     await fs.mkdir(join(root, '.claude'), { recursive: true });
 
-    const cm = join(root, 'CLAUDE.md');
+    const cm = join(root, '.claude', 'CLAUDE.md');
     try { await fs.access(cm); } catch { await fs.writeFile(cm, `# ${projectDir}\n`); }
 
     // Create .claude/settings.json with interceptor hooks
@@ -111,7 +111,7 @@ export class ClaudeService {
 
   public async getStrategy(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
-    const claudeMdPath = join(root, 'CLAUDE.md');
+    const claudeMdPath = join(root, '.claude', 'CLAUDE.md');
     try {
       const content = await fs.readFile(claudeMdPath, 'utf8');
       return { content };
@@ -122,7 +122,7 @@ export class ClaudeService {
 
   public async saveStrategy(projectDir: string, content: string) {
     const root = await this.ensureProject(projectDir);
-    const claudeMdPath = join(root, 'CLAUDE.md');
+    const claudeMdPath = join(root, '.claude', 'CLAUDE.md');
     await fs.writeFile(claudeMdPath, content, 'utf8');
     return { success: true };
   }

@@ -62,7 +62,9 @@
       "Bash(git checkout:*)",
       "Bash(ping:*)",
       "Bash(xargs kill -9)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(xargs:*)",
+      "Bash(npm --version)"
     ],
     "deny": [],
     "ask": []
