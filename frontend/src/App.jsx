@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar } from '@mui/material';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
@@ -9,6 +9,7 @@ import SchedulingOverview from './components/SchedulingOverview';
 import WelcomePage from './components/WelcomePage';
 import { TbCalendarTime, TbPresentation } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
+import { CiShoppingTag } from "react-icons/ci";
 import { useProject } from './contexts/ProjectContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 
@@ -35,6 +36,7 @@ export default function App() {
   const [currentProcessId, setCurrentProcessId] = useState(null);
   const [uiConfig, setUiConfig] = useState(null);
   const [showWelcomePage, setShowWelcomePage] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -282,58 +284,8 @@ export default function App() {
     checkSessions();
   }, [currentProject]);
 
-  // Load initial project data
-  useEffect(() => {
-    if (!currentProject) return;
-
-    const loadInitialData = async () => {
-      try {
-        const assistantRes = await fetch('/api/claude/assistant', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ projectName: currentProject })
-        });
-        const assistantData = await assistantRes.json();
-        const greeting = assistantData?.assistant?.greeting;
-
-        const historyRes = await fetch('/api/claude/chat/history', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ projectName: currentProject })
-        });
-        const historyData = await historyRes.json();
-        const chatMessages = historyData?.messages || [];
-
-        const loadedMessages = [];
-        if (greeting) {
-          loadedMessages.push({
-            role: 'assistant',
-            text: greeting,
-            timestamp: formatTime()
-          });
-        }
-
-        chatMessages.forEach(msg => {
-          loadedMessages.push({
-            role: msg.isAgent ? 'assistant' : 'user',
-            text: msg.message,
-            timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            }),
-            usage: msg.costs
-          });
-        });
-
-        setMessages(loadedMessages);
-      } catch (err) {
-        console.error('Failed to load initial chat data:', err);
-      }
-    };
-
-    loadInitialData();
-  }, [currentProject]);
+  // This effect is no longer needed - project loading is handled by handleProjectChange
+  // Keeping this comment as a marker that initial load logic has been moved
 
   // Load budget settings when project changes
   useEffect(() => {
@@ -533,6 +485,17 @@ export default function App() {
     localStorage.setItem('showBackgroundInfo', value.toString());
     // Clear the closed toasts state so all toasts can be shown again
     localStorage.removeItem('closedBackgroundInfo');
+  };
+
+  const handleCopySessionId = async () => {
+    if (sessionId) {
+      try {
+        await navigator.clipboard.writeText(sessionId);
+        setSnackbarOpen(true);
+      } catch (err) {
+        console.error('Failed to copy session ID:', err);
+      }
+    }
   };
 
   const handleSendMessage = async (messageText) => {
@@ -867,14 +830,15 @@ export default function App() {
     }
   };
 
-  const loadUIConfig = async (projectName) => {
+  const loadUIConfig = async (projectName, hasExistingSessions = false) => {
     try {
       const response = await fetch(`/api/workspace/${projectName}/user-interface`);
       if (response.ok) {
         const config = await response.json();
         setUiConfig(config);
-        // Show welcome page if config exists and has welcome data
-        if (config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length)) {
+        // Show welcome page only if config exists, has welcome data, AND no existing sessions
+        const shouldShowWelcome = config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length) && !hasExistingSessions;
+        if (shouldShowWelcome) {
           setShowWelcomePage(true);
         } else {
           setShowWelcomePage(false);
@@ -901,11 +865,8 @@ export default function App() {
     esRef.current?.close();
     setStreaming(false);
 
-    // Load UI configuration
-    await loadUIConfig(newProject);
-
     try {
-      // Check if sessions exist
+      // Check if sessions exist FIRST
       const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(newProject)}`);
       const sessionsData = await sessionsRes.json();
       const hasExistingSessions = sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0;
@@ -966,6 +927,9 @@ export default function App() {
         }
         setMessages(loadedMessages);
       }
+
+      // Load UI configuration AFTER setting messages - pass session info to decide about welcome page
+      await loadUIConfig(newProject, hasExistingSessions);
 
       // Load budget settings for the new project
       const budgetRes = await fetch(`/api/budget-monitoring/${newProject}/settings`);
@@ -1032,9 +996,15 @@ export default function App() {
             [{currentProject || 'Select/Create a Project'}]
           </Typography>
           {sessionId && (
-            <Typography variant="caption" sx={{ mr: 2, opacity: 0.7 }}>
-              Session: {sessionId}
-            </Typography>
+            <Tooltip title={`Claude Session ID: ${sessionId}`} arrow>
+              <IconButton
+                color="inherit"
+                sx={{ mr: 1, opacity: 0.8 }}
+                onClick={handleCopySessionId}
+              >
+                <CiShoppingTag size={24} />
+              </IconButton>
+            </Tooltip>
           )}
           <ProjectMenu
             currentProject={currentProject}
@@ -1061,6 +1031,7 @@ export default function App() {
               setShowWelcomePage(false);
               handleSendMessage(message);
             }}
+            onReturnToDefault={() => setShowWelcomePage(false)}
           />
         ) : (
           <SplitLayout
@@ -1138,6 +1109,15 @@ export default function App() {
           />
         </Box>
       </Modal>
+
+      {/* Snackbar for copy confirmation */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={2000}
+        onClose={() => setSnackbarOpen(false)}
+        message="Claude Session ID copied"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      />
     </Box>
   );
 }

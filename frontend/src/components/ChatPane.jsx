@@ -127,16 +127,14 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
 
         {/* Right-aligned buttons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Start New Session Button - only visible if hasActiveSession */}
-          {hasActiveSession && (
-            <IconButton
-              onClick={handleNewSession}
-              title="Start New Session"
-              sx={{ color: '#1976d2' }}
-            >
-              <RiChatNewLine size={19} />
-            </IconButton>
-          )}
+          {/* Start New Session Button - always visible */}
+          <IconButton
+            onClick={handleNewSession}
+            title="Start New Session"
+            sx={{ color: '#1976d2' }}
+          >
+            <RiChatNewLine size={19} />
+          </IconButton>
 
           {/* Resume Session Button - only visible if hasSessions */}
           {hasSessions && (

@@ -66,18 +66,21 @@ export class ClaudeService {
 
   public async addFile(projectDir: string, fileName: string, content: string) {
     const root = await this.ensureProject(projectDir);
-    const filePath = join(root, fileName);
 
-    // Don't overwrite CLAUDE.md if it already exists
+    // Don't overwrite CLAUDE.md if it already exists (check .claude/CLAUDE.md location)
     if (fileName === 'CLAUDE.md') {
+      const claudeMdPath = join(root, '.claude', 'CLAUDE.md');
       try {
-        await fs.access(filePath);
-        return { ok: true, path: filePath, skipped: true };
+        await fs.access(claudeMdPath);
+        return { ok: true, path: claudeMdPath, skipped: true };
       } catch {
-        // File doesn't exist, create it
+        // File doesn't exist, ensureProject() already created it
+        return { ok: true, path: claudeMdPath, skipped: false };
       }
     }
 
+    // For all other files, create at specified location
+    const filePath = join(root, fileName);
     await fs.mkdir(norm(join(filePath, '..')), { recursive: true });
     await fs.writeFile(filePath, content, 'utf8');
     return { ok: true, path: filePath };

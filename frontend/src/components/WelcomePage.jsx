@@ -3,8 +3,9 @@ import { Box, Typography, Chip, TextField, IconButton } from '@mui/material';
 import { useProject } from '../contexts/ProjectContext';
 import { SlMicrophone } from 'react-icons/sl';
 import { GoArrowUp, GoPlus } from 'react-icons/go';
+import { PiChats } from 'react-icons/pi';
 
-const WelcomePage = ({ welcomeConfig, onSendMessage }) => {
+const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -130,8 +131,35 @@ const WelcomePage = ({ welcomeConfig, onSendMessage }) => {
         minHeight: '100%',
         backgroundColor: welcomeConfig?.backgroundColor || '#f5f5f5',
         p: 4,
+        position: 'relative',
       }}
     >
+      {/* Navigation Button */}
+      {onReturnToDefault && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 10,
+            right: 24,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            cursor: 'pointer',
+            '&:hover': {
+              opacity: 0.7,
+            },
+          }}
+          onClick={onReturnToDefault}
+        >
+          <IconButton size="small">
+            <PiChats size={20} />
+          </IconButton>
+          <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+            Previous Conversations / Settings
+          </Typography>
+        </Box>
+      )}
+
       <Box sx={{ maxWidth: 800, width: '100%' }}>
         {/* Greeting */}
         <Typography
