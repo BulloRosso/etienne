@@ -93,12 +93,28 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         backgroundColor: 'white',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
         px: 2,
-        borderBottom: '1px solid #e0e0e0'
+        borderBottom: '1px solid #e0e0e0',
+        position: 'relative'
       }}>
-        {/* Mode Toggle */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        {/* Left: New Conversation Button */}
+        <IconButton
+          onClick={handleNewSession}
+          title="Start New Session"
+          sx={{ color: '#1976d2' }}
+        >
+          <RiChatNewLine size={19} />
+        </IconButton>
+
+        {/* Center: Mode Toggle */}
+        <Box sx={{
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5
+        }}>
           <ToggleButtonGroup
             value={mode}
             exclusive
@@ -126,16 +142,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         </Box>
 
         {/* Right-aligned buttons */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Start New Session Button - always visible */}
-          <IconButton
-            onClick={handleNewSession}
-            title="Start New Session"
-            sx={{ color: '#1976d2' }}
-          >
-            <RiChatNewLine size={19} />
-          </IconButton>
-
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
           {/* Resume Session Button - only visible if hasSessions */}
           {hasSessions && (
             <IconButton
