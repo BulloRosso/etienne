@@ -25,8 +25,27 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (message.trim() && onSendMessage) {
+      // Store the message in project history
+      if (currentProject) {
+        try {
+          const timestamp = new Date().toISOString();
+          const historyEntry = `## ${timestamp}\n\n${message}`;
+
+          await fetch(`/api/workspace/${currentProject}/project-history`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content: historyEntry }),
+          });
+        } catch (error) {
+          console.error('Failed to save project history:', error);
+          // Continue even if history save fails
+        }
+      }
+
       onSendMessage(message);
       setMessage('');
     }
@@ -209,7 +228,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
                 handleSend();
               }
             }}
-            placeholder="Type your message..."
+            placeholder="Please describe as precise as possible what we want to achieve in our session. This is essential for me to give high-quality responses!"
             variant="outlined"
             size="small"
           />

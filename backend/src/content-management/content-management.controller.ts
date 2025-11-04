@@ -108,4 +108,19 @@ export class ContentManagementController {
   async getProjectsWithUI() {
     return await this.contentManagementService.listProjectsWithUIConfig();
   }
+
+  @Get(':project/project-history')
+  async getProjectHistory(@Param('project') project: string, @Res() res: Response) {
+    const content = await this.contentManagementService.getProjectHistory(project);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(content);
+  }
+
+  @Post(':project/project-history')
+  async appendProjectHistory(
+    @Param('project') project: string,
+    @Body() body: { content: string }
+  ) {
+    return await this.contentManagementService.appendProjectHistory(project, body.content);
+  }
 }

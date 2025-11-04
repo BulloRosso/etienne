@@ -345,4 +345,72 @@ export class ContentManagementService {
       throw new BadRequestException(`Failed to list projects with UI config: ${error.message}`);
     }
   }
+
+  /**
+   * Get project history from root CLAUDE.md file
+   */
+  async getProjectHistory(projectName: string): Promise<string> {
+    try {
+      const root = safeRoot(this.config.hostRoot, projectName);
+      const historyPath = join(root, 'CLAUDE.md');
+
+      try {
+        const content = await fs.readFile(historyPath, 'utf-8');
+        return content;
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          return ''; // File doesn't exist, return empty string
+        }
+        throw error;
+      }
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return '';
+      }
+      if (error.message === 'Path traversal') {
+        throw error;
+      }
+      console.warn(`Could not read project history for project ${projectName}:`, error.message);
+      return '';
+    }
+  }
+
+  /**
+   * Append to project history in root CLAUDE.md file
+   */
+  async appendProjectHistory(
+    projectName: string,
+    content: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const root = safeRoot(this.config.hostRoot, projectName);
+      const historyPath = join(root, 'CLAUDE.md');
+
+      // Read existing content if file exists
+      let existingContent = '';
+      try {
+        existingContent = await fs.readFile(historyPath, 'utf-8');
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
+        // File doesn't exist, start with empty content
+      }
+
+      // Append new content with proper spacing
+      const newContent = existingContent
+        ? `${existingContent}\n\n${content}`
+        : content;
+
+      // Write the updated content
+      await fs.writeFile(historyPath, newContent, 'utf-8');
+
+      return {
+        success: true,
+        message: 'Project history updated successfully'
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to append project history: ${error.message}`);
+    }
+  }
 }
