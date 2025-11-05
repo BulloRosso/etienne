@@ -413,4 +413,61 @@ export class ContentManagementService {
       throw new BadRequestException(`Failed to append project history: ${error.message}`);
     }
   }
+
+  /**
+   * Search for files recursively matching a query string
+   * Excludes system directories like .claude and .etienne
+   */
+  async searchFiles(
+    projectName: string,
+    query: string
+  ): Promise<Array<{ name: string; path: string }>> {
+    try {
+      const root = safeRoot(this.config.hostRoot, projectName);
+      const results: Array<{ name: string; path: string }> = [];
+      const lowerQuery = query.toLowerCase();
+
+      // Recursively search through directories
+      const searchDirectory = async (dirPath: string, relativePath: string = '') => {
+        try {
+          const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+          for (const entry of entries) {
+            const entryRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+            const entryFullPath = join(dirPath, entry.name);
+
+            // Skip system directories
+            if (entry.name === '.claude' || entry.name === '.etienne' || entry.name === 'data') {
+              continue;
+            }
+
+            if (entry.isDirectory()) {
+              // Recursively search subdirectories
+              await searchDirectory(entryFullPath, entryRelativePath);
+            } else if (entry.isFile()) {
+              // Check if filename starts with query (prefix match)
+              if (entry.name.toLowerCase().startsWith(lowerQuery)) {
+                results.push({
+                  name: entry.name,
+                  path: entryRelativePath
+                });
+              }
+            }
+          }
+        } catch (error) {
+          // Skip directories we can't read
+          console.warn(`Could not read directory ${dirPath}:`, error.message);
+        }
+      };
+
+      await searchDirectory(root);
+
+      // Sort results by filename
+      results.sort((a, b) => a.name.localeCompare(b.name));
+
+      return results;
+    } catch (error) {
+      throw new BadRequestException(`Failed to search files: ${error.message}`);
+    }
+  }
 }

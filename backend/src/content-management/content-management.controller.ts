@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Put, Param, Res, Body, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Put, Param, Res, Body, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ContentManagementService } from './content-management.service';
@@ -122,5 +122,13 @@ export class ContentManagementController {
     @Body() body: { content: string }
   ) {
     return await this.contentManagementService.appendProjectHistory(project, body.content);
+  }
+
+  @Get(':project/search-files')
+  async searchFiles(
+    @Param('project') project: string,
+    @Query('query') query: string
+  ) {
+    return await this.contentManagementService.searchFiles(project, query || '');
   }
 }
