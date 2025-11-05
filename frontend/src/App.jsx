@@ -49,6 +49,110 @@ export default function App() {
     interceptorEsRef.current?.close();
   }, []);
 
+  // Load project data on initial mount and project changes (including page refresh)
+  useEffect(() => {
+    if (!currentProject) {
+      setUiConfig(null);
+      setShowWelcomePage(false);
+      return;
+    }
+
+    const initializeProject = async () => {
+      try {
+        // Check if sessions exist
+        const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+        const sessionsData = await sessionsRes.json();
+        const hasExistingSessions = sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0;
+        setHasSessions(hasExistingSessions);
+
+        // Load assistant greeting
+        const assistantRes = await fetch('/api/claude/assistant', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ projectName: currentProject })
+        });
+        const assistantData = await assistantRes.json();
+        const greeting = assistantData?.assistant?.greeting;
+
+        // If sessions exist, automatically load the most recent one
+        if (hasExistingSessions && sessionsData.sessions.length > 0) {
+          const mostRecentSession = sessionsData.sessions[0];
+          setCurrentSessionId(mostRecentSession.sessionId);
+          setSessionId(mostRecentSession.sessionId);
+
+          // Load the most recent session's history
+          const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${mostRecentSession.sessionId}/history`);
+          const historyData = await historyRes.json();
+          const chatMessages = historyData?.messages || [];
+
+          const loadedMessages = [];
+          if (greeting) {
+            loadedMessages.push({
+              role: 'assistant',
+              text: greeting,
+              timestamp: formatTime()
+            });
+          }
+
+          chatMessages.forEach(msg => {
+            loadedMessages.push({
+              role: msg.isAgent ? 'assistant' : 'user',
+              text: msg.message,
+              timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
+              usage: msg.costs
+            });
+          });
+
+          setMessages(loadedMessages);
+        } else {
+          // No sessions exist, just show the greeting
+          const loadedMessages = [];
+          if (greeting) {
+            loadedMessages.push({
+              role: 'assistant',
+              text: greeting,
+              timestamp: formatTime()
+            });
+          }
+          setMessages(loadedMessages);
+        }
+
+        // Load UI configuration with session info
+        const uiResponse = await fetch(`/api/workspace/${currentProject}/user-interface`);
+        if (uiResponse.ok) {
+          const config = await uiResponse.json();
+          setUiConfig(config);
+          // Show welcome page only if config exists, has welcome data, AND no existing sessions
+          const shouldShowWelcome = config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length) && !hasExistingSessions;
+          setShowWelcomePage(shouldShowWelcome);
+        } else {
+          setUiConfig(null);
+          setShowWelcomePage(false);
+        }
+
+        // Load budget settings
+        const budgetRes = await fetch(`/api/budget-monitoring/${currentProject}/settings`);
+        const budgetData = await budgetRes.json();
+        setBudgetSettings(budgetData || { enabled: false, limit: 0 });
+
+        // Check if project has scheduled tasks
+        const tasksRes = await fetch(`/api/scheduler/${currentProject}/tasks`);
+        const tasksData = await tasksRes.json();
+        setHasTasks((tasksData.tasks || []).length > 0);
+      } catch (error) {
+        console.error('Failed to initialize project:', error);
+        setUiConfig(null);
+        setShowWelcomePage(false);
+      }
+    };
+
+    initializeProject();
+  }, [currentProject]);
+
   // Connect to interceptors SSE stream
   useEffect(() => {
     if (!currentProject) return;
@@ -830,32 +934,8 @@ export default function App() {
     }
   };
 
-  const loadUIConfig = async (projectName, hasExistingSessions = false) => {
-    try {
-      const response = await fetch(`/api/workspace/${projectName}/user-interface`);
-      if (response.ok) {
-        const config = await response.json();
-        setUiConfig(config);
-        // Show welcome page only if config exists, has welcome data, AND no existing sessions
-        const shouldShowWelcome = config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length) && !hasExistingSessions;
-        if (shouldShowWelcome) {
-          setShowWelcomePage(true);
-        } else {
-          setShowWelcomePage(false);
-        }
-      } else {
-        setUiConfig(null);
-        setShowWelcomePage(false);
-      }
-    } catch (error) {
-      console.error('Failed to load UI config:', error);
-      setUiConfig(null);
-      setShowWelcomePage(false);
-    }
-  };
-
   const handleProjectChange = async (newProject) => {
-    setProject(newProject);
+    // Reset state before project change
     setMessages([]);
     setStructuredMessages([]);
     setFiles([]);
@@ -865,89 +945,8 @@ export default function App() {
     esRef.current?.close();
     setStreaming(false);
 
-    try {
-      // Check if sessions exist FIRST
-      const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(newProject)}`);
-      const sessionsData = await sessionsRes.json();
-      const hasExistingSessions = sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0;
-      setHasSessions(hasExistingSessions);
-
-      // Load assistant greeting
-      const assistantRes = await fetch('/api/claude/assistant', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectName: newProject })
-      });
-      const assistantData = await assistantRes.json();
-      const greeting = assistantData?.assistant?.greeting;
-
-      // If sessions exist, automatically load the most recent one
-      if (hasExistingSessions && sessionsData.sessions.length > 0) {
-        const mostRecentSession = sessionsData.sessions[0]; // Already sorted by timestamp descending
-        setCurrentSessionId(mostRecentSession.sessionId);
-        setSessionId(mostRecentSession.sessionId);
-
-        // Load the most recent session's history
-        const historyRes = await fetch(`/api/sessions/${encodeURIComponent(newProject)}/${mostRecentSession.sessionId}/history`);
-        const historyData = await historyRes.json();
-        const chatMessages = historyData?.messages || [];
-
-        const loadedMessages = [];
-        if (greeting) {
-          loadedMessages.push({
-            role: 'assistant',
-            text: greeting,
-            timestamp: formatTime()
-          });
-        }
-
-        chatMessages.forEach(msg => {
-          loadedMessages.push({
-            role: msg.isAgent ? 'assistant' : 'user',
-            text: msg.message,
-            timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            }),
-            usage: msg.costs
-          });
-        });
-
-        setMessages(loadedMessages);
-      } else {
-        // No sessions exist, just show the greeting
-        const loadedMessages = [];
-        if (greeting) {
-          loadedMessages.push({
-            role: 'assistant',
-            text: greeting,
-            timestamp: formatTime()
-          });
-        }
-        setMessages(loadedMessages);
-      }
-
-      // Load UI configuration AFTER setting messages - pass session info to decide about welcome page
-      await loadUIConfig(newProject, hasExistingSessions);
-
-      // Load budget settings for the new project
-      const budgetRes = await fetch(`/api/budget-monitoring/${newProject}/settings`);
-      const budgetData = await budgetRes.json();
-      setBudgetSettings(budgetData || { enabled: false, limit: 0 });
-
-      // Check if project has scheduled tasks
-      try {
-        const tasksRes = await fetch(`/api/scheduler/${newProject}/tasks`);
-        const tasksData = await tasksRes.json();
-        setHasTasks((tasksData.tasks || []).length > 0);
-      } catch (err) {
-        console.error('Failed to load tasks:', err);
-        setHasTasks(false);
-      }
-    } catch (err) {
-      console.error('Failed to load project data:', err);
-    }
+    // Update project - this will trigger the useEffect that loads all project data
+    setProject(newProject);
   };
 
   return (

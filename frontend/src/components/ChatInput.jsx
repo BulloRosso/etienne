@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, TextField, IconButton, Paper, List, ListItem, ListItemText, Popper, ClickAwayListener } from '@mui/material';
-import { AttachFile, MicOutlined, Send, InsertDriveFile } from '@mui/icons-material';
+import { AttachFile, MicOutlined, Send, InsertDriveFile, Close } from '@mui/icons-material';
 import { BsStopCircle } from 'react-icons/bs';
 import { useProject } from '../contexts/ProjectContext';
 import { SlMicrophone } from "react-icons/sl";
@@ -252,9 +252,29 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
               fontSize: '12px',
               fontWeight: 600,
               color: '#666',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
-            Files found in this project's filesystem:
+            <span>Files found in this project's filesystem:</span>
+            <IconButton
+              size="small"
+              onClick={() => {
+                setShowSuggestions(false);
+                setMentionStart(-1);
+                setSuggestions([]);
+              }}
+              sx={{
+                padding: '2px',
+                marginRight: '-4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                }
+              }}
+            >
+              <Close sx={{ fontSize: 16 }} />
+            </IconButton>
           </Box>
 
           {/* Scrollable List */}

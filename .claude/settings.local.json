@@ -64,7 +64,8 @@
       "Bash(xargs kill -9)",
       "Bash(node:*)",
       "Bash(xargs:*)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
