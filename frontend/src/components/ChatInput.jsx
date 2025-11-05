@@ -353,7 +353,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
               return;
             }
           }}
-          placeholder="Type your message..."
+          placeholder="Type your message and use @ to mention files..."
           disabled={disabled || streaming}
           variant="outlined"
           size="small"
