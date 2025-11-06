@@ -96,7 +96,54 @@ MEMORY_DECAY_DAYS=6
 COSTS_CURRENCY_UNIT=EUR
 COSTS_PER_MIO_INPUT_TOKENS=3.0
 COSTS_PER_MIO_OUTPUT_TOKENS=15.0
+
+# Checkpoint Provider Configuration
+CHECKPOINT_PROVIDER=gitea
+GITEA_URL=http://localhost:3000
+GITEA_USERNAME=ralph.goellner@e-ntegration.de
+GITEA_PASSWORD=gitea123
+GITEA_REPO=workspace-checkpoints
 ```
+
+### Checkpoints
+
+The checkpoint feature requires **Gitea** to be installed and running on `localhost:3000`. Checkpoints create versioned backups of your project workspace and store them in a Gitea repository.
+
+**Prerequisites:**
+- Gitea server running on port 3000
+- Valid Gitea user account (configured in `.env`)
+
+**Configuration:**
+The checkpoint system uses environment variables in `.env`:
+- `CHECKPOINT_PROVIDER` - Provider type: `gitea` (default) or `git` (fallback)
+- `GITEA_URL` - Gitea server URL (default: `http://localhost:3000`)
+- `GITEA_USERNAME` - Gitea user email for authentication
+- `GITEA_PASSWORD` - Gitea user password
+- `GITEA_REPO` - Repository name for checkpoints (default: `workspace-checkpoints`)
+
+**Provider Options:**
+
+1. **Gitea Provider** (default, recommended)
+   - Stores checkpoints in a Gitea repository at `localhost:3000`
+   - Creates one repository with project folders (e.g., `workspace-checkpoints/project1/`, `workspace-checkpoints/project2/`)
+   - Uses Gitea REST API for all operations
+   - Works on Windows/Linux without Docker
+   - Handles large files (>1MB) via raw download endpoint
+
+2. **Git Provider** (fallback)
+   - Stores checkpoints in a local git repository inside the Docker container
+   - Located at `/workspace/.checkpoints` in the container
+   - Uses git commands via Docker exec (development) or direct shell (production)
+   - Requires `claude-code` Docker container to be running
+   - Legacy option maintained for backwards compatibility
+
+**How it works:**
+- Each checkpoint is a tarball (`.tar.gz`) of the project directory
+- Checkpoints are tracked in `.etienne/checkpoints.json` manifest file
+- The manifest stores checkpoint metadata: timestamp, commit message, and git commit hash
+- Restore operations extract the tarball and overwrite project files (except `checkpoints.json`)
+
+To switch to the Git provider, set `CHECKPOINT_PROVIDER=git` in your `.env` file.
 
 ### Starting up the services
 Start the backend on :6060

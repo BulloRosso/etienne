@@ -16,12 +16,13 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
-import { MdOutlineRestorePage } from 'react-icons/md';
+import { MdOutlineRestorePage, MdClose } from 'react-icons/md';
 import { IoMdAdd } from 'react-icons/io';
+import { RiDeleteBinLine } from 'react-icons/ri';
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
 
-export default function CheckpointsPane({ projectName, showBackgroundInfo }) {
+export default function CheckpointsPane({ projectName, showBackgroundInfo, onRestoreComplete }) {
   const [checkpoints, setCheckpoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -97,8 +98,10 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo }) {
       if (response.data.success) {
         setDialogOpen(false);
         setSelectedCheckpoint(null);
-        // Optionally reload the file list or trigger a refresh
-        window.location.reload();
+        // Switch to Files tab to show restored content
+        if (onRestoreComplete) {
+          onRestoreComplete();
+        }
       } else {
         setError(response.data.message || 'Failed to restore checkpoint');
       }
@@ -190,7 +193,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo }) {
       )}
 
       {/* Checkpoints list */}
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
             <CircularProgress />
@@ -221,40 +224,71 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo }) {
       </Box>
 
       {/* Checkpoint actions dialog */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Checkpoint: {selectedCheckpoint?.commit}
+      <Dialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { overflowX: 'hidden' }
+        }}
+      >
+        <DialogTitle sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          pr: 1,
+          minWidth: 0
+        }}>
+          <Box sx={{
+            flexGrow: 1,
+            minWidth: 0,
+            mr: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}>
+            Restore Content to {selectedCheckpoint?.commit}
+          </Box>
+          <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseDialog}
+            disabled={actionLoading}
+            aria-label="close"
+            sx={{ flexShrink: 0 }}
+          >
+            <MdClose />
+          </IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ overflowX: 'hidden' }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
             Created: {selectedCheckpoint && new Date(selectedCheckpoint.timestamp_created).toLocaleString()}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, wordBreak: 'break-all' }}>
             Hash: {selectedCheckpoint?.gitId?.substring(0, 8)}
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={actionLoading}>
-            Cancel
-          </Button>
-          <Button
+        <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+          <IconButton
             onClick={deleteCheckpoint}
-            color="error"
             disabled={actionLoading}
+            color="error"
+            aria-label="delete checkpoint"
           >
-            {actionLoading ? <CircularProgress size={20} /> : 'Delete checkpoint'}
-          </Button>
+            <RiDeleteBinLine />
+          </IconButton>
           <Button
             onClick={restoreCheckpoint}
             variant="contained"
             disabled={actionLoading}
           >
-            {actionLoading ? <CircularProgress size={20} /> : 'Reset Files to this checkpoint'}
+            {actionLoading ? <CircularProgress size={20} /> : 'Restore filesystem now'}
           </Button>
         </DialogActions>
       </Dialog>

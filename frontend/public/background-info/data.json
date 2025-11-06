@@ -37,7 +37,7 @@
     },
     {
       "infoId": "checkpoints",
-      "content": "**Checkpoints** are a way to restore the projects filesystem to a prior named state. The backend contains a local git server based provider which uses git/rsync in the claude-code container.",
+      "content": "**Checkpoints** are a way to restore the projects filesystem to a prior named state. The backend uses a local Gitea server (or containerized git).",
       "icon": "IoIosGitPullRequest"
     },
     {

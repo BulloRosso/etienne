@@ -199,7 +199,11 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
               <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
             )}
             {filesystemTabValue === 1 && (
-              <CheckpointsPane projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+              <CheckpointsPane
+                projectName={projectName}
+                showBackgroundInfo={showBackgroundInfo}
+                onRestoreComplete={() => setFilesystemTabValue(0)}
+              />
             )}
           </Box>
         </Box>

@@ -13,7 +13,7 @@
     "@types/cron": "^2.4.3",
     "@types/js-yaml": "^4.0.9",
     "@types/mqtt": "^2.5.0",
-    "axios": "^1.12.2",
+    "axios": "^1.13.2",
     "chokidar": "^3.6.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
