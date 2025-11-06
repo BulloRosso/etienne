@@ -100,8 +100,8 @@ COSTS_PER_MIO_OUTPUT_TOKENS=15.0
 # Checkpoint Provider Configuration
 CHECKPOINT_PROVIDER=gitea
 GITEA_URL=http://localhost:3000
-GITEA_USERNAME=ralph.goellner@e-ntegration.de
-GITEA_PASSWORD=gitea123
+GITEA_USERNAME=your.user@gitea.local
+GITEA_PASSWORD=****
 GITEA_REPO=workspace-checkpoints
 ```
 

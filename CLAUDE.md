@@ -21,7 +21,7 @@ workspace/<project-name>/
 └── out/                   # Output files
 ```
 
-### How to start claude code container
+### How to start claude code container (obsolete)
 ```bash
 docker run -it \
   --name claude-code \
@@ -30,7 +30,7 @@ docker run -it \
   claude-code
 ```
 
-### claude-code docker file
+### claude-code docker file (obsolete)
 ```
 FROM node:20
 
