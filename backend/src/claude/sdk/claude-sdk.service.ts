@@ -60,6 +60,9 @@ export class ClaudeSdkService {
       // Load permissions if not provided
       const tools = allowedTools || await this.loadPermissions(projectDir);
 
+      // Load alternative AI model configuration
+      const altModelConfig = await this.loadAlternativeModelConfig(projectDir);
+
       // Map agentMode to permissionMode
       // - 'plan': Planning mode - Claude creates a plan without executing tools
       // - 'work': Work mode - Claude executes tools and makes changes
@@ -72,9 +75,8 @@ export class ClaudeSdkService {
       // Configure SDK options
       // Note: systemPrompt is not included - Claude Code SDK will automatically
       // pick it up from .claude/CLAUDE.md in the project directory
-      const queryOptions = {
-        model: 'claude-sonnet-4-5',
-        apiKey: process.env.ANTHROPIC_API_KEY,  // Use direct API calls, not CLI process
+      const queryOptions: any = {
+        model: altModelConfig?.model || 'claude-sonnet-4-5',
         cwd: projectRoot,  // Set working directory to workspace/<project>
         allowedTools: tools,
         permissionMode: permissionMode as any,
@@ -84,6 +86,30 @@ export class ClaudeSdkService {
         abortController: abortController,  // Pass abort controller to SDK
         ...(sessionId && { resume: sessionId }),
         ...(hooks && { hooks })  // Add hooks if provided
+      };
+
+      // Configure environment variables for API access
+      // The SDK spawns a subprocess and passes these via env
+      queryOptions.env = {
+        ...process.env,  // Inherit existing environment
+        ANTHROPIC_API_KEY: altModelConfig?.token || process.env.ANTHROPIC_API_KEY
+      };
+
+      // Add alternative model configuration via environment variables if present
+      if (altModelConfig) {
+        queryOptions.env.ANTHROPIC_BASE_URL = altModelConfig.baseUrl;
+        // Only set ANTHROPIC_MODEL if it's not empty
+        if (altModelConfig.model && altModelConfig.model.trim()) {
+          queryOptions.env.ANTHROPIC_MODEL = altModelConfig.model;
+        }
+        this.logger.log(`Using alternative AI model: ${altModelConfig.model} @ ${altModelConfig.baseUrl}`);
+      }
+
+      // Add stderr handler to capture subprocess errors
+      queryOptions.stderr = (data: string) => {
+        if (data.trim()) {
+          this.logger.error(`[Claude Code stderr] ${data.trim()}`);
+        }
       };
 
       this.logger.log(`Starting SDK conversation for project: ${projectDir} (cwd: ${projectRoot}), session: ${sessionId || 'new'}`);
@@ -162,5 +188,31 @@ export class ClaudeSdkService {
       // If settings.json doesn't exist or has no MCP permissions, just return base
       return basePermissions;
     }
+  }
+
+  /**
+   * Load alternative AI model configuration from .etienne/ai-model.json
+   */
+  private async loadAlternativeModelConfig(projectDir: string): Promise<any | null> {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const aiModelConfigPath = join(root, '.etienne', 'ai-model.json');
+
+    try {
+      const content = await fs.readFile(aiModelConfigPath, 'utf8');
+      const config = JSON.parse(content);
+
+      // Only return config if it's active
+      if (config.isActive && config.model && config.baseUrl && config.token) {
+        this.logger.log(`Loaded alternative AI model config: ${config.model} @ ${config.baseUrl}`);
+        return config;
+      }
+    } catch (error: any) {
+      // File doesn't exist or couldn't be parsed - that's OK
+      if (error.code !== 'ENOENT') {
+        this.logger.warn(`Failed to load alternative model config: ${error.message}`);
+      }
+    }
+
+    return null;
   }
 }

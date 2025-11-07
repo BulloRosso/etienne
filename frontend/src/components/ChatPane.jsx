@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, IconButton, Modal, Typography, Button, ToggleButton, ToggleButtonGroup, FormControlLabel, Checkbox, TextField } from '@mui/material';
+import { Box, IconButton, Modal, Typography, Button, ToggleButton, ToggleButtonGroup, FormControlLabel, Checkbox, TextField, Alert } from '@mui/material';
 import { LuBrain } from "react-icons/lu";
 import { HiOutlineWrench } from "react-icons/hi2";
 import { GiSettingsKnobs } from "react-icons/gi";
 import { IoClose } from "react-icons/io5";
 import { RiChatNewLine } from "react-icons/ri";
 import { PiCaretCircleDownLight } from "react-icons/pi";
+import { MdInfo } from "react-icons/md";
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
@@ -25,6 +26,11 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
     return saved ? parseInt(saved, 10) : 5;
   });
 
+  // Alternative AI model configuration
+  const [altModelName, setAltModelName] = useState('');
+  const [altModelBaseUrl, setAltModelBaseUrl] = useState('');
+  const [altModelToken, setAltModelToken] = useState('');
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -32,6 +38,38 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
   useEffect(() => {
     scrollToBottom();
   }, [messages, structuredMessages, streaming]);
+
+  // Load alternative AI model config when settings dialog opens
+  useEffect(() => {
+    if (settingsOpen && projectName) {
+      loadAltModelConfig();
+    }
+  }, [settingsOpen, projectName]);
+
+  const loadAltModelConfig = async () => {
+    try {
+      const url = new URL('/api/claude/getFile', window.location.origin);
+      url.searchParams.set('project_dir', projectName);
+      url.searchParams.set('file_name', '.etienne/ai-model.json');
+
+      const response = await fetch(url.toString());
+      if (response.ok) {
+        const data = await response.json();
+        const config = JSON.parse(data.content);
+        setAltModelName(config.model || '');
+        setAltModelBaseUrl(config.baseUrl || '');
+        setAltModelToken(config.token || '');
+
+        // If config is active, switch to alternative model
+        if (config.isActive && onAiModelChange) {
+          onAiModelChange('alternative');
+        }
+      }
+    } catch (error) {
+      // File doesn't exist or couldn't be loaded - that's OK
+      console.log('No alternative model config found');
+    }
+  };
 
   const handlePermissionResponse = async (permissionId, approved) => {
     // This would need to be implemented in the backend
@@ -45,8 +83,33 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
     }
   };
 
-  const handleSettingsSave = () => {
+  const handleSettingsSave = async () => {
     console.log('Settings saved:', { aiModel });
+
+    // Save alternative model config if projectName exists
+    if (projectName) {
+      try {
+        const config = {
+          isActive: aiModel === 'alternative',
+          model: altModelName,
+          baseUrl: altModelBaseUrl,
+          token: altModelToken
+        };
+
+        await fetch('/api/claude/addFile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            project_dir: projectName,
+            file_name: '.etienne/ai-model.json',
+            file_content: JSON.stringify(config, null, 2)
+          })
+        });
+      } catch (error) {
+        console.error('Failed to save alternative model config:', error);
+      }
+    }
+
     setSettingsOpen(false);
   };
 
@@ -254,9 +317,6 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             <Typography variant="body1" sx={{ mb: 1 }}>
               AI Model
             </Typography>
-            <Typography variant="body2" sx={{ mb: 2, color: '#666', fontSize: '0.875rem', fontStyle: 'italic' }}>
-              OpenAI requires LiteLLM proxy Docker Container up and running on port :4000
-            </Typography>
             <ToggleButtonGroup
               value={aiModel}
               exclusive
@@ -279,12 +339,60 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               <ToggleButton value="anthropic">
                 Anthropic Claude 4.5
               </ToggleButton>
-              <ToggleButton value="openai">
-                OpenAI GPT-4
+              <ToggleButton value="alternative">
+                Other AI model
               </ToggleButton>
             </ToggleButtonGroup>
 
-            <Typography variant="body1" sx={{ mb: 1 }}>
+            {/* Alternative Model Configuration */}
+            {aiModel === 'alternative' && (
+              <Box sx={{ mb: 0, p: 0, borderRadius: 1 }}>
+                <TextField
+                  label="Model Name"
+                  value={altModelName}
+                  onChange={(e) => setAltModelName(e.target.value)}
+                  fullWidth
+                  size="small"
+                  sx={{ mb: 2 }}
+                  placeholder="e.g., kimi-k2-instruct"
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="API Base URL"
+                  value={altModelBaseUrl}
+                  onChange={(e) => setAltModelBaseUrl(e.target.value)}
+                  fullWidth
+                  size="small"
+                  sx={{ mb: 2 }}
+                  placeholder="e.g., https://api.moonshot.ai/anthropic"
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="Token/API Key"
+                  value={altModelToken}
+                  onChange={(e) => setAltModelToken(e.target.value)}
+                  fullWidth
+                  size="small"
+                  type="password"
+                  sx={{ mb: 2 }}
+                  placeholder="Enter your API key"
+                  InputLabelProps={{ shrink: true }}
+                />
+                <Alert
+                  severity="info"
+                  icon={<MdInfo />}
+                  sx={{
+                    backgroundColor: '#fffbf0',
+                    color: '#856404',
+                    '& .MuiAlert-icon': { color: '#856404' }
+                  }}
+                >
+                  Model must be compatible with Anthropic messages API.
+                </Alert>
+              </Box>
+            )}
+
+            <Typography variant="body1" sx={{ mt:2, mb: 1 }}>
               Features
             </Typography>
             <FormControlLabel

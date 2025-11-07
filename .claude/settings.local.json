@@ -65,7 +65,8 @@
       "Bash(node:*)",
       "Bash(xargs:*)",
       "Bash(npm --version)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx vite build)"
     ],
     "deny": [],
     "ask": []
