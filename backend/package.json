@@ -17,18 +17,23 @@
     "chokidar": "^3.6.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "classic-level": "^3.0.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "js-yaml": "^4.1.0",
     "mqtt": "^5.14.1",
     "openai": "^6.7.0",
+    "quadstore": "^15.4.1",
+    "rdf-data-factory": "^2.0.2",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "sparqljs": "^3.7.3"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.5.4"
   }
 }

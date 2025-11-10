@@ -24,11 +24,13 @@ import { TbCalendarTime, TbPalette } from 'react-icons/tb';
 import { IoHandRightOutline } from 'react-icons/io5';
 import { RiRobot2Line } from 'react-icons/ri';
 import { FcElectricalSensor } from 'react-icons/fc';
+import { PiGraphLight } from 'react-icons/pi';
 import SchedulingOverview from './SchedulingOverview';
 import GuardrailsSettings from './GuardrailsSettings';
 import SubagentConfiguration from './SubagentConfiguration';
 import MQTTSettings from './MQTTSettings';
 import CustomUI from './CustomUI';
+import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -41,6 +43,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [subagentsOpen, setSubagentsOpen] = useState(false);
   const [externalEventsOpen, setExternalEventsOpen] = useState(false);
   const [customUIOpen, setCustomUIOpen] = useState(false);
+  const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
   const [projectsWithUI, setProjectsWithUI] = useState([]);
@@ -222,6 +225,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setCustomUIOpen(false);
   };
 
+  const handleKnowledgeGraphOpen = () => {
+    setKnowledgeGraphOpen(true);
+    handleMenuClose();
+  };
+
+  const handleKnowledgeGraphClose = () => {
+    setKnowledgeGraphOpen(false);
+  };
+
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
 
@@ -314,6 +326,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <TbPalette fontSize="small" style={{ fontSize: '20px' }} />
           </ListItemIcon>
           <ListItemText>Customize UI</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleKnowledgeGraphOpen} disabled={!currentProject}>
+          <ListItemIcon>
+            <PiGraphLight fontSize="small" style={{ fontSize: '20px' }} />
+          </ListItemIcon>
+          <ListItemText>Knowledge Base</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
@@ -577,6 +595,21 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
               handleCustomUIClose();
             }}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={knowledgeGraphOpen} onClose={handleKnowledgeGraphClose} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PiGraphLight style={{ fontSize: '24px' }} />
+            <span>Knowledge Base</span>
+          </Box>
+          <IconButton onClick={handleKnowledgeGraphClose} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ height: '70vh', p: 2 }}>
+          <KnowledgeGraphBrowser project={currentProject} />
         </DialogContent>
       </Dialog>
     </>

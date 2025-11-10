@@ -1,0 +1,164 @@
+import { Injectable } from '@nestjs/common';
+import OpenAI from 'openai';
+
+@Injectable()
+export class OpenAiService {
+  private client: OpenAI;
+
+  constructor() {
+    this.client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+  }
+
+  async createEmbedding(text: string): Promise<number[]> {
+    try {
+      const response = await this.client.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: text
+      });
+
+      return response.data[0].embedding;
+    } catch (error) {
+      throw new Error(`Failed to create embedding: ${error.message}`);
+    }
+  }
+
+  async translateToSparql(query: string): Promise<string> {
+    const systemPrompt = `You are a SPARQL query generator for a knowledge graph with the following schema:
+
+Entity Types:
+- Person (properties: name, email, phone)
+- Company (properties: name, industry, location)
+- Product (properties: name, description, price, category)
+- Document (properties: content, uploadedAt, entityCount, fullContentLength)
+
+Relationship Types:
+- worksAt (is employed at): Person → Company
+- manufactures: Company → Product
+- worksWith (works with): Person → Person
+- hasCustomer (has customer): Company → Company
+- invented: Person → Product
+- contains: Document → Person/Company/Product
+
+Base URI: http://example.org/kg/
+
+Convert the natural language query into a valid SPARQL query. Return ONLY the SPARQL query without any explanation.`;
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: query }
+        ],
+        temperature: 0.1
+      });
+
+      return response.choices[0].message.content.trim();
+    } catch (error) {
+      throw new Error(`Failed to translate to SPARQL: ${error.message}`);
+    }
+  }
+
+  async expandSearchContext(query: string): Promise<string[]> {
+    try {
+      const response = await this.client.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'Generate 3-5 related search terms and synonyms for the given query. Return as comma-separated list.'
+          },
+          { role: 'user', content: query }
+        ],
+        temperature: 0.3
+      });
+
+      const terms = response.choices[0].message.content.trim().split(',');
+      return terms.map(term => term.trim());
+    } catch (error) {
+      throw new Error(`Failed to expand search context: ${error.message}`);
+    }
+  }
+
+  async extractEntitiesFromMarkdown(content: string): Promise<any> {
+    try {
+      // Define the structured output schema for Responses API
+      const schema = {
+        type: 'object',
+        properties: {
+          entities: {
+            type: 'object',
+            properties: {
+              Person: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of person names found in the text'
+              },
+              Company: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of company or organization names found in the text'
+              },
+              Product: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of product or invention names found in the text'
+              }
+            },
+            required: ['Person', 'Company', 'Product'],
+            additionalProperties: false
+          }
+        },
+        required: ['entities'],
+        additionalProperties: false
+      };
+
+      // Use Responses API instead of Chat Completions
+      const response = await this.client.responses.create({
+        model: 'gpt-4.1-mini',
+        instructions: 'You are an entity extraction AI. Extract entities from the given markdown text and categorize them into Person (people names), Company (company/organization names), and Product (product/invention names). Only include entities that are clearly mentioned in the text.',
+        input: content,
+        temperature: 0.1,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'entity_extraction',
+            schema: schema
+          }
+        }
+      });
+
+      // Extract the structured output from the response
+      const outputItem = response.output.find(item => item.type === 'message');
+      if (!outputItem || !outputItem.content) {
+        throw new Error('No message content in response');
+      }
+
+      const textContent = outputItem.content.find(c => c.type === 'output_text');
+      if (!textContent) {
+        throw new Error('No text content in response');
+      }
+
+      const result = JSON.parse(textContent.text);
+
+      // Format the result for frontend display
+      const formatted = [];
+      for (const [type, names] of Object.entries(result.entities || {})) {
+        const entityList = names as string[];
+        if (entityList && entityList.length > 0) {
+          formatted.push({
+            type,
+            count: entityList.length,
+            examples: entityList.slice(0, 3) // Show first 3 examples
+          });
+        }
+      }
+
+      return { entities: result.entities, summary: formatted };
+    } catch (error) {
+      throw new Error(`Failed to extract entities: ${error.message}`);
+    }
+  }
+}

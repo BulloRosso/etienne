@@ -1,0 +1,25 @@
+{
+  "name": "quadstore-service",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Standalone Quadstore RDF triple store service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "rdf",
+    "quadstore",
+    "triplestore"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "classic-level": "^3.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "quadstore": "^15.4.1",
+    "rdf-data-factory": "^2.0.2"
+  }
+}
