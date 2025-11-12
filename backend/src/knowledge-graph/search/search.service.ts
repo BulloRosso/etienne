@@ -12,9 +12,13 @@ import {
   VectorSearchDto,
   HybridSearchResult
 } from './search.dto';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 
 @Injectable()
 export class SearchService {
+  private readonly workspaceDir = path.join(process.cwd(), 'workspace');
+
   constructor(
     private readonly vectorStore: VectorStoreService,
     private readonly knowledgeGraph: KnowledgeGraphService,
@@ -230,16 +234,43 @@ export class SearchService {
     return results;
   }
 
-  async parseMarkdown(project: string, content: string, sourceDocument?: string): Promise<any> {
+  async parseMarkdown(project: string, content: string, sourceDocument?: string, useGraphLayer: boolean = true): Promise<any> {
     try {
-      // Extract entities from markdown using OpenAI
-      const extractionResult = await this.openai.extractEntitiesFromMarkdown(content);
+      const documentId = sourceDocument || `doc-${Date.now()}`;
+
+      // Skip entity extraction if graph layer is disabled
+      if (!useGraphLayer) {
+        // Only store the content in vector store
+        const embedding = await this.openai.createEmbedding(content);
+        await this.vectorStore.addDocument(project, {
+          id: documentId,
+          content: content,
+          embedding: embedding,
+          metadata: {
+            documentId: documentId,
+            uploadedAt: new Date().toISOString(),
+            fullContentLength: content.length,
+            useGraphLayer: false
+          }
+        });
+
+        return {
+          documentId: documentId,
+          totalEntities: 0,
+          entitiesAdded: 0,
+          entitiesSkipped: 0,
+          entities: [],
+          summary: []
+        };
+      }
+
+      // Extract entities from markdown using OpenAI (now with project-specific schema)
+      const extractionResult = await this.openai.extractEntitiesFromMarkdown(project, content);
 
       // Convert extracted entities to graph format
       const entities = this.graphBuilder.convertExtractedEntities(extractionResult, sourceDocument);
 
       // Create a Document entity to represent this upload
-      const documentId = sourceDocument || `doc-${Date.now()}`;
       const documentEntity = {
         id: documentId,
         type: 'Document' as const,
@@ -264,7 +295,8 @@ export class SearchService {
           documentId: documentId,
           uploadedAt: new Date().toISOString(),
           entityCount: entities.length,
-          fullContentLength: content.length
+          fullContentLength: content.length,
+          useGraphLayer: true
         }
       });
 
@@ -321,6 +353,37 @@ export class SearchService {
     }
   }
 
+  async listDocuments(project: string): Promise<any[]> {
+    try {
+      return await this.vectorStore.listDocuments(project);
+    } catch (error) {
+      throw new HttpException(
+        `Failed to list documents: ${error.message}`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async deleteDocument(project: string, id: string): Promise<any> {
+    try {
+      // First check if document exists
+      const document = await this.vectorStore.getDocumentById(project, id);
+      if (!document) {
+        throw new HttpException('Document not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Delete from vector store
+      await this.vectorStore.removeDocument(project, id);
+
+      return { success: true, id };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete document',
+        error.status || HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
   private combineResults(vectorResults: any[], kgResults: any[]): any[] {
     const combined = [];
 
@@ -344,5 +407,87 @@ export class SearchService {
 
     // Sort by score
     return combined.sort((a, b) => b.score - a.score);
+  }
+
+  async getEntitySchema(project: string): Promise<any> {
+    try {
+      const schemaPath = path.join(this.workspaceDir, project, 'knowledge-graph', '.etienne-entity-schema.json');
+
+      // Check if file exists
+      try {
+        await fs.access(schemaPath);
+        const content = await fs.readFile(schemaPath, 'utf-8');
+        return { schema: content };
+      } catch (error) {
+        // File doesn't exist, return empty
+        return { schema: '' };
+      }
+    } catch (error) {
+      throw new HttpException(
+        `Failed to get entity schema: ${error.message}`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async saveEntitySchema(project: string, schema: string): Promise<any> {
+    try {
+      const kgDir = path.join(this.workspaceDir, project, 'knowledge-graph');
+      const schemaPath = path.join(kgDir, '.etienne-entity-schema.json');
+
+      // Ensure directory exists
+      await fs.mkdir(kgDir, { recursive: true });
+
+      // Write schema file
+      await fs.writeFile(schemaPath, schema, 'utf-8');
+
+      return { success: true, path: schemaPath };
+    } catch (error) {
+      throw new HttpException(
+        `Failed to save entity schema: ${error.message}`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async getExtractionPrompt(project: string): Promise<any> {
+    try {
+      const promptPath = path.join(this.workspaceDir, project, 'knowledge-graph', '.etienne-extraction-prompt.md');
+
+      // Check if file exists
+      try {
+        await fs.access(promptPath);
+        const content = await fs.readFile(promptPath, 'utf-8');
+        return { prompt: content };
+      } catch (error) {
+        // File doesn't exist, return empty
+        return { prompt: '' };
+      }
+    } catch (error) {
+      throw new HttpException(
+        `Failed to get extraction prompt: ${error.message}`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async saveExtractionPrompt(project: string, prompt: string): Promise<any> {
+    try {
+      const kgDir = path.join(this.workspaceDir, project, 'knowledge-graph');
+      const promptPath = path.join(kgDir, '.etienne-extraction-prompt.md');
+
+      // Ensure directory exists
+      await fs.mkdir(kgDir, { recursive: true });
+
+      // Write prompt file
+      await fs.writeFile(promptPath, prompt, 'utf-8');
+
+      return { success: true, path: promptPath };
+    } catch (error) {
+      throw new HttpException(
+        `Failed to save extraction prompt: ${error.message}`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
   }
 }

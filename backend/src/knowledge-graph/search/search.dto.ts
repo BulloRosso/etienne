@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsObject, IsNumber, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsNumber, IsEnum, IsBoolean } from 'class-validator';
 
 export enum EntityType {
   Person = 'Person',
@@ -108,6 +108,10 @@ export class ParseMarkdownDto {
   @IsOptional()
   @IsString()
   sourceDocument?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  useGraphLayer?: boolean = true;
 }
 
 export interface ExtractedEntity {

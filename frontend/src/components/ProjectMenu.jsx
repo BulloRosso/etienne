@@ -44,6 +44,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [externalEventsOpen, setExternalEventsOpen] = useState(false);
   const [customUIOpen, setCustomUIOpen] = useState(false);
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
+  const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
   const [projectsWithUI, setProjectsWithUI] = useState([]);
@@ -604,12 +605,25 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <PiGraphLight style={{ fontSize: '24px' }} />
             <span>Knowledge Base</span>
           </Box>
-          <IconButton onClick={handleKnowledgeGraphClose} size="small">
-            <Close />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useGraphLayer}
+                  onChange={(e) => setUseGraphLayer(e.target.checked)}
+                  size="small"
+                />
+              }
+              label="Use Graph Layer"
+              sx={{ m: 0 }}
+            />
+            <IconButton onClick={handleKnowledgeGraphClose} size="small">
+              <Close />
+            </IconButton>
+          </Box>
         </DialogTitle>
         <DialogContent sx={{ height: '70vh', p: 2 }}>
-          <KnowledgeGraphBrowser project={currentProject} />
+          <KnowledgeGraphBrowser project={currentProject} useGraphLayer={useGraphLayer} />
         </DialogContent>
       </Dialog>
     </>

@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import * as path from 'path';
-import * as fs from 'fs';
+import axios from 'axios';
+
+const CHROMADB_URL = process.env.CHROMADB_URL || 'http://localhost:7100';
+const COLLECTION_NAME = 'documents'; // Default collection name for documents
 
 interface VectorDocument {
   id: string;
@@ -23,128 +25,150 @@ interface SearchResult {
 
 @Injectable()
 export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
-  private stores: Map<string, any> = new Map();
-  private readonly workspaceDir = path.join(process.cwd(), 'workspace');
   private readonly dimension = 1536; // OpenAI text-embedding-3-small
 
   async onModuleInit() {
-    // Stores are now initialized per project on demand
+    // Check if ChromaDB service is available
+    try {
+      await axios.get(`${CHROMADB_URL}/api/v1/heartbeat`, { timeout: 2000 });
+      console.log('✅ ChromaDB service is available');
+    } catch (error) {
+      console.warn('⚠️  ChromaDB service not available at startup. Will retry on first request.');
+    }
   }
 
   async onModuleDestroy() {
-    for (const [project, store] of this.stores.entries()) {
-      if (store && store.close) {
-        await store.close();
-      }
-    }
+    // ChromaDB server manages its own connections
   }
 
-  private getDbPath(project: string): string {
-    return path.join(this.workspaceDir, project, 'knowledge-graph', 'vectors.db');
-  }
-
-  private async initializeForProject(project: string) {
-    if (this.stores.has(project)) {
-      return this.stores.get(project);
-    }
-
-    const dbPath = this.getDbPath(project);
-
-    // Ensure data directory exists
-    const dataDir = path.dirname(dbPath);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-
-    // Initialize hnswsqlite or mock store
+  private async ensureChromadbAvailable() {
+    // Always try to check if ChromaDB is available (don't rely only on init check)
     try {
-      const { HNSWSQLite } = await import('hnswsqlite');
-      const store = new HNSWSQLite(dbPath, {
-        space: 'cosine',
-        dim: this.dimension,
-        m: 16,
-        efConstruction: 200,
-        efSearch: 50,
-        maxElements: 1000000
-      });
-      this.stores.set(project, store);
-      console.log(`✅ Vector store initialized for project: ${project}`);
-      return store;
+      await axios.get(`${CHROMADB_URL}/api/v1/heartbeat`, { timeout: 2000 });
     } catch (error) {
-      console.warn(`hnswsqlite not available for ${project}, using mock store:`, error.message);
-      // Create a mock store for development
-      const mockStore = this.createMockStore();
-      this.stores.set(project, mockStore);
-      return mockStore;
+      throw new Error('ChromaDB service is not available. Please start the vector-store service on port 7100.');
     }
   }
 
-  private createMockStore() {
-    const mockData = new Map();
+  private async ensureCollection(project: string): Promise<void> {
+    await this.ensureChromadbAvailable();
 
-    return {
-      documents: mockData,
-      addItem: async (id: string, vector: number[], metadata: any) => {
-        mockData.set(id, { id, vector, metadata });
-      },
-      search: async (queryVector: number[], k: number) => {
-        // Simple mock search - return all documents
-        const results = [];
-        for (const [id, doc] of mockData.entries()) {
-          results.push({
-            id,
-            distance: Math.random(),
-            metadata: doc.metadata
-          });
-        }
-        return results.slice(0, k);
-      },
-      removeItem: async (id: string) => {
-        mockData.delete(id);
-      },
-      close: async () => {}
-    };
+    try {
+      // Try to get the collection, if it doesn't exist, create it
+      await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections`, {
+        name: COLLECTION_NAME,
+        metadata: { description: 'Document embeddings for vector similarity search' },
+        get_or_create: true
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to ensure collection exists: ${message}`);
+    }
   }
 
   async addDocument(project: string, doc: VectorDocument): Promise<void> {
-    const store = await this.initializeForProject(project);
-    await store.addItem(doc.id, doc.embedding, {
-      content: doc.content,
-      ...doc.metadata
-    });
+    await this.ensureCollection(project);
+
+    try {
+      await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/add`, {
+        ids: [doc.id],
+        embeddings: [doc.embedding],
+        documents: [doc.content],
+        metadatas: [{
+          content: doc.content,
+          ...doc.metadata
+        }]
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to add document: ${message}`);
+    }
   }
 
   async search(project: string, queryEmbedding: number[], topK: number = 5): Promise<SearchResult[]> {
-    const store = await this.initializeForProject(project);
-    const results = await store.search(queryEmbedding, topK);
+    await this.ensureCollection(project);
 
-    return results.map((result: any) => ({
-      id: result.id,
-      content: result.metadata?.content || '',
-      similarity: 1 - result.distance, // Convert distance to similarity
-      metadata: result.metadata
-    }));
+    try {
+      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, {
+        query_embeddings: [queryEmbedding],
+        n_results: topK,
+        include: ['documents', 'metadatas', 'distances']
+      });
+
+      const results = response.data.results;
+
+      // ChromaDB returns results in arrays for batch queries
+      const ids = results.ids[0] || [];
+      const documents = results.documents[0] || [];
+      const metadatas = results.metadatas[0] || [];
+      const distances = results.distances[0] || [];
+
+      return ids.map((id: string, index: number) => {
+        // ChromaDB with cosine distance returns values from 0 (identical) to 2 (opposite)
+        // Convert to similarity percentage: similarity = 1 - (distance / 2)
+        // This gives 1.0 for identical vectors, 0.0 for opposite vectors
+        const distance = distances[index];
+        const similarity = 1 - (distance / 2);
+
+        return {
+          id,
+          content: documents[index] || '',
+          similarity,
+          metadata: metadatas[index] || {}
+        };
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Search failed: ${message}`);
+    }
   }
 
   async removeDocument(project: string, id: string): Promise<void> {
-    const store = await this.initializeForProject(project);
-    await store.removeItem(id);
+    await this.ensureCollection(project);
+
+    try {
+      await axios.delete(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/documents`, {
+        data: {
+          ids: [id]
+        }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to remove document: ${message}`);
+    }
   }
 
   async searchByEntityId(project: string, entityId: string): Promise<SearchResult[]> {
-    const store = await this.initializeForProject(project);
-    // This is a simplified implementation
-    // In production, you'd want to add proper filtering
-    const allResults = await store.search(new Array(this.dimension).fill(0), 1000);
+    await this.ensureCollection(project);
 
-    return allResults
-      .filter((result: any) => result.metadata?.entityId === entityId)
-      .map((result: any) => ({
-        id: result.id,
-        content: result.metadata?.content || '',
-        similarity: 1 - result.distance,
-        metadata: result.metadata
-      }));
+    try {
+      // Use ChromaDB's where clause to filter by entityId
+      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, {
+        query_embeddings: [new Array(this.dimension).fill(0)],
+        n_results: 1000,
+        where: { entityId: entityId },
+        include: ['documents', 'metadatas', 'distances']
+      });
+
+      const results = response.data.results;
+      const ids = results.ids[0] || [];
+      const documents = results.documents[0] || [];
+      const metadatas = results.metadatas[0] || [];
+      const distances = results.distances[0] || [];
+
+      return ids.map((id: string, index: number) => {
+        const distance = distances[index];
+        const similarity = 1 - (distance / 2);
+        return {
+          id,
+          content: documents[index] || '',
+          similarity,
+          metadata: metadatas[index] || {}
+        };
+      });
+    } catch (error) {
+      return [];
+    }
   }
 
   async updateDocument(project: string, doc: VectorDocument): Promise<void> {
@@ -153,53 +177,78 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getStats(project: string): Promise<any> {
-    const store = await this.initializeForProject(project);
-    if (store.documents) {
-      // Mock store
+    await this.ensureCollection(project);
+
+    try {
+      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}`);
+
       return {
-        documentCount: store.documents.size,
+        documentCount: response.data.collection.count || 0,
+        dimension: this.dimension
+      };
+    } catch (error) {
+      return {
+        documentCount: 0,
         dimension: this.dimension
       };
     }
-
-    // Real store - would need to implement actual counting
-    return {
-      documentCount: 0,
-      dimension: this.dimension
-    };
   }
 
   async getDocumentById(project: string, id: string): Promise<VectorDocument | null> {
-    const store = await this.initializeForProject(project);
+    await this.ensureCollection(project);
 
-    if (store.documents) {
-      // Mock store
-      const doc = store.documents.get(id);
-      if (doc) {
+    try {
+      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/get`, {
+        params: {
+          ids: [id],
+          include: ['documents', 'metadatas', 'embeddings']
+        }
+      });
+
+      const results = response.data.results;
+
+      if (results.ids && results.ids.length > 0) {
         return {
-          id: doc.id,
-          content: doc.metadata?.content || '',
-          embedding: doc.vector,
-          metadata: doc.metadata
+          id: results.ids[0],
+          content: results.documents?.[0] || '',
+          embedding: results.embeddings?.[0] || [],
+          metadata: results.metadatas?.[0] || {}
         };
       }
+
+      return null;
+    } catch (error) {
       return null;
     }
+  }
 
-    // Real store - search with a zero vector and filter by ID
-    // This is not ideal but works for now
-    const allResults = await store.search(new Array(this.dimension).fill(0), 10000);
-    const result = allResults.find((r: any) => r.id === id);
+  async listDocuments(project: string): Promise<VectorDocument[]> {
+    await this.ensureCollection(project);
 
-    if (result) {
-      return {
-        id: result.id,
-        content: result.metadata?.content || '',
-        embedding: [], // Not retrieved in search
-        metadata: result.metadata
-      };
+    try {
+      // Get all documents from the collection
+      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/get`, {
+        params: {
+          include: ['documents', 'metadatas', 'embeddings']
+        }
+      });
+
+      const results = response.data.results;
+      const ids = results.ids || [];
+      const documents = results.documents || [];
+      const metadatas = results.metadatas || [];
+      const embeddings = results.embeddings || [];
+
+      return ids.map((id: string, index: number) => ({
+        id,
+        content: documents[index] || '',
+        embedding: embeddings[index] || [],
+        metadata: metadatas[index] || {}
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Error listing documents:', message);
+      return [];
     }
-
-    return null;
   }
 }

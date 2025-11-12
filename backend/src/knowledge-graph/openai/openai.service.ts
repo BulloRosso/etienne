@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 
 @Injectable()
 export class OpenAiService {
   private client: OpenAI;
+  private readonly workspaceDir = path.join(process.cwd(), 'workspace');
 
   constructor() {
     this.client = new OpenAI({
@@ -82,43 +85,68 @@ Convert the natural language query into a valid SPARQL query. Return ONLY the SP
     }
   }
 
-  async extractEntitiesFromMarkdown(content: string): Promise<any> {
+  async extractEntitiesFromMarkdown(project: string, content: string): Promise<any> {
     try {
-      // Define the structured output schema for Responses API
-      const schema = {
-        type: 'object',
-        properties: {
-          entities: {
-            type: 'object',
-            properties: {
-              Person: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'List of person names found in the text'
+      // Load schema and extraction prompt from files
+      const schemaPath = path.join(this.workspaceDir, project, 'knowledge-graph', '.etienne-entity-schema.json');
+      const promptPath = path.join(this.workspaceDir, project, 'knowledge-graph', '.etienne-extraction-prompt.md');
+
+      let schema: any;
+      let instructions: string;
+
+      // Try to load custom schema, fallback to default
+      try {
+        await fs.access(schemaPath);
+        const schemaContent = await fs.readFile(schemaPath, 'utf-8');
+        schema = JSON.parse(schemaContent);
+      } catch (error) {
+        // Use default schema if file doesn't exist
+        schema = {
+          type: 'object',
+          properties: {
+            entities: {
+              type: 'object',
+              properties: {
+                Person: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'List of person names found in the text'
+                },
+                Company: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'List of company or organization names found in the text'
+                },
+                Product: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'List of product or invention names found in the text'
+                }
               },
-              Company: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'List of company or organization names found in the text'
-              },
-              Product: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'List of product or invention names found in the text'
-              }
-            },
-            required: ['Person', 'Company', 'Product'],
-            additionalProperties: false
-          }
-        },
-        required: ['entities'],
-        additionalProperties: false
-      };
+              required: ['Person', 'Company', 'Product'],
+              additionalProperties: false
+            }
+          },
+          required: ['entities'],
+          additionalProperties: false
+        };
+      }
+
+      // Try to load custom extraction prompt, fallback to default
+      try {
+        await fs.access(promptPath);
+        instructions = await fs.readFile(promptPath, 'utf-8');
+        // Replace placeholder with actual content
+        instructions = instructions.replace('[INPUT_TEXT_PLACEHOLDER]', '');
+      } catch (error) {
+        // Use default instructions if file doesn't exist
+        instructions = 'You are an entity extraction AI. Extract entities from the given markdown text and categorize them into Person (people names), Company (company/organization names), and Product (product/invention names). Only include entities that are clearly mentioned in the text.';
+      }
 
       // Use Responses API instead of Chat Completions
       const response = await this.client.responses.create({
         model: 'gpt-4.1-mini',
-        instructions: 'You are an entity extraction AI. Extract entities from the given markdown text and categorize them into Person (people names), Company (company/organization names), and Product (product/invention names). Only include entities that are clearly mentioned in the text.',
+        instructions: instructions,
         input: content,
         temperature: 0.1,
         text: {

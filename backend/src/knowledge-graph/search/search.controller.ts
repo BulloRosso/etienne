@@ -19,9 +19,19 @@ export class SearchController {
     return this.searchService.createDocument(project, dto);
   }
 
+  @Get('documents')
+  async listDocuments(@Param('project') project: string) {
+    return this.searchService.listDocuments(project);
+  }
+
   @Get('documents/:id')
   async getDocument(@Param('project') project: string, @Param('id') id: string) {
     return this.searchService.getDocumentById(project, id);
+  }
+
+  @Delete('documents/:id')
+  async deleteDocument(@Param('project') project: string, @Param('id') id: string) {
+    return this.searchService.deleteDocument(project, id);
   }
 
   @Post('entities')
@@ -87,6 +97,28 @@ export class SearchController {
   @Post('parse-markdown')
   @HttpCode(200)
   async parseMarkdown(@Param('project') project: string, @Body() dto: ParseMarkdownDto) {
-    return this.searchService.parseMarkdown(project, dto.content, dto.sourceDocument);
+    return this.searchService.parseMarkdown(project, dto.content, dto.sourceDocument, dto.useGraphLayer);
+  }
+
+  @Get('entity-schema')
+  async getEntitySchema(@Param('project') project: string) {
+    return this.searchService.getEntitySchema(project);
+  }
+
+  @Post('entity-schema')
+  @HttpCode(200)
+  async saveEntitySchema(@Param('project') project: string, @Body() body: { schema: string }) {
+    return this.searchService.saveEntitySchema(project, body.schema);
+  }
+
+  @Get('extraction-prompt')
+  async getExtractionPrompt(@Param('project') project: string) {
+    return this.searchService.getExtractionPrompt(project);
+  }
+
+  @Post('extraction-prompt')
+  @HttpCode(200)
+  async saveExtractionPrompt(@Param('project') project: string, @Body() body: { prompt: string }) {
+    return this.searchService.saveExtractionPrompt(project, body.prompt);
   }
 }

@@ -19,9 +19,10 @@ import {
   TableRow,
   IconButton
 } from '@mui/material';
-import { PlayArrow, Analytics, Upload, Close, Description } from '@mui/icons-material';
+import { PlayArrow, Analytics, Upload, Close, Description, Search } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import GraphViewer from './GraphViewer';
+import VectorStoreItems from './VectorStoreItems';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -46,8 +47,195 @@ Dr. Jane Smith is a researcher at Tech Corp.
 ## Companies
 Tech Corp is a technology company specializing in AI research.`;
 
-export default function KnowledgeGraphBrowser({ project }) {
+const SAMPLE_SCHEMA = `@prefix ex: <http://example.org/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Ontology Definition
+ex:BusinessOntology a owl:Ontology ;
+    rdfs:label "Business Entity Ontology" ;
+    rdfs:comment "Ontology for describing companies, employees, technologies, and products" .
+
+# Entity Classes
+ex:Company a owl:Class ;
+    rdfs:label "Company" ;
+    rdfs:comment "An organization or business entity" .
+
+ex:Employee a owl:Class ;
+    rdfs:label "Employee" ;
+    rdfs:comment "A person who works for a company" .
+
+ex:Technology a owl:Class ;
+    rdfs:label "Technology" ;
+    rdfs:comment "A technological solution, framework, or tool" .
+
+ex:Product a owl:Class ;
+    rdfs:label "Product" ;
+    rdfs:comment "A product or service offered by a company" .
+
+# Properties/Relations
+ex:isEmployeeOf a owl:ObjectProperty ;
+    rdfs:label "is employee of" ;
+    rdfs:comment "Indicates that an employee works for a specific company" ;
+    rdfs:domain ex:Employee ;
+    rdfs:range ex:Company .
+
+ex:isManufacturedBy a owl:ObjectProperty ;
+    rdfs:label "is manufactured by" ;
+    rdfs:comment "Indicates that a product is manufactured or created by a company" ;
+    rdfs:domain ex:Product ;
+    rdfs:range ex:Company .
+
+ex:isOf a owl:ObjectProperty ;
+    rdfs:label "is of" ;
+    rdfs:comment "Indicates that a product or service is of a specific technology type" ;
+    rdfs:domain ex:Product ;
+    rdfs:range ex:Technology .
+
+# Additional useful properties
+ex:name a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:comment "The name of an entity" ;
+    rdfs:domain owl:Thing ;
+    rdfs:range xsd:string .
+
+ex:description a owl:DatatypeProperty ;
+    rdfs:label "description" ;
+    rdfs:comment "A description of an entity" ;
+    rdfs:domain owl:Thing ;
+    rdfs:range xsd:string .
+
+ex:foundedYear a owl:DatatypeProperty ;
+    rdfs:label "founded year" ;
+    rdfs:comment "The year a company was founded" ;
+    rdfs:domain ex:Company ;
+    rdfs:range xsd:gYear .
+
+ex:position a owl:DatatypeProperty ;
+    rdfs:label "position" ;
+    rdfs:comment "Job title or position of an employee" ;
+    rdfs:domain ex:Employee ;
+    rdfs:range xsd:string .`;
+
+const SAMPLE_EXTRACTION_PROMPT = `You are an expert information extraction system. Your task is to identify entities and relationships from text and structure them for storage in an RDF knowledge graph.
+
+## Entity Types to Extract:
+1. **Company**: Organizations, businesses, corporations, startups
+2. **Employee**: People who work for companies (including founders, CEOs, developers, etc.)
+3. **Technology**: Programming languages, frameworks, tools, platforms, software technologies
+4. **Product**: Products, services, applications, software solutions created by companies
+
+## Relationships to Identify:
+1. **isEmployeeOf**: Person works for/at a company
+2. **isManufacturedBy**: Product is created/developed/manufactured by a company
+3. **isOf**: Product uses or is built with a specific technology
+
+## Instructions:
+1. Read the input text carefully
+2. Identify all entities that fit the categories above
+3. Determine relationships between entities
+4. Output your findings in JSON format
+
+## Output Format:
+\`\`\`json
+{
+  "entities": [
+    {
+      "id": "unique_identifier",
+      "type": "Company|Employee|Technology|Product",
+      "name": "entity name",
+      "description": "brief description (optional)"
+    }
+  ],
+  "relationships": [
+    {
+      "subject": "entity_id_1",
+      "predicate": "isEmployeeOf|isManufacturedBy|isOf",
+      "object": "entity_id_2"
+    }
+  ]
+}
+\`\`\`
+
+## Example:
+Input: "John Smith works as a software engineer at Microsoft. He is developing a new cloud platform called Azure Functions using Node.js and Python."
+
+Output:
+\`\`\`json
+{
+  "entities": [
+    {
+      "id": "john_smith",
+      "type": "Employee",
+      "name": "John Smith",
+      "description": "Software engineer"
+    },
+    {
+      "id": "microsoft",
+      "type": "Company",
+      "name": "Microsoft"
+    },
+    {
+      "id": "azure_functions",
+      "type": "Product",
+      "name": "Azure Functions",
+      "description": "Cloud platform"
+    },
+    {
+      "id": "nodejs",
+      "type": "Technology",
+      "name": "Node.js"
+    },
+    {
+      "id": "python",
+      "type": "Technology",
+      "name": "Python"
+    }
+  ],
+  "relationships": [
+    {
+      "subject": "john_smith",
+      "predicate": "isEmployeeOf",
+      "object": "microsoft"
+    },
+    {
+      "subject": "azure_functions",
+      "predicate": "isManufacturedBy",
+      "object": "microsoft"
+    },
+    {
+      "subject": "azure_functions",
+      "predicate": "isOf",
+      "object": "nodejs"
+    },
+    {
+      "subject": "azure_functions",
+      "predicate": "isOf",
+      "object": "python"
+    }
+  ]
+}
+\`\`\`
+
+## Guidelines:
+- Create descriptive but concise IDs using lowercase and underscores
+- Be consistent with entity naming
+- Only extract relationships that are explicitly mentioned or strongly implied
+- If uncertain about a relationship, don't include it
+- Focus on the most important entities and relationships
+- Ensure all relationship subjects and objects reference valid entity IDs
+
+Now, please extract entities and relationships from the following text:
+
+[INPUT_TEXT_PLACEHOLDER]`;
+
+export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
   const [currentTab, setCurrentTab] = useState(0);
+  const [similaritySearchQuery, setSimilaritySearchQuery] = useState('');
+  const [similarityResults, setSimilarityResults] = useState([]);
+  const [similarityLoading, setSimilarityLoading] = useState(false);
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState('');
   const [sparqlQuery, setSparqlQuery] = useState(SAMPLE_SPARQL);
   const [markdownContent, setMarkdownContent] = useState(SAMPLE_MARKDOWN);
@@ -60,11 +248,18 @@ export default function KnowledgeGraphBrowser({ project }) {
   const [extractedEntities, setExtractedEntities] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [loadingDocument, setLoadingDocument] = useState(false);
+  const [entitySchema, setEntitySchema] = useState('');
+  const [extractionPrompt, setExtractionPrompt] = useState('');
+  const [entitiesSubTab, setEntitiesSubTab] = useState(0);
+  const [savingSchema, setSavingSchema] = useState(false);
+  const [schemaSuccess, setSchemaSuccess] = useState(false);
   const graphContainerRef = useRef(null);
 
   useEffect(() => {
     if (project) {
       fetchStats();
+      fetchEntitySchema();
+      fetchExtractionPrompt();
     }
   }, [project]);
 
@@ -86,6 +281,93 @@ export default function KnowledgeGraphBrowser({ project }) {
     } catch (err) {
       console.error('Failed to fetch stats:', err);
     }
+  };
+
+  const fetchEntitySchema = async () => {
+    if (!project) return;
+
+    try {
+      const response = await fetch(`/api/knowledge-graph/${project}/entity-schema`);
+      if (response.ok) {
+        const data = await response.json();
+        setEntitySchema(data.schema || '');
+      }
+    } catch (err) {
+      console.error('Failed to fetch entity schema:', err);
+    }
+  };
+
+  const fetchExtractionPrompt = async () => {
+    if (!project) return;
+
+    try {
+      const response = await fetch(`/api/knowledge-graph/${project}/extraction-prompt`);
+      if (response.ok) {
+        const data = await response.json();
+        setExtractionPrompt(data.prompt || '');
+      }
+    } catch (err) {
+      console.error('Failed to fetch extraction prompt:', err);
+    }
+  };
+
+  const handleSaveEntitySchema = async () => {
+    if (!project) return;
+
+    setSavingSchema(true);
+    setError(null);
+    setSchemaSuccess(false);
+
+    try {
+      const response = await fetch(`/api/knowledge-graph/${project}/entity-schema`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schema: entitySchema })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save entity schema');
+      }
+
+      setSchemaSuccess(true);
+      setTimeout(() => setSchemaSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingSchema(false);
+    }
+  };
+
+  const handleSaveExtractionPrompt = async () => {
+    if (!project) return;
+
+    setSavingSchema(true);
+    setError(null);
+    setSchemaSuccess(false);
+
+    try {
+      const response = await fetch(`/api/knowledge-graph/${project}/extraction-prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: extractionPrompt })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save extraction prompt');
+      }
+
+      setSchemaSuccess(true);
+      setTimeout(() => setSchemaSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingSchema(false);
+    }
+  };
+
+  const handleUseSampleSchema = () => {
+    setEntitySchema(SAMPLE_SCHEMA);
+    setExtractionPrompt(SAMPLE_EXTRACTION_PROMPT);
   };
 
   const handleNaturalLanguageSearch = async () => {
@@ -156,6 +438,45 @@ export default function KnowledgeGraphBrowser({ project }) {
     }
   };
 
+  const handleSimilaritySearch = async () => {
+    if (!similaritySearchQuery.trim() || !project) return;
+
+    setSimilarityLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/knowledge-graph/${project}/search/vector`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: similaritySearchQuery,
+          topK: 10
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to perform similarity search');
+      }
+
+      const results = await response.json();
+      // Transform results to match VectorStoreItems expected format
+      const transformedResults = results.map(result => ({
+        id: result.id,
+        content: result.content,
+        metadata: {
+          ...result.metadata,
+          similarity: result.similarity
+        }
+      }));
+      setSimilarityResults(transformedResults);
+    } catch (err) {
+      setError(err.message);
+      setSimilarityResults([]);
+    } finally {
+      setSimilarityLoading(false);
+    }
+  };
+
   const handleUploadMarkdown = async () => {
     if (!markdownContent.trim() || !project) return;
 
@@ -164,48 +485,29 @@ export default function KnowledgeGraphBrowser({ project }) {
     setUploadSuccess(false);
 
     try {
-      // First, parse the markdown to extract entities
+      // Parse markdown and upload to vector store (handles both entity extraction and storage)
       const parseResponse = await fetch(`/api/knowledge-graph/${project}/parse-markdown`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: markdownContent
+          content: markdownContent,
+          useGraphLayer: useGraphLayer
         })
       });
 
       if (!parseResponse.ok) {
-        throw new Error('Failed to parse markdown');
-      }
-
-      const parseResult = await parseResponse.json();
-
-      // Create a document ID based on timestamp
-      const docId = `doc-${Date.now()}`;
-
-      // Upload to vector store
-      const uploadResponse = await fetch(`/api/knowledge-graph/${project}/documents`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: docId,
-          content: markdownContent,
-          metadata: {
-            uploadedAt: new Date().toISOString(),
-            type: 'markdown',
-            extractedEntities: parseResult.entities
-          }
-        })
-      });
-
-      if (!uploadResponse.ok) {
         throw new Error('Failed to upload document');
       }
 
-      const uploadResult = await uploadResponse.json();
+      const parseResult = await parseResponse.json();
       setUploadSuccess(true);
 
-      // Use the actual extracted entities from the API
-      setExtractedEntities(parseResult.summary || []);
+      // Use the actual extracted entities from the API (only if graph layer enabled)
+      if (useGraphLayer) {
+        setExtractedEntities(parseResult.summary || []);
+      } else {
+        setExtractedEntities(null);
+      }
 
       // Refresh stats - force a complete refresh
       setTimeout(async () => {
@@ -416,16 +718,111 @@ SELECT ?document WHERE {
 
       {/* Tabs */}
       <Tabs value={currentTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tab label="Natural Language" />
-        <Tab label="SPARQL" />
+        <Tab label="Similarity Search" />
+        {useGraphLayer && <Tab label="Natural Language" />}
+        {useGraphLayer && <Tab label="SPARQL" />}
         <Tab label="Upload Data" />
         <Tab label="Knowledge Statistics" />
+        {useGraphLayer && <Tab label="Entities" />}
       </Tabs>
 
       {/* Tab Content */}
       <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-        {/* Natural Language Tab */}
+        {/* Similarity Search Tab */}
         {currentTab === 0 && (
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Search for documents by semantic similarity using vector embeddings.
+            </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Enter search terms..."
+                value={similaritySearchQuery}
+                onChange={(e) => setSimilaritySearchQuery(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !similarityLoading) {
+                    handleSimilaritySearch();
+                  }
+                }}
+                disabled={similarityLoading}
+              />
+              <IconButton
+                color="primary"
+                onClick={handleSimilaritySearch}
+                disabled={similarityLoading || !similaritySearchQuery.trim()}
+                sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
+              >
+                {similarityLoading ? <CircularProgress size={20} color="inherit" /> : <Search />}
+              </IconButton>
+            </Box>
+
+            {/* Display similarity search results using VectorStoreItems-like component */}
+            {similarityResults.length > 0 && (() => {
+              const filteredResults = similarityResults.filter(doc => (doc.metadata?.similarity || 0) >= 0.2);
+              return (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                    Search Results ({filteredResults.length})
+                  </Typography>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Document ID</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Content Preview</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Similarity</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Graph Layer</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredResults
+                          .sort((a, b) => (b.metadata?.similarity || 0) - (a.metadata?.similarity || 0))
+                          .map((doc) => (
+                          <TableRow key={doc.id} hover>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                                {doc.id}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {doc.content?.substring(0, 100) || 'N/A'}...
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={`${Math.round((doc.metadata?.similarity || 0) * 100)}%`}
+                                size="small"
+                                color={doc.metadata?.similarity > 0.8 ? 'success' : 'default'}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {doc.metadata?.useGraphLayer !== undefined ? (
+                                <Chip
+                                  label={doc.metadata.useGraphLayer ? 'Enabled' : 'Disabled'}
+                                  size="small"
+                                  color={doc.metadata.useGraphLayer ? 'success' : 'default'}
+                                />
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">N/A</Typography>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+              );
+            })()}
+          </Box>
+        )}
+
+        {/* Natural Language Tab */}
+        {useGraphLayer && currentTab === 1 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Ask questions in natural language. We'll automatically convert them to SPARQL queries.
@@ -481,7 +878,7 @@ SELECT ?document WHERE {
         )}
 
         {/* SPARQL Tab */}
-        {currentTab === 1 && (
+        {useGraphLayer && currentTab === 2 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Write and execute SPARQL queries directly against the knowledge graph.
@@ -515,15 +912,15 @@ SELECT ?document WHERE {
         )}
 
         {/* Upload Data Tab */}
-        {currentTab === 2 && (
-          <Box>
+        {currentTab === (useGraphLayer ? 3 : 1) && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Upload markdown content to be processed and added to the vector store.
             </Typography>
 
             {!uploadSuccess ? (
               <>
-                <Box sx={{ mb: 2, height: '400px', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                <Box sx={{ mb: 2, flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                   <Editor
                     height="100%"
                     defaultLanguage="markdown"
@@ -540,14 +937,23 @@ SELECT ?document WHERE {
                   />
                 </Box>
 
-                <Button
-                  variant="contained"
-                  onClick={handleUploadMarkdown}
-                  disabled={loading || !markdownContent.trim()}
-                  startIcon={loading ? <CircularProgress size={16} /> : <Upload />}
-                >
-                  Upload to Vector Store
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setMarkdownContent('')}
+                    startIcon={<Close />}
+                  >
+                    Clear Content
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleUploadMarkdown}
+                    disabled={loading || !markdownContent.trim()}
+                    startIcon={loading ? <CircularProgress size={16} /> : <Upload />}
+                  >
+                    Upload to Vector Store
+                  </Button>
+                </Box>
               </>
             ) : (
               <Box>
@@ -596,10 +1002,10 @@ SELECT ?document WHERE {
         )}
 
         {/* Knowledge Statistics Tab */}
-        {currentTab === 3 && stats && (
+        {currentTab === (useGraphLayer ? 4 : 2) && stats && (
           <Box>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={useGraphLayer ? 6 : 12}>
                 <Paper sx={{ p: 3 }}>
                   <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
                     Vector Store
@@ -625,33 +1031,35 @@ SELECT ?document WHERE {
                 </Paper>
               </Grid>
 
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-                    Knowledge Graph
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box>
-                      <Typography variant="h3" color="primary">
-                        {stats.knowledgeGraph?.totalQuads || 0}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        RDF Triples
-                      </Typography>
+              {useGraphLayer && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+                      Knowledge Graph
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box>
+                        <Typography variant="h3" color="primary">
+                          {stats.knowledgeGraph?.totalQuads || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          RDF Triples
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="h4">
+                          {stats.knowledgeGraph?.entityCount || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Total Entities
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box>
-                      <Typography variant="h4">
-                        {stats.knowledgeGraph?.entityCount || 0}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Entities
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Paper>
-              </Grid>
+                  </Paper>
+                </Grid>
+              )}
 
-              {stats.knowledgeGraph?.entityTypes && (
+              {useGraphLayer && stats.knowledgeGraph?.entityTypes && (
                 <Grid item xs={12}>
                   <Paper sx={{ p: 3 }}>
                     <Typography variant="subtitle1" sx={{ mb: 2 }}>
@@ -682,7 +1090,125 @@ SELECT ?document WHERE {
                   </Paper>
                 </Grid>
               )}
+
+              {/* Vector Store Documents */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Vector Store Documents
+                  </Typography>
+                  <VectorStoreItems project={project} />
+                </Paper>
+              </Grid>
             </Grid>
+          </Box>
+        )}
+
+        {/* Entities Tab */}
+        {useGraphLayer && currentTab === 5 && (
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Configure entity extraction schema and prompt
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleUseSampleSchema}
+              >
+                Use Sample Schema
+              </Button>
+            </Box>
+
+            {/* Sub-tabs for Schema and Extraction Prompt */}
+            <Tabs value={entitiesSubTab} onChange={(e, v) => setEntitiesSubTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+              <Tab label="Entity Schema" />
+              <Tab label="Extraction Prompt" />
+            </Tabs>
+
+            {/* Entity Schema Editor */}
+            {entitiesSubTab === 0 && (
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Define your RDF ontology schema for entity types and relationships
+                </Typography>
+
+                <Box sx={{ mb: 2, height: '500px', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                  <Editor
+                    height="100%"
+                    defaultLanguage="turtle"
+                    value={entitySchema}
+                    onChange={(value) => setEntitySchema(value || '')}
+                    theme="vs-dark"
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 12,
+                      lineNumbers: 'on',
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'on'
+                    }}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveEntitySchema}
+                    disabled={savingSchema}
+                    startIcon={savingSchema ? <CircularProgress size={16} /> : null}
+                  >
+                    Save Schema
+                  </Button>
+                  {schemaSuccess && (
+                    <Alert severity="success" sx={{ py: 0 }}>
+                      Schema saved successfully!
+                    </Alert>
+                  )}
+                </Box>
+              </Box>
+            )}
+
+            {/* Extraction Prompt Editor */}
+            {entitiesSubTab === 1 && (
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Define the prompt that guides entity extraction from text
+                </Typography>
+
+                <Box sx={{ mb: 2, height: '500px', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                  <Editor
+                    height="100%"
+                    defaultLanguage="markdown"
+                    value={extractionPrompt}
+                    onChange={(value) => setExtractionPrompt(value || '')}
+                    theme="vs-dark"
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 12,
+                      lineNumbers: 'on',
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'on'
+                    }}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveExtractionPrompt}
+                    disabled={savingSchema}
+                    startIcon={savingSchema ? <CircularProgress size={16} /> : null}
+                  >
+                    Save Prompt
+                  </Button>
+                  {schemaSuccess && (
+                    <Alert severity="success" sx={{ py: 0 }}>
+                      Prompt saved successfully!
+                    </Alert>
+                  )}
+                </Box>
+              </Box>
+            )}
           </Box>
         )}
 
@@ -693,8 +1219,8 @@ SELECT ?document WHERE {
           </Alert>
         )}
 
-        {/* Results Display (for tabs 0 and 1) */}
-        {(currentTab === 0 || currentTab === 1) && results && results.length > 0 && (
+        {/* Results Display (for tabs 0 and 1 when graph layer is enabled) */}
+        {useGraphLayer && (currentTab === 0 || currentTab === 1) && results && results.length > 0 && (
           <Paper sx={{ mt: 3, p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <Analytics />
@@ -784,7 +1310,7 @@ SELECT ?document WHERE {
           </Paper>
         )}
 
-        {(currentTab === 0 || currentTab === 1) && results && results.length === 0 && (
+        {useGraphLayer && (currentTab === 0 || currentTab === 1) && results && results.length === 0 && (
           <Alert severity="info" sx={{ mt: 3 }}>
             No results found.
           </Alert>
