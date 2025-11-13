@@ -196,9 +196,9 @@ export class SearchService {
     }
   }
 
-  async translateToSparql(query: string): Promise<string> {
+  async translateToSparql(query: string, project?: string): Promise<string> {
     try {
-      return await this.openai.translateToSparql(query);
+      return await this.openai.translateToSparql(query, project);
     } catch (error) {
       throw new HttpException(
         `Translation failed: ${error.message}`,

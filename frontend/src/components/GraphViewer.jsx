@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { Box, Paper, IconButton, Tooltip } from '@mui/material';
 import { ZoomIn, ZoomOut, CenterFocusStrong } from '@mui/icons-material';
 
-const GraphViewer = ({ data, width = '100%', height = 600, onNodeClick, onEdgeClick }) => {
+const GraphViewer = ({ data, width = '100%', height = 600, onNodeClick, onEdgeClick, tripleCount }) => {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
@@ -270,22 +270,29 @@ const GraphViewer = ({ data, width = '100%', height = 600, onNodeClick, onEdgeCl
 
   return (
     <Box ref={containerRef} sx={{ width: '100%' }}>
-      <Paper sx={{ p: 2, mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-        <Tooltip title="Zoom In">
-          <IconButton size="small" onClick={handleZoomIn}>
-            <ZoomIn />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Zoom Out">
-          <IconButton size="small" onClick={handleZoomOut}>
-            <ZoomOut />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Reset View">
-          <IconButton size="small" onClick={handleResetView}>
-            <CenterFocusStrong />
-          </IconButton>
-        </Tooltip>
+      <Paper sx={{ p: 2, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+        {tripleCount !== undefined && (
+          <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+            Graph visualization: {tripleCount} triples
+          </Box>
+        )}
+        <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          <Tooltip title="Zoom In">
+            <IconButton size="small" onClick={handleZoomIn}>
+              <ZoomIn />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Zoom Out">
+            <IconButton size="small" onClick={handleZoomOut}>
+              <ZoomOut />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Reset View">
+            <IconButton size="small" onClick={handleResetView}>
+              <CenterFocusStrong />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Paper>
 
       <Paper sx={{ p: 0, overflow: 'hidden', width: '100%' }}>
@@ -320,22 +327,23 @@ function processGraphData(data) {
         });
       }
 
-      // Add object node if it's a URI (not a literal)
+      // Determine if object is a URI (entity/relationship) or a literal (property)
       const isObjectUri = typeof object === 'string' &&
         (object.startsWith('http://') || object.startsWith('https://') ||
-         object.startsWith('urn:') || !object.includes('"'));
+         object.startsWith('urn:'));
 
-      if (isObjectUri && !nodesMap.has(object)) {
-        nodesMap.set(object, {
-          id: object,
-          label: extractLabel(object),
-          type: extractType(object),
-          size: 10
-        });
-      }
-
-      // Add link
       if (isObjectUri) {
+        // Add object node for URI objects
+        if (!nodesMap.has(object)) {
+          nodesMap.set(object, {
+            id: object,
+            label: extractLabel(object),
+            type: extractType(object),
+            size: 10
+          });
+        }
+
+        // Add link between entities
         links.push({
           source: subject,
           target: object,
@@ -344,7 +352,8 @@ function processGraphData(data) {
           value: 1
         });
       } else {
-        // For literals, add as property to the subject node
+        // For literals (property values), store as properties on the subject node
+        // These will appear in tooltips but not as separate nodes
         const node = nodesMap.get(subject);
         if (!node.properties) node.properties = {};
         node.properties[extractLabel(predicate)] = object;

@@ -19,7 +19,7 @@ import {
   TableRow,
   IconButton
 } from '@mui/material';
-import { PlayArrow, Analytics, Upload, Close, Description, Search } from '@mui/icons-material';
+import { PlayArrow, Upload, Close, Description, Search } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import GraphViewer from './GraphViewer';
 import VectorStoreItems from './VectorStoreItems';
@@ -378,7 +378,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
 
     try {
       // First, translate to SPARQL
-      const translateResponse = await fetch('/api/knowledge-graph/translate/sparql', {
+      const translateResponse = await fetch(`/api/knowledge-graph/${project}/translate/sparql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: naturalLanguageQuery })
@@ -830,6 +830,7 @@ SELECT ?document WHERE {
 
             <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
               <TextField
+                size="small"
                 fullWidth
                 placeholder="e.g., Who invented components in the electric vehicles category?"
                 value={naturalLanguageQuery}
@@ -841,14 +842,22 @@ SELECT ?document WHERE {
                 }}
                 disabled={loading}
               />
-              <Button
-                variant="contained"
+              <IconButton
+                size="small"
+                color="primary"
                 onClick={handleNaturalLanguageSearch}
                 disabled={loading || !naturalLanguageQuery.trim()}
-                startIcon={loading ? <CircularProgress size={16} /> : <PlayArrow />}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                  '&:disabled': { bgcolor: 'action.disabledBackground' }
+                }}
               >
-                Search
-              </Button>
+                {loading ? <CircularProgress size={20} color="inherit" /> : <Search />}
+              </IconButton>
             </Box>
 
             {/* Example queries */}
@@ -1221,23 +1230,14 @@ SELECT ?document WHERE {
 
         {/* Results Display (for tabs 0 and 1 when graph layer is enabled) */}
         {useGraphLayer && (currentTab === 0 || currentTab === 1) && results && results.length > 0 && (
-          <Paper sx={{ mt: 3, p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Analytics />
-              <Typography variant="h6">
-                Results ({results.length})
-              </Typography>
-            </Box>
-
+          <>
             {/* Graph Visualization Container */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                Graph visualization: {results.length} triples
-              </Typography>
+            <Box sx={{ mt: 3 }}>
               <GraphViewer
                 data={results}
                 height={600}
                 onNodeClick={handleNodeClick}
+                tripleCount={results.length}
               />
             </Box>
 
@@ -1280,7 +1280,7 @@ SELECT ?document WHERE {
                 </Paper>
               </Box>
             ) : (
-              <Box sx={{ overflowX: 'auto' }}>
+              <Box sx={{ mt: 3, overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #ddd' }}>
@@ -1307,7 +1307,7 @@ SELECT ?document WHERE {
                 </table>
               </Box>
             )}
-          </Paper>
+          </>
         )}
 
         {useGraphLayer && (currentTab === 0 || currentTab === 1) && results && results.length === 0 && (

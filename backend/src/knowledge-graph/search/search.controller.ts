@@ -84,8 +84,8 @@ export class SearchController {
 
   @Post('translate/sparql')
   @HttpCode(200)
-  async translateToSparql(@Body() body: { query: string }) {
-    const sparqlQuery = await this.searchService.translateToSparql(body.query);
+  async translateToSparql(@Param('project') project: string, @Body() body: { query: string }) {
+    const sparqlQuery = await this.searchService.translateToSparql(body.query, project);
     return { query: sparqlQuery };
   }
 

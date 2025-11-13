@@ -27,26 +27,45 @@ export class OpenAiService {
     }
   }
 
-  async translateToSparql(query: string): Promise<string> {
-    const systemPrompt = `You are a SPARQL query generator for a knowledge graph with the following schema:
+  async translateToSparql(query: string, project?: string): Promise<string> {
+    let schemaContext = '';
 
-Entity Types:
+    // Load project-specific schema if project is provided
+    if (project) {
+      try {
+        const schemaPath = path.join(this.workspaceDir, project, 'knowledge-graph', 'entity-schema.ttl');
+        await fs.access(schemaPath);
+        schemaContext = await fs.readFile(schemaPath, 'utf-8');
+      } catch (error) {
+        // Fall back to default schema if file doesn't exist
+        schemaContext = '';
+      }
+    }
+
+    // Use default schema if no project-specific schema found
+    if (!schemaContext) {
+      schemaContext = `Entity Types:
 - Person (properties: name, email, phone)
 - Company (properties: name, industry, location)
 - Product (properties: name, description, price, category)
 - Document (properties: content, uploadedAt, entityCount, fullContentLength)
 
 Relationship Types:
-- worksAt (is employed at): Person → Company
-- manufactures: Company → Product
+- worksAt / isEmployeeOf (is employed at): Person → Company
+- manufactures / isManufacturedBy: Company → Product
 - worksWith (works with): Person → Person
 - hasCustomer (has customer): Company → Company
 - invented: Person → Product
 - contains: Document → Person/Company/Product
 
-Base URI: http://example.org/kg/
+Base URI: http://example.org/kg/`;
+    }
 
-Convert the natural language query into a valid SPARQL query. Return ONLY the SPARQL query without any explanation.`;
+    const systemPrompt = `You are a SPARQL query generator for a knowledge graph with the following schema:
+
+${schemaContext}
+
+Convert the natural language query into a valid SPARQL query. Return ONLY the SPARQL query without any explanation or markdown formatting.`;
 
     try {
       const response = await this.client.chat.completions.create({
@@ -58,7 +77,12 @@ Convert the natural language query into a valid SPARQL query. Return ONLY the SP
         temperature: 0.1
       });
 
-      return response.choices[0].message.content.trim();
+      let sparqlQuery = response.choices[0].message.content.trim();
+
+      // Clean up the query - remove markdown code blocks if present
+      sparqlQuery = sparqlQuery.replace(/```sparql\n?/g, '').replace(/```\n?/g, '').trim();
+
+      return sparqlQuery;
     } catch (error) {
       throw new Error(`Failed to translate to SPARQL: ${error.message}`);
     }
@@ -152,7 +176,7 @@ Convert the natural language query into a valid SPARQL query. Return ONLY the SP
                 description: 'List of technologies found in the text'
               }
             },
-            required: ['Person', 'Company', 'Product'],
+            required: ['Person', 'Company', 'Product', 'Employee', 'Technology'],
             additionalProperties: false
           }
         },

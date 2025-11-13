@@ -12,6 +12,7 @@ import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
+import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.service';
 
 /**
  * MCP Server Service
@@ -34,6 +35,7 @@ export class McpServerService implements OnModuleInit {
     private readonly deepResearchService: DeepResearchService,
     private readonly vectorStoreService: VectorStoreService,
     private readonly openAiService: OpenAiService,
+    private readonly knowledgeGraphService: KnowledgeGraphService,
   ) {
     // Initialize the MCP SDK Server
     this.server = new Server(
@@ -53,7 +55,7 @@ export class McpServerService implements OnModuleInit {
       demoToolsService,
       diffbotToolsService,
       createDeepResearchToolsService(deepResearchService),
-      createKnowledgeGraphToolsService(vectorStoreService, openAiService),
+      createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService),
     ];
 
     // Set up SDK request handlers
