@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { Close, Delete } from '@mui/icons-material';
 import { FcElectricalSensor } from 'react-icons/fc';
+import { FaAssistiveListeningSystems } from 'react-icons/fa';
 
 export default function MQTTSettings({ open, onClose, project }) {
   const [activeTab, setActiveTab] = useState(0);
@@ -302,7 +303,7 @@ export default function MQTTSettings({ open, onClose, project }) {
               (multi-level).
             </Typography>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <TextField
                 label="Topic"
                 fullWidth
@@ -319,9 +320,13 @@ export default function MQTTSettings({ open, onClose, project }) {
                 variant="contained"
                 onClick={isSubscribed ? () => handleUnsubscribe(topic.trim()) : handleSubscribe}
                 disabled={loading || !topic.trim()}
-                sx={{ minWidth: 150 }}
+                sx={{
+                  minWidth: 'auto',
+                  height: '56px',
+                  px: 2
+                }}
               >
-                {loading ? 'Processing...' : isSubscribed ? 'Stop Listening' : 'Start Listening'}
+                <FaAssistiveListeningSystems size={24} />
               </Button>
             </Box>
 
