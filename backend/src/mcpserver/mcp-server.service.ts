@@ -8,7 +8,10 @@ import { ToolService } from './types';
 import { demoToolsService } from './demotools';
 import { diffbotToolsService } from './diffbot-tools';
 import { createDeepResearchToolsService } from './deep-research-tools';
+import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
+import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
+import { OpenAiService } from '../knowledge-graph/openai/openai.service';
 
 /**
  * MCP Server Service
@@ -27,7 +30,11 @@ export class McpServerService implements OnModuleInit {
   private toolMap = new Map<string, ToolService>();
   public readonly server: Server;
 
-  constructor(private readonly deepResearchService: DeepResearchService) {
+  constructor(
+    private readonly deepResearchService: DeepResearchService,
+    private readonly vectorStoreService: VectorStoreService,
+    private readonly openAiService: OpenAiService,
+  ) {
     // Initialize the MCP SDK Server
     this.server = new Server(
       {
@@ -46,6 +53,7 @@ export class McpServerService implements OnModuleInit {
       demoToolsService,
       diffbotToolsService,
       createDeepResearchToolsService(deepResearchService),
+      createKnowledgeGraphToolsService(vectorStoreService, openAiService),
     ];
 
     // Set up SDK request handlers

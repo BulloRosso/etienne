@@ -11,9 +11,11 @@ import {
   IconButton,
   Typography,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Tooltip
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
+import { IoDocumentOutline } from "react-icons/io5";
 
 export default function VectorStoreItems({ project }) {
   const [documents, setDocuments] = useState([]);
@@ -108,7 +110,7 @@ export default function VectorStoreItems({ project }) {
       <Table stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 'bold' }}>Document ID</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>DocID</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>Content Preview</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>Uploaded At</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>Graph Layer</TableCell>
@@ -116,7 +118,7 @@ export default function VectorStoreItems({ project }) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {documents.map((doc) => (
+          {documents.map((doc, index) => (
             <TableRow
               key={doc.id}
               onClick={() => handleRowClick(doc.id)}
@@ -124,18 +126,24 @@ export default function VectorStoreItems({ project }) {
               hover
               sx={{
                 cursor: 'pointer',
+                backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(0, 0, 0, 0.02)',
+                '&:hover': {
+                  backgroundColor: index % 2 === 0 ? 'rgba(0, 0, 0, 0.04)' : 'rgba(0, 0, 0, 0.06)',
+                },
                 '&.Mui-selected': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                  backgroundColor: 'rgba(25, 118, 210, 0.08) !important',
                 },
                 '&.Mui-selected:hover': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.12)',
+                  backgroundColor: 'rgba(25, 118, 210, 0.12) !important',
                 }
               }}
             >
               <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                  {doc.id}
-                </Typography>
+                <Tooltip title={doc.id} placement="top">
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <IoDocumentOutline style={{ fontSize: '20px', color: '#666' }} />
+                  </Box>
+                </Tooltip>
               </TableCell>
               <TableCell>
                 <Typography variant="body2">

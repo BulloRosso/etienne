@@ -9,5 +9,7 @@
     "esModuleInterop": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test*.ts"]
 }
