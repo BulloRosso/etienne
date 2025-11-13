@@ -1106,7 +1106,7 @@ SELECT ?document WHERE {
 
         {/* Entities Tab */}
         {useGraphLayer && currentTab === 5 && (
-          <Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="body2" color="text.secondary">
                 Configure entity extraction schema and prompt
@@ -1128,12 +1128,12 @@ SELECT ?document WHERE {
 
             {/* Entity Schema Editor */}
             {entitiesSubTab === 0 && (
-              <Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Define your RDF ontology schema for entity types and relationships
                 </Typography>
 
-                <Box sx={{ mb: 2, height: '500px', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                <Box sx={{ mb: 2, flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, minHeight: 0 }}>
                   <Editor
                     height="100%"
                     defaultLanguage="turtle"
@@ -1170,12 +1170,12 @@ SELECT ?document WHERE {
 
             {/* Extraction Prompt Editor */}
             {entitiesSubTab === 1 && (
-              <Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Define the prompt that guides entity extraction from text
                 </Typography>
 
-                <Box sx={{ mb: 2, height: '500px', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                <Box sx={{ mb: 2, flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, minHeight: 0 }}>
                   <Editor
                     height="100%"
                     defaultLanguage="markdown"

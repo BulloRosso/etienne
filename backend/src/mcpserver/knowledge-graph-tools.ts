@@ -82,7 +82,7 @@ export function createKnowledgeGraphToolsService(
   vectorStoreService: VectorStoreService,
   openAiService: OpenAiService,
 ): ToolService {
-  const workspaceDir = path.join(process.cwd(), 'workspace');
+  const workspaceDir = path.join(process.cwd(), '..', 'workspace');
 
   /**
    * Generate a unique document ID from filepath

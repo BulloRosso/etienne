@@ -21,7 +21,7 @@ interface Relationship {
 @Injectable()
 export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   private readonly baseUri = 'http://example.org/kg/';
-  private readonly workspaceDir = path.join(process.cwd(), 'workspace');
+  private readonly workspaceDir = path.join(process.cwd(), '..', 'workspace');
   private quadstoreAvailable = false;
 
   async onModuleInit() {

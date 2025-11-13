@@ -17,7 +17,7 @@ import * as fs from 'fs/promises';
 
 @Injectable()
 export class SearchService {
-  private readonly workspaceDir = path.join(process.cwd(), 'workspace');
+  private readonly workspaceDir = path.join(process.cwd(), '..', 'workspace');
 
   constructor(
     private readonly vectorStore: VectorStoreService,
@@ -411,7 +411,7 @@ export class SearchService {
 
   async getEntitySchema(project: string): Promise<any> {
     try {
-      const schemaPath = path.join(this.workspaceDir, project, 'knowledge-graph', '.etienne-entity-schema.json');
+      const schemaPath = path.join(this.workspaceDir, project, 'knowledge-graph', 'entity-schema.ttl');
 
       // Check if file exists
       try {
@@ -433,7 +433,7 @@ export class SearchService {
   async saveEntitySchema(project: string, schema: string): Promise<any> {
     try {
       const kgDir = path.join(this.workspaceDir, project, 'knowledge-graph');
-      const schemaPath = path.join(kgDir, '.etienne-entity-schema.json');
+      const schemaPath = path.join(kgDir, 'entity-schema.ttl');
 
       // Ensure directory exists
       await fs.mkdir(kgDir, { recursive: true });
@@ -452,7 +452,7 @@ export class SearchService {
 
   async getExtractionPrompt(project: string): Promise<any> {
     try {
-      const promptPath = path.join(this.workspaceDir, project, 'knowledge-graph', '.etienne-extraction-prompt.md');
+      const promptPath = path.join(this.workspaceDir, project, 'knowledge-graph', 'extraction-prompt.md');
 
       // Check if file exists
       try {
@@ -474,7 +474,7 @@ export class SearchService {
   async saveExtractionPrompt(project: string, prompt: string): Promise<any> {
     try {
       const kgDir = path.join(this.workspaceDir, project, 'knowledge-graph');
-      const promptPath = path.join(kgDir, '.etienne-extraction-prompt.md');
+      const promptPath = path.join(kgDir, 'extraction-prompt.md');
 
       // Ensure directory exists
       await fs.mkdir(kgDir, { recursive: true });
