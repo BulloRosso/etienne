@@ -7,7 +7,7 @@ const QUADSTORE_URL = process.env.QUADSTORE_URL || 'http://localhost:7000';
 
 interface Entity {
   id: string;
-  type: 'Person' | 'Company' | 'Product' | 'Document';
+  type: 'Person' | 'Company' | 'Product' | 'Document' | 'DocumentChunk';
   properties: { [key: string]: string };
 }
 
@@ -261,9 +261,106 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
           Person: 0,
           Company: 0,
           Product: 0,
-          Document: 0
+          Document: 0,
+          DocumentChunk: 0
         }
       };
+    }
+  }
+
+  /**
+   * Add a document chunk entity and link it to the parent document
+   * Creates a "isChunkOf" relationship between chunk and document
+   */
+  async addDocumentChunk(project: string, chunkId: string, documentId: string, metadata: any): Promise<void> {
+    this.ensureQuadstoreAvailable();
+
+    // Create the chunk entity
+    const chunkEntity: Entity = {
+      id: chunkId,
+      type: 'DocumentChunk',
+      properties: {
+        chunkNumber: String(metadata.chunkNumber),
+        startPosition: String(metadata.startPosition),
+        endPosition: String(metadata.endPosition),
+        totalChunks: String(metadata.totalChunks),
+        contentLength: String(metadata.contentLength || 0)
+      }
+    };
+
+    await this.addEntity(project, chunkEntity);
+
+    // Create the "isChunkOf" relationship
+    const relationship: Relationship = {
+      subject: chunkId,
+      predicate: 'isChunkOf',
+      object: documentId
+    };
+
+    await this.addRelationship(project, relationship);
+  }
+
+  /**
+   * Add multiple document chunks in batch
+   * More efficient than adding chunks one by one
+   */
+  async addDocumentChunks(project: string, chunks: Array<{ chunkId: string, documentId: string, metadata: any }>): Promise<void> {
+    this.ensureQuadstoreAvailable();
+
+    for (const chunk of chunks) {
+      await this.addDocumentChunk(project, chunk.chunkId, chunk.documentId, chunk.metadata);
+    }
+  }
+
+  /**
+   * Find all chunks for a given document
+   */
+  async findChunksByDocumentId(project: string, documentId: string): Promise<any[]> {
+    this.ensureQuadstoreAvailable();
+
+    const documentUri = `${this.baseUri}${documentId}`;
+    const isChunkOfPredicate = `${this.baseUri}isChunkOf`;
+
+    try {
+      // Find all chunks that have "isChunkOf" relationship with this document
+      const response = await axios.post(`${QUADSTORE_URL}/${project}/match`, {
+        subject: null,
+        predicate: isChunkOfPredicate,
+        object: documentUri
+      });
+
+      const chunks = [];
+      for (const quad of response.data.results) {
+        const chunkId = quad.subject.value.replace(this.baseUri, '');
+        const chunkEntity = await this.findEntityById(project, chunkId);
+        if (chunkEntity) {
+          chunks.push(chunkEntity);
+        }
+      }
+
+      // Sort chunks by chunk number
+      chunks.sort((a, b) => {
+        const numA = parseInt(a.chunkNumber || '0');
+        const numB = parseInt(b.chunkNumber || '0');
+        return numA - numB;
+      });
+
+      return chunks;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Delete all chunks for a document
+   */
+  async deleteDocumentChunks(project: string, documentId: string): Promise<void> {
+    this.ensureQuadstoreAvailable();
+
+    const chunks = await this.findChunksByDocumentId(project, documentId);
+
+    for (const chunk of chunks) {
+      await this.deleteEntity(project, chunk.id);
     }
   }
 }

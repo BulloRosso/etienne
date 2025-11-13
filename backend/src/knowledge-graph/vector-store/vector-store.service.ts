@@ -85,6 +85,38 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Add multiple document chunks in batch
+   * More efficient than adding chunks one by one
+   */
+  async addDocumentChunks(project: string, docs: VectorDocument[]): Promise<void> {
+    await this.ensureCollection(project);
+
+    if (docs.length === 0) {
+      return;
+    }
+
+    try {
+      const ids = docs.map(doc => doc.id);
+      const embeddings = docs.map(doc => doc.embedding);
+      const documents = docs.map(doc => doc.content);
+      const metadatas = docs.map(doc => ({
+        content: doc.content,
+        ...doc.metadata
+      }));
+
+      await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/add`, {
+        ids,
+        embeddings,
+        documents,
+        metadatas
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to add document chunks: ${message}`);
+    }
+  }
+
   async search(project: string, queryEmbedding: number[], topK: number = 5): Promise<SearchResult[]> {
     await this.ensureCollection(project);
 
@@ -135,6 +167,39 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to remove document: ${message}`);
+    }
+  }
+
+  /**
+   * Remove all chunks for a document by documentId
+   * This searches for all chunks with the pattern documentId-*
+   */
+  async removeDocumentChunks(project: string, documentId: string): Promise<void> {
+    await this.ensureCollection(project);
+
+    try {
+      // First, get all chunks for this document
+      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, {
+        query_embeddings: [new Array(this.dimension).fill(0)],
+        n_results: 10000, // Get all chunks
+        where: { documentId: documentId },
+        include: ['metadatas']
+      });
+
+      const results = response.data.results;
+      const ids = results.ids[0] || [];
+
+      if (ids.length > 0) {
+        // Delete all chunks
+        await axios.delete(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/documents`, {
+          data: {
+            ids: ids
+          }
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to remove document chunks: ${message}`);
     }
   }
 

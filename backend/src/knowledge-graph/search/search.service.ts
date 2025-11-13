@@ -12,6 +12,7 @@ import {
   VectorSearchDto,
   HybridSearchResult
 } from './search.dto';
+import { NaiveChunkingStrategy } from '../chunking';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
@@ -142,10 +143,14 @@ export class SearchService {
     };
 
     try {
-      // Vector search
+      // Vector search - request more results since we'll deduplicate chunks
       if (dto.includeVectorSearch) {
         const queryEmbedding = await this.openai.createEmbedding(dto.query);
-        result.vectorResults = await this.vectorStore.search(project, queryEmbedding, dto.topK || 5);
+        const topK = (dto.topK || 5) * 3; // Request 3x more to account for chunks
+        const rawResults = await this.vectorStore.search(project, queryEmbedding, topK);
+
+        // Deduplicate chunks and group by document
+        result.vectorResults = this.deduplicateChunks(rawResults).slice(0, dto.topK || 5);
       }
 
       // Knowledge graph search
@@ -176,7 +181,11 @@ export class SearchService {
   async vectorSearch(project: string, dto: VectorSearchDto): Promise<any[]> {
     try {
       const queryEmbedding = await this.openai.createEmbedding(dto.query);
-      return await this.vectorStore.search(project, queryEmbedding, dto.topK || 5);
+      const topK = (dto.topK || 5) * 3; // Request 3x more to account for chunks
+      const rawResults = await this.vectorStore.search(project, queryEmbedding, topK);
+
+      // Deduplicate chunks and group by document
+      return this.deduplicateChunks(rawResults).slice(0, dto.topK || 5);
     } catch (error) {
       throw new HttpException(
         `Vector search failed: ${error.message}`,
@@ -238,24 +247,45 @@ export class SearchService {
     try {
       const documentId = sourceDocument || `doc-${Date.now()}`;
 
+      // Create chunking strategy - use Naive Chunking with 8096 chars and 20% overlap
+      const chunkingStrategy = new NaiveChunkingStrategy(8096, 0.2);
+      const chunks = chunkingStrategy.chunk(documentId, content);
+
+      console.log(`📄 Document ${documentId}: ${content.length} chars -> ${chunks.length} chunks`);
+
       // Skip entity extraction if graph layer is disabled
       if (!useGraphLayer) {
-        // Only store the content in vector store
-        const embedding = await this.openai.createEmbedding(content);
-        await this.vectorStore.addDocument(project, {
-          id: documentId,
-          content: content,
-          embedding: embedding,
-          metadata: {
-            documentId: documentId,
-            uploadedAt: new Date().toISOString(),
-            fullContentLength: content.length,
-            useGraphLayer: false
-          }
-        });
+        // Store each chunk in vector store with embeddings
+        const chunkDocuments = await Promise.all(
+          chunks.map(async (chunk) => {
+            const embedding = await this.openai.createEmbedding(chunk.content);
+            return {
+              id: chunk.chunkId,
+              content: chunk.content,
+              embedding: embedding,
+              metadata: {
+                documentId: documentId,
+                chunkNumber: chunk.chunkNumber,
+                startPosition: chunk.startPosition,
+                endPosition: chunk.endPosition,
+                totalChunks: chunk.totalChunks,
+                contentLength: chunk.content.length,
+                createdAt: new Date().toISOString(),
+                uploadedAt: new Date().toISOString(),
+                fullContentLength: content.length,
+                useGraphLayer: false
+              }
+            };
+          })
+        );
+
+        // Batch insert chunks into vector store
+        await this.vectorStore.addDocumentChunks(project, chunkDocuments);
 
         return {
           documentId: documentId,
+          totalChunks: chunks.length,
+          chunkingStrategy: chunkingStrategy.getName(),
           totalEntities: 0,
           entitiesAdded: 0,
           entitiesSkipped: 0,
@@ -278,27 +308,57 @@ export class SearchService {
           content: content.substring(0, 500), // Store first 500 chars as preview
           uploadedAt: new Date().toISOString(),
           entityCount: entities.length,
-          fullContentLength: content.length
+          fullContentLength: content.length,
+          totalChunks: chunks.length,
+          chunkingStrategy: chunkingStrategy.getName()
         }
       };
 
       // Add the document entity to knowledge graph
       await this.graphBuilder.addEntity(project, documentEntity);
 
-      // Store the full document content in vector store
-      const embedding = await this.openai.createEmbedding(content);
-      await this.vectorStore.addDocument(project, {
-        id: documentId,
-        content: content,
-        embedding: embedding,
+      // Create embeddings for all chunks in parallel
+      const chunkDocuments = await Promise.all(
+        chunks.map(async (chunk) => {
+          const embedding = await this.openai.createEmbedding(chunk.content);
+          return {
+            id: chunk.chunkId,
+            content: chunk.content,
+            embedding: embedding,
+            metadata: {
+              documentId: documentId,
+              chunkNumber: chunk.chunkNumber,
+              startPosition: chunk.startPosition,
+              endPosition: chunk.endPosition,
+              totalChunks: chunk.totalChunks,
+              contentLength: chunk.content.length,
+              createdAt: new Date().toISOString(),
+              uploadedAt: new Date().toISOString(),
+              entityCount: entities.length,
+              fullContentLength: content.length,
+              useGraphLayer: true
+            }
+          };
+        })
+      );
+
+      // Batch insert chunks into vector store
+      await this.vectorStore.addDocumentChunks(project, chunkDocuments);
+
+      // Add chunk entities to knowledge graph with "isChunkOf" relationships
+      const chunkMetadataArray = chunks.map(chunk => ({
+        chunkId: chunk.chunkId,
+        documentId: documentId,
         metadata: {
-          documentId: documentId,
-          uploadedAt: new Date().toISOString(),
-          entityCount: entities.length,
-          fullContentLength: content.length,
-          useGraphLayer: true
+          chunkNumber: chunk.chunkNumber,
+          startPosition: chunk.startPosition,
+          endPosition: chunk.endPosition,
+          totalChunks: chunk.totalChunks,
+          contentLength: chunk.content.length
         }
-      });
+      }));
+
+      await this.knowledgeGraph.addDocumentChunks(project, chunkMetadataArray);
 
       // Insert entities into knowledge graph with deduplication
       let addedCount = 0;
@@ -325,6 +385,8 @@ export class SearchService {
       return {
         ...extractionResult,
         documentId: documentId,
+        totalChunks: chunks.length,
+        chunkingStrategy: chunkingStrategy.getName(),
         totalEntities: entities.length,
         entitiesAdded: addedCount,
         entitiesSkipped: skippedCount,
@@ -382,6 +444,55 @@ export class SearchService {
         error.status || HttpStatus.BAD_REQUEST
       );
     }
+  }
+
+  /**
+   * Deduplicates and groups chunk results by document
+   * Returns the best matching chunk for each document
+   */
+  private deduplicateChunks(results: any[]): any[] {
+    const documentMap = new Map<string, any>();
+
+    for (const result of results) {
+      const documentId = result.metadata?.documentId || result.id;
+      const isChunk = result.id?.includes('-') && result.metadata?.chunkNumber;
+
+      if (!isChunk) {
+        // Not a chunk, add as-is (or update if better score)
+        if (!documentMap.has(documentId) || documentMap.get(documentId).score < result.score) {
+          documentMap.set(documentId, {
+            ...result,
+            isChunk: false
+          });
+        }
+      } else {
+        // This is a chunk
+        const existing = documentMap.get(documentId);
+
+        if (!existing) {
+          // First chunk for this document
+          documentMap.set(documentId, {
+            ...result,
+            isChunk: true,
+            documentId: documentId,
+            matchedChunks: [result.id]
+          });
+        } else if (existing.score < result.score || result.score === undefined) {
+          // Better matching chunk found, replace
+          documentMap.set(documentId, {
+            ...result,
+            isChunk: true,
+            documentId: documentId,
+            matchedChunks: [...(existing.matchedChunks || []), result.id]
+          });
+        } else {
+          // Keep existing, just add chunk ID to list
+          existing.matchedChunks = [...(existing.matchedChunks || [existing.id]), result.id];
+        }
+      }
+    }
+
+    return Array.from(documentMap.values());
   }
 
   private combineResults(vectorResults: any[], kgResults: any[]): any[] {

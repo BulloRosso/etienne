@@ -1228,8 +1228,8 @@ SELECT ?document WHERE {
           </Alert>
         )}
 
-        {/* Results Display (for tabs 0 and 1 when graph layer is enabled) */}
-        {useGraphLayer && (currentTab === 0 || currentTab === 1) && results && results.length > 0 && (
+        {/* Results Display (for tabs 1 and 2 when graph layer is enabled) */}
+        {useGraphLayer && (currentTab === 1 || currentTab === 2) && results && results.length > 0 && (
           <>
             {/* Graph Visualization Container */}
             <Box sx={{ mt: 3 }}>
@@ -1310,7 +1310,7 @@ SELECT ?document WHERE {
           </>
         )}
 
-        {useGraphLayer && (currentTab === 0 || currentTab === 1) && results && results.length === 0 && (
+        {useGraphLayer && (currentTab === 1 || currentTab === 2) && results && results.length === 0 && (
           <Alert severity="info" sx={{ mt: 3 }}>
             No results found.
           </Alert>
