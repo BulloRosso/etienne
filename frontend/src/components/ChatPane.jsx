@@ -115,7 +115,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
 
   const handleNewSession = () => {
     // Check if we should show welcome page
-    if (uiConfig?.welcomePage && (uiConfig.welcomePage.message || uiConfig.welcomePage.quickActions?.length)) {
+    if (uiConfig?.welcomePage && uiConfig.welcomePage.showWelcomeMessage !== false && (uiConfig.welcomePage.message || uiConfig.welcomePage.quickActions?.length)) {
       if (onShowWelcomePage) {
         onShowWelcomePage();
       }

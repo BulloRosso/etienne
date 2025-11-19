@@ -126,9 +126,18 @@ export default function App() {
         if (uiResponse.ok) {
           const config = await uiResponse.json();
           setUiConfig(config);
-          // Show welcome page only if config exists, has welcome data, AND no existing sessions
-          const shouldShowWelcome = config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length) && !hasExistingSessions;
+          // Show welcome page only if config exists, has welcome data, showWelcomeMessage is true, AND no existing sessions
+          const shouldShowWelcome = config?.welcomePage && config.welcomePage.showWelcomeMessage !== false && (config.welcomePage.message || config.welcomePage.quickActions?.length) && !hasExistingSessions;
           setShowWelcomePage(shouldShowWelcome);
+
+          // Load preview documents if configured
+          if (config?.previewDocuments && Array.isArray(config.previewDocuments)) {
+            config.previewDocuments.forEach(docPath => {
+              if (docPath && docPath.trim()) {
+                fetchFile(docPath.trim(), currentProject);
+              }
+            });
+          }
         } else {
           setUiConfig(null);
           setShowWelcomePage(false);
