@@ -25,12 +25,14 @@ import { IoHandRightOutline } from 'react-icons/io5';
 import { RiRobot2Line } from 'react-icons/ri';
 import { FcElectricalSensor } from 'react-icons/fc';
 import { PiGraphLight } from 'react-icons/pi';
+import { GiAtom } from 'react-icons/gi';
 import SchedulingOverview from './SchedulingOverview';
 import GuardrailsSettings from './GuardrailsSettings';
 import SubagentConfiguration from './SubagentConfiguration';
 import MQTTSettings from './MQTTSettings';
 import CustomUI from './CustomUI';
 import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
+import SkillsSettings from './SkillsSettings';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -44,6 +46,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [externalEventsOpen, setExternalEventsOpen] = useState(false);
   const [customUIOpen, setCustomUIOpen] = useState(false);
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -235,6 +238,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setKnowledgeGraphOpen(false);
   };
 
+  const handleSkillsOpen = () => {
+    setSkillsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleSkillsClose = () => {
+    setSkillsOpen(false);
+  };
+
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
 
@@ -333,6 +345,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <PiGraphLight fontSize="small" style={{ fontSize: '20px' }} />
           </ListItemIcon>
           <ListItemText>Knowledge Base</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleSkillsOpen} disabled={!currentProject}>
+          <ListItemIcon>
+            <GiAtom fontSize="small" style={{ fontSize: '20px' }} />
+          </ListItemIcon>
+          <ListItemText>Skills</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
@@ -626,6 +644,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <KnowledgeGraphBrowser project={currentProject} useGraphLayer={useGraphLayer} />
         </DialogContent>
       </Dialog>
+
+      <SkillsSettings
+        open={skillsOpen}
+        onClose={handleSkillsClose}
+        project={currentProject}
+      />
     </>
   );
 }

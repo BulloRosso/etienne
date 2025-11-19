@@ -24,9 +24,10 @@ import { ExternalEventsModule } from './external-events/external-events.module';
 import { DeepResearchModule } from './deep-research/deep-research.module';
 import { KnowledgeGraphModule } from './knowledge-graph/knowledge-graph.module';
 import { SearchModule } from './knowledge-graph/search/search.module';
+import { SkillsModule } from './skills/skills.module';
 
 @Module({
-  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule],
+  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule],
   controllers: [ClaudeController],
   providers: [
     ClaudeService,
