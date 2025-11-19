@@ -112,4 +112,73 @@ export class ClaudeController {
   async clearSession(@Param('projectDir') projectDir: string) {
     return this.svc.clearSession(projectDir);
   }
+
+  @Post('unattended/:project')
+  async executeUnattendedOperation(
+    @Param('project') project: string,
+    @Body() body: { prompt: string; maxTurns?: number }
+  ) {
+    const { prompt, maxTurns } = body;
+
+    // Collect all messages from the stream
+    const messages: any[] = [];
+    let fullResponse = '';
+    let tokenUsage = { input_tokens: 0, output_tokens: 0 };
+
+    try {
+      const observable = this.sdkOrchestrator.streamPrompt(
+        project,
+        prompt,
+        undefined, // agentMode
+        true,      // memoryEnabled
+        true,      // skipChatPersistence - we'll handle persistence manually
+        maxTurns || 20
+      );
+
+      // Subscribe and collect all messages
+      await new Promise<void>((resolve, reject) => {
+        observable.subscribe({
+          next: (event: MessageEvent) => {
+            try {
+              const data = JSON.parse(event.data);
+              messages.push(data);
+
+              // Accumulate response text
+              if (data.type === 'text' && data.text) {
+                fullResponse += data.text;
+              }
+
+              // Capture token usage
+              if (data.type === 'usage') {
+                tokenUsage.input_tokens += data.input_tokens || 0;
+                tokenUsage.output_tokens += data.output_tokens || 0;
+              }
+            } catch (e) {
+              console.error('[Unattended] Error parsing message:', e);
+            }
+          },
+          error: (err) => reject(err),
+          complete: () => resolve()
+        });
+      });
+
+      return {
+        success: true,
+        response: fullResponse,
+        tokenUsage,
+        messages,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error: any) {
+      console.error('[Unattended] Execution error:', error);
+      return {
+        success: false,
+        error: error?.message || 'Unknown error',
+        response: fullResponse,
+        tokenUsage,
+        messages,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
 }

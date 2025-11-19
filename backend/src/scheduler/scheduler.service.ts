@@ -3,7 +3,7 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { TaskStorageService } from './task-storage.service';
 import { TaskDefinition, TaskHistoryEntry } from './interfaces/task.interface';
-import { ClaudeService } from '../claude/claude.service';
+import { ClaudeSdkOrchestratorService } from '../claude/sdk/claude-sdk-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { join } from 'path';
@@ -17,7 +17,7 @@ export class SchedulerService implements OnModuleInit {
   constructor(
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly storageService: TaskStorageService,
-    private readonly claudeService: ClaudeService,
+    private readonly claudeSdkOrchestrator: ClaudeSdkOrchestratorService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly sessionsService: SessionsService,
   ) {}
@@ -83,8 +83,19 @@ export class SchedulerService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      // Use the streamPrompt method from ClaudeService (skip built-in chat persistence)
-      const observable = this.claudeService.streamPrompt(project, task.prompt, undefined, undefined, undefined, true);
+      // Get projectRoot for later use in persistence
+      const projectRoot = join(this.workspaceRoot, project);
+
+      // Use the SDK orchestrator with skipChatPersistence=true (we'll handle persistence manually)
+      // Note: SDK automatically loads and resumes from the most recent session
+      const observable = this.claudeSdkOrchestrator.streamPrompt(
+        project,
+        task.prompt,
+        undefined, // agentMode
+        true,      // memoryEnabled
+        true,      // skipChatPersistence - we'll handle persistence manually
+        20         // maxTurns
+      );
 
       let fullResponse = '';
       let inputTokens = 0;
@@ -93,35 +104,36 @@ export class SchedulerService implements OnModuleInit {
       await new Promise<void>((resolve, reject) => {
         observable.subscribe({
           next: (messageEvent) => {
-            this.logger.debug(`Received event type: ${messageEvent.type}`);
+            try {
+              const data = typeof messageEvent.data === 'string'
+                ? JSON.parse(messageEvent.data)
+                : messageEvent.data;
 
-            if (messageEvent.type === 'stdout') {
-              const data = messageEvent.data;
-              if (typeof data === 'string') {
-                fullResponse += data;
-              } else if (data && typeof data === 'object' && data.chunk) {
-                // Extract chunk from object like {chunk: "text"}
+              this.logger.debug(`Received event type: ${messageEvent.type}`);
+
+              // Accumulate response text from SDK transformed messages
+              // The SDK orchestrator transforms messages to: type='stdout', data={chunk: text}
+              if (messageEvent.type === 'stdout' && data.chunk) {
                 fullResponse += data.chunk;
-              } else if (data && typeof data === 'object') {
-                fullResponse += JSON.stringify(data);
               }
-            } else if (messageEvent.type === 'usage') {
-              try {
-                const usageData = typeof messageEvent.data === 'string'
-                  ? JSON.parse(messageEvent.data)
-                  : messageEvent.data;
-                inputTokens = usageData.input_tokens || 0;
-                outputTokens = usageData.output_tokens || 0;
+
+              // Capture token usage from completed event
+              // The SDK orchestrator sends: type='completed', data={usage: {...}}
+              if (messageEvent.type === 'completed' && data.usage) {
+                inputTokens = data.usage.input_tokens || 0;
+                outputTokens = data.usage.output_tokens || 0;
                 this.logger.log(`Usage tracked: ${inputTokens} input, ${outputTokens} output tokens`);
-              } catch (err) {
-                this.logger.warn(`Failed to parse usage data: ${err.message}`);
               }
-            } else if (messageEvent.type === 'completed') {
-              this.logger.log('Task execution completed event received');
+
+              if (messageEvent.type === 'completed') {
+                this.logger.log('Task execution completed event received');
+              }
+            } catch (err: any) {
+              this.logger.warn(`Failed to parse message event: ${err?.message || 'Unknown error'}`);
             }
           },
-          error: (err) => {
-            this.logger.error(`Observable error: ${err.message}`);
+          error: (err: any) => {
+            this.logger.error(`Observable error: ${err?.message || 'Unknown error'}`);
             reject(err);
           },
           complete: () => {
@@ -149,9 +161,8 @@ export class SchedulerService implements OnModuleInit {
       this.logger.log(`Task ${task.name} completed in ${duration}ms with ${inputTokens} input and ${outputTokens} output tokens`);
 
       // Persist to chat history with [Scheduled: taskname] prefix
-      // Get the most recent session to continue it
       try {
-        const projectRoot = join(this.workspaceRoot, project);
+        // Get the most recent session ID (SDK may have created a new one)
         const mostRecentSessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
 
         if (mostRecentSessionId) {
