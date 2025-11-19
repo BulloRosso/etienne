@@ -189,34 +189,13 @@ export default function App() {
         console.log('Hook event:', eventType, hookData);
 
         if (eventType === 'PreToolUse') {
-          // Tool call started
-          const toolName = hookData.tool_name;
-          const toolInput = hookData.tool_input;
-
-          if (!toolName) {
-            console.warn('Could not find tool_name in PreToolUse hook:', hookData);
-            return;
-          }
-
-          const callId = `tool_${hookData.timestamp || Date.now()}`;
-          activeToolCallsRef.current.set(callId, {
-            toolName,
-            args: toolInput,
-            timestamp: hookData.timestamp || Date.now()
-          });
-
-          setStructuredMessages(prev => [...prev, {
-            id: callId,
-            type: 'tool_call',
-            toolName,
-            args: toolInput,
-            status: 'running',
-            callId
-          }]);
+          // PreToolUse hook is logged but UI updates come from main stream 'tool' events
+          // to avoid duplicates (backend emits to both streams)
+          console.log('PreToolUse hook received:', hookData);
         } else if (eventType === 'PostToolUse') {
-          // Tool call completed
+          // PostToolUse hook handles side effects only (file operations, etc.)
+          // UI updates come from main stream 'tool' events to avoid duplicates
           const toolName = hookData.tool_name;
-          const toolResponse = hookData.tool_output || hookData.tool_response; // tool_output is the actual response
           const toolInput = hookData.tool_input;
 
           if (!toolName) {
@@ -224,7 +203,9 @@ export default function App() {
             return;
           }
 
-          // Dispatch claudeHook event for file operations
+          console.log('PostToolUse hook received:', hookData);
+
+          // Dispatch claudeHook event for file operations (still needed for file watchers)
           const fileOperationTools = ['Edit', 'Write', 'NotebookEdit'];
           if (fileOperationTools.includes(toolName) && toolInput?.file_path) {
             const claudeHookEvent = new CustomEvent('claudeHook', {
@@ -256,32 +237,6 @@ export default function App() {
                 fetchFile(relativePath, currentProject);
               }, 800);
             }
-          }
-
-          // Find the matching PreToolUse
-          const matchingCall = Array.from(activeToolCallsRef.current.entries())
-            .find(([_, data]) => data.toolName === toolName);
-
-          if (matchingCall) {
-            const [callId] = matchingCall;
-            activeToolCallsRef.current.delete(callId);
-
-            // Extract result from tool_response if it's an object
-            // For TodoWrite, pass the entire response object
-            let result;
-            if (toolName === 'TodoWrite' && toolResponse) {
-              result = toolResponse;
-            } else {
-              result = toolResponse?.result || toolResponse?.output || JSON.stringify(toolResponse) || 'Completed';
-            }
-
-            setStructuredMessages(prev => prev.map(msg =>
-              msg.callId === callId
-                ? { ...msg, status: 'complete', result, args: toolName === 'TodoWrite' ? toolResponse : msg.args }
-                : msg
-            ));
-          } else {
-            console.warn('Could not find matching PreToolUse for PostToolUse:', toolName);
           }
         }
       } else if (event.type === 'event') {

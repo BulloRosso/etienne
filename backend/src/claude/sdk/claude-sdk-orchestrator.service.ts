@@ -186,13 +186,24 @@ export class ClaudeSdkOrchestratorService {
             input: input.tool_input
           });
 
-          // Emit PreToolUse hook event
+          // Emit PreToolUse hook event to interceptor stream
           this.hookEmitter.emitPreToolUse(projectDir, {
             tool_name: input.tool_name,
             tool_input: input.tool_input,
             call_id: callId,
             session_id: sessionId,
             timestamp: new Date().toISOString()
+          });
+
+          // Also emit to main observer stream for frontend UI
+          observer.next({
+            type: 'tool',
+            data: {
+              toolName: input.tool_name,
+              status: 'running',
+              callId: callId,
+              input: input.tool_input
+            }
           });
 
           return { continue: true };
@@ -379,17 +390,8 @@ export class ClaudeSdkOrchestratorService {
                 this.logger.log(`🔧 Tool execution started: ${block.name} (ID: ${toolCallId})`);
                 this.logger.debug(`🔧 Tool input: ${JSON.stringify(block.input).substring(0, 500)}`);
 
-                // Note: PreToolUse hook is now handled by SDK hooks
-                // Just emit tool event for frontend UI
-                observer.next({
-                  type: 'tool',
-                  data: {
-                    toolName: block.name,
-                    status: 'running',
-                    callId: toolCallId,
-                    input: block.input
-                  }
-                });
+                // Note: Tool event emission is handled by PreToolUse/PostToolUse hooks
+                // No need to emit here to avoid duplicates
               }
             }
           }

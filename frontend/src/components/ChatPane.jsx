@@ -248,6 +248,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                       key={structMsg.id}
                       message={structMsg}
                       onPermissionResponse={handlePermissionResponse}
+                      projectName={projectName}
                     />
                   ))}
                 </>
@@ -272,6 +273,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                 key={msg.id}
                 message={msg}
                 onPermissionResponse={handlePermissionResponse}
+                projectName={projectName}
               />
             ))}
           </>

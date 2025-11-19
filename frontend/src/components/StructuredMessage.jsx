@@ -104,7 +104,7 @@ const TodoListDisplay = ({ todos }) => {
 };
 
 // Tool call component - compact version
-export const ToolCallMessage = ({ toolName, args, status, result }) => {
+export const ToolCallMessage = ({ toolName, args, status, result, projectName }) => {
   // Special handling for TodoWrite
   const formatTodoWriteArgs = (args) => {
     if (!args) return '';
@@ -149,8 +149,36 @@ export const ToolCallMessage = ({ toolName, args, status, result }) => {
 
     let text = '';
 
-    // Try common field patterns
-    if (args.url) {
+    // Special handling for file_path - strip workspace path and show relative to project
+    if (args.file_path) {
+      let filePath = args.file_path;
+
+      // Try to find and strip everything before the project directory
+      if (projectName) {
+        // Handle both Unix and Windows path separators
+        const patterns = [
+          `workspace/${projectName}/`,
+          `workspace\\${projectName}\\`,
+          `/workspace/${projectName}/`,
+          `\\workspace\\${projectName}\\`
+        ];
+
+        for (const pattern of patterns) {
+          const index = filePath.indexOf(pattern);
+          if (index !== -1) {
+            filePath = filePath.substring(index + pattern.length);
+            break;
+          }
+        }
+      }
+
+      // If still too long, show last 60 characters
+      if (filePath.length > 60) {
+        text = '...' + filePath.slice(-60);
+      } else {
+        text = filePath;
+      }
+    } else if (args.url) {
       text = args.url;
     } else if (args.path) {
       text = args.path;
@@ -163,8 +191,12 @@ export const ToolCallMessage = ({ toolName, args, status, result }) => {
       text = JSON.stringify(args);
     }
 
-    // Truncate to 60 characters (not for TodoWrite)
-    return text.length > 60 ? text.substring(0, 60) + '...' : text;
+    // Truncate to 60 characters (not for file_path which is already handled)
+    if (!args.file_path) {
+      return text.length > 60 ? text.substring(0, 60) + '...' : text;
+    }
+
+    return text;
   };
 
   // Special rendering for TodoWrite - use full list display
@@ -519,7 +551,7 @@ export const ResearchErrorMessage = ({ outputFile, error }) => (
 );
 
 // Structured message router
-export const StructuredMessage = ({ message, onPermissionResponse }) => {
+export const StructuredMessage = ({ message, onPermissionResponse, projectName }) => {
   if (!message || !message.type) return null;
 
   switch (message.type) {
@@ -530,6 +562,7 @@ export const StructuredMessage = ({ message, onPermissionResponse }) => {
           args={message.args}
           status={message.status}
           result={message.result}
+          projectName={projectName}
         />
       );
 
