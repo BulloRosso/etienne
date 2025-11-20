@@ -92,6 +92,7 @@ export class ClaudeSdkOrchestratorService {
     let assistantText = '';
     let usage: Usage = {};
     const startTime = Date.now();
+    let currentModel: string | undefined; // Track model name from session init
 
     // Track tool calls to correlate PreToolUse with PostToolUse
     const toolCallMap = new Map<string, { name: string; input: any }>();
@@ -100,6 +101,15 @@ export class ClaudeSdkOrchestratorService {
       // Check if this is a new session or resuming
       sessionId = await this.sessionManager.loadSessionId(projectDir);
       const isFirstRequest = !sessionId;
+
+      // If resuming, load model from session
+      if (sessionId) {
+        const existingSession = this.sessionManager.getSession(sessionId);
+        if (existingSession?.model) {
+          currentModel = existingSession.model;
+          this.logger.debug(`📋 Loaded model from existing session: ${currentModel}`);
+        }
+      }
 
       // Apply input guardrails
       let sanitizedPrompt = prompt;
@@ -324,6 +334,7 @@ export class ClaudeSdkOrchestratorService {
           const newSessionId = (sdkMessage as any).session_id as string;
           const model = (sdkMessage as any).model;
           sessionId = newSessionId;
+          currentModel = model; // Store model for later injection into usage
           await this.sessionManager.createSession(projectDir, newSessionId, model);
 
           // Emit SessionStart event
@@ -414,6 +425,13 @@ export class ClaudeSdkOrchestratorService {
           const resultUsage = SdkMessageTransformer.extractUsage(sdkMessage);
           if (resultUsage) {
             usage = resultUsage;
+
+            // Inject model from session init if not present in usage
+            if (!usage.model && currentModel) {
+              usage.model = currentModel;
+              this.logger.debug(`💉 Injected model into usage: ${currentModel}`);
+            }
+
             observer.next({
               type: 'usage',
               data: usage

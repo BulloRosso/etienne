@@ -145,7 +145,7 @@ export class SessionsService {
           messages: [
             {
               role: 'user',
-              content: `Summarize this chat session in two sentences. The user is the user, the other part is called the agent. Session messages:\n\n${sessionContent}`
+              content: `Summarize this chat session in maximum 3 bullet points. Each bullet point must have no more than 10 words. The user is the user, the other part is called the agent. Session messages:\n\n${sessionContent}`
             }
           ],
           temperature: 0.3,
