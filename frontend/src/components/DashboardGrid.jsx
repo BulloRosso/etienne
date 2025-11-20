@@ -1,64 +1,58 @@
 import React from 'react';
 import { Box, Paper, Typography, IconButton } from '@mui/material';
-import { Assessment, InfoOutlined } from '@mui/icons-material';
-import { TbCalendarTime, TbPalette } from 'react-icons/tb';
-import { IoHandRightOutline } from 'react-icons/io5';
-import { RiRobot2Line } from 'react-icons/ri';
-import { PiGraphLight } from 'react-icons/pi';
-import { GiAtom } from 'react-icons/gi';
-import { FcElectricalSensor } from 'react-icons/fc';
+import { InfoOutlined } from '@mui/icons-material';
 
 const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) => {
   const dashboardItems = [
     // 1st row
     {
       id: 'subagents',
-      icon: <RiRobot2Line style={{ fontSize: 40 }} />,
+      image: '/subagents.jpg',
       label: 'Subagents',
       disabled: !currentProject
     },
     {
       id: 'skills',
-      icon: <GiAtom style={{ fontSize: 40 }} />,
+      image: '/skills.jpg',
       label: 'Skills',
       disabled: !currentProject
     },
     // 2nd row
     {
       id: 'knowledge',
-      icon: <PiGraphLight style={{ fontSize: 40 }} />,
+      image: '/knowledge.jpg',
       label: 'Knowledge Base',
       disabled: !currentProject
     },
     {
       id: 'externalevents',
-      icon: <FcElectricalSensor style={{ fontSize: 40 }} />,
+      image: '/externalevents.jpg',
       label: 'External Events',
       disabled: !currentProject
     },
     // 3rd row
     {
       id: 'scheduling',
-      icon: <TbCalendarTime style={{ fontSize: 40 }} />,
+      image: '/scheduling.jpg',
       label: 'Scheduling',
       disabled: !currentProject
     },
     {
       id: 'guardrails',
-      icon: <IoHandRightOutline style={{ fontSize: 40 }} />,
+      image: '/guardrails.jpg',
       label: 'Guardrails',
       disabled: !currentProject
     },
     // 4th row
     {
       id: 'budget',
-      icon: <Assessment sx={{ fontSize: 40 }} />,
+      image: '/budget.jpg',
       label: 'Budget Settings',
       disabled: !currentProject
     },
     {
       id: 'customui',
-      icon: <TbPalette style={{ fontSize: 40 }} />,
+      image: '/customui.jpg',
       label: 'Customize UI',
       disabled: !currentProject
     }
@@ -138,8 +132,17 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) =
             }}
             onClick={() => !item.disabled && handleClick(item.id)}
           >
-            <Box sx={{ color: item.disabled ? 'text.disabled' : 'primary.main', mb: 1 }}>
-              {item.icon}
+            <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img
+                src={item.image}
+                alt={item.label}
+                style={{
+                  height: '60px',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: item.disabled ? 'grayscale(100%)' : 'none'
+                }}
+              />
             </Box>
             <Typography
               variant="caption"
