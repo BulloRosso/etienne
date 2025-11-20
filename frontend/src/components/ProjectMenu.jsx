@@ -33,6 +33,7 @@ import MQTTSettings from './MQTTSettings';
 import CustomUI from './CustomUI';
 import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
 import SkillsSettings from './SkillsSettings';
+import DashboardGrid from './DashboardGrid';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -84,6 +85,37 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const handleNewProject = () => {
     setDialogOpen(true);
     handleMenuClose();
+  };
+
+  const handleDashboardItemClick = (itemId) => {
+    switch (itemId) {
+      case 'budget':
+        handleBudgetSettingsOpen();
+        break;
+      case 'scheduling':
+        handleSchedulingOpen();
+        break;
+      case 'guardrails':
+        handleGuardrailsOpen();
+        break;
+      case 'subagents':
+        handleSubagentsOpen();
+        break;
+      case 'customui':
+        handleCustomUIOpen();
+        break;
+      case 'knowledge':
+        handleKnowledgeGraphOpen();
+        break;
+      case 'skills':
+        handleSkillsOpen();
+        break;
+      case 'externalevents':
+        handleExternalEventsOpen();
+        break;
+      default:
+        break;
+    }
   };
 
   const handleDialogClose = () => {
@@ -297,84 +329,57 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           vertical: 'top',
           horizontal: 'right',
         }}
+        PaperProps={{
+          sx: {
+            overflow: 'visible',
+            mt: 1.5
+          }
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              overflow: 'visible'
+            }
+          }
+        }}
       >
-        <MenuItem onClick={handleAboutOpen}>
-          <ListItemIcon>
-            <InfoOutlined fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>About...</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleBudgetSettingsOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <Assessment fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Budget Settings</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleSchedulingOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <TbCalendarTime fontSize="small" style={{ fontSize: '20px' }} />
-          </ListItemIcon>
-          <ListItemText>Scheduling</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleGuardrailsOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <IoHandRightOutline fontSize="small" style={{ fontSize: '20px' }} />
-          </ListItemIcon>
-          <ListItemText>Guardrails</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleSubagentsOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <RiRobot2Line fontSize="small" style={{ fontSize: '20px' }} />
-          </ListItemIcon>
-          <ListItemText>Subagents</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleExternalEventsOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <FcElectricalSensor fontSize="small" style={{ fontSize: '20px' }} />
-          </ListItemIcon>
-          <ListItemText>External Events</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleCustomUIOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <TbPalette fontSize="small" style={{ fontSize: '20px' }} />
-          </ListItemIcon>
-          <ListItemText>Customize UI</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleKnowledgeGraphOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <PiGraphLight fontSize="small" style={{ fontSize: '20px' }} />
-          </ListItemIcon>
-          <ListItemText>Knowledge Base</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleSkillsOpen} disabled={!currentProject}>
-          <ListItemIcon>
-            <GiAtom fontSize="small" style={{ fontSize: '20px' }} />
-          </ListItemIcon>
-          <ListItemText>Skills</ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem disabled sx={{ opacity: '1 !important' }}>
-          <ListItemText>Choose project:</ListItemText>
-        </MenuItem>
-        {projects.filter(project => !project.startsWith('.')).map((project) => (
-          <MenuItem
-            key={project}
-            onClick={() => handleProjectSelect(project)}
-            selected={project === currentProject}
-          >
-            <ListItemIcon>
-              <FolderOutlined fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>{project}</ListItemText>
-          </MenuItem>
-        ))}
-        <Divider />
-        <MenuItem onClick={handleNewProject}>
-          <ListItemIcon>
-            <AddOutlined fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>New Project</ListItemText>
-        </MenuItem>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+          {/* Dashboard Grid on the left */}
+          <Box>
+            <DashboardGrid
+              currentProject={currentProject}
+              onItemClick={handleDashboardItemClick}
+              onClose={handleMenuClose}
+              onAboutClick={handleAboutOpen}
+            />
+          </Box>
+
+          {/* Project Menu on the right */}
+          <Box sx={{ minWidth: '250px' }}>
+            <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px' }}>
+              <ListItemText>Choose project:</ListItemText>
+            </MenuItem>
+            {projects.filter(project => !project.startsWith('.')).map((project) => (
+              <MenuItem
+                key={project}
+                onClick={() => handleProjectSelect(project)}
+                selected={project === currentProject}
+              >
+                <ListItemIcon>
+                  <FolderOutlined fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>{project}</ListItemText>
+              </MenuItem>
+            ))}
+            <Divider />
+            <MenuItem onClick={handleNewProject}>
+              <ListItemIcon>
+                <AddOutlined fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>New Project</ListItemText>
+            </MenuItem>
+          </Box>
+        </Box>
       </Menu>
 
       <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth="sm" fullWidth>
