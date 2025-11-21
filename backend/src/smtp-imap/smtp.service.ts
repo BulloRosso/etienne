@@ -144,7 +144,7 @@ export class SmtpService {
           const data = await fs.readFile(filePath);
           mailAttachments.push({
             name: path.basename(attachment),
-            data: data.toString('base64'),
+            data: data, // Pass Buffer directly, emailjs will handle encoding
             inline: false,
           });
         } catch (error) {
