@@ -69,7 +69,10 @@
       "Bash(npx vite build)",
       "Bash(runtime.log)",
       "Bash(npx tsx:*)",
-      "Bash(npm init:*)"
+      "Bash(npm init:*)",
+      "Bash(powershell:*)",
+      "Bash(for pid in d3e222 cb38a8 8c9295 ad00f3 c71d15 dce56f)",
+      "Bash(do echo \"Killing $pid\")"
     ],
     "deny": [],
     "ask": []

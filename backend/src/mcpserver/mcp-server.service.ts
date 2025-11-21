@@ -9,10 +9,13 @@ import { demoToolsService } from './demotools';
 import { diffbotToolsService } from './diffbot-tools';
 import { createDeepResearchToolsService } from './deep-research-tools';
 import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
+import { createEmailToolsService } from './email-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
 import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.service';
+import { SmtpService } from '../smtp-imap/smtp.service';
+import { ImapService } from '../smtp-imap/imap.service';
 
 /**
  * MCP Server Service
@@ -36,6 +39,8 @@ export class McpServerService implements OnModuleInit {
     private readonly vectorStoreService: VectorStoreService,
     private readonly openAiService: OpenAiService,
     private readonly knowledgeGraphService: KnowledgeGraphService,
+    private readonly smtpService: SmtpService,
+    private readonly imapService: ImapService,
   ) {
     // Initialize the MCP SDK Server
     this.server = new Server(
@@ -56,6 +61,7 @@ export class McpServerService implements OnModuleInit {
       diffbotToolsService,
       createDeepResearchToolsService(deepResearchService),
       createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService),
+      createEmailToolsService(smtpService, imapService),
     ];
 
     // Set up SDK request handlers

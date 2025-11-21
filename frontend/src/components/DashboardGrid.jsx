@@ -51,6 +51,13 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) =
       disabled: !currentProject
     },
     {
+      id: 'email',
+      image: '/email.jpg',
+      label: 'Email',
+      disabled: false // Email configuration is global, not project-specific
+    },
+    // 5th row
+    {
       id: 'customui',
       image: '/customui.jpg',
       label: 'Customize UI',
@@ -105,7 +112,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) =
         sx={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
-          gridTemplateRows: 'repeat(4, 1fr)',
+          gridTemplateRows: 'repeat(5, 1fr)',
           gap: 2,
           p: 2,
           pt: 1

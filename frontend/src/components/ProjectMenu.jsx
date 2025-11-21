@@ -34,6 +34,7 @@ import CustomUI from './CustomUI';
 import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
 import SkillsSettings from './SkillsSettings';
 import DashboardGrid from './DashboardGrid';
+import EmailConfiguration from './EmailConfiguration';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -48,6 +49,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [customUIOpen, setCustomUIOpen] = useState(false);
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -112,6 +114,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'externalevents':
         handleExternalEventsOpen();
+        break;
+      case 'email':
+        handleEmailOpen();
         break;
       default:
         break;
@@ -277,6 +282,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleSkillsClose = () => {
     setSkillsOpen(false);
+  };
+
+  const handleEmailOpen = () => {
+    setEmailOpen(true);
+    handleMenuClose();
+  };
+
+  const handleEmailClose = () => {
+    setEmailOpen(false);
   };
 
   const handleBudgetToggle = async (event) => {
@@ -655,6 +669,20 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         onClose={handleSkillsClose}
         project={currentProject}
       />
+
+      <Dialog open={emailOpen} onClose={handleEmailClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            Email Configuration
+            <IconButton onClick={handleEmailClose} size="small">
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <EmailConfiguration />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
