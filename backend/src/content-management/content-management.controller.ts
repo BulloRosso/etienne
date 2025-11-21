@@ -1,11 +1,15 @@
-import { Controller, Get, Post, Delete, Put, Param, Res, Body, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Put, Param, Res, Body, UploadedFile, UseInterceptors, Query, Inject, Optional } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ContentManagementService } from './content-management.service';
+import { TagsService } from '../tags/tags.service';
 
 @Controller('api/workspace')
 export class ContentManagementController {
-  constructor(private readonly contentManagementService: ContentManagementService) {}
+  constructor(
+    private readonly contentManagementService: ContentManagementService,
+    @Optional() @Inject(TagsService) private readonly tagsService?: TagsService,
+  ) {}
 
   @Get(':project/files/*')
   async getFile(
@@ -24,7 +28,14 @@ export class ContentManagementController {
     @Param('project') project: string,
     @Param('0') filepath: string,
   ) {
-    return await this.contentManagementService.deleteFileOrFolder(project, filepath);
+    const result = await this.contentManagementService.deleteFileOrFolder(project, filepath);
+
+    // Sync tags: remove file from tags
+    if (this.tagsService) {
+      await this.tagsService.deleteFile(project, filepath);
+    }
+
+    return result;
   }
 
   @Post(':project/files/move')
@@ -32,11 +43,18 @@ export class ContentManagementController {
     @Param('project') project: string,
     @Body() body: { sourcePath: string; destinationPath: string }
   ) {
-    return await this.contentManagementService.moveFileOrFolder(
+    const result = await this.contentManagementService.moveFileOrFolder(
       project,
       body.sourcePath,
       body.destinationPath
     );
+
+    // Sync tags: update file path
+    if (this.tagsService) {
+      await this.tagsService.renameFile(project, body.sourcePath, body.destinationPath);
+    }
+
+    return result;
   }
 
   @Put(':project/files/rename')
@@ -44,11 +62,18 @@ export class ContentManagementController {
     @Param('project') project: string,
     @Body() body: { filepath: string; newName: string }
   ) {
-    return await this.contentManagementService.renameFileOrFolder(
+    const result = await this.contentManagementService.renameFileOrFolder(
       project,
       body.filepath,
       body.newName
     );
+
+    // Sync tags: rename file path
+    if (this.tagsService && result.newPath) {
+      await this.tagsService.renameFile(project, body.filepath, result.newPath);
+    }
+
+    return result;
   }
 
   @Post(':project/files/upload')

@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Typography, Paper, IconButton, Collapse } from '@mui/material';
-import { ExpandMore, ExpandLess } from '@mui/icons-material';
+import { Box, Typography, Paper, IconButton, Collapse, Chip } from '@mui/material';
+import { ExpandMore, ExpandLess, Label } from '@mui/icons-material';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-export default function ChatMessage({ role, text, timestamp, usage }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName }) {
   const isUser = role === 'user';
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
 
@@ -40,16 +40,34 @@ export default function ChatMessage({ role, text, timestamp, usage }) {
           }}
         >
           {isUser ? (
-            <Typography
-              sx={{
-                whiteSpace: 'pre-wrap',
-                fontFamily: 'Roboto',
-                fontSize: '14px',
-                wordBreak: 'break-word'
-              }}
-            >
-              {text}
-            </Typography>
+            <>
+              <Typography
+                sx={{
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'Roboto',
+                  fontSize: '14px',
+                  wordBreak: 'break-word'
+                }}
+              >
+                {text}
+              </Typography>
+              {contextName && (
+                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Chip
+                    icon={<Label sx={{ fontSize: '14px' }} />}
+                    label={contextName}
+                    size="small"
+                    sx={{
+                      height: '20px',
+                      fontSize: '0.7rem',
+                      backgroundColor: '#e3f2fd',
+                      color: '#1565c0',
+                      '& .MuiChip-icon': { fontSize: '14px', color: '#1565c0' }
+                    }}
+                  />
+                </Box>
+              )}
+            </>
           ) : (
             <Box
               sx={{

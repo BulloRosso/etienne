@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import axios from 'axios';
 import { ClaudeSdkService } from './claude-sdk.service';
@@ -10,6 +10,7 @@ import { GuardrailsService } from '../../input-guardrails/guardrails.service';
 import { OutputGuardrailsService } from '../../output-guardrails/output-guardrails.service';
 import { BudgetMonitoringService } from '../../budget-monitoring/budget-monitoring.service';
 import { SessionsService } from '../../sessions/sessions.service';
+import { ContextInterceptorService } from '../../contexts/context-interceptor.service';
 import { sanitize_user_message } from '../../input-guardrails/index';
 import { ClaudeConfig } from '../config/claude.config';
 import { safeRoot } from '../utils/path.utils';
@@ -30,7 +31,8 @@ export class ClaudeSdkOrchestratorService {
     private readonly guardrailsService: GuardrailsService,
     private readonly outputGuardrailsService: OutputGuardrailsService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
-    private readonly sessionsService: SessionsService
+    private readonly sessionsService: SessionsService,
+    private readonly contextInterceptor: ContextInterceptorService
   ) {}
 
   /**
@@ -159,9 +161,26 @@ export class ClaudeSdkOrchestratorService {
         }
       }
 
+      // Context injection - add context scope to prompt
+      let finalPrompt = enhancedPrompt;
+      if (sessionId) {
+        try {
+          const contextInjection = await this.contextInterceptor.buildContextPromptInjection(
+            projectDir,
+            sessionId
+          );
+          if (contextInjection) {
+            finalPrompt = `${contextInjection}\n\n${enhancedPrompt}`;
+            this.logger.log(`🏷️ Injected context scope into prompt for session ${sessionId}`);
+          }
+        } catch (error: any) {
+          this.logger.error('Failed to inject context:', error.message);
+        }
+      }
+
       // Emit UserPromptSubmit event (before processing)
       this.hookEmitter.emitUserPromptSubmit(projectDir, {
-        prompt: enhancedPrompt,
+        prompt: finalPrompt,
         session_id: sessionId,
         timestamp: new Date().toISOString()
       });
@@ -188,6 +207,31 @@ export class ClaudeSdkOrchestratorService {
         try {
           this.logger.log(`🪝 PreToolUse hook called: ${input.tool_name}`);
           this.logger.debug(`🪝 PreToolUse input: ${JSON.stringify(input).substring(0, 500)}`);
+
+          // Validate tool use against active context
+          if (sessionId) {
+            try {
+              const validation = await this.contextInterceptor.validateToolUse(
+                projectDir,
+                sessionId,
+                input.tool_name,
+                input.tool_input
+              );
+
+              if (!validation.allowed) {
+                this.logger.warn(`🚫 Tool use blocked by context: ${validation.reason}`);
+
+                // Return error instead of throwing to prevent SDK from breaking
+                return {
+                  continue: false,
+                  error: validation.reason
+                };
+              }
+            } catch (contextError: any) {
+              this.logger.error(`Context validation error: ${contextError.message}`);
+              // Continue on validation error - don't block tool execution
+            }
+          }
 
           // Store tool call info using toolUseID
           const callId = toolUseID || `tool_${Date.now()}`;
@@ -231,6 +275,21 @@ export class ClaudeSdkOrchestratorService {
 
           const callId = toolUseID || `tool_${Date.now()}`;
           const toolCall = toolCallMap.get(callId);
+
+          // Filter tool results based on active context
+          if (sessionId) {
+            try {
+              input.tool_response = await this.contextInterceptor.filterToolResults(
+                projectDir,
+                sessionId,
+                input.tool_name,
+                input.tool_response
+              );
+            } catch (contextError: any) {
+              this.logger.error(`Context filtering error: ${contextError.message}`);
+              // Continue with unfiltered results on error
+            }
+          }
 
           // Emit PostToolUse hook event
           this.hookEmitter.emitPostToolUse(projectDir, {
@@ -314,7 +373,7 @@ export class ClaudeSdkOrchestratorService {
       try {
         for await (const sdkMessage of this.claudeSdkService.streamConversation(
           projectDir,
-          enhancedPrompt,
+          finalPrompt,
           {
             sessionId,
             agentMode,

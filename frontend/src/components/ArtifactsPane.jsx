@@ -180,7 +180,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         onClose={() => setFilesystemDrawerOpen(false)}
         sx={{
           '& .MuiDrawer-paper': {
-            width: '400px',
+            width: '600px',
             maxWidth: '90vw',
           },
         }}

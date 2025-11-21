@@ -12,6 +12,7 @@ import { OutputGuardrailsModule } from '../output-guardrails/output-guardrails.m
 import { SessionsModule } from '../sessions/sessions.module';
 import { InterceptorsModule } from '../interceptors/interceptors.module';
 import { BudgetMonitoringModule } from '../budget-monitoring/budget-monitoring.module';
+import { ContextsModule } from '../contexts/contexts.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { BudgetMonitoringModule } from '../budget-monitoring/budget-monitoring.m
     OutputGuardrailsModule,
     SessionsModule,
     forwardRef(() => InterceptorsModule),
-    BudgetMonitoringModule
+    BudgetMonitoringModule,
+    ContextsModule
   ],
   controllers: [SchedulerController],
   providers: [

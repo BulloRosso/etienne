@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { safeRoot } from '../claude/utils/path.utils';
 
@@ -47,6 +47,50 @@ export class SessionsController {
         success: false,
         error: error.message,
         messages: []
+      };
+    }
+  }
+
+  @Get(':projectname/:sessionId/context')
+  async getActiveContext(
+    @Param('projectname') projectname: string,
+    @Param('sessionId') sessionId: string
+  ): Promise<any> {
+    try {
+      const projectRoot = safeRoot(this.hostRoot, projectname);
+      const contextId = await this.sessionsService.getActiveContext(projectRoot, sessionId);
+
+      return {
+        success: true,
+        contextId
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        contextId: null
+      };
+    }
+  }
+
+  @Post(':projectname/:sessionId/context')
+  async setActiveContext(
+    @Param('projectname') projectname: string,
+    @Param('sessionId') sessionId: string,
+    @Body() body: { contextId: string | null }
+  ): Promise<any> {
+    try {
+      const projectRoot = safeRoot(this.hostRoot, projectname);
+      await this.sessionsService.setActiveContext(projectRoot, sessionId, body.contextId);
+
+      return {
+        success: true,
+        contextId: body.contextId
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
       };
     }
   }

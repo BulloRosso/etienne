@@ -21,6 +21,7 @@
     "dotenv": "^17.2.3",
     "emailjs": "^4.0.3",
     "express": "^4.21.2",
+    "fs-extra": "^11.3.2",
     "imap": "^0.8.19",
     "js-yaml": "^4.1.0",
     "mailparser": "^3.9.0",

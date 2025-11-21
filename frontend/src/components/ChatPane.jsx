@@ -259,6 +259,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                 text={msg.text}
                 timestamp={msg.timestamp}
                 usage={msg.usage}
+                contextName={msg.contextName}
               />
             </React.Fragment>
           );

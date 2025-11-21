@@ -15,9 +15,11 @@ import {
   DialogContent,
   DialogActions,
   Typography,
-  Tooltip
+  Tooltip,
+  Chip,
+  Autocomplete
 } from '@mui/material';
-import { Refresh, Delete, Edit, Upload, MoreVert, ExpandMore, ChevronRight, Preview } from '@mui/icons-material';
+import { Refresh, Delete, Edit, Upload, MoreVert, ExpandMore, ChevronRight, Preview, LocalOffer } from '@mui/icons-material';
 import { TreeView } from '@mui/x-tree-view/TreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { PiFolderThin, PiFolderOpenThin, PiUploadLight } from "react-icons/pi";
@@ -26,6 +28,8 @@ import { MdOutlineCreateNewFolder } from "react-icons/md";
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
+import TagManager from './TagManager';
+import { formatDistanceToNow, format } from 'date-fns';
 
 export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [tree, setTree] = useState([]);
@@ -38,10 +42,15 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [newFolderDialog, setNewFolderDialog] = useState({ open: false, folderName: '' });
   const [draggedNode, setDraggedNode] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
+  const [fileTags, setFileTags] = useState({});
+  const [allTags, setAllTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, node: null, filePath: '' });
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     loadFilesystem();
+    loadTags();
   }, [projectName]);
 
   const loadFilesystem = async () => {
@@ -58,6 +67,49 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadTags = async () => {
+    try {
+      const response = await axios.get(`/api/workspace/${projectName}/tags`);
+      setAllTags(response.data || []);
+
+      // Build file tags map
+      const tagsMap = {};
+      response.data.forEach(tagInfo => {
+        tagInfo.files.forEach(file => {
+          if (!tagsMap[file]) {
+            tagsMap[file] = [];
+          }
+          tagsMap[file].push(tagInfo.tag);
+        });
+      });
+      setFileTags(tagsMap);
+    } catch (err) {
+      console.error('Load tags error:', err);
+    }
+  };
+
+  const getTagColor = (tag) => {
+    const colors = ['#1976d2', '#388e3c', '#d32f2f', '#f57c00', '#7b1fa2', '#c2185b', '#0097a7', '#689f38', '#e64a19'];
+    const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const formatTimestamp = (mtimeString) => {
+    if (!mtimeString) return '';
+
+    const date = new Date(mtimeString);
+    const now = new Date();
+    const diffInDays = (now - date) / (1000 * 60 * 60 * 24);
+
+    // If less than or equal to 3 days, show relative time
+    if (diffInDays <= 3) {
+      return formatDistanceToNow(date, { addSuffix: true });
+    }
+
+    // Otherwise show full timestamp in browser's local timezone
+    return format(date, 'yyyy-MM-dd HH:mm:ss');
   };
 
   // Helper function to get node path from tree
@@ -173,6 +225,24 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       filePreviewHandler.handlePreview(filePath, projectName);
     }
     handleCloseContextMenu();
+  };
+
+  // Handle tag management
+  const handleManageTagsClick = () => {
+    if (contextMenu?.node) {
+      const filePath = getNodePath(contextMenu.node.id);
+      setTagManagerDialog({
+        open: true,
+        node: contextMenu.node,
+        filePath
+      });
+    }
+    handleCloseContextMenu();
+  };
+
+  const handleTagManagerClose = () => {
+    setTagManagerDialog({ open: false, node: null, filePath: '' });
+    loadTags(); // Reload tags after changes
   };
 
   // Handle new folder
@@ -340,42 +410,71 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     }
   };
 
-  const filterSystemFiles = (nodes) => {
-    if (showSystemFiles) return nodes;
-
+  const filterSystemFiles = (nodes, parentPath = '') => {
     return nodes.filter(node => {
-      // Filter out CLAUDE.md in root and data folder
-      if (node.label === 'CLAUDE.md' || node.label === 'data' || node.label === '.claude' || node.label === '.mcp.json' || node.label === '.etienne') {
-        return false;
+      // Filter system files if needed
+      if (!showSystemFiles) {
+        if (node.label === 'CLAUDE.md' || node.label === 'data' || node.label === '.claude' || node.label === '.mcp.json' || node.label === '.etienne') {
+          return false;
+        }
+      }
+
+      // Build current path
+      const currentPath = parentPath ? `${parentPath}/${node.label}` : node.label;
+
+      // Filter by tags if selected
+      if (selectedTags.length > 0) {
+        const nodeTags = fileTags[currentPath] || [];
+        const hasMatchingTag = selectedTags.some(tag => nodeTags.includes(tag));
+
+        // For folders, check if any children match
+        if (node.type === 'folder' && node.children) {
+          const filteredChildren = filterSystemFiles(node.children, currentPath);
+          if (filteredChildren.length > 0) {
+            node.children = filteredChildren;
+            return true;
+          }
+        }
+
+        if (!hasMatchingTag) {
+          return false;
+        }
       }
 
       // Recursively filter children
       if (node.children) {
-        node.children = filterSystemFiles(node.children);
+        node.children = filterSystemFiles(node.children, currentPath);
       }
 
       return true;
     });
   };
 
-  const renderTree = (nodes) => {
+  const renderTree = (nodes, parentPath = '') => {
     return nodes.map((node) => {
       const isFolder = node.type === 'folder';
       const isDropTarget = dropTarget === node.id;
+      const currentPath = parentPath ? `${parentPath}/${node.label}` : node.label;
+      const nodeTags = fileTags[currentPath] || [];
 
-      // Custom label with drag-and-drop
+      // Custom label with drag-and-drop, tags, and timestamp
       const customLabel = (
         <Box
           sx={{
             display: 'flex',
-            alignItems: 'center',
-            gap: 1,
+            alignItems: 'flex-start',
+            gap: 0.5,
             padding: '2px 4px',
             backgroundColor: isDropTarget ? 'rgba(25, 118, 210, 0.12)' : 'transparent',
             borderRadius: 1,
             cursor: 'pointer',
+            width: '100%',
+            marginLeft: '-4px',
+            marginRight: '-4px',
+            paddingLeft: '8px',
+            paddingRight: '8px',
             '&:hover': {
-              backgroundColor: isDropTarget ? 'rgba(25, 118, 210, 0.2)' : 'rgba(0, 0, 0, 0.04)'
+              backgroundColor: isDropTarget ? 'rgba(25, 118, 210, 0.2)' : '#FFD700'
             }
           }}
           draggable
@@ -387,11 +486,34 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           onClick={(e) => handleContextMenu(e, node)}
         >
           {isFolder ? (
-            <PiFolderThin size={19} style={{ color: '#999', marginRight: '4px' }} />
+            <PiFolderThin size={19} style={{ color: '#999', marginRight: '4px', flexShrink: 0 }} />
           ) : (
-            <IoDocumentOutline style={{ color: '#999', marginRight: '4px' }} />
+            <IoDocumentOutline style={{ color: '#999', marginRight: '4px', flexShrink: 0 }} />
           )}
-          {node.label}
+          <span style={{ fontSize: '0.8em' }}>{node.label}</span>
+          {nodeTags.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
+              {nodeTags.map(tag => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  size="small"
+                  sx={{
+                    height: '16px',
+                    fontSize: '0.7rem',
+                    backgroundColor: getTagColor(tag),
+                    color: 'white',
+                    '& .MuiChip-label': {
+                      px: 0.5
+                    }
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+          <Box sx={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {formatTimestamp(node.mtime)}
+          </Box>
         </Box>
       );
 
@@ -401,7 +523,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           itemId={node.id}
           label={customLabel}
         >
-          {isFolder && node.children && renderTree(node.children)}
+          {isFolder && node.children && renderTree(node.children, currentPath)}
         </TreeItem>
       );
     });
@@ -424,6 +546,36 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         </Alert>
       )}
 
+      {/* Tag Filter Bar */}
+      {allTags.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Autocomplete
+            multiple
+            size="small"
+            options={allTags.map(t => t.tag)}
+            value={selectedTags}
+            onChange={(event, newValue) => setSelectedTags(newValue)}
+            renderInput={(params) => (
+              <TextField {...params} label="Filter by tags" placeholder="Select tags" />
+            )}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  {...getTagProps({ index })}
+                  key={option}
+                  label={option}
+                  size="small"
+                  sx={{
+                    backgroundColor: getTagColor(option),
+                    color: 'white'
+                  }}
+                />
+              ))
+            }
+          />
+        </Box>
+      )}
+
       <Box
         sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1, overflow: 'auto', p: 1, mr: '0px' }}
         onDragOver={handleDragOver}
@@ -433,7 +585,19 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           aria-label="file system navigator"
           defaultCollapseIcon={<ExpandMore />}
           defaultExpandIcon={<ChevronRight />}
-          sx={{ fontSize: '90%', fontWeight: 300 }}
+          sx={{
+            fontSize: '90%',
+            fontWeight: 300,
+            '& .MuiTreeItem-content': {
+              alignItems: 'flex-start !important',
+              '&:hover': {
+                backgroundColor: 'transparent !important'
+              }
+            },
+            '& .MuiTreeItem-iconContainer': {
+              marginTop: '5px'
+            }
+          }}
         >
           {renderTree(filterSystemFiles(tree))}
         </TreeView>
@@ -517,6 +681,10 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         <MenuItem onClick={handleDeleteClick}>
           <Delete fontSize="small" sx={{ mr: 1 }} />
           Delete
+        </MenuItem>
+        <MenuItem onClick={handleManageTagsClick}>
+          <LocalOffer fontSize="small" sx={{ mr: 1 }} />
+          Manage Tags
         </MenuItem>
       </Menu>
 
@@ -609,6 +777,17 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Tag Manager Dialog */}
+      <TagManager
+        open={tagManagerDialog.open}
+        onClose={handleTagManagerClose}
+        projectName={projectName}
+        filePath={tagManagerDialog.filePath}
+        fileName={tagManagerDialog.node?.label || ''}
+        currentTags={fileTags[tagManagerDialog.filePath] || []}
+        allTags={allTags}
+      />
     </Box>
   );
 }

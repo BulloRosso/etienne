@@ -62,6 +62,12 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) =
       image: '/customui.jpg',
       label: 'Customize UI',
       disabled: !currentProject
+    },
+    {
+      id: 'contexts',
+      image: '/contextmanager.jpg',
+      label: 'Context/Tagging',
+      disabled: !currentProject
     }
   ];
 

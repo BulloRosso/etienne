@@ -290,6 +290,7 @@ export class ClaudeService {
         sorted.map(async (entry) => {
           const fullPath = join(dirPath, entry.name);
           const relativePath = fullPath.slice(basePath.length + 1).replace(/\\/g, '/');
+          const stats = await fs.stat(fullPath);
 
           if (entry.isDirectory()) {
             const children = await buildTree(fullPath, basePath);
@@ -297,13 +298,15 @@ export class ClaudeService {
               id: relativePath,
               label: entry.name,
               type: 'folder',
+              mtime: stats.mtime.toISOString(),
               children
             };
           } else {
             return {
               id: relativePath,
               label: entry.name,
-              type: 'file'
+              type: 'file',
+              mtime: stats.mtime.toISOString()
             };
           }
         })

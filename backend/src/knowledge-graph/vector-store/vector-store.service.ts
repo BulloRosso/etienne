@@ -4,7 +4,7 @@ import axios from 'axios';
 const CHROMADB_URL = process.env.CHROMADB_URL || 'http://localhost:7100';
 const COLLECTION_NAME = 'documents'; // Default collection name for documents
 
-interface VectorDocument {
+export interface VectorDocument {
   id: string;
   content: string;
   embedding: number[];
@@ -12,15 +12,23 @@ interface VectorDocument {
     entityId?: string;
     entityType?: string;
     createdAt: string;
+    tags?: string[];
+    contextScope?: string;
     [key: string]: any;
   };
 }
 
-interface SearchResult {
+export interface SearchResult {
   id: string;
   content: string;
   similarity: number;
   metadata: any;
+}
+
+export interface SearchOptions {
+  topK?: number;
+  tags?: string[];
+  minSimilarity?: number;
 }
 
 @Injectable()
@@ -117,15 +125,32 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async search(project: string, queryEmbedding: number[], topK: number = 5): Promise<SearchResult[]> {
+  async search(project: string, queryEmbedding: number[], options: SearchOptions = {}): Promise<SearchResult[]> {
     await this.ensureCollection(project);
 
+    const { topK = 5, tags, minSimilarity = 0 } = options;
+
     try {
-      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, {
+      const queryParams: any = {
         query_embeddings: [queryEmbedding],
         n_results: topK,
         include: ['documents', 'metadatas', 'distances']
-      });
+      };
+
+      // Add tag filtering if tags are specified
+      if (tags && tags.length > 0) {
+        // ChromaDB uses $and for multiple conditions, $in for array matching
+        if (tags.length === 1) {
+          queryParams.where = { tags: { $contains: tags[0] } };
+        } else {
+          // For multiple tags, we want documents that have ANY of the tags (OR logic)
+          queryParams.where = {
+            $or: tags.map(tag => ({ tags: { $contains: tag } }))
+          };
+        }
+      }
+
+      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, queryParams);
 
       const results = response.data.results;
 
@@ -135,24 +160,33 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
       const metadatas = results.metadatas[0] || [];
       const distances = results.distances[0] || [];
 
-      return ids.map((id: string, index: number) => {
-        // ChromaDB with cosine distance returns values from 0 (identical) to 2 (opposite)
-        // Convert to similarity percentage: similarity = 1 - (distance / 2)
-        // This gives 1.0 for identical vectors, 0.0 for opposite vectors
-        const distance = distances[index];
-        const similarity = 1 - (distance / 2);
+      return ids
+        .map((id: string, index: number) => {
+          // ChromaDB with cosine distance returns values from 0 (identical) to 2 (opposite)
+          // Convert to similarity percentage: similarity = 1 - (distance / 2)
+          // This gives 1.0 for identical vectors, 0.0 for opposite vectors
+          const distance = distances[index];
+          const similarity = 1 - (distance / 2);
 
-        return {
-          id,
-          content: documents[index] || '',
-          similarity,
-          metadata: metadatas[index] || {}
-        };
-      });
+          return {
+            id,
+            content: documents[index] || '',
+            similarity,
+            metadata: metadatas[index] || {}
+          };
+        })
+        .filter(result => result.similarity >= minSimilarity);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Search failed: ${message}`);
     }
+  }
+
+  /**
+   * Legacy search method for backward compatibility
+   */
+  async searchSimple(project: string, queryEmbedding: number[], topK: number = 5): Promise<SearchResult[]> {
+    return this.search(project, queryEmbedding, { topK });
   }
 
   async removeDocument(project: string, id: string): Promise<void> {

@@ -246,6 +246,122 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
     await axios.delete(`${QUADSTORE_URL}/${project}/entity/${encodeURIComponent(entityUri)}`);
   }
 
+  /**
+   * Add a tag to an entity
+   */
+  async addEntityTag(project: string, entityId: string, tag: string): Promise<void> {
+    this.ensureQuadstoreAvailable();
+
+    const entityUri = `${this.baseUri}${entityId}`;
+    const tagPredicate = `${this.baseUri}hasTag`;
+
+    await axios.post(`${QUADSTORE_URL}/${project}/quad`, {
+      subject: entityUri,
+      predicate: tagPredicate,
+      object: tag,
+      objectType: 'literal'
+    });
+  }
+
+  /**
+   * Remove a tag from an entity
+   */
+  async removeEntityTag(project: string, entityId: string, tag: string): Promise<void> {
+    this.ensureQuadstoreAvailable();
+
+    const entityUri = `${this.baseUri}${entityId}`;
+    const tagPredicate = `${this.baseUri}hasTag`;
+
+    await axios.delete(`${QUADSTORE_URL}/${project}/quad`, {
+      data: {
+        subject: entityUri,
+        predicate: tagPredicate,
+        object: tag
+      }
+    });
+  }
+
+  /**
+   * Get all tags for an entity
+   */
+  async getEntityTags(project: string, entityId: string): Promise<string[]> {
+    this.ensureQuadstoreAvailable();
+
+    const entityUri = `${this.baseUri}${entityId}`;
+    const tagPredicate = `${this.baseUri}hasTag`;
+
+    try {
+      const response = await axios.post(`${QUADSTORE_URL}/${project}/match`, {
+        subject: entityUri,
+        predicate: tagPredicate,
+        object: null
+      });
+
+      return response.data.results.map((quad: any) => quad.object.value);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Find entities by tag
+   */
+  async findEntitiesByTag(project: string, tag: string): Promise<string[]> {
+    this.ensureQuadstoreAvailable();
+
+    const tagPredicate = `${this.baseUri}hasTag`;
+
+    try {
+      const response = await axios.post(`${QUADSTORE_URL}/${project}/match`, {
+        subject: null,
+        predicate: tagPredicate,
+        object: tag
+      });
+
+      return response.data.results.map((quad: any) =>
+        quad.subject.value.replace(this.baseUri, '')
+      );
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Find entities by multiple tags (OR logic)
+   */
+  async findEntitiesByTags(project: string, tags: string[]): Promise<string[]> {
+    this.ensureQuadstoreAvailable();
+
+    if (tags.length === 0) return [];
+
+    const entityIds = new Set<string>();
+
+    for (const tag of tags) {
+      const entities = await this.findEntitiesByTag(project, tag);
+      entities.forEach(id => entityIds.add(id));
+    }
+
+    return Array.from(entityIds);
+  }
+
+  /**
+   * Find entities by type and tags
+   */
+  async findEntitiesByTypeAndTags(project: string, type: string, tags: string[]): Promise<any[]> {
+    this.ensureQuadstoreAvailable();
+
+    if (tags.length === 0) {
+      return this.findEntitiesByType(project, type);
+    }
+
+    const entitiesByType = await this.findEntitiesByType(project, type);
+    const entityIdsWithTags = await this.findEntitiesByTags(project, tags);
+
+    return entitiesByType.filter(entity =>
+      entityIdsWithTags.includes(entity.id)
+    );
+  }
+
   async getStats(project: string): Promise<any> {
     this.ensureQuadstoreAvailable();
 

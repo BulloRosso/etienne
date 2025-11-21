@@ -35,6 +35,7 @@ import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
 import SkillsSettings from './SkillsSettings';
 import DashboardGrid from './DashboardGrid';
 import EmailConfiguration from './EmailConfiguration';
+import ContextManager from './ContextManager';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -50,16 +51,24 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [contextsOpen, setContextsOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
   const [projectsWithUI, setProjectsWithUI] = useState([]);
   const [copyFromProject, setCopyFromProject] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
+  const [allTags, setAllTags] = useState([]);
 
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  useEffect(() => {
+    if (currentProject) {
+      fetchTags();
+    }
+  }, [currentProject]);
 
   const fetchProjects = async () => {
     try {
@@ -68,6 +77,16 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
       setProjects(data.projects || []);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch(`/api/workspace/${currentProject}/tags`);
+      const data = await response.json();
+      setAllTags(data || []);
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
     }
   };
 
@@ -117,6 +136,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'email':
         handleEmailOpen();
+        break;
+      case 'contexts':
+        handleContextsOpen();
         break;
       default:
         break;
@@ -291,6 +313,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleEmailClose = () => {
     setEmailOpen(false);
+  };
+
+  const handleContextsOpen = () => {
+    setContextsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleContextsClose = () => {
+    setContextsOpen(false);
   };
 
   const handleBudgetToggle = async (event) => {
@@ -683,6 +714,14 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <EmailConfiguration />
         </DialogContent>
       </Dialog>
+
+      <ContextManager
+        open={contextsOpen}
+        onClose={handleContextsClose}
+        projectName={currentProject}
+        allTags={allTags}
+        onContextChange={() => {}}
+      />
     </>
   );
 }

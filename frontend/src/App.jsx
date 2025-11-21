@@ -7,9 +7,10 @@ import ProjectMenu from './components/ProjectMenu';
 import BudgetIndicator from './components/BudgetIndicator';
 import SchedulingOverview from './components/SchedulingOverview';
 import WelcomePage from './components/WelcomePage';
-import { TbCalendarTime, TbPresentation } from 'react-icons/tb';
+import ContextSwitcher from './components/ContextSwitcher';
+import ContextManager from './components/ContextManager';
+import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
-import { CiShoppingTag } from "react-icons/ci";
 import { useProject } from './contexts/ProjectContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 
@@ -37,6 +38,10 @@ export default function App() {
   const [uiConfig, setUiConfig] = useState(null);
   const [showWelcomePage, setShowWelcomePage] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [activeContextId, setActiveContextId] = useState(null);
+  const [contexts, setContexts] = useState([]);
+  const [contextManagerOpen, setContextManagerOpen] = useState(false);
+  const [allTags, setAllTags] = useState([]);
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -48,6 +53,63 @@ export default function App() {
     esRef.current?.close();
     interceptorEsRef.current?.close();
   }, []);
+
+  // Load tags when project changes
+  useEffect(() => {
+    if (currentProject) {
+      loadTags();
+    }
+  }, [currentProject]);
+
+  // Load active context when session changes
+  useEffect(() => {
+    if (currentProject && sessionId) {
+      loadActiveContext();
+    }
+  }, [currentProject, sessionId]);
+
+  // Load contexts when project changes
+  useEffect(() => {
+    if (currentProject) {
+      loadContexts();
+    }
+  }, [currentProject]);
+
+  const loadTags = async () => {
+    try {
+      const response = await fetch(`/api/workspace/${encodeURIComponent(currentProject)}/tags`);
+      const data = await response.json();
+      setAllTags(data || []);
+    } catch (err) {
+      console.error('Failed to load tags:', err);
+    }
+  };
+
+  const loadContexts = async () => {
+    try {
+      const response = await fetch(`/api/workspace/${encodeURIComponent(currentProject)}/contexts`);
+      const data = await response.json();
+      setContexts(data || []);
+    } catch (err) {
+      console.error('Failed to load contexts:', err);
+    }
+  };
+
+  const loadActiveContext = async () => {
+    try {
+      const response = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/context`);
+      const data = await response.json();
+      if (data.success) {
+        setActiveContextId(data.contextId);
+      }
+    } catch (err) {
+      console.error('Failed to load active context:', err);
+    }
+  };
+
+  const handleContextChange = (contextId) => {
+    setActiveContextId(contextId);
+  };
 
   // Load project data on initial mount and project changes (including page refresh)
   useEffect(() => {
@@ -567,11 +629,15 @@ export default function App() {
   };
 
   const handleSendMessage = async (messageText) => {
+    // Get active context name if available
+    const activeContext = activeContextId ? contexts.find(c => c.id === activeContextId) : null;
+
     // Add user message
     setMessages(prev => [...prev, {
       role: 'user',
       text: messageText,
-      timestamp: formatTime()
+      timestamp: formatTime(),
+      contextName: activeContext ? activeContext.name : null
     }]);
 
     setStreaming(true);
@@ -925,7 +991,7 @@ export default function App() {
       >
         <Toolbar>
           <Typography variant="h6">
-            {uiConfig?.appBar?.title || 'Etienne: Headless Claude Code'}
+            {uiConfig?.appBar?.title || 'Etienne: an Anthropic Agent SDK Seed'}
           </Typography>
           {currentProject && (
             <BudgetIndicator
@@ -965,9 +1031,19 @@ export default function App() {
                 sx={{ mr: 1, opacity: 0.8 }}
                 onClick={handleCopySessionId}
               >
-                <CiShoppingTag size={24} />
+                <TbDeviceAirtag size={24} />
               </IconButton>
             </Tooltip>
+          )}
+          {currentProject && sessionId && (
+            <ContextSwitcher
+              projectName={currentProject}
+              sessionId={sessionId}
+              activeContextId={activeContextId}
+              onContextChange={handleContextChange}
+              onManageContexts={() => setContextManagerOpen(true)}
+              sx={{ mr: 2 }}
+            />
           )}
           <ProjectMenu
             currentProject={currentProject}
@@ -1080,6 +1156,15 @@ export default function App() {
         onClose={() => setSnackbarOpen(false)}
         message="Claude Session ID copied"
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      />
+
+      {/* Context Manager Dialog */}
+      <ContextManager
+        open={contextManagerOpen}
+        onClose={() => setContextManagerOpen(false)}
+        projectName={currentProject}
+        allTags={allTags}
+        onContextChange={handleContextChange}
       />
     </Box>
   );

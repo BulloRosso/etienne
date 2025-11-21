@@ -14,6 +14,7 @@ export interface SessionMetadata {
   timestamp: string;
   sessionId: string;
   summary?: string;
+  activeContextId?: string | null;
 }
 
 export interface SessionsData {
@@ -228,5 +229,39 @@ export class SessionsService {
       console.log(`[SessionsService] No legacy history found: ${error.message}`);
       return { messages: [] };
     }
+  }
+
+  /**
+   * Get the active context ID for a session
+   */
+  async getActiveContext(projectRoot: string, sessionId: string): Promise<string | null> {
+    const data = await this.loadSessions(projectRoot);
+    const session = data.sessions.find(s => s.sessionId === sessionId);
+    return session?.activeContextId ?? null;
+  }
+
+  /**
+   * Set the active context for a session
+   */
+  async setActiveContext(projectRoot: string, sessionId: string, contextId: string | null): Promise<void> {
+    const data = await this.loadSessions(projectRoot);
+    const existingIndex = data.sessions.findIndex(s => s.sessionId === sessionId);
+
+    if (existingIndex >= 0) {
+      // Update existing session
+      data.sessions[existingIndex].activeContextId = contextId;
+      data.sessions[existingIndex].timestamp = new Date().toISOString();
+    } else {
+      // Create new session entry with context
+      data.sessions.push({
+        timestamp: new Date().toISOString(),
+        sessionId,
+        summary: undefined,
+        activeContextId: contextId,
+      });
+    }
+
+    await this.saveSessions(projectRoot, data);
+    console.log(`[SessionsService] Set active context to ${contextId} for session ${sessionId}`);
   }
 }
