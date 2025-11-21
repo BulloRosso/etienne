@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import * as path from 'path';
 import * as fs from 'fs/promises';
@@ -25,6 +24,19 @@ interface EmailMessage {
 @Injectable()
 export class ImapService {
   private readonly logger = new Logger(ImapService.name);
+  private imapModule: any = null;
+
+  /**
+   * Load imap module dynamically
+   * Uses dynamic require to load CommonJS module
+   */
+  private async loadImap(): Promise<any> {
+    if (!this.imapModule) {
+      // Use dynamic require for CommonJS module
+      this.imapModule = require('imap');
+    }
+    return this.imapModule;
+  }
 
   /**
    * Parse IMAP connection string
@@ -67,9 +79,11 @@ export class ImapService {
     subjectFilter?: string,
     newerThanDate?: string
   ): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const config = this.parseConnectionString();
-      const imap = new Imap(config);
+    return new Promise(async (resolve, reject) => {
+      try {
+        const config = this.parseConnectionString();
+        const Imap = await this.loadImap();
+        const imap = new Imap(config);
 
       const workspaceRoot = process.env.WORKSPACE_ROOT || 'C:/Data/GitHub/claude-multitenant/workspace';
       const projectDir = path.join(workspaceRoot, projectName);
@@ -224,6 +238,11 @@ export class ImapService {
       });
 
       imap.connect();
+      } catch (error: unknown) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to initialize IMAP: ${errorMsg}`);
+        reject(error);
+      }
     });
   }
 }
