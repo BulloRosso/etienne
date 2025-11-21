@@ -22,10 +22,13 @@ export class SmtpService {
 
   /**
    * Load emailjs module dynamically (ESM)
+   * Uses Function constructor to prevent ts-node from transforming the import
    */
   private async loadEmailjs(): Promise<any> {
     if (!this.emailjsModule) {
-      this.emailjsModule = await import('emailjs');
+      // Use Function constructor to prevent ts-node from trying to transform the import
+      const importEmailjs = new Function('return import("emailjs")');
+      this.emailjsModule = await importEmailjs();
     }
     return this.emailjsModule;
   }

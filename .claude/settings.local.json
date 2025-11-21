@@ -72,7 +72,8 @@
       "Bash(npm init:*)",
       "Bash(powershell:*)",
       "Bash(for pid in d3e222 cb38a8 8c9295 ad00f3 c71d15 dce56f)",
-      "Bash(do echo \"Killing $pid\")"
+      "Bash(do echo \"Killing $pid\")",
+      "Bash(for pid in d3e222 cb38a8 8c9295 ad00f3 c71d15 dce56f f716e9 94cc26 9a6dbf 248e53 141f5d)"
     ],
     "deny": [],
     "ask": []
