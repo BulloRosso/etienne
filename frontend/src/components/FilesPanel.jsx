@@ -322,18 +322,23 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <CiFileOn size={14} style={{ color: '#ffffff' }} />
                   <span>{getFilename(file.path)}</span>
-                  <IconButton
-                    size="small"
+                  <Box
+                    component="span"
                     onClick={(e) => handleCloseTab(e, index)}
                     sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       p: 0.25,
                       ml: 0.5,
                       color: '#ffffff',
+                      cursor: 'pointer',
+                      borderRadius: '2px',
                       '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
                     }}
                   >
                     <IoClose size={12} />
-                  </IconButton>
+                  </Box>
                 </Box>
               }
               sx={{
