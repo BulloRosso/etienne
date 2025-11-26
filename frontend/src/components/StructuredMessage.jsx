@@ -53,7 +53,7 @@ export const TodoListDisplay = ({ todos }) => {
           } else if (isInProgress) {
             IconComponent = LoopIcon;
             iconColor = '#2196f3';
-            iconSx = { ...iconSx, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } };
+            iconSx = { ...iconSx, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(360deg)' }, '100%': { transform: 'rotate(0deg)' } } };
           } else {
             IconComponent = CheckBoxOutlineBlankIcon;
             iconColor = '#555';

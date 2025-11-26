@@ -26,7 +26,7 @@ class FilePreviewHandler {
     // Handle HTML files
     if (extension === 'html' || extension === 'htm') {
       this.handleHtmlPreview(filePath, projectName);
-    } else if (extension === 'json') {
+    } else if (extension === 'json' || extension === 'csv' || extension === 'txt') {
       this.handleJsonPreview(filePath, projectName);
     } else if (extension === 'md') {
       this.handleMarkdownPreview(filePath, projectName);
