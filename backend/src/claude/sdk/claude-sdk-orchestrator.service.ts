@@ -99,6 +99,9 @@ export class ClaudeSdkOrchestratorService {
     // Track tool calls to correlate PreToolUse with PostToolUse
     const toolCallMap = new Map<string, { name: string; input: any }>();
 
+    // Track structured messages (tool calls) for reasoning steps
+    const structuredMessages: any[] = [];
+
     try {
       // Check if this is a new session or resuming
       sessionId = await this.sessionManager.loadSessionId(projectDir);
@@ -250,7 +253,7 @@ export class ClaudeSdkOrchestratorService {
           });
 
           // Also emit to main observer stream for frontend UI
-          observer.next({
+          const toolEvent = {
             type: 'tool',
             data: {
               toolName: input.tool_name,
@@ -258,6 +261,17 @@ export class ClaudeSdkOrchestratorService {
               callId: callId,
               input: input.tool_input
             }
+          };
+          observer.next(toolEvent);
+
+          // Add to structured messages for persistence
+          structuredMessages.push({
+            id: callId,
+            type: 'tool_call',
+            toolName: input.tool_name,
+            args: input.tool_input,
+            status: 'running',
+            timestamp: Date.now()
           });
 
           return { continue: true };
@@ -311,6 +325,13 @@ export class ClaudeSdkOrchestratorService {
               result: input.tool_response
             }
           });
+
+          // Update structured message with completion status
+          const structuredMsg = structuredMessages.find(msg => msg.id === callId);
+          if (structuredMsg) {
+            structuredMsg.status = 'complete';
+            structuredMsg.result = input.tool_response;
+          }
 
           // Emit file events for Write/Edit tools
           if (toolCall) {
@@ -599,7 +620,8 @@ export class ClaudeSdkOrchestratorService {
               timestamp,
               isAgent: true,
               message: assistantText,
-              costs: usage
+              costs: usage,
+              reasoningSteps: structuredMessages.length > 0 ? structuredMessages : undefined
             }
           ]);
         } catch (err) {

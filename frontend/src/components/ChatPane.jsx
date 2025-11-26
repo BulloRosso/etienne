@@ -238,30 +238,22 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           const isLastMessage = idx === messages.length - 1;
           const isAssistant = msg.role === 'assistant';
 
-          return (
-            <React.Fragment key={idx}>
-              {/* Show tool calls before the last assistant message */}
-              {isLastMessage && isAssistant && structuredMessages.length > 0 && (
-                <>
-                  {structuredMessages.map((structMsg) => (
-                    <StructuredMessage
-                      key={structMsg.id}
-                      message={structMsg}
-                      onPermissionResponse={handlePermissionResponse}
-                      projectName={projectName}
-                    />
-                  ))}
-                </>
-              )}
+          // For the last assistant message, include current structured messages as reasoning steps
+          // For previous messages, use the reasoningSteps already stored with the message
+          const reasoningStepsToShow = isLastMessage && isAssistant && structuredMessages.length > 0
+            ? structuredMessages
+            : (msg.reasoningSteps || []);
 
-              <ChatMessage
-                role={msg.role}
-                text={msg.text}
-                timestamp={msg.timestamp}
-                usage={msg.usage}
-                contextName={msg.contextName}
-              />
-            </React.Fragment>
+          return (
+            <ChatMessage
+              key={idx}
+              role={msg.role}
+              text={msg.text}
+              timestamp={msg.timestamp}
+              usage={msg.usage}
+              contextName={msg.contextName}
+              reasoningSteps={reasoningStepsToShow}
+            />
           );
         })}
 

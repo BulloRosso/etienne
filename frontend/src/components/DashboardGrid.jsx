@@ -68,6 +68,13 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) =
       image: '/contextmanager.jpg',
       label: 'Context/Tagging',
       disabled: !currentProject
+    },
+    // 6th row
+    {
+      id: 'conditionmonitoring',
+      image: '/conditionmonitoring.jpg',
+      label: 'Condition Monitoring',
+      disabled: !currentProject
     }
   ];
 

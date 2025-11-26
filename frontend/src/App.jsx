@@ -165,7 +165,9 @@ export default function App() {
                 minute: '2-digit',
                 hour12: false
               }),
-              usage: msg.costs
+              usage: msg.costs,
+              reasoningSteps: msg.reasoningSteps || [],
+              contextName: msg.contextName
             });
           });
 
@@ -500,7 +502,9 @@ export default function App() {
                 minute: '2-digit',
                 hour12: false
               }),
-              usage: msg.costs
+              usage: msg.costs,
+              reasoningSteps: msg.reasoningSteps || [],
+              contextName: msg.contextName
             });
           });
 
@@ -675,6 +679,10 @@ export default function App() {
     const es = new EventSource(url.toString());
     esRef.current = es;
 
+    // Track accumulated text before line breaks
+    let textBuffer = '';
+    let lastChunkTime = Date.now();
+
     es.addEventListener('session', (e) => {
       const data = JSON.parse(e.data);
       if (data.session_id) {
@@ -687,10 +695,43 @@ export default function App() {
 
     es.addEventListener('stdout', (e) => {
       const { chunk } = JSON.parse(e.data);
+      const chunkTime = Date.now();
+
+      // Update last chunk time immediately
+      lastChunkTime = chunkTime;
+
       // Trim leading linebreaks only if this is the first chunk
       const textToAdd = currentMessageRef.current.text === '' ? chunk.trimStart() : chunk;
       // Don't add extra line breaks - the chunk already contains proper formatting
       currentMessageRef.current.text += textToAdd;
+
+      // Accumulate text in buffer
+      textBuffer += chunk;
+
+      // Check if buffer contains double line breaks (paragraph separators)
+      const lines = textBuffer.split(/(\n\n+)/);
+
+      // If we have complete paragraphs (more than one part after split)
+      if (lines.length > 1) {
+        // Process all complete segments (everything except the last incomplete part)
+        for (let i = 0; i < lines.length - 1; i++) {
+          const segment = lines[i];
+          if (segment.trim()) {
+            const textChunk = {
+              id: `text_${chunkTime}_${i}`,
+              type: 'text_chunk',
+              content: segment,
+              timestamp: chunkTime
+            };
+            console.log('Adding text chunk:', { id: textChunk.id, timestamp: chunkTime, preview: segment.substring(0, 50) });
+            setStructuredMessages(prev => [...prev, textChunk]);
+          }
+        }
+
+        // Keep the last incomplete part in the buffer
+        textBuffer = lines[lines.length - 1];
+      }
+
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMsg = newMessages[newMessages.length - 1];
@@ -783,12 +824,29 @@ export default function App() {
       setStreaming(false);
       setCurrentProcessId(null);
 
-      // Mark all structured messages as complete
-      setStructuredMessages(prev => prev.map(msg =>
-        msg.status === 'running' ? { ...msg, status: 'complete' } : msg
-      ));
+      // Flush any remaining text buffer
+      if (textBuffer.trim()) {
+        const timestamp = Date.now();
+        setStructuredMessages(prev => [...prev, {
+          id: `text_${timestamp}_final`,
+          type: 'text_chunk',
+          content: textBuffer,
+          timestamp: lastChunkTime
+        }]);
+        textBuffer = '';
+      }
 
-      // Finalize message
+      // Mark all structured messages as complete
+      const finalStructuredMessages = [];
+      setStructuredMessages(prev => {
+        const updated = prev.map(msg =>
+          msg.status === 'running' ? { ...msg, status: 'complete' } : msg
+        );
+        finalStructuredMessages.push(...updated);
+        return updated;
+      });
+
+      // Finalize message with reasoning steps attached
       if (currentMessageRef.current.text) {
         setMessages(prev => {
           const newMessages = [...prev];
@@ -796,7 +854,8 @@ export default function App() {
           if (lastMsg && lastMsg.role === 'assistant') {
             newMessages[newMessages.length - 1] = {
               ...currentMessageRef.current,
-              usage: currentUsageRef.current
+              usage: currentUsageRef.current,
+              reasoningSteps: finalStructuredMessages.length > 0 ? finalStructuredMessages : undefined
             };
           }
           return newMessages;
@@ -819,12 +878,29 @@ export default function App() {
     // Listen for tool execution events
     es.addEventListener('tool', (e) => {
       const data = JSON.parse(e.data);
-      console.log('Tool event:', data);
+      const receivedTime = Date.now(); // Timestamp when we receive the event
+      console.log('Tool event:', { tool: data.toolName, status: data.status, timestamp: receivedTime, callId: data.callId });
+
+      // Flush any buffered text before the tool call
+      // Use a timestamp slightly before the tool call to ensure proper ordering
+      if (textBuffer.trim() && data.status === 'running') {
+        const bufferContent = textBuffer;
+        const bufferTimestamp = receivedTime - 1; // 1ms before tool call
+        console.log('Flushing text buffer before tool call:', { timestamp: bufferTimestamp, preview: bufferContent.substring(0, 50) });
+        setStructuredMessages(prev => [...prev, {
+          id: `text_${receivedTime}_before_tool`,
+          type: 'text_chunk',
+          content: bufferContent,
+          timestamp: bufferTimestamp
+        }]);
+        textBuffer = '';
+      }
 
       setStructuredMessages(prev => {
         const existing = prev.find(msg => msg.id === data.callId);
         if (existing) {
           // Update existing tool call with new status
+          console.log('Updating existing tool call:', { callId: data.callId, status: data.status });
           return prev.map(msg =>
             msg.id === data.callId
               ? {
@@ -844,14 +920,16 @@ export default function App() {
             ? prev.filter(msg => msg.toolName !== 'TodoWrite')
             : prev;
 
-          // Add new tool call
+          // Add new tool call with timestamp from when we received it
+          console.log('Adding new tool call:', { callId: data.callId, tool: data.toolName, timestamp: receivedTime });
           return [...filteredPrev, {
             id: data.callId,
             type: 'tool_call',
             toolName: data.toolName,
             args: data.input,
             status: data.status,
-            result: data.result
+            result: data.result,
+            timestamp: receivedTime
           }];
         }
       });
@@ -953,7 +1031,9 @@ export default function App() {
             minute: '2-digit',
             hour12: false
           }),
-          usage: msg.costs
+          usage: msg.costs,
+          reasoningSteps: msg.reasoningSteps || [],
+          contextName: msg.contextName
         });
       });
 

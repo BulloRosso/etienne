@@ -13,6 +13,7 @@ import { SessionsModule } from '../sessions/sessions.module';
 import { InterceptorsModule } from '../interceptors/interceptors.module';
 import { BudgetMonitoringModule } from '../budget-monitoring/budget-monitoring.module';
 import { ContextsModule } from '../contexts/contexts.module';
+import { EventHandlingModule } from '../event-handling/event-handling.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { ContextsModule } from '../contexts/contexts.module';
     SessionsModule,
     forwardRef(() => InterceptorsModule),
     BudgetMonitoringModule,
-    ContextsModule
+    ContextsModule,
+    forwardRef(() => EventHandlingModule)
   ],
   controllers: [SchedulerController],
   providers: [

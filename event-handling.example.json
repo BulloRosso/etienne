@@ -1,0 +1,95 @@
+{
+  "rules": [
+    {
+      "id": "file-created-python",
+      "name": "Python File Created Alert",
+      "enabled": true,
+      "condition": {
+        "type": "simple",
+        "event": {
+          "group": "Claude Code",
+          "name": "File Created",
+          "payload.path": "*.py"
+        }
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "analyze-python-file"
+      },
+      "createdAt": "2025-11-24T00:00:00.000Z",
+      "updatedAt": "2025-11-24T00:00:00.000Z"
+    },
+    {
+      "id": "mqtt-sensor-alert",
+      "name": "MQTT Sensor Alert",
+      "enabled": true,
+      "condition": {
+        "type": "simple",
+        "event": {
+          "group": "MQTT",
+          "name": "MQTT Message Received",
+          "topic": "/sensors/*"
+        }
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "process-sensor-data"
+      },
+      "createdAt": "2025-11-24T00:00:00.000Z",
+      "updatedAt": "2025-11-24T00:00:00.000Z"
+    },
+    {
+      "id": "semantic-error-detection",
+      "name": "Semantic Error Detection",
+      "enabled": true,
+      "condition": {
+        "type": "semantic",
+        "event": {
+          "group": "Claude Code",
+          "payload": {
+            "similarity": {
+              "query": "error exception failure crash bug",
+              "threshold": 0.86,
+              "tags": ["filesystem", "claude-code"]
+            }
+          }
+        }
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "handle-error-event"
+      },
+      "createdAt": "2025-11-24T00:00:00.000Z",
+      "updatedAt": "2025-11-24T00:00:00.000Z"
+    },
+    {
+      "id": "weekend-evening-compound",
+      "name": "Weekend Evening Activity",
+      "enabled": false,
+      "condition": {
+        "type": "compound",
+        "operator": "AND",
+        "conditions": [
+          {
+            "type": "simple",
+            "event": {
+              "group": "MQTT"
+            }
+          },
+          {
+            "time": {
+              "after": "18:00",
+              "dayOfWeek": [0, 6]
+            }
+          }
+        ]
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "weekend-alert"
+      },
+      "createdAt": "2025-11-24T00:00:00.000Z",
+      "updatedAt": "2025-11-24T00:00:00.000Z"
+    }
+  ]
+}

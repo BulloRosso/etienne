@@ -8,6 +8,8 @@ export interface ChatMessage {
   isAgent: boolean;
   message: string;
   costs?: any;
+  reasoningSteps?: any[];
+  contextName?: string;
 }
 
 export interface SessionMetadata {

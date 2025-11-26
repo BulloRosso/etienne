@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InterceptorsService } from '../../interceptors/interceptors.service';
+import { EventRouterService } from '../../event-handling/core/event-router.service';
 
 /**
  * Service to emit Claude Code hooks and events for SDK-based conversations
@@ -8,13 +9,39 @@ import { InterceptorsService } from '../../interceptors/interceptors.service';
 @Injectable()
 export class SdkHookEmitterService {
   private readonly logger = new Logger(SdkHookEmitterService.name);
+  private eventRouter: EventRouterService | null = null;
 
-  constructor(private readonly interceptorsService: InterceptorsService) {}
+  constructor(
+    private readonly interceptorsService: InterceptorsService,
+    @Inject(forwardRef(() => EventRouterService))
+    eventRouterService?: EventRouterService,
+  ) {
+    // EventRouter is optional to avoid circular dependency issues
+    this.eventRouter = eventRouterService || null;
+  }
+
+  /**
+   * Helper to publish event to event router
+   */
+  private async publishToEventRouter(projectName: string, eventName: string, payload: any) {
+    if (this.eventRouter) {
+      try {
+        await this.eventRouter.publishEvent({
+          name: eventName,
+          group: 'Claude Code',
+          source: 'Claude Agent SDK',
+          payload,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to publish event to router: ${eventName}`, error);
+      }
+    }
+  }
 
   /**
    * Emit UserPromptSubmit event
    */
-  emitUserPromptSubmit(projectName: string, data: {
+  async emitUserPromptSubmit(projectName: string, data: {
     prompt: string;
     timestamp?: string;
     session_id?: string;
@@ -28,6 +55,9 @@ export class SdkHookEmitterService {
 
     this.logger.debug(`Emitting UserPromptSubmit for ${projectName}`);
     this.interceptorsService.addInterceptor(projectName, event);
+
+    // Publish to event router
+    await this.publishToEventRouter(projectName, 'UserPromptSubmit', event);
   }
 
   /**
@@ -180,7 +210,7 @@ export class SdkHookEmitterService {
   /**
    * Emit file_added event (for Write tool)
    */
-  emitFileAdded(projectName: string, data: {
+  async emitFileAdded(projectName: string, data: {
     path: string;
     timestamp?: string;
     session_id?: string;
@@ -194,12 +224,15 @@ export class SdkHookEmitterService {
 
     this.logger.debug(`Emitting file_added for ${projectName}: ${data.path}`);
     this.interceptorsService.addInterceptor(projectName, event);
+
+    // Publish to event router as "File Created"
+    await this.publishToEventRouter(projectName, 'File Created', event);
   }
 
   /**
    * Emit file_changed event (for Edit/MultiEdit tools)
    */
-  emitFileChanged(projectName: string, data: {
+  async emitFileChanged(projectName: string, data: {
     path: string;
     timestamp?: string;
     session_id?: string;
@@ -213,5 +246,8 @@ export class SdkHookEmitterService {
 
     this.logger.debug(`Emitting file_changed for ${projectName}: ${data.path}`);
     this.interceptorsService.addInterceptor(projectName, event);
+
+    // Publish to event router as "File Modified"
+    await this.publishToEventRouter(projectName, 'File Modified', event);
   }
 }

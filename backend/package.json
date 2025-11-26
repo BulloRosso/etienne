@@ -32,7 +32,8 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "smtp-connection": "^4.0.2",
-    "sparqljs": "^3.7.3"
+    "sparqljs": "^3.7.3",
+    "zeromq": "^6.5.0"
   },
   "devDependencies": {
     "@types/imap": "^0.8.42",

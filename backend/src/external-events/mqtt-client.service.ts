@@ -1,15 +1,23 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import * as mqtt from 'mqtt';
 import { MqttBrokerConfig, MqttMessage } from './interfaces/mqtt-config.interface';
 import { MqttStorageService } from './mqtt-storage.service';
+import { EventRouterService } from '../event-handling/core/event-router.service';
 
 @Injectable()
 export class MqttClientService implements OnModuleDestroy {
   private readonly logger = new Logger(MqttClientService.name);
   private clients = new Map<string, mqtt.MqttClient>();
   private projectSubscriptions = new Map<string, Set<string>>();
+  private eventRouter: EventRouterService | null = null;
 
-  constructor(private readonly storageService: MqttStorageService) {}
+  constructor(
+    private readonly storageService: MqttStorageService,
+    @Inject(forwardRef(() => EventRouterService))
+    eventRouterService?: EventRouterService,
+  ) {
+    this.eventRouter = eventRouterService || null;
+  }
 
   async connect(projectDir: string, brokerConfig: MqttBrokerConfig): Promise<void> {
     const clientKey = this.getClientKey(projectDir);
@@ -176,6 +184,21 @@ export class MqttClientService implements OnModuleDestroy {
 
       this.logger.log(`Received message on topic ${topic} for project ${projectDir}`);
       await this.storageService.saveMessage(projectDir, topic, message);
+
+      // Publish to event router
+      if (this.eventRouter) {
+        await this.eventRouter.publishEvent({
+          name: 'MQTT Message Received',
+          group: 'MQTT',
+          source: 'MQTT Client',
+          topic,
+          payload: {
+            message: payload.toString(),
+            qos: packet.qos,
+            retain: packet.retain,
+          },
+        });
+      }
     } catch (error) {
       this.logger.error(`Failed to handle message for topic ${topic}:`, error);
     }

@@ -22,10 +22,10 @@ const TOOL_ICONS = {
 };
 
 // TodoList Display Component - shows full todo list with icons
-const TodoListDisplay = ({ todos }) => {
+export const TodoListDisplay = ({ todos }) => {
   if (!todos || !Array.isArray(todos) || todos.length === 0) {
     return (
-      <Box sx={{ mb: 1, px: 2 }}>
+      <Box sx={{ mb: 1 }}>
         <Paper sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
           <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
             No tasks
@@ -36,7 +36,7 @@ const TodoListDisplay = ({ todos }) => {
   }
 
   return (
-    <Box sx={{ mb: 1, px: 2 }}>
+    <Box sx={{ mb: 1 }}>
       <Paper sx={{ p: 2, backgroundColor: '#fafafa', borderRadius: 1, border: '1px solid #e0e0e0' }}>
         {todos.map((todo, index) => {
           const isCompleted = todo.status === 'completed';

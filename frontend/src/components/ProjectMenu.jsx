@@ -36,6 +36,7 @@ import SkillsSettings from './SkillsSettings';
 import DashboardGrid from './DashboardGrid';
 import EmailConfiguration from './EmailConfiguration';
 import ContextManager from './ContextManager';
+import EventHandling from './EventHandling';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -52,6 +53,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
+  const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -139,6 +141,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'contexts':
         handleContextsOpen();
+        break;
+      case 'conditionmonitoring':
+        handleConditionMonitoringOpen();
         break;
       default:
         break;
@@ -322,6 +327,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleContextsClose = () => {
     setContextsOpen(false);
+  };
+
+  const handleConditionMonitoringOpen = () => {
+    setConditionMonitoringOpen(true);
+    handleMenuClose();
+  };
+
+  const handleConditionMonitoringClose = () => {
+    setConditionMonitoringOpen(false);
   };
 
   const handleBudgetToggle = async (event) => {
@@ -722,6 +736,24 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         allTags={allTags}
         onContextChange={() => {}}
       />
+
+      <Dialog
+        open={conditionMonitoringOpen}
+        onClose={handleConditionMonitoringClose}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '90vh',
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <EventHandling
+          selectedProject={currentProject}
+          onClose={handleConditionMonitoringClose}
+        />
+      </Dialog>
     </>
   );
 }
