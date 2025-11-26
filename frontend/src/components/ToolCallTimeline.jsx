@@ -10,6 +10,8 @@ import FolderIcon from '@mui/icons-material/Folder';
 import CodeIcon from '@mui/icons-material/Code';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import { useProject } from '../contexts/ProjectContext';
 
 // Tool icon mapping
 const TOOL_ICONS = {
@@ -23,6 +25,18 @@ const TOOL_ICONS = {
   'Glob': FolderIcon,
   'Grep': SearchOutlinedIcon,
   'NotebookEdit': CodeIcon,
+};
+
+/**
+ * Strips the workspace path prefix from a file path
+ * C:\Data\GitHub\claude-multitenant\workspace\project-name\file.txt -> file.txt
+ */
+const stripWorkspacePath = (filePath) => {
+  if (!filePath) return '';
+
+  // Handle both Windows and Unix paths
+  const workspacePattern = /^.*[\\\/]workspace[\\\/][^\\\/]+[\\\/]/;
+  return filePath.replace(workspacePattern, '');
 };
 
 /**
@@ -42,6 +56,7 @@ const formatToolDescription = (toolName, args) => {
     case 'Read':
     case 'Write':
     case 'Edit':
+      // Return the full path for file tools - we'll strip it when rendering
       return args.file_path || args.path || '';
     case 'WebSearch':
       return args.query || '';
@@ -90,6 +105,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [inExpanded, setInExpanded] = useState(false);
   const [outExpanded, setOutExpanded] = useState(false);
+  const { currentProject } = useProject();
 
   const IconComponent = TOOL_ICONS[toolName];
   const toolDescription = description || formatToolDescription(toolName, args);
@@ -97,11 +113,49 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
   const formattedInput = formatToolIO(args);
   const formattedOutput = formatToolIO(result);
 
+  // Check if this is a file system tool with a file path
+  const isFileSystemTool = ['Read', 'Write', 'Edit'].includes(toolName);
+  const filePath = isFileSystemTool ? (args?.file_path || args?.path) : null;
+
   const inputLines = formattedInput.split('\n');
   const outputLines = formattedOutput.split('\n');
 
   const hasMoreInput = inputLines.length > 3;
   const hasMoreOutput = outputLines.length > 3;
+
+  // Handle file preview click
+  const handleFileClick = (e) => {
+    e.preventDefault();
+    if (!filePath || !currentProject) return;
+
+    // Strip the workspace path to get just the relative filename
+    const strippedPath = stripWorkspacePath(filePath);
+
+    // Determine the action based on file extension
+    const ext = strippedPath.split('.').pop().toLowerCase();
+    let action = 'html-preview'; // default
+
+    if (['json'].includes(ext)) {
+      action = 'json-preview';
+    } else if (['md', 'markdown'].includes(ext)) {
+      action = 'markdown-preview';
+    } else if (['mermaid'].includes(ext)) {
+      action = 'mermaid-preview';
+    } else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) {
+      action = 'image-preview';
+    } else if (['xlsx', 'xls', 'csv'].includes(ext)) {
+      action = 'excel-preview';
+    } else if (['html', 'htm'].includes(ext)) {
+      action = 'html-preview';
+    }
+
+    // Emit file preview request with stripped path
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      action,
+      filePath: strippedPath,
+      projectName: currentProject
+    });
+  };
 
   return (
     <Box sx={{ mb: 2, position: 'relative' }}>
@@ -118,7 +172,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
       />
 
       {/* Tool header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, ml: showBullet ? 0 : '10px' }}>
         {/* Timeline point */}
         {showBullet && (
           <Box
@@ -147,8 +201,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
             fontWeight: 'bold',
             color: '#333',
             fontFamily: 'monospace',
-            flexShrink: 0,
-            ml: !showBullet && !IconComponent ? '3px' : 0
+            flexShrink: 0
           }}
         >
           {toolName}
@@ -156,18 +209,41 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
 
         {/* Description */}
         {toolDescription && (
-          <Typography
-            variant="body2"
-            sx={{
-              color: '#666',
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {toolDescription}
-          </Typography>
+          isFileSystemTool && filePath ? (
+            <Typography
+              component="a"
+              href="#"
+              onClick={handleFileClick}
+              variant="body2"
+              sx={{
+                color: '#1976d2',
+                textDecoration: 'underline',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                '&:hover': {
+                  color: '#1565c0'
+                }
+              }}
+            >
+              {stripWorkspacePath(filePath)}
+            </Typography>
+          ) : (
+            <Typography
+              variant="body2"
+              sx={{
+                color: '#666',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {toolDescription}
+            </Typography>
+          )
         )}
 
         {/* Expand/Collapse details button */}
@@ -184,7 +260,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
       {detailsExpanded && (
         <Box
           sx={{
-            ml: '28px',
+            ml: showBullet ? '28px' : '38px',
             border: '1px solid #e0e0e0',
             borderRadius: '4px',
             overflow: 'hidden'
