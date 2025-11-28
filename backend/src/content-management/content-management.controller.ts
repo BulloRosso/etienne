@@ -156,4 +156,18 @@ export class ContentManagementController {
   ) {
     return await this.contentManagementService.searchFiles(project, query || '');
   }
+
+  @Get(':project/workbench')
+  async getWorkbench(@Param('project') project: string, @Res() res: Response) {
+    const config = await this.contentManagementService.getWorkbenchConfig(project);
+    return res.json(config);
+  }
+
+  @Post(':project/workbench')
+  async saveWorkbench(
+    @Param('project') project: string,
+    @Body() config: any
+  ) {
+    return await this.contentManagementService.saveWorkbenchConfig(project, config);
+  }
 }

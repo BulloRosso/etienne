@@ -1044,6 +1044,56 @@ export default function App() {
     }
   };
 
+  // Save open tabs to workbench.json when files change
+  useEffect(() => {
+    if (!currentProject || files.length === 0) return;
+
+    const saveWorkbench = async () => {
+      try {
+        const workbenchConfig = {
+          openTabs: files.map(f => f.path)
+        };
+        await fetch(`/api/workspace/${encodeURIComponent(currentProject)}/workbench`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(workbenchConfig)
+        });
+      } catch (err) {
+        console.error('Failed to save workbench config:', err);
+      }
+    };
+
+    // Debounce the save operation to avoid too many writes
+    const timeoutId = setTimeout(saveWorkbench, 500);
+    return () => clearTimeout(timeoutId);
+  }, [currentProject, files]);
+
+  // Restore open tabs from workbench.json when project loads
+  const restoreWorkbench = async (projectName) => {
+    try {
+      const response = await fetch(`/api/workspace/${encodeURIComponent(projectName)}/workbench`);
+      if (response.ok) {
+        const config = await response.json();
+        if (config && config.openTabs && Array.isArray(config.openTabs)) {
+          // Restore tabs by simulating file preview requests
+          // We do this in sequence to maintain tab order
+          for (const filePath of config.openTabs) {
+            // Use filePreviewHandler to trigger the preview
+            // This will be tolerant - if file doesn't exist, it will fail silently
+            try {
+              const { filePreviewHandler } = await import('./services/FilePreviewHandler');
+              filePreviewHandler.handlePreview(filePath, projectName);
+            } catch (err) {
+              console.warn(`Failed to restore tab for ${filePath}:`, err);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to restore workbench config:', err);
+    }
+  };
+
   const handleProjectChange = async (newProject) => {
     // Reset state before project change
     setMessages([]);
@@ -1057,6 +1107,11 @@ export default function App() {
 
     // Update project - this will trigger the useEffect that loads all project data
     setProject(newProject);
+
+    // Restore workbench after a short delay to ensure project is loaded
+    setTimeout(() => {
+      restoreWorkbench(newProject);
+    }, 1000);
   };
 
   return (

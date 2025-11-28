@@ -75,7 +75,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
             link.href = '#';
             link.textContent = filePath;
             link.style.color = '#1976d2';
-            link.style.textDecoration = 'underline';
+            link.style.textDecoration = 'none';
             link.style.cursor = 'pointer';
 
             link.onclick = (e) => {
@@ -320,7 +320,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               },
               '& strong': { fontWeight: 'bold' },
               '& em': { fontStyle: 'italic' },
-              '& a': { color: '#1976d2', textDecoration: 'underline' }
+              '& a': { color: '#1976d2', textDecoration: 'none' }
             }}
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
