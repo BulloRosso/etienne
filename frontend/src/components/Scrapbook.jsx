@@ -17,7 +17,7 @@ import {
   CircularProgress,
   Paper,
 } from '@mui/material';
-import { MoreVert, DataObject, AccountTree } from '@mui/icons-material';
+import { MoreVert, DataObject, AccountTree, NoteAdd } from '@mui/icons-material';
 import {
   ReactFlow,
   Controls,
@@ -31,11 +31,13 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import ScrapbookNode from './ScrapbookNode';
+import StickyNoteNode from './StickyNoteNode';
 import ScrapbookTopics from './ScrapbookTopics';
 import ScrapbookNodeEdit from './ScrapbookNodeEdit';
 
 const nodeTypes = {
   scrapbookNode: ScrapbookNode,
+  stickyNote: StickyNoteNode,
 };
 
 // Wrapper component to provide ReactFlow context
@@ -65,6 +67,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [autoLayoutMode, setAutoLayoutMode] = useState(false);
+  const [stickyNotes, setStickyNotes] = useState([]);
 
   // Canvas persistence state
   const [savedPositions, setSavedPositions] = useState({});
@@ -99,6 +102,10 @@ function ScrapbookInner({ projectName, onClose }) {
           if (settings.autoLayoutMode !== undefined) {
             setAutoLayoutMode(settings.autoLayoutMode);
           }
+          // Restore sticky notes
+          if (settings.stickyNotes) {
+            setStickyNotes(settings.stickyNotes);
+          }
         }
       }
     } catch (error) {
@@ -118,15 +125,49 @@ function ScrapbookInner({ projectName, onClose }) {
         const currentNodes = reactFlowInstance.getNodes();
         const viewport = reactFlowInstance.getViewport();
 
-        const settings = {
-          nodes: currentNodes.map(n => ({
+        // Build node settings from visible nodes (positions)
+        // and merge with expandedNodes for all nodes
+        const nodeSettings = {};
+
+        // First, add all visible nodes with their positions
+        currentNodes.forEach(n => {
+          nodeSettings[n.id] = {
             id: n.id,
             position: n.position,
             expanded: expandedNodes.has(n.id),
-          })),
+          };
+        });
+
+        // Then, ensure all expanded nodes are saved (even if not visible)
+        expandedNodes.forEach(nodeId => {
+          if (!nodeSettings[nodeId]) {
+            nodeSettings[nodeId] = {
+              id: nodeId,
+              position: null, // No position for hidden nodes
+              expanded: true,
+            };
+          }
+        });
+
+        // Extract sticky note positions and sizes from current nodes
+        const stickyNoteData = currentNodes
+          .filter(n => n.type === 'stickyNote')
+          .map(n => ({
+            id: n.id,
+            content: n.data.content,
+            color: n.data.color || 'gray',
+            textAlign: n.data.textAlign || 'top',
+            position: n.position,
+            width: n.width || n.style?.width || 200,
+            height: n.height || n.style?.height || 150,
+          }));
+
+        const settings = {
+          nodes: Object.values(nodeSettings).filter(n => !n.id.startsWith('sticky-')),
           zoom: viewport.zoom,
           viewport: { x: viewport.x, y: viewport.y },
           autoLayoutMode: autoLayoutMode,
+          stickyNotes: stickyNoteData,
         };
 
         await fetch(`/api/workspace/${projectName}/scrapbook/canvas`, {
@@ -138,7 +179,7 @@ function ScrapbookInner({ projectName, onClose }) {
         console.error('Failed to save canvas settings:', error);
       }
     }, 500); // Debounce 500ms
-  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode]);
+  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes]);
 
   // Fetch tree data
   const fetchTree = useCallback(async () => {
@@ -186,14 +227,64 @@ function ScrapbookInner({ projectName, onClose }) {
     }
   }, [projectName, canvasSettingsLoaded, fetchTree, fetchAllNodes]);
 
-  // Cleanup save timeout on unmount
+  // Save immediately on unmount (flush pending saves)
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      // Flush save on unmount - save current state immediately
+      if (reactFlowInstance && projectName) {
+        const currentNodes = reactFlowInstance.getNodes();
+        const viewport = reactFlowInstance.getViewport();
+
+        const nodeSettings = {};
+        currentNodes.forEach(n => {
+          nodeSettings[n.id] = {
+            id: n.id,
+            position: n.position,
+            expanded: expandedNodes.has(n.id),
+          };
+        });
+        expandedNodes.forEach(nodeId => {
+          if (!nodeSettings[nodeId]) {
+            nodeSettings[nodeId] = {
+              id: nodeId,
+              position: null,
+              expanded: true,
+            };
+          }
+        });
+
+        // Extract sticky note data
+        const stickyNoteData = currentNodes
+          .filter(n => n.type === 'stickyNote')
+          .map(n => ({
+            id: n.id,
+            content: n.data.content,
+            color: n.data.color || 'gray',
+            textAlign: n.data.textAlign || 'top',
+            position: n.position,
+            width: n.width || n.style?.width || 200,
+            height: n.height || n.style?.height || 150,
+          }));
+
+        const settings = {
+          nodes: Object.values(nodeSettings).filter(n => !n.id.startsWith('sticky-')),
+          zoom: viewport.zoom,
+          viewport: { x: viewport.x, y: viewport.y },
+          autoLayoutMode: autoLayoutMode,
+          stickyNotes: stickyNoteData,
+        };
+
+        // Use sendBeacon for reliable save on unmount
+        navigator.sendBeacon(
+          `/api/workspace/${projectName}/scrapbook/canvas`,
+          new Blob([JSON.stringify(settings)], { type: 'application/json' })
+        );
+      }
     };
-  }, []);
+  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes]);
 
   // Convert tree to React Flow nodes and edges
   useEffect(() => {
@@ -347,9 +438,50 @@ function ScrapbookInner({ projectName, onClose }) {
       processNode(tree, 0, 0, null, 0);
     }
 
+    // Add sticky notes to flow nodes (with lower z-index)
+    stickyNotes.forEach(note => {
+      flowNodes.push({
+        id: note.id,
+        type: 'stickyNote',
+        position: note.position || { x: 50, y: 50 },
+        style: {
+          width: note.width || 200,
+          height: note.height || 150,
+          zIndex: -1, // Lower z-index than regular nodes
+        },
+        data: {
+          content: note.content || '',
+          color: note.color || 'gray',
+          textAlign: note.textAlign || 'top',
+          onContentChange: (newContent) => {
+            setStickyNotes(prev => prev.map(n =>
+              n.id === note.id ? { ...n, content: newContent } : n
+            ));
+            setTimeout(saveCanvasSettings, 100);
+          },
+          onColorChange: (newColor) => {
+            setStickyNotes(prev => prev.map(n =>
+              n.id === note.id ? { ...n, color: newColor } : n
+            ));
+            setTimeout(saveCanvasSettings, 100);
+          },
+          onTextAlignChange: (newAlign) => {
+            setStickyNotes(prev => prev.map(n =>
+              n.id === note.id ? { ...n, textAlign: newAlign } : n
+            ));
+            setTimeout(saveCanvasSettings, 100);
+          },
+          onDelete: () => {
+            setStickyNotes(prev => prev.filter(n => n.id !== note.id));
+            setTimeout(saveCanvasSettings, 100);
+          },
+        },
+      });
+    });
+
     setNodes(flowNodes);
     setEdges(flowEdges);
-  }, [tree, expandedNodes, selectedNode, autoLayoutMode, savedPositions]);
+  }, [tree, expandedNodes, selectedNode, autoLayoutMode, savedPositions, stickyNotes, saveCanvasSettings]);
 
   // Helper to count all descendants
   function countDescendants(node) {
@@ -487,6 +619,26 @@ function ScrapbookInner({ projectName, onClose }) {
     setTimeout(saveCanvasSettings, 200);
   };
 
+  // Add sticky note handler
+  const handleAddStickyNote = () => {
+    const viewport = reactFlowInstance.getViewport();
+    // Position new note in the center of the visible area
+    const centerX = (-viewport.x + 400) / viewport.zoom;
+    const centerY = (-viewport.y + 300) / viewport.zoom;
+
+    const newNote = {
+      id: `sticky-${Date.now()}`,
+      content: '',
+      position: { x: centerX, y: centerY },
+      width: 200,
+      height: 150,
+    };
+
+    setStickyNotes(prev => [...prev, newNote]);
+    setOptionsAnchor(null);
+    setTimeout(saveCanvasSettings, 100);
+  };
+
   // Handle context menu actions
   const handleMenuClose = () => {
     setAnchorEl(null);
@@ -573,6 +725,10 @@ function ScrapbookInner({ projectName, onClose }) {
             <ListItemIcon><AccountTree fontSize="small" /></ListItemIcon>
             <ListItemText>Auto-layout</ListItemText>
           </MenuItem>
+          <MenuItem onClick={handleAddStickyNote}>
+            <ListItemIcon><NoteAdd fontSize="small" /></ListItemIcon>
+            <ListItemText>Add sticky note</ListItemText>
+          </MenuItem>
         </Menu>
       </Box>
 
@@ -584,7 +740,14 @@ function ScrapbookInner({ projectName, onClose }) {
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                onNodesChange={onNodesChange}
+                onNodesChange={(changes) => {
+                  onNodesChange(changes);
+                  // Check if any sticky note was resized
+                  const resizeChange = changes.find(c => c.type === 'dimensions' && c.id?.startsWith('sticky-'));
+                  if (resizeChange) {
+                    setTimeout(saveCanvasSettings, 100);
+                  }
+                }}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
                 fitView={!savedViewport}
@@ -596,11 +759,6 @@ function ScrapbookInner({ projectName, onClose }) {
               >
                 <Controls />
                 <Background variant="dots" gap={12} size={1} />
-                <Panel position="top-left">
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    Click a node to view topics. Use caret to expand/collapse.
-                  </Typography>
-                </Panel>
                 <Panel position="bottom-right">
                   <Paper sx={{ p: 1.5, backgroundColor: 'rgba(255,255,255,0.95)' }}>
                     <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
