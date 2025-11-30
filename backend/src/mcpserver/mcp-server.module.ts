@@ -5,9 +5,10 @@ import { McpAuthGuard } from './auth.guard';
 import { DeepResearchModule } from '../deep-research/deep-research.module';
 import { KnowledgeGraphModule } from '../knowledge-graph/knowledge-graph.module';
 import { EmailModule } from '../smtp-imap/email.module';
+import { ScrapbookModule } from '../scrapbook/scrapbook.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule],
   controllers: [McpServerController],
   providers: [McpServerService, McpAuthGuard],
   exports: [McpServerService],

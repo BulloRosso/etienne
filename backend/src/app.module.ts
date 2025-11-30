@@ -28,9 +28,10 @@ import { SkillsModule } from './skills/skills.module';
 import { TagsModule } from './tags/tags.module';
 import { ContextsModule } from './contexts/contexts.module';
 import { EventHandlingModule } from './event-handling/event-handling.module';
+import { ScrapbookModule } from './scrapbook/scrapbook.module';
 
 @Module({
-  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule],
+  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule],
   controllers: [ClaudeController],
   providers: [
     ClaudeService,

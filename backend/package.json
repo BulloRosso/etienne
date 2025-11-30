@@ -13,6 +13,7 @@
     "@types/cron": "^2.4.3",
     "@types/js-yaml": "^4.0.9",
     "@types/mqtt": "^2.5.0",
+    "@types/multer": "^2.0.0",
     "axios": "^1.13.2",
     "chokidar": "^3.6.0",
     "class-transformer": "^0.5.1",
@@ -26,6 +27,7 @@
     "js-yaml": "^4.1.0",
     "mailparser": "^3.9.0",
     "mqtt": "^5.14.1",
+    "multer": "^2.0.2",
     "openai": "^6.7.0",
     "quadstore": "^15.4.1",
     "rdf-data-factory": "^2.0.2",
@@ -36,6 +38,7 @@
     "zeromq": "^6.5.0"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "@types/imap": "^0.8.42",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^20.11.17",

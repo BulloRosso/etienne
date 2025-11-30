@@ -37,6 +37,7 @@ import DashboardGrid from './DashboardGrid';
 import EmailConfiguration from './EmailConfiguration';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
+import Scrapbook from './Scrapbook';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -54,6 +55,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [emailOpen, setEmailOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
+  const [scrapbookOpen, setScrapbookOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -144,6 +146,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'conditionmonitoring':
         handleConditionMonitoringOpen();
+        break;
+      case 'scrapbook':
+        handleScrapbookOpen();
         break;
       default:
         break;
@@ -336,6 +341,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleConditionMonitoringClose = () => {
     setConditionMonitoringOpen(false);
+  };
+
+  const handleScrapbookOpen = () => {
+    setScrapbookOpen(true);
+    handleMenuClose();
+  };
+
+  const handleScrapbookClose = () => {
+    setScrapbookOpen(false);
   };
 
   const handleBudgetToggle = async (event) => {
@@ -753,6 +767,31 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           selectedProject={currentProject}
           onClose={handleConditionMonitoringClose}
         />
+      </Dialog>
+
+      <Dialog
+        open={scrapbookOpen}
+        onClose={handleScrapbookClose}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '90vh',
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span>Scrapbook</span>
+          </Box>
+          <IconButton onClick={handleScrapbookClose} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ height: 'calc(100% - 64px)', p: 0 }}>
+          <Scrapbook projectName={currentProject} onClose={handleScrapbookClose} />
+        </DialogContent>
       </Dialog>
     </>
   );

@@ -75,6 +75,12 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) =
       image: '/conditionmonitoring.jpg',
       label: 'Condition Monitoring',
       disabled: !currentProject
+    },
+    {
+      id: 'scrapbook',
+      image: '/scrapbook.jpg',
+      label: 'Scrapbook',
+      disabled: !currentProject
     }
   ];
 
