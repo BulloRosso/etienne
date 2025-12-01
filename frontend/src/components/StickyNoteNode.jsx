@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { NodeResizer } from '@xyflow/react';
-import { Box, IconButton, Dialog, DialogTitle, DialogContent, ToggleButtonGroup, ToggleButton, Typography } from '@mui/material';
-import { Close, VerticalAlignTop, VerticalAlignBottom } from '@mui/icons-material';
+import { Box, IconButton, Dialog, DialogTitle, DialogContent } from '@mui/material';
+import { Close, Settings, Check, Clear } from '@mui/icons-material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -23,30 +23,24 @@ const StickyNoteNode = ({ data, selected }) => {
     onColorChange,
     textAlign,
     onTextAlignChange,
+    isEditing,
+    onStopEdit,
   } = data;
 
-  const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
-  const [isHovered, setIsHovered] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const textareaRef = useRef(null);
-  const clickTimeoutRef = useRef(null);
 
   const backgroundColor = STICKY_COLORS[color] || STICKY_COLORS.gray;
 
+  // Sync edit content when external content changes (and not editing)
   useEffect(() => {
-    setEditContent(content || '');
-  }, [content]);
+    if (!isEditing) {
+      setEditContent(content || '');
+    }
+  }, [content, isEditing]);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (clickTimeoutRef.current) {
-        clearTimeout(clickTimeoutRef.current);
-      }
-    };
-  }, []);
-
+  // Focus textarea when entering edit mode
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus();
@@ -64,57 +58,46 @@ const StickyNoteNode = ({ data, selected }) => {
     return DOMPurify.sanitize(rawHtml);
   }, [content]);
 
-  const handleBlur = useCallback(() => {
-    setIsEditing(false);
-    if (editContent !== content) {
+  // Save and exit edit mode
+  const handleSave = useCallback((e) => {
+    if (e) e.stopPropagation();
+    if (editContent !== content && onContentChange) {
       onContentChange(editContent);
     }
-  }, [editContent, content, onContentChange]);
+    if (onStopEdit) {
+      onStopEdit();
+    }
+  }, [editContent, content, onContentChange, onStopEdit]);
 
+  // Cancel and exit edit mode
+  const handleCancel = useCallback((e) => {
+    if (e) e.stopPropagation();
+    setEditContent(content || '');
+    if (onStopEdit) {
+      onStopEdit();
+    }
+  }, [content, onStopEdit]);
+
+  // Handle keyboard shortcuts
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
-      setIsEditing(false);
-      setEditContent(content || '');
+      handleCancel();
     }
-    // Allow Enter for newlines, Ctrl+Enter to save and exit
-    if (e.key === 'Enter' && e.ctrlKey) {
-      handleBlur();
-    }
-  }, [content, handleBlur]);
+  }, [handleCancel]);
 
+  // Delete handler
   const handleDelete = useCallback((e) => {
     e.stopPropagation();
     onDelete();
   }, [onDelete]);
 
-  const handleClick = useCallback((e) => {
-    // Use timeout to distinguish single click from double click
-    if (isEditing) return;
-
-    if (clickTimeoutRef.current) {
-      // Double click detected - clear timeout and let handleDoubleClick handle it
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-      return;
-    }
-
-    // Set timeout for single click action
-    clickTimeoutRef.current = setTimeout(() => {
-      clickTimeoutRef.current = null;
-      setColorPickerOpen(true);
-    }, 250); // 250ms delay to detect double click
-  }, [isEditing]);
-
-  const handleDoubleClick = useCallback((e) => {
+  // Settings handler
+  const handleSettings = useCallback((e) => {
     e.stopPropagation();
-    // Clear any pending single click
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-    }
-    setIsEditing(true);
+    setColorPickerOpen(true);
   }, []);
 
+  // Color select handler
   const handleColorSelect = useCallback((colorKey) => {
     onColorChange(colorKey);
     setColorPickerOpen(false);
@@ -122,127 +105,238 @@ const StickyNoteNode = ({ data, selected }) => {
 
   return (
     <>
-      <NodeResizer
-        minWidth={150}
-        minHeight={100}
-        isVisible={selected || isHovered}
-        lineClassName="sticky-note-resize-line"
-        handleClassName="sticky-note-resize-handle"
-        handleStyle={{
-          width: 8,
-          height: 8,
-          borderRadius: 2,
-        }}
-        lineStyle={{
-          borderWidth: 1,
-        }}
-      />
+      {/* Only show resizer when in edit mode */}
+      {isEditing && (
+        <NodeResizer
+          minWidth={150}
+          minHeight={100}
+          isVisible={true}
+          lineClassName="sticky-note-resize-line"
+          handleClassName="sticky-note-resize-handle"
+          handleStyle={{
+            width: 8,
+            height: 8,
+            borderRadius: 2,
+          }}
+          lineStyle={{
+            borderWidth: 1,
+          }}
+        />
+      )}
+
       <Box
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={handleClick}
+        className={isEditing ? '' : 'nodrag'}
+        onKeyDown={handleKeyDown}
         sx={{
           width: '100%',
           height: '100%',
           backgroundColor: backgroundColor,
           borderRadius: 0,
-          padding: '14px',
-          paddingTop: '24px',
           fontSize: '12px',
           fontFamily: 'Roboto, sans-serif',
           position: 'relative',
-          overflow: 'auto',
+          overflow: 'hidden',
           boxShadow: selected
             ? '0 2px 8px rgba(0,0,0,0.2)'
             : '0 1px 4px rgba(0,0,0,0.1)',
-          cursor: isEditing ? 'text' : 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          cursor: isEditing ? 'default' : 'pointer',
         }}
-        onDoubleClick={handleDoubleClick}
       >
-        {/* Close button - only visible on hover */}
-        {isHovered && (
-          <IconButton
-            size="small"
-            onClick={handleDelete}
-            sx={{
-              position: 'absolute',
-              top: 2,
-              right: 2,
-              padding: '2px',
-              opacity: 0.6,
-              '&:hover': {
-                opacity: 1,
-                backgroundColor: 'rgba(0,0,0,0.1)',
-              },
-            }}
-          >
-            <Close sx={{ fontSize: 14 }} />
-          </IconButton>
-        )}
+        {/* Header bar - always present for drag handle, visible only in edit mode */}
+        <Box
+          className="sticky-drag-handle"
+          sx={{
+            height: isEditing ? '24px' : 0,
+            minHeight: isEditing ? '24px' : 0,
+            overflow: 'hidden',
+            backgroundColor: 'rgba(0,0,0,0.08)',
+            cursor: 'grab',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            borderBottom: isEditing ? '1px solid rgba(0,0,0,0.1)' : 'none',
+            px: 0.5,
+            '&:active': {
+              cursor: 'grabbing',
+            },
+          }}
+        >
+          {isEditing && (
+            <>
+              <IconButton
+                size="small"
+                className="nodrag"
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  handleSettings(e);
+                }}
+                sx={{
+                  padding: '4px',
+                  opacity: 0.7,
+                  '&:hover': {
+                    opacity: 1,
+                    backgroundColor: 'rgba(0,0,0,0.1)',
+                  },
+                }}
+              >
+                <Settings sx={{ fontSize: 16 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                className="nodrag"
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  handleDelete(e);
+                }}
+                sx={{
+                  padding: '4px',
+                  opacity: 0.7,
+                  '&:hover': {
+                    opacity: 1,
+                    backgroundColor: 'rgba(0,0,0,0.1)',
+                  },
+                }}
+              >
+                <Close sx={{ fontSize: 16 }} />
+              </IconButton>
+            </>
+          )}
+        </Box>
 
-        {isEditing ? (
-          <textarea
-            ref={textareaRef}
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              outline: 'none',
-              backgroundColor: 'transparent',
-              fontSize: '10px',
-              fontFamily: 'Roboto, sans-serif',
-              resize: 'none',
-              padding: 0,
-              margin: 0,
-            }}
-            placeholder="Type your note here... (Ctrl+Enter to save, Esc to cancel)"
-          />
-        ) : (
-          <Box
-            sx={{
-              width: '100%',
-              height: '100%',
-              overflow: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: textAlign === 'bottom' ? 'flex-end' : 'flex-start',
-              fontSize: '12px',
-              '& p': { margin: 0, marginBottom: '0.5em', fontSize: '12px' },
-              '& p:last-child': { marginBottom: 0 },
-              '& ul, & ol': { margin: 0, paddingLeft: '1.2em', fontSize: '12px' },
-              '& code': {
-                backgroundColor: 'rgba(0,0,0,0.1)',
-                padding: '1px 3px',
-                borderRadius: '2px',
-                fontSize: '10px',
-              },
-              '& pre': {
-                backgroundColor: 'rgba(0,0,0,0.1)',
-                padding: '4px',
-                borderRadius: '2px',
+        {/* Content area */}
+        <Box className="nodrag nopan" sx={{ flex: 1, padding: '10px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {isEditing ? (
+            <textarea
+              ref={textareaRef}
+              className="nowheel nodrag nopan"
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                outline: 'none',
+                backgroundColor: 'transparent',
+                fontSize: '11px',
+                fontFamily: 'Roboto, sans-serif',
+                resize: 'none',
+                padding: 0,
+                margin: 0,
+                cursor: 'text',
+              }}
+              placeholder="Type your note here..."
+            />
+          ) : (
+            <Box
+              sx={{
+                width: '100%',
+                flex: 1,
                 overflow: 'auto',
-                fontSize: '10px',
-              },
-              '& h1, & h2, & h3, & h4, & h5, & h6': {
-                marginTop: 0,
-                marginBottom: '0.3em',
-                fontSize: '13px',
-                fontWeight: 600,
-              },
-              '& a': { color: '#1976d2' },
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: textAlign === 'bottom' ? 'flex-end' : 'flex-start',
+                fontSize: '12px',
+                '& p': { margin: 0, marginBottom: '0.5em', fontSize: '12px' },
+                '& p:last-child': { marginBottom: 0 },
+                '& ul, & ol': { margin: 0, paddingLeft: '1.2em', fontSize: '12px' },
+                '& code': {
+                  backgroundColor: 'rgba(0,0,0,0.1)',
+                  padding: '1px 3px',
+                  borderRadius: '2px',
+                  fontSize: '10px',
+                },
+                '& pre': {
+                  backgroundColor: 'rgba(0,0,0,0.1)',
+                  padding: '4px',
+                  borderRadius: '2px',
+                  overflow: 'auto',
+                  fontSize: '10px',
+                },
+                '& h1, & h2, & h3, & h4, & h5, & h6': {
+                  marginTop: 0,
+                  marginBottom: '0.3em',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                },
+                '& a': { color: '#1976d2' },
+              }}
+            >
+              {content ? (
+                <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+              ) : (
+                <Box sx={{ color: '#999', fontStyle: 'italic' }}>
+                  Click to edit...
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+
+        {/* Footer bar - only visible in edit mode */}
+        {isEditing && (
+          <Box
+            className="nodrag"
+            sx={{
+              height: '24px',
+              minHeight: '24px',
+              backgroundColor: 'rgba(0,0,0,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              borderTop: '1px solid rgba(0,0,0,0.1)',
+              px: 0.5,
+              gap: 0.5,
             }}
           >
-            {content ? (
-              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
-            ) : (
-              <Box sx={{ color: '#999', fontStyle: 'italic' }}>
-                Double-click to edit...
-              </Box>
-            )}
+            <IconButton
+              size="small"
+              className="nodrag"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleCancel(e);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              title="Cancel (Esc)"
+              sx={{
+                padding: '4px',
+                opacity: 0.7,
+                '&:hover': {
+                  opacity: 1,
+                  backgroundColor: 'rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Clear sx={{ fontSize: 16 }} />
+            </IconButton>
+            <IconButton
+              size="small"
+              className="nodrag"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleSave(e);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              title="Save"
+              sx={{
+                padding: '4px',
+                opacity: 0.7,
+                '&:hover': {
+                  opacity: 1,
+                  backgroundColor: 'rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Check sx={{ fontSize: 16 }} />
+            </IconButton>
           </Box>
         )}
       </Box>
@@ -255,12 +349,9 @@ const StickyNoteNode = ({ data, selected }) => {
           sx: { borderRadius: 2 }
         }}
       >
-        <DialogTitle sx={{ pb: 1, fontSize: '14px' }}>Sticky Note Settings</DialogTitle>
+        <DialogTitle sx={{ pb: 1, fontSize: '14px' }}>Sticky Note Color</DialogTitle>
         <DialogContent>
-          <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
-            Color
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1.5, p: 1, mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1.5, p: 1 }}>
             {Object.entries(STICKY_COLORS).map(([key, colorValue]) => (
               <Box
                 key={key}
@@ -282,28 +373,6 @@ const StickyNoteNode = ({ data, selected }) => {
               />
             ))}
           </Box>
-          <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
-            Text Alignment
-          </Typography>
-          <ToggleButtonGroup
-            value={textAlign || 'top'}
-            exclusive
-            onChange={(e, newAlign) => {
-              if (newAlign !== null) {
-                onTextAlignChange(newAlign);
-              }
-            }}
-            size="small"
-          >
-            <ToggleButton value="top">
-              <VerticalAlignTop sx={{ mr: 0.5, fontSize: 18 }} />
-              Top
-            </ToggleButton>
-            <ToggleButton value="bottom">
-              <VerticalAlignBottom sx={{ mr: 0.5, fontSize: 18 }} />
-              Bottom
-            </ToggleButton>
-          </ToggleButtonGroup>
         </DialogContent>
       </Dialog>
     </>

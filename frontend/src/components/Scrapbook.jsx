@@ -70,6 +70,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [autoLayoutMode, setAutoLayoutMode] = useState(false);
   const [stickyNotes, setStickyNotes] = useState([]);
+  const [editingStickyId, setEditingStickyId] = useState(null);
   const [customProperties, setCustomProperties] = useState([]);
   const [columnConfig, setColumnConfig] = useState([]);
 
@@ -491,12 +492,78 @@ function ScrapbookInner({ projectName, onClose }) {
       processNode(tree, 0, null);
     }
 
-    // Add sticky notes to flow nodes (with lower z-index)
-    stickyNotes.forEach(note => {
-      flowNodes.push({
+    setNodes(flowNodes);
+    setEdges(flowEdges);
+  }, [tree, expandedNodes, selectedNode, autoLayoutMode, savedPositions]);
+
+  // Effect for creating/removing sticky notes (only when stickyNotes array changes)
+  useEffect(() => {
+    setNodes(prevNodes => {
+      // Remove old sticky notes
+      const nonStickyNodes = prevNodes.filter(n => !n.id.startsWith('sticky-'));
+      const existingStickyIds = new Set(prevNodes.filter(n => n.id.startsWith('sticky-')).map(n => n.id));
+      const newStickyIds = new Set(stickyNotes.map(n => n.id));
+
+      // Check if sticky notes have actually changed (added/removed)
+      const stickyNotesChanged = existingStickyIds.size !== newStickyIds.size ||
+        [...existingStickyIds].some(id => !newStickyIds.has(id));
+
+      if (!stickyNotesChanged && existingStickyIds.size > 0) {
+        // Only update data for existing sticky notes - preserve all callbacks
+        return prevNodes.map(node => {
+          if (!node.id.startsWith('sticky-')) return node;
+          const note = stickyNotes.find(n => n.id === node.id);
+          if (!note) return node;
+          return {
+            ...node,
+            position: note.position || node.position,
+            dragHandle: '.sticky-drag-handle', // Ensure dragHandle is preserved
+            style: {
+              ...node.style,
+              width: note.width || 200,
+              height: note.height || 150,
+            },
+            data: {
+              ...node.data,
+              content: note.content || '',
+              color: note.color || 'gray',
+              textAlign: note.textAlign || 'top',
+              // Re-create callbacks to ensure they work with latest state
+              onStopEdit: () => setEditingStickyId(null),
+              onContentChange: (newContent) => {
+                setStickyNotes(prev => prev.map(n =>
+                  n.id === note.id ? { ...n, content: newContent } : n
+                ));
+                setTimeout(saveCanvasSettings, 100);
+              },
+              onColorChange: (newColor) => {
+                setStickyNotes(prev => prev.map(n =>
+                  n.id === note.id ? { ...n, color: newColor } : n
+                ));
+                setTimeout(saveCanvasSettings, 100);
+              },
+              onTextAlignChange: (newAlign) => {
+                setStickyNotes(prev => prev.map(n =>
+                  n.id === note.id ? { ...n, textAlign: newAlign } : n
+                ));
+                setTimeout(saveCanvasSettings, 100);
+              },
+              onDelete: () => {
+                setStickyNotes(prev => prev.filter(n => n.id !== note.id));
+                setEditingStickyId(null);
+                setTimeout(saveCanvasSettings, 100);
+              },
+            },
+          };
+        });
+      }
+
+      // Add current sticky notes (full rebuild only when notes added/removed)
+      const stickyFlowNodes = stickyNotes.map(note => ({
         id: note.id,
         type: 'stickyNote',
         position: note.position || { x: 50, y: 50 },
+        dragHandle: '.sticky-drag-handle',
         style: {
           width: note.width || 200,
           height: note.height || 150,
@@ -506,6 +573,8 @@ function ScrapbookInner({ projectName, onClose }) {
           content: note.content || '',
           color: note.color || 'gray',
           textAlign: note.textAlign || 'top',
+          isEditing: false, // Will be updated by the separate isEditing effect
+          onStopEdit: () => setEditingStickyId(null),
           onContentChange: (newContent) => {
             setStickyNotes(prev => prev.map(n =>
               n.id === note.id ? { ...n, content: newContent } : n
@@ -526,15 +595,31 @@ function ScrapbookInner({ projectName, onClose }) {
           },
           onDelete: () => {
             setStickyNotes(prev => prev.filter(n => n.id !== note.id));
+            setEditingStickyId(null);
             setTimeout(saveCanvasSettings, 100);
           },
         },
-      });
-    });
+      }));
 
-    setNodes(flowNodes);
-    setEdges(flowEdges);
-  }, [tree, expandedNodes, selectedNode, autoLayoutMode, savedPositions, stickyNotes, saveCanvasSettings]);
+      return [...nonStickyNodes, ...stickyFlowNodes];
+    });
+  }, [stickyNotes, saveCanvasSettings]);
+
+  // Separate effect for updating isEditing state (doesn't recreate nodes)
+  useEffect(() => {
+    setNodes(prevNodes => prevNodes.map(node => {
+      if (!node.id.startsWith('sticky-')) return node;
+      const shouldBeEditing = editingStickyId === node.id;
+      if (node.data.isEditing === shouldBeEditing) return node;
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          isEditing: shouldBeEditing,
+        },
+      };
+    }));
+  }, [editingStickyId]);
 
   // Helper to count all descendants
   function countDescendants(node) {
@@ -763,20 +848,17 @@ function ScrapbookInner({ projectName, onClose }) {
 
   // Add sticky note handler
   const handleAddStickyNote = () => {
-    const viewport = reactFlowInstance.getViewport();
-    // Position new note in the center of the visible area
-    const centerX = (-viewport.x + 400) / viewport.zoom;
-    const centerY = (-viewport.y + 300) / viewport.zoom;
-
+    const newNoteId = `sticky-${Date.now()}`;
     const newNote = {
-      id: `sticky-${Date.now()}`,
+      id: newNoteId,
       content: '',
-      position: { x: centerX, y: centerY },
+      position: { x: 20, y: 20 },
       width: 200,
       height: 150,
     };
 
     setStickyNotes(prev => [...prev, newNote]);
+    setEditingStickyId(newNoteId); // Automatically enter edit mode
     setOptionsAnchor(null);
     setTimeout(saveCanvasSettings, 100);
   };
@@ -987,6 +1069,23 @@ function ScrapbookInner({ projectName, onClose }) {
                 }}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
+                onNodeClick={(_event, node) => {
+                  if (node.type === 'stickyNote') {
+                    // Handle sticky note clicks to enter edit mode
+                    if (!editingStickyId) {
+                      setEditingStickyId(node.id);
+                    }
+                    // If clicking on a different sticky note, switch to that one
+                    else if (editingStickyId !== node.id) {
+                      setEditingStickyId(node.id);
+                    }
+                  } else {
+                    // Clicking on a non-sticky node exits sticky edit mode
+                    if (editingStickyId) {
+                      setEditingStickyId(null);
+                    }
+                  }
+                }}
                 fitView={!savedViewport}
                 defaultViewport={savedViewport || undefined}
                 minZoom={0.1}
@@ -995,6 +1094,8 @@ function ScrapbookInner({ projectName, onClose }) {
                   // Update savedPositions with the new positions from all dragged nodes
                   // This ensures positions persist across re-renders
                   const draggedNodes = nodes.length > 0 ? nodes : [node];
+
+                  // Handle regular nodes
                   setSavedPositions(prev => {
                     const updated = { ...prev };
                     draggedNodes.forEach(n => {
@@ -1004,13 +1105,32 @@ function ScrapbookInner({ projectName, onClose }) {
                     });
                     return updated;
                   });
+
+                  // Handle sticky notes - update their positions in stickyNotes state
+                  const stickyDraggedNodes = draggedNodes.filter(n => n.id.startsWith('sticky-'));
+                  if (stickyDraggedNodes.length > 0) {
+                    setStickyNotes(prev => prev.map(note => {
+                      const draggedNote = stickyDraggedNodes.find(n => n.id === note.id);
+                      if (draggedNote) {
+                        return { ...note, position: draggedNote.position };
+                      }
+                      return note;
+                    }));
+                  }
+
                   saveCanvasSettings();
                 }}
                 onMoveEnd={saveCanvasSettings}
-                selectionOnDrag
+                onPaneClick={() => {
+                  // Exit sticky note edit mode when clicking on canvas background
+                  if (editingStickyId) {
+                    setEditingStickyId(null);
+                  }
+                }}
+                selectionOnDrag={!editingStickyId}
                 selectionMode={SelectionMode.Partial}
                 panOnDrag={[1, 2]}
-                selectionKeyCode={null}
+                selectionKeyCode={editingStickyId ? false : null}
                 onSelectionChange={({ nodes: selectedNodes }) => {
                   // Skip if we're intentionally unselecting
                   if (intentionalUnselectRef.current) return;
