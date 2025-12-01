@@ -897,7 +897,7 @@ function ScrapbookInner({ projectName, onClose }) {
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2 }}>
         <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ flex: 1 }}>
           <Tab label="Mindmap" />
-          <Tab label="Topics" disabled={!selectedNode} />
+          <Tab label="Topics for selected Element" disabled={!selectedNode} />
         </Tabs>
         <IconButton onClick={(e) => setOptionsAnchor(e.currentTarget)} size="small">
           <MoreVert />
@@ -955,7 +955,21 @@ function ScrapbookInner({ projectName, onClose }) {
                 defaultViewport={savedViewport || undefined}
                 minZoom={0.1}
                 maxZoom={2}
-                onNodeDragStop={saveCanvasSettings}
+                onNodeDragStop={(_event, node, nodes) => {
+                  // Update savedPositions with the new positions from all dragged nodes
+                  // This ensures positions persist across re-renders
+                  const draggedNodes = nodes.length > 0 ? nodes : [node];
+                  setSavedPositions(prev => {
+                    const updated = { ...prev };
+                    draggedNodes.forEach(n => {
+                      if (!n.id.startsWith('sticky-')) {
+                        updated[n.id] = { x: n.position.x, y: n.position.y };
+                      }
+                    });
+                    return updated;
+                  });
+                  saveCanvasSettings();
+                }}
                 onMoveEnd={saveCanvasSettings}
                 selectionOnDrag
                 selectionMode={SelectionMode.Partial}
