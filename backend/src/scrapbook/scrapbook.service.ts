@@ -31,6 +31,26 @@ export interface ScrapbookNode {
   iconName?: string;
   images?: string[];
   parentId?: string;
+  customProperties?: Record<string, string | number>; // key = property id, value = property value
+}
+
+/**
+ * Custom property definition
+ */
+export interface CustomPropertyDefinition {
+  id: string;
+  name: string;
+  fieldType: 'text' | 'numeric' | 'currency';
+  unit?: string; // e.g., 'kg', 'cm', '$', '€'
+}
+
+/**
+ * Column configuration for topic table
+ */
+export interface ColumnConfig {
+  id: string; // 'icon', 'label', 'images', 'priority', 'attention', 'description', 'created', 'actions' or custom property id
+  visible: boolean;
+  width?: number;
 }
 
 /**
@@ -44,6 +64,10 @@ export interface CanvasSettings {
   }>;
   zoom: number;
   viewport: { x: number; y: number };
+  // Custom properties schema
+  customProperties?: CustomPropertyDefinition[];
+  // Column order and visibility for topic table
+  columnConfig?: ColumnConfig[];
 }
 
 /**
@@ -114,6 +138,7 @@ export class ScrapbookService {
       iconName: node.iconName,
       images: node.images || [],
       parentId: parentId,
+      customProperties: node.customProperties || {},
     };
 
     const namespace = this.getProjectNamespace(project);
@@ -138,6 +163,7 @@ export class ScrapbookService {
       createdAt: newNode.createdAt,
       iconName: newNode.iconName || '',
       images: JSON.stringify(newNode.images || []),
+      customProperties: JSON.stringify(newNode.customProperties || {}),
     };
 
     for (const [key, value] of Object.entries(properties)) {
@@ -287,21 +313,33 @@ export class ScrapbookService {
    * Update a node
    */
   async updateNode(project: string, nodeId: string, updates: Partial<ScrapbookNode>): Promise<ScrapbookNode> {
+    this.logger.log(`updateNode called with nodeId=${nodeId}, updates=${JSON.stringify(updates)}`);
+
     const existingNode = await this.getNode(project, nodeId);
     if (!existingNode) {
       throw new NotFoundException(`Node ${nodeId} not found`);
     }
 
+    this.logger.log(`Existing node customProperties: ${JSON.stringify(existingNode.customProperties)}`);
+
     // Delete old property triples
     await this.deleteNodeProperties(project, nodeId);
 
-    // Create updated node
+    // Create updated node - merge customProperties properly
+    const mergedCustomProperties = {
+      ...(existingNode.customProperties || {}),
+      ...(updates.customProperties || {}),
+    };
+
     const updatedNode: ScrapbookNode = {
       ...existingNode,
       ...updates,
+      customProperties: mergedCustomProperties,
       id: nodeId, // Preserve ID
       updatedAt: new Date().toISOString(),
     };
+
+    this.logger.log(`Updated node customProperties: ${JSON.stringify(updatedNode.customProperties)}`);
 
     const namespace = this.getProjectNamespace(project);
     const nodeUri = `${this.baseUri}${nodeId}`;
@@ -316,6 +354,7 @@ export class ScrapbookService {
       createdAt: updatedNode.createdAt,
       iconName: updatedNode.iconName || '',
       images: JSON.stringify(updatedNode.images || []),
+      customProperties: JSON.stringify(updatedNode.customProperties || {}),
     };
 
     for (const [key, value] of Object.entries(properties)) {
@@ -656,7 +695,7 @@ export class ScrapbookService {
     const namespace = this.getProjectNamespace(project);
     const nodeUri = `${this.baseUri}${nodeId}`;
 
-    const properties = ['label', 'description', 'priority', 'attentionWeight', 'updatedAt', 'createdAt', 'iconName', 'images'];
+    const properties = ['label', 'description', 'priority', 'attentionWeight', 'updatedAt', 'createdAt', 'iconName', 'images', 'customProperties'];
 
     for (const prop of properties) {
       try {
@@ -692,7 +731,10 @@ export class ScrapbookService {
   }
 
   private parseNodeFromTriples(triples: any[], nodeId: string): ScrapbookNode {
-    const node: Partial<ScrapbookNode> = { id: nodeId };
+    const node: Partial<ScrapbookNode> = {
+      id: nodeId,
+      customProperties: {}, // Default to empty object for backwards compatibility
+    };
 
     for (const triple of triples) {
       const predicate = triple.predicate.value.replace(this.baseUri, '');
@@ -728,6 +770,13 @@ export class ScrapbookService {
             node.images = JSON.parse(value);
           } catch (e) {
             node.images = [];
+          }
+          break;
+        case 'customProperties':
+          try {
+            node.customProperties = JSON.parse(value);
+          } catch (e) {
+            node.customProperties = {};
           }
           break;
         case 'hasParent':

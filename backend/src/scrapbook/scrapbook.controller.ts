@@ -42,6 +42,7 @@ interface UpdateNodeDto {
   attentionWeight?: number;
   iconName?: string;
   images?: string[];
+  customProperties?: Record<string, string | number>;
 }
 
 /**

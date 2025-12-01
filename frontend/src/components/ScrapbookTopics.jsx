@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -14,20 +14,79 @@ import {
   Paper,
   Tooltip,
   Chip,
+  Dialog,
+  DialogContent,
+  TextField,
 } from '@mui/material';
-import { Add, Edit, Delete, ArrowBack, FileDownload, Image } from '@mui/icons-material';
+import { Add, Edit, Delete, ArrowBack, FileDownload, Image, MoreHoriz, Close, ChevronLeft, ChevronRight, Settings } from '@mui/icons-material';
+import * as FaIcons from 'react-icons/fa';
+import * as MdIcons from 'react-icons/md';
+import * as IoIcons from 'react-icons/io5';
+import * as BiIcons from 'react-icons/bi';
+import * as AiIcons from 'react-icons/ai';
 import * as XLSX from 'xlsx';
 import ScrapbookNodeEdit from './ScrapbookNodeEdit';
+import ColumnSettingsDialog from './ColumnSettingsDialog';
 
-export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated, onBack }) {
+// Icon resolver - tries to find icon from various react-icons libraries
+const getIcon = (iconName) => {
+  if (!iconName) return null;
+  const libraries = [FaIcons, MdIcons, IoIcons, BiIcons, AiIcons];
+  for (const lib of libraries) {
+    if (lib[iconName]) {
+      return lib[iconName];
+    }
+  }
+  return null;
+};
+
+// Default column configuration
+const DEFAULT_COLUMN_CONFIG = [
+  { id: 'icon', visible: true },
+  { id: 'label', visible: true },
+  { id: 'images', visible: true },
+  { id: 'priority', visible: true },
+  { id: 'attention', visible: true },
+  { id: 'description', visible: true },
+  { id: 'created', visible: true },
+  { id: 'actions', visible: true },
+];
+
+export default function ScrapbookTopics({
+  projectName,
+  parentNode,
+  onNodeUpdated,
+  onBack,
+  customProperties = [],
+  columnConfig = [],
+  onSettingsChange,
+}) {
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState('priority');
   const [sortDirection, setSortDirection] = useState('desc');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editNode, setEditNode] = useState(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [nodeToDelete, setNodeToDelete] = useState(null);
+  const [dragOverNodeId, setDragOverNodeId] = useState(null);
+  const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
+
+  // Inline editing state
+  const [editingCell, setEditingCell] = useState(null); // { nodeId, propertyId }
+  const [editingValue, setEditingValue] = useState('');
+  const savingRef = useRef(false); // Prevent double-save on Enter+Blur
+
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Get effective column config (merge defaults with saved config)
+  const effectiveColumnConfig = columnConfig.length > 0
+    ? columnConfig
+    : [...DEFAULT_COLUMN_CONFIG, ...customProperties.map(p => ({ id: p.id, visible: true }))];
+
+  // Filter to visible columns only
+  const visibleColumns = effectiveColumnConfig.filter(c => c.visible);
 
   // Fetch children of the selected node
   const fetchChildren = useCallback(async () => {
@@ -38,6 +97,7 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
       const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${parentNode.id}/children`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Fetched children:', data);
         setChildren(data || []);
       }
     } catch (error) {
@@ -56,15 +116,27 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
     let aVal = a[sortField];
     let bVal = b[sortField];
 
+    // Handle custom property sorting
+    if (sortField.startsWith('custom-')) {
+      aVal = a.customProperties?.[sortField] ?? '';
+      bVal = b.customProperties?.[sortField] ?? '';
+    }
+
     if (sortField === 'createdAt' || sortField === 'updatedAt') {
       aVal = new Date(aVal).getTime();
       bVal = new Date(bVal).getTime();
     }
 
-    if (sortDirection === 'asc') {
-      return aVal > bVal ? 1 : -1;
+    // Handle numeric comparison
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
     }
-    return aVal < bVal ? 1 : -1;
+
+    // Handle string comparison
+    if (sortDirection === 'asc') {
+      return String(aVal || '').localeCompare(String(bVal || ''));
+    }
+    return String(bVal || '').localeCompare(String(aVal || ''));
   });
 
   // Handle sort
@@ -110,26 +182,99 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
     onNodeUpdated();
   };
 
-  // Refresh children when dialog closes (to pick up image uploads)
+  // Refresh children when dialog closes
   const handleDialogClose = async () => {
     setEditDialogOpen(false);
     setEditNode(null);
-    await fetchChildren(); // Refresh to show any uploaded images
+    await fetchChildren();
+  };
+
+  // Handle inline editing of custom properties
+  const handleStartEdit = (nodeId, propertyId, currentValue) => {
+    setEditingCell({ nodeId, propertyId });
+    setEditingValue(currentValue ?? '');
+  };
+
+  const handleSaveEdit = async (node) => {
+    // Prevent double-save (Enter triggers both onKeyDown and onBlur)
+    if (!editingCell || savingRef.current) return;
+    savingRef.current = true;
+
+    const { propertyId } = editingCell;
+    const prop = customProperties.find(p => p.id === propertyId);
+
+    // Get the current value from state before clearing
+    const valueToSave = editingValue;
+
+    // Clear editing state immediately
+    setEditingCell(null);
+    setEditingValue('');
+
+    // Convert value based on type
+    let value = valueToSave;
+    if (prop?.fieldType === 'numeric' || prop?.fieldType === 'currency') {
+      value = parseFloat(valueToSave) || 0;
+    }
+
+    // Update node with new custom property value
+    const updatedCustomProps = {
+      ...(node.customProperties || {}),
+      [propertyId]: value,
+    };
+
+    console.log('Saving custom property:', { nodeId: node.id, propertyId, value, updatedCustomProps });
+
+    try {
+      const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customProperties: updatedCustomProps }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save custom property:', await response.text());
+        return;
+      }
+
+      const savedNode = await response.json();
+      console.log('Saved node response:', savedNode);
+
+      await fetchChildren();
+    } catch (error) {
+      console.error('Failed to update property:', error);
+    } finally {
+      savingRef.current = false;
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCell(null);
+    setEditingValue('');
   };
 
   // Export to Excel
   const handleExport = () => {
-    const exportData = sortedChildren.map(node => ({
-      Title: node.label,
-      Description: node.description || '',
-      Priority: node.priority,
-      'Attention Weight': node.attentionWeight,
-      Type: node.type,
-      'Created At': new Date(node.createdAt).toLocaleString(),
-      'Updated At': new Date(node.updatedAt).toLocaleString(),
-      Icon: node.iconName || '',
-      Images: (node.images || []).join(', '),
-    }));
+    const exportData = sortedChildren.map(node => {
+      const row = {
+        Title: node.label,
+        Description: node.description || '',
+        Priority: node.priority,
+        'Attention Weight': node.attentionWeight,
+        Type: node.type,
+        'Created At': new Date(node.createdAt).toLocaleString(),
+        'Updated At': new Date(node.updatedAt).toLocaleString(),
+        Icon: node.iconName || '',
+        Images: (node.images || []).join(', '),
+      };
+
+      // Add custom properties
+      customProperties.forEach(prop => {
+        const value = node.customProperties?.[prop.id];
+        row[prop.name] = value ?? '';
+      });
+
+      return row;
+    });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -137,10 +282,325 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
     XLSX.writeFile(wb, `${parentNode.label}-topics.xlsx`);
   };
 
-  // Get first image thumbnail URL
-  const getImageUrl = (node) => {
-    if (!node.images || node.images.length === 0) return null;
-    return `/api/workspace/${projectName}/scrapbook/images/${node.images[0]}`;
+  // Handle drag & drop for images
+  const handleDragOver = (e, nodeId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverNodeId(nodeId);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverNodeId(null);
+  };
+
+  const handleDrop = async (e, node) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverNodeId(null);
+
+    const files = Array.from(e.dataTransfer.files).filter(file =>
+      file.type.startsWith('image/')
+    );
+
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        await fetch(
+          `/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images`,
+          { method: 'POST', body: formData }
+        );
+      } catch (error) {
+        console.error('Failed to upload image:', error);
+      }
+    }
+
+    await fetchChildren();
+    onNodeUpdated();
+  };
+
+  // Lightbox functions
+  const openLightbox = (images, startIndex = 0) => {
+    setLightboxImages(images);
+    setLightboxIndex(startIndex);
+    setLightboxOpen(true);
+  };
+
+  const handleLightboxPrev = () => {
+    setLightboxIndex(prev => (prev > 0 ? prev - 1 : lightboxImages.length - 1));
+  };
+
+  const handleLightboxNext = () => {
+    setLightboxIndex(prev => (prev < lightboxImages.length - 1 ? prev + 1 : 0));
+  };
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') handleLightboxPrev();
+      else if (e.key === 'ArrowRight') handleLightboxNext();
+      else if (e.key === 'Escape') setLightboxOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, lightboxImages.length]);
+
+  // Handle column settings save
+  const handleColumnSettingsSave = (settings) => {
+    onSettingsChange?.(settings);
+  };
+
+  // Format custom property value for display
+  const formatPropertyValue = (prop, value) => {
+    if (value === undefined || value === null || value === '') return '-';
+
+    if (prop.fieldType === 'currency') {
+      const num = parseFloat(value);
+      if (isNaN(num)) return value;
+      return `${prop.unit || '$'}${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    if (prop.fieldType === 'numeric') {
+      const num = parseFloat(value);
+      if (isNaN(num)) return value;
+      return prop.unit ? `${num.toLocaleString()} ${prop.unit}` : num.toLocaleString();
+    }
+
+    return value;
+  };
+
+  // Render a table cell based on column type
+  const renderCell = (colId, node, isDragOver) => {
+    const IconComponent = getIcon(node.iconName);
+    const images = node.images || [];
+    const displayImages = images.slice(0, 3);
+    const hasMoreImages = images.length > 3;
+
+    switch (colId) {
+      case 'icon':
+        return IconComponent ? (
+          <IconComponent size={20} style={{ color: '#666' }} />
+        ) : (
+          <Box sx={{ width: 20, height: 20 }} />
+        );
+
+      case 'label':
+        return (
+          <Typography variant="body2" fontWeight={500}>
+            {node.label}
+          </Typography>
+        );
+
+      case 'images':
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {displayImages.length > 0 ? (
+              <>
+                {displayImages.map((img, idx) => (
+                  <Box
+                    key={idx}
+                    component="img"
+                    src={`/api/workspace/${projectName}/scrapbook/images/${img}`}
+                    alt={`${node.label} ${idx + 1}`}
+                    onClick={() => openLightbox(images, idx)}
+                    sx={{
+                      width: 36, height: 36, objectFit: 'cover', borderRadius: 1, cursor: 'pointer',
+                      '&:hover': { opacity: 0.8, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' },
+                    }}
+                  />
+                ))}
+                {hasMoreImages && (
+                  <Tooltip title={`${images.length - 3} more images`}>
+                    <Box
+                      onClick={() => openLightbox(images, 3)}
+                      sx={{
+                        width: 36, height: 36, backgroundColor: '#f5f5f5', borderRadius: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        '&:hover': { backgroundColor: '#e0e0e0' },
+                      }}
+                    >
+                      <MoreHoriz sx={{ color: '#999', fontSize: 16 }} />
+                    </Box>
+                  </Tooltip>
+                )}
+              </>
+            ) : (
+              <Tooltip title="Drag & drop images here">
+                <Box
+                  sx={{
+                    width: 36, height: 36,
+                    backgroundColor: isDragOver ? 'rgba(25, 118, 210, 0.2)' : '#f5f5f5',
+                    borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: isDragOver ? '2px dashed #1976d2' : '2px dashed transparent',
+                  }}
+                >
+                  <Image sx={{ color: '#ccc', fontSize: 18 }} />
+                </Box>
+              </Tooltip>
+            )}
+          </Box>
+        );
+
+      case 'priority':
+        return (
+          <Chip
+            label={node.priority}
+            size="small"
+            color={node.priority >= 8 ? 'error' : node.priority >= 5 ? 'warning' : 'default'}
+          />
+        );
+
+      case 'attention':
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 50, height: 6, backgroundColor: '#e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
+              <Box
+                sx={{
+                  width: `${node.attentionWeight * 100}%`, height: '100%',
+                  backgroundColor: node.attentionWeight >= 0.7 ? '#1976d2' : node.attentionWeight >= 0.4 ? '#90caf9' : '#e0e0e0',
+                }}
+              />
+            </Box>
+            <Typography variant="caption">{(node.attentionWeight * 100).toFixed(0)}%</Typography>
+          </Box>
+        );
+
+      case 'description':
+        return (
+          <Typography sx={{ fontSize: '12px', color: 'text.secondary' }} noWrap>
+            {node.description || '-'}
+          </Typography>
+        );
+
+      case 'created':
+        return (
+          <Typography variant="caption" color="text.secondary">
+            {new Date(node.createdAt).toLocaleDateString()}
+          </Typography>
+        );
+
+      case 'actions':
+        return (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Tooltip title="Edit">
+              <IconButton size="small" onClick={() => handleEdit(node)}>
+                <Edit fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton size="small" onClick={() => handleDelete(node)} color="error">
+                <Delete fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+
+      default:
+        // Custom property column
+        if (colId.startsWith('custom-')) {
+          const prop = customProperties.find(p => p.id === colId);
+          if (!prop) return '-';
+
+          const value = node.customProperties?.[colId];
+          const isEditing = editingCell?.nodeId === node.id && editingCell?.propertyId === colId;
+
+          if (isEditing) {
+            return (
+              <TextField
+                size="small"
+                value={editingValue}
+                onChange={(e) => setEditingValue(e.target.value)}
+                onBlur={() => handleSaveEdit(node)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit(node);
+                  if (e.key === 'Escape') handleCancelEdit();
+                }}
+                autoFocus
+                type={prop.fieldType === 'text' ? 'text' : 'number'}
+                sx={{ width: '100%' }}
+                InputProps={{
+                  sx: { fontSize: '12px' },
+                  ...(prop.fieldType === 'currency' && prop.unit && {
+                    startAdornment: <Typography sx={{ mr: 0.5, fontSize: '12px' }}>{prop.unit}</Typography>,
+                  }),
+                  ...(prop.fieldType === 'numeric' && prop.unit && {
+                    endAdornment: <Typography sx={{ ml: 0.5, fontSize: '12px' }}>{prop.unit}</Typography>,
+                  }),
+                }}
+              />
+            );
+          }
+
+          return (
+            <Typography
+              sx={{
+                fontSize: '12px',
+                cursor: 'pointer',
+                '&:hover': { backgroundColor: '#f5f5f5', borderRadius: 0.5 },
+                px: 0.5,
+                py: 0.25,
+              }}
+              onClick={() => handleStartEdit(node.id, colId, value)}
+            >
+              {formatPropertyValue(prop, value)}
+            </Typography>
+          );
+        }
+        return '-';
+    }
+  };
+
+  // Get column header label
+  const getColumnLabel = (colId) => {
+    const labels = {
+      icon: 'Icon',
+      label: 'Title',
+      images: 'Images',
+      priority: 'Priority',
+      attention: 'Attention',
+      description: 'Description',
+      created: 'Created',
+      actions: 'Actions',
+    };
+    if (labels[colId]) return labels[colId];
+
+    // Custom property
+    const prop = customProperties.find(p => p.id === colId);
+    return prop?.name || colId;
+  };
+
+  // Get column width
+  const getColumnWidth = (colId) => {
+    const widths = {
+      icon: 50,
+      label: undefined, // flex
+      images: 160,
+      priority: 100,
+      attention: 120,
+      description: undefined, // flex
+      created: 120,
+      actions: 100,
+    };
+    return widths[colId] || 120;
+  };
+
+  // Check if column is sortable
+  const isSortable = (colId) => {
+    return ['label', 'priority', 'attention', 'createdAt', 'description'].includes(
+      colId === 'attention' ? 'attentionWeight' : colId === 'created' ? 'createdAt' : colId
+    ) || colId.startsWith('custom-');
+  };
+
+  // Get sort field for column
+  const getSortField = (colId) => {
+    if (colId === 'attention') return 'attentionWeight';
+    if (colId === 'created') return 'createdAt';
+    return colId;
   };
 
   return (
@@ -153,6 +613,11 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
         <Typography variant="h6" sx={{ flex: 1 }}>
           {parentNode?.label} - Topics
         </Typography>
+        <Tooltip title="Column Settings">
+          <IconButton onClick={() => setColumnSettingsOpen(true)} sx={{ mr: 1 }}>
+            <Settings />
+          </IconButton>
+        </Tooltip>
         <Button
           startIcon={<Add />}
           variant="contained"
@@ -175,7 +640,7 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
 
       {/* Description of parent */}
       {parentNode?.description && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography sx={{ mb: 2, fontSize: '12px', color: '#999' }}>
           {parentNode.description}
         </Typography>
       )}
@@ -185,148 +650,59 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
-              <TableCell>
-                <TableSortLabel
-                  active={sortField === 'label'}
-                  direction={sortField === 'label' ? sortDirection : 'asc'}
-                  onClick={() => handleSort('label')}
+              {visibleColumns.map((col) => (
+                <TableCell
+                  key={col.id}
+                  width={getColumnWidth(col.id)}
+                  align={col.id === 'actions' ? 'right' : 'left'}
                 >
-                  Title
-                </TableSortLabel>
-              </TableCell>
-              <TableCell width={80}>Image</TableCell>
-              <TableCell width={100}>
-                <TableSortLabel
-                  active={sortField === 'priority'}
-                  direction={sortField === 'priority' ? sortDirection : 'asc'}
-                  onClick={() => handleSort('priority')}
-                >
-                  Priority
-                </TableSortLabel>
-              </TableCell>
-              <TableCell width={120}>
-                <TableSortLabel
-                  active={sortField === 'attentionWeight'}
-                  direction={sortField === 'attentionWeight' ? sortDirection : 'asc'}
-                  onClick={() => handleSort('attentionWeight')}
-                >
-                  Attention
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell width={160}>
-                <TableSortLabel
-                  active={sortField === 'createdAt'}
-                  direction={sortField === 'createdAt' ? sortDirection : 'asc'}
-                  onClick={() => handleSort('createdAt')}
-                >
-                  Created
-                </TableSortLabel>
-              </TableCell>
-              <TableCell width={100} align="right">Actions</TableCell>
+                  {isSortable(col.id) ? (
+                    <TableSortLabel
+                      active={sortField === getSortField(col.id)}
+                      direction={sortField === getSortField(col.id) ? sortDirection : 'asc'}
+                      onClick={() => handleSort(getSortField(col.id))}
+                    >
+                      {getColumnLabel(col.id)}
+                    </TableSortLabel>
+                  ) : (
+                    getColumnLabel(col.id)
+                  )}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
             {sortedChildren.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={visibleColumns.length} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
                     No topics yet. Click "Add" to create one.
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              sortedChildren.map((node) => (
-                <TableRow key={node.id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={500}>
-                      {node.label}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {getImageUrl(node) ? (
-                      <Box
-                        component="img"
-                        src={getImageUrl(node)}
-                        alt={node.label}
-                        sx={{
-                          width: 48,
-                          height: 48,
-                          objectFit: 'cover',
-                          borderRadius: 1,
-                        }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          width: 48,
-                          height: 48,
-                          backgroundColor: '#f5f5f5',
-                          borderRadius: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Image sx={{ color: '#ccc' }} />
-                      </Box>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={node.priority}
-                      size="small"
-                      color={node.priority >= 8 ? 'error' : node.priority >= 5 ? 'warning' : 'default'}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 50,
-                          height: 6,
-                          backgroundColor: '#e0e0e0',
-                          borderRadius: 3,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: `${node.attentionWeight * 100}%`,
-                            height: '100%',
-                            backgroundColor: node.attentionWeight >= 0.7 ? '#1976d2' : node.attentionWeight >= 0.4 ? '#90caf9' : '#e0e0e0',
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="caption">
-                        {(node.attentionWeight * 100).toFixed(0)}%
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
-                      {node.description || '-'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(node.createdAt).toLocaleDateString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => handleEdit(node)}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDelete(node)} color="error">
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))
+              sortedChildren.map((node) => {
+                const isDragOver = dragOverNodeId === node.id;
+                return (
+                  <TableRow
+                    key={node.id}
+                    hover
+                    onDragOver={(e) => handleDragOver(e, node.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, node)}
+                    sx={{
+                      backgroundColor: isDragOver ? 'rgba(25, 118, 210, 0.1)' : undefined,
+                      transition: 'background-color 0.2s',
+                    }}
+                  >
+                    {visibleColumns.map((col) => (
+                      <TableCell key={col.id} align={col.id === 'actions' ? 'right' : 'left'}>
+                        {renderCell(col.id, node, isDragOver)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -340,7 +716,68 @@ export default function ScrapbookTopics({ projectName, parentNode, onNodeUpdated
         node={editNode}
         parentNode={parentNode}
         onSaved={handleNodeSaved}
+        customProperties={customProperties}
       />
+
+      {/* Column Settings Dialog */}
+      <ColumnSettingsDialog
+        open={columnSettingsOpen}
+        onClose={() => setColumnSettingsOpen(false)}
+        customProperties={customProperties}
+        columnConfig={effectiveColumnConfig}
+        onSave={handleColumnSettingsSave}
+      />
+
+      {/* Lightbox Dialog */}
+      <Dialog
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{ sx: { backgroundColor: 'rgba(0, 0, 0, 0.9)', boxShadow: 'none' } }}
+      >
+        <DialogContent
+          sx={{ p: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: '70vh' }}
+        >
+          <IconButton
+            onClick={() => setLightboxOpen(false)}
+            sx={{ position: 'absolute', top: 8, right: 8, color: 'white', backgroundColor: 'rgba(0, 0, 0, 0.5)', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' } }}
+          >
+            <Close />
+          </IconButton>
+          {lightboxImages.length > 1 && (
+            <IconButton
+              onClick={handleLightboxPrev}
+              sx={{ position: 'absolute', left: 16, color: 'white', backgroundColor: 'rgba(0, 0, 0, 0.5)', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' } }}
+            >
+              <ChevronLeft fontSize="large" />
+            </IconButton>
+          )}
+          {lightboxImages.length > 0 && (
+            <Box
+              component="img"
+              src={`/api/workspace/${projectName}/scrapbook/images/${lightboxImages[lightboxIndex]}`}
+              alt={`Image ${lightboxIndex + 1}`}
+              sx={{ maxWidth: '90%', maxHeight: '80vh', objectFit: 'contain' }}
+            />
+          )}
+          {lightboxImages.length > 1 && (
+            <IconButton
+              onClick={handleLightboxNext}
+              sx={{ position: 'absolute', right: 16, color: 'white', backgroundColor: 'rgba(0, 0, 0, 0.5)', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' } }}
+            >
+              <ChevronRight fontSize="large" />
+            </IconButton>
+          )}
+          {lightboxImages.length > 1 && (
+            <Typography
+              sx={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', color: 'white', backgroundColor: 'rgba(0, 0, 0, 0.5)', px: 2, py: 0.5, borderRadius: 1 }}
+            >
+              {lightboxIndex + 1} / {lightboxImages.length}
+            </Typography>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

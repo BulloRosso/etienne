@@ -62,6 +62,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const [editParentNode, setEditParentNode] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState(null);
+  const intentionalUnselectRef = useRef(false);
 
   // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -69,6 +70,8 @@ function ScrapbookInner({ projectName, onClose }) {
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [autoLayoutMode, setAutoLayoutMode] = useState(false);
   const [stickyNotes, setStickyNotes] = useState([]);
+  const [customProperties, setCustomProperties] = useState([]);
+  const [columnConfig, setColumnConfig] = useState([]);
 
   // Canvas persistence state
   const [savedPositions, setSavedPositions] = useState({});
@@ -107,6 +110,13 @@ function ScrapbookInner({ projectName, onClose }) {
           if (settings.stickyNotes) {
             setStickyNotes(settings.stickyNotes);
           }
+          // Restore custom properties and column config
+          if (settings.customProperties) {
+            setCustomProperties(settings.customProperties);
+          }
+          if (settings.columnConfig) {
+            setColumnConfig(settings.columnConfig);
+          }
         }
       }
     } catch (error) {
@@ -118,13 +128,28 @@ function ScrapbookInner({ projectName, onClose }) {
 
   // Save canvas settings to backend (debounced)
   const saveCanvasSettings = useCallback(() => {
+    // Don't save until canvas settings have been loaded to prevent overwriting stored data
+    if (!canvasSettingsLoaded) {
+      return;
+    }
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        const currentNodes = reactFlowInstance.getNodes();
-        const viewport = reactFlowInstance.getViewport();
+        // Try to get ReactFlow data if available
+        let currentNodes = [];
+        let viewport = { zoom: 1, x: 0, y: 0 };
+        try {
+          currentNodes = reactFlowInstance?.getNodes() || [];
+          const rfViewport = reactFlowInstance?.getViewport();
+          if (rfViewport) {
+            viewport = rfViewport;
+          }
+        } catch (e) {
+          // ReactFlow not mounted (e.g., on Topics tab), use defaults
+        }
 
         // Build node settings from visible nodes (positions)
         // and merge with expandedNodes for all nodes
@@ -163,12 +188,29 @@ function ScrapbookInner({ projectName, onClose }) {
             height: n.height || n.style?.height || 150,
           }));
 
+        // Always fetch existing settings to preserve customProperties/columnConfig
+        // when they haven't been loaded into state yet (e.g., on first canvas tab render)
+        let existingSettings = null;
+        try {
+          const response = await fetch(`/api/workspace/${projectName}/scrapbook/canvas`);
+          if (response.ok) {
+            existingSettings = await response.json();
+          }
+        } catch (e) {
+          // Ignore fetch error
+        }
+
         const settings = {
-          nodes: Object.values(nodeSettings).filter(n => !n.id.startsWith('sticky-')),
-          zoom: viewport.zoom,
-          viewport: { x: viewport.x, y: viewport.y },
+          nodes: currentNodes.length > 0
+            ? Object.values(nodeSettings).filter(n => !n.id.startsWith('sticky-'))
+            : (existingSettings?.nodes || Object.values(nodeSettings).filter(n => !n.id.startsWith('sticky-'))),
+          zoom: currentNodes.length > 0 ? viewport.zoom : (existingSettings?.zoom || 1),
+          viewport: currentNodes.length > 0 ? { x: viewport.x, y: viewport.y } : (existingSettings?.viewport || { x: 0, y: 0 }),
           autoLayoutMode: autoLayoutMode,
-          stickyNotes: stickyNoteData,
+          stickyNotes: currentNodes.length > 0 ? stickyNoteData : (existingSettings?.stickyNotes || []),
+          // Use current state if it has values, otherwise preserve existing settings
+          customProperties: customProperties.length > 0 ? customProperties : (existingSettings?.customProperties || []),
+          columnConfig: columnConfig.length > 0 ? columnConfig : (existingSettings?.columnConfig || []),
         };
 
         await fetch(`/api/workspace/${projectName}/scrapbook/canvas`, {
@@ -180,7 +222,7 @@ function ScrapbookInner({ projectName, onClose }) {
         console.error('Failed to save canvas settings:', error);
       }
     }, 500); // Debounce 500ms
-  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes]);
+  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, canvasSettingsLoaded]);
 
   // Fetch tree data
   const fetchTree = useCallback(async () => {
@@ -276,6 +318,8 @@ function ScrapbookInner({ projectName, onClose }) {
           viewport: { x: viewport.x, y: viewport.y },
           autoLayoutMode: autoLayoutMode,
           stickyNotes: stickyNoteData,
+          customProperties: customProperties,
+          columnConfig: columnConfig,
         };
 
         // Use sendBeacon for reliable save on unmount
@@ -285,7 +329,7 @@ function ScrapbookInner({ projectName, onClose }) {
         );
       }
     };
-  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes]);
+  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig]);
 
   // Convert tree to React Flow nodes and edges
   useEffect(() => {
@@ -537,33 +581,41 @@ function ScrapbookInner({ projectName, onClose }) {
       borderColor = 'gold';
       backgroundColor = '#fffde7';
     } else {
-      // Attention-based heatmap coloring
-      // Round attention to nearest 10% step (0.0, 0.1, 0.2, ... 1.0)
       const attention = Math.max(0, Math.min(1, node.attentionWeight || 0));
-      const step = Math.round(attention * 10) / 10; // 0.0 to 1.0 in 0.1 increments
+      const priority = node.priority || 0;
 
-      // Navy RGB: (0, 0, 128) for 100% attention
-      // Light blue RGB: (173, 216, 230) for 1% attention
-      // Interpolate based on attention step
-      const navyR = 0, navyG = 0, navyB = 128;
-      const lightBlueR = 173, lightBlueG = 216, lightBlueB = 230;
+      // Special case: low priority (<=1) AND low attention (<=1%) = black/white styling
+      if (priority <= 1 && attention <= 0.01) {
+        borderColor = '#000000';
+        backgroundColor = '#ffffff';
+      } else {
+        // Attention-based heatmap coloring
+        // Round attention to nearest 10% step (0.0, 0.1, 0.2, ... 1.0)
+        const step = Math.round(attention * 10) / 10; // 0.0 to 1.0 in 0.1 increments
 
-      // Border/font color: interpolate from light blue (low attention) to navy (high attention)
-      const borderR = Math.round(lightBlueR + (navyR - lightBlueR) * step);
-      const borderG = Math.round(lightBlueG + (navyG - lightBlueG) * step);
-      const borderB = Math.round(lightBlueB + (navyB - lightBlueB) * step);
-      borderColor = `rgb(${borderR}, ${borderG}, ${borderB})`;
+        // Navy RGB: (0, 0, 128) for 100% attention
+        // Light blue RGB: (173, 216, 230) for 1% attention
+        // Interpolate based on attention step
+        const navyR = 0, navyG = 0, navyB = 128;
+        const lightBlueR = 173, lightBlueG = 216, lightBlueB = 230;
 
-      // Background color: very light blue (low attention) to solid blue (high attention)
-      // Low attention: almost white with hint of blue (240, 248, 255) - aliceblue
-      // High attention: light solid blue (135, 206, 250) - lightskyblue
-      const bgLowR = 245, bgLowG = 250, bgLowB = 255;
-      const bgHighR = 135, bgHighG = 206, bgHighB = 250;
+        // Border/font color: interpolate from light blue (low attention) to navy (high attention)
+        const borderR = Math.round(lightBlueR + (navyR - lightBlueR) * step);
+        const borderG = Math.round(lightBlueG + (navyG - lightBlueG) * step);
+        const borderB = Math.round(lightBlueB + (navyB - lightBlueB) * step);
+        borderColor = `rgb(${borderR}, ${borderG}, ${borderB})`;
 
-      const bgR = Math.round(bgLowR + (bgHighR - bgLowR) * step);
-      const bgG = Math.round(bgLowG + (bgHighG - bgLowG) * step);
-      const bgB = Math.round(bgLowB + (bgHighB - bgLowB) * step);
-      backgroundColor = `rgb(${bgR}, ${bgG}, ${bgB})`;
+        // Background color: very light blue (low attention) to solid blue (high attention)
+        // Low attention: almost white with hint of blue (240, 248, 255) - aliceblue
+        // High attention: light solid blue (135, 206, 250) - lightskyblue
+        const bgLowR = 245, bgLowG = 250, bgLowB = 255;
+        const bgHighR = 135, bgHighG = 206, bgHighB = 250;
+
+        const bgR = Math.round(bgLowR + (bgHighR - bgLowR) * step);
+        const bgG = Math.round(bgLowG + (bgHighG - bgLowG) * step);
+        const bgB = Math.round(bgLowB + (bgHighB - bgLowB) * step);
+        backgroundColor = `rgb(${bgR}, ${bgG}, ${bgB})`;
+      }
     }
 
     return {
@@ -593,7 +645,15 @@ function ScrapbookInner({ projectName, onClose }) {
           setTimeout(saveCanvasSettings, 100);
         },
         onNodeClick: () => {
-          setSelectedNode(node);
+          // Toggle selection: if already selected, unselect; otherwise select
+          if (selectedNode?.id === node.id) {
+            intentionalUnselectRef.current = true;
+            setSelectedNode(null);
+            // Reset flag after a short delay
+            setTimeout(() => { intentionalUnselectRef.current = false; }, 100);
+          } else {
+            setSelectedNode(node);
+          }
         },
         onContextMenu: (event) => {
           event.preventDefault();
@@ -867,6 +927,22 @@ function ScrapbookInner({ projectName, onClose }) {
                 selectionMode={SelectionMode.Partial}
                 panOnDrag={[1, 2]}
                 selectionKeyCode={null}
+                onSelectionChange={({ nodes: selectedNodes }) => {
+                  // Skip if we're intentionally unselecting
+                  if (intentionalUnselectRef.current) return;
+
+                  // When React Flow selection changes, sync with our selectedNode state
+                  // Only update if a scrapbook node is selected (not sticky notes)
+                  const scrapbookNodes = selectedNodes.filter(n => n.type === 'scrapbookNode');
+                  if (scrapbookNodes.length === 1) {
+                    // Find the full node data from allNodes
+                    const nodeData = allNodes.find(n => n.id === scrapbookNodes[0].id);
+                    if (nodeData && selectedNode?.id !== nodeData.id) {
+                      setSelectedNode(nodeData);
+                    }
+                  }
+                  // Don't clear selectedNode when selection is empty - keep the last selected node
+                }}
               >
                 <Controls />
                 <Background variant="dots" gap={12} size={1} />
@@ -913,6 +989,14 @@ function ScrapbookInner({ projectName, onClose }) {
           <ScrapbookTopics
             projectName={projectName}
             parentNode={selectedNode}
+            customProperties={customProperties}
+            columnConfig={columnConfig}
+            onSettingsChange={(settings) => {
+              setCustomProperties(settings.customProperties || []);
+              setColumnConfig(settings.columnConfig || []);
+              // Trigger save
+              setTimeout(saveCanvasSettings, 100);
+            }}
             onNodeUpdated={async () => {
               await fetchTree();
               await fetchAllNodes();
