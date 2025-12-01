@@ -412,14 +412,18 @@ function ScrapbookInner({ projectName, onClose }) {
         // Use saved positions in standard layout mode
         flowNodes.push(createFlowNode(node, x, y, isExpanded, true));
 
-        // Add edge from parent
+        // Add edge from parent with appropriate handles based on depth
+        // depth 0 = root (no parent)
+        // depth 1 = categories (parent is root) - connect bottom-to-top
+        // depth 2+ = subcategories - connect bottom-to-left
         if (parentId) {
+          const isCategory = depth === 1;
           flowEdges.push({
             id: `${parentId}-${nodeId}`,
             source: parentId,
             target: nodeId,
-            sourceHandle: 'right',
-            targetHandle: 'left',
+            sourceHandle: 'bottom',
+            targetHandle: isCategory ? 'top' : 'left',
             type: 'smoothstep',
             style: { stroke: '#000', strokeWidth: 1 },
           });
@@ -535,7 +539,9 @@ function ScrapbookInner({ projectName, onClose }) {
       // Blue gradient based on priority (10=dark, 1=light)
       const blueIntensity = Math.floor(255 - (node.priority - 1) * 20);
       borderColor = `rgb(0, ${blueIntensity}, 255)`;
-      backgroundColor = `rgba(0, ${blueIntensity}, 255, 0.1)`;
+      // Light blue background - solid color, no opacity
+      const bgBlue = Math.floor(230 + (node.priority - 7) * 5); // 230-245 range for subtle variation
+      backgroundColor = `rgb(${bgBlue}, ${bgBlue}, 255)`;
     }
 
     return {
@@ -566,7 +572,6 @@ function ScrapbookInner({ projectName, onClose }) {
         },
         onNodeClick: () => {
           setSelectedNode(node);
-          setTabValue(1); // Switch to Topics tab
         },
         onContextMenu: (event) => {
           event.preventDefault();
@@ -603,20 +608,41 @@ function ScrapbookInner({ projectName, onClose }) {
     }
   };
 
-  // Auto-layout handler
+  // Auto-layout handler - one-shot layout that calculates and saves positions
   const handleAutoLayout = () => {
     if (!tree) return;
 
     // Expand all nodes
     const allExpanded = expandAllNodes(tree);
     setExpandedNodes(allExpanded);
-    // Clear saved positions to use auto-layout positions
+
+    // Temporarily enable auto-layout mode to trigger position calculation
+    // The useEffect will calculate positions, and we'll save them afterward
     setSavedPositions({});
     setSavedViewport(null);
     setAutoLayoutMode(true);
     setOptionsAnchor(null);
-    // Save after layout is applied
-    setTimeout(saveCanvasSettings, 200);
+
+    // After layout is applied, capture positions and turn off auto-layout mode
+    // This makes it a one-shot operation
+    setTimeout(() => {
+      // Capture current node positions from React Flow
+      if (reactFlowInstance) {
+        const currentNodes = reactFlowInstance.getNodes();
+        const newPositions = {};
+        currentNodes.forEach(node => {
+          if (!node.id.startsWith('sticky-')) {
+            newPositions[node.id] = { x: node.position.x, y: node.position.y };
+          }
+        });
+        // Update local state with the auto-layout positions
+        setSavedPositions(newPositions);
+      }
+      // Save to backend
+      saveCanvasSettings();
+      // Turn off auto-layout mode - the saved positions will be used
+      setAutoLayoutMode(false);
+    }, 200);
   };
 
   // Add sticky note handler
