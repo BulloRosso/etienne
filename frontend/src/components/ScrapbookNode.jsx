@@ -150,36 +150,38 @@ const ScrapbookNode = memo(({ data, selected }) => {
           </IconButton>
         </Box>
 
-        {/* Priority Bar - 5 segments, visible only if priority > 1 and not root node */}
-        {priority > 1 && type !== 'ProjectTheme' && (
-          <Box
-            sx={{
-              display: 'flex',
-              gap: '1px',
-              px: 1,
-              pb: 0.5,
-              height: 5,
-            }}
-          >
-            {[
-              { threshold: 2, color: '#FFD700' },   // gold
-              { threshold: 4, color: '#FFA500' },   // orange
-              { threshold: 6, color: '#FF8C00' },   // dark orange
-              { threshold: 8, color: '#FF0000' },   // red
-              { threshold: 10, color: '#8B0000' },  // dark red
-            ].map((segment, index) => (
+        {/* Priority Bar - single segment showing the highest priority level */}
+        {priority > 1 && type !== 'ProjectTheme' && (() => {
+          const segments = [
+            { threshold: 2, color: '#FFD700' },   // gold
+            { threshold: 4, color: '#FFA500' },   // orange
+            { threshold: 6, color: '#FF8C00' },   // dark orange
+            { threshold: 8, color: '#FF0000' },   // red
+            { threshold: 10, color: '#8B0000' },  // dark red
+          ];
+          // Find the last segment that matches (highest priority level reached)
+          const activeSegment = [...segments].reverse().find(s => priority >= s.threshold);
+          return activeSegment ? (
+            <Box
+              sx={{
+                px: 1,
+                pb: 0.5,
+                position: 'relative',
+                top: '10px',
+                left: '-20px',
+              }}
+            >
               <Box
-                key={index}
                 sx={{
-                  flex: 1,
+                  width: 30,
                   height: 5,
-                  backgroundColor: priority >= segment.threshold ? segment.color : 'transparent',
+                  backgroundColor: activeSegment.color,
                   borderRadius: 0,
                 }}
               />
-            ))}
-          </Box>
-        )}
+            </Box>
+          ) : null;
+        })()}
 
         {/* Row 3: Icon Badge (overlapping bottom border) */}
         {IconComponent && (

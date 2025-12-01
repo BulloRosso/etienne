@@ -102,10 +102,8 @@ function ScrapbookInner({ projectName, onClose }) {
           if (settings.viewport && settings.zoom) {
             setSavedViewport({ ...settings.viewport, zoom: settings.zoom });
           }
-          // Restore auto-layout mode
-          if (settings.autoLayoutMode !== undefined) {
-            setAutoLayoutMode(settings.autoLayoutMode);
-          }
+          // Note: autoLayoutMode is not restored - it's always a one-shot operation
+          // that starts as false and only temporarily becomes true during auto-layout
           // Restore sticky notes
           if (settings.stickyNotes) {
             setStickyNotes(settings.stickyNotes);
@@ -444,18 +442,26 @@ function ScrapbookInner({ projectName, onClose }) {
         });
       }
     } else {
-      // Standard hierarchical layout - use saved positions if available
-      const processNode = (node, depth, index, parentId, parentY) => {
+      // Standard layout mode - use saved positions exclusively
+      // This ensures visual consistency: positions only change when user drags nodes
+      // or explicitly triggers auto-layout
+      const processNode = (node, depth, parentId) => {
         const nodeId = node.id;
         const isExpanded = expandedNodes.has(nodeId);
         const hasChildren = node.children && node.children.length > 0;
 
-        // Calculate default position
-        const x = depth * 300;
-        const y = parentY !== null ? parentY + index * 120 : index * 120;
-
-        // Use saved positions in standard layout mode
-        flowNodes.push(createFlowNode(node, x, y, isExpanded, true));
+        // Only render nodes that have saved positions
+        // New nodes without positions will get positions when auto-layout is triggered
+        const savedPos = savedPositions[nodeId];
+        if (!savedPos) {
+          // If no saved position exists, calculate a default position
+          // This handles new nodes that haven't been positioned yet
+          const defaultX = depth * 300;
+          const defaultY = flowNodes.length * 120;
+          flowNodes.push(createFlowNode(node, defaultX, defaultY, isExpanded));
+        } else {
+          flowNodes.push(createFlowNode(node, savedPos.x, savedPos.y, isExpanded));
+        }
 
         // Add edge from parent with appropriate handles based on depth
         // depth 0 = root (no parent)
@@ -476,15 +482,13 @@ function ScrapbookInner({ projectName, onClose }) {
 
         // Process children if expanded
         if (isExpanded && hasChildren) {
-          let childY = y;
-          node.children.forEach((child, childIndex) => {
-            processNode(child, depth + 1, childIndex, nodeId, childY);
-            childY += 120;
+          node.children.forEach((child) => {
+            processNode(child, depth + 1, nodeId);
           });
         }
       };
 
-      processNode(tree, 0, 0, null, 0);
+      processNode(tree, 0, null);
     }
 
     // Add sticky notes to flow nodes (with lower z-index)
@@ -546,17 +550,13 @@ function ScrapbookInner({ projectName, onClose }) {
   }
 
   // Helper to create a flow node with proper styling
-  function createFlowNode(node, x, y, isExpanded, useSavedPosition = false) {
+  function createFlowNode(node, x, y, isExpanded) {
     const nodeId = node.id;
     const hasChildren = node.children && node.children.length > 0;
 
-    // Use saved position if available and not in auto-layout mode
-    let finalX = x;
-    let finalY = y;
-    if (useSavedPosition && savedPositions[nodeId]) {
-      finalX = savedPositions[nodeId].x;
-      finalY = savedPositions[nodeId].y;
-    }
+    // Position is now passed in directly - no need to look up saved positions here
+    const finalX = x;
+    const finalY = y;
 
     // Determine border style based on depth and type
     let borderWidth = 0;
@@ -690,41 +690,75 @@ function ScrapbookInner({ projectName, onClose }) {
     }
   };
 
-  // Auto-layout handler - one-shot layout that calculates and saves positions
+  // Auto-layout handler - one-shot layout that calculates positions deterministically
+  // and saves them immediately without relying on React Flow state
   const handleAutoLayout = () => {
     if (!tree) return;
 
-    // Expand all nodes
+    // Expand all nodes first
     const allExpanded = expandAllNodes(tree);
     setExpandedNodes(allExpanded);
-
-    // Temporarily enable auto-layout mode to trigger position calculation
-    // The useEffect will calculate positions, and we'll save them afterward
-    setSavedPositions({});
-    setSavedViewport(null);
-    setAutoLayoutMode(true);
     setOptionsAnchor(null);
 
-    // After layout is applied, capture positions and turn off auto-layout mode
-    // This makes it a one-shot operation
-    setTimeout(() => {
-      // Capture current node positions from React Flow
-      if (reactFlowInstance) {
-        const currentNodes = reactFlowInstance.getNodes();
-        const newPositions = {};
-        currentNodes.forEach(node => {
-          if (!node.id.startsWith('sticky-')) {
-            newPositions[node.id] = { x: node.position.x, y: node.position.y };
-          }
+    // Calculate positions deterministically using the same algorithm as auto-layout mode
+    // This avoids race conditions by computing positions directly rather than waiting for React Flow
+    const NODE_WIDTH = 260;
+    const CATEGORY_SPACING = 280;
+    const VERTICAL_SPACING = 120;
+    const SUBCATEGORY_INDENT = 50;
+    const ROOT_Y = 50;
+
+    const newPositions = {};
+    const rootNode = tree;
+    const categories = rootNode.children || [];
+
+    // Calculate root position (centered above categories)
+    const firstCategoryX = 100;
+    const lastCategoryX = firstCategoryX + (categories.length - 1) * CATEGORY_SPACING;
+    const ROOT_X = (firstCategoryX + lastCategoryX) / 2 - 3;
+
+    newPositions[rootNode.id] = { x: ROOT_X, y: ROOT_Y };
+
+    // Process categories left to right
+    const categoryY = ROOT_Y + VERTICAL_SPACING * 2;
+
+    categories.forEach((category, catIndex) => {
+      const catX = firstCategoryX + catIndex * CATEGORY_SPACING;
+      newPositions[category.id] = { x: catX, y: categoryY };
+
+      // Process subcategories recursively
+      const processChildren = (node, parentX, parentY) => {
+        const children = node.children || [];
+        let childY = parentY + VERTICAL_SPACING;
+
+        children.forEach((child) => {
+          const childX = parentX + SUBCATEGORY_INDENT;
+          newPositions[child.id] = { x: childX, y: childY };
+
+          // Count visible descendants to calculate next sibling's Y position
+          const descendantCount = countAllDescendants(child);
+          processChildren(child, childX, childY);
+          childY += VERTICAL_SPACING * (1 + descendantCount);
         });
-        // Update local state with the auto-layout positions
-        setSavedPositions(newPositions);
-      }
-      // Save to backend
-      saveCanvasSettings();
-      // Turn off auto-layout mode - the saved positions will be used
-      setAutoLayoutMode(false);
-    }, 200);
+      };
+
+      processChildren(category, catX, categoryY);
+    });
+
+    // Helper to count all descendants (not just visible ones, since we expand all)
+    function countAllDescendants(node) {
+      if (!node.children || node.children.length === 0) return 0;
+      return node.children.reduce((sum, child) => sum + 1 + countAllDescendants(child), 0);
+    }
+
+    // Update saved positions with the calculated layout
+    setSavedPositions(newPositions);
+    setSavedViewport(null);
+    // Keep autoLayoutMode false - we're using saved positions now
+    setAutoLayoutMode(false);
+
+    // Save to backend after state updates
+    setTimeout(saveCanvasSettings, 100);
   };
 
   // Add sticky note handler
