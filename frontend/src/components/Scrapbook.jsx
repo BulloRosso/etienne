@@ -137,6 +137,18 @@ function ScrapbookInner({ projectName, onClose }) {
     }
     saveTimeoutRef.current = setTimeout(async () => {
       try {
+        // Always fetch existing settings first to preserve positions of hidden nodes
+        // and customProperties/columnConfig when not loaded into state
+        let existingSettings = null;
+        try {
+          const response = await fetch(`/api/workspace/${projectName}/scrapbook/canvas`);
+          if (response.ok) {
+            existingSettings = await response.json();
+          }
+        } catch (e) {
+          // Ignore fetch error
+        }
+
         // Try to get ReactFlow data if available
         let currentNodes = [];
         let viewport = { zoom: 1, x: 0, y: 0 };
@@ -151,19 +163,51 @@ function ScrapbookInner({ projectName, onClose }) {
         }
 
         // Build node settings from visible nodes (positions)
-        // and merge with expandedNodes for all nodes
+        // and merge with existing settings for hidden nodes
         const nodeSettings = {};
 
-        // First, add all visible nodes with their positions
-        currentNodes.forEach(n => {
-          nodeSettings[n.id] = {
-            id: n.id,
-            position: n.position,
-            expanded: expandedNodes.has(n.id),
-          };
+        // First, preserve existing positions for all nodes (including hidden ones)
+        if (existingSettings?.nodes) {
+          existingSettings.nodes.forEach(n => {
+            if (n.position) {
+              nodeSettings[n.id] = {
+                id: n.id,
+                position: n.position,
+                expanded: expandedNodes.has(n.id),
+              };
+            }
+          });
+        }
+
+        // Second, merge in savedPositions state (positions captured when collapsing nodes)
+        // This ensures positions captured at collapse time are persisted to backend
+        Object.entries(savedPositions).forEach(([nodeId, position]) => {
+          if (position && !nodeId.startsWith('sticky-')) {
+            // Only update if we don't have a visible node with this ID
+            // (visible nodes have more up-to-date positions)
+            const isVisibleNode = currentNodes.some(n => n.id === nodeId);
+            if (!isVisibleNode) {
+              nodeSettings[nodeId] = {
+                id: nodeId,
+                position: position,
+                expanded: expandedNodes.has(nodeId),
+              };
+            }
+          }
         });
 
-        // Then, ensure all expanded nodes are saved (even if not visible)
+        // Then, update with current visible nodes (their positions may have changed)
+        currentNodes.forEach(n => {
+          if (!n.id.startsWith('sticky-')) {
+            nodeSettings[n.id] = {
+              id: n.id,
+              position: n.position,
+              expanded: expandedNodes.has(n.id),
+            };
+          }
+        });
+
+        // Ensure all expanded nodes are tracked (even if not visible)
         expandedNodes.forEach(nodeId => {
           if (!nodeSettings[nodeId]) {
             nodeSettings[nodeId] = {
@@ -187,18 +231,6 @@ function ScrapbookInner({ projectName, onClose }) {
             height: n.height || n.style?.height || 150,
           }));
 
-        // Always fetch existing settings to preserve customProperties/columnConfig
-        // when they haven't been loaded into state yet (e.g., on first canvas tab render)
-        let existingSettings = null;
-        try {
-          const response = await fetch(`/api/workspace/${projectName}/scrapbook/canvas`);
-          if (response.ok) {
-            existingSettings = await response.json();
-          }
-        } catch (e) {
-          // Ignore fetch error
-        }
-
         const settings = {
           nodes: currentNodes.length > 0
             ? Object.values(nodeSettings).filter(n => !n.id.startsWith('sticky-'))
@@ -221,7 +253,7 @@ function ScrapbookInner({ projectName, onClose }) {
         console.error('Failed to save canvas settings:', error);
       }
     }, 500); // Debounce 500ms
-  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, canvasSettingsLoaded]);
+  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, canvasSettingsLoaded, savedPositions]);
 
   // Fetch tree data
   const fetchTree = useCallback(async () => {
@@ -281,13 +313,29 @@ function ScrapbookInner({ projectName, onClose }) {
         const viewport = reactFlowInstance.getViewport();
 
         const nodeSettings = {};
-        currentNodes.forEach(n => {
-          nodeSettings[n.id] = {
-            id: n.id,
-            position: n.position,
-            expanded: expandedNodes.has(n.id),
-          };
+
+        // First, include savedPositions (positions captured when collapsing nodes)
+        Object.entries(savedPositions).forEach(([nodeId, position]) => {
+          if (position && !nodeId.startsWith('sticky-')) {
+            nodeSettings[nodeId] = {
+              id: nodeId,
+              position: position,
+              expanded: expandedNodes.has(nodeId),
+            };
+          }
         });
+
+        // Then override with current visible nodes (more up-to-date positions)
+        currentNodes.forEach(n => {
+          if (!n.id.startsWith('sticky-')) {
+            nodeSettings[n.id] = {
+              id: n.id,
+              position: n.position,
+              expanded: expandedNodes.has(n.id),
+            };
+          }
+        });
+
         expandedNodes.forEach(nodeId => {
           if (!nodeSettings[nodeId]) {
             nodeSettings[nodeId] = {
@@ -328,7 +376,7 @@ function ScrapbookInner({ projectName, onClose }) {
         );
       }
     };
-  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig]);
+  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, savedPositions]);
 
   // Convert tree to React Flow nodes and edges
   useEffect(() => {
@@ -492,7 +540,11 @@ function ScrapbookInner({ projectName, onClose }) {
       processNode(tree, 0, null);
     }
 
-    setNodes(flowNodes);
+    // Preserve sticky notes when updating scrapbook nodes
+    setNodes(prevNodes => {
+      const existingStickyNodes = prevNodes.filter(n => n.id.startsWith('sticky-'));
+      return [...flowNodes, ...existingStickyNodes];
+    });
     setEdges(flowEdges);
   }, [tree, expandedNodes, selectedNode, autoLayoutMode, savedPositions]);
 
@@ -717,17 +769,54 @@ function ScrapbookInner({ projectName, onClose }) {
         borderRadius,
         isActive,
         onToggleExpand: () => {
-          setExpandedNodes(prev => {
-            const next = new Set(prev);
-            if (next.has(nodeId)) {
-              next.delete(nodeId);
-            } else {
-              next.add(nodeId);
+          const isCurrentlyExpanded = expandedNodes.has(nodeId);
+
+          // If collapsing, save positions of all visible child nodes before they disappear
+          if (isCurrentlyExpanded && reactFlowInstance) {
+            const currentNodes = reactFlowInstance.getNodes();
+            const childIds = new Set();
+
+            // Collect all descendant IDs recursively
+            const collectDescendantIds = (n) => {
+              if (n.children) {
+                n.children.forEach(child => {
+                  childIds.add(child.id);
+                  collectDescendantIds(child);
+                });
+              }
+            };
+            collectDescendantIds(node);
+
+            // Save positions of all descendants that are currently visible
+            // Use callback form and then trigger expand change after positions are saved
+            if (childIds.size > 0) {
+              setSavedPositions(prev => {
+                const updated = { ...prev };
+                currentNodes.forEach(n => {
+                  if (childIds.has(n.id)) {
+                    updated[n.id] = { x: n.position.x, y: n.position.y };
+                  }
+                });
+                return updated;
+              });
             }
-            return next;
-          });
-          // Save canvas settings after expand/collapse
-          setTimeout(saveCanvasSettings, 100);
+          }
+
+          // Use setTimeout to ensure savedPositions state is updated before expandedNodes changes
+          // This prevents the race condition where the tree re-renders before positions are saved
+          setTimeout(() => {
+            setExpandedNodes(prev => {
+              const next = new Set(prev);
+              if (next.has(nodeId)) {
+                next.delete(nodeId);
+              } else {
+                next.add(nodeId);
+              }
+              return next;
+            });
+            // Save canvas settings after expand/collapse
+            setTimeout(saveCanvasSettings, 100);
+          }, 0);
         },
         onNodeClick: () => {
           // Toggle selection: if already selected, unselect; otherwise select
@@ -1069,6 +1158,8 @@ function ScrapbookInner({ projectName, onClose }) {
                 }}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
+                snapToGrid={true}
+                snapGrid={[12, 12]}
                 onNodeClick={(_event, node) => {
                   if (node.type === 'stickyNote') {
                     // Handle sticky note clicks to enter edit mode
@@ -1090,16 +1181,24 @@ function ScrapbookInner({ projectName, onClose }) {
                 defaultViewport={savedViewport || undefined}
                 minZoom={0.1}
                 maxZoom={2}
-                onNodeDragStop={(_event, node, nodes) => {
-                  // Update savedPositions with the new positions from all dragged nodes
-                  // This ensures positions persist across re-renders
-                  const draggedNodes = nodes.length > 0 ? nodes : [node];
+                onNodeDragStop={(_event, draggedNode, draggedNodes) => {
+                  // Get current positions from ReactFlow instance for accurate final positions
+                  const currentNodes = reactFlowInstance?.getNodes() || [];
 
-                  // Handle regular nodes
+                  // Determine which nodes were dragged:
+                  // - If multiple nodes selected (lasso), use all selected nodes
+                  // - If single node dragged, use that node
+                  const movedNodeIds = new Set(
+                    draggedNodes && draggedNodes.length > 0
+                      ? draggedNodes.map(n => n.id)
+                      : [draggedNode.id]
+                  );
+
+                  // Handle regular nodes - update savedPositions
                   setSavedPositions(prev => {
                     const updated = { ...prev };
-                    draggedNodes.forEach(n => {
-                      if (!n.id.startsWith('sticky-')) {
+                    currentNodes.forEach(n => {
+                      if (!n.id.startsWith('sticky-') && movedNodeIds.has(n.id)) {
                         updated[n.id] = { x: n.position.x, y: n.position.y };
                       }
                     });
@@ -1107,12 +1206,12 @@ function ScrapbookInner({ projectName, onClose }) {
                   });
 
                   // Handle sticky notes - update their positions in stickyNotes state
-                  const stickyDraggedNodes = draggedNodes.filter(n => n.id.startsWith('sticky-'));
-                  if (stickyDraggedNodes.length > 0) {
+                  const movedStickyNodes = currentNodes.filter(n => n.id.startsWith('sticky-') && movedNodeIds.has(n.id));
+                  if (movedStickyNodes.length > 0) {
                     setStickyNotes(prev => prev.map(note => {
-                      const draggedNote = stickyDraggedNodes.find(n => n.id === note.id);
-                      if (draggedNote) {
-                        return { ...note, position: draggedNote.position };
+                      const movedNote = movedStickyNodes.find(n => n.id === note.id);
+                      if (movedNote) {
+                        return { ...note, position: movedNote.position };
                       }
                       return note;
                     }));

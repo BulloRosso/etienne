@@ -206,7 +206,7 @@ const StickyNoteNode = ({ data, selected }) => {
         </Box>
 
         {/* Content area */}
-        <Box className="nodrag nopan" sx={{ flex: 1, padding: '10px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <Box className="nodrag nopan" sx={{ flex: 1, padding: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {isEditing ? (
             <textarea
               ref={textareaRef}
@@ -222,7 +222,7 @@ const StickyNoteNode = ({ data, selected }) => {
                 border: 'none',
                 outline: 'none',
                 backgroundColor: 'transparent',
-                fontSize: '11px',
+                fontSize: '16px',
                 fontFamily: 'Roboto, sans-serif',
                 resize: 'none',
                 padding: 0,
@@ -240,27 +240,27 @@ const StickyNoteNode = ({ data, selected }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: textAlign === 'bottom' ? 'flex-end' : 'flex-start',
-                fontSize: '12px',
-                '& p': { margin: 0, marginBottom: '0.5em', fontSize: '12px' },
+                fontSize: '18px',
+                '& p': { margin: 0, marginBottom: '0.5em', fontSize: '18px' },
                 '& p:last-child': { marginBottom: 0 },
-                '& ul, & ol': { margin: 0, paddingLeft: '1.2em', fontSize: '12px' },
+                '& ul, & ol': { margin: 0, paddingLeft: '1.2em', fontSize: '18px' },
                 '& code': {
                   backgroundColor: 'rgba(0,0,0,0.1)',
                   padding: '1px 3px',
                   borderRadius: '2px',
-                  fontSize: '10px',
+                  fontSize: '15px',
                 },
                 '& pre': {
                   backgroundColor: 'rgba(0,0,0,0.1)',
                   padding: '4px',
                   borderRadius: '2px',
                   overflow: 'auto',
-                  fontSize: '10px',
+                  fontSize: '15px',
                 },
                 '& h1, & h2, & h3, & h4, & h5, & h6': {
                   marginTop: 0,
                   marginBottom: '0.3em',
-                  fontSize: '13px',
+                  fontSize: '20px',
                   fontWeight: 600,
                 },
                 '& a': { color: '#1976d2' },
