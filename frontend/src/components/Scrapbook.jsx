@@ -688,6 +688,19 @@ function ScrapbookInner({ projectName, onClose }) {
     setEditDialogOpen(false);
     await fetchTree();
     await fetchAllNodes();
+    // Update selectedNode if it was the one being edited
+    if (editNode && selectedNode && editNode.id === selectedNode.id) {
+      // Fetch fresh data for the selected node
+      try {
+        const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+        if (response.ok) {
+          const updatedNode = await response.json();
+          setSelectedNode(updatedNode);
+        }
+      } catch (error) {
+        console.error('Failed to refresh selected node:', error);
+      }
+    }
   };
 
   // Options menu
@@ -802,7 +815,22 @@ function ScrapbookInner({ projectName, onClose }) {
           <ScrapbookTopics
             projectName={projectName}
             parentNode={selectedNode}
-            onNodeUpdated={() => { fetchTree(); fetchAllNodes(); }}
+            onNodeUpdated={async () => {
+              await fetchTree();
+              await fetchAllNodes();
+              // Refresh the selected node to get updated data
+              if (selectedNode) {
+                try {
+                  const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+                  if (response.ok) {
+                    const updatedNode = await response.json();
+                    setSelectedNode(updatedNode);
+                  }
+                } catch (error) {
+                  console.error('Failed to refresh selected node:', error);
+                }
+              }
+            }}
             onBack={() => setTabValue(0)}
           />
         )}

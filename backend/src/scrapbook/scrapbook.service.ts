@@ -659,15 +659,33 @@ export class ScrapbookService {
 
     for (const prop of properties) {
       try {
-        await axios.delete(`${QUADSTORE_URL}/${namespace}/quad`, {
-          data: {
-            subject: nodeUri,
-            predicate: `${this.baseUri}${prop}`,
-            object: null
-          }
+        // First query to find existing value
+        const matchResponse = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+          subject: nodeUri,
+          predicate: `${this.baseUri}${prop}`,
+          object: null
         });
+
+        // Delete each matching quad specifically
+        if (matchResponse.data.results) {
+          for (const quad of matchResponse.data.results) {
+            // Determine objectType based on the quad's object termType
+            // All scrapbook properties are stored as literals
+            const objectType = quad.object.type === 'Literal' ? 'literal' : 'namedNode';
+
+            await axios.delete(`${QUADSTORE_URL}/${namespace}/quad`, {
+              data: {
+                subject: nodeUri,
+                predicate: `${this.baseUri}${prop}`,
+                object: quad.object.value,
+                objectType: objectType
+              }
+            });
+          }
+        }
       } catch (e) {
         // Ignore errors - property might not exist
+        this.logger.debug(`Failed to delete property ${prop} for node ${nodeId}: ${e.message}`);
       }
     }
   }

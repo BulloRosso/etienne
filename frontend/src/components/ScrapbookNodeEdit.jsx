@@ -99,16 +99,17 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
         images,
       };
 
+      let response;
       if (isEdit) {
         // Update existing node
-        await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+        response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
         // Create new node
-        await fetch(`/api/workspace/${projectName}/scrapbook/nodes`, {
+        response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -116,6 +117,12 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
             parentId: parentNode?.id,
           }),
         });
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to save node:', errorText);
+        return;
       }
 
       onSaved();
