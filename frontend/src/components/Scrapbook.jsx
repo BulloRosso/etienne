@@ -524,7 +524,10 @@ function ScrapbookInner({ projectName, onClose }) {
       borderWidth = 1;
     }
 
-    // Determine color based on priority and attention
+    // Determine color based on attention weight (heatmap style)
+    // Attention weight: 0.0 to 1.0, mapped to 10% steps
+    // Font/border: navy (100%) to light blue (1%)
+    // Background: solid blue (100%) to very light blue (1%)
     let borderColor = '#000000';
     let backgroundColor = '#ffffff';
     const isActive = selectedNode?.id === nodeId;
@@ -532,16 +535,34 @@ function ScrapbookInner({ projectName, onClose }) {
     if (isActive) {
       borderColor = 'gold';
       backgroundColor = '#fffde7';
-    } else if (node.attentionWeight < 0.3) {
-      borderColor = '#9e9e9e';
-      backgroundColor = '#fafafa';
-    } else if (node.priority >= 7 && node.attentionWeight >= 0.5) {
-      // Blue gradient based on priority (10=dark, 1=light)
-      const blueIntensity = Math.floor(255 - (node.priority - 1) * 20);
-      borderColor = `rgb(0, ${blueIntensity}, 255)`;
-      // Light blue background - solid color, no opacity
-      const bgBlue = Math.floor(230 + (node.priority - 7) * 5); // 230-245 range for subtle variation
-      backgroundColor = `rgb(${bgBlue}, ${bgBlue}, 255)`;
+    } else {
+      // Attention-based heatmap coloring
+      // Round attention to nearest 10% step (0.0, 0.1, 0.2, ... 1.0)
+      const attention = Math.max(0, Math.min(1, node.attentionWeight || 0));
+      const step = Math.round(attention * 10) / 10; // 0.0 to 1.0 in 0.1 increments
+
+      // Navy RGB: (0, 0, 128) for 100% attention
+      // Light blue RGB: (173, 216, 230) for 1% attention
+      // Interpolate based on attention step
+      const navyR = 0, navyG = 0, navyB = 128;
+      const lightBlueR = 173, lightBlueG = 216, lightBlueB = 230;
+
+      // Border/font color: interpolate from light blue (low attention) to navy (high attention)
+      const borderR = Math.round(lightBlueR + (navyR - lightBlueR) * step);
+      const borderG = Math.round(lightBlueG + (navyG - lightBlueG) * step);
+      const borderB = Math.round(lightBlueB + (navyB - lightBlueB) * step);
+      borderColor = `rgb(${borderR}, ${borderG}, ${borderB})`;
+
+      // Background color: very light blue (low attention) to solid blue (high attention)
+      // Low attention: almost white with hint of blue (240, 248, 255) - aliceblue
+      // High attention: light solid blue (135, 206, 250) - lightskyblue
+      const bgLowR = 245, bgLowG = 250, bgLowB = 255;
+      const bgHighR = 135, bgHighG = 206, bgHighB = 250;
+
+      const bgR = Math.round(bgLowR + (bgHighR - bgLowR) * step);
+      const bgG = Math.round(bgLowG + (bgHighG - bgLowG) * step);
+      const bgB = Math.round(bgLowB + (bgHighB - bgLowB) * step);
+      backgroundColor = `rgb(${bgR}, ${bgG}, ${bgB})`;
     }
 
     return {
@@ -710,6 +731,41 @@ function ScrapbookInner({ projectName, onClose }) {
     }
   };
 
+  // Direct delete without confirmation (for keyboard shortcut)
+  const deleteNodeDirect = useCallback(async (node) => {
+    if (!node || node.type === 'ProjectTheme') return;
+
+    try {
+      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+        method: 'DELETE',
+      });
+      await fetchTree();
+      await fetchAllNodes();
+      if (selectedNode?.id === node.id) {
+        setSelectedNode(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete node:', error);
+    }
+  }, [projectName, fetchTree, fetchAllNodes, selectedNode]);
+
+  // Keyboard shortcut for DEL key to delete selected node
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Delete' && selectedNode && tabValue === 0) {
+        // Don't delete if we're in an input field or dialog
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (editDialogOpen || deleteConfirmOpen) return;
+
+        e.preventDefault();
+        deleteNodeDirect(selectedNode);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNode, tabValue, editDialogOpen, deleteConfirmOpen, deleteNodeDirect]);
+
   const handleNodeSaved = async () => {
     setEditDialogOpen(false);
     await fetchTree();
@@ -781,9 +837,20 @@ function ScrapbookInner({ projectName, onClose }) {
                 edges={edges}
                 onNodesChange={(changes) => {
                   onNodesChange(changes);
-                  // Check if any sticky note was resized
-                  const resizeChange = changes.find(c => c.type === 'dimensions' && c.id?.startsWith('sticky-'));
-                  if (resizeChange) {
+                  // Check if any sticky note was resized and update stickyNotes state
+                  const resizeChanges = changes.filter(c => c.type === 'dimensions' && c.id?.startsWith('sticky-'));
+                  if (resizeChanges.length > 0) {
+                    setStickyNotes(prev => prev.map(note => {
+                      const change = resizeChanges.find(c => c.id === note.id);
+                      if (change && change.dimensions) {
+                        return {
+                          ...note,
+                          width: change.dimensions.width,
+                          height: change.dimensions.height,
+                        };
+                      }
+                      return note;
+                    }));
                     setTimeout(saveCanvasSettings, 100);
                   }
                 }}

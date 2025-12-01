@@ -500,66 +500,67 @@ export class ScrapbookService {
     });
 
     // Create categories with subcategories
+    // Only Living Room and Kitchen have priorities set; all others have priority 0
     const categories = [
       {
         label: 'Living Room',
         iconName: 'FaCouch',
-        priority: 9,
+        priority: 8,
         attentionWeight: 0.85,
         subcategories: [
-          { label: 'Sofa', iconName: 'FaCouch', priority: 8, description: 'Main seating area' },
-          { label: 'TV Setup', iconName: 'FaTv', priority: 7, description: 'Entertainment center' },
-          { label: 'Coffee Table', iconName: 'FaTable', priority: 6 },
-          { label: 'Lighting', iconName: 'FaLightbulb', priority: 7 },
-          { label: 'Plants', iconName: 'FaLeaf', priority: 5 },
+          { label: 'Sofa', iconName: 'FaCouch', priority: 0, description: 'Main seating area' },
+          { label: 'TV Setup', iconName: 'FaTv', priority: 0, description: 'Entertainment center' },
+          { label: 'Coffee Table', iconName: 'FaTable', priority: 0 },
+          { label: 'Lighting', iconName: 'FaLightbulb', priority: 0 },
+          { label: 'Plants', iconName: 'FaLeaf', priority: 0 },
         ]
       },
       {
         label: 'Masterbedroom & Bath',
         iconName: 'FaBed',
-        priority: 9,
+        priority: 0,
         attentionWeight: 0.80,
         subcategories: [
-          { label: 'Bed Frame', iconName: 'FaBed', priority: 8 },
-          { label: 'Wardrobe', iconName: 'FaDoorClosed', priority: 7 },
-          { label: 'Bathroom Fixtures', iconName: 'FaBath', priority: 8 },
-          { label: 'Vanity', iconName: 'FaMirror', priority: 6 },
+          { label: 'Bed Frame', iconName: 'FaBed', priority: 0 },
+          { label: 'Wardrobe', iconName: 'FaDoorClosed', priority: 0 },
+          { label: 'Bathroom Fixtures', iconName: 'FaBath', priority: 0 },
+          { label: 'Vanity', iconName: 'FaMirror', priority: 0 },
         ]
       },
       {
         label: 'Child 1 Room',
         iconName: 'FaChild',
-        priority: 8,
+        priority: 0,
         attentionWeight: 0.75,
         subcategories: [
-          { label: 'Bed', iconName: 'FaBed', priority: 8 },
-          { label: 'Study Desk', iconName: 'FaDesktop', priority: 7 },
-          { label: 'Toy Storage', iconName: 'FaBox', priority: 6 },
-          { label: 'Bookshelf', iconName: 'FaBook', priority: 6 },
+          { label: 'Bed', iconName: 'FaBed', priority: 0 },
+          { label: 'Study Desk', iconName: 'FaDesktop', priority: 0 },
+          { label: 'Toy Storage', iconName: 'FaBox', priority: 0 },
+          { label: 'Bookshelf', iconName: 'FaBook', priority: 0 },
         ]
       },
       {
         label: 'Child 2 Room',
         iconName: 'FaChild',
-        priority: 8,
+        priority: 0,
         attentionWeight: 0.70,
         subcategories: [
-          { label: 'Bed', iconName: 'FaBed', priority: 8 },
-          { label: 'Play Area', iconName: 'FaPuzzlePiece', priority: 7 },
-          { label: 'Wardrobe', iconName: 'FaDoorClosed', priority: 6 },
+          { label: 'Bed', iconName: 'FaBed', priority: 0 },
+          { label: 'Play Area', iconName: 'FaPuzzlePiece', priority: 0 },
+          { label: 'Wardrobe', iconName: 'FaDoorClosed', priority: 0 },
         ]
       },
       {
         label: 'Kitchen',
         iconName: 'FaUtensils',
-        priority: 9,
+        priority: 6,
         attentionWeight: 0.90,
         subcategories: [
-          { label: 'Fridges', iconName: 'FaSnowflake', priority: 9, description: 'Compare features, prices and availability' },
-          { label: 'Stove & Oven', iconName: 'FaFire', priority: 9 },
-          { label: 'Dishwasher', iconName: 'FaWater', priority: 7 },
-          { label: 'Countertops', iconName: 'FaLayerGroup', priority: 8 },
-          { label: 'Cabinets', iconName: 'FaArchive', priority: 7 },
+          { label: 'Fridges', iconName: 'FaSnowflake', priority: 0, description: 'Compare features, prices and availability' },
+          { label: 'Stove & Oven', iconName: 'FaFire', priority: 0 },
+          { label: 'Dishwasher', iconName: 'FaWater', priority: 0 },
+          { label: 'Countertops', iconName: 'FaLayerGroup', priority: 0 },
+          { label: 'Cabinets', iconName: 'FaArchive', priority: 0 },
         ]
       },
     ];

@@ -28,7 +28,7 @@ const ScrapbookNode = memo(({ data, selected }) => {
     description,
     type,
     iconName,
-    priority,
+    priority: rawPriority,
     attentionWeight,
     isExpanded,
     hasChildren,
@@ -41,6 +41,9 @@ const ScrapbookNode = memo(({ data, selected }) => {
     onNodeClick,
     onContextMenu,
   } = data;
+
+  // Ensure priority is a number (default to 5 if undefined)
+  const priority = typeof rawPriority === 'number' ? rawPriority : 5;
 
   const IconComponent = getIcon(iconName);
   const shortDescription = description ? description.substring(0, 30) + (description.length > 30 ? '...' : '') : '';
@@ -146,6 +149,37 @@ const ScrapbookNode = memo(({ data, selected }) => {
             <MoreVert fontSize="small" />
           </IconButton>
         </Box>
+
+        {/* Priority Bar - 5 segments, visible only if priority > 1 and not root node */}
+        {priority > 1 && type !== 'ProjectTheme' && (
+          <Box
+            sx={{
+              display: 'flex',
+              gap: '1px',
+              px: 1,
+              pb: 0.5,
+              height: 5,
+            }}
+          >
+            {[
+              { threshold: 2, color: '#FFD700' },   // gold
+              { threshold: 4, color: '#FFA500' },   // orange
+              { threshold: 6, color: '#FF8C00' },   // dark orange
+              { threshold: 8, color: '#FF0000' },   // red
+              { threshold: 10, color: '#8B0000' },  // dark red
+            ].map((segment, index) => (
+              <Box
+                key={index}
+                sx={{
+                  flex: 1,
+                  height: 5,
+                  backgroundColor: priority >= segment.threshold ? segment.color : 'transparent',
+                  borderRadius: 0,
+                }}
+              />
+            ))}
+          </Box>
+        )}
 
         {/* Row 3: Icon Badge (overlapping bottom border) */}
         {IconComponent && (
