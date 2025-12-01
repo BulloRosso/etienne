@@ -27,6 +27,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
   Panel,
+  SelectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -862,6 +863,10 @@ function ScrapbookInner({ projectName, onClose }) {
                 maxZoom={2}
                 onNodeDragStop={saveCanvasSettings}
                 onMoveEnd={saveCanvasSettings}
+                selectionOnDrag
+                selectionMode={SelectionMode.Partial}
+                panOnDrag={[1, 2]}
+                selectionKeyCode={null}
               >
                 <Controls />
                 <Background variant="dots" gap={12} size={1} />
