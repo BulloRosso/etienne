@@ -17,7 +17,7 @@ import {
   CircularProgress,
   Paper,
 } from '@mui/material';
-import { MoreVert, DataObject, AccountTree, NoteAdd } from '@mui/icons-material';
+import { MoreVert, DataObject, AccountTree, NoteAdd, Download } from '@mui/icons-material';
 import {
   ReactFlow,
   Controls,
@@ -781,6 +781,38 @@ function ScrapbookInner({ projectName, onClose }) {
     setTimeout(saveCanvasSettings, 100);
   };
 
+  // Export agentic view handler
+  const handleExportAgenticView = async () => {
+    if (!selectedNode) return;
+    setOptionsAnchor(null);
+
+    try {
+      const response = await fetch(`/api/workspace/${projectName}/scrapbook/describe/${encodeURIComponent(selectedNode.label)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch agentic view');
+      }
+      const data = await response.json();
+      const markdown = data.markdown;
+
+      // Create filename from node label (sanitize for filesystem)
+      const sanitizedLabel = selectedNode.label.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `${sanitizedLabel}_agent_view.md`;
+
+      // Create blob and trigger download
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export agentic view:', error);
+    }
+  };
+
   // Handle context menu actions
   const handleMenuClose = () => {
     setAnchorEl(null);
@@ -918,6 +950,10 @@ function ScrapbookInner({ projectName, onClose }) {
           <MenuItem onClick={handleAddStickyNote}>
             <ListItemIcon><NoteAdd fontSize="small" /></ListItemIcon>
             <ListItemText>Add sticky note</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleExportAgenticView} disabled={!selectedNode}>
+            <ListItemIcon><Download fontSize="small" /></ListItemIcon>
+            <ListItemText>Export Agentic View</ListItemText>
           </MenuItem>
         </Menu>
       </Box>

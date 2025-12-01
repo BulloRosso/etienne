@@ -655,24 +655,27 @@ export class ScrapbookService {
         md += `${node.description}\n\n`;
       }
 
-      // Convert priority to human-readable text
+      // Convert priority to human-readable text (skip for priority < 2)
       if (node.priority >= 9) {
         md += 'This is of highest priority.\n';
       } else if (node.priority >= 7) {
         md += 'This has high priority.\n';
       } else if (node.priority >= 5) {
         md += 'This has medium priority.\n';
-      } else {
+      } else if (node.priority >= 2) {
         md += 'This has lower priority.\n';
       }
+      // priority < 2: no sentence generated
 
       // Convert attention weight
       if (node.attentionWeight >= 0.8) {
         md += 'Currently under active focus.\n';
       } else if (node.attentionWeight >= 0.5) {
         md += 'Moderate attention currently.\n';
-      } else {
+      } else if (node.attentionWeight >= 0.2) {
         md += 'Not actively focused on this item.\n';
+      } else {
+        md += 'This item is for information only.\n';
       }
 
       md += '\n';
