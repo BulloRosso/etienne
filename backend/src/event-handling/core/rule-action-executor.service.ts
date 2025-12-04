@@ -112,6 +112,28 @@ ${promptTemplate}
       return webhookContext;
     }
 
+    // For Filesystem events, prepend the file path information
+    if (event.group === 'Filesystem') {
+      const payload = event.payload as { path?: string; projectName?: string };
+      // Extract just the file path relative to the project (remove project name prefix)
+      const filePath = payload.path || '';
+      const projectName = payload.projectName || '';
+      const relativeToProject = filePath.startsWith(projectName + '/') || filePath.startsWith(projectName + '\\')
+        ? filePath.substring(projectName.length + 1)
+        : filePath;
+
+      const filesystemContext = `The agent detected a filesystem event:
+Event: ${event.name}
+File: ${relativeToProject}
+
+---
+
+${promptTemplate}
+`.trim();
+
+      return filesystemContext;
+    }
+
     // Create context about the triggering event for other groups
     const eventContext = `
 [AUTOMATED TRIGGER]

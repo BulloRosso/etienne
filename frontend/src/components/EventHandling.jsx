@@ -62,6 +62,7 @@ import {
 } from '@mui/icons-material';
 import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
 import { PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
+import { FcWorkflow } from 'react-icons/fc';
 import { IoMdNotificationsOutline, IoMdNotificationsOff } from 'react-icons/io';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -592,6 +593,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
           <Tab label="Event Log" icon={<HistoryIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
           <Tab label="WebHooks" icon={<WebhookIcon sx={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
           <Tab label="Examples" icon={<BiHelpCircle style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label="Use Cases" icon={<FcWorkflow style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
         </Tabs>
       </Paper>
 
@@ -1229,6 +1231,21 @@ const EventHandling = ({ selectedProject, onClose }) => {
                 </CardContent>
               </Card>
             </Stack>
+          </Box>
+        ) : currentTab === 6 ? (
+          // Tab 6: Use Cases
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <img
+              src="/condition-monitoring-usecases.jpg"
+              alt="Condition Monitoring Use Cases"
+              style={{
+                maxWidth: 1000,
+                width: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                borderRadius: 8
+              }}
+            />
           </Box>
         ) : null}
       </Box>

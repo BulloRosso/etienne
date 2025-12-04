@@ -10,7 +10,6 @@ import {
 import {
   FolderOpen as FileWatcherIcon,
   Sensors as MqttIcon,
-  Code as ClaudeCodeIcon,
   Schedule as ScheduleIcon,
   Webhook as WebhookIcon,
   PlayCircle as PlayingIcon,
@@ -18,6 +17,8 @@ import {
   Error as ErrorIcon,
   LinkOff as DisconnectedIcon
 } from '@mui/icons-material';
+import { BiMessageEdit } from 'react-icons/bi';
+import { RiRobot2Line } from 'react-icons/ri';
 
 // Event source configuration
 const EVENT_SOURCES = {
@@ -32,9 +33,10 @@ const EVENT_SOURCES = {
     group: 'MQTT'
   },
   'Claude Agent SDK': {
-    icon: ClaudeCodeIcon,
+    icon: RiRobot2Line,
     color: '#9c27b0',
-    group: 'Claude Code'
+    group: 'Claude Code',
+    isReactIcon: true
   },
   'Webhook': {
     icon: WebhookIcon,
@@ -229,7 +231,11 @@ const EventSourceColumn = ({ sourceName, sourceConfig, events, isActive, isConne
         }}
       >
         <ActivityIndicator active={isActive && !isDisabled} />
-        <Icon sx={{ color: isDisabled ? '#9e9e9e' : sourceConfig.color, fontSize: 20 }} />
+        {sourceConfig.isReactIcon ? (
+          <Icon style={{ color: isDisabled ? '#9e9e9e' : sourceConfig.color, fontSize: 20 }} />
+        ) : (
+          <Icon sx={{ color: isDisabled ? '#9e9e9e' : sourceConfig.color, fontSize: 20 }} />
+        )}
         <Typography
           variant="subtitle2"
           sx={{
@@ -424,7 +430,7 @@ const PromptExecutionsColumn = ({ executions }) => {
         }}
       >
         <ActivityIndicator active={hasActiveExecution} />
-        <ClaudeCodeIcon sx={{ color: '#9c27b0', fontSize: 20 }} />
+        <BiMessageEdit style={{ color: '#9c27b0', fontSize: 20 }} />
         <Typography
           variant="subtitle2"
           sx={{
