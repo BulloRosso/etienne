@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import * as mqtt from 'mqtt';
+import * as path from 'path';
 import { MqttBrokerConfig, MqttMessage } from './interfaces/mqtt-config.interface';
 import { MqttStorageService } from './mqtt-storage.service';
 import { EventRouterService } from '../event-handling/core/event-router.service';
@@ -187,12 +188,16 @@ export class MqttClientService implements OnModuleDestroy {
 
       // Publish to event router
       if (this.eventRouter) {
+        // Extract just the project name from the full path (e.g., '/workspace/todo-list' -> 'todo-list')
+        const projectName = path.basename(projectDir);
+
         await this.eventRouter.publishEvent({
           name: 'MQTT Message Received',
           group: 'MQTT',
           source: 'MQTT Client',
           topic,
           payload: {
+            projectName,
             message: payload.toString(),
             qos: packet.qos,
             retain: packet.retain,

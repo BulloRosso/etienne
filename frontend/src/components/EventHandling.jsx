@@ -55,6 +55,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import LiveEventsTab from './LiveEventsTab';
 
 const EventHandling = ({ selectedProject, onClose }) => {
   const [rules, setRules] = useState([]);
@@ -588,60 +589,8 @@ const EventHandling = ({ selectedProject, onClose }) => {
             )}
           </Box>
         ) : currentTab === 1 ? (
-          // Tab 1: Live Events
-          <Box>
-            {liveEvents.length === 0 ? (
-              <Paper sx={{ p: 6, textAlign: 'center' }}>
-                <EventIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Waiting for events...
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {eventStream ? 'Connected to event stream' : 'Connecting...'}
-                </Typography>
-              </Paper>
-            ) : (
-              <Stack spacing={2}>
-                {liveEvents.map((event, idx) => (
-                  <Card
-                    key={idx}
-                    variant="outlined"
-                    sx={{
-                      borderLeft: 4,
-                      borderLeftColor: event.triggeredRules && event.triggeredRules.length > 0
-                        ? 'success.main'
-                        : 'grey.300'
-                    }}
-                  >
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="h6" fontWeight={600}>
-                          {event.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(event.timestamp).toLocaleTimeString()}
-                        </Typography>
-                      </Box>
-                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                        <Chip label={event.group} size="small" />
-                        <Chip label={event.source} size="small" variant="outlined" />
-                      </Stack>
-                      {event.topic && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Topic: {event.topic}
-                        </Typography>
-                      )}
-                      {event.triggeredRules && event.triggeredRules.length > 0 && (
-                        <Alert severity="success" sx={{ mt: 2 }}>
-                          Triggered {event.triggeredRules.length} rule(s)
-                        </Alert>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </Stack>
-            )}
-          </Box>
+          // Tab 1: Live Events - Column-based display by source
+          <LiveEventsTab liveEvents={liveEvents} eventStream={eventStream} />
         ) : currentTab === 2 ? (
           // Tab 2: Event Log
           <Box>

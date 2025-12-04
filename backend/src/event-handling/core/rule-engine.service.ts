@@ -242,10 +242,33 @@ export class RuleEngineService {
     for (const [key, value] of Object.entries(eventPattern)) {
       if (['group', 'name', 'topic'].includes(key)) continue;
 
-      // Handle nested payload fields (e.g., "payload.path")
+      // Handle nested payload fields (e.g., "payload.path" or "payload.message.status")
       if (key.startsWith('payload.')) {
-        const payloadKey = key.substring(8); // Remove "payload." prefix
-        const eventValue = event.payload?.[payloadKey];
+        const payloadPath = key.substring(8); // Remove "payload." prefix
+        let eventValue: any;
+
+        // Support dot-notation for nested fields (e.g., "message.status")
+        const pathParts = payloadPath.split('.');
+        eventValue = event.payload;
+
+        for (const part of pathParts) {
+          if (eventValue === undefined || eventValue === null) {
+            break;
+          }
+
+          // If current value is a string, try to parse it as JSON (for MQTT message content)
+          if (typeof eventValue === 'string') {
+            try {
+              eventValue = JSON.parse(eventValue);
+            } catch {
+              // Not valid JSON, treat as string
+              eventValue = undefined;
+              break;
+            }
+          }
+
+          eventValue = eventValue[part];
+        }
 
         if (typeof value === 'string' && value.includes('*')) {
           // Wildcard matching
