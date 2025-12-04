@@ -76,7 +76,7 @@ export class ClaudeSdkService {
       // Note: systemPrompt is not included - Claude Code SDK will automatically
       // pick it up from .claude/CLAUDE.md in the project directory
       const queryOptions: any = {
-        model: altModelConfig?.model || 'claude-sonnet-4-5',
+        model: altModelConfig?.model || 'claude-opus-4-5-20251101',
         cwd: projectRoot,  // Set working directory to workspace/<project>
         allowedTools: tools,
         permissionMode: permissionMode as any,

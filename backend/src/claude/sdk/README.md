@@ -388,6 +388,118 @@ Look for log messages:
 - [ ] Add retry logic with exponential backoff
 - [ ] Configure rate limiting per project
 
+## Unattended Endpoint
+
+The unattended endpoint is designed for automated/background prompt execution. It is used by both the **Scheduler Service** and the **Event Handling Service** to execute prompts without interactive user sessions.
+
+### Endpoint
+
+```
+POST /api/claude/unattended/:project
+```
+
+### Request Body
+
+```json
+{
+  "prompt": "The prompt text to execute",
+  "maxTurns": 20,        // Optional, default 20
+  "source": "Scheduled: My Task"  // Optional, label for chat history
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "response": "The full text response from Claude",
+  "tokenUsage": {
+    "input_tokens": 1234,
+    "output_tokens": 567
+  },
+  "messages": [...],  // All raw messages from the stream
+  "timestamp": "2025-12-04T10:00:00.000Z"
+}
+```
+
+### Features
+
+1. **Automatic Chat Persistence**: Messages are automatically saved to the most recent chat session with the source label (e.g., `[Scheduled: My Task]` or `[Condition Monitor: Error Handler]`)
+
+2. **Token Usage Tracking**: Returns input/output token counts for budget monitoring
+
+3. **5-minute Timeout**: Long-running prompts have a 5-minute timeout
+
+### Services Using This Endpoint
+
+| Service | Source Label | Description |
+|---------|-------------|-------------|
+| **Scheduler Service** | `Scheduled: {taskName}` | Executes cron-based scheduled tasks |
+| **Event Handling Service** | `Condition Monitor: {ruleName}` | Executes prompts when event rules trigger |
+
+### Architecture
+
+```
+┌─────────────────────┐     ┌──────────────────────┐
+│  Scheduler Service  │     │  Event Router Service│
+│  (cron jobs)        │     │  (rule triggers)     │
+└─────────┬───────────┘     └──────────┬───────────┘
+          │                            │
+          │  HTTP POST                 │  HTTP POST
+          │  /api/claude/unattended    │  /api/claude/unattended
+          ▼                            ▼
+┌─────────────────────────────────────────────────┐
+│              Claude Controller                   │
+│              (unattended endpoint)               │
+└─────────────────────┬───────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────┐
+│         ClaudeSdkOrchestratorService            │
+│         (streamPrompt with persistence)          │
+└─────────────────────┬───────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────┐
+│              SessionsService                     │
+│              (appendMessages to chat history)    │
+└─────────────────────────────────────────────────┘
+```
+
+### Configuration
+
+The endpoint uses the following configuration:
+
+- **Model**: `claude-opus-4-5-20251101` (default)
+- **Memory**: Enabled by default
+- **Chat Persistence**: Handled internally (skipChatPersistence=true in SDK, manual persistence after)
+- **Max Turns**: Configurable per request (default 20)
+
+### Example Usage
+
+```typescript
+// Scheduler Service
+const response = await axios.post(
+  'http://localhost:6060/api/claude/unattended/myproject',
+  {
+    prompt: 'Analyze the codebase and report any issues',
+    maxTurns: 20,
+    source: 'Scheduled: Daily Analysis'
+  }
+);
+
+// Event Handling Service
+const response = await axios.post(
+  'http://localhost:6060/api/claude/unattended/myproject',
+  {
+    prompt: 'An error was detected. Please investigate: {{event.payload}}',
+    maxTurns: 20,
+    source: 'Condition Monitor: Error Handler'
+  }
+);
+```
+
 ## Support
 
 For questions or issues:

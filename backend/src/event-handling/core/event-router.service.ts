@@ -5,6 +5,7 @@ import { InternalEvent } from '../interfaces/event.interface';
 import { RuleEngineService } from './rule-engine.service';
 import { EventStoreService } from './event-store.service';
 import { SSEPublisherService } from '../publishers/sse-publisher.service';
+import { RuleActionExecutorService } from './rule-action-executor.service';
 
 @Injectable()
 export class EventRouterService implements OnModuleInit, OnModuleDestroy {
@@ -21,6 +22,8 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
     private readonly eventStore: EventStoreService,
     @Inject(forwardRef(() => SSEPublisherService))
     private readonly ssePublisher: SSEPublisherService,
+    @Inject(forwardRef(() => RuleActionExecutorService))
+    private readonly actionExecutor: RuleActionExecutorService,
   ) {}
 
   async onModuleInit() {
@@ -71,12 +74,24 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
         // Evaluate event against rules
         const executionResults = await this.ruleEngine.evaluateEvent(event, projectName);
 
-        // Store event if it triggered any rules
-        if (executionResults.some((r) => r.success)) {
+        // Store event and execute actions if any rules triggered
+        const triggeredResults = executionResults.filter((r) => r.success);
+        if (triggeredResults.length > 0) {
           await this.eventStore.storeTriggeredEvent(projectName, event, executionResults);
 
           // Publish via SSE with rule execution info
-          this.ssePublisher.publishRuleExecution(projectName, event, executionResults.filter((r) => r.success));
+          this.ssePublisher.publishRuleExecution(projectName, event, triggeredResults);
+
+          // Execute actions for triggered rules (fire-and-forget, don't block event processing)
+          for (const result of triggeredResults) {
+            const rule = this.ruleEngine.getRule(result.ruleId);
+            if (rule && rule.action) {
+              // Execute asynchronously without awaiting
+              this.actionExecutor.executeAction(projectName, rule, event).catch((err) => {
+                this.logger.error(`Failed to execute action for rule ${rule.id}:`, err);
+              });
+            }
+          }
         }
 
         // Distribute to internal subscribers

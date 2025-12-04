@@ -1,26 +1,24 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
+import axios from 'axios';
 import { TaskStorageService } from './task-storage.service';
 import { TaskDefinition, TaskHistoryEntry } from './interfaces/task.interface';
-import { ClaudeSdkOrchestratorService } from '../claude/sdk/claude-sdk-orchestrator.service';
-import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
-import { join } from 'path';
 
 @Injectable()
 export class SchedulerService implements OnModuleInit {
   private readonly logger = new Logger(SchedulerService.name);
-  private readonly workspaceRoot = process.env.WORKSPACE_ROOT || 'C:/Data/GitHub/claude-multitenant/workspace';
+  private readonly backendUrl: string;
   private chatRefreshFlags = new Map<string, boolean>();
 
   constructor(
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly storageService: TaskStorageService,
-    private readonly claudeSdkOrchestrator: ClaudeSdkOrchestratorService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
-    private readonly sessionsService: SessionsService,
-  ) {}
+  ) {
+    this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
+  }
 
   async onModuleInit() {
     this.logger.log('Initializing scheduler from workspace projects...');
@@ -83,75 +81,31 @@ export class SchedulerService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      // Get projectRoot for later use in persistence
-      const projectRoot = join(this.workspaceRoot, project);
+      // Call the unattended endpoint - it handles chat persistence internally
+      const url = `${this.backendUrl}/api/claude/unattended/${encodeURIComponent(project)}`;
 
-      // Use the SDK orchestrator with skipChatPersistence=true (we'll handle persistence manually)
-      // Note: SDK automatically loads and resumes from the most recent session
-      const observable = this.claudeSdkOrchestrator.streamPrompt(
-        project,
-        task.prompt,
-        undefined, // agentMode
-        true,      // memoryEnabled
-        true,      // skipChatPersistence - we'll handle persistence manually
-        20         // maxTurns
+      const response = await axios.post(
+        url,
+        {
+          prompt: task.prompt,
+          maxTurns: 20,
+          source: `Scheduled: ${task.name}`
+        },
+        { timeout: 300000 } // 5 minute timeout
       );
-
-      let fullResponse = '';
-      let inputTokens = 0;
-      let outputTokens = 0;
-
-      await new Promise<void>((resolve, reject) => {
-        observable.subscribe({
-          next: (messageEvent) => {
-            try {
-              const data = typeof messageEvent.data === 'string'
-                ? JSON.parse(messageEvent.data)
-                : messageEvent.data;
-
-              this.logger.debug(`Received event type: ${messageEvent.type}`);
-
-              // Accumulate response text from SDK transformed messages
-              // The SDK orchestrator transforms messages to: type='stdout', data={chunk: text}
-              if (messageEvent.type === 'stdout' && data.chunk) {
-                fullResponse += data.chunk;
-              }
-
-              // Capture token usage from completed event
-              // The SDK orchestrator sends: type='completed', data={usage: {...}}
-              if (messageEvent.type === 'completed' && data.usage) {
-                inputTokens = data.usage.input_tokens || 0;
-                outputTokens = data.usage.output_tokens || 0;
-                this.logger.log(`Usage tracked: ${inputTokens} input, ${outputTokens} output tokens`);
-              }
-
-              if (messageEvent.type === 'completed') {
-                this.logger.log('Task execution completed event received');
-              }
-            } catch (err: any) {
-              this.logger.warn(`Failed to parse message event: ${err?.message || 'Unknown error'}`);
-            }
-          },
-          error: (err: any) => {
-            this.logger.error(`Observable error: ${err?.message || 'Unknown error'}`);
-            reject(err);
-          },
-          complete: () => {
-            this.logger.log('Observable completed');
-            resolve();
-          },
-        });
-      });
 
       const duration = Date.now() - startTime;
       const timestamp = new Date().toISOString();
+      const fullResponse = response.data?.response || 'Task completed successfully';
+      const inputTokens = response.data?.tokenUsage?.input_tokens || 0;
+      const outputTokens = response.data?.tokenUsage?.output_tokens || 0;
 
       // Record successful execution in task history
       const historyEntry: TaskHistoryEntry = {
         timestamp,
         name: task.name,
-        response: fullResponse || 'Task completed successfully',
-        isError: false,
+        response: fullResponse,
+        isError: !response.data?.success,
         duration,
         inputTokens,
         outputTokens,
@@ -159,40 +113,6 @@ export class SchedulerService implements OnModuleInit {
 
       await this.storageService.addHistoryEntry(project, historyEntry);
       this.logger.log(`Task ${task.name} completed in ${duration}ms with ${inputTokens} input and ${outputTokens} output tokens`);
-
-      // Persist to chat history with [Scheduled: taskname] prefix
-      try {
-        // Get the most recent session ID (SDK may have created a new one)
-        const mostRecentSessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
-
-        if (mostRecentSessionId) {
-          const costs = inputTokens > 0 || outputTokens > 0 ? {
-            input_tokens: inputTokens,
-            output_tokens: outputTokens
-          } : undefined;
-
-          await this.sessionsService.appendMessages(projectRoot, mostRecentSessionId, [
-            {
-              timestamp,
-              isAgent: false,
-              message: `[Scheduled: ${task.name}]\n\r ${task.prompt}`,
-              costs: undefined
-            },
-            {
-              timestamp,
-              isAgent: true,
-              message: fullResponse || 'Task completed successfully',
-              costs
-            }
-          ]);
-
-          this.logger.log(`Task ${task.name} persisted to session ${mostRecentSessionId}`);
-        } else {
-          this.logger.warn(`Task ${task.name}: No recent session found, skipping persistence`);
-        }
-      } catch (error: any) {
-        this.logger.warn(`Failed to persist task ${task.name} to chat history: ${error.message}`);
-      }
 
       // Track costs in budget monitoring
       if (inputTokens > 0 || outputTokens > 0) {

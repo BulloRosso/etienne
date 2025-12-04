@@ -88,6 +88,54 @@ export class SSEPublisherService {
   }
 
   /**
+   * Publish prompt execution status to all clients of a project
+   */
+  publishPromptExecution(projectName: string, data: {
+    status: 'started' | 'completed' | 'error';
+    ruleId: string;
+    ruleName: string;
+    promptId?: string;
+    promptTitle?: string;
+    eventId: string;
+    response?: string;
+    error?: string;
+    timestamp: string;
+  }): void {
+    for (const client of this.clients.values()) {
+      if (client.projectName === projectName) {
+        this.sendToClient(client.id, 'prompt-execution', data);
+      }
+    }
+  }
+
+  /**
+   * Publish service status updates (MQTT, File Watcher, etc.)
+   */
+  publishServiceStatus(projectName: string, data: {
+    service: 'mqtt' | 'file-watcher' | 'scheduler';
+    connected: boolean;
+    subscriptions?: string[];
+    timestamp: string;
+  }): void {
+    for (const client of this.clients.values()) {
+      if (client.projectName === projectName) {
+        this.sendToClient(client.id, 'service-status', data);
+      }
+    }
+  }
+
+  /**
+   * Broadcast service status to all clients of a project
+   */
+  broadcastToProject(projectName: string, eventType: string, data: any): void {
+    for (const client of this.clients.values()) {
+      if (client.projectName === projectName) {
+        this.sendToClient(client.id, eventType, data);
+      }
+    }
+  }
+
+  /**
    * Send message to a specific client
    */
   private sendToClient(clientId: string, eventType: string, data: any): void {

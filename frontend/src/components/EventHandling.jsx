@@ -35,7 +35,8 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Menu
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -51,11 +52,50 @@ import {
   ContentCopy as ContentCopyIcon,
   Send as SendIcon,
   Description as DescriptionIcon,
-  History as HistoryIcon
+  History as HistoryIcon,
+  FolderOpen as FileWatcherIcon,
+  Sensors as MqttIcon,
+  Code as ClaudeCodeIcon,
+  Schedule as ScheduleIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
+import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
+import { PiPaperPlaneTilt, PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
+import { IoMdNotificationsOutline, IoMdNotificationsOff } from 'react-icons/io';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import LiveEventsTab from './LiveEventsTab';
+
+// Event group styling configuration (consistent with LiveEventsTab)
+const EVENT_GROUP_CONFIG = {
+  'Filesystem': {
+    icon: FileWatcherIcon,
+    color: '#4caf50',
+    bgColor: '#e8f5e9'
+  },
+  'MQTT': {
+    icon: MqttIcon,
+    color: '#2196f3',
+    bgColor: '#e3f2fd'
+  },
+  'Claude Code': {
+    icon: ClaudeCodeIcon,
+    color: '#9c27b0',
+    bgColor: '#f3e5f5'
+  },
+  'Scheduling': {
+    icon: ScheduleIcon,
+    color: '#00bcd4',
+    bgColor: '#e0f7fa'
+  }
+};
+
+// Helper to get group styling
+const getGroupStyle = (group) => EVENT_GROUP_CONFIG[group] || {
+  icon: EventIcon,
+  color: '#757575',
+  bgColor: '#f5f5f5'
+};
 
 const EventHandling = ({ selectedProject, onClose }) => {
   const [rules, setRules] = useState([]);
@@ -91,6 +131,18 @@ const EventHandling = ({ selectedProject, onClose }) => {
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [promptTitle, setPromptTitle] = useState('');
   const [promptContent, setPromptContent] = useState('');
+  const [promptMenuAnchor, setPromptMenuAnchor] = useState(null);
+  const [selectedPromptForMenu, setSelectedPromptForMenu] = useState(null);
+  const [ruleMenuAnchor, setRuleMenuAnchor] = useState(null);
+  const [selectedRuleForMenu, setSelectedRuleForMenu] = useState(null);
+
+  // Prompt execution state
+  const [promptExecutions, setPromptExecutions] = useState([]);
+
+  // Service status state
+  const [serviceStatus, setServiceStatus] = useState({
+    mqtt: { connected: false, subscriptions: [] }
+  });
 
   const eventGroups = ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code'];
 
@@ -156,6 +208,32 @@ const EventHandling = ({ selectedProject, onClose }) => {
       addOrUpdateEvent({ ...data.event, triggeredRules: data.triggeredRules });
     });
 
+    sse.addEventListener('prompt-execution', (e) => {
+      const data = JSON.parse(e.data);
+      setPromptExecutions((prev) => {
+        // Update existing or add new
+        const existingIndex = prev.findIndex(
+          (p) => p.ruleId === data.ruleId && p.eventId === data.eventId
+        );
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...updated[existingIndex], ...data };
+          return updated;
+        }
+        return [data, ...prev].slice(0, 20);
+      });
+    });
+
+    sse.addEventListener('service-status', (e) => {
+      const data = JSON.parse(e.data);
+      if (data.service === 'mqtt') {
+        setServiceStatus(prev => ({
+          ...prev,
+          mqtt: { connected: data.connected, subscriptions: data.subscriptions || [] }
+        }));
+      }
+    });
+
     sse.onerror = (error) => {
       console.error('SSE error:', error);
     };
@@ -167,10 +245,30 @@ const EventHandling = ({ selectedProject, onClose }) => {
     };
   }, [selectedProject]);
 
+  // Load MQTT status
+  const loadMqttStatus = async () => {
+    if (!selectedProject) return;
+
+    try {
+      const response = await axios.get(`http://localhost:6060/api/external-events/${selectedProject}/status`);
+      setServiceStatus(prev => ({
+        ...prev,
+        mqtt: {
+          connected: response.data.connected || false,
+          subscriptions: response.data.subscriptions || []
+        }
+      }));
+    } catch (error) {
+      // MQTT may not be configured, that's okay
+      console.log('MQTT status not available:', error.message);
+    }
+  };
+
   useEffect(() => {
     loadRules();
     loadPrompts();
     loadEventLog();
+    loadMqttStatus();
   }, [selectedProject]);
 
   // Load event log from API
@@ -190,31 +288,32 @@ const EventHandling = ({ selectedProject, onClose }) => {
     }
   };
 
-  // Load prompts from localStorage
-  const loadPrompts = () => {
+  // Load prompts from backend API
+  const loadPrompts = async () => {
     if (!selectedProject) return;
 
-    const key = `prompts_${selectedProject}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      try {
-        setPrompts(JSON.parse(stored));
-      } catch (error) {
-        console.error('Failed to load prompts:', error);
-        setPrompts([]);
+    try {
+      const response = await axios.get(`http://localhost:6060/api/prompts/${selectedProject}`);
+      if (response.data.success) {
+        setPrompts(response.data.prompts || []);
       }
-    } else {
+    } catch (error) {
+      console.error('Failed to load prompts:', error);
       setPrompts([]);
     }
   };
 
-  // Save prompts to localStorage
-  const savePrompts = (updatedPrompts) => {
-    if (!selectedProject) return;
-
-    const key = `prompts_${selectedProject}`;
-    localStorage.setItem(key, JSON.stringify(updatedPrompts));
-    setPrompts(updatedPrompts);
+  // Extract payload matcher from rule condition event object
+  const extractPayloadMatcher = (event) => {
+    if (!event) return '';
+    // Find any key that's not group, name, topic, or source (those are standard fields)
+    const standardFields = ['group', 'name', 'topic', 'source'];
+    for (const key of Object.keys(event)) {
+      if (!standardFields.includes(key)) {
+        return `${key}:${event[key]}`;
+      }
+    }
+    return '';
   };
 
   const handleOpenRuleDialog = (rule = null) => {
@@ -226,7 +325,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
       setEventGroup(rule.condition.event?.group || '');
       setEventName(rule.condition.event?.name || '');
       setEventTopic(rule.condition.event?.topic || '');
-      setPayloadPath('');
+      setPayloadPath(extractPayloadMatcher(rule.condition.event));
       setActionPromptId(rule.action.promptId);
     } else {
       setEditingRule(null);
@@ -247,7 +346,19 @@ const EventHandling = ({ selectedProject, onClose }) => {
     setEditingRule(null);
   };
 
+  // Parse payload matcher string (format: "key:value" where value may contain colons)
+  const parsePayloadMatcher = (matcher) => {
+    if (!matcher || !matcher.includes(':')) return null;
+    const colonIndex = matcher.indexOf(':');
+    const key = matcher.substring(0, colonIndex).trim();
+    const value = matcher.substring(colonIndex + 1).trim();
+    if (!key || !value) return null;
+    return { [key]: value };
+  };
+
   const handleSaveRule = async () => {
+    const payloadMatcher = parsePayloadMatcher(payloadPath);
+
     const ruleData = {
       name: ruleName,
       enabled: ruleEnabled,
@@ -257,7 +368,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
           ...(eventGroup && { group: eventGroup }),
           ...(eventName && { name: eventName }),
           ...(eventTopic && { topic: eventTopic }),
-          ...(payloadPath && { [payloadPath.split(':')[0]]: payloadPath.split(':')[1] })
+          ...payloadMatcher
         }
       },
       action: {
@@ -351,42 +462,39 @@ const EventHandling = ({ selectedProject, onClose }) => {
     setEditingPrompt(null);
   };
 
-  const handleSavePrompt = () => {
+  const handleSavePrompt = async () => {
     if (!promptTitle || !promptContent) return;
 
-    const updatedPrompts = [...prompts];
-
-    if (editingPrompt) {
-      // Update existing prompt
-      const index = updatedPrompts.findIndex(p => p.id === editingPrompt.id);
-      if (index !== -1) {
-        updatedPrompts[index] = {
-          ...updatedPrompts[index],
+    try {
+      if (editingPrompt) {
+        // Update existing prompt
+        await axios.put(`http://localhost:6060/api/prompts/${selectedProject}/${editingPrompt.id}`, {
           title: promptTitle,
-          content: promptContent,
-          updatedAt: new Date().toISOString()
-        };
+          content: promptContent
+        });
+      } else {
+        // Create new prompt
+        await axios.post(`http://localhost:6060/api/prompts/${selectedProject}`, {
+          title: promptTitle,
+          content: promptContent
+        });
       }
-    } else {
-      // Create new prompt
-      updatedPrompts.push({
-        id: uuidv4(),
-        title: promptTitle,
-        content: promptContent,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
+      await loadPrompts();
+      handleClosePromptDialog();
+    } catch (error) {
+      console.error('Failed to save prompt:', error);
     }
-
-    savePrompts(updatedPrompts);
-    handleClosePromptDialog();
   };
 
-  const handleDeletePrompt = (promptId) => {
+  const handleDeletePrompt = async (promptId) => {
     if (!confirm('Are you sure you want to delete this prompt?')) return;
 
-    const updatedPrompts = prompts.filter(p => p.id !== promptId);
-    savePrompts(updatedPrompts);
+    try {
+      await axios.delete(`http://localhost:6060/api/prompts/${selectedProject}/${promptId}`);
+      await loadPrompts();
+    } catch (error) {
+      console.error('Failed to delete prompt:', error);
+    }
   };
 
   if (!selectedProject) {
@@ -406,19 +514,49 @@ const EventHandling = ({ selectedProject, onClose }) => {
         <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box
-              component="img"
-              src="/conditionmonitoring.jpg"
-              alt="Condition Monitoring"
-              sx={{ width: 48, height: 48, borderRadius: 1, objectFit: 'cover' }}
-            />
-            <Box>
-              <Typography variant="h5" fontWeight={600} sx={{ pt: '3px', pl: '3px' }}>
-                Condition Monitoring
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ pl: '3px' }}>
-                {selectedProject}
-              </Typography>
+              sx={{
+                position: 'relative',
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                overflow: 'hidden',
+                '@keyframes neonBorderSweep': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' }
+                }
+              }}
+            >
+              {/* Rotating neon border line */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: -20,
+                  background: 'conic-gradient(from 0deg, transparent 0deg, transparent 340deg, #667eea 350deg, #764ba2 360deg)',
+                  animation: 'neonBorderSweep 4s linear infinite',
+                  zIndex: 0
+                }}
+              />
+              {/* Inner background to mask center */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 2,
+                  borderRadius: 1.5,
+                  bgcolor: 'background.paper',
+                  zIndex: 1
+                }}
+              />
+              <PiSecurityCameraFill style={{ fontSize: 26, color: '#667eea', position: 'relative', zIndex: 2 }} />
             </Box>
+            <Typography variant="h5" fontWeight={600}>
+              Condition Monitoring
+            </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
@@ -436,17 +574,17 @@ const EventHandling = ({ selectedProject, onClose }) => {
         </Box>
 
         <Tabs value={currentTab} onChange={(e, v) => setCurrentTab(v)} sx={{ px: 3 }}>
-          <Tab label="Rules" icon={<RuleIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label="Action" icon={<BiMessageEdit style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label="Rules" icon={<IoMdNotificationsOutline style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
           <Tab
             label={`Live Events ${eventStream ? '●' : ''}`}
-            icon={<EventIcon />}
+            icon={<PiHeartbeat style={{ fontSize: 20 }} />}
             iconPosition="start"
             sx={{ textTransform: 'none' }}
           />
           <Tab label="Event Log" icon={<HistoryIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label="Examples" icon={<InfoIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label="Prompts" icon={<DescriptionIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label="WebHooks" icon={<SendIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label="WebHooks" icon={<PiPaperPlaneTilt style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label="Examples" icon={<BiHelpCircle style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
         </Tabs>
       </Paper>
 
@@ -457,157 +595,305 @@ const EventHandling = ({ selectedProject, onClose }) => {
             <CircularProgress />
           </Box>
         ) : currentTab === 0 ? (
-          // Tab 0: Rules
+          // Tab 0: Action
           <Box>
+            {prompts.length > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="body2" sx={{marginLeft: '20px'}} color="text.secondary">
+                  Manage reusable action templates for your rule actions
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenPromptDialog()}
+                  sx={{ textTransform: 'none' }}
+                >
+                  New Action
+                </Button>
+              </Box>
+            )}
+
+            {prompts.length === 0 ? (
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <BiMessageEdit style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
+                <Typography variant="body1" color="text.secondary" gutterBottom>
+                  No actions defined
+                </Typography>
+                <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
+                  Create reusable action templates to use in your rules
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenPromptDialog()}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Create First Action
+                </Button>
+              </Box>
+            ) : (
+              <>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'background.paper' }}>
+                        <TableCell sx={{ width: 50 }}></TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Prompt</TableCell>
+                        <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {prompts.map((prompt, idx) => (
+                        <TableRow
+                          key={prompt.id}
+                          sx={{
+                            bgcolor: idx % 2 === 0 ? 'transparent' : 'grey.50',
+                            '&:hover': { bgcolor: 'action.hover' }
+                          }}
+                        >
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            <BiMessageEdit style={{ fontSize: 20, color: '#757575' }} />
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 500 }}>
+                            {prompt.title}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                              {prompt.content.substring(0, 120)}{prompt.content.length > 120 ? '...' : ''}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                setPromptMenuAnchor(e.currentTarget);
+                                setSelectedPromptForMenu(prompt);
+                              }}
+                            >
+                              <MoreVertIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                <Menu
+                  anchorEl={promptMenuAnchor}
+                  open={Boolean(promptMenuAnchor)}
+                  onClose={() => {
+                    setPromptMenuAnchor(null);
+                    setSelectedPromptForMenu(null);
+                  }}
+                >
+                  <MenuItem
+                    onClick={() => {
+                      handleOpenPromptDialog(selectedPromptForMenu);
+                      setPromptMenuAnchor(null);
+                      setSelectedPromptForMenu(null);
+                    }}
+                  >
+                    <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                    Edit
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      handleDeletePrompt(selectedPromptForMenu?.id);
+                      setPromptMenuAnchor(null);
+                      setSelectedPromptForMenu(null);
+                    }}
+                    sx={{ color: 'error.main' }}
+                  >
+                    <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+                    Delete
+                  </MenuItem>
+                </Menu>
+              </>
+            )}
+          </Box>
+        ) : currentTab === 1 ? (
+          // Tab 1: Rules
+          <Box>
+            {rules.length > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="body2" sx={{ marginLeft: '20px' }} color="text.secondary">
+                  Manage condition monitoring rules
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenRuleDialog()}
+                  sx={{ textTransform: 'none' }}
+                >
+                  New Rule
+                </Button>
+              </Box>
+            )}
+
             {rules.length === 0 ? (
-              <Paper sx={{ p: 6, textAlign: 'center' }}>
-                <RuleIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <IoMdNotificationsOff style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
+                <Typography variant="body1" color="text.secondary" gutterBottom>
                   No rules configured
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
                   Create your first rule to start monitoring conditions
                 </Typography>
                 <Button
-                  variant="contained"
+                  variant="outlined"
+                  size="small"
                   startIcon={<AddIcon />}
                   onClick={() => handleOpenRuleDialog()}
                   sx={{ textTransform: 'none' }}
                 >
                   Create First Rule
                 </Button>
-              </Paper>
+              </Box>
             ) : (
-              <Stack spacing={2}>
-                {rules.map((rule) => (
-                  <Card key={rule.id} variant="outlined" sx={{ '&:hover': { boxShadow: 2 } }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                            <Typography variant="h6" fontWeight={600}>
+              <>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'background.paper' }}>
+                        <TableCell sx={{ width: 50 }}></TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Event Group</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                        <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {rules.map((rule, idx) => {
+                        const groupStyle = rule.condition.event?.group ? getGroupStyle(rule.condition.event.group) : null;
+                        const GroupIcon = groupStyle?.icon;
+                        const actionPrompt = prompts.find(p => p.id === rule.action.promptId);
+                        return (
+                          <TableRow
+                            key={rule.id}
+                            sx={{
+                              bgcolor: idx % 2 === 0 ? 'transparent' : 'grey.50',
+                              '&:hover': { bgcolor: 'action.hover' }
+                            }}
+                          >
+                            <TableCell sx={{ textAlign: 'center' }}>
+                              {rule.enabled ? (
+                                <IoMdNotificationsOutline style={{ fontSize: 20, color: '#4caf50' }} />
+                              ) : (
+                                <IoMdNotificationsOff style={{ fontSize: 20, color: '#ccc' }} />
+                              )}
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 500 }}>
                               {rule.name}
-                            </Typography>
-                            <Chip
-                              label={rule.enabled ? 'Enabled' : 'Disabled'}
-                              size="small"
-                              color={rule.enabled ? 'success' : 'default'}
-                            />
-                            <Chip
-                              label={rule.condition.type}
-                              size="small"
-                              variant="outlined"
-                            />
-                          </Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Created: {new Date(rule.createdAt).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title={rule.enabled ? 'Disable' : 'Enable'}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleToggleRule(rule)}
-                              color={rule.enabled ? 'primary' : 'default'}
-                            >
-                              {rule.enabled ? <PauseIcon /> : <PlayIcon />}
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenRuleDialog(rule)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteRule(rule.id)}
-                              color="error"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={rule.condition.type}
+                                size="small"
+                                variant="outlined"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {groupStyle && GroupIcon ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                  <GroupIcon sx={{ fontSize: 16, color: groupStyle.color }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {rule.condition.event.group}
+                                  </Typography>
+                                </Box>
+                              ) : (
+                                <Typography variant="body2" color="text.disabled">—</Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {actionPrompt?.title || rule.action.promptId}
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ textAlign: 'center' }}>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  setRuleMenuAnchor(e.currentTarget);
+                                  setSelectedRuleForMenu(rule);
+                                }}
+                              >
+                                <MoreVertIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
 
-                      <Divider sx={{ my: 2 }} />
-
-                      <Accordion disableGutters elevation={0}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography variant="body2" fontWeight={600}>
-                            Condition Details
-                          </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Stack spacing={1}>
-                            {rule.condition.event?.group && (
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">Group:</Typography>
-                                <Typography variant="body2">{rule.condition.event.group}</Typography>
-                              </Box>
-                            )}
-                            {rule.condition.event?.name && (
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">Event Name:</Typography>
-                                <Typography variant="body2">{rule.condition.event.name}</Typography>
-                              </Box>
-                            )}
-                            {rule.condition.event?.topic && (
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">Topic:</Typography>
-                                <Typography variant="body2">{rule.condition.event.topic}</Typography>
-                              </Box>
-                            )}
-                          </Stack>
-                        </AccordionDetails>
-                      </Accordion>
-
-                      <Accordion disableGutters elevation={0}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography variant="body2" fontWeight={600}>
-                            Action Details
-                          </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">Type:</Typography>
-                            <Typography variant="body2">{rule.action.type}</Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>Prompt ID:</Typography>
-                            <Typography variant="body2" fontFamily="monospace">
-                              {rule.action.promptId}
-                            </Typography>
-                          </Box>
-                        </AccordionDetails>
-                      </Accordion>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Stack>
+                <Menu
+                  anchorEl={ruleMenuAnchor}
+                  open={Boolean(ruleMenuAnchor)}
+                  onClose={() => {
+                    setRuleMenuAnchor(null);
+                    setSelectedRuleForMenu(null);
+                  }}
+                >
+                  <MenuItem
+                    onClick={() => {
+                      handleToggleRule(selectedRuleForMenu);
+                      setRuleMenuAnchor(null);
+                      setSelectedRuleForMenu(null);
+                    }}
+                  >
+                    {selectedRuleForMenu?.enabled ? <PauseIcon fontSize="small" sx={{ mr: 1 }} /> : <PlayIcon fontSize="small" sx={{ mr: 1 }} />}
+                    {selectedRuleForMenu?.enabled ? 'Disable' : 'Enable'}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      handleOpenRuleDialog(selectedRuleForMenu);
+                      setRuleMenuAnchor(null);
+                      setSelectedRuleForMenu(null);
+                    }}
+                  >
+                    <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                    Edit
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      handleDeleteRule(selectedRuleForMenu?.id);
+                      setRuleMenuAnchor(null);
+                      setSelectedRuleForMenu(null);
+                    }}
+                    sx={{ color: 'error.main' }}
+                  >
+                    <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+                    Delete
+                  </MenuItem>
+                </Menu>
+              </>
             )}
           </Box>
-        ) : currentTab === 1 ? (
-          // Tab 1: Live Events - Column-based display by source
-          <LiveEventsTab liveEvents={liveEvents} eventStream={eventStream} />
         ) : currentTab === 2 ? (
-          // Tab 2: Event Log
+          // Tab 2: Live Events - Column-based display by source
+          <LiveEventsTab liveEvents={liveEvents} eventStream={eventStream} promptExecutions={promptExecutions} serviceStatus={serviceStatus} />
+        ) : currentTab === 3 ? (
+          // Tab 3: Event Log
           <Box>
             {loadingEventLog ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                 <CircularProgress />
               </Box>
             ) : eventLog.length === 0 ? (
-              <Paper sx={{ p: 6, textAlign: 'center' }}>
-                <HistoryIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <HistoryIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5, opacity: 0.5 }} />
+                <Typography variant="body1" color="text.secondary" gutterBottom>
                   No events logged yet
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.disabled">
                   Events that trigger rules will appear here
                 </Typography>
-              </Paper>
+              </Box>
             ) : (
               <TableContainer component={Paper} variant="outlined">
                 <Table>
@@ -629,7 +915,23 @@ const EventHandling = ({ selectedProject, onClose }) => {
                         </TableCell>
                         <TableCell>{entry.event.name}</TableCell>
                         <TableCell>
-                          <Chip label={entry.event.group} size="small" />
+                          {(() => {
+                            const style = getGroupStyle(entry.event.group);
+                            const GroupIcon = style.icon;
+                            return (
+                              <Chip
+                                icon={<GroupIcon sx={{ fontSize: 14, color: `${style.color} !important` }} />}
+                                label={entry.event.group}
+                                size="small"
+                                sx={{
+                                  bgcolor: style.bgColor,
+                                  color: style.color,
+                                  fontWeight: 500,
+                                  '& .MuiChip-icon': { ml: 0.5 }
+                                }}
+                              />
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Chip label={entry.event.source} size="small" variant="outlined" />
@@ -663,8 +965,130 @@ const EventHandling = ({ selectedProject, onClose }) => {
               </TableContainer>
             )}
           </Box>
-        ) : currentTab === 3 ? (
-          // Tab 3: Examples
+        ) : currentTab === 4 ? (
+          // Tab 4: WebHooks
+          <Box>
+            
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              POST events to this project from external systems or test your rules manually
+            </Typography>
+
+    
+
+            {/* Webhook URL Display */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                Webhook URL
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField
+                  fullWidth
+                  value={`http://localhost:6060/api/events/${selectedProject}`}
+                  InputProps={{
+                    readOnly: true,
+                    sx: { fontFamily: 'monospace', fontSize: '0.75rem' }
+                  }}
+                  size="small"
+                />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ContentCopyIcon sx={{ fontSize: 14 }} />}
+                  onClick={handleCopyWebhookUrl}
+                  sx={{ textTransform: 'none', minWidth: 80, fontSize: '0.75rem' }}
+                >
+                  {copySuccess ? 'Copied!' : 'Copy'}
+                </Button>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Test Event Form */}
+            <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Send Test Event
+            </Typography>
+            <Stack spacing={1.5}>
+              <TextField
+                label="Event Name"
+                fullWidth
+                value={webhookEventName}
+                onChange={(e) => setWebhookEventName(e.target.value)}
+                size="small"
+                InputProps={{ sx: { fontSize: '0.85rem' } }}
+                InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
+              />
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ fontSize: '0.85rem' }}>Event Group</InputLabel>
+                <Select
+                  value={webhookEventGroup}
+                  onChange={(e) => setWebhookEventGroup(e.target.value)}
+                  label="Event Group"
+                  sx={{ fontSize: '0.85rem' }}
+                  renderValue={(selected) => {
+                    const style = getGroupStyle(selected);
+                    const GroupIcon = style.icon;
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <GroupIcon sx={{ fontSize: 16, color: style.color }} />
+                        {selected}
+                      </Box>
+                    );
+                  }}
+                >
+                  {eventGroups.map((group) => {
+                    const style = getGroupStyle(group);
+                    const GroupIcon = style.icon;
+                    return (
+                      <MenuItem key={group} value={group}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <GroupIcon sx={{ fontSize: 16, color: style.color }} />
+                          {group}
+                        </Box>
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Payload (JSON)"
+                fullWidth
+                multiline
+                rows={3}
+                value={webhookPayload}
+                onChange={(e) => setWebhookPayload(e.target.value)}
+                placeholder='{"key": "value"}'
+                size="small"
+                InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.8rem' } }}
+                InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
+              />
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<SendIcon sx={{ fontSize: 16 }} />}
+                onClick={handleSendTestEvent}
+                sx={{ textTransform: 'none', alignSelf: 'flex-start' }}
+              >
+                Send Test Event
+              </Button>
+
+              {webhookResponse && (
+                <Alert
+                  severity={webhookResponse.error ? 'error' : 'success'}
+                  onClose={() => setWebhookResponse(null)}
+                  sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
+                >
+                  {webhookResponse.error ? (
+                    <>Error: {webhookResponse.error}</>
+                  ) : (
+                    <>Success! Event ID: {webhookResponse.data?.event?.id}</>
+                  )}
+                </Alert>
+              )}
+            </Stack>
+          </Box>
+        ) : currentTab === 5 ? (
+          // Tab 5: Examples
           <Box>
             <Stack spacing={3}>
               {/* Simple Condition Example */}
@@ -799,195 +1223,6 @@ const EventHandling = ({ selectedProject, onClose }) => {
               </Card>
             </Stack>
           </Box>
-        ) : currentTab === 4 ? (
-          // Tab 4: Prompts
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                Manage reusable prompt templates for your rule actions
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => handleOpenPromptDialog()}
-                sx={{ textTransform: 'none' }}
-              >
-                New Prompt
-              </Button>
-            </Box>
-
-            {prompts.length === 0 ? (
-              <Paper sx={{ p: 6, textAlign: 'center' }}>
-                <DescriptionIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No prompts defined
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Create reusable prompt templates to use in your rules
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenPromptDialog()}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Create First Prompt
-                </Button>
-              </Paper>
-            ) : (
-              <Stack spacing={2}>
-                {prompts.map((prompt) => (
-                  <Card key={prompt.id} variant="outlined" sx={{ '&:hover': { boxShadow: 2 } }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" fontWeight={600} gutterBottom>
-                            {prompt.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            ID: <code style={{ fontSize: '0.85em' }}>{prompt.id}</code>
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: 1 }}>
-                            "{prompt.content.substring(0, 150)}{prompt.content.length > 150 ? '...' : ''}"
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Created: {new Date(prompt.createdAt).toLocaleString()}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                          <Tooltip title="Edit">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenPromptDialog(prompt)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeletePrompt(prompt.id)}
-                              color="error"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Stack>
-            )}
-          </Box>
-        ) : currentTab === 5 ? (
-          // Tab 5: WebHooks
-          <Box>
-            <Paper sx={{ p: 3 }} variant="outlined">
-          <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <SendIcon color="primary" />
-            Webhook Integration
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            POST events to this project from external systems or test your rules manually
-          </Typography>
-
-          <Divider sx={{ mb: 3 }} />
-
-          {/* Webhook URL Display */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              Webhook URL
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <TextField
-                fullWidth
-                value={`http://localhost:6060/api/events/${selectedProject}`}
-                InputProps={{
-                  readOnly: true,
-                  sx: { fontFamily: 'monospace', fontSize: '0.9rem' }
-                }}
-                size="small"
-              />
-              <Button
-                variant="outlined"
-                startIcon={<ContentCopyIcon />}
-                onClick={handleCopyWebhookUrl}
-                sx={{ textTransform: 'none', minWidth: 100 }}
-              >
-                {copySuccess ? 'Copied!' : 'Copy'}
-              </Button>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              Send POST requests to this URL with event data in the request body
-            </Typography>
-          </Box>
-
-          <Divider sx={{ mb: 3 }} />
-
-          {/* Test Event Form */}
-          <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-            Send Test Event
-          </Typography>
-          <Stack spacing={2}>
-            <TextField
-              label="Event Name"
-              fullWidth
-              value={webhookEventName}
-              onChange={(e) => setWebhookEventName(e.target.value)}
-              size="small"
-            />
-            <FormControl fullWidth size="small">
-              <InputLabel>Event Group</InputLabel>
-              <Select
-                value={webhookEventGroup}
-                onChange={(e) => setWebhookEventGroup(e.target.value)}
-                label="Event Group"
-              >
-                {eventGroups.map((group) => (
-                  <MenuItem key={group} value={group}>{group}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Payload (JSON)"
-              fullWidth
-              multiline
-              rows={4}
-              value={webhookPayload}
-              onChange={(e) => setWebhookPayload(e.target.value)}
-              placeholder='{"key": "value"}'
-              size="small"
-              sx={{ fontFamily: 'monospace' }}
-            />
-            <Button
-              variant="contained"
-              startIcon={<SendIcon />}
-              onClick={handleSendTestEvent}
-              sx={{ textTransform: 'none' }}
-            >
-              Send Test Event
-            </Button>
-
-            {webhookResponse && (
-              <Alert
-                severity={webhookResponse.error ? 'error' : 'success'}
-                onClose={() => setWebhookResponse(null)}
-              >
-                {webhookResponse.error ? (
-                  <Typography variant="body2">
-                    <strong>Error:</strong> {webhookResponse.error}
-                  </Typography>
-                ) : (
-                  <Typography variant="body2">
-                    <strong>Success!</strong> Event published with ID: {webhookResponse.data?.event?.id}
-                  </Typography>
-                )}
-              </Alert>
-            )}
-          </Stack>
-            </Paper>
-          </Box>
         ) : null}
       </Box>
 
@@ -1009,11 +1244,12 @@ const EventHandling = ({ selectedProject, onClose }) => {
           </Box>
         </DialogTitle>
         <DialogContent dividers>
-          <Stack spacing={3}>
+          <Stack spacing={2}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <TextField
                 label="Rule Name"
                 fullWidth
+                size="small"
                 value={ruleName}
                 onChange={(e) => setRuleName(e.target.value)}
                 required
@@ -1021,12 +1257,13 @@ const EventHandling = ({ selectedProject, onClose }) => {
               <FormControlLabel
                 control={
                   <Switch
+                    size="small"
                     checked={ruleEnabled}
                     onChange={(e) => setRuleEnabled(e.target.checked)}
                   />
                 }
                 label="Enabled"
-                sx={{ minWidth: 120 }}
+                sx={{ minWidth: 100 }}
               />
             </Box>
 
@@ -1035,7 +1272,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
             </Divider>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <FormControl sx={{ flex: 1 }}>
+              <FormControl sx={{ flex: 1 }} size="small">
                 <InputLabel>Condition Type</InputLabel>
                 <Select
                   value={conditionType}
@@ -1050,16 +1287,35 @@ const EventHandling = ({ selectedProject, onClose }) => {
               </FormControl>
 
               {conditionType === 'simple' && (
-                <FormControl sx={{ flex: 1 }}>
+                <FormControl sx={{ flex: 1 }} size="small">
                   <InputLabel>Event Group</InputLabel>
                   <Select
                     value={eventGroup}
                     onChange={(e) => setEventGroup(e.target.value)}
                     label="Event Group"
+                    renderValue={(selected) => {
+                      const style = getGroupStyle(selected);
+                      const GroupIcon = style.icon;
+                      return (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <GroupIcon sx={{ fontSize: 16, color: style.color }} />
+                          {selected}
+                        </Box>
+                      );
+                    }}
                   >
-                    {eventGroups.map((group) => (
-                      <MenuItem key={group} value={group}>{group}</MenuItem>
-                    ))}
+                    {eventGroups.map((group) => {
+                      const style = getGroupStyle(group);
+                      const GroupIcon = style.icon;
+                      return (
+                        <MenuItem key={group} value={group}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <GroupIcon sx={{ fontSize: 16, color: style.color }} />
+                            {group}
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
               )}
@@ -1067,8 +1323,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
             {conditionType === 'simple' && (
               <>
-
-                <FormControl fullWidth>
+                <FormControl fullWidth size="small">
                   <InputLabel>Event Name (optional)</InputLabel>
                   <Select
                     value={eventName}
@@ -1088,6 +1343,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
                 <TextField
                   label="Topic Pattern (optional)"
                   fullWidth
+                  size="small"
                   value={eventTopic}
                   onChange={(e) => setEventTopic(e.target.value)}
                   placeholder="e.g., /sensors/* or /workspace/docs"
@@ -1097,6 +1353,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
                 <TextField
                   label="Payload Matcher (optional)"
                   fullWidth
+                  size="small"
                   value={payloadPath}
                   onChange={(e) => setPayloadPath(e.target.value)}
                   placeholder="e.g., payload.path:*.py"
@@ -1109,6 +1366,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
               <TextField
                 label="Semantic Query"
                 fullWidth
+                size="small"
                 multiline
                 rows={3}
                 value={payloadPath}
@@ -1119,7 +1377,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
               />
             )}
 
-            <Alert severity="info" icon={<InfoIcon />}>
+            <Alert severity="info" icon={<InfoIcon fontSize="small" />} sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
               {conditionType === 'simple' && 'Simple conditions match event fields exactly'}
               {conditionType === 'semantic' && 'Semantic conditions use AI similarity matching (threshold: 0.86)'}
               {conditionType === 'compound' && 'Compound conditions combine multiple conditions with AND/OR/NOT'}
@@ -1130,7 +1388,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
               <Chip label="Action" size="small" />
             </Divider>
 
-            <FormControl fullWidth required>
+            <FormControl fullWidth size="small" required>
               <InputLabel>Prompt</InputLabel>
               <Select
                 value={actionPromptId}
@@ -1188,10 +1446,11 @@ const EventHandling = ({ selectedProject, onClose }) => {
           </Box>
         </DialogTitle>
         <DialogContent dividers>
-          <Stack spacing={3}>
+          <Stack spacing={2}>
             <TextField
               label="Prompt Title"
               fullWidth
+              size="small"
               value={promptTitle}
               onChange={(e) => setPromptTitle(e.target.value)}
               required
@@ -1202,8 +1461,9 @@ const EventHandling = ({ selectedProject, onClose }) => {
             <TextField
               label="Prompt Content"
               fullWidth
+              size="small"
               multiline
-              rows={10}
+              rows={8}
               value={promptContent}
               onChange={(e) => setPromptContent(e.target.value)}
               required
@@ -1212,7 +1472,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
             />
 
             {editingPrompt && (
-              <Alert severity="info">
+              <Alert severity="info" sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
                 Prompt ID: <code>{editingPrompt.id}</code>
               </Alert>
             )}

@@ -1,15 +1,22 @@
 import { Controller, Get, Post, Body, Query, Sse, Param } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { join } from 'path';
 import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
+import { SessionsService } from '../sessions/sessions.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
 
 @Controller('api/claude')
 export class ClaudeController {
+  private readonly workspaceRoot: string;
+
   constructor(
     private readonly svc: ClaudeService,
-    private readonly sdkOrchestrator: ClaudeSdkOrchestratorService
-  ) {}
+    private readonly sdkOrchestrator: ClaudeSdkOrchestratorService,
+    private readonly sessionsService: SessionsService
+  ) {
+    this.workspaceRoot = process.env.WORKSPACE_ROOT || join(process.cwd(), '..', 'workspace');
+  }
 
   @Post('addFile')
   addFile(@Body() dto: AddFileDto) { return this.svc.addFile(dto.project_dir, dto.file_name, dto.file_content); }
@@ -116,9 +123,10 @@ export class ClaudeController {
   @Post('unattended/:project')
   async executeUnattendedOperation(
     @Param('project') project: string,
-    @Body() body: { prompt: string; maxTurns?: number }
+    @Body() body: { prompt: string; maxTurns?: number; source?: string }
   ) {
-    const { prompt, maxTurns } = body;
+    const { prompt, maxTurns, source } = body;
+    const projectRoot = join(this.workspaceRoot, project);
 
     // Collect all messages from the stream
     const messages: any[] = [];
@@ -162,12 +170,48 @@ export class ClaudeController {
         });
       });
 
+      const timestamp = new Date().toISOString();
+
+      // Persist to chat history
+      try {
+        const mostRecentSessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
+
+        if (mostRecentSessionId) {
+          const sourceLabel = source || 'Automated';
+          const costs = tokenUsage.input_tokens > 0 || tokenUsage.output_tokens > 0 ? {
+            input_tokens: tokenUsage.input_tokens,
+            output_tokens: tokenUsage.output_tokens
+          } : undefined;
+
+          await this.sessionsService.appendMessages(projectRoot, mostRecentSessionId, [
+            {
+              timestamp,
+              isAgent: false,
+              message: `[${sourceLabel}]\n${prompt}`,
+              costs: undefined
+            },
+            {
+              timestamp,
+              isAgent: true,
+              message: fullResponse || 'Task completed successfully',
+              costs
+            }
+          ]);
+
+          console.log(`[Unattended] Persisted chat history for project ${project}, session ${mostRecentSessionId}`);
+        } else {
+          console.log(`[Unattended] No session found for project ${project}, skipping chat persistence`);
+        }
+      } catch (persistError: any) {
+        console.error(`[Unattended] Failed to persist chat history: ${persistError.message}`);
+      }
+
       return {
         success: true,
         response: fullResponse,
         tokenUsage,
         messages,
-        timestamp: new Date().toISOString()
+        timestamp
       };
     } catch (error: any) {
       console.error('[Unattended] Execution error:', error);
