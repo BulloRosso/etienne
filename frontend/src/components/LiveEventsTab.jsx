@@ -13,7 +13,6 @@ import {
   Code as ClaudeCodeIcon,
   Schedule as ScheduleIcon,
   Webhook as WebhookIcon,
-  PhoneAndroid as PhoneIcon,
   PlayCircle as PlayingIcon,
   CheckCircle as CompletedIcon,
   Error as ErrorIcon,
@@ -38,9 +37,9 @@ const EVENT_SOURCES = {
     group: 'Claude Code'
   },
   'Webhook': {
-    icon: PhoneIcon,
+    icon: WebhookIcon,
     color: '#ff9800',
-    group: 'Claude Code'
+    group: 'Webhook'
   },
   'Scheduler': {
     icon: ScheduleIcon,

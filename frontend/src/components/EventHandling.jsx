@@ -57,10 +57,11 @@ import {
   Sensors as MqttIcon,
   Code as ClaudeCodeIcon,
   Schedule as ScheduleIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  Webhook as WebhookIcon
 } from '@mui/icons-material';
 import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
-import { PiPaperPlaneTilt, PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
+import { PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
 import { IoMdNotificationsOutline, IoMdNotificationsOff } from 'react-icons/io';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -87,6 +88,11 @@ const EVENT_GROUP_CONFIG = {
     icon: ScheduleIcon,
     color: '#00bcd4',
     bgColor: '#e0f7fa'
+  },
+  'Webhook': {
+    icon: WebhookIcon,
+    color: '#ff9800',
+    bgColor: '#fff3e0'
   }
 };
 
@@ -144,14 +150,15 @@ const EventHandling = ({ selectedProject, onClose }) => {
     mqtt: { connected: false, subscriptions: [] }
   });
 
-  const eventGroups = ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code'];
+  const eventGroups = ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code', 'Webhook'];
 
   // Define supported event names per group
   const eventNamesByGroup = {
     'Filesystem': ['File Created', 'File Modified', 'File Deleted', 'Directory Created', 'Directory Deleted'],
     'MQTT': ['Message Received', 'Connection Established', 'Connection Lost'],
     'Scheduling': ['Task Scheduled', 'Task Executed', 'Task Failed'],
-    'Claude Code': ['File Created', 'File Modified', 'Session Started', 'Session Ended', 'Tool Executed']
+    'Claude Code': ['File Created', 'File Modified', 'Session Started', 'Session Ended', 'Tool Executed'],
+    'Webhook': ['Webhook Received']
   };
 
   // Load rules from API
@@ -583,7 +590,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
             sx={{ textTransform: 'none' }}
           />
           <Tab label="Event Log" icon={<HistoryIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label="WebHooks" icon={<PiPaperPlaneTilt style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label="WebHooks" icon={<WebhookIcon sx={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
           <Tab label="Examples" icon={<BiHelpCircle style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
         </Tabs>
       </Paper>

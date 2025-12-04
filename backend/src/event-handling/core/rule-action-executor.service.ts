@@ -99,7 +99,20 @@ export class RuleActionExecutorService {
     event: InternalEvent,
     rule: EventRule,
   ): string {
-    // Create context about the triggering event
+    // For Webhook events, prepend a special message with the full JSON payload
+    if (event.group === 'Webhook') {
+      const webhookContext = `The agent received this information via webhook:
+${JSON.stringify(event.payload, null, 2)}
+
+---
+
+${promptTemplate}
+`.trim();
+
+      return webhookContext;
+    }
+
+    // Create context about the triggering event for other groups
     const eventContext = `
 [AUTOMATED TRIGGER]
 This prompt was automatically triggered by a condition monitoring rule.

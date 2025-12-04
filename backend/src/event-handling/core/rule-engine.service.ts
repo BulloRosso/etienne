@@ -420,6 +420,6 @@ export class RuleEngineService {
    * Get available event groups
    */
   getEventGroups(): string[] {
-    return ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code'];
+    return ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code', 'Webhook'];
   }
 }

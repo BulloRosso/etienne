@@ -183,4 +183,55 @@ export class EventsController {
       `SSE stream started for project ${projectName}, client ${clientId}, total clients: ${this.ssePublisher.getClientCount(projectName)}`,
     );
   }
+
+  /**
+   * POST /api/events/:project/webhook - Receive webhook events
+   * Accepts any JSON payload and creates an event with group 'Webhook'
+   * The payload fields can be matched using payload.fieldName in rule conditions
+   * e.g., payload.command matches {"command": "remove", "itemName": "file.txt"}
+   */
+  @Post(':project/webhook')
+  async receiveWebhook(
+    @Param('project') projectName: string,
+    @Body() payload: any,
+  ) {
+    try {
+      // Create event with Webhook group
+      const event = await this.eventRouter.publishEvent({
+        name: 'Webhook Received',
+        group: 'Webhook',
+        source: 'webhook',
+        topic: undefined,
+        payload: payload,
+      });
+
+      this.logger.log(`Webhook received for project ${projectName}: ${event.id}`);
+
+      // Evaluate against rules
+      const executionResults = await this.ruleEngine.evaluateEvent(event, projectName);
+
+      // If rules were triggered, store the event
+      if (executionResults.some((r) => r.success)) {
+        await this.eventStore.storeTriggeredEvent(projectName, event, executionResults);
+
+        // Publish to SSE clients
+        this.ssePublisher.publishRuleExecution(projectName, event, executionResults);
+      } else {
+        // Still publish event to SSE even if no rules triggered
+        this.ssePublisher.publishEvent(projectName, event);
+      }
+
+      return {
+        success: true,
+        eventId: event.id,
+        triggeredRules: executionResults.filter((r) => r.success).map((r) => r.ruleId),
+      };
+    } catch (error) {
+      this.logger.error('Failed to process webhook', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }
