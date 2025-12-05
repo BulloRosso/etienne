@@ -29,6 +29,61 @@ export class EventsController {
   ) {}
 
   /**
+   * POST /api/events/:project/webhook - Receive webhook events
+   * Accepts any JSON payload and creates an event with group 'Webhook'
+   * The payload fields can be matched using payload.fieldName in rule conditions
+   * e.g., payload.command matches {"command": "remove", "itemName": "file.txt"}
+   *
+   * NOTE: This route must be defined BEFORE the general :project route
+   * to ensure proper route matching in NestJS
+   */
+  @Post(':project/webhook')
+  async receiveWebhook(
+    @Param('project') projectName: string,
+    @Body() payload: any,
+  ) {
+    try {
+      // Create event with Webhook group
+      const event = await this.eventRouter.publishEvent({
+        name: 'Webhook Received',
+        group: 'Webhook',
+        source: 'Webhook',
+        topic: undefined,
+        payload: payload,
+        projectName: projectName,
+      });
+
+      this.logger.log(`Webhook received for project ${projectName}: ${event.id}`);
+
+      // Evaluate against rules
+      const executionResults = await this.ruleEngine.evaluateEvent(event, projectName);
+
+      // If rules were triggered, store the event
+      if (executionResults.some((r) => r.success)) {
+        await this.eventStore.storeTriggeredEvent(projectName, event, executionResults);
+
+        // Publish to SSE clients
+        this.ssePublisher.publishRuleExecution(projectName, event, executionResults);
+      } else {
+        // Still publish event to SSE even if no rules triggered
+        this.ssePublisher.publishEvent(projectName, event);
+      }
+
+      return {
+        success: true,
+        eventId: event.id,
+        triggeredRules: executionResults.filter((r) => r.success).map((r) => r.ruleId),
+      };
+    } catch (error) {
+      this.logger.error('Failed to process webhook', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * POST /api/events/:project - Ingest an event
    */
   @Post(':project')
@@ -44,6 +99,7 @@ export class EventsController {
         source: dto.source,
         topic: dto.topic,
         payload: dto.payload,
+        projectName: projectName,
       });
 
       this.logger.log(`Event ingested: ${event.name} (${event.id}) for project ${projectName}`);
@@ -182,56 +238,5 @@ export class EventsController {
     this.logger.log(
       `SSE stream started for project ${projectName}, client ${clientId}, total clients: ${this.ssePublisher.getClientCount(projectName)}`,
     );
-  }
-
-  /**
-   * POST /api/events/:project/webhook - Receive webhook events
-   * Accepts any JSON payload and creates an event with group 'Webhook'
-   * The payload fields can be matched using payload.fieldName in rule conditions
-   * e.g., payload.command matches {"command": "remove", "itemName": "file.txt"}
-   */
-  @Post(':project/webhook')
-  async receiveWebhook(
-    @Param('project') projectName: string,
-    @Body() payload: any,
-  ) {
-    try {
-      // Create event with Webhook group
-      const event = await this.eventRouter.publishEvent({
-        name: 'Webhook Received',
-        group: 'Webhook',
-        source: 'webhook',
-        topic: undefined,
-        payload: payload,
-      });
-
-      this.logger.log(`Webhook received for project ${projectName}: ${event.id}`);
-
-      // Evaluate against rules
-      const executionResults = await this.ruleEngine.evaluateEvent(event, projectName);
-
-      // If rules were triggered, store the event
-      if (executionResults.some((r) => r.success)) {
-        await this.eventStore.storeTriggeredEvent(projectName, event, executionResults);
-
-        // Publish to SSE clients
-        this.ssePublisher.publishRuleExecution(projectName, event, executionResults);
-      } else {
-        // Still publish event to SSE even if no rules triggered
-        this.ssePublisher.publishEvent(projectName, event);
-      }
-
-      return {
-        success: true,
-        eventId: event.id,
-        triggeredRules: executionResults.filter((r) => r.success).map((r) => r.ruleId),
-      };
-    } catch (error) {
-      this.logger.error('Failed to process webhook', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
   }
 }

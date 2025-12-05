@@ -30,6 +30,7 @@ export class SdkHookEmitterService {
           name: eventName,
           group: 'Claude Code',
           source: 'Claude Agent SDK',
+          projectName: projectName,
           payload,
         });
       } catch (error) {

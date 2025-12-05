@@ -146,20 +146,25 @@ export class ClaudeController {
       // Subscribe and collect all messages
       await new Promise<void>((resolve, reject) => {
         observable.subscribe({
-          next: (event: MessageEvent) => {
+          next: (event: any) => {
             try {
-              const data = JSON.parse(event.data);
+              // The SDK orchestrator emits plain objects, not SSE MessageEvents
+              // Handle both formats for compatibility
+              const data = typeof event === 'object' && event !== null
+                ? (typeof event.data === 'string' ? JSON.parse(event.data) : event)
+                : event;
+
               messages.push(data);
 
-              // Accumulate response text
-              if (data.type === 'text' && data.text) {
-                fullResponse += data.text;
+              // Accumulate response text from stdout messages (SDK format)
+              if (data.type === 'stdout' && data.data?.chunk) {
+                fullResponse += data.data.chunk;
               }
 
-              // Capture token usage
-              if (data.type === 'usage') {
-                tokenUsage.input_tokens += data.input_tokens || 0;
-                tokenUsage.output_tokens += data.output_tokens || 0;
+              // Capture token usage from completed messages
+              if (data.type === 'completed' && data.data?.usage) {
+                tokenUsage.input_tokens += data.data.usage.input_tokens || 0;
+                tokenUsage.output_tokens += data.data.usage.output_tokens || 0;
               }
             } catch (e) {
               console.error('[Unattended] Error parsing message:', e);

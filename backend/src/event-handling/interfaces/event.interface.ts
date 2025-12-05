@@ -6,6 +6,7 @@ export interface InternalEvent {
   group: string;        // e.g., "Filesystem", "MQTT", "Scheduling"
   source: string;       // e.g., "Claude Agent SDK", "CMS Watcher"
   payload: any;         // JSON data specific to event type
+  projectName?: string; // Project this event belongs to (set by API endpoints)
 }
 
 export interface SimpleCondition {

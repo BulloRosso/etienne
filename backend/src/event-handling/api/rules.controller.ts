@@ -31,7 +31,7 @@ export class RulesController {
       // Load rules from config if not already loaded
       await this.ruleEngine.loadRules(projectName);
 
-      const rules = this.ruleEngine.getAllRules();
+      const rules = this.ruleEngine.getAllRules(projectName);
 
       return {
         success: true,
@@ -55,7 +55,7 @@ export class RulesController {
     try {
       await this.ruleEngine.loadRules(projectName);
 
-      const rule = this.ruleEngine.getRule(ruleId);
+      const rule = this.ruleEngine.getRule(projectName, ruleId);
 
       if (!rule) {
         return {
@@ -98,7 +98,7 @@ export class RulesController {
         updatedAt: new Date().toISOString(),
       };
 
-      this.ruleEngine.addRule(rule);
+      this.ruleEngine.addRule(projectName, rule);
       await this.ruleEngine.saveRules(projectName);
 
       this.logger.log(`Created rule: ${rule.name} (${rule.id}) for project ${projectName}`);
@@ -128,7 +128,7 @@ export class RulesController {
     try {
       await this.ruleEngine.loadRules(projectName);
 
-      const updatedRule = this.ruleEngine.updateRule(ruleId, dto);
+      const updatedRule = this.ruleEngine.updateRule(projectName, ruleId, dto);
 
       if (!updatedRule) {
         return {
@@ -163,7 +163,7 @@ export class RulesController {
     try {
       await this.ruleEngine.loadRules(projectName);
 
-      const deleted = this.ruleEngine.deleteRule(ruleId);
+      const deleted = this.ruleEngine.deleteRule(projectName, ruleId);
 
       if (!deleted) {
         return {

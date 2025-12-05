@@ -106,6 +106,30 @@ export class SSEPublisherService {
         this.sendToClient(client.id, 'prompt-execution', data);
       }
     }
+
+    // Also send a chat-refresh event when prompt execution completes
+    if (data.status === 'completed') {
+      this.publishChatRefresh(projectName, {
+        source: 'condition-monitoring',
+        ruleName: data.ruleName,
+        timestamp: data.timestamp,
+      });
+    }
+  }
+
+  /**
+   * Publish chat refresh notification to all clients of a project
+   */
+  publishChatRefresh(projectName: string, data: {
+    source: string;
+    ruleName?: string;
+    timestamp: string;
+  }): void {
+    for (const client of this.clients.values()) {
+      if (client.projectName === projectName) {
+        this.sendToClient(client.id, 'chat-refresh', data);
+      }
+    }
   }
 
   /**

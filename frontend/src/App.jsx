@@ -49,12 +49,18 @@ export default function App() {
   const currentMessageRef = useRef(null);
   const currentUsageRef = useRef(null);
   const activeToolCallsRef = useRef(new Map());
+  const currentSessionIdRef = useRef(null); // Ref to access current session ID in event listeners
 
   useEffect(() => () => {
     esRef.current?.close();
     interceptorEsRef.current?.close();
     eventsEsRef.current?.close();
   }, []);
+
+  // Keep currentSessionIdRef in sync with state for use in event listeners
+  useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
 
   // Load tags when project changes
   useEffect(() => {
@@ -417,12 +423,14 @@ export default function App() {
       console.log('Prompt execution event:', data);
 
       // When a prompt completes, reload the chat history to show the automated response
-      if (data.status === 'completed' && currentSessionId) {
+      // Use ref to get current session ID to avoid stale closure
+      const sessionId = currentSessionIdRef.current;
+      if (data.status === 'completed' && sessionId) {
         try {
           // Add a small delay to ensure the message is persisted
           await new Promise(resolve => setTimeout(resolve, 500));
 
-          const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${currentSessionId}/history`);
+          const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
           const historyData = await historyRes.json();
           const chatMessages = historyData?.messages || [];
 
@@ -467,6 +475,64 @@ export default function App() {
       }
     });
 
+    // Listen for chat-refresh events (triggered after automated prompt execution)
+    es.addEventListener('chat-refresh', async (e) => {
+      const data = JSON.parse(e.data);
+      console.log('Chat refresh event:', data);
+
+      // Reload chat history when notified
+      // Use ref to get current session ID to avoid stale closure
+      const sessionId = currentSessionIdRef.current;
+      if (sessionId) {
+        try {
+          // Add a small delay to ensure the message is persisted
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
+          const historyData = await historyRes.json();
+          const chatMessages = historyData?.messages || [];
+
+          // Load assistant greeting
+          const assistantRes = await fetch('/api/claude/assistant', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ projectName: currentProject })
+          });
+          const assistantData = await assistantRes.json();
+          const greeting = assistantData?.assistant?.greeting;
+
+          const loadedMessages = [];
+          if (greeting) {
+            loadedMessages.push({
+              role: 'assistant',
+              text: greeting,
+              timestamp: formatTime()
+            });
+          }
+
+          chatMessages.forEach(msg => {
+            loadedMessages.push({
+              role: msg.isAgent ? 'assistant' : 'user',
+              text: msg.message,
+              timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
+              usage: msg.costs,
+              reasoningSteps: msg.reasoningSteps || [],
+              contextName: msg.contextName
+            });
+          });
+
+          setMessages(loadedMessages);
+          console.log('Chat history reloaded after chat-refresh event');
+        } catch (err) {
+          console.error('Failed to reload chat history:', err);
+        }
+      }
+    });
+
     es.onerror = () => {
       console.error('Events SSE connection error');
     };
@@ -474,7 +540,7 @@ export default function App() {
     return () => {
       es.close();
     };
-  }, [currentProject, currentSessionId]);
+  }, [currentProject]); // Removed currentSessionId from deps - using ref instead
 
   // Check if sessions exist for the current project
   useEffect(() => {

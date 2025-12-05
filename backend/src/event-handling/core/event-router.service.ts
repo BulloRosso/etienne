@@ -65,8 +65,8 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
         const event: InternalEvent = JSON.parse(msg.toString());
         this.logger.debug(`Received event: ${event.name} (${event.id})`);
 
-        // Extract project name from payload or default to 'default'
-        const projectName = event.payload?.projectName || 'default';
+        // Use projectName from event (set by API endpoints) or default to 'default'
+        const projectName = event.projectName || 'default';
 
         // Load rules for this project
         await this.ruleEngine.loadRules(projectName);
@@ -84,12 +84,17 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
 
           // Execute actions for triggered rules (fire-and-forget, don't block event processing)
           for (const result of triggeredResults) {
-            const rule = this.ruleEngine.getRule(result.ruleId);
+            this.logger.log(`Looking up rule ${result.ruleId} for project ${projectName}`);
+            const rule = this.ruleEngine.getRule(projectName, result.ruleId);
+            this.logger.log(`Rule found: ${rule ? rule.name : 'null'}, action: ${rule?.action ? JSON.stringify(rule.action) : 'none'}`);
             if (rule && rule.action) {
+              this.logger.log(`Executing action for rule "${rule.name}" (${rule.id})`);
               // Execute asynchronously without awaiting
               this.actionExecutor.executeAction(projectName, rule, event).catch((err) => {
                 this.logger.error(`Failed to execute action for rule ${rule.id}:`, err);
               });
+            } else {
+              this.logger.warn(`No action defined for rule ${result.ruleId} or rule not found`);
             }
           }
         }

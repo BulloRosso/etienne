@@ -20,13 +20,24 @@ const SIMILARITY_THRESHOLD = 0.86;
 @Injectable()
 export class RuleEngineService {
   private readonly logger = new Logger(RuleEngineService.name);
-  private rules: Map<string, EventRule> = new Map();
+  // Rules are now scoped per project: Map<projectName, Map<ruleId, EventRule>>
+  private rulesByProject: Map<string, Map<string, EventRule>> = new Map();
   private eventHistory: Map<string, InternalEvent[]> = new Map(); // For compound conditions
 
   constructor(
     private readonly vectorStore: VectorStoreService,
     private readonly knowledgeGraph: KnowledgeGraphService,
   ) {}
+
+  /**
+   * Get or create the rules map for a specific project
+   */
+  private getProjectRules(projectName: string): Map<string, EventRule> {
+    if (!this.rulesByProject.has(projectName)) {
+      this.rulesByProject.set(projectName, new Map());
+    }
+    return this.rulesByProject.get(projectName)!;
+  }
 
   /**
    * Load rules from project configuration
@@ -42,11 +53,15 @@ export class RuleEngineService {
         'event-handling.json',
       );
 
+      // Clear existing rules for this project before loading
+      const projectRules = this.getProjectRules(projectName);
+      projectRules.clear();
+
       if (await fs.pathExists(configPath)) {
         const config = await fs.readJson(configPath);
         if (config.rules && Array.isArray(config.rules)) {
           for (const rule of config.rules) {
-            this.rules.set(rule.id, rule);
+            projectRules.set(rule.id, rule);
           }
           this.logger.log(`Loaded ${config.rules.length} rules for project ${projectName}`);
         }
@@ -74,12 +89,13 @@ export class RuleEngineService {
 
       await fs.ensureDir(path.dirname(configPath));
 
+      const projectRules = this.getProjectRules(projectName);
       const config = {
-        rules: Array.from(this.rules.values()),
+        rules: Array.from(projectRules.values()),
       };
 
       await fs.writeJson(configPath, config, { spaces: 2 });
-      this.logger.log(`Saved ${this.rules.size} rules for project ${projectName}`);
+      this.logger.log(`Saved ${projectRules.size} rules for project ${projectName}`);
     } catch (error) {
       this.logger.error(`Failed to save rules for project ${projectName}`, error);
       throw error;
@@ -87,56 +103,61 @@ export class RuleEngineService {
   }
 
   /**
-   * Add a new rule
+   * Add a new rule to a specific project
    */
-  addRule(rule: EventRule): void {
-    this.rules.set(rule.id, rule);
-    this.logger.log(`Added rule: ${rule.name} (${rule.id})`);
+  addRule(projectName: string, rule: EventRule): void {
+    const projectRules = this.getProjectRules(projectName);
+    projectRules.set(rule.id, rule);
+    this.logger.log(`Added rule: ${rule.name} (${rule.id}) to project ${projectName}`);
   }
 
   /**
-   * Update an existing rule
+   * Update an existing rule in a specific project
    */
-  updateRule(ruleId: string, updates: Partial<EventRule>): EventRule | null {
-    const rule = this.rules.get(ruleId);
+  updateRule(projectName: string, ruleId: string, updates: Partial<EventRule>): EventRule | null {
+    const projectRules = this.getProjectRules(projectName);
+    const rule = projectRules.get(ruleId);
     if (!rule) {
-      this.logger.warn(`Rule not found: ${ruleId}`);
+      this.logger.warn(`Rule not found: ${ruleId} in project ${projectName}`);
       return null;
     }
 
     const updatedRule = { ...rule, ...updates, updatedAt: new Date().toISOString() };
-    this.rules.set(ruleId, updatedRule);
-    this.logger.log(`Updated rule: ${updatedRule.name} (${ruleId})`);
+    projectRules.set(ruleId, updatedRule);
+    this.logger.log(`Updated rule: ${updatedRule.name} (${ruleId}) in project ${projectName}`);
     return updatedRule;
   }
 
   /**
-   * Delete a rule
+   * Delete a rule from a specific project
    */
-  deleteRule(ruleId: string): boolean {
-    const deleted = this.rules.delete(ruleId);
+  deleteRule(projectName: string, ruleId: string): boolean {
+    const projectRules = this.getProjectRules(projectName);
+    const deleted = projectRules.delete(ruleId);
     if (deleted) {
-      this.logger.log(`Deleted rule: ${ruleId}`);
+      this.logger.log(`Deleted rule: ${ruleId} from project ${projectName}`);
     }
     return deleted;
   }
 
   /**
-   * Get all rules
+   * Get all rules for a specific project
    */
-  getAllRules(): EventRule[] {
-    return Array.from(this.rules.values());
+  getAllRules(projectName: string): EventRule[] {
+    const projectRules = this.getProjectRules(projectName);
+    return Array.from(projectRules.values());
   }
 
   /**
-   * Get a specific rule
+   * Get a specific rule from a project
    */
-  getRule(ruleId: string): EventRule | undefined {
-    return this.rules.get(ruleId);
+  getRule(projectName: string, ruleId: string): EventRule | undefined {
+    const projectRules = this.getProjectRules(projectName);
+    return projectRules.get(ruleId);
   }
 
   /**
-   * Evaluate an event against all rules
+   * Evaluate an event against all rules for a specific project
    */
   async evaluateEvent(
     event: InternalEvent,
@@ -153,8 +174,11 @@ export class RuleEngineService {
     }
     this.eventHistory.set(projectName, projectHistory);
 
-    // Evaluate each enabled rule
-    for (const rule of this.rules.values()) {
+    // Get rules for this specific project only
+    const projectRules = this.getProjectRules(projectName);
+
+    // Evaluate each enabled rule for this project
+    for (const rule of projectRules.values()) {
       if (!rule.enabled) continue;
 
       try {

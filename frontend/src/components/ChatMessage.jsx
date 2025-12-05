@@ -320,7 +320,24 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               },
               '& strong': { fontWeight: 'bold' },
               '& em': { fontStyle: 'italic' },
-              '& a': { color: '#1976d2', textDecoration: 'none' }
+              '& a': { color: '#1976d2', textDecoration: 'none' },
+              '& table': {
+                borderCollapse: 'collapse',
+                border: '1px solid #ccc',
+                marginTop: '0.5em',
+                marginBottom: '0.5em'
+              },
+              '& th, & td': {
+                border: '1px solid #ccc',
+                padding: '6px',
+                textAlign: 'left'
+              },
+              '& th': {
+                backgroundColor: 'rgba(0,0,0,0.03)'
+              },
+              '& td': {
+                backgroundColor: '#fff'
+              }
             }}
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />

@@ -18,55 +18,38 @@ import {
   Switch,
   FormControlLabel,
   Divider,
-  Card,
-  CardContent,
-  CardActions,
   Stack,
   Alert,
   Tabs,
   Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Tooltip,
-  CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Menu
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
   Close as CloseIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  PlayArrow as PlayIcon,
-  Pause as PauseIcon,
-  ExpandMore as ExpandMoreIcon,
   Event as EventIcon,
-  Rule as RuleIcon,
   Info as InfoIcon,
-  ContentCopy as ContentCopyIcon,
-  Send as SendIcon,
-  Description as DescriptionIcon,
   History as HistoryIcon,
   FolderOpen as FileWatcherIcon,
   Sensors as MqttIcon,
   Code as ClaudeCodeIcon,
   Schedule as ScheduleIcon,
-  MoreVert as MoreVertIcon,
   Webhook as WebhookIcon
 } from '@mui/icons-material';
 import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
 import { PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
 import { FcWorkflow } from 'react-icons/fc';
-import { IoMdNotificationsOutline, IoMdNotificationsOff } from 'react-icons/io';
+import { IoMdNotificationsOutline } from 'react-icons/io';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
 import LiveEventsTab from './LiveEventsTab';
+import {
+  ActionsTab,
+  RulesTab,
+  EventLogTab,
+  WebHooksTab,
+  ExamplesTab,
+  UseCasesTab
+} from './conditionmonitoring';
 
 // Event group styling configuration (consistent with LiveEventsTab)
 const EVENT_GROUP_CONFIG = {
@@ -187,11 +170,9 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
     const addOrUpdateEvent = (newEvent) => {
       setLiveEvents((prev) => {
-        // Check if event with same ID already exists
         const existingIndex = prev.findIndex(e => e.id === newEvent.id);
 
         if (existingIndex !== -1) {
-          // Update existing event (merge triggeredRules if present)
           const updated = [...prev];
           updated[existingIndex] = {
             ...updated[existingIndex],
@@ -200,7 +181,6 @@ const EventHandling = ({ selectedProject, onClose }) => {
           };
           return updated;
         } else {
-          // Add new event
           return [newEvent, ...prev].slice(0, 50);
         }
       });
@@ -219,7 +199,6 @@ const EventHandling = ({ selectedProject, onClose }) => {
     sse.addEventListener('prompt-execution', (e) => {
       const data = JSON.parse(e.data);
       setPromptExecutions((prev) => {
-        // Update existing or add new
         const existingIndex = prev.findIndex(
           (p) => p.ruleId === data.ruleId && p.eventId === data.eventId
         );
@@ -267,7 +246,6 @@ const EventHandling = ({ selectedProject, onClose }) => {
         }
       }));
     } catch (error) {
-      // MQTT may not be configured, that's okay
       console.log('MQTT status not available:', error.message);
     }
   };
@@ -314,7 +292,6 @@ const EventHandling = ({ selectedProject, onClose }) => {
   // Extract payload matcher from rule condition event object
   const extractPayloadMatcher = (event) => {
     if (!event) return '';
-    // Find any key that's not group, name, topic, or source (those are standard fields)
     const standardFields = ['group', 'name', 'topic', 'source'];
     for (const key of Object.keys(event)) {
       if (!standardFields.includes(key)) {
@@ -475,13 +452,11 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
     try {
       if (editingPrompt) {
-        // Update existing prompt
         await axios.put(`http://localhost:6060/api/prompts/${selectedProject}/${editingPrompt.id}`, {
           title: promptTitle,
           content: promptContent
         });
       } else {
-        // Create new prompt
         await axios.post(`http://localhost:6060/api/prompts/${selectedProject}`, {
           title: promptTitle,
           content: promptContent
@@ -540,7 +515,6 @@ const EventHandling = ({ selectedProject, onClose }) => {
                 }
               }}
             >
-              {/* Rotating neon border line */}
               <Box
                 sx={{
                   position: 'absolute',
@@ -550,7 +524,6 @@ const EventHandling = ({ selectedProject, onClose }) => {
                   zIndex: 0
                 }}
               />
-              {/* Inner background to mask center */}
               <Box
                 sx={{
                   position: 'absolute',
@@ -604,649 +577,62 @@ const EventHandling = ({ selectedProject, onClose }) => {
             <CircularProgress />
           </Box>
         ) : currentTab === 0 ? (
-          // Tab 0: Action
-          <Box>
-            {prompts.length > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="body2" sx={{marginLeft: '20px'}} color="text.secondary">
-                  Manage reusable action templates for your rule actions
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenPromptDialog()}
-                  sx={{ textTransform: 'none' }}
-                >
-                  New Action
-                </Button>
-              </Box>
-            )}
-
-            {prompts.length === 0 ? (
-              <Box sx={{ py: 6, textAlign: 'center' }}>
-                <BiMessageEdit style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
-                <Typography variant="body1" color="text.secondary" gutterBottom>
-                  No actions defined
-                </Typography>
-                <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-                  Create reusable action templates to use in your rules
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenPromptDialog()}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Create First Action
-                </Button>
-              </Box>
-            ) : (
-              <>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'background.paper' }}>
-                        <TableCell sx={{ width: 50 }}></TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Prompt</TableCell>
-                        <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {prompts.map((prompt, idx) => (
-                        <TableRow
-                          key={prompt.id}
-                          sx={{
-                            bgcolor: idx % 2 === 0 ? 'transparent' : 'grey.50',
-                            '&:hover': { bgcolor: 'action.hover' }
-                          }}
-                        >
-                          <TableCell sx={{ textAlign: 'center' }}>
-                            <BiMessageEdit style={{ fontSize: 20, color: '#757575' }} />
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 500 }}>
-                            {prompt.title}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                              {prompt.content.substring(0, 120)}{prompt.content.length > 120 ? '...' : ''}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={{ textAlign: 'center' }}>
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                setPromptMenuAnchor(e.currentTarget);
-                                setSelectedPromptForMenu(prompt);
-                              }}
-                            >
-                              <MoreVertIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                <Menu
-                  anchorEl={promptMenuAnchor}
-                  open={Boolean(promptMenuAnchor)}
-                  onClose={() => {
-                    setPromptMenuAnchor(null);
-                    setSelectedPromptForMenu(null);
-                  }}
-                >
-                  <MenuItem
-                    onClick={() => {
-                      handleOpenPromptDialog(selectedPromptForMenu);
-                      setPromptMenuAnchor(null);
-                      setSelectedPromptForMenu(null);
-                    }}
-                  >
-                    <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                    Edit
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      handleDeletePrompt(selectedPromptForMenu?.id);
-                      setPromptMenuAnchor(null);
-                      setSelectedPromptForMenu(null);
-                    }}
-                    sx={{ color: 'error.main' }}
-                  >
-                    <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-                    Delete
-                  </MenuItem>
-                </Menu>
-              </>
-            )}
-          </Box>
+          <ActionsTab
+            prompts={prompts}
+            onOpenPromptDialog={handleOpenPromptDialog}
+            onDeletePrompt={handleDeletePrompt}
+            promptMenuAnchor={promptMenuAnchor}
+            setPromptMenuAnchor={setPromptMenuAnchor}
+            selectedPromptForMenu={selectedPromptForMenu}
+            setSelectedPromptForMenu={setSelectedPromptForMenu}
+          />
         ) : currentTab === 1 ? (
-          // Tab 1: Rules
-          <Box>
-            {rules.length > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="body2" sx={{ marginLeft: '20px' }} color="text.secondary">
-                  Manage condition monitoring rules
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenRuleDialog()}
-                  sx={{ textTransform: 'none' }}
-                >
-                  New Rule
-                </Button>
-              </Box>
-            )}
-
-            {rules.length === 0 ? (
-              <Box sx={{ py: 6, textAlign: 'center' }}>
-                <IoMdNotificationsOff style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
-                <Typography variant="body1" color="text.secondary" gutterBottom>
-                  No rules configured
-                </Typography>
-                <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-                  Create your first rule to start monitoring conditions
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenRuleDialog()}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Create First Rule
-                </Button>
-              </Box>
-            ) : (
-              <>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'background.paper' }}>
-                        <TableCell sx={{ width: 50 }}></TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Event Group</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
-                        <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rules.map((rule, idx) => {
-                        const groupStyle = rule.condition.event?.group ? getGroupStyle(rule.condition.event.group) : null;
-                        const GroupIcon = groupStyle?.icon;
-                        const actionPrompt = prompts.find(p => p.id === rule.action.promptId);
-                        return (
-                          <TableRow
-                            key={rule.id}
-                            sx={{
-                              bgcolor: idx % 2 === 0 ? 'transparent' : 'grey.50',
-                              '&:hover': { bgcolor: 'action.hover' }
-                            }}
-                          >
-                            <TableCell sx={{ textAlign: 'center' }}>
-                              {rule.enabled ? (
-                                <IoMdNotificationsOutline style={{ fontSize: 20, color: '#4caf50' }} />
-                              ) : (
-                                <IoMdNotificationsOff style={{ fontSize: 20, color: '#ccc' }} />
-                              )}
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 500 }}>
-                              {rule.name}
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={rule.condition.type}
-                                size="small"
-                                variant="outlined"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {groupStyle && GroupIcon ? (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                  <GroupIcon sx={{ fontSize: 16, color: groupStyle.color }} />
-                                  <Typography variant="body2" color="text.secondary">
-                                    {rule.condition.event.group}
-                                  </Typography>
-                                </Box>
-                              ) : (
-                                <Typography variant="body2" color="text.disabled">—</Typography>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" color="text.secondary">
-                                {actionPrompt?.title || rule.action.promptId}
-                              </Typography>
-                            </TableCell>
-                            <TableCell sx={{ textAlign: 'center' }}>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  setRuleMenuAnchor(e.currentTarget);
-                                  setSelectedRuleForMenu(rule);
-                                }}
-                              >
-                                <MoreVertIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                <Menu
-                  anchorEl={ruleMenuAnchor}
-                  open={Boolean(ruleMenuAnchor)}
-                  onClose={() => {
-                    setRuleMenuAnchor(null);
-                    setSelectedRuleForMenu(null);
-                  }}
-                >
-                  <MenuItem
-                    onClick={() => {
-                      handleToggleRule(selectedRuleForMenu);
-                      setRuleMenuAnchor(null);
-                      setSelectedRuleForMenu(null);
-                    }}
-                  >
-                    {selectedRuleForMenu?.enabled ? <PauseIcon fontSize="small" sx={{ mr: 1 }} /> : <PlayIcon fontSize="small" sx={{ mr: 1 }} />}
-                    {selectedRuleForMenu?.enabled ? 'Disable' : 'Enable'}
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      handleOpenRuleDialog(selectedRuleForMenu);
-                      setRuleMenuAnchor(null);
-                      setSelectedRuleForMenu(null);
-                    }}
-                  >
-                    <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                    Edit
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      handleDeleteRule(selectedRuleForMenu?.id);
-                      setRuleMenuAnchor(null);
-                      setSelectedRuleForMenu(null);
-                    }}
-                    sx={{ color: 'error.main' }}
-                  >
-                    <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-                    Delete
-                  </MenuItem>
-                </Menu>
-              </>
-            )}
-          </Box>
+          <RulesTab
+            rules={rules}
+            prompts={prompts}
+            getGroupStyle={getGroupStyle}
+            onOpenRuleDialog={handleOpenRuleDialog}
+            onToggleRule={handleToggleRule}
+            onDeleteRule={handleDeleteRule}
+            ruleMenuAnchor={ruleMenuAnchor}
+            setRuleMenuAnchor={setRuleMenuAnchor}
+            selectedRuleForMenu={selectedRuleForMenu}
+            setSelectedRuleForMenu={setSelectedRuleForMenu}
+          />
         ) : currentTab === 2 ? (
-          // Tab 2: Live Events - Column-based display by source
-          <LiveEventsTab liveEvents={liveEvents} eventStream={eventStream} promptExecutions={promptExecutions} serviceStatus={serviceStatus} />
+          <LiveEventsTab
+            liveEvents={liveEvents}
+            eventStream={eventStream}
+            promptExecutions={promptExecutions}
+            serviceStatus={serviceStatus}
+          />
         ) : currentTab === 3 ? (
-          // Tab 3: Event Log
-          <Box>
-            {loadingEventLog ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                <CircularProgress />
-              </Box>
-            ) : eventLog.length === 0 ? (
-              <Box sx={{ py: 6, textAlign: 'center' }}>
-                <HistoryIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5, opacity: 0.5 }} />
-                <Typography variant="body1" color="text.secondary" gutterBottom>
-                  No events logged yet
-                </Typography>
-                <Typography variant="body2" color="text.disabled">
-                  Events that trigger rules will appear here
-                </Typography>
-              </Box>
-            ) : (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>Timestamp</strong></TableCell>
-                      <TableCell><strong>Event Name</strong></TableCell>
-                      <TableCell><strong>Group</strong></TableCell>
-                      <TableCell><strong>Source</strong></TableCell>
-                      <TableCell><strong>Triggered Rules</strong></TableCell>
-                      <TableCell><strong>Payload</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {eventLog.map((entry, idx) => (
-                      <TableRow key={idx} hover>
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                          {new Date(entry.event.timestamp).toLocaleString()}
-                        </TableCell>
-                        <TableCell>{entry.event.name}</TableCell>
-                        <TableCell>
-                          {(() => {
-                            const style = getGroupStyle(entry.event.group);
-                            const GroupIcon = style.icon;
-                            return (
-                              <Chip
-                                icon={<GroupIcon sx={{ fontSize: 14, color: `${style.color} !important` }} />}
-                                label={entry.event.group}
-                                size="small"
-                                sx={{
-                                  bgcolor: style.bgColor,
-                                  color: style.color,
-                                  fontWeight: 500,
-                                  '& .MuiChip-icon': { ml: 0.5 }
-                                }}
-                              />
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={entry.event.source} size="small" variant="outlined" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={entry.triggeredRules.length}
-                            size="small"
-                            color={entry.triggeredRules.length > 0 ? 'success' : 'default'}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontFamily: 'monospace',
-                              maxWidth: 300,
-                              display: 'block',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {JSON.stringify(entry.event.payload)}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </Box>
+          <EventLogTab
+            eventLog={eventLog}
+            loadingEventLog={loadingEventLog}
+            getGroupStyle={getGroupStyle}
+          />
         ) : currentTab === 4 ? (
-          // Tab 4: WebHooks
-          <Box>
-            
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-              POST events to this project from external systems or test your rules manually
-            </Typography>
-
-    
-
-            {/* Webhook URL Display */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-                Webhook URL
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <TextField
-                  fullWidth
-                  value={`http://localhost:6060/api/events/${selectedProject}`}
-                  InputProps={{
-                    readOnly: true,
-                    sx: { fontFamily: 'monospace', fontSize: '0.75rem' }
-                  }}
-                  size="small"
-                />
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<ContentCopyIcon sx={{ fontSize: 14 }} />}
-                  onClick={handleCopyWebhookUrl}
-                  sx={{ textTransform: 'none', minWidth: 80, fontSize: '0.75rem' }}
-                >
-                  {copySuccess ? 'Copied!' : 'Copy'}
-                </Button>
-              </Box>
-            </Box>
-
-            <Divider sx={{ mb: 2 }} />
-
-            {/* Test Event Form */}
-            <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Send Test Event
-            </Typography>
-            <Stack spacing={1.5}>
-              <TextField
-                label="Event Name"
-                fullWidth
-                value={webhookEventName}
-                onChange={(e) => setWebhookEventName(e.target.value)}
-                size="small"
-                InputProps={{ sx: { fontSize: '0.85rem' } }}
-                InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
-              />
-              <FormControl fullWidth size="small">
-                <InputLabel sx={{ fontSize: '0.85rem' }}>Event Group</InputLabel>
-                <Select
-                  value={webhookEventGroup}
-                  onChange={(e) => setWebhookEventGroup(e.target.value)}
-                  label="Event Group"
-                  sx={{ fontSize: '0.85rem' }}
-                  renderValue={(selected) => {
-                    const style = getGroupStyle(selected);
-                    const GroupIcon = style.icon;
-                    return (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <GroupIcon sx={{ fontSize: 16, color: style.color }} />
-                        {selected}
-                      </Box>
-                    );
-                  }}
-                >
-                  {eventGroups.map((group) => {
-                    const style = getGroupStyle(group);
-                    const GroupIcon = style.icon;
-                    return (
-                      <MenuItem key={group} value={group}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <GroupIcon sx={{ fontSize: 16, color: style.color }} />
-                          {group}
-                        </Box>
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Payload (JSON)"
-                fullWidth
-                multiline
-                rows={3}
-                value={webhookPayload}
-                onChange={(e) => setWebhookPayload(e.target.value)}
-                placeholder='{"key": "value"}'
-                size="small"
-                InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.8rem' } }}
-                InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
-              />
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<SendIcon sx={{ fontSize: 16 }} />}
-                onClick={handleSendTestEvent}
-                sx={{ textTransform: 'none', alignSelf: 'flex-start' }}
-              >
-                Send Test Event
-              </Button>
-
-              {webhookResponse && (
-                <Alert
-                  severity={webhookResponse.error ? 'error' : 'success'}
-                  onClose={() => setWebhookResponse(null)}
-                  sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
-                >
-                  {webhookResponse.error ? (
-                    <>Error: {webhookResponse.error}</>
-                  ) : (
-                    <>Success! Event ID: {webhookResponse.data?.event?.id}</>
-                  )}
-                </Alert>
-              )}
-            </Stack>
-          </Box>
+          <WebHooksTab
+            selectedProject={selectedProject}
+            eventGroups={eventGroups}
+            getGroupStyle={getGroupStyle}
+            webhookEventName={webhookEventName}
+            setWebhookEventName={setWebhookEventName}
+            webhookEventGroup={webhookEventGroup}
+            setWebhookEventGroup={setWebhookEventGroup}
+            webhookPayload={webhookPayload}
+            setWebhookPayload={setWebhookPayload}
+            webhookResponse={webhookResponse}
+            setWebhookResponse={setWebhookResponse}
+            copySuccess={copySuccess}
+            onCopyWebhookUrl={handleCopyWebhookUrl}
+            onSendTestEvent={handleSendTestEvent}
+          />
         ) : currentTab === 5 ? (
-          // Tab 5: Examples
-          <Box>
-            <Stack spacing={3}>
-              {/* Simple Condition Example */}
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip label="Simple" color="primary" size="small" />
-                    Simple Condition
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Use simple conditions for exact matching of event properties. Perfect for straightforward triggers like "when a Python file is created" or "when a specific MQTT topic receives a message".
-                  </Typography>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Example: Monitor Python file creation
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                    {`{
-  "type": "simple",
-  "event": {
-    "group": "Filesystem",
-    "name": "File Created",
-    "payload.path": "*.py"
-  }
-}`}
-                  </Paper>
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    Simple conditions support wildcard matching with * in string values
-                  </Alert>
-                </CardContent>
-              </Card>
-
-              {/* Semantic Condition Example */}
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip label="Semantic" color="secondary" size="small" />
-                    Semantic Condition
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Use semantic conditions for AI-powered similarity matching. Great for finding related content or detecting semantically similar events even when exact wording differs.
-                  </Typography>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Example: Find authentication-related code changes
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                    {`{
-  "type": "semantic",
-  "event": {
-    "group": "Filesystem",
-    "payload": {
-      "similarity": {
-        "query": "user authentication and login security",
-        "threshold": 0.86
-      }
-    }
-  }
-}`}
-                  </Paper>
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    Semantic matching uses vector embeddings with a default threshold of 0.86
-                  </Alert>
-                </CardContent>
-              </Card>
-
-              {/* Compound Condition Example */}
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip label="Compound" color="warning" size="small" />
-                    Compound Condition
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Use compound conditions to combine multiple conditions with logical operators (AND, OR, NOT). Ideal for complex scenarios requiring multiple criteria.
-                  </Typography>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Example: Monitor test file changes AND config changes
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                    {`{
-  "type": "compound",
-  "operator": "AND",
-  "conditions": [
-    {
-      "type": "simple",
-      "event": { "group": "Filesystem", "name": "File Modified" }
-    },
-    {
-      "type": "simple",
-      "event": { "payload.path": "*/test/*" }
-    }
-  ],
-  "timeWindow": 300000
-}`}
-                  </Paper>
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    Compound conditions support AND, OR, and NOT operators with optional time windows (in milliseconds)
-                  </Alert>
-                </CardContent>
-              </Card>
-
-              {/* Temporal Constraint Example */}
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip label="Temporal" color="success" size="small" />
-                    Temporal Constraint
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Use temporal constraints to filter events by time of day or day of week. Perfect for business hours monitoring or scheduled maintenance windows.
-                  </Typography>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Example: Monitor during business hours only
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                    {`{
-  "type": "temporal",
-  "time": {
-    "after": "09:00",
-    "before": "17:00",
-    "dayOfWeek": [1, 2, 3, 4, 5]
-  }
-}`}
-                  </Paper>
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    Day of week: 0=Sunday, 1=Monday, ..., 6=Saturday. Times use 24-hour format (HH:MM)
-                  </Alert>
-                </CardContent>
-              </Card>
-            </Stack>
-          </Box>
+          <ExamplesTab />
         ) : currentTab === 6 ? (
-          // Tab 6: Use Cases
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <img
-              src="/condition-monitoring-usecases.jpg"
-              alt="Condition Monitoring Use Cases"
-              style={{
-                maxWidth: 1000,
-                width: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                borderRadius: 8
-              }}
-            />
-          </Box>
+          <UseCasesTab />
         ) : null}
       </Box>
 

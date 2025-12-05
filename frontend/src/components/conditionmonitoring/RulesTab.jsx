@@ -1,0 +1,202 @@
+import React from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  IconButton,
+  Chip,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Menu,
+  MenuItem
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  PlayArrow as PlayIcon,
+  Pause as PauseIcon,
+  MoreVert as MoreVertIcon
+} from '@mui/icons-material';
+import { IoMdNotificationsOutline, IoMdNotificationsOff } from 'react-icons/io';
+
+const RulesTab = ({
+  rules,
+  prompts,
+  getGroupStyle,
+  onOpenRuleDialog,
+  onToggleRule,
+  onDeleteRule,
+  ruleMenuAnchor,
+  setRuleMenuAnchor,
+  selectedRuleForMenu,
+  setSelectedRuleForMenu
+}) => {
+  return (
+    <Box>
+      {rules.length > 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="body2" sx={{ marginLeft: '20px' }} color="text.secondary">
+            Manage condition monitoring rules
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => onOpenRuleDialog()}
+            sx={{ textTransform: 'none' }}
+          >
+            New Rule
+          </Button>
+        </Box>
+      )}
+
+      {rules.length === 0 ? (
+        <Box sx={{ py: 6, textAlign: 'center' }}>
+          <IoMdNotificationsOff style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
+          <Typography variant="body1" color="text.secondary" gutterBottom>
+            No rules configured
+          </Typography>
+          <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
+            Create your first rule to start monitoring conditions
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => onOpenRuleDialog()}
+            sx={{ textTransform: 'none' }}
+          >
+            Create First Rule
+          </Button>
+        </Box>
+      ) : (
+        <>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'background.paper' }}>
+                  <TableCell sx={{ width: 50 }}></TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Event Group</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                  <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rules.map((rule, idx) => {
+                  const groupStyle = rule.condition.event?.group ? getGroupStyle(rule.condition.event.group) : null;
+                  const GroupIcon = groupStyle?.icon;
+                  const actionPrompt = prompts.find(p => p.id === rule.action.promptId);
+                  return (
+                    <TableRow
+                      key={rule.id}
+                      sx={{
+                        bgcolor: idx % 2 === 0 ? 'transparent' : 'grey.50',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                    >
+                      <TableCell sx={{ textAlign: 'center' }}>
+                        {rule.enabled ? (
+                          <IoMdNotificationsOutline style={{ fontSize: 20, color: '#4caf50' }} />
+                        ) : (
+                          <IoMdNotificationsOff style={{ fontSize: 20, color: '#ccc' }} />
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>
+                        {rule.name}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={rule.condition.type}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {groupStyle && GroupIcon ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <GroupIcon sx={{ fontSize: 16, color: groupStyle.color }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {rule.condition.event.group}
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.disabled">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {actionPrompt?.title || rule.action.promptId}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            setRuleMenuAnchor(e.currentTarget);
+                            setSelectedRuleForMenu(rule);
+                          }}
+                        >
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Menu
+            anchorEl={ruleMenuAnchor}
+            open={Boolean(ruleMenuAnchor)}
+            onClose={() => {
+              setRuleMenuAnchor(null);
+              setSelectedRuleForMenu(null);
+            }}
+          >
+            <MenuItem
+              onClick={() => {
+                onToggleRule(selectedRuleForMenu);
+                setRuleMenuAnchor(null);
+                setSelectedRuleForMenu(null);
+              }}
+            >
+              {selectedRuleForMenu?.enabled ? <PauseIcon fontSize="small" sx={{ mr: 1 }} /> : <PlayIcon fontSize="small" sx={{ mr: 1 }} />}
+              {selectedRuleForMenu?.enabled ? 'Disable' : 'Enable'}
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                onOpenRuleDialog(selectedRuleForMenu);
+                setRuleMenuAnchor(null);
+                setSelectedRuleForMenu(null);
+              }}
+            >
+              <EditIcon fontSize="small" sx={{ mr: 1 }} />
+              Edit
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                onDeleteRule(selectedRuleForMenu?.id);
+                setRuleMenuAnchor(null);
+                setSelectedRuleForMenu(null);
+              }}
+              sx={{ color: 'error.main' }}
+            >
+              <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+              Delete
+            </MenuItem>
+          </Menu>
+        </>
+      )}
+    </Box>
+  );
+};
+
+export default RulesTab;

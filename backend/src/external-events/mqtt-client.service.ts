@@ -196,8 +196,8 @@ export class MqttClientService implements OnModuleDestroy {
           group: 'MQTT',
           source: 'MQTT Client',
           topic,
+          projectName: projectName,
           payload: {
-            projectName,
             message: payload.toString(),
             qos: packet.qos,
             retain: packet.retain,
