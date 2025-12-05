@@ -102,7 +102,9 @@ export class RuleActionExecutorService {
     // For Webhook events, prepend a special message with the full JSON payload
     if (event.group === 'Webhook') {
       const webhookContext = `The agent received this information via webhook:
+\`\`\`json
 ${JSON.stringify(event.payload, null, 2)}
+\`\`\`
 
 ---
 

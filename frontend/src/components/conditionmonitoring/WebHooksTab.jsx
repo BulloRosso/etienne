@@ -4,10 +4,6 @@ import {
   Typography,
   Button,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Divider,
   Paper,
   Stack,
@@ -18,30 +14,18 @@ import {
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
-  ContentCopy as ContentCopyIcon,
-  Send as SendIcon
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 
 const WebHooksTab = ({
   selectedProject,
-  eventGroups,
-  getGroupStyle,
-  webhookEventName,
-  setWebhookEventName,
-  webhookEventGroup,
-  setWebhookEventGroup,
-  webhookPayload,
-  setWebhookPayload,
-  webhookResponse,
-  setWebhookResponse,
   copySuccess,
-  onCopyWebhookUrl,
-  onSendTestEvent
+  onCopyWebhookUrl
 }) => {
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-        POST events to this project from external systems or test your rules manually
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, ml: '20px', display: 'block' }}>
+        POST data/files to this project from external systems. In the base version the endpoint is open, adding header authentication is recommended.
       </Typography>
 
       {/* Webhook JSON Format Documentation */}
@@ -121,6 +105,96 @@ const WebHooksTab = ({
         </AccordionDetails>
       </Accordion>
 
+      {/* Webhook File Upload Format Documentation */}
+      <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="subtitle2" fontWeight={600}>
+            Webhook File Upload Format
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                Multipart Form Data with Files
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Upload files along with JSON metadata using <code>multipart/form-data</code>:
+              </Typography>
+              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}/webhook</Box>
+                <Box sx={{ color: 'text.secondary', mb: 0.5 }}>Content-Type: multipart/form-data</Box>
+                {`
+--boundary
+Content-Disposition: form-data; name="description"
+
+{"command": "process", "type": "images"}
+--boundary
+Content-Disposition: form-data; name="file"; filename="image.jpg"
+Content-Type: image/jpeg
+
+[binary file data]
+--boundary--`}
+              </Paper>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                cURL Example
+              </Typography>
+              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                {`curl -X POST http://localhost:6060/api/events/${selectedProject}/webhook \\
+  -F 'description={"command": "analyze", "priority": "high"}' \\
+  -F 'file1=@/path/to/document.pdf' \\
+  -F 'file2=@/path/to/image.png'`}
+              </Paper>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                File Storage Location
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Uploaded files are saved to the project's <code>webhook/</code> directory, overwriting any existing files with the same name:
+              </Typography>
+              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.75rem', mt: 1 }}>
+                {`workspace/${selectedProject}/webhook/
+├── document.pdf
+├── image.png
+└── ...`}
+              </Paper>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                Resulting Event Payload
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                The event payload combines your JSON description with file metadata:
+              </Typography>
+              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
+                {`{
+  "command": "analyze",
+  "priority": "high",
+  "files": ["document.pdf", "image.png"],
+  "fileCount": 2,
+  "webhookDir": "webhook/"
+}`}
+              </Paper>
+              <Alert severity="info" sx={{ mt: 1, py: 0.5, '& .MuiAlert-message': { fontSize: '0.75rem' } }}>
+                Match files using <code>payload.fileCount:2</code> or check for specific files in your prompt
+              </Alert>
+            </Box>
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
+
       {/* Webhook URL Display */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
@@ -129,7 +203,7 @@ const WebHooksTab = ({
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <TextField
             fullWidth
-            value={`http://localhost:6060/api/events/${selectedProject}`}
+            value={`http://localhost:6060/api/events/${selectedProject}/webhook`}
             InputProps={{
               readOnly: true,
               sx: { fontFamily: 'monospace', fontSize: '0.75rem' }
@@ -147,91 +221,6 @@ const WebHooksTab = ({
           </Button>
         </Box>
       </Box>
-
-      <Divider sx={{ mb: 2 }} />
-
-      {/* Test Event Form */}
-      <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-        Send Test Event
-      </Typography>
-      <Stack spacing={1.5}>
-        <TextField
-          label="Event Name"
-          fullWidth
-          value={webhookEventName}
-          onChange={(e) => setWebhookEventName(e.target.value)}
-          size="small"
-          InputProps={{ sx: { fontSize: '0.85rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
-        />
-        <FormControl fullWidth size="small">
-          <InputLabel sx={{ fontSize: '0.85rem' }}>Event Group</InputLabel>
-          <Select
-            value={webhookEventGroup}
-            onChange={(e) => setWebhookEventGroup(e.target.value)}
-            label="Event Group"
-            sx={{ fontSize: '0.85rem' }}
-            renderValue={(selected) => {
-              const style = getGroupStyle(selected);
-              const GroupIcon = style.icon;
-              return (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <GroupIcon sx={{ fontSize: 16, color: style.color }} />
-                  {selected}
-                </Box>
-              );
-            }}
-          >
-            {eventGroups.map((group) => {
-              const style = getGroupStyle(group);
-              const GroupIcon = style.icon;
-              return (
-                <MenuItem key={group} value={group}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <GroupIcon sx={{ fontSize: 16, color: style.color }} />
-                    {group}
-                  </Box>
-                </MenuItem>
-              );
-            })}
-          </Select>
-        </FormControl>
-        <TextField
-          label="Payload (JSON)"
-          fullWidth
-          multiline
-          rows={3}
-          value={webhookPayload}
-          onChange={(e) => setWebhookPayload(e.target.value)}
-          placeholder='{"key": "value"}'
-          size="small"
-          InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.8rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
-        />
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<SendIcon sx={{ fontSize: 16 }} />}
-          onClick={onSendTestEvent}
-          sx={{ textTransform: 'none', alignSelf: 'flex-start' }}
-        >
-          Send Test Event
-        </Button>
-
-        {webhookResponse && (
-          <Alert
-            severity={webhookResponse.error ? 'error' : 'success'}
-            onClose={() => setWebhookResponse(null)}
-            sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
-          >
-            {webhookResponse.error ? (
-              <>Error: {webhookResponse.error}</>
-            ) : (
-              <>Success! Event ID: {webhookResponse.data?.event?.id}</>
-            )}
-          </Alert>
-        )}
-      </Stack>
     </Box>
   );
 };

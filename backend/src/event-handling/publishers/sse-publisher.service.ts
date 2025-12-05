@@ -101,6 +101,9 @@ export class SSEPublisherService {
     error?: string;
     timestamp: string;
   }): void {
+    const clientCount = this.getClientCount(projectName);
+    this.logger.log(`Publishing prompt-execution (${data.status}) to ${clientCount} clients for project ${projectName}`);
+
     for (const client of this.clients.values()) {
       if (client.projectName === projectName) {
         this.sendToClient(client.id, 'prompt-execution', data);
@@ -125,6 +128,9 @@ export class SSEPublisherService {
     ruleName?: string;
     timestamp: string;
   }): void {
+    const clientCount = this.getClientCount(projectName);
+    this.logger.log(`Publishing chat-refresh to ${clientCount} clients for project ${projectName}`);
+
     for (const client of this.clients.values()) {
       if (client.projectName === projectName) {
         this.sendToClient(client.id, 'chat-refresh', data);

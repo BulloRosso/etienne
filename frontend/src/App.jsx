@@ -423,9 +423,29 @@ export default function App() {
       console.log('Prompt execution event:', data);
 
       // When a prompt completes, reload the chat history to show the automated response
+      if (data.status !== 'completed') return;
+
       // Use ref to get current session ID to avoid stale closure
-      const sessionId = currentSessionIdRef.current;
-      if (data.status === 'completed' && sessionId) {
+      let sessionId = currentSessionIdRef.current;
+
+      // If no session is currently selected, fetch the most recent session
+      if (!sessionId) {
+        try {
+          const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+          const sessionsData = await sessionsRes.json();
+          if (sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0) {
+            sessionId = sessionsData.sessions[0].sessionId;
+            // Update the refs and state with the new session
+            setCurrentSessionId(sessionId);
+            setSessionId(sessionId);
+            console.log('No current session, loaded most recent:', sessionId);
+          }
+        } catch (err) {
+          console.error('Failed to fetch sessions:', err);
+        }
+      }
+
+      if (sessionId) {
         try {
           // Add a small delay to ensure the message is persisted
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -468,10 +488,13 @@ export default function App() {
           });
 
           setMessages(loadedMessages);
+          setHasSessions(true);
           console.log('Chat history reloaded after prompt execution');
         } catch (err) {
           console.error('Failed to reload chat history:', err);
         }
+      } else {
+        console.log('No session available for prompt execution refresh');
       }
     });
 
@@ -482,11 +505,29 @@ export default function App() {
 
       // Reload chat history when notified
       // Use ref to get current session ID to avoid stale closure
-      const sessionId = currentSessionIdRef.current;
+      let sessionId = currentSessionIdRef.current;
+
+      // If no session is currently selected, fetch the most recent session
+      if (!sessionId) {
+        try {
+          const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+          const sessionsData = await sessionsRes.json();
+          if (sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0) {
+            sessionId = sessionsData.sessions[0].sessionId;
+            // Update the refs and state with the new session
+            setCurrentSessionId(sessionId);
+            setSessionId(sessionId);
+            console.log('No current session, loaded most recent:', sessionId);
+          }
+        } catch (err) {
+          console.error('Failed to fetch sessions:', err);
+        }
+      }
+
       if (sessionId) {
         try {
           // Add a small delay to ensure the message is persisted
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
           const historyData = await historyRes.json();
@@ -526,10 +567,13 @@ export default function App() {
           });
 
           setMessages(loadedMessages);
+          setHasSessions(true);
           console.log('Chat history reloaded after chat-refresh event');
         } catch (err) {
           console.error('Failed to reload chat history:', err);
         }
+      } else {
+        console.log('No session available for chat refresh');
       }
     });
 

@@ -108,11 +108,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
   const [payloadPath, setPayloadPath] = useState('');
   const [actionPromptId, setActionPromptId] = useState('');
 
-  // Webhook test state
-  const [webhookEventName, setWebhookEventName] = useState('Test Event');
-  const [webhookEventGroup, setWebhookEventGroup] = useState('Claude Code');
-  const [webhookPayload, setWebhookPayload] = useState('{}');
-  const [webhookResponse, setWebhookResponse] = useState(null);
+  // Webhook state
   const [copySuccess, setCopySuccess] = useState(false);
 
   // Prompts management state
@@ -398,35 +394,10 @@ const EventHandling = ({ selectedProject, onClose }) => {
   };
 
   const handleCopyWebhookUrl = () => {
-    const webhookUrl = `http://localhost:6060/api/events/${selectedProject}`;
+    const webhookUrl = `http://localhost:6060/api/events/${selectedProject}/webhook`;
     navigator.clipboard.writeText(webhookUrl);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
-  };
-
-  const handleSendTestEvent = async () => {
-    try {
-      let payload;
-      try {
-        payload = JSON.parse(webhookPayload);
-      } catch (e) {
-        setWebhookResponse({ error: 'Invalid JSON in payload' });
-        return;
-      }
-
-      const response = await axios.post(`http://localhost:6060/api/events/${selectedProject}`, {
-        name: webhookEventName,
-        group: webhookEventGroup,
-        source: 'Manual Test',
-        payload
-      });
-
-      setWebhookResponse({ success: true, data: response.data });
-    } catch (error) {
-      setWebhookResponse({
-        error: error.response?.data?.message || error.message
-      });
-    }
   };
 
   const handleOpenPromptDialog = (prompt = null) => {
@@ -615,19 +586,8 @@ const EventHandling = ({ selectedProject, onClose }) => {
         ) : currentTab === 4 ? (
           <WebHooksTab
             selectedProject={selectedProject}
-            eventGroups={eventGroups}
-            getGroupStyle={getGroupStyle}
-            webhookEventName={webhookEventName}
-            setWebhookEventName={setWebhookEventName}
-            webhookEventGroup={webhookEventGroup}
-            setWebhookEventGroup={setWebhookEventGroup}
-            webhookPayload={webhookPayload}
-            setWebhookPayload={setWebhookPayload}
-            webhookResponse={webhookResponse}
-            setWebhookResponse={setWebhookResponse}
             copySuccess={copySuccess}
             onCopyWebhookUrl={handleCopyWebhookUrl}
-            onSendTestEvent={handleSendTestEvent}
           />
         ) : currentTab === 5 ? (
           <ExamplesTab />
