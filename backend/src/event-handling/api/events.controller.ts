@@ -6,43 +6,109 @@ import {
   Param,
   Query,
   Res,
+  Req,
   Logger,
   ValidationPipe,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { Request, Response } from 'express';
 import { CreateEventDto } from '../dto/create-event.dto';
 import { EventRouterService } from '../core/event-router.service';
 import { RuleEngineService } from '../core/rule-engine.service';
 import { EventStoreService } from '../core/event-store.service';
 import { SSEPublisherService } from '../publishers/sse-publisher.service';
 import { randomUUID } from 'crypto';
+import { join } from 'path';
+import { ensureDir, writeFile } from 'fs-extra';
 
 @Controller('api/events')
 export class EventsController {
   private readonly logger = new Logger(EventsController.name);
+  private readonly workspaceRoot: string;
 
   constructor(
     private readonly eventRouter: EventRouterService,
     private readonly ruleEngine: RuleEngineService,
     private readonly eventStore: EventStoreService,
     private readonly ssePublisher: SSEPublisherService,
-  ) {}
+  ) {
+    this.workspaceRoot = process.env.WORKSPACE_ROOT || join(process.cwd(), '..', 'workspace');
+  }
 
   /**
    * POST /api/events/:project/webhook - Receive webhook events
-   * Accepts any JSON payload and creates an event with group 'Webhook'
-   * The payload fields can be matched using payload.fieldName in rule conditions
+   * Accepts JSON payload OR multipart/form-data with files
+   *
+   * For JSON: The payload fields can be matched using payload.fieldName in rule conditions
    * e.g., payload.command matches {"command": "remove", "itemName": "file.txt"}
+   *
+   * For multipart/form-data:
+   * - JSON content should be in the "description" field (parsed automatically)
+   * - Files are saved to workspace/<project>/webhook/ directory (overwriting existing files)
+   * - The payload will include both the parsed description and a list of saved files
    *
    * NOTE: This route must be defined BEFORE the general :project route
    * to ensure proper route matching in NestJS
    */
   @Post(':project/webhook')
+  @UseInterceptors(AnyFilesInterceptor())
   async receiveWebhook(
     @Param('project') projectName: string,
-    @Body() payload: any,
+    @Req() req: Request,
+    @Body() body: any,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
     try {
+      let payload: any;
+      const savedFiles: string[] = [];
+
+      // Check if this is a multipart form request
+      const contentType = req.headers['content-type'] || '';
+      const isMultipart = contentType.includes('multipart/form-data');
+
+      if (isMultipart && files && files.length > 0) {
+        // Handle multipart form with files
+        this.logger.log(`Webhook multipart received for project ${projectName}: ${files.length} files`);
+
+        // Create webhook directory
+        const webhookDir = join(this.workspaceRoot, projectName, 'webhook');
+        await ensureDir(webhookDir);
+
+        // Save all uploaded files
+        for (const file of files) {
+          const filePath = join(webhookDir, file.originalname);
+          await writeFile(filePath, file.buffer);
+          savedFiles.push(file.originalname);
+          this.logger.log(`Saved webhook file: ${file.originalname} (${file.size} bytes)`);
+        }
+
+        // Parse description field if present (contains JSON payload)
+        let description: any = {};
+        if (body.description) {
+          try {
+            description = typeof body.description === 'string'
+              ? JSON.parse(body.description)
+              : body.description;
+          } catch (e) {
+            // If not valid JSON, use as plain text
+            description = { text: body.description };
+          }
+        }
+
+        // Build payload with description and file info
+        payload = {
+          ...description,
+          files: savedFiles,
+          fileCount: savedFiles.length,
+          webhookDir: `webhook/`,
+        };
+      } else {
+        // Handle regular JSON payload
+        payload = body;
+      }
+
       // Create event with Webhook group
       const event = await this.eventRouter.publishEvent({
         name: 'Webhook Received',
@@ -73,6 +139,7 @@ export class EventsController {
         success: true,
         eventId: event.id,
         triggeredRules: executionResults.filter((r) => r.success).map((r) => r.ruleId),
+        savedFiles: savedFiles.length > 0 ? savedFiles : undefined,
       };
     } catch (error) {
       this.logger.error('Failed to process webhook', error);
