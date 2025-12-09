@@ -77,7 +77,9 @@
       "Bash(workspace/test-project/test-file-watcher.txt)",
       "Bash(workspace/test-project/test-file-2.txt)",
       "Bash(workspace/test-project/test-file-3.txt)",
-      "Bash(workspace/test-project/test-file-final.txt)"
+      "Bash(workspace/test-project/test-file-final.txt)",
+      "Bash(ls:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

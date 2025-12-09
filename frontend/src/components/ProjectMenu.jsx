@@ -38,8 +38,9 @@ import EmailConfiguration from './EmailConfiguration';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
 import Scrapbook from './Scrapbook';
+import Configuration from './Configuration';
 
-export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange }) {
+export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -67,6 +68,14 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  // Open About dialog with Configuration tab when configuration is required
+  useEffect(() => {
+    if (showConfigurationRequired) {
+      setAboutOpen(true);
+      setCurrentTab(3); // Configuration tab index
+    }
+  }, [showConfigurationRequired]);
 
   useEffect(() => {
     if (currentProject) {
@@ -550,6 +559,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <Tab label="Intention" />
           <Tab label="How it works" />
           <Tab label="How to create your own solution" />
+          <Tab label="Configuration" />
         </Tabs>
         <DialogContent>
           {currentTab === 0 && (
@@ -605,12 +615,23 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
                 <li>move the specification to the directory 'requirement-docs'</li>
               </Box>
               <Box component="ul" sx={{ color: 'text.secondary', mt: 2, pl: 2 }}>
-             
+
                 With spec-driven coding the specification is the most important artifact. You can recreate a
                 more sophisticated implementations later on using more capable AI models.<br/><br/> In modern
-                DevOps environments IaC is a common approach - with application development the specifications will 
+                DevOps environments IaC is a common approach - with application development the specifications will
                 have the same importance as Terraform scripts nowadays for IaC.
               </Box>
+            </Box>
+          )}
+
+          {currentTab === 3 && (
+            <Box sx={{ minHeight: '400px' }}>
+              <Configuration onSave={() => {
+                if (onConfigurationSaved) {
+                  onConfigurationSaved();
+                }
+                handleAboutClose();
+              }} />
             </Box>
           )}
         </DialogContent>

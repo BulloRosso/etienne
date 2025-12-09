@@ -444,6 +444,13 @@ export class ClaudeSdkOrchestratorService {
               this.logger.debug(`📡 Stream event text delta: ${text.length} chars`);
               assistantText += text;
 
+              // Add text chunk to structured messages for persistence
+              structuredMessages.push({
+                type: 'text_chunk',
+                content: text,
+                timestamp: Date.now()
+              });
+
               // Stream immediately when not buffering
               if (!shouldBufferOutput) {
                 observer.next({

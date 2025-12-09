@@ -10,10 +10,10 @@ import { MdInfo } from "react-icons/md";
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
-import { StructuredMessage } from './StructuredMessage';
+import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, planApprovalState = {}, onPlanApprove, onPlanReject }) {
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
@@ -244,6 +244,9 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             ? structuredMessages
             : (msg.reasoningSteps || []);
 
+          // Show streaming state for last assistant message when actively streaming
+          const isStreaming = streaming && isLastMessage && isAssistant;
+
           return (
             <ChatMessage
               key={idx}
@@ -253,23 +256,25 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               usage={msg.usage}
               contextName={msg.contextName}
               reasoningSteps={reasoningStepsToShow}
+              planApprovalState={planApprovalState}
+              onPlanApprove={onPlanApprove}
+              onPlanReject={onPlanReject}
+              isStreaming={isStreaming}
             />
           );
         })}
 
-        {/* If no messages yet, or last message is not assistant, show structured messages at the end */}
+        {/* If no messages yet, or last message is not assistant, show streaming timeline */}
         {(messages.length === 0 || messages[messages.length - 1]?.role !== 'assistant') &&
           structuredMessages.length > 0 && (
-          <>
-            {structuredMessages.map((msg) => (
-              <StructuredMessage
-                key={msg.id}
-                message={msg}
-                onPermissionResponse={handlePermissionResponse}
-                projectName={projectName}
-              />
-            ))}
-          </>
+          <Box sx={{ px: 2 }}>
+            <StreamingTimeline
+              items={structuredMessages}
+              planApprovalState={planApprovalState}
+              onPlanApprove={onPlanApprove}
+              onPlanReject={onPlanReject}
+            />
+          </Box>
         )}
 
         {showTypingIndicator && <TypingIndicator />}

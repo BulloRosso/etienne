@@ -4,17 +4,48 @@ import { ExpandMore, ExpandLess, Label } from '@mui/icons-material';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import ToolCallTimeline from './ToolCallTimeline';
-import TextSegmentTimeline from './TextSegmentTimeline';
-import { TodoListDisplay } from './StructuredMessage';
+import StreamingTimeline from './StreamingTimeline';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
 
-export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [] }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], planApprovalState = {}, onPlanApprove, onPlanReject, isStreaming = false }) {
   const isUser = role === 'user';
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const { currentProject } = useProject();
   const contentRef = useRef(null);
+  const streamStartTimeRef = useRef(null);
+
+  // Track elapsed time during streaming
+  useEffect(() => {
+    if (isStreaming) {
+      // Start tracking time
+      if (!streamStartTimeRef.current) {
+        streamStartTimeRef.current = Date.now();
+      }
+
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - streamStartTimeRef.current) / 1000);
+        setElapsedSeconds(elapsed);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      // Reset when streaming stops
+      streamStartTimeRef.current = null;
+      setElapsedSeconds(0);
+    }
+  }, [isStreaming]);
+
+  // Format elapsed time as "Xs" or "Xm Ys"
+  const formatElapsedTime = (seconds) => {
+    if (seconds < 60) {
+      return `${seconds}s`;
+    }
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
 
   // Parse markdown for all messages
   const renderedContent = useMemo(() => {
@@ -226,60 +257,9 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   }
 
   // Assistant messages - render WITHOUT bubble, with 40px left margin
-  // Merge text chunks and tool calls by timestamp
-
-  // Separate TodoWrite from other items
-  const todoWriteSteps = reasoningSteps.filter(step => step.toolName === 'TodoWrite');
+  // Check if we have reasoning steps with text chunks for timeline format
   const textChunks = reasoningSteps.filter(step => step.type === 'text_chunk');
-  const toolSteps = reasoningSteps.filter(step => step.type === 'tool_call');
-
-  // Merge text chunks into continuous text segments based on temporal proximity
-  // Group text chunks that are close together (within 100ms) into single text blocks
-  const textSegments = [];
-  let currentSegment = null;
-
-  textChunks.forEach(chunk => {
-    if (!currentSegment || (chunk.timestamp - currentSegment.lastTimestamp > 100)) {
-      // Start new segment
-      currentSegment = {
-        type: 'text',
-        content: chunk.content,
-        timestamp: chunk.timestamp,
-        lastTimestamp: chunk.timestamp
-      };
-      textSegments.push(currentSegment);
-    } else {
-      // Append to current segment
-      currentSegment.content += chunk.content;
-      currentSegment.lastTimestamp = chunk.timestamp;
-    }
-  });
-
-  // Merge text segments and tool calls, sorted by timestamp
-  const allItems = [
-    ...textSegments.map(seg => ({ ...seg, type: 'text', sortTime: seg.timestamp })),
-    ...toolSteps.map(tool => ({ ...tool, type: 'tool', sortTime: tool.timestamp || 0 }))
-  ].sort((a, b) => a.sortTime - b.sortTime);
-
-  // Debug: log the sorted timeline
-  if (allItems.length > 0) {
-    console.log('Timeline items sorted:', allItems.map(item => ({
-      type: item.type,
-      timestamp: item.sortTime,
-      preview: item.type === 'text' ? item.content.substring(0, 30) : item.toolName
-    })));
-  }
-
-  // Create timeline items
-  const timelineItems = allItems.map((item, idx) => ({
-    type: item.type,
-    content: item.type === 'text' ? item.content : item,
-    key: item.type === 'text' ? `text-${item.timestamp}-${idx}` : `tool-${item.id || idx}`
-  }));
-
-  // Use timeline format only when we have both text chunks AND tool calls
-  // If we only have tool calls, we still want to show the original text
-  const useTimelineFormat = timelineItems.length > 0 && textChunks.length > 0;
+  const useTimelineFormat = reasoningSteps.length > 0 && textChunks.length > 0;
 
   return (
     <Box sx={{
@@ -288,38 +268,16 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
       mb: 2,
       px: 2
     }}>
-      <Box sx={{ width: '100%', pl: '40px' }}>
-        {/* Always visible TodoWrite section */}
-        {todoWriteSteps.length > 0 && (
-          <Box sx={{ mb: 2 }}>
-            {todoWriteSteps.map((step, idx) => {
-              const todos = step.args?.todos || step.args?.newTodos || step.args?.oldTodos;
-              return (
-                <TodoListDisplay key={step.id || idx} todos={todos} />
-              );
-            })}
-          </Box>
+      <Box sx={{ width: '100%' }}>
+        {/* Timeline format: use StreamingTimeline for unified rendering */}
+        {useTimelineFormat && (
+          <StreamingTimeline
+            items={reasoningSteps}
+            planApprovalState={planApprovalState}
+            onPlanApprove={onPlanApprove}
+            onPlanReject={onPlanReject}
+          />
         )}
-
-        {/* Timeline format: interleaved text and tool calls */}
-        {useTimelineFormat && timelineItems.map((item, idx) => {
-          // Determine if we should show a bullet point (only on type transitions)
-          const prevItem = idx > 0 ? timelineItems[idx - 1] : null;
-          const showBullet = !prevItem || prevItem.type !== item.type;
-
-          return item.type === 'text' ? (
-            <TextSegmentTimeline key={item.key} text={item.content} showBullet={showBullet} />
-          ) : (
-            <ToolCallTimeline
-              key={item.key}
-              toolName={item.content.toolName}
-              args={item.content.args}
-              result={item.content.result}
-              description={item.content.description}
-              showBullet={showBullet}
-            />
-          );
-        })}
 
         {/* Non-timeline format: just show text normally */}
         {!useTimelineFormat && text && (
@@ -330,6 +288,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               fontSize: '14px',
               wordBreak: 'break-word',
               mb: 2,
+              pl: '40px',
               '& p': { margin: '0 0 0.5em 0' },
               '& p:last-child': { marginBottom: 0 },
               '& ul, & ol': { marginLeft: 0, paddingLeft: '1.2em', marginTop: '20px', marginBottom: '20px' },
@@ -381,7 +340,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
 
         {/* Token consumption pane - moved to bottom */}
         {usage && (
-          <Box sx={{ mt: 2, mb: 1 }}>
+          <Box sx={{ mt: 2, mb: 1, pl: '40px' }}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', mb: 0.5 }}>
               <Typography variant="caption" sx={{ color: '#999', fontSize: '11px', mr: 0.5 }}>
                 Costs
@@ -400,18 +359,20 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
           </Box>
         )}
 
-        {/* Timestamp */}
+        {/* Timestamp - show elapsed time during streaming, actual time after */}
         <Typography
           variant="caption"
           sx={{
             display: 'block',
             mt: 0.5,
-            color: '#999',
+            pl: '40px',
+            color: isStreaming ? '#2196f3' : '#999',
             fontSize: '11px',
-            textAlign: 'left'
+            textAlign: 'left',
+            fontWeight: isStreaming ? 500 : 400
           }}
         >
-          {timestamp}
+          {isStreaming ? `Elapsed: ${formatElapsedTime(elapsedSeconds)}` : timestamp}
         </Typography>
       </Box>
     </Box>
