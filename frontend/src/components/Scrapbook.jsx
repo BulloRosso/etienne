@@ -17,7 +17,7 @@ import {
   CircularProgress,
   Paper,
 } from '@mui/material';
-import { MoreVert, DataObject, AccountTree, NoteAdd, Download } from '@mui/icons-material';
+import { MoreVert, DataObject, AccountTree, NoteAdd, Download, TextFields } from '@mui/icons-material';
 import {
   ReactFlow,
   Controls,
@@ -28,17 +28,24 @@ import {
   ReactFlowProvider,
   Panel,
   SelectionMode,
+  addEdge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import ScrapbookNode from './ScrapbookNode';
 import StickyNoteNode from './StickyNoteNode';
+import ScrapbookEdge from './ScrapbookEdge';
 import ScrapbookTopics from './ScrapbookTopics';
 import ScrapbookNodeEdit from './ScrapbookNodeEdit';
+import CreateFromTextDialog from './CreateFromTextDialog';
 
 const nodeTypes = {
   scrapbookNode: ScrapbookNode,
   stickyNote: StickyNoteNode,
+};
+
+const edgeTypes = {
+  scrapbookEdge: ScrapbookEdge,
 };
 
 // Wrapper component to provide ReactFlow context
@@ -62,6 +69,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const [editParentNode, setEditParentNode] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState(null);
+  const [createFromTextOpen, setCreateFromTextOpen] = useState(false);
   const intentionalUnselectRef = useRef(false);
 
   // React Flow state
@@ -274,10 +282,10 @@ function ScrapbookInner({ projectName, onClose }) {
     }
   }, [projectName]);
 
-  // Fetch all nodes as flat list
+  // Fetch all nodes as flat list with group info
   const fetchAllNodes = useCallback(async () => {
     try {
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes`);
+      const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes-with-groups`);
       if (response.ok) {
         const data = await response.json();
         setAllNodes(data || []);
@@ -378,6 +386,67 @@ function ScrapbookInner({ projectName, onClose }) {
     };
   }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, savedPositions]);
 
+  // Handle edge (connection) deletion - orphan the child node
+  const handleEdgeDelete = useCallback(async (childId) => {
+    // childId is passed directly from ScrapbookEdge component
+    if (!childId) return;
+
+    try {
+      // Update parent to null (orphan the node)
+      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: null }),
+      });
+
+      // Refresh tree and nodes
+      await fetchTree();
+      await fetchAllNodes();
+    } catch (error) {
+      console.error('Failed to delete connection:', error);
+    }
+  }, [projectName, fetchTree, fetchAllNodes]);
+
+  // Handle new connection between nodes
+  const handleConnect = useCallback(async (connection) => {
+    // connection.source is the new parent, connection.target is the child
+    const newParentId = connection.source;
+    const childId = connection.target;
+
+    // Don't allow connecting to itself
+    if (newParentId === childId) return;
+
+    // Find the child node to check if it already has a parent
+    const childNode = allNodes.find(n => n.id === childId);
+    if (!childNode) return;
+
+    // Don't allow connecting root node as a child
+    if (childNode.type === 'ProjectTheme') {
+      console.warn('Cannot connect root node as a child');
+      return;
+    }
+
+    // Check if it already has a parent (would create multiple parents)
+    if (childNode.parentId && childNode.parentId !== newParentId) {
+      // The node already has a parent - this will replace it
+      console.log(`Replacing parent of ${childId} from ${childNode.parentId} to ${newParentId}`);
+    }
+
+    try {
+      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: newParentId }),
+      });
+
+      // Refresh tree and nodes
+      await fetchTree();
+      await fetchAllNodes();
+    } catch (error) {
+      console.error('Failed to create connection:', error);
+    }
+  }, [projectName, allNodes, fetchTree, fetchAllNodes]);
+
   // Convert tree to React Flow nodes and edges
   useEffect(() => {
     if (!tree) {
@@ -436,8 +505,8 @@ function ScrapbookInner({ projectName, onClose }) {
             target: category.id,
             sourceHandle: 'bottom',
             targetHandle: 'top',
-            type: 'smoothstep',
-            style: { stroke: '#000', strokeWidth: 1 },
+            type: 'scrapbookEdge',
+            data: { onDelete: handleEdgeDelete },
           });
 
           // Process subcategories only if category is expanded
@@ -456,8 +525,8 @@ function ScrapbookInner({ projectName, onClose }) {
                 target: sub.id,
                 sourceHandle: 'bottom',
                 targetHandle: 'left',
-                type: 'smoothstep',
-                style: { stroke: '#000', strokeWidth: 1 },
+                type: 'scrapbookEdge',
+                data: { onDelete: handleEdgeDelete },
               });
 
               // Process deeper levels recursively with same indent pattern
@@ -476,8 +545,8 @@ function ScrapbookInner({ projectName, onClose }) {
                     target: child.id,
                     sourceHandle: 'bottom',
                     targetHandle: 'left',
-                    type: 'smoothstep',
-                    style: { stroke: '#000', strokeWidth: 1 },
+                    type: 'scrapbookEdge',
+                    data: { onDelete: handleEdgeDelete },
                   });
                   processDeeper(child, childX, childY, depth + 1);
                   childY += VERTICAL_SPACING;
@@ -524,8 +593,8 @@ function ScrapbookInner({ projectName, onClose }) {
             target: nodeId,
             sourceHandle: 'bottom',
             targetHandle: isCategory ? 'top' : 'left',
-            type: 'smoothstep',
-            style: { stroke: '#000', strokeWidth: 1 },
+            type: 'scrapbookEdge',
+            data: { onDelete: handleEdgeDelete },
           });
         }
 
@@ -540,13 +609,76 @@ function ScrapbookInner({ projectName, onClose }) {
       processNode(tree, 0, null);
     }
 
+    // Add orphan nodes (nodes without a parent that are not the root)
+    // These are nodes that had their connection removed
+    // Also need to render their children (which still have parentId pointing to the orphan)
+    const treeNodeIds = new Set(flowNodes.map(n => n.id));
+    const orphanRoots = allNodes.filter(node =>
+      !node.parentId &&
+      node.type !== 'ProjectTheme' &&
+      !treeNodeIds.has(node.id)
+    );
+
+    // Build a map of parent -> children from allNodes
+    const childrenByParent = new Map();
+    allNodes.forEach(node => {
+      if (node.parentId) {
+        if (!childrenByParent.has(node.parentId)) {
+          childrenByParent.set(node.parentId, []);
+        }
+        childrenByParent.get(node.parentId).push(node);
+      }
+    });
+
+    // Recursively render orphan subtrees
+    const renderOrphanSubtree = (node, baseX, baseY, depth) => {
+      const savedPos = savedPositions[node.id];
+      const x = savedPos?.x ?? baseX;
+      const y = savedPos?.y ?? baseY;
+      const isExpanded = expandedNodes.has(node.id);
+      const children = childrenByParent.get(node.id) || [];
+
+      // Create a node object with children info for proper rendering
+      const nodeWithChildren = {
+        ...node,
+        children: children,
+      };
+
+      flowNodes.push(createFlowNode(nodeWithChildren, x, y, isExpanded));
+
+      // Add edges and render children if expanded
+      if (isExpanded && children.length > 0) {
+        let childY = y + 120;
+        children.forEach((child) => {
+          const childX = x + 50;
+          flowEdges.push({
+            id: `${node.id}-${child.id}`,
+            source: node.id,
+            target: child.id,
+            sourceHandle: 'bottom',
+            targetHandle: 'left',
+            type: 'scrapbookEdge',
+            data: { onDelete: handleEdgeDelete },
+          });
+          renderOrphanSubtree(child, childX, childY, depth + 1);
+          childY += 120;
+        });
+      }
+    };
+
+    orphanRoots.forEach((orphan, index) => {
+      const defaultX = 800 + (index % 3) * 300;
+      const defaultY = 100 + Math.floor(index / 3) * 200;
+      renderOrphanSubtree(orphan, defaultX, defaultY, 0);
+    });
+
     // Preserve sticky notes when updating scrapbook nodes
     setNodes(prevNodes => {
       const existingStickyNodes = prevNodes.filter(n => n.id.startsWith('sticky-'));
       return [...flowNodes, ...existingStickyNodes];
     });
     setEdges(flowEdges);
-  }, [tree, expandedNodes, selectedNode, autoLayoutMode, savedPositions]);
+  }, [tree, expandedNodes, selectedNode, autoLayoutMode, savedPositions, handleEdgeDelete, allNodes]);
 
   // Effect for creating/removing sticky notes (only when stickyNotes array changes)
   useEffect(() => {
@@ -706,10 +838,13 @@ function ScrapbookInner({ projectName, onClose }) {
       borderWidth = 1;
     }
 
+    // Check if node is part of a group (from allNodes which has group info)
+    const nodeWithGroupInfo = allNodes.find(n => n.id === nodeId);
+    const isInGroup = !!nodeWithGroupInfo?.groupId;
+
     // Determine color based on attention weight (heatmap style)
+    // If in a group, use orange shades instead of blue
     // Attention weight: 0.0 to 1.0, mapped to 10% steps
-    // Font/border: navy (100%) to light blue (1%)
-    // Background: solid blue (100%) to very light blue (1%)
     let borderColor = '#000000';
     let backgroundColor = '#ffffff';
     const isActive = selectedNode?.id === nodeId;
@@ -725,7 +860,34 @@ function ScrapbookInner({ projectName, onClose }) {
       if (priority <= 1 && attention <= 0.01) {
         borderColor = '#000000';
         backgroundColor = '#ffffff';
+      } else if (isInGroup) {
+        // ORANGE SHADES for grouped nodes (alternative options)
+        // Round attention to nearest 10% step (0.0, 0.1, 0.2, ... 1.0)
+        const step = Math.round(attention * 10) / 10; // 0.0 to 1.0 in 0.1 increments
+
+        // Dark orange RGB: (230, 81, 0) for 100% attention - #e65100
+        // Light orange RGB: (255, 224, 178) for 1% attention - #ffe0b2
+        const darkOrangeR = 230, darkOrangeG = 81, darkOrangeB = 0;
+        const lightOrangeR = 255, lightOrangeG = 224, lightOrangeB = 178;
+
+        // Border/font color: interpolate from light orange (low attention) to dark orange (high attention)
+        const borderR = Math.round(lightOrangeR + (darkOrangeR - lightOrangeR) * step);
+        const borderG = Math.round(lightOrangeG + (darkOrangeG - lightOrangeG) * step);
+        const borderB = Math.round(lightOrangeB + (darkOrangeB - lightOrangeB) * step);
+        borderColor = `rgb(${borderR}, ${borderG}, ${borderB})`;
+
+        // Background color: very light orange (low attention) to light solid orange (high attention)
+        // Low attention: almost white with hint of orange (255, 248, 241) - seashell-ish
+        // High attention: light solid orange (255, 183, 77) - #ffb74d
+        const bgLowR = 255, bgLowG = 248, bgLowB = 241;
+        const bgHighR = 255, bgHighG = 183, bgHighB = 77;
+
+        const bgR = Math.round(bgLowR + (bgHighR - bgLowR) * step);
+        const bgG = Math.round(bgLowG + (bgHighG - bgLowG) * step);
+        const bgB = Math.round(bgLowB + (bgHighB - bgLowB) * step);
+        backgroundColor = `rgb(${bgR}, ${bgG}, ${bgB})`;
       } else {
+        // BLUE SHADES for non-grouped nodes
         // Attention-based heatmap coloring
         // Round attention to nearest 10% step (0.0, 0.1, 0.2, ... 1.0)
         const step = Math.round(attention * 10) / 10; // 0.0 to 1.0 in 0.1 increments
@@ -761,6 +923,7 @@ function ScrapbookInner({ projectName, onClose }) {
       position: { x: finalX, y: finalY },
       data: {
         ...node,
+        projectName,
         isExpanded,
         hasChildren,
         borderWidth,
@@ -1064,6 +1227,7 @@ function ScrapbookInner({ projectName, onClose }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedNode, tabValue, editDialogOpen, deleteConfirmOpen, deleteNodeDirect]);
 
+
   const handleNodeSaved = async () => {
     setEditDialogOpen(false);
     await fetchTree();
@@ -1114,6 +1278,10 @@ function ScrapbookInner({ projectName, onClose }) {
             <ListItemIcon><DataObject fontSize="small" /></ListItemIcon>
             <ListItemText>Use example data</ListItemText>
           </MenuItem>
+          <MenuItem onClick={() => { setCreateFromTextOpen(true); setOptionsAnchor(null); }}>
+            <ListItemIcon><TextFields fontSize="small" /></ListItemIcon>
+            <ListItemText>Create from text</ListItemText>
+          </MenuItem>
           <MenuItem onClick={handleAutoLayout} disabled={!tree}>
             <ListItemIcon><AccountTree fontSize="small" /></ListItemIcon>
             <ListItemText>Auto-layout</ListItemText>
@@ -1157,7 +1325,9 @@ function ScrapbookInner({ projectName, onClose }) {
                   }
                 }}
                 onEdgesChange={onEdgesChange}
+                onConnect={handleConnect}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 snapToGrid={true}
                 snapGrid={[12, 12]}
                 onNodeClick={(_event, node) => {
@@ -1258,6 +1428,10 @@ function ScrapbookInner({ projectName, onClose }) {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: 'rgba(0, 100, 255, 0.1)', border: '2px solid rgb(0, 100, 255)' }} />
                         <Typography variant="caption">High priority & attention</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: '#ffb74d', border: '2px solid #e65100' }} />
+                        <Typography variant="caption">Alternative option (grouped)</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: '#fffde7', border: '2px solid gold' }} />
@@ -1366,6 +1540,17 @@ function ScrapbookInner({ projectName, onClose }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Create from Text Dialog */}
+      <CreateFromTextDialog
+        open={createFromTextOpen}
+        onClose={() => setCreateFromTextOpen(false)}
+        projectName={projectName}
+        onCreated={async () => {
+          await fetchTree();
+          await fetchAllNodes();
+        }}
+      />
     </Box>
   );
 }

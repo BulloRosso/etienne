@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
+import OpenAI from 'openai';
 
 // Generate UUID v4 using native crypto
 function uuidv4(): string {
@@ -32,6 +33,18 @@ export interface ScrapbookNode {
   images?: string[];
   parentId?: string;
   customProperties?: Record<string, string | number>; // key = property id, value = property value
+  groupId?: string; // ID of the group this node belongs to (if any)
+  groupName?: string; // Name of the group (populated when fetching)
+}
+
+/**
+ * Alternative group interface - represents a set of alternative options
+ */
+export interface AlternativeGroup {
+  id: string;
+  name: string;
+  parentNodeId: string; // The parent node that has this group
+  memberIds: string[]; // IDs of nodes that are members of this group
 }
 
 /**
@@ -370,6 +383,86 @@ export class ScrapbookService {
 
     this.logger.log(`Updated scrapbook node: ${updatedNode.label} (${nodeId})`);
     return updatedNode;
+  }
+
+  /**
+   * Update the parent of a node (change connection)
+   */
+  async updateNodeParent(project: string, nodeId: string, newParentId: string | null): Promise<ScrapbookNode> {
+    this.ensureQuadstoreAvailable();
+
+    const node = await this.getNode(project, nodeId);
+    if (!node) {
+      throw new NotFoundException(`Node ${nodeId} not found`);
+    }
+
+    if (node.type === 'ProjectTheme') {
+      throw new BadRequestException('Cannot change parent of root node');
+    }
+
+    // Validate new parent exists (if not null)
+    if (newParentId) {
+      const newParent = await this.getNode(project, newParentId);
+      if (!newParent) {
+        throw new NotFoundException(`New parent node ${newParentId} not found`);
+      }
+
+      // Prevent circular references - check if newParentId is a descendant of nodeId
+      const isDescendant = await this.isDescendantOf(project, newParentId, nodeId);
+      if (isDescendant) {
+        throw new BadRequestException('Cannot set a descendant as parent (circular reference)');
+      }
+    }
+
+    const namespace = this.getProjectNamespace(project);
+    const nodeUri = `${this.baseUri}${nodeId}`;
+
+    // Remove existing parent relationship
+    if (node.parentId) {
+      try {
+        await axios.delete(`${QUADSTORE_URL}/${namespace}/quad`, {
+          data: {
+            subject: nodeUri,
+            predicate: `${this.baseUri}hasParent`,
+            object: `${this.baseUri}${node.parentId}`,
+            objectType: 'namedNode'
+          }
+        });
+      } catch (e) {
+        this.logger.warn(`Failed to delete old parent relationship: ${e.message}`);
+      }
+    }
+
+    // Add new parent relationship if provided
+    if (newParentId) {
+      await axios.post(`${QUADSTORE_URL}/${namespace}/quad`, {
+        subject: nodeUri,
+        predicate: `${this.baseUri}hasParent`,
+        object: `${this.baseUri}${newParentId}`,
+        objectType: 'namedNode'
+      });
+    }
+
+    this.logger.log(`Updated parent of node ${nodeId} from ${node.parentId || 'none'} to ${newParentId || 'none'}`);
+
+    // Return updated node
+    return await this.getNode(project, nodeId);
+  }
+
+  /**
+   * Check if a node is a descendant of another node
+   */
+  private async isDescendantOf(project: string, nodeId: string, potentialAncestorId: string): Promise<boolean> {
+    const children = await this.getChildren(project, potentialAncestorId);
+    for (const child of children) {
+      if (child.id === nodeId) {
+        return true;
+      }
+      if (await this.isDescendantOf(project, nodeId, child.id)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -789,5 +882,560 @@ export class ScrapbookService {
     }
 
     return node as ScrapbookNode;
+  }
+
+  /**
+   * Create scrapbook from text using LLM extraction
+   */
+  async createFromText(project: string, text: string): Promise<ScrapbookNode> {
+    this.ensureQuadstoreAvailable();
+
+    if (!text || text.trim().length === 0) {
+      throw new BadRequestException('Text content is required');
+    }
+
+    // Delete existing mindmap data if any
+    const existingRoot = await this.getRootNode(project);
+    if (existingRoot) {
+      const allNodes = await this.getAllNodes(project);
+      const namespace = this.getProjectNamespace(project);
+
+      // Delete all nodes
+      for (const node of allNodes) {
+        const nodeUri = `${this.baseUri}${node.id}`;
+        try {
+          await axios.delete(`${QUADSTORE_URL}/${namespace}/entity/${encodeURIComponent(nodeUri)}`);
+        } catch (e) {
+          // Ignore deletion errors
+        }
+      }
+      this.logger.log(`Cleared existing scrapbook data for project: ${project}`);
+    }
+
+    // Load the extraction prompt
+    const promptPath = path.join(__dirname, '..', 'prompts', 'scrapbook-extraction.md');
+    let systemPrompt: string;
+    try {
+      systemPrompt = await fs.readFile(promptPath, 'utf-8');
+    } catch (error) {
+      this.logger.error(`Failed to load extraction prompt: ${error.message}`);
+      throw new BadRequestException('Failed to load extraction prompt');
+    }
+
+    // Call OpenAI to extract structure
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Define the JSON schema for structured output
+    const schema = {
+      type: 'object',
+      properties: {
+        root: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['ProjectTheme'] },
+            label: { type: 'string' },
+            description: { type: 'string' },
+            priority: { type: 'number' },
+            attentionWeight: { type: 'number' },
+            iconName: { type: 'string' },
+            children: {
+              type: 'array',
+              items: { $ref: '#/$defs/node' },
+            },
+          },
+          required: ['type', 'label', 'description', 'priority', 'attentionWeight', 'iconName', 'children'],
+          additionalProperties: false,
+        },
+      },
+      required: ['root'],
+      additionalProperties: false,
+      $defs: {
+        node: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['Category', 'Subcategory', 'Concept', 'Attribute'] },
+            label: { type: 'string' },
+            description: { type: 'string' },
+            priority: { type: 'number' },
+            attentionWeight: { type: 'number' },
+            iconName: { type: 'string' },
+            alternativeGroup: { type: 'string' },
+            children: {
+              type: 'array',
+              items: { $ref: '#/$defs/node' },
+            },
+          },
+          required: ['type', 'label', 'description', 'priority', 'attentionWeight', 'iconName', 'children'],
+          additionalProperties: false,
+        },
+      },
+    };
+
+    try {
+      const response = await openai.responses.create({
+        model: 'gpt-4.1-mini',
+        instructions: systemPrompt,
+        input: text,
+        temperature: 0.3,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'scrapbook_extraction',
+            schema: schema,
+          },
+        },
+      });
+
+      // Extract the structured output from the response
+      const outputItem = response.output.find((item: any) => item.type === 'message');
+      if (!outputItem || !outputItem.content) {
+        throw new Error('No message content in response');
+      }
+
+      const textContent = outputItem.content.find((c: any) => c.type === 'output_text');
+      if (!textContent) {
+        throw new Error('No text content in response');
+      }
+
+      const result = JSON.parse(textContent.text);
+      this.logger.log(`Extracted scrapbook structure: ${JSON.stringify(result, null, 2)}`);
+
+      // Create nodes from the extracted structure
+      const rootData = result.root;
+      const root = await this.createNode(project, {
+        type: 'ProjectTheme',
+        label: rootData.label,
+        description: rootData.description,
+        priority: rootData.priority,
+        attentionWeight: rootData.attentionWeight,
+        iconName: rootData.iconName,
+      });
+
+      // Recursively create child nodes and track alternative groups
+      const createChildren = async (parentId: string, children: any[], depth: number): Promise<Map<string, string[]>> => {
+        // Map to track alternativeGroup -> nodeIds for this level
+        const alternativeGroupsMap = new Map<string, string[]>();
+
+        if (!children || children.length === 0) return alternativeGroupsMap;
+
+        for (const child of children) {
+          // Determine type based on depth if not specified
+          let nodeType = child.type;
+          if (!nodeType) {
+            if (depth === 1) nodeType = 'Category';
+            else if (depth === 2) nodeType = 'Subcategory';
+            else if (depth === 3) nodeType = 'Concept';
+            else nodeType = 'Attribute';
+          }
+
+          const node = await this.createNode(project, {
+            type: nodeType as NodeType,
+            label: child.label,
+            description: child.description,
+            priority: child.priority || 5,
+            attentionWeight: child.attentionWeight || 0.5,
+            iconName: child.iconName,
+          }, parentId);
+
+          // Track alternative group if specified
+          if (child.alternativeGroup) {
+            const groupName = child.alternativeGroup;
+            if (!alternativeGroupsMap.has(groupName)) {
+              alternativeGroupsMap.set(groupName, []);
+            }
+            alternativeGroupsMap.get(groupName)!.push(node.id);
+          }
+
+          // Process nested children
+          if (child.children && child.children.length > 0) {
+            const nestedGroups = await createChildren(node.id, child.children, depth + 1);
+            // Process nested alternative groups at each level
+            for (const [groupName, nodeIds] of nestedGroups.entries()) {
+              if (nodeIds.length >= 2) {
+                try {
+                  await this.assignNodesToGroup(project, nodeIds, groupName);
+                  this.logger.log(`Created alternative group "${groupName}" with ${nodeIds.length} nodes`);
+                } catch (error: any) {
+                  this.logger.warn(`Failed to create alternative group "${groupName}": ${error.message}`);
+                }
+              }
+            }
+          }
+        }
+
+        return alternativeGroupsMap;
+      };
+
+      if (rootData.children && rootData.children.length > 0) {
+        const topLevelGroups = await createChildren(root.id, rootData.children, 1);
+        // Process any top-level alternative groups
+        for (const [groupName, nodeIds] of topLevelGroups.entries()) {
+          if (nodeIds.length >= 2) {
+            try {
+              await this.assignNodesToGroup(project, nodeIds, groupName);
+              this.logger.log(`Created alternative group "${groupName}" with ${nodeIds.length} nodes`);
+            } catch (error: any) {
+              this.logger.warn(`Failed to create alternative group "${groupName}": ${error.message}`);
+            }
+          }
+        }
+      }
+
+      this.logger.log(`Created scrapbook from text for project: ${project}`);
+      return root;
+    } catch (error: any) {
+      this.logger.error(`Failed to create scrapbook from text: ${error.message}`);
+      throw new BadRequestException(`Failed to extract scrapbook structure: ${error.message}`);
+    }
+  }
+
+  // ==================== GROUP MANAGEMENT ====================
+
+  /**
+   * Assign nodes to a group (creates new group or adds to existing)
+   * A node can only be part of one group at a time - if it's already in a group, it will be moved
+   */
+  async assignNodesToGroup(
+    project: string,
+    nodeIds: string[],
+    groupName: string,
+  ): Promise<AlternativeGroup> {
+    this.ensureQuadstoreAvailable();
+
+    if (!nodeIds || nodeIds.length < 2) {
+      throw new BadRequestException('At least 2 nodes are required to form a group');
+    }
+
+    // Validate all nodes exist and have the same parent
+    const nodes: ScrapbookNode[] = [];
+    let commonParentId: string | undefined;
+
+    for (const nodeId of nodeIds) {
+      const node = await this.getNode(project, nodeId);
+      if (!node) {
+        throw new NotFoundException(`Node ${nodeId} not found`);
+      }
+      if (node.type === 'ProjectTheme') {
+        throw new BadRequestException('Cannot add root node to a group');
+      }
+
+      // Check all nodes share the same parent
+      if (commonParentId === undefined) {
+        commonParentId = node.parentId;
+      } else if (node.parentId !== commonParentId) {
+        throw new BadRequestException('All nodes must share the same parent to form a group');
+      }
+
+      nodes.push(node);
+    }
+
+    if (!commonParentId) {
+      throw new BadRequestException('Nodes must have a parent to form a group');
+    }
+
+    const namespace = this.getProjectNamespace(project);
+
+    // Remove nodes from any existing groups first
+    for (const node of nodes) {
+      if (node.groupId) {
+        await this.removeNodeFromGroupInternal(project, node.id, node.groupId);
+      }
+    }
+
+    // Check if a group with this name already exists under this parent
+    let groupId: string | undefined;
+    const existingGroups = await this.getGroupsForParent(project, commonParentId);
+    const existingGroup = existingGroups.find(g => g.name === groupName);
+
+    if (existingGroup) {
+      groupId = existingGroup.id;
+    } else {
+      // Create a new group
+      groupId = uuidv4();
+      const groupUri = `${this.baseUri}group-${groupId}`;
+      const rdfType = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+
+      // Add group type
+      await axios.post(`${QUADSTORE_URL}/${namespace}/quad`, {
+        subject: groupUri,
+        predicate: rdfType,
+        object: `${this.baseUri}AlternativeGroup`,
+        objectType: 'namedNode'
+      });
+
+      // Add group name
+      await axios.post(`${QUADSTORE_URL}/${namespace}/quad`, {
+        subject: groupUri,
+        predicate: `${this.baseUri}groupName`,
+        object: groupName,
+        objectType: 'literal'
+      });
+
+      // Link group to parent node
+      const parentUri = `${this.baseUri}${commonParentId}`;
+      await axios.post(`${QUADSTORE_URL}/${namespace}/quad`, {
+        subject: parentUri,
+        predicate: `${this.baseUri}hasChildGroup`,
+        object: groupUri,
+        objectType: 'namedNode'
+      });
+    }
+
+    // Add nodes as members of the group
+    const groupUri = `${this.baseUri}group-${groupId}`;
+    for (const nodeId of nodeIds) {
+      const nodeUri = `${this.baseUri}${nodeId}`;
+      await axios.post(`${QUADSTORE_URL}/${namespace}/quad`, {
+        subject: groupUri,
+        predicate: `${this.baseUri}hasMember`,
+        object: nodeUri,
+        objectType: 'namedNode'
+      });
+    }
+
+    this.logger.log(`Assigned nodes ${nodeIds.join(', ')} to group "${groupName}" (${groupId})`);
+
+    return {
+      id: groupId,
+      name: groupName,
+      parentNodeId: commonParentId,
+      memberIds: nodeIds,
+    };
+  }
+
+  /**
+   * Remove a node from its group
+   */
+  async removeNodeFromGroup(project: string, nodeId: string): Promise<void> {
+    this.ensureQuadstoreAvailable();
+
+    const node = await this.getNode(project, nodeId);
+    if (!node) {
+      throw new NotFoundException(`Node ${nodeId} not found`);
+    }
+
+    // Find the group this node belongs to
+    const namespace = this.getProjectNamespace(project);
+    const nodeUri = `${this.baseUri}${nodeId}`;
+
+    try {
+      // Find all groups that have this node as a member
+      const response = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+        subject: null,
+        predicate: `${this.baseUri}hasMember`,
+        object: nodeUri
+      });
+
+      if (response.data.results && response.data.results.length > 0) {
+        for (const quad of response.data.results) {
+          const groupUri = quad.subject.value;
+          const groupId = groupUri.replace(`${this.baseUri}group-`, '');
+          await this.removeNodeFromGroupInternal(project, nodeId, groupId);
+        }
+      }
+    } catch (error: any) {
+      this.logger.error(`Failed to remove node from group: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Internal helper to remove a node from a specific group
+   */
+  private async removeNodeFromGroupInternal(
+    project: string,
+    nodeId: string,
+    groupId: string,
+  ): Promise<void> {
+    const namespace = this.getProjectNamespace(project);
+    const groupUri = `${this.baseUri}group-${groupId}`;
+    const nodeUri = `${this.baseUri}${nodeId}`;
+
+    try {
+      // Remove the hasMember relationship
+      await axios.delete(`${QUADSTORE_URL}/${namespace}/quad`, {
+        data: {
+          subject: groupUri,
+          predicate: `${this.baseUri}hasMember`,
+          object: nodeUri,
+          objectType: 'namedNode'
+        }
+      });
+
+      // Check if the group still has any members
+      const membersResponse = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+        subject: groupUri,
+        predicate: `${this.baseUri}hasMember`,
+        object: null
+      });
+
+      // If no members left, delete the group
+      if (!membersResponse.data.results || membersResponse.data.results.length === 0) {
+        await this.deleteGroup(project, groupId);
+      }
+
+      this.logger.log(`Removed node ${nodeId} from group ${groupId}`);
+    } catch (error: any) {
+      this.logger.warn(`Failed to remove node from group: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a group and all its relationships
+   */
+  private async deleteGroup(project: string, groupId: string): Promise<void> {
+    const namespace = this.getProjectNamespace(project);
+    const groupUri = `${this.baseUri}group-${groupId}`;
+
+    try {
+      // Delete all quads where group is the subject
+      await axios.delete(`${QUADSTORE_URL}/${namespace}/entity/${encodeURIComponent(groupUri)}`);
+
+      // Delete hasChildGroup relationship from parent
+      const parentResponse = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+        subject: null,
+        predicate: `${this.baseUri}hasChildGroup`,
+        object: groupUri
+      });
+
+      if (parentResponse.data.results) {
+        for (const quad of parentResponse.data.results) {
+          await axios.delete(`${QUADSTORE_URL}/${namespace}/quad`, {
+            data: {
+              subject: quad.subject.value,
+              predicate: `${this.baseUri}hasChildGroup`,
+              object: groupUri,
+              objectType: 'namedNode'
+            }
+          });
+        }
+      }
+
+      this.logger.log(`Deleted group ${groupId}`);
+    } catch (error: any) {
+      this.logger.warn(`Failed to delete group ${groupId}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all groups for a parent node
+   */
+  async getGroupsForParent(project: string, parentNodeId: string): Promise<AlternativeGroup[]> {
+    this.ensureQuadstoreAvailable();
+
+    const namespace = this.getProjectNamespace(project);
+    const parentUri = `${this.baseUri}${parentNodeId}`;
+
+    try {
+      // Find all groups linked to this parent
+      const response = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+        subject: parentUri,
+        predicate: `${this.baseUri}hasChildGroup`,
+        object: null
+      });
+
+      if (!response.data.results || response.data.results.length === 0) {
+        return [];
+      }
+
+      const groups: AlternativeGroup[] = [];
+
+      for (const quad of response.data.results) {
+        const groupUri = quad.object.value;
+        const groupId = groupUri.replace(`${this.baseUri}group-`, '');
+
+        // Get group name
+        const nameResponse = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+          subject: groupUri,
+          predicate: `${this.baseUri}groupName`,
+          object: null
+        });
+
+        const groupName = nameResponse.data.results?.[0]?.object?.value || 'Unknown';
+
+        // Get group members
+        const membersResponse = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+          subject: groupUri,
+          predicate: `${this.baseUri}hasMember`,
+          object: null
+        });
+
+        const memberIds = (membersResponse.data.results || [])
+          .map((m: any) => m.object.value.replace(this.baseUri, ''));
+
+        groups.push({
+          id: groupId,
+          name: groupName,
+          parentNodeId,
+          memberIds,
+        });
+      }
+
+      return groups;
+    } catch (error: any) {
+      this.logger.error(`Failed to get groups for parent: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Get group info for a specific node
+   */
+  async getNodeGroup(project: string, nodeId: string): Promise<{ groupId: string; groupName: string } | null> {
+    this.ensureQuadstoreAvailable();
+
+    const namespace = this.getProjectNamespace(project);
+    const nodeUri = `${this.baseUri}${nodeId}`;
+
+    try {
+      // Find groups that have this node as a member
+      const response = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+        subject: null,
+        predicate: `${this.baseUri}hasMember`,
+        object: nodeUri
+      });
+
+      if (!response.data.results || response.data.results.length === 0) {
+        return null;
+      }
+
+      // Get the first (and should be only) group
+      const groupUri = response.data.results[0].subject.value;
+      const groupId = groupUri.replace(`${this.baseUri}group-`, '');
+
+      // Get group name
+      const nameResponse = await axios.post(`${QUADSTORE_URL}/${namespace}/match`, {
+        subject: groupUri,
+        predicate: `${this.baseUri}groupName`,
+        object: null
+      });
+
+      const groupName = nameResponse.data.results?.[0]?.object?.value || 'Unknown';
+
+      return { groupId, groupName };
+    } catch (error: any) {
+      this.logger.error(`Failed to get node group: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get all nodes with their group info populated
+   */
+  async getAllNodesWithGroups(project: string): Promise<ScrapbookNode[]> {
+    const nodes = await this.getAllNodes(project);
+
+    // Populate group info for each node
+    for (const node of nodes) {
+      const groupInfo = await this.getNodeGroup(project, node.id);
+      if (groupInfo) {
+        node.groupId = groupInfo.groupId;
+        node.groupName = groupInfo.groupName;
+      }
+    }
+
+    return nodes;
   }
 }

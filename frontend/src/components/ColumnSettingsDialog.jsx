@@ -35,6 +35,7 @@ import {
 const DEFAULT_COLUMNS = [
   { id: 'icon', label: 'Icon', removable: false },
   { id: 'label', label: 'Title', removable: false },
+  { id: 'group', label: 'Group', removable: false },
   { id: 'images', label: 'Images', removable: false },
   { id: 'priority', label: 'Priority', removable: false },
   { id: 'attention', label: 'Attention', removable: false },

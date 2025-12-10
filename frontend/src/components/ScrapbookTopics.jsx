@@ -17,8 +17,13 @@ import {
   Dialog,
   DialogContent,
   TextField,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Checkbox,
 } from '@mui/material';
-import { Add, Edit, Delete, ArrowBack, FileDownload, Image, MoreHoriz, Close, ChevronLeft, ChevronRight, Settings } from '@mui/icons-material';
+import { Add, Edit, Delete, ArrowBack, FileDownload, Image, MoreHoriz, Close, ChevronLeft, ChevronRight, Settings, MoreVert, RemoveCircleOutline } from '@mui/icons-material';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
 import * as IoIcons from 'react-icons/io5';
@@ -44,6 +49,7 @@ const getIcon = (iconName) => {
 const DEFAULT_COLUMN_CONFIG = [
   { id: 'icon', visible: true },
   { id: 'label', visible: true },
+  { id: 'group', visible: true },
   { id: 'images', visible: true },
   { id: 'priority', visible: true },
   { id: 'attention', visible: true },
@@ -63,12 +69,20 @@ export default function ScrapbookTopics({
 }) {
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortField, setSortField] = useState('priority');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [sortField, setSortField] = useState('label');
+  const [sortDirection, setSortDirection] = useState('asc');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editNode, setEditNode] = useState(null);
   const [dragOverNodeId, setDragOverNodeId] = useState(null);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
+
+  // Selection state for group management
+  const [selectedNodeIds, setSelectedNodeIds] = useState(new Set());
+  const [groupName, setGroupName] = useState('Alternatives A');
+
+  // Context menu state
+  const [contextMenuAnchor, setContextMenuAnchor] = useState(null);
+  const [contextMenuNode, setContextMenuNode] = useState(null);
 
   // Inline editing state
   const [editingCell, setEditingCell] = useState(null); // { nodeId, propertyId }
@@ -88,17 +102,20 @@ export default function ScrapbookTopics({
   // Filter to visible columns only
   const visibleColumns = effectiveColumnConfig.filter(c => c.visible);
 
-  // Fetch children of the selected node
+  // Fetch children of the selected node with group info
   const fetchChildren = useCallback(async () => {
     if (!parentNode?.id) return;
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${parentNode.id}/children`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Fetched children:', data);
-        setChildren(data || []);
+      // Get all nodes with groups to have group info populated
+      const allNodesResponse = await fetch(`/api/workspace/${projectName}/scrapbook/nodes-with-groups`);
+      if (allNodesResponse.ok) {
+        const allNodes = await allNodesResponse.json();
+        // Filter to children of the parent node
+        const childNodes = allNodes.filter(n => n.parentId === parentNode.id);
+        console.log('Fetched children with groups:', childNodes);
+        setChildren(childNodes || []);
       }
     } catch (error) {
       console.error('Failed to fetch children:', error);
@@ -111,8 +128,20 @@ export default function ScrapbookTopics({
     fetchChildren();
   }, [fetchChildren]);
 
-  // Sort children
+  // Sort children - keep group items together, then sort by title ascending
   const sortedChildren = [...children].sort((a, b) => {
+    // First, sort by group (grouped items come together)
+    const aGroup = a.groupName || '';
+    const bGroup = b.groupName || '';
+    if (aGroup !== bGroup) {
+      // Items with groups come before items without groups
+      if (aGroup && !bGroup) return -1;
+      if (!aGroup && bGroup) return 1;
+      // Both have groups, sort by group name
+      return aGroup.localeCompare(bGroup);
+    }
+
+    // Within same group (or no group), sort by the selected field
     let aVal = a[sortField];
     let bVal = b[sortField];
 
@@ -187,6 +216,77 @@ export default function ScrapbookTopics({
     setEditDialogOpen(false);
     setEditNode(null);
     await fetchChildren();
+  };
+
+  // Handle row selection toggle
+  const handleRowClick = (nodeId) => {
+    setSelectedNodeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+
+  // Handle context menu
+  const handleContextMenuOpen = (event, node) => {
+    event.stopPropagation();
+    setContextMenuAnchor(event.currentTarget);
+    setContextMenuNode(node);
+  };
+
+  const handleContextMenuClose = () => {
+    setContextMenuAnchor(null);
+    setContextMenuNode(null);
+  };
+
+  // Handle remove from group via context menu
+  const handleRemoveFromGroup = async () => {
+    if (!contextMenuNode) return;
+
+    try {
+      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${contextMenuNode.id}/group`, {
+        method: 'DELETE',
+      });
+      await fetchChildren();
+      onNodeUpdated();
+    } catch (error) {
+      console.error('Failed to remove node from group:', error);
+    }
+
+    handleContextMenuClose();
+  };
+
+  // Handle assigning selected nodes to a group
+  const handleAssignGroup = async () => {
+    if (selectedNodeIds.size < 2) return;
+
+    try {
+      const response = await fetch(`/api/workspace/${projectName}/scrapbook/groups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nodeIds: Array.from(selectedNodeIds),
+          groupName: groupName,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Failed to assign group:', error);
+        return;
+      }
+
+      // Clear selection and refresh
+      setSelectedNodeIds(new Set());
+      await fetchChildren();
+      onNodeUpdated();
+    } catch (error) {
+      console.error('Failed to assign group:', error);
+    }
   };
 
   // Handle inline editing of custom properties
@@ -484,17 +584,28 @@ export default function ScrapbookTopics({
           </Typography>
         );
 
+      case 'group':
+        return node.groupName ? (
+          <Chip
+            label={node.groupName}
+            size="small"
+            sx={{
+              backgroundColor: '#fff3e0',
+              color: '#e65100',
+              borderColor: '#ffb74d',
+              border: '1px solid',
+            }}
+          />
+        ) : (
+          <Typography variant="caption" color="text.secondary">-</Typography>
+        );
+
       case 'actions':
         return (
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Tooltip title="Edit">
-              <IconButton size="small" onClick={() => handleEdit(node)}>
-                <Edit fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton size="small" onClick={() => handleDelete(node)} color="error">
-                <Delete fontSize="small" />
+            <Tooltip title="Actions">
+              <IconButton size="small" onClick={(e) => handleContextMenuOpen(e, node)}>
+                <MoreVert fontSize="small" />
               </IconButton>
             </Tooltip>
           </Box>
@@ -560,6 +671,7 @@ export default function ScrapbookTopics({
     const labels = {
       icon: 'Icon',
       label: 'Title',
+      group: 'Group',
       images: 'Images',
       priority: 'Priority',
       attention: 'Attention',
@@ -579,12 +691,13 @@ export default function ScrapbookTopics({
     const widths = {
       icon: 50,
       label: undefined, // flex
+      group: 130,
       images: 160,
       priority: 100,
       attention: 120,
       description: undefined, // flex
       created: 120,
-      actions: 100,
+      actions: 60,
     };
     return widths[colId] || 120;
   };
@@ -645,11 +758,44 @@ export default function ScrapbookTopics({
         </Typography>
       )}
 
+      {/* Group assignment bar - shows when 2+ items are selected */}
+      {selectedNodeIds.size >= 2 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, p: 1.5, backgroundColor: '#fff3e0', borderRadius: 1 }}>
+          <Typography variant="body2" sx={{ color: '#e65100', fontWeight: 500 }}>
+            {selectedNodeIds.size} items selected
+          </Typography>
+          <TextField
+            size="small"
+            label="Group of alternatives"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            sx={{ width: 200 }}
+          />
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleAssignGroup}
+            sx={{ backgroundColor: '#ff9800', '&:hover': { backgroundColor: '#f57c00' } }}
+          >
+            Set
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setSelectedNodeIds(new Set())}
+          >
+            Clear
+          </Button>
+        </Box>
+      )}
+
       {/* Table */}
       <TableContainer component={Paper} sx={{ flex: 1, overflow: 'auto' }}>
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
+              {/* Checkbox column for selection */}
+              <TableCell width={40} padding="checkbox" />
               {visibleColumns.map((col) => (
                 <TableCell
                   key={col.id}
@@ -674,7 +820,7 @@ export default function ScrapbookTopics({
           <TableBody>
             {sortedChildren.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={visibleColumns.length} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={visibleColumns.length + 1} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
                     No topics yet. Click "Add" to create one.
                   </Typography>
@@ -683,18 +829,37 @@ export default function ScrapbookTopics({
             ) : (
               sortedChildren.map((node) => {
                 const isDragOver = dragOverNodeId === node.id;
+                const isSelected = selectedNodeIds.has(node.id);
                 return (
                   <TableRow
                     key={node.id}
                     hover
+                    onClick={() => handleRowClick(node.id)}
                     onDragOver={(e) => handleDragOver(e, node.id)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, node)}
+                    selected={isSelected}
                     sx={{
-                      backgroundColor: isDragOver ? 'rgba(25, 118, 210, 0.1)' : undefined,
+                      cursor: 'pointer',
+                      backgroundColor: isDragOver ? 'rgba(25, 118, 210, 0.1)' : isSelected ? 'rgba(255, 152, 0, 0.1)' : undefined,
                       transition: 'background-color 0.2s',
+                      '&.Mui-selected': {
+                        backgroundColor: 'rgba(255, 152, 0, 0.15)',
+                        '&:hover': { backgroundColor: 'rgba(255, 152, 0, 0.25)' },
+                      },
                     }}
                   >
+                    {/* Checkbox for selection */}
+                    <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={() => handleRowClick(node.id)}
+                        sx={{
+                          color: '#ff9800',
+                          '&.Mui-checked': { color: '#ff9800' },
+                        }}
+                      />
+                    </TableCell>
                     {visibleColumns.map((col) => (
                       <TableCell key={col.id} align={col.id === 'actions' ? 'right' : 'left'}>
                         {renderCell(col.id, node, isDragOver)}
@@ -778,6 +943,31 @@ export default function ScrapbookTopics({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Context Menu for row actions */}
+      <Menu
+        anchorEl={contextMenuAnchor}
+        open={Boolean(contextMenuAnchor)}
+        onClose={handleContextMenuClose}
+      >
+        <MenuItem onClick={() => { handleEdit(contextMenuNode); handleContextMenuClose(); }}>
+          <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => { handleDelete(contextMenuNode); handleContextMenuClose(); }}>
+          <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={handleRemoveFromGroup}
+          disabled={!contextMenuNode?.groupName}
+        >
+          <ListItemIcon><RemoveCircleOutline fontSize="small" /></ListItemIcon>
+          <ListItemText sx={{ color: !contextMenuNode?.groupName ? 'text.disabled' : undefined }}>
+            Remove from group
+          </ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

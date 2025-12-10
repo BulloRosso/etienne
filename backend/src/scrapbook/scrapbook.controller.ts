@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import { ScrapbookService, ScrapbookNode, CanvasSettings } from './scrapbook.service';
+import { ScrapbookService, ScrapbookNode, CanvasSettings, AlternativeGroup } from './scrapbook.service';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
@@ -258,5 +258,74 @@ export class ScrapbookController {
   ): Promise<{ markdown: string }> {
     const markdown = await this.scrapbookService.describeScrapbook(projectName, categoryName);
     return { markdown };
+  }
+
+  /**
+   * Create scrapbook from text using LLM extraction
+   */
+  @Post('create-from-text')
+  @HttpCode(HttpStatus.CREATED)
+  async createFromText(
+    @Param('projectName') projectName: string,
+    @Body() dto: { text: string },
+  ): Promise<ScrapbookNode> {
+    return this.scrapbookService.createFromText(projectName, dto.text);
+  }
+
+  /**
+   * Update the parent of a node (change or remove connection)
+   */
+  @Put('nodes/:nodeId/parent')
+  async updateNodeParent(
+    @Param('projectName') projectName: string,
+    @Param('nodeId') nodeId: string,
+    @Body() dto: { parentId: string | null },
+  ): Promise<ScrapbookNode> {
+    return this.scrapbookService.updateNodeParent(projectName, nodeId, dto.parentId);
+  }
+
+  // ==================== GROUP MANAGEMENT ====================
+
+  /**
+   * Get all nodes with group info populated
+   */
+  @Get('nodes-with-groups')
+  async getAllNodesWithGroups(@Param('projectName') projectName: string): Promise<ScrapbookNode[]> {
+    return this.scrapbookService.getAllNodesWithGroups(projectName);
+  }
+
+  /**
+   * Assign nodes to a group
+   */
+  @Post('groups')
+  @HttpCode(HttpStatus.CREATED)
+  async assignNodesToGroup(
+    @Param('projectName') projectName: string,
+    @Body() dto: { nodeIds: string[]; groupName: string },
+  ): Promise<AlternativeGroup> {
+    return this.scrapbookService.assignNodesToGroup(projectName, dto.nodeIds, dto.groupName);
+  }
+
+  /**
+   * Get all groups for a parent node
+   */
+  @Get('nodes/:nodeId/groups')
+  async getGroupsForParent(
+    @Param('projectName') projectName: string,
+    @Param('nodeId') nodeId: string,
+  ): Promise<AlternativeGroup[]> {
+    return this.scrapbookService.getGroupsForParent(projectName, nodeId);
+  }
+
+  /**
+   * Remove a node from its group
+   */
+  @Delete('nodes/:nodeId/group')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeNodeFromGroup(
+    @Param('projectName') projectName: string,
+    @Param('nodeId') nodeId: string,
+  ): Promise<void> {
+    await this.scrapbookService.removeNodeFromGroup(projectName, nodeId);
   }
 }

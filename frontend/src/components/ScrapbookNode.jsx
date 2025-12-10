@@ -22,12 +22,13 @@ const getIcon = (iconName) => {
   return null;
 };
 
-const ScrapbookNode = memo(({ data, selected }) => {
+const ScrapbookNode = memo(({ data, selected, id }) => {
   const {
     label,
     description,
     type,
     iconName,
+    images,
     priority: rawPriority,
     attentionWeight,
     isExpanded,
@@ -40,7 +41,11 @@ const ScrapbookNode = memo(({ data, selected }) => {
     onToggleExpand,
     onNodeClick,
     onContextMenu,
+    projectName,
   } = data;
+
+  // Get the first image if available
+  const firstImage = images && images.length > 0 ? images[0] : null;
 
   // Ensure priority is a number (default to 5 if undefined)
   const priority = typeof rawPriority === 'number' ? rawPriority : 5;
@@ -57,8 +62,10 @@ const ScrapbookNode = memo(({ data, selected }) => {
       <Box
         onClick={onNodeClick}
         sx={{
-          minWidth: 200,
-          maxWidth: 260,
+          display: 'flex',
+          flexDirection: 'row',
+          minWidth: firstImage ? 320 : 200,
+          maxWidth: firstImage ? 380 : 260,
           backgroundColor: backgroundColor || '#ffffff',
           border: borderWidth > 0 ? `${borderWidth}px solid ${borderColor}` : 'none',
           borderRadius: `${borderRadius}px`,
@@ -67,12 +74,49 @@ const ScrapbookNode = memo(({ data, selected }) => {
             : '0 4px 12px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1)',
           cursor: 'pointer',
           position: 'relative',
-          pb: IconComponent ? 3 : 1,
           '&:hover': {
             boxShadow: '0 6px 16px rgba(0,0,0,0.2), 0 3px 6px rgba(0,0,0,0.15)',
           },
         }}
       >
+        {/* Image thumbnail on the left - spans both rows */}
+        {firstImage && projectName && (
+          <Box
+            sx={{
+              width: 120,
+              minWidth: 120,
+              alignSelf: 'stretch',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+              backgroundColor: '#f5f5f5',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              borderTopLeftRadius: `${borderRadius}px`,
+              borderBottomLeftRadius: `${borderRadius}px`,
+            }}
+          >
+            <img
+              src={`/api/workspace/${projectName}/scrapbook/images/${firstImage}`}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'top',
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Node content */}
+        <Box
+          sx={{
+            flex: 1,
+            pb: IconComponent ? 3 : 1,
+          }}
+        >
         {/* Row 1: Drag Handle, Title, Expand Button */}
         <Box
           sx={{
@@ -182,6 +226,7 @@ const ScrapbookNode = memo(({ data, selected }) => {
             </Box>
           ) : null;
         })()}
+        </Box>
 
         {/* Row 3: Icon Badge (overlapping bottom border) */}
         {IconComponent && (
@@ -202,6 +247,7 @@ const ScrapbookNode = memo(({ data, selected }) => {
                 justifyContent: 'center',
                 cursor: 'pointer',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                zIndex: 4000,
               }}
             >
               <IconComponent size={20} style={{ color: borderColor || '#666' }} />
@@ -223,6 +269,7 @@ const ScrapbookNode = memo(({ data, selected }) => {
               backgroundColor: '#f5f5f5',
               border: '1px dashed #ccc',
               cursor: 'pointer',
+              zIndex: 4000,
             }}
           />
         )}
