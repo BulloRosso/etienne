@@ -1,0 +1,24 @@
+{
+  "name": "a2a-test-server",
+  "version": "1.0.0",
+  "description": "A2A Protocol Test Server for demonstrating agent-to-agent communication",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "express": "^4.21.2",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.7.2"
+  }
+}

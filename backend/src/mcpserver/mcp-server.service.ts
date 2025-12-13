@@ -11,6 +11,7 @@ import { createDeepResearchToolsService } from './deep-research-tools';
 import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
 import { createEmailToolsService } from './email-tools';
 import { createScrapbookToolsService } from './scrapbook-tools';
+import { createA2AToolsService } from './a2a-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
@@ -18,6 +19,8 @@ import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.servic
 import { SmtpService } from '../smtp-imap/smtp.service';
 import { ImapService } from '../smtp-imap/imap.service';
 import { ScrapbookService } from '../scrapbook/scrapbook.service';
+import { A2AClientService } from '../a2a-client/a2a-client.service';
+import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 
 /**
  * MCP Server Service
@@ -36,6 +39,9 @@ export class McpServerService implements OnModuleInit {
   private toolMap = new Map<string, ToolService>();
   public readonly server: Server;
 
+  // Current project context for A2A tools
+  private currentProjectRoot: string | null = null;
+
   constructor(
     private readonly deepResearchService: DeepResearchService,
     private readonly vectorStoreService: VectorStoreService,
@@ -44,6 +50,8 @@ export class McpServerService implements OnModuleInit {
     private readonly smtpService: SmtpService,
     private readonly imapService: ImapService,
     private readonly scrapbookService: ScrapbookService,
+    private readonly a2aClientService: A2AClientService,
+    private readonly a2aSettingsService: A2ASettingsService,
   ) {
     // Initialize the MCP SDK Server
     this.server = new Server(
@@ -66,10 +74,18 @@ export class McpServerService implements OnModuleInit {
       createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService),
       createEmailToolsService(smtpService, imapService),
       createScrapbookToolsService(scrapbookService),
+      createA2AToolsService(a2aClientService, a2aSettingsService, () => this.currentProjectRoot),
     ];
 
     // Set up SDK request handlers
     this.setupRequestHandlers();
+  }
+
+  /**
+   * Set the current project context for A2A tools
+   */
+  setProjectContext(projectRoot: string | null) {
+    this.currentProjectRoot = projectRoot;
   }
 
   /**

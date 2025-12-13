@@ -8,7 +8,7 @@ import Strategy from './Strategy';
 import Filesystem from './Filesystem';
 import PermissionList from './PermissionList';
 import Interceptors from './Interceptors';
-import MCPServerConfiguration from './MCPServerConfiguration';
+import ConnectivitySettings from './ConnectivitySettings';
 import MemoryPanel from './MemoryPanel';
 import CheckpointsPane from './CheckpointsPane';
 import GuardrailsSettings from './GuardrailsSettings';
@@ -166,7 +166,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
             <PermissionList projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
           </TabPanel>
           <TabPanel value={tabValue} index={3}>
-            <MCPServerConfiguration projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+            <ConnectivitySettings projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
           </TabPanel>
           <TabPanel value={tabValue} index={4}>
             <Interceptors projectName={projectName} showBackgroundInfo={showBackgroundInfo} />

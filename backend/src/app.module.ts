@@ -30,9 +30,11 @@ import { ContextsModule } from './contexts/contexts.module';
 import { EventHandlingModule } from './event-handling/event-handling.module';
 import { ScrapbookModule } from './scrapbook/scrapbook.module';
 import { ConfigurationModule } from './configuration/configuration.module';
+import { A2ASettingsModule } from './a2a-settings/a2a-settings.module';
+import { A2AClientModule } from './a2a-client/a2a-client.module';
 
 @Module({
-  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule],
+  imports: [InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule],
   controllers: [ClaudeController],
   providers: [
     ClaudeService,
