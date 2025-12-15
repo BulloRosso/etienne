@@ -75,10 +75,8 @@ used to modify a claude-code/agents SDK seed projects.
 ## Articles
 <table>
 <tr>
-  <td>
-  <div style="width:220px">
-  <img src="/docs/images/article1.jpg" width="220"/>
-  </div>
+  <td width="220">
+    <img src="/docs/images/article1.jpg" width="220"/>
   </td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/" target="_blank">Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform</a></b>
