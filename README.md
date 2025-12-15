@@ -72,6 +72,14 @@ used to modify a claude-code/agents SDK seed projects.
 
 [Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/)
 
+## Articles
+<table>
+<tr>
+  <td><img src="/docs/images/article1.jpg" /></td>
+  <td>An Article</td>
+</tr>
+</table>
+
 ## SETUP
 
 ### API Keys
