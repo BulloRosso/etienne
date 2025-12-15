@@ -80,8 +80,8 @@ used to modify a claude-code/agents SDK seed projects.
   </td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/" target="_blank">Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform</a></b>
-    <p style="color:#999">
-    Anthropic wants to build something that sounds like science fiction: a virtual colleague that actually works like a real teammate - thinking through complex problems, remembering bad ideas to avoid them in the future, making decisions based on your private data, and getting things done over hours or days, not seconds.
+    <p style="color:#999"><small>
+    Anthropic wants to build something that sounds like science fiction: a virtual colleague that actually works like a real teammate - thinking through complex problems, remembering bad ideas to avoid them in the future, making decisions based on your private data, and getting things done over hours or days, not seconds.</small>
     </p>
   </td>
 </tr>
@@ -89,8 +89,8 @@ used to modify a claude-code/agents SDK seed projects.
   <td><img src="/docs/images/article2.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/" target="_blank">Understanding Etienne: Complementing Claude Agent SDK's Agentic Loop</a></b>
-    <p style="color:#999">
-    In my previous article, I illustrated how you can leverage Claude Code's agentic loop by attaching it to your own user interface and business logic. Basically: "Here's how to get the engine running." But here's the thing nobody tells you about AI agents: Getting them to work is easy. Getting them to work in production requires solving a dozen unsexy problems that have nothing to do with AI.
+    <p style="color:#999"><small>
+    In my previous article, I illustrated how you can leverage Claude Code's agentic loop by attaching it to your own user interface and business logic. Basically: "Here's how to get the engine running." But here's the thing nobody tells you about AI agents: Getting them to work is easy. Getting them to work in production requires solving a dozen unsexy problems that have nothing to do with AI.</small>
     </p>
   </td>
 </tr>
@@ -98,8 +98,8 @@ used to modify a claude-code/agents SDK seed projects.
   <td><img src="/docs/images/article3.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/feeding-etienne-condition-monitoring-ai-agents-ralph-navasardyan-usdef/" target="_blank">Feeding Etienne: Condition Monitoring with AI Agents</a></b>
-    <p style="color:#999">
-    Picture this: It's Monday morning, and somewhere in Hamburg, a businessman named Thomas is still in his bathrobe, sipping coffee while his AI agent named Etienne is already hard at work. Not because Thomas programmed it to start at 6 AM, but because the world started talking to it - and Etienne was hungry.
+    <p style="color:#999"><small>
+    Picture this: It's Monday morning, and somewhere in Hamburg, a businessman named Thomas is still in his bathrobe, sipping coffee while his AI agent named Etienne is already hard at work. Not because Thomas programmed it to start at 6 AM, but because the world started talking to it - and Etienne was hungry.</small>
     </p>
   </td>
 </tr>
@@ -107,8 +107,8 @@ used to modify a claude-code/agents SDK seed projects.
   <td><img src="/docs/images/article4.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/etiennes-scrapbook-how-transform-human-intent-agentic-navasardyan-jjtpe/" target="_blank">Etienne's Scrapbook: How to transform Human Intent into Agentic Attention</a></b>
-    <p style="color:#999">
-    This article describes how to move beyond single prompts to orchestrate complex, multi-faceted projects with AI agents.
+    <p style="color:#999"><small>
+    This article describes how to move beyond single prompts to orchestrate complex, multi-faceted projects with AI agents.</small>
     </p>
   </td>
 </tr>
@@ -116,8 +116,8 @@ used to modify a claude-code/agents SDK seed projects.
   <td><img src="/docs/images/article5.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/etienne-getting-picky-why-90-production-ai-agent-ralph-navasardyan-i2fee/" target="_blank">Etienne is getting picky: Why 90% of Production AI Agent Systems Are Basically Expensive Random Number Generators</a></b>
-    <p style="color:#999">
-    Context failures have overtaken model failures as the primary cause of AI agent breakdowns. After analyzing production systems from Anthropic, Google, and leading AI engineering teams, one pattern emerges: the quality of your context management directly determines agent reliability.
+    <p style="color:#999"><small>
+    Context failures have overtaken model failures as the primary cause of AI agent breakdowns. After analyzing production systems from Anthropic, Google, and leading AI engineering teams, one pattern emerges: the quality of your context management directly determines agent reliability.</small>
     </p>
   </td>
 </tr>
@@ -125,8 +125,8 @@ used to modify a claude-code/agents SDK seed projects.
   <td><img src="/docs/images/article6.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/etiennes-memories-how-claude-code-based-ai-agents-over-navasardyan-sryie/" target="_blank">Etienne's Memories: How Claude Agent SDK AI Agents Build Knowledge Over Time</a></b>
-    <p style="color:#999">
-    Anthropic didn't call it "Agentic Learning"—but they built something arguably more sophisticated. In October 2025, the company unveiled a distributed, file-based learning system that enables Claude to accumulate expertise across sessions, projects, and entire organizations. This architecture combines hierarchical memory files, on-demand skill loading, persistent task tracking, and iterative error correction into what may be the most practical approach to AI agent learning yet developed.
+    <p style="color:#999"><small>
+    Anthropic didn't call it "Agentic Learning"—but they built something arguably more sophisticated. In October 2025, the company unveiled a distributed, file-based learning system that enables Claude to accumulate expertise across sessions, projects, and entire organizations. This architecture combines hierarchical memory files, on-demand skill loading, persistent task tracking, and iterative error correction into what may be the most practical approach to AI agent learning yet developed.</small>
     </p>
   </td>
 </tr>
@@ -134,8 +134,8 @@ used to modify a claude-code/agents SDK seed projects.
   <td><img src="/docs/images/article7.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/how-etienne-solves-ais-last-mile-problem-bringing-ai-data-ralph-a97ue/" target="_blank">How Etienne Solves AI's Last Mile Problem: Bringing AI to Where the Data Lives</a></b>
-    <p style="color:#999">
-    The world's most valuable data - patient records, proprietary algorithms, classified research, industrial secrets - sits locked behind security perimeters where cloud AI can never reach. Even when data access isn't restricted, professional workflows demand AI that understands specialized artifacts like DICOM scans, financial models, and CAD drawings—not generic file processors that treat domain expertise like raw text. 
+    <p style="color:#999"><small>
+    The world's most valuable data - patient records, proprietary algorithms, classified research, industrial secrets - sits locked behind security perimeters where cloud AI can never reach. Even when data access isn't restricted, professional workflows demand AI that understands specialized artifacts like DICOM scans, financial models, and CAD drawings—not generic file processors that treat domain expertise like raw text. </small>
     </p>
   </td>
 </tr>
