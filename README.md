@@ -139,6 +139,32 @@ used to modify a claude-code/agents SDK seed projects.
     </p>
   </td>
 </tr>
+<tr>
+  <td><img src="/docs/images/article8.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/etienne-after-dark-how-a2a-accidentally-started-ai-rave-navasardyan-4ufmf/" target="_blank">Etienne after Dark: How A2A accidentally started an AI Rave</a></b>
+    <p style="color:#999"><small>
+    As a general AI agent, Etienne could reason, plan, decompose tasks, and orchestrate workflows all day long. But the real world doesn’t run on reasoning alone. It runs on invoices, shipping quotes, compliance checks, pricing engines, calendars, databases, and services with very specific opinions about how things should be done. So Etienne did what any competent orchestrator would do: it stopped pretending to be everything and started calling specialists. </small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article9.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/dressing-up-etienne-how-integrate-ai-agents-your-ralph-navasardyan-g3bte/" target="_blank">Dressing Up Etienne: How to integrate AI Agents with your Customer's Business Workflows</a></b>
+    <p style="color:#999"><small>
+    Many AI agent projects crash and burn when they meet the harsh reality of real-world implementation. What looked brilliant in an isolated demo gets rejected faster than a soggy sandwich – either by employees frustrated with poor usability or IT teams pulling their hair out over integration nightmares. This article walks you through a step-by-step approach to successfully weaving AI agents into your customer's existing technical and organizational fabric - based on my 20 years experience in enterprise consulting.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article10.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/swipe-right-smart-agents-etiennes-guide-digital-data-navasardyan-ofmhe/" target="_blank">Swipe Right on Smart Agents: Etienne's Guide to Digital Romance with Real-World Data</a></b>
+    <p style="color:#999"><small>
+    </p>
+  </td>
+</tr>
 </table>
 
 ## SETUP
