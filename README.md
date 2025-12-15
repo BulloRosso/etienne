@@ -75,7 +75,7 @@ used to modify a claude-code/agents SDK seed projects.
 ## Articles
 <table>
 <tr>
-  <td><img src="/docs/images/article1.jpg" width="220"/></td>
+  <td><img src="/docs/images/article1.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/" target="_blank">Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform</a></b>
     <p style="color:#999">
@@ -84,7 +84,7 @@ used to modify a claude-code/agents SDK seed projects.
   </td>
 </tr>
 <tr>
-  <td><img src="/docs/images/article2.jpg" width="220"/></td>
+  <td><img src="/docs/images/article2.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/" target="_blank">Understanding Etienne: Complementing Claude Agent SDK's Agentic Loop</a></b>
     <p style="color:#999">
@@ -93,7 +93,7 @@ used to modify a claude-code/agents SDK seed projects.
   </td>
 </tr>
 <tr>
-  <td><img src="/docs/images/article3.jpg" width="220"/></td>
+  <td><img src="/docs/images/article3.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/feeding-etienne-condition-monitoring-ai-agents-ralph-navasardyan-usdef/" target="_blank">Feeding Etienne: Condition Monitoring with AI Agents</a></b>
     <p style="color:#999">
@@ -102,7 +102,7 @@ used to modify a claude-code/agents SDK seed projects.
   </td>
 </tr>
 <tr>
-  <td><img src="/docs/images/article4.jpg" width="220"/></td>
+  <td><img src="/docs/images/article4.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/etiennes-scrapbook-how-transform-human-intent-agentic-navasardyan-jjtpe/" target="_blank">Etienne's Scrapbook: How to transform Human Intent into Agentic Attention</a></b>
     <p style="color:#999">
@@ -111,7 +111,7 @@ used to modify a claude-code/agents SDK seed projects.
   </td>
 </tr>
 <tr>
-  <td><img src="/docs/images/article5.jpg" width="220"/></td>
+  <td><img src="/docs/images/article5.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/etienne-getting-picky-why-90-production-ai-agent-ralph-navasardyan-i2fee/" target="_blank">Etienne is getting picky: Why 90% of Production AI Agent Systems Are Basically Expensive Random Number Generators</a></b>
     <p style="color:#999">
@@ -120,7 +120,7 @@ used to modify a claude-code/agents SDK seed projects.
   </td>
 </tr>
 <tr>
-  <td><img src="/docs/images/article6.jpg" width="220"/></td>
+  <td><img src="/docs/images/article6.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/etiennes-memories-how-claude-code-based-ai-agents-over-navasardyan-sryie/" target="_blank">Etienne's Memories: How Claude Agent SDK AI Agents Build Knowledge Over Time</a></b>
     <p style="color:#999">
@@ -129,7 +129,7 @@ used to modify a claude-code/agents SDK seed projects.
   </td>
 </tr>
 <tr>
-  <td><img src="/docs/images/article7.jpg" width="220"/></td>
+  <td><img src="/docs/images/article7.jpg" style="min-width:220px" width="220"/></td>
   <td>
     <b><a href="https://www.linkedin.com/pulse/how-etienne-solves-ais-last-mile-problem-bringing-ai-data-ralph-a97ue/" target="_blank">How Etienne Solves AI's Last Mile Problem: Bringing AI to Where the Data Lives</a></b>
     <p style="color:#999">
