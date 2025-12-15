@@ -119,3 +119,36 @@ export interface ArtifactUpdateEvent {
 }
 
 export type StreamEvent = TaskEvent | StatusUpdateEvent | ArtifactUpdateEvent;
+
+// Directory types
+export interface DirectoryEntry {
+  agentId: string;
+  card: AgentCard;
+  wellKnownUrl: string;
+  a2aEndpoint: string;
+}
+
+export interface DirectoryResponse {
+  agents: DirectoryEntry[];
+  serverVersion: string;
+  timestamp: string;
+}
+
+// Tax Classification types
+export interface ExpenseItem {
+  Id: string;
+  Title: string;
+  Amount: number;
+}
+
+export interface CategoryExpenses {
+  items: ExpenseItem[];
+  total: number;
+}
+
+export interface TaxClassificationResult {
+  Staff: CategoryExpenses;
+  Site: CategoryExpenses;
+  Vehicles: CategoryExpenses;
+  Other: CategoryExpenses;
+}

@@ -11,7 +11,7 @@ import { createDeepResearchToolsService } from './deep-research-tools';
 import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
 import { createEmailToolsService } from './email-tools';
 import { createScrapbookToolsService } from './scrapbook-tools';
-import { createA2AToolsService } from './a2a-tools';
+import { createA2AToolsService, generateDynamicA2ATools } from './a2a-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
@@ -102,10 +102,25 @@ export class McpServerService implements OnModuleInit {
   private setupRequestHandlers() {
     // Handle tools/list requests
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      this.logger.log(`tools/list called, currentProjectRoot = ${this.currentProjectRoot || 'NULL'}`);
       const allTools = [];
 
       for (const service of this.toolServices) {
         allTools.push(...service.tools);
+      }
+
+      // Add dynamic A2A tools based on enabled agents
+      if (this.currentProjectRoot) {
+        try {
+          const enabledAgents = await this.a2aSettingsService.getEnabledAgents(this.currentProjectRoot);
+          if (enabledAgents.length > 0) {
+            const dynamicA2ATools = await generateDynamicA2ATools(enabledAgents);
+            allTools.push(...dynamicA2ATools);
+            this.logger.log(`Added ${dynamicA2ATools.length} dynamic A2A tools for ${enabledAgents.length} agents`);
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to load dynamic A2A tools: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
 
       return {
@@ -120,6 +135,15 @@ export class McpServerService implements OnModuleInit {
       // Validate tool name
       if (!name) {
         throw new Error('Invalid params: missing tool name');
+      }
+
+      // Check if this is a dynamic A2A tool (starts with a2a_ but not the static ones)
+      const staticA2ATools = ['a2a_send_message', 'a2a_list_agents'];
+      const isDynamicA2ATool = name.startsWith('a2a_') && !staticA2ATools.includes(name);
+
+      if (isDynamicA2ATool) {
+        // Handle dynamic A2A tool execution
+        return this.executeDynamicA2ATool(name, args || {});
       }
 
       // Find the service that provides this tool
@@ -145,7 +169,8 @@ export class McpServerService implements OnModuleInit {
       } catch (error) {
         // Log the error but return it as content instead of throwing
         // This prevents the error from terminating the stream
-        this.logger.error(`❌ Error executing tool ${name}: ${error.message}`, error.stack);
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.logger.error(`❌ Error executing tool ${name}: ${err.message}`, err.stack);
 
         return {
           content: [
@@ -154,8 +179,8 @@ export class McpServerService implements OnModuleInit {
               text: JSON.stringify({
                 error: true,
                 tool: name,
-                message: error.message,
-                details: error.stack || 'No stack trace available'
+                message: err.message,
+                details: err.stack || 'No stack trace available'
               }, null, 2),
             },
           ],
@@ -177,6 +202,94 @@ export class McpServerService implements OnModuleInit {
         this.toolMap.set(tool.name, service);
         this.logger.log(`Registered tool: ${tool.name}`);
       }
+    }
+  }
+
+  /**
+   * Execute a dynamic A2A tool
+   * Dynamic tools are named: a2a_<agent_name>_<skill_id> or a2a_<agent_name>
+   */
+  private async executeDynamicA2ATool(toolName: string, args: { prompt?: string; file_paths?: string[] }) {
+    if (!this.currentProjectRoot) {
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ error: true, message: 'No project context available' }) }],
+        isError: true,
+      };
+    }
+
+    try {
+      this.logger.log(`🔧 Executing dynamic A2A tool: ${toolName}`);
+
+      // Get enabled agents to find the matching one
+      const enabledAgents = await this.a2aSettingsService.getEnabledAgents(this.currentProjectRoot);
+
+      // Parse tool name to find agent - format: a2a_<agent_name> or a2a_<agent_name>_<skill_id>
+      const toolNameWithoutPrefix = toolName.substring(4); // Remove 'a2a_'
+
+      // Find the agent whose slugified name matches the beginning of the tool name
+      let matchedAgent = null;
+      for (const agent of enabledAgents) {
+        const agentSlug = agent.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+
+        if (toolNameWithoutPrefix === agentSlug || toolNameWithoutPrefix.startsWith(agentSlug + '_')) {
+          matchedAgent = agent;
+          break;
+        }
+      }
+
+      if (!matchedAgent) {
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ error: true, message: `No matching agent found for tool: ${toolName}` }) }],
+          isError: true,
+        };
+      }
+
+      // Send message to the agent
+      const result = await this.a2aClientService.sendMessage(
+        matchedAgent.url,
+        args.prompt || '',
+        args.file_paths,
+      );
+
+      const response: Record<string, unknown> = {
+        success: true,
+        agent: matchedAgent.name,
+        agent_url: matchedAgent.url,
+        status: result.status,
+      };
+
+      if (result.text) {
+        response.response = result.text;
+      }
+
+      if (result.taskId) {
+        response.task_id = result.taskId;
+      }
+
+      // If there are files, save them
+      if (result.files && result.files.length > 0) {
+        const path = await import('path');
+        const outputDir = path.join(this.currentProjectRoot, 'out', 'a2a-responses');
+        const savedPaths = await this.a2aClientService.saveExtractedFiles(result, outputDir);
+        response.saved_files = savedPaths;
+      }
+
+      this.logger.log(`✅ Dynamic A2A tool ${toolName} executed successfully`);
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
+      };
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(`❌ Error executing dynamic A2A tool ${toolName}: ${err.message}`, err.stack);
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ error: true, tool: toolName, message: err.message }) }],
+        isError: true,
+      };
     }
   }
 }

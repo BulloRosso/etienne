@@ -1,21 +1,23 @@
 /**
  * A2A Test Server
  *
- * A simple implementation of the Google Agent-to-Agent protocol for testing.
- * This server exposes a simple agent that can respond to text messages.
+ * A multi-agent implementation of the Google Agent-to-Agent protocol.
+ * Hosts multiple agents with individual well-known endpoints and a directory.
  */
 
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import {
   AgentCard,
   MessageSendParams,
   Task,
-  TaskStatus,
-  Message,
-  Part,
   TextPart,
+  DirectoryEntry,
+  DirectoryResponse,
 } from './types.js';
+import { imageMergerAgentCard, processImageMerger } from './agents/image-merger.agent.js';
+import { taxClassificationAgentCard, processTaxClassification } from './agents/tax-classification.agent.js';
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -31,11 +33,35 @@ app.use((req, res, next) => {
   next();
 });
 
-// Agent Card - describes this agent's capabilities
-const agentCard: AgentCard = {
+const PORT = process.env.PORT || 5600;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
+// Update agent cards with correct URLs
+const updateAgentCardUrl = (card: AgentCard, agentPath: string): AgentCard => ({
+  ...card,
+  url: `${BASE_URL}${agentPath}`,
+});
+
+// Agent registry
+const agents: Map<string, { card: AgentCard; processor: (parts: any[]) => Promise<Task> }> = new Map();
+
+// Register Image Merger Agent
+agents.set('image-merger', {
+  card: updateAgentCardUrl(imageMergerAgentCard, '/agents/image-merger'),
+  processor: processImageMerger,
+});
+
+// Register Tax Classification Agent
+agents.set('tax-classification', {
+  card: updateAgentCardUrl(taxClassificationAgentCard, '/agents/tax-classification'),
+  processor: processTaxClassification,
+});
+
+// Legacy Echo Agent Card (for backward compatibility)
+const echoAgentCard: AgentCard = {
   name: 'Echo Agent',
   description: 'A simple test agent that echoes messages and can perform basic text operations like summarization and translation simulation.',
-  url: 'http://localhost:5600',
+  url: `${BASE_URL}`,
   version: '1.0.0',
   capabilities: {
     streaming: false,
@@ -72,29 +98,179 @@ const agentCard: AgentCard = {
 // Store for active tasks (in-memory for testing)
 const tasks = new Map<string, Task>();
 
+// ============================================================================
+// DIRECTORY ENDPOINT
+// ============================================================================
+
 /**
- * Serve the agent card at the well-known location
+ * Directory endpoint - lists all available agents
+ * Returns agent cards in a format compatible with A2A registries
  */
-app.get('/.well-known/agent-card.json', (req: Request, res: Response) => {
-  console.log('Agent card requested');
-  res.json(agentCard);
+app.get('/directory', (req: Request, res: Response) => {
+  console.log('Directory requested');
+
+  // Return flat array of agent cards for compatibility with standard A2A registries
+  const agentCards: AgentCard[] = [];
+
+  for (const [agentId, agent] of agents.entries()) {
+    agentCards.push(agent.card);
+  }
+
+  // Return in standard registry format (array of agent cards in 'agents' property)
+  res.json({
+    agents: agentCards,
+    serverVersion: '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ============================================================================
+// WELL-KNOWN ENDPOINTS
+// ============================================================================
+
+/**
+ * Well-known endpoint for Image Merger Agent
+ */
+app.get('/.well-known/agent-card-image-merger.json', (req: Request, res: Response) => {
+  console.log('Image Merger agent card requested');
+  const agent = agents.get('image-merger');
+  if (agent) {
+    res.json(agent.card);
+  } else {
+    res.status(404).json({ error: 'Agent not found' });
+  }
 });
 
 /**
- * Also serve at root for convenience
+ * Well-known endpoint for Tax Classification Agent
+ */
+app.get('/.well-known/agent-card-tax-classification.json', (req: Request, res: Response) => {
+  console.log('Tax Classification agent card requested');
+  const agent = agents.get('tax-classification');
+  if (agent) {
+    res.json(agent.card);
+  } else {
+    res.status(404).json({ error: 'Agent not found' });
+  }
+});
+
+/**
+ * Generic well-known endpoint (returns legacy Echo Agent for backward compatibility)
+ */
+app.get('/.well-known/agent-card.json', (req: Request, res: Response) => {
+  console.log('Default agent card requested');
+  res.json(echoAgentCard);
+});
+
+/**
+ * Agent-specific card endpoint (alternative path)
+ */
+app.get('/agents/:agentId/agent-card.json', (req: Request, res: Response) => {
+  const { agentId } = req.params;
+  console.log(`Agent card requested for: ${agentId}`);
+
+  const agent = agents.get(agentId);
+  if (agent) {
+    res.json(agent.card);
+  } else {
+    res.status(404).json({ error: `Agent '${agentId}' not found` });
+  }
+});
+
+// ============================================================================
+// A2A ENDPOINTS FOR INDIVIDUAL AGENTS
+// ============================================================================
+
+/**
+ * A2A endpoint for Image Merger Agent
+ */
+app.post('/agents/image-merger/a2a', async (req: Request, res: Response) => {
+  await handleAgentRequest('image-merger', req, res);
+});
+
+/**
+ * A2A endpoint for Tax Classification Agent
+ */
+app.post('/agents/tax-classification/a2a', async (req: Request, res: Response) => {
+  await handleAgentRequest('tax-classification', req, res);
+});
+
+/**
+ * Generic agent A2A handler
+ */
+async function handleAgentRequest(agentId: string, req: Request, res: Response) {
+  try {
+    const params: MessageSendParams = req.body;
+    console.log(`Received A2A message for ${agentId}:`, JSON.stringify(params, null, 2));
+
+    const agent = agents.get(agentId);
+    if (!agent) {
+      return res.status(404).json({
+        error: {
+          code: 404,
+          message: `Agent '${agentId}' not found`,
+        },
+      });
+    }
+
+    if (!params.message || !params.message.parts) {
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: 'Invalid request: message and parts are required',
+        },
+      });
+    }
+
+    // Process with the agent's processor
+    const task = await agent.processor(params.message.parts);
+
+    // Store task
+    tasks.set(task.id, task);
+
+    // If blocking mode, return the completed task
+    if (params.configuration?.blocking) {
+      console.log(`Returning completed task for ${agentId}:`, task.id);
+      return res.json({ result: task });
+    }
+
+    // Otherwise return task in submitted state (but we process synchronously)
+    const submittedTask: Task = {
+      ...task,
+      status: { state: 'submitted', timestamp: new Date().toISOString() },
+    };
+
+    return res.json({ result: submittedTask });
+  } catch (error) {
+    console.error(`Error processing ${agentId} request:`, error);
+    return res.status(500).json({
+      error: {
+        code: 500,
+        message: error instanceof Error ? error.message : 'Internal server error',
+      },
+    });
+  }
+}
+
+// ============================================================================
+// LEGACY ECHO AGENT ENDPOINTS (backward compatibility)
+// ============================================================================
+
+/**
+ * Also serve at root for convenience (legacy)
  */
 app.get('/agent-card.json', (req: Request, res: Response) => {
   console.log('Agent card requested (alternate path)');
-  res.json(agentCard);
+  res.json(echoAgentCard);
 });
 
 /**
- * Process incoming messages and create/update tasks
+ * Legacy A2A endpoint (Echo Agent)
  */
 app.post('/a2a', async (req: Request, res: Response) => {
   try {
     const params: MessageSendParams = req.body;
-    console.log('Received A2A message:', JSON.stringify(params, null, 2));
+    console.log('Received A2A message (legacy):', JSON.stringify(params, null, 2));
 
     if (!params.message || !params.message.parts) {
       return res.status(400).json({
@@ -112,7 +288,7 @@ app.post('/a2a', async (req: Request, res: Response) => {
     const inputText = textParts.map(p => p.text).join('\n');
 
     // Generate response based on content
-    const responseText = generateResponse(inputText);
+    const responseText = generateEchoResponse(inputText);
 
     // Create task
     const taskId = uuidv4();
@@ -184,12 +360,11 @@ app.get('/a2a/tasks/:taskId', (req: Request, res: Response) => {
 });
 
 /**
- * Generate a response based on input text
+ * Generate a response for the legacy Echo Agent
  */
-function generateResponse(input: string): string {
+function generateEchoResponse(input: string): string {
   const lowercaseInput = input.toLowerCase();
 
-  // Check for specific commands
   if (lowercaseInput.includes('summarize')) {
     return `**Summary Request Processed**\n\nYou asked me to summarize the following:\n\n"${input}"\n\nAs a test agent, I'll provide a mock summary: This appears to be a request for text summarization. The content discusses various topics and would benefit from condensation into key points.\n\n*This is a test response from the Echo Agent.*`;
   }
@@ -206,20 +381,36 @@ function generateResponse(input: string): string {
     return `Hello! I'm the Echo Agent, a test A2A server. I received your greeting and I'm happy to help demonstrate the A2A protocol. How can I assist you today?`;
   }
 
-  // Default echo response
   return `**Echo Agent Response**\n\nI received your message:\n\n> ${input}\n\nAs a test agent running on the A2A protocol, I've successfully processed your request. This demonstrates that the agent-to-agent communication is working correctly.\n\n*Timestamp: ${new Date().toISOString()}*`;
 }
 
+// ============================================================================
+// UTILITY ENDPOINTS
+// ============================================================================
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'healthy', agent: agentCard.name, version: agentCard.version });
+  res.json({
+    status: 'healthy',
+    agents: Array.from(agents.keys()),
+    version: '1.0.0',
+  });
 });
 
 // Start server
-const PORT = process.env.PORT || 5600;
 app.listen(PORT, () => {
-  console.log(`\n🤖 A2A Test Server running on port ${PORT}`);
-  console.log(`   Agent Card: http://localhost:${PORT}/.well-known/agent-card.json`);
-  console.log(`   A2A Endpoint: http://localhost:${PORT}/a2a`);
-  console.log(`   Health Check: http://localhost:${PORT}/health\n`);
+  console.log(`\n🤖 A2A Multi-Agent Server running on port ${PORT}`);
+  console.log(`\n📋 Directory: ${BASE_URL}/directory`);
+  console.log(`\n🎭 Available Agents:`);
+
+  for (const [agentId, agent] of agents.entries()) {
+    console.log(`   - ${agent.card.name}`);
+    console.log(`     Well-known: ${BASE_URL}/.well-known/agent-card-${agentId}.json`);
+    console.log(`     A2A Endpoint: ${BASE_URL}/agents/${agentId}/a2a`);
+  }
+
+  console.log(`\n📡 Legacy Endpoints:`);
+  console.log(`   Agent Card: ${BASE_URL}/.well-known/agent-card.json`);
+  console.log(`   A2A Endpoint: ${BASE_URL}/a2a`);
+  console.log(`   Health Check: ${BASE_URL}/health\n`);
 });

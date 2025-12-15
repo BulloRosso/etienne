@@ -216,7 +216,10 @@ export class ClaudeService {
     const root = await this.ensureProject(projectDir);
     const mcpConfigPath = join(root, '.mcp.json');
 
-    await fs.writeFile(mcpConfigPath, JSON.stringify({ mcpServers }, null, 2), 'utf8');
+    // Inject project name into HTTP/SSE MCP server URLs for A2A tool support
+    const processedServers = this.injectProjectIntoMcpUrls(projectDir, mcpServers);
+
+    await fs.writeFile(mcpConfigPath, JSON.stringify({ mcpServers: processedServers }, null, 2), 'utf8');
 
     // Update .claude/.claude.json with enabled MCP servers
     await this.updateClaudeJsonServers(projectDir, mcpServers);
@@ -230,6 +233,34 @@ export class ClaudeService {
     }
 
     return { success: true };
+  }
+
+  /**
+   * Inject project name into HTTP/SSE MCP server URLs
+   * This ensures A2A dynamic tools work correctly by providing project context
+   */
+  private injectProjectIntoMcpUrls(projectDir: string, mcpServers: Record<string, any>): Record<string, any> {
+    const processed: Record<string, any> = {};
+
+    for (const [name, config] of Object.entries(mcpServers)) {
+      const serverConfig = { ...config };
+
+      // Only process HTTP/SSE servers with URLs
+      if (serverConfig.url && (serverConfig.type === 'http' || serverConfig.type === 'sse')) {
+        try {
+          const url = new URL(serverConfig.url);
+          // Add or update the project query parameter
+          url.searchParams.set('project', projectDir);
+          serverConfig.url = url.toString();
+        } catch {
+          // Invalid URL - leave it as-is
+        }
+      }
+
+      processed[name] = serverConfig;
+    }
+
+    return processed;
   }
 
   /**

@@ -35,7 +35,7 @@ import { RiRobot2Line } from 'react-icons/ri';
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
 
-const DEFAULT_REGISTRY_URL = 'https://www.a2aregistry.org/registry.json';
+const DEFAULT_REGISTRY_URL = 'http://localhost:5600/directory';
 
 export default function A2ASettings({ projectName, showBackgroundInfo }) {
   const [settings, setSettings] = useState({ registryUrl: DEFAULT_REGISTRY_URL, agents: [] });
@@ -390,15 +390,18 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
               flexShrink: 0
             }}>
               <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <RiRobot2Line size={24} color="#757575" />
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <RiRobot2Line size={24} color="#757575" style={{ marginTop: 2 }} />
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="subtitle2">{agent.name}</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '400px'
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      whiteSpace: 'normal',
+                      maxWidth: '600px'
                     }}>
                       {agent.description}
                     </Typography>

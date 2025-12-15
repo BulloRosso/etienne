@@ -71,8 +71,12 @@ export default function StreamingTimeline({
           if (!currentSegment.content) {
             currentSegment.timestamp = chunk.timestamp;
             currentSegment.key = `text-${chunk.timestamp}`;
+            currentSegment.content = chunk.content;
+          } else {
+            // Add double newline separator between chunks since the original
+            // \n\n separators were stripped during buffering in App.jsx
+            currentSegment.content += '\n\n' + chunk.content;
           }
-          currentSegment.content += chunk.content;
           currentSegment.lastTimestamp = chunk.timestamp;
         }
       });

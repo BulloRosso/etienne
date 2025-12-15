@@ -21,14 +21,32 @@ import { randomUUID } from 'crypto';
  * - DELETE requests to terminate sessions
  *
  * Authentication: Authorization header with token "test123"
+ *
+ * Project Context: Pass the project name via:
+ * - Header: X-Project-Name
+ * - Query parameter: project
+ * This is required for A2A dynamic tools to work properly.
  */
 @Controller()
 @UseGuards(McpAuthGuard)
 export class McpServerController {
   private readonly logger = new Logger(McpServerController.name);
   private transports = new Map<string, StreamableHTTPServerTransport>();
+  private readonly workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace';
 
   constructor(private readonly mcpService: McpServerService) {}
+
+  /**
+   * Extract project root from request headers or query params
+   */
+  private getProjectRoot(req: Request): string | null {
+    const projectName = (req.headers['x-project-name'] as string) || (req.query.project as string);
+    if (projectName) {
+      // Use path.join equivalent for safety
+      return `${this.workspaceRoot}/${projectName}`;
+    }
+    return null;
+  }
 
   /**
    * Handle Streamable HTTP transport (GET, POST, DELETE)
@@ -43,6 +61,13 @@ export class McpServerController {
   async handleStreamableHttp(@Req() req: Request, @Res() res: Response): Promise<void> {
     try {
       this.logger.log(`Handling ${req.method} request to /mcp`);
+
+      // Set project context for A2A tools
+      const projectRoot = this.getProjectRoot(req);
+      this.mcpService.setProjectContext(projectRoot);
+      if (projectRoot) {
+        this.logger.log(`Project context set to: ${projectRoot}`);
+      }
 
       // Get or create transport for this connection
       const sessionId = req.headers['mcp-session-id'] as string | undefined;
@@ -96,6 +121,13 @@ export class McpServerController {
   async handleSse(@Req() req: Request, @Res() res: Response): Promise<void> {
     try {
       this.logger.log(`Handling ${req.method} request to /sse (legacy endpoint)`);
+
+      // Set project context for A2A tools
+      const projectRoot = this.getProjectRoot(req);
+      this.mcpService.setProjectContext(projectRoot);
+      if (projectRoot) {
+        this.logger.log(`Project context set to: ${projectRoot}`);
+      }
 
       // Get or create transport for this connection
       const sessionId = req.headers['mcp-session-id'] as string | undefined;
