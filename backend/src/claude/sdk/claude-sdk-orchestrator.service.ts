@@ -14,6 +14,7 @@ import { ContextInterceptorService } from '../../contexts/context-interceptor.se
 import { sanitize_user_message } from '../../input-guardrails/index';
 import { ClaudeConfig } from '../config/claude.config';
 import { safeRoot } from '../utils/path.utils';
+import { TelemetryService } from '../../observability/telemetry.service';
 
 /**
  * Orchestrator service that integrates SDK, sessions, guardrails, and memory
@@ -32,7 +33,8 @@ export class ClaudeSdkOrchestratorService {
     private readonly outputGuardrailsService: OutputGuardrailsService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly sessionsService: SessionsService,
-    private readonly contextInterceptor: ContextInterceptorService
+    private readonly contextInterceptor: ContextInterceptorService,
+    private readonly telemetryService: TelemetryService
   ) {}
 
   /**
@@ -188,6 +190,18 @@ export class ClaudeSdkOrchestratorService {
         timestamp: new Date().toISOString()
       });
 
+      // Start telemetry span for conversation
+      if (this.telemetryService.isEnabled() && processId) {
+        this.telemetryService.startConversationSpan(processId, {
+          projectName: projectDir,
+          sessionId,
+          userId,
+          prompt: finalPrompt,
+          model: currentModel,
+          agentMode,
+        });
+      }
+
       // Emit guardrails event if triggered
       if (guardrailsTriggered) {
         observer.next({
@@ -242,6 +256,15 @@ export class ClaudeSdkOrchestratorService {
             name: input.tool_name,
             input: input.tool_input
           });
+
+          // Start telemetry span for tool
+          if (this.telemetryService.isEnabled() && processId) {
+            this.telemetryService.startToolSpan(processId, {
+              toolName: input.tool_name,
+              toolInput: input.tool_input,
+              callId,
+            });
+          }
 
           // Emit PreToolUse hook event to interceptor stream
           this.hookEmitter.emitPreToolUse(projectDir, {
@@ -303,6 +326,15 @@ export class ClaudeSdkOrchestratorService {
               this.logger.error(`Context filtering error: ${contextError.message}`);
               // Continue with unfiltered results on error
             }
+          }
+
+          // End telemetry span for tool
+          if (this.telemetryService.isEnabled()) {
+            this.telemetryService.endToolSpan(callId, {
+              toolOutput: input.tool_response,
+              status: input.error ? 'error' : 'success',
+              errorMessage: input.error,
+            });
           }
 
           // Emit PostToolUse hook event
@@ -424,6 +456,14 @@ export class ClaudeSdkOrchestratorService {
             timestamp: new Date().toISOString()
           });
 
+          // Update telemetry span with session info
+          if (this.telemetryService.isEnabled() && processId) {
+            this.telemetryService.updateConversationSpan(processId, {
+              sessionId: newSessionId,
+              model: model,
+            });
+          }
+
           this.logger.log(`✨ Session initialized: ${newSessionId} with model: ${model}`);
 
           const sessionEvent = SdkMessageTransformer.transform(sdkMessage);
@@ -528,6 +568,17 @@ export class ClaudeSdkOrchestratorService {
             if (sessionId && usage.input_tokens && usage.output_tokens) {
               this.sessionManager.updateTokenUsage(sessionId, usage.input_tokens, usage.output_tokens);
             }
+
+            // Record usage in telemetry
+            if (this.telemetryService.isEnabled() && processId) {
+              this.telemetryService.recordUsage(processId, {
+                inputTokens: usage.input_tokens,
+                outputTokens: usage.output_tokens,
+                totalTokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
+                cacheReadTokens: (usage as any).cache_read_input_tokens,
+                cacheCreationTokens: (usage as any).cache_creation_input_tokens,
+              });
+            }
           }
 
           // Apply output guardrails if enabled (only for buffered output)
@@ -568,6 +619,11 @@ export class ClaudeSdkOrchestratorService {
             timestamp: new Date().toISOString(),
             usage
           });
+
+          // End telemetry span successfully
+          if (this.telemetryService.isEnabled() && processId) {
+            this.telemetryService.endConversationSpan(processId, assistantText);
+          }
 
           // Emit completion
           const completedEvent = SdkMessageTransformer.transform(sdkMessage);
@@ -683,6 +739,12 @@ export class ClaudeSdkOrchestratorService {
 
     } catch (error: any) {
       this.logger.error(`SDK stream error: ${error.message}`, error.stack);
+
+      // End telemetry span with error
+      if (this.telemetryService.isEnabled() && processId) {
+        this.telemetryService.endConversationSpanWithError(processId, error);
+      }
+
       observer.next({
         type: 'error',
         data: { message: error.message }

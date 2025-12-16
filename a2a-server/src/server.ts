@@ -5,7 +5,9 @@
  * Hosts multiple agents with individual well-known endpoints and a directory.
  */
 
-import 'dotenv/config';
+// OpenTelemetry instrumentation MUST be imported first
+import './instrumentation.js';
+
 import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -15,7 +17,17 @@ import {
   TextPart,
   DirectoryEntry,
   DirectoryResponse,
+  A2AMetadata,
 } from './types.js';
+import {
+  extractTraceContext,
+  startAgentSpan,
+  SpanStatusCode,
+  isOtelEnabled,
+  context as otelContext,
+  tracer,
+} from './instrumentation.js';
+import { trace } from '@opentelemetry/api';
 import { imageMergerAgentCard, processImageMerger } from './agents/image-merger.agent.js';
 import { taxClassificationAgentCard, processTaxClassification } from './agents/tax-classification.agent.js';
 
@@ -199,12 +211,19 @@ app.post('/agents/tax-classification/a2a', async (req: Request, res: Response) =
  * Generic agent A2A handler
  */
 async function handleAgentRequest(agentId: string, req: Request, res: Response) {
+  const params: MessageSendParams = req.body;
+
+  // Extract trace context from A2A metadata (per A2A spec)
+  const parentContext = extractTraceContext(params.metadata);
+  const span = startAgentSpan(agentId, 'process', parentContext);
+
   try {
-    const params: MessageSendParams = req.body;
     console.log(`Received A2A message for ${agentId}:`, JSON.stringify(params, null, 2));
 
     const agent = agents.get(agentId);
     if (!agent) {
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: 'Agent not found' });
+      span?.end();
       return res.status(404).json({
         error: {
           code: 404,
@@ -214,6 +233,8 @@ async function handleAgentRequest(agentId: string, req: Request, res: Response) 
     }
 
     if (!params.message || !params.message.parts) {
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: 'Invalid request' });
+      span?.end();
       return res.status(400).json({
         error: {
           code: 400,
@@ -222,8 +243,24 @@ async function handleAgentRequest(agentId: string, req: Request, res: Response) 
       });
     }
 
-    // Process with the agent's processor
-    const task = await agent.processor(params.message.parts);
+    // Add agent info to span
+    span?.setAttribute('a2a.agent.card.name', agent.card.name);
+    span?.setAttribute('a2a.message.parts.count', params.message.parts.length);
+
+    // Process with the agent's processor (within the trace context)
+    // We need to set the span as active so child spans (like LLM calls) are properly linked
+    const activeContext = span
+      ? trace.setSpan(parentContext, span)
+      : parentContext;
+
+    const task = await otelContext.with(
+      activeContext,
+      () => agent.processor(params.message.parts)
+    );
+
+    // Add task info to span
+    span?.setAttribute('a2a.task.id', task.id);
+    span?.setAttribute('a2a.task.status', task.status.state);
 
     // Store task
     tasks.set(task.id, task);
@@ -231,6 +268,8 @@ async function handleAgentRequest(agentId: string, req: Request, res: Response) 
     // If blocking mode, return the completed task
     if (params.configuration?.blocking) {
       console.log(`Returning completed task for ${agentId}:`, task.id);
+      span?.setStatus({ code: SpanStatusCode.OK });
+      span?.end();
       return res.json({ result: task });
     }
 
@@ -240,9 +279,17 @@ async function handleAgentRequest(agentId: string, req: Request, res: Response) 
       status: { state: 'submitted', timestamp: new Date().toISOString() },
     };
 
+    span?.setStatus({ code: SpanStatusCode.OK });
+    span?.end();
     return res.json({ result: submittedTask });
   } catch (error) {
     console.error(`Error processing ${agentId} request:`, error);
+    span?.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: error instanceof Error ? error.message : 'Internal server error',
+    });
+    span?.recordException(error instanceof Error ? error : new Error(String(error)));
+    span?.end();
     return res.status(500).json({
       error: {
         code: 500,

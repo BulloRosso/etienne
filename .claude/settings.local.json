@@ -79,7 +79,8 @@
       "Bash(workspace/test-project/test-file-3.txt)",
       "Bash(workspace/test-project/test-file-final.txt)",
       "Bash(ls:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(npx nest build:*)"
     ],
     "deny": [],
     "ask": []

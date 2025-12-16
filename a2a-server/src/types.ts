@@ -50,6 +50,14 @@ export interface Task {
   artifacts?: Artifact[];
 }
 
+// Metadata type for passing context (per A2A spec)
+export interface A2AMetadata {
+  [key: string]: any;
+  // OpenTelemetry trace context (W3C Trace Context format)
+  traceparent?: string;  // e.g., "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+  tracestate?: string;   // optional vendor-specific trace data
+}
+
 // Request/Response types
 export interface MessageSendParams {
   message: Message;
@@ -57,6 +65,8 @@ export interface MessageSendParams {
     blocking?: boolean;
     acceptedOutputModes?: string[];
   };
+  // Metadata for passing additional context (per A2A spec)
+  metadata?: A2AMetadata;
 }
 
 export interface SendMessageSuccessResponse {

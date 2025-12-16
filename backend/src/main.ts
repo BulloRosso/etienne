@@ -1,3 +1,6 @@
+// OpenTelemetry instrumentation MUST be imported first
+import './observability/instrumentation';
+
 import 'reflect-metadata';
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';

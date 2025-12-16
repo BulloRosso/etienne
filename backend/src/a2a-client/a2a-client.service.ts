@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { context, propagation, trace } from '@opentelemetry/api';
 import {
   AgentCard,
   Message,
@@ -14,12 +15,61 @@ import {
   FilePart,
   ExtractedResult,
   A2AClientOptions,
+  A2AMetadata,
 } from './types';
+import { isOtelEnabled } from '../observability/instrumentation';
+import { TelemetryService } from '../observability/telemetry.service';
 
 @Injectable()
 export class A2AClientService {
   private readonly logger = new Logger(A2AClientService.name);
   private readonly defaultTimeout = 60000; // 60 seconds
+
+  constructor(
+    @Optional() private readonly telemetryService?: TelemetryService,
+  ) {}
+
+  /**
+   * Get current trace context as A2A metadata (W3C Trace Context format)
+   * This propagates the trace context to downstream A2A agents
+   */
+  private getTraceContextMetadata(): A2AMetadata | undefined {
+    if (!isOtelEnabled) {
+      return undefined;
+    }
+
+    // First try to get context from the active span (works if we're in a context.with block)
+    let carrier: Record<string, string> = {};
+    propagation.inject(context.active(), carrier);
+
+    // If no trace context from active context, try to get it from TelemetryService
+    // This handles cases where the call happens outside the span's async context
+    if (!carrier.traceparent && this.telemetryService) {
+      // Try tool span first, then conversation span
+      const activeSpan = this.telemetryService.getCurrentToolSpan()
+        || this.telemetryService.getCurrentConversationSpan();
+
+      if (activeSpan) {
+        const spanContext = trace.setSpan(context.active(), activeSpan);
+        propagation.inject(spanContext, carrier);
+        this.logger.debug(`Using trace context from TelemetryService span`);
+      }
+    }
+
+    // Only return metadata if we have trace context
+    if (carrier.traceparent) {
+      const metadata: A2AMetadata = {
+        traceparent: carrier.traceparent,
+      };
+      if (carrier.tracestate) {
+        metadata.tracestate = carrier.tracestate;
+      }
+      this.logger.debug(`Injecting trace context: ${carrier.traceparent}`);
+      return metadata;
+    }
+
+    return undefined;
+  }
 
   /**
    * Fetch an agent card from a URL
@@ -74,13 +124,14 @@ export class A2AClientService {
         parts,
       };
 
-      // Send to agent
+      // Send to agent with trace context in metadata (A2A protocol standard field)
       const params: MessageSendParams = {
         message,
         configuration: {
           blocking: true,
           acceptedOutputModes: ['text', 'file'],
         },
+        metadata: this.getTraceContextMetadata(),
       };
 
       const a2aEndpoint = this.getA2AEndpoint(agentBaseUrl);

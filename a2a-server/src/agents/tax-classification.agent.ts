@@ -17,6 +17,8 @@ import {
   TextPart,
   FilePart,
 } from '../types.js';
+import { tracer, isOtelEnabled, SpanStatusCode, context as otelContext } from '../instrumentation.js';
+import { SpanKind } from '@opentelemetry/api';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5600';
 
@@ -116,6 +118,7 @@ export async function processTaxClassification(parts: Part[]): Promise<Task> {
 
 async function classifyWithClaude(inputData: string): Promise<string> {
   const client = getAnthropicClient();
+  const modelName = 'claude-sonnet-4-20250514';
 
   const prompt = `You are a multilingual tax expense classifier. You will receive input data in ANY format (JSON, text, CSV, markdown table, etc.) and in ANY language.
 
@@ -161,34 +164,77 @@ Here is the input data to process:
 
 ${inputData}`;
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-  });
+  // Create LLM span if telemetry is enabled
+  const span = isOtelEnabled && tracer
+    ? tracer.startSpan('llm.claude.completion', {
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'openinference.span.kind': 'LLM',
+          'llm.system': 'claude',
+          'llm.provider': 'anthropic',
+          'llm.model_name': modelName,
+          'llm.request.type': 'completion',
+          'llm.request.max_tokens': 4096,
+          'input.value': prompt.substring(0, 5000), // Truncate for safety
+          'input.mime_type': 'text/plain',
+        },
+      })
+    : null;
 
-  // Extract the response
-  const responseText = message.content
-    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map(block => block.text)
-    .join('');
+  try {
+    const message = await client.messages.create({
+      model: modelName,
+      max_tokens: 4096,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
 
-  // Try to extract JSON from the response (in case there's any extra text)
-  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Claude did not return a valid JSON response');
+    // Extract the response
+    const responseText = message.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map(block => block.text)
+      .join('');
+
+    // Add LLM usage to span
+    if (span) {
+      span.setAttribute('llm.token_count.prompt', message.usage.input_tokens);
+      span.setAttribute('llm.token_count.completion', message.usage.output_tokens);
+      span.setAttribute('llm.token_count.total', message.usage.input_tokens + message.usage.output_tokens);
+      span.setAttribute('output.value', responseText.substring(0, 5000));
+      span.setAttribute('output.mime_type', 'text/plain');
+      span.setAttribute('llm.response.model', message.model);
+      span.setAttribute('llm.response.stop_reason', message.stop_reason || 'unknown');
+      span.setStatus({ code: SpanStatusCode.OK });
+      span.end();
+    }
+
+    // Try to extract JSON from the response (in case there's any extra text)
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Claude did not return a valid JSON response');
+    }
+
+    // Validate it's valid JSON
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Return formatted JSON
+    return JSON.stringify(parsed, null, 2);
+  } catch (error) {
+    // Record error in span
+    if (span) {
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.end();
+    }
+    throw error;
   }
-
-  // Validate it's valid JSON
-  const parsed = JSON.parse(jsonMatch[0]);
-
-  // Return formatted JSON
-  return JSON.stringify(parsed, null, 2);
 }
 
 function createErrorTask(taskId: string, errorMessage: string): Task {
