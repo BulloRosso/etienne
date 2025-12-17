@@ -73,9 +73,10 @@ export default function StreamingTimeline({
             currentSegment.key = `text-${chunk.timestamp}`;
             currentSegment.content = chunk.content;
           } else {
-            // Add double newline separator between chunks since the original
-            // \n\n separators were stripped during buffering in App.jsx
-            currentSegment.content += '\n\n' + chunk.content;
+            // Concatenate chunks directly without separators
+            // The chunks are already properly split during streaming and contain
+            // their own whitespace/newlines - adding separators breaks markdown tables
+            currentSegment.content += chunk.content;
           }
           currentSegment.lastTimestamp = chunk.timestamp;
         }
