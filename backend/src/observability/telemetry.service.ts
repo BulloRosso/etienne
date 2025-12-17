@@ -283,6 +283,19 @@ export class TelemetryService {
   }
 
   /**
+   * Get span IDs for a process (for frontend to use when submitting feedback)
+   */
+  getSpanIds(processId: string): { spanId: string; traceId: string } | null {
+    if (!isOtelEnabled) return null;
+
+    const span = this.activeSpans.get(processId);
+    if (!span) return null;
+
+    const ctx = span.spanContext();
+    return { spanId: ctx.spanId, traceId: ctx.traceId };
+  }
+
+  /**
    * End conversation span with error
    */
   endConversationSpanWithError(processId: string, error: Error | string): void {

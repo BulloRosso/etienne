@@ -620,8 +620,19 @@ export class ClaudeSdkOrchestratorService {
             usage
           });
 
-          // End telemetry span successfully
+          // Emit telemetry data (spanId) to frontend before ending span
           if (this.telemetryService.isEnabled() && processId) {
+            const spanIds = this.telemetryService.getSpanIds(processId);
+            if (spanIds) {
+              observer.next({
+                type: 'telemetry',
+                data: {
+                  span_id: spanIds.spanId,
+                  trace_id: spanIds.traceId,
+                },
+              });
+            }
+            // End telemetry span successfully
             this.telemetryService.endConversationSpan(processId, assistantText);
           }
 

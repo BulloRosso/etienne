@@ -991,6 +991,25 @@ export default function App() {
       });
     });
 
+    es.addEventListener('telemetry', (e) => {
+      const data = JSON.parse(e.data);
+      // Store spanId with the current assistant message for feedback
+      if (data.span_id) {
+        currentMessageRef.current.spanId = data.span_id;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastMsg = newMessages[newMessages.length - 1];
+          if (lastMsg && lastMsg.role === 'assistant') {
+            newMessages[newMessages.length - 1] = {
+              ...currentMessageRef.current,
+              spanId: data.span_id
+            };
+          }
+          return newMessages;
+        });
+      }
+    });
+
     es.addEventListener('file_added', (e) => {
       const absolutePath = JSON.parse(e.data).path;
       const relativePath = extractRelativePath(absolutePath);

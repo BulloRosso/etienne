@@ -260,6 +260,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               onPlanApprove={onPlanApprove}
               onPlanReject={onPlanReject}
               isStreaming={isStreaming}
+              spanId={msg.spanId}
             />
           );
         })}

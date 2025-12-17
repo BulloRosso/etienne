@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Box, Typography, Paper, IconButton, Collapse, Chip } from '@mui/material';
-import { ExpandMore, ExpandLess, Label } from '@mui/icons-material';
+import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown } from '@mui/icons-material';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -8,13 +8,39 @@ import StreamingTimeline from './StreamingTimeline';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
 
-export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], planApprovalState = {}, onPlanApprove, onPlanReject, isStreaming = false }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], planApprovalState = {}, onPlanApprove, onPlanReject, isStreaming = false, spanId = null }) {
   const isUser = role === 'user';
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [feedback, setFeedback] = useState(null); // 'up', 'down', or null
+  const [feedbackSending, setFeedbackSending] = useState(false);
   const { currentProject } = useProject();
   const contentRef = useRef(null);
   const streamStartTimeRef = useRef(null);
+
+  // Handle feedback submission
+  const handleFeedback = async (type) => {
+    if (!spanId || feedbackSending) return;
+
+    setFeedbackSending(true);
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spanId, feedback: type }),
+      });
+
+      if (response.ok) {
+        setFeedback(type);
+      } else {
+        console.error('Failed to submit feedback:', await response.text());
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    } finally {
+      setFeedbackSending(false);
+    }
+  };
 
   // Track elapsed time during streaming
   useEffect(() => {
@@ -205,7 +231,8 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                   borderCollapse: 'collapse',
                   border: '1px solid #ccc',
                   marginTop: '0.5em',
-                  marginBottom: '0.5em'
+                  marginBottom: '0.5em',
+                  width: '100%'
                 },
                 '& th, & td': {
                   border: '1px solid #ccc',
@@ -320,7 +347,8 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                 borderCollapse: 'collapse',
                 border: '1px solid #ccc',
                 marginTop: '0.5em',
-                marginBottom: '0.5em'
+                marginBottom: '0.5em',
+                width: '100%'
               },
               '& th, & td': {
                 border: '1px solid #ccc',
@@ -341,17 +369,52 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         {/* Token consumption pane - moved to bottom */}
         {usage && (
           <Box sx={{ mt: 2, mb: 1, pl: '40px' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', mb: 0.5 }}>
-              <Typography variant="caption" sx={{ color: '#999', fontSize: '11px', mr: 0.5 }}>
-                Costs
-              </Typography>
-              <IconButton
-                size="small"
-                onClick={() => setTokenPaneExpanded(!tokenPaneExpanded)}
-                sx={{ p: 0.5 }}
-              >
-                {tokenPaneExpanded ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
-              </IconButton>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+              {/* Left side: Costs label + expand button */}
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="caption" sx={{ color: '#999', fontSize: '11px', mr: 0.5 }}>
+                  Costs
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={() => setTokenPaneExpanded(!tokenPaneExpanded)}
+                  sx={{ p: 0.5 }}
+                >
+                  {tokenPaneExpanded ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+                </IconButton>
+              </Box>
+
+              {/* Right side: Feedback buttons (only if spanId available and not streaming) */}
+              {spanId && !isStreaming && (
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleFeedback('up')}
+                    disabled={feedbackSending}
+                    sx={{
+                      p: 0.5,
+                      color: feedback === 'up' ? '#4caf50' : '#999',
+                      '&:hover': { color: feedback === 'up' ? '#4caf50' : '#666' }
+                    }}
+                    title="Good response"
+                  >
+                    <ThumbUp sx={{ fontSize: '16px' }} />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleFeedback('down')}
+                    disabled={feedbackSending}
+                    sx={{
+                      p: 0.5,
+                      color: feedback === 'down' ? '#f44336' : '#999',
+                      '&:hover': { color: feedback === 'down' ? '#f44336' : '#666' }
+                    }}
+                    title="Poor response"
+                  >
+                    <ThumbDown sx={{ fontSize: '16px' }} />
+                  </IconButton>
+                </Box>
+              )}
             </Box>
             <Collapse in={tokenPaneExpanded}>
               <TokenConsumptionPane usage={usage} />

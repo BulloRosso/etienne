@@ -81,7 +81,8 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
               borderCollapse: 'collapse',
               border: '1px solid #ccc',
               marginTop: '0.5em',
-              marginBottom: '0.5em'
+              marginBottom: '0.5em',
+              width: '100%'
             },
             '& th, & td': {
               border: '1px solid #ccc',
