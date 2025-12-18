@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Tab, Tabs, IconButton, Menu, MenuItem, Divider } from '@mui/material';
-import { BsRobot } from 'react-icons/bs';
+import { Box, Tab, Tabs, IconButton, Menu, MenuItem, Divider } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { BsThreeDotsVertical } from 'react-icons/bs';
 import { CiFileOn } from 'react-icons/ci';
@@ -277,24 +276,24 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           sx={{
             flex: 1,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#ccc',
-            fontSize: '36px',
-            textAlign: 'center',
-            gap: 2
+            p: 2,
+            overflow: 'hidden'
           }}
         >
-          <BsRobot size={72} color="#ccc" />
-          <Box>
-            <Typography sx={{ fontSize: '36px', color: '#ccc', lineHeight: 1.2 }}>
-              Use Case
-            </Typography>
-            <Typography sx={{ fontSize: '36px', color: '#ccc', fontWeight: 'bold', lineHeight: 1.2 }}>
-              Virtual Collaborator/Expert
-            </Typography>
-          </Box>
+          <img
+            src="/etienne-intro.jpg"
+            alt="Introduction"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              borderRadius: '8px'
+            }}
+          />
         </Box>
       </Box>
     );
