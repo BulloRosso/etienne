@@ -27,7 +27,10 @@ const defaultValues = {
   COSTS_PER_MIO_INPUT_TOKENS: '3.0',
   COSTS_PER_MIO_OUTPUT_TOKENS: '15.0',
   MEMORY_MANAGEMENT_URL: 'http://localhost:6060/api/memories',
-  MEMORY_DECAY_DAYS: '6'
+  MEMORY_DECAY_DAYS: '6',
+  OTEL_ENABLED: 'false',
+  PHOENIX_COLLECTOR_ENDPOINT: 'http://localhost:6006',
+  OTEL_SERVICE_NAME: 'a2a-server'
 };
 
 export default function Configuration({ onSave }) {
@@ -296,8 +299,48 @@ export default function Configuration({ onSave }) {
             onChange={handleChange('MEMORY_DECAY_DAYS')}
             size="small"
             type="number"
-            sx={{ mb: 2 }}
+            sx={{ mb: 3 }}
             helperText="Number of days before memories are considered stale"
+          />
+
+          {/* OpenTelemetry Observability */}
+          <Typography variant="subtitle2" sx={{ mb: '8px', fontWeight: 'bold' }}>
+            5. OpenTelemetry Observability
+          </Typography>
+
+          <TextField
+            fullWidth
+            label="OTEL Enabled"
+            value={config.OTEL_ENABLED}
+            onChange={handleChange('OTEL_ENABLED')}
+            size="small"
+            select
+            SelectProps={{ native: true }}
+            sx={{ mb: 2 }}
+            helperText="Enable OpenTelemetry tracing and metrics"
+          >
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </TextField>
+
+          <TextField
+            fullWidth
+            label="Phoenix Collector Endpoint"
+            value={config.PHOENIX_COLLECTOR_ENDPOINT}
+            onChange={handleChange('PHOENIX_COLLECTOR_ENDPOINT')}
+            size="small"
+            sx={{ mb: 2 }}
+            helperText="OpenTelemetry collector endpoint (e.g., http://localhost:6006)"
+          />
+
+          <TextField
+            fullWidth
+            label="OTEL Service Name"
+            value={config.OTEL_SERVICE_NAME}
+            onChange={handleChange('OTEL_SERVICE_NAME')}
+            size="small"
+            sx={{ mb: 2 }}
+            helperText="Service name for OpenTelemetry traces"
           />
         </AccordionDetails>
       </Accordion>

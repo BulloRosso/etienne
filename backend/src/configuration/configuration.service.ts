@@ -18,6 +18,9 @@ interface ConfigurationDto {
   COSTS_PER_MIO_OUTPUT_TOKENS?: string;
   MEMORY_MANAGEMENT_URL?: string;
   MEMORY_DECAY_DAYS?: string;
+  OTEL_ENABLED?: string;
+  PHOENIX_COLLECTOR_ENDPOINT?: string;
+  OTEL_SERVICE_NAME?: string;
   [key: string]: string | undefined;
 }
 
@@ -172,6 +175,21 @@ export class ConfigurationService {
       lines.push('# This prevents AI agents from sending emails to unauthorized recipients');
       if (config.SMTP_WHITELIST) {
         lines.push(`SMTP_WHITELIST=${config.SMTP_WHITELIST}`);
+      }
+    }
+
+    // OpenTelemetry Observability Configuration
+    if (config.OTEL_ENABLED || config.PHOENIX_COLLECTOR_ENDPOINT || config.OTEL_SERVICE_NAME) {
+      lines.push('');
+      lines.push('# OpenTelemetry Observability Configuration');
+      if (config.OTEL_ENABLED) {
+        lines.push(`OTEL_ENABLED=${config.OTEL_ENABLED}`);
+      }
+      if (config.PHOENIX_COLLECTOR_ENDPOINT) {
+        lines.push(`PHOENIX_COLLECTOR_ENDPOINT=${config.PHOENIX_COLLECTOR_ENDPOINT}`);
+      }
+      if (config.OTEL_SERVICE_NAME) {
+        lines.push(`OTEL_SERVICE_NAME=${config.OTEL_SERVICE_NAME}`);
       }
     }
 
