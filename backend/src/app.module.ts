@@ -34,9 +34,10 @@ import { A2ASettingsModule } from './a2a-settings/a2a-settings.module';
 import { A2AClientModule } from './a2a-client/a2a-client.module';
 import { TelemetryModule } from './observability/telemetry.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { ProcessManagerModule } from './process-manager/process-manager.module';
 
 @Module({
-  imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule],
+  imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule],
   controllers: [ClaudeController],
   providers: [
     ClaudeService,

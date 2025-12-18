@@ -355,6 +355,52 @@ export class ClaudeService {
     return { healthy: true };
   }
 
+  public async checkModelHealth() {
+    // Check if ANTHROPIC_API_KEY is set
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return {
+        healthy: false,
+        reason: 'ANTHROPIC_API_KEY not set in environment'
+      };
+    }
+
+    // Try a simple API request to Anthropic
+    try {
+      const response = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 50,
+          messages: [{ role: 'user', content: 'What is your model id? Reply with just the model id.' }]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          timeout: 30000
+        }
+      );
+
+      const modelResponse = response.data?.content?.[0]?.text || 'Unknown';
+      return {
+        healthy: true,
+        model: response.data?.model,
+        response: modelResponse
+      };
+    } catch (error: any) {
+      const reason = error.response?.data?.error?.message
+        || error.message
+        || 'Unknown error connecting to Anthropic API';
+      return {
+        healthy: false,
+        reason
+      };
+    }
+  }
+
   // SSE: emits events: session, stdout, usage, file_added, file_changed, completed, error
   streamPrompt(projectDir: string, prompt: string, agentMode?: string, aiModel?: string, memoryEnabled?: boolean, skipChatPersistence?: boolean, maxTurns?: number): Observable<MessageEvent> {
     return new Observable<MessageEvent>((observer) => {

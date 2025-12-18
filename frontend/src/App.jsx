@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress } from '@mui/material';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
@@ -13,6 +13,7 @@ import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
+import Onboarding from './components/Onboarding';
 
 export default function App() {
   const { currentProject, projectExists, setProject } = useProject();
@@ -43,7 +44,7 @@ export default function App() {
   const [contexts, setContexts] = useState([]);
   const [contextManagerOpen, setContextManagerOpen] = useState(false);
   const [allTags, setAllTags] = useState([]);
-  const [showConfigurationRequired, setShowConfigurationRequired] = useState(false);
+  const [showConfigurationRequired, setShowConfigurationRequired] = useState(null); // null = checking, true = show onboarding, false = show app
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -65,11 +66,19 @@ export default function App() {
       try {
         const response = await fetch('/api/configuration');
         if (response.status === 404) {
-          // No configuration exists, show configuration dialog
+          // No configuration exists, show onboarding
+          setShowConfigurationRequired(true);
+        } else if (response.ok) {
+          // Configuration exists, show main app
+          setShowConfigurationRequired(false);
+        } else {
+          // Other error, show onboarding
           setShowConfigurationRequired(true);
         }
       } catch (err) {
+        // Network error (backend not running) - also show onboarding
         console.error('Failed to check configuration:', err);
+        setShowConfigurationRequired(true);
       }
     };
 
@@ -1355,6 +1364,26 @@ export default function App() {
       restoreWorkbench(newProject);
     }, 1000);
   };
+
+  const handleOnboardingComplete = (projectName) => {
+    // Onboarding is complete, hide it and load the new project
+    setShowConfigurationRequired(false);
+    setProject(projectName);
+  };
+
+  // Show loading while checking configuration
+  if (showConfigurationRequired === null) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show onboarding wizard if configuration is required
+  if (showConfigurationRequired) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>

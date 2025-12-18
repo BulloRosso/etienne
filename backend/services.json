@@ -1,0 +1,36 @@
+{
+  "services": [
+    {
+      "name": "rdf-store",
+      "displayName": "Knowledge Graph",
+      "description": "A RDF store to hold semantic relations between data objects",
+      "directory": "rdf-store",
+      "startCommand": "npm run dev",
+      "port": 7000
+    },
+    {
+      "name": "vector-store",
+      "displayName": "Vector Store",
+      "description": "A fulltext index using embeddings to find similar data",
+      "directory": "vector-store",
+      "startCommand": "python multi-tenant-chromadb.py",
+      "port": 7100
+    },
+    {
+      "name": "a2a-server",
+      "displayName": "A2A Registry & Sample Agents",
+      "description": "Contains two external agents and a list for discovery",
+      "directory": "a2a-server",
+      "startCommand": "npm run dev",
+      "port": 5600
+    },
+    {
+      "name": "webserver",
+      "displayName": "Web Server",
+      "description": "Allows Etienne to create and expose API endpoints. The server is capable of hot-reloading.",
+      "directory": "webserver",
+      "startCommand": "python app.py",
+      "port": 4000
+    }
+  ]
+}
