@@ -54,10 +54,11 @@ if (OTEL_ENABLED) {
     ],
   });
 
-  // Use W3C Trace Context propagator for extracting trace context
-  propagation.setGlobalPropagator(new W3CTraceContextPropagator());
-
-  tracerProvider.register();
+  // Register with W3C Trace Context propagator for extracting trace context
+  // Pass the propagator to register() to avoid duplicate registration error
+  tracerProvider.register({
+    propagator: new W3CTraceContextPropagator(),
+  });
   console.log(`[A2A Observability] OpenTelemetry initialized - sending traces to ${PHOENIX_ENDPOINT}/v1/traces`);
 } else {
   console.log(`[A2A Observability] OpenTelemetry disabled (OTEL_ENABLED=${process.env.OTEL_ENABLED || 'not set'})`);

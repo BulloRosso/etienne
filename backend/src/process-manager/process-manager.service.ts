@@ -62,20 +62,31 @@ export class ProcessManagerService implements OnModuleDestroy {
   }
 
   private async isPortInUse(port: number): Promise<boolean> {
+    // Try to connect to the port - this works regardless of which interface the service is bound to
     return new Promise((resolve) => {
-      const server = net.createServer();
-      server.once('error', (err: NodeJS.ErrnoException) => {
-        if (err.code === 'EADDRINUSE') {
-          resolve(true);
+      const socket = new net.Socket();
+      socket.setTimeout(1000);
+
+      socket.once('connect', () => {
+        socket.destroy();
+        resolve(true); // Port is in use - something accepted our connection
+      });
+
+      socket.once('timeout', () => {
+        socket.destroy();
+        resolve(false); // Timeout - nothing listening
+      });
+
+      socket.once('error', (err: NodeJS.ErrnoException) => {
+        socket.destroy();
+        if (err.code === 'ECONNREFUSED') {
+          resolve(false); // Connection refused - nothing listening
         } else {
-          resolve(false);
+          resolve(false); // Other error - assume not in use
         }
       });
-      server.once('listening', () => {
-        server.close();
-        resolve(false);
-      });
-      server.listen(port, '127.0.0.1');
+
+      socket.connect(port, '127.0.0.1');
     });
   }
 
@@ -183,27 +194,9 @@ export class ProcessManagerService implements OnModuleDestroy {
         this.runningProcesses.delete(serviceName);
       });
 
-      // Poll for up to 120 seconds waiting for the service to start
-      const maxWaitTime = 120000; // 120 seconds
-      const pollInterval = 2000;  // Check every 2 seconds
-      const startTime = Date.now();
-
-      console.log(`[${serviceName}] Waiting for service to start on port ${service.port}...`);
-
-      while (Date.now() - startTime < maxWaitTime) {
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-
-        const status = await this.getServiceStatus(serviceName);
-        if (status.status === 'running') {
-          const elapsed = Math.round((Date.now() - startTime) / 1000);
-          console.log(`[${serviceName}] Service started successfully after ${elapsed}s`);
-          return { success: true, message: `Service '${serviceName}' started successfully`, port: service.port };
-        }
-      }
-
-      // Timeout reached
-      console.log(`[${serviceName}] Service failed to start within 120 seconds`);
-      return { success: false, message: `Service '${serviceName}' failed to start - port ${service.port} not responding after 120 seconds` };
+      // Return immediately - the frontend will poll for status
+      // This allows starting multiple services in parallel
+      return { success: true, message: `Service '${serviceName}' is starting...`, port: service.port };
     } catch (error: any) {
       return { success: false, message: `Failed to start service: ${error.message}` };
     }

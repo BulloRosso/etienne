@@ -125,40 +125,84 @@ export default function Onboarding({ onComplete }) {
           break;
 
         case 2:
-          // Start selected services
+          // Start selected services in parallel
           const servicesToStart = Object.entries(selectedServices)
             .filter(([_, enabled]) => enabled)
             .map(([id]) => id);
 
-          const errors = {};
-          const statuses = {};
+          // Start all services simultaneously (don't wait for each one)
+          const startPromises = servicesToStart.map(serviceId =>
+            fetch(`/api/process-manager/${serviceId}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'start' })
+            }).then(res => res.json()).catch(err => ({ success: false, message: err.message }))
+          );
 
-          for (const serviceId of servicesToStart) {
-            try {
-              const startResponse = await fetch(`/api/process-manager/${serviceId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'start' })
-              });
-              const startData = await startResponse.json();
+          await Promise.all(startPromises);
 
-              if (startData.success) {
-                statuses[serviceId] = 'running';
-              } else {
-                errors[serviceId] = startData.message || 'Failed to start service';
-                statuses[serviceId] = 'error';
+          // Now poll for all services to be ready (up to 120 seconds)
+          const maxWaitTime = 120000; // 120 seconds
+          const pollInterval = 2000;  // Check every 2 seconds
+          const startTime = Date.now();
+          let allRunning = false;
+          let finalStatuses = {};
+          let finalErrors = {};
+
+          // Helper function to check all service statuses
+          const checkAllStatuses = async () => {
+            const statusPromises = servicesToStart.map(async (serviceId) => {
+              try {
+                const statusResponse = await fetch(`/api/process-manager/${serviceId}`);
+                const statusData = await statusResponse.json();
+                return { serviceId, status: statusData.status, error: null };
+              } catch (err) {
+                return { serviceId, status: 'error', error: err.message };
               }
-            } catch (err) {
-              errors[serviceId] = err.message;
-              statuses[serviceId] = 'error';
+            });
+
+            const statusResults = await Promise.all(statusPromises);
+
+            finalStatuses = {};
+            finalErrors = {};
+
+            for (const result of statusResults) {
+              finalStatuses[result.serviceId] = result.status;
+              if (result.error) {
+                finalErrors[result.serviceId] = result.error;
+              }
+            }
+
+            setServiceStatuses({ ...finalStatuses });
+
+            // Check if all selected services are running
+            return servicesToStart.every(id => finalStatuses[id] === 'running');
+          };
+
+          // Check immediately first (services might already be running)
+          allRunning = await checkAllStatuses();
+
+          // Then poll until timeout or all running
+          while (Date.now() - startTime < maxWaitTime && !allRunning) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            allRunning = await checkAllStatuses();
+          }
+
+          // Timeout reached or all running
+          if (!allRunning) {
+            // Mark services that aren't running as errors
+            for (const serviceId of servicesToStart) {
+              if (finalStatuses[serviceId] !== 'running') {
+                const service = SERVICE_DEFINITIONS.find(s => s.id === serviceId);
+                finalErrors[serviceId] = `Service failed to start - port ${service?.port} not responding after 120 seconds`;
+              }
             }
           }
 
-          setServiceStatuses(statuses);
-          setServiceErrors(errors);
+          setServiceErrors(finalErrors);
 
           // Check if all selected services started successfully
-          const hasErrors = Object.keys(errors).length > 0;
+          const hasErrors = Object.keys(finalErrors).length > 0;
           if (!hasErrors) {
             setCurrentStep(3);
           } else {
