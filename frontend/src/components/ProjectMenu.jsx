@@ -420,14 +420,19 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         slotProps={{
           paper: {
             sx: {
-              overflow: 'visible'
+              maxHeight: 'calc(100vh - 32px)',
+              overflow: 'hidden'
             }
           }
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', alignItems: 'stretch', maxHeight: 'calc(100vh - 32px)' }}>
           {/* Dashboard Grid on the left */}
-          <Box>
+          <Box sx={{
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            mb: '8px'
+          }}>
             <DashboardGrid
               currentProject={currentProject}
               onItemClick={handleDashboardItemClick}
@@ -437,29 +442,41 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           </Box>
 
           {/* Project Menu on the right */}
-          <Box sx={{ minWidth: '250px' }}>
-            <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px' }}>
+          <Box sx={{
+            minWidth: '250px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px', flexShrink: 0 }}>
               <ListItemText>Choose project:</ListItemText>
             </MenuItem>
-            {projects.filter(project => !project.startsWith('.')).map((project) => (
-              <MenuItem
-                key={project}
-                onClick={() => handleProjectSelect(project)}
-                selected={project === currentProject}
-              >
+            <Box sx={{
+              flex: 1,
+              overflowY: 'auto',
+              overflowX: 'hidden'
+            }}>
+              {projects.filter(project => !project.startsWith('.')).map((project) => (
+                <MenuItem
+                  key={project}
+                  onClick={() => handleProjectSelect(project)}
+                  selected={project === currentProject}
+                >
+                  <ListItemIcon>
+                    <FolderOutlined fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{project}</ListItemText>
+                </MenuItem>
+              ))}
+            </Box>
+            <Box sx={{ flexShrink: 0, mb: '10px' }}>
+              <Divider />
+              <MenuItem onClick={handleNewProject}>
                 <ListItemIcon>
-                  <FolderOutlined fontSize="small" />
+                  <AddOutlined fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{project}</ListItemText>
+                <ListItemText>New Project</ListItemText>
               </MenuItem>
-            ))}
-            <Divider />
-            <MenuItem onClick={handleNewProject}>
-              <ListItemIcon>
-                <AddOutlined fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>New Project</ListItemText>
-            </MenuItem>
+            </Box>
           </Box>
         </Box>
       </Menu>
