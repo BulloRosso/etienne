@@ -41,5 +41,90 @@ export interface McpTool {
 // Tool service interface for registering multiple tools
 export interface ToolService {
   tools: McpTool[];
-  execute: (toolName: string, args: any) => Promise<any>;
+  execute: (toolName: string, args: any, elicit?: ElicitationCallback) => Promise<any>;
+}
+
+// ============================================
+// Elicitation Types (MCP 2025-06-18 spec)
+// ============================================
+
+/**
+ * Elicitation allows MCP servers to request structured input from users
+ * during tool execution, enabling human-in-the-loop workflows.
+ */
+
+/**
+ * JSON Schema for elicitation - supports flat object structures with primitives
+ */
+export interface ElicitationSchema {
+  type: 'object';
+  properties?: Record<string, ElicitationProperty>;
+  required?: string[];
+}
+
+export interface ElicitationProperty {
+  type: 'string' | 'number' | 'integer' | 'boolean';
+  title?: string;
+  description?: string;
+  default?: any;
+  // String constraints
+  minLength?: number;
+  maxLength?: number;
+  format?: 'email' | 'uri' | 'date' | 'date-time';
+  // Number constraints
+  minimum?: number;
+  maximum?: number;
+  // Enum support
+  enum?: (string | number)[];
+  enumNames?: string[]; // Display labels for enum values
+}
+
+/**
+ * Result returned from an elicitation request
+ */
+export interface ElicitationResult {
+  action: 'accept' | 'decline' | 'cancel';
+  content?: Record<string, any>; // User-provided data when action is 'accept'
+}
+
+/**
+ * Callback that tools can use to request user input mid-execution
+ */
+export type ElicitationCallback = (
+  message: string,
+  requestedSchema: ElicitationSchema
+) => Promise<ElicitationResult>;
+
+/**
+ * Internal representation of a pending elicitation request
+ */
+export interface PendingElicitation {
+  id: string;
+  message: string;
+  requestedSchema: ElicitationSchema;
+  resolve: (result: ElicitationResult) => void;
+  reject: (error: Error) => void;
+  createdAt: Date;
+  toolName: string;
+  sessionId?: string;
+}
+
+/**
+ * Event emitted to frontend when elicitation is requested
+ */
+export interface ElicitationEvent {
+  type: 'elicitation_request';
+  id: string;
+  message: string;
+  requestedSchema: ElicitationSchema;
+  toolName: string;
+}
+
+/**
+ * Response from frontend for an elicitation request
+ */
+export interface ElicitationResponse {
+  id: string;
+  action: 'accept' | 'decline' | 'cancel';
+  content?: Record<string, any>;
 }

@@ -539,9 +539,45 @@ export class ClaudeSdkOrchestratorService {
         if (SdkMessageTransformer.isResult(sdkMessage)) {
           this.logger.debug(`📊 Result message:`, JSON.stringify(sdkMessage, null, 2));
 
-          // Extract final result text for persistence only (don't re-emit, already streamed via deltas)
+          // Check if this is an error result (API errors, rate limits, etc.)
+          const isError = (sdkMessage as any).is_error === true;
           const resultText = (sdkMessage as any).result;
-          if (resultText && typeof resultText === 'string') {
+
+          if (isError && resultText) {
+            // Parse API error message for user-friendly display
+            let errorMessage = resultText;
+            try {
+              // Try to extract the actual error message from API Error JSON
+              const apiErrorMatch = resultText.match(/API Error: \d+ ({.*})/);
+              if (apiErrorMatch) {
+                const errorJson = JSON.parse(apiErrorMatch[1]);
+                errorMessage = errorJson.error?.message || resultText;
+              }
+            } catch {
+              // Keep original error message if parsing fails
+            }
+
+            this.logger.warn(`⚠️ API Error in result: ${errorMessage}`);
+
+            // Emit error event to show warning in UI
+            observer.next({
+              type: 'api_error',
+              data: {
+                message: errorMessage,
+                fullError: resultText,
+                timestamp: new Date().toISOString()
+              }
+            });
+
+            // Also emit as stdout so user sees it in the chat
+            observer.next({
+              type: 'stdout',
+              data: { chunk: `\n\n⚠️ **API Error:** ${errorMessage}\n` }
+            });
+          }
+
+          // Extract final result text for persistence only (don't re-emit, already streamed via deltas)
+          if (resultText && typeof resultText === 'string' && !isError) {
             // Only update assistantText if it's empty (e.g., no streaming occurred)
             if (!assistantText) {
               assistantText = resultText;

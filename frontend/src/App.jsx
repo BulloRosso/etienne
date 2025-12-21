@@ -9,6 +9,7 @@ import SchedulingOverview from './components/SchedulingOverview';
 import WelcomePage from './components/WelcomePage';
 import ContextSwitcher from './components/ContextSwitcher';
 import ContextManager from './components/ContextManager';
+import ElicitationModal from './components/ElicitationModal';
 import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
@@ -45,6 +46,7 @@ export default function App() {
   const [contextManagerOpen, setContextManagerOpen] = useState(false);
   const [allTags, setAllTags] = useState([]);
   const [showConfigurationRequired, setShowConfigurationRequired] = useState(null); // null = checking, true = show onboarding, false = show app
+  const [pendingElicitation, setPendingElicitation] = useState(null); // Current elicitation request from MCP tool
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -369,6 +371,9 @@ export default function App() {
             }]);
           }
         }
+      } else if (event.type === 'elicitation_request') {
+        // Handle MCP elicitation request - show modal for user input
+        setPendingElicitation(event.data);
       }
     });
 
@@ -380,6 +385,29 @@ export default function App() {
       es.close();
     };
   }, [currentProject]);
+
+  // Handle elicitation response from user
+  const handleElicitationResponse = async (response) => {
+    console.log('Sending elicitation response:', response);
+    try {
+      const res = await fetch('/mcp/elicitation/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test123'  // MCP auth token
+        },
+        body: JSON.stringify(response)
+      });
+
+      if (!res.ok) {
+        console.error('Failed to send elicitation response:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error sending elicitation response:', err);
+    } finally {
+      setPendingElicitation(null);
+    }
+  };
 
   // Listen for deep research events and auto-open research files
   useEffect(() => {
@@ -946,27 +974,47 @@ export default function App() {
       textBuffer += chunk;
 
       // Check if buffer contains double line breaks (paragraph separators)
-      const lines = textBuffer.split(/(\n\n+)/);
+      // Split on \n\n but capture the delimiter to preserve it
+      const parts = textBuffer.split(/(\n\n+)/);
 
-      // If we have complete paragraphs (more than one part after split)
-      if (lines.length > 1) {
-        // Process all complete segments (everything except the last incomplete part)
-        for (let i = 0; i < lines.length - 1; i++) {
-          const segment = lines[i];
-          if (segment.trim()) {
-            const textChunk = {
-              id: `text_${chunkTime}_${i}`,
-              type: 'text_chunk',
-              content: segment,
-              timestamp: chunkTime
-            };
-            console.log('Adding text chunk:', { id: textChunk.id, timestamp: chunkTime, preview: segment.substring(0, 50) });
-            setStructuredMessages(prev => [...prev, textChunk]);
+      // If we have paragraph breaks (more than one part after split)
+      if (parts.length > 1) {
+        // Combine text with its following newlines to form complete segments
+        // e.g., ["text1", "\n\n", "text2", "\n\n", "text3"] -> ["text1\n\n", "text2\n\n"] with "text3" remaining
+        let currentContent = '';
+        const segments = [];
+
+        for (let i = 0; i < parts.length - 1; i++) {
+          currentContent += parts[i];
+          // If next part is a newline sequence, include it and flush the segment
+          if (i + 1 < parts.length - 1 && /^\n\n+$/.test(parts[i + 1])) {
+            currentContent += parts[i + 1];
+            if (currentContent.trim()) {
+              segments.push(currentContent);
+            }
+            currentContent = '';
+            i++; // Skip the newline part since we already added it
           }
         }
 
+        // Add remaining content to segments if it ends with newlines
+        if (currentContent.trim()) {
+          segments.push(currentContent);
+        }
+
+        // Add all complete segments as text chunks
+        segments.forEach((segment, idx) => {
+          const textChunk = {
+            id: `text_${chunkTime}_${idx}`,
+            type: 'text_chunk',
+            content: segment,
+            timestamp: chunkTime
+          };
+          setStructuredMessages(prev => [...prev, textChunk]);
+        });
+
         // Keep the last incomplete part in the buffer
-        textBuffer = lines[lines.length - 1];
+        textBuffer = parts[parts.length - 1];
       }
 
       setMessages(prev => {
@@ -1072,6 +1120,18 @@ export default function App() {
         type: 'output_guardrails_warning',
         violations,
         count
+      }]);
+    });
+
+    es.addEventListener('api_error', (e) => {
+      const { message, fullError, timestamp } = JSON.parse(e.data);
+      console.error('API Error:', message, fullError);
+      setStructuredMessages(prev => [...prev, {
+        id: `api_error_${Date.now()}`,
+        type: 'api_error',
+        message,
+        fullError,
+        timestamp
       }]);
     });
 
@@ -1573,6 +1633,14 @@ export default function App() {
         projectName={currentProject}
         allTags={allTags}
         onContextChange={handleContextChange}
+      />
+
+      {/* MCP Elicitation Modal */}
+      <ElicitationModal
+        open={!!pendingElicitation}
+        elicitation={pendingElicitation}
+        onRespond={handleElicitationResponse}
+        onClose={() => setPendingElicitation(null)}
       />
     </Box>
   );

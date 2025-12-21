@@ -335,6 +335,23 @@ export const ErrorMessageComponent = ({ message, details }) => (
   </Paper>
 );
 
+// API Error message component (for rate limits, API errors, etc.)
+export const ApiErrorMessageComponent = ({ message, fullError }) => (
+  <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#fff3e0', borderLeft: '4px solid #ff9800' }}>
+    <Typography variant="subtitle2" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
+      ⚠️ API Error
+    </Typography>
+    <Typography variant="body2" sx={{ color: '#555', mb: fullError ? 1 : 0 }}>
+      {message}
+    </Typography>
+    {fullError && fullError !== message && (
+      <Paper sx={{ p: 1, backgroundColor: '#ffe0b2', fontFamily: 'monospace', fontSize: '0.75rem', mt: 1, maxHeight: '150px', overflow: 'auto' }}>
+        {fullError}
+      </Paper>
+    )}
+  </Paper>
+);
+
 // Subagent activity component
 export const SubagentActivityMessage = ({ name, status, content }) => (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#e3f2fd', borderLeft: '4px solid #2196f3' }}>
@@ -590,6 +607,9 @@ export const StructuredMessage = ({ message, onPermissionResponse, projectName }
 
     case 'error':
       return <ErrorMessageComponent message={message.message} details={message.details} />;
+
+    case 'api_error':
+      return <ApiErrorMessageComponent message={message.message} fullError={message.fullError} />;
 
     case 'guardrails_warning':
       return (

@@ -8,7 +8,8 @@ export default defineConfig({
     port: 5000,
     strictPort: true,
     proxy: {
-        '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true }
+        '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true },
+        '/mcp': { target: 'http://localhost:6060', changeOrigin: true }
     }
   }
 });

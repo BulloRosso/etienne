@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Subject } from 'rxjs';
+import { ReplaySubject, Subject } from 'rxjs';
 
 export interface InterceptorEvent {
   project: string;
   timestamp: string;
-  type: 'hook' | 'event';
+  type: 'hook' | 'event' | 'elicitation_request';
   data: any;
 }
 
@@ -16,8 +16,9 @@ export class InterceptorsService {
   private hooks = new Map<string, any[]>();
   private events = new Map<string, any[]>();
 
-  // SSE subjects per project
-  private subjects = new Map<string, Subject<InterceptorEvent>>();
+  // SSE subjects per project - using ReplaySubject to buffer recent events
+  // This ensures events emitted before a subscriber connects are not lost
+  private subjects = new Map<string, ReplaySubject<InterceptorEvent>>();
 
   addInterceptor(project: string, data: any) {
     const timestamp = new Date().toISOString();
@@ -62,10 +63,34 @@ export class InterceptorsService {
     return events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
-  getSubject(project: string): Subject<InterceptorEvent> {
+  getSubject(project: string): ReplaySubject<InterceptorEvent> {
     if (!this.subjects.has(project)) {
-      this.subjects.set(project, new Subject<InterceptorEvent>());
+      // Buffer up to 10 recent events for 30 seconds
+      // This handles race conditions where events are emitted before SSE connects
+      this.subjects.set(project, new ReplaySubject<InterceptorEvent>(10, 30000));
     }
     return this.subjects.get(project)!;
+  }
+
+  /**
+   * Emit an elicitation request to the frontend via SSE
+   * This is called by the MCP server when a tool requests user input
+   */
+  emitElicitationRequest(project: string, elicitationData: {
+    id: string;
+    message: string;
+    requestedSchema: any;
+    toolName: string;
+  }) {
+    const timestamp = new Date().toISOString();
+    this.logger.log(`Emitting elicitation request for project "${project}": ${elicitationData.id}`);
+
+    const subject = this.getSubject(project);
+    subject.next({
+      project,
+      timestamp,
+      type: 'elicitation_request',
+      data: elicitationData
+    });
   }
 }

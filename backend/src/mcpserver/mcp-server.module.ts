@@ -8,9 +8,10 @@ import { EmailModule } from '../smtp-imap/email.module';
 import { ScrapbookModule } from '../scrapbook/scrapbook.module';
 import { A2AClientModule } from '../a2a-client/a2a-client.module';
 import { A2ASettingsModule } from '../a2a-settings/a2a-settings.module';
+import { InterceptorsModule } from '../interceptors/interceptors.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule],
   controllers: [McpServerController],
   providers: [McpServerService, McpAuthGuard],
   exports: [McpServerService],

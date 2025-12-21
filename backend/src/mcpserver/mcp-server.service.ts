@@ -4,7 +4,16 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import { ToolService } from './types';
+import { randomUUID } from 'crypto';
+import {
+  ToolService,
+  ElicitationCallback,
+  ElicitationResult,
+  ElicitationSchema,
+  PendingElicitation,
+  ElicitationEvent,
+  ElicitationResponse
+} from './types';
 import { demoToolsService } from './demotools';
 import { diffbotToolsService } from './diffbot-tools';
 import { createDeepResearchToolsService } from './deep-research-tools';
@@ -12,6 +21,7 @@ import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
 import { createEmailToolsService } from './email-tools';
 import { createScrapbookToolsService } from './scrapbook-tools';
 import { createA2AToolsService, generateDynamicA2ATools } from './a2a-tools';
+import { confirmationToolsService } from './confirmation-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
@@ -21,6 +31,7 @@ import { ImapService } from '../smtp-imap/imap.service';
 import { ScrapbookService } from '../scrapbook/scrapbook.service';
 import { A2AClientService } from '../a2a-client/a2a-client.service';
 import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
+import { InterceptorsService } from '../interceptors/interceptors.service';
 
 /**
  * MCP Server Service
@@ -42,6 +53,10 @@ export class McpServerService implements OnModuleInit {
   // Current project context for A2A tools
   private currentProjectRoot: string | null = null;
 
+  // Elicitation support
+  private pendingElicitations = new Map<string, PendingElicitation>();
+  private elicitationEventEmitter: ((event: ElicitationEvent) => void) | null = null;
+
   constructor(
     private readonly deepResearchService: DeepResearchService,
     private readonly vectorStoreService: VectorStoreService,
@@ -52,8 +67,9 @@ export class McpServerService implements OnModuleInit {
     private readonly scrapbookService: ScrapbookService,
     private readonly a2aClientService: A2AClientService,
     private readonly a2aSettingsService: A2ASettingsService,
+    private readonly interceptorsService: InterceptorsService,
   ) {
-    // Initialize the MCP SDK Server
+    // Initialize the MCP SDK Server with tools and elicitation capabilities
     this.server = new Server(
       {
         name: 'petstore-mcp-server',
@@ -62,6 +78,9 @@ export class McpServerService implements OnModuleInit {
       {
         capabilities: {
           tools: {},
+          // Elicitation allows tools to request user input mid-execution
+          // This enables human-in-the-loop workflows like confirmations
+          elicitation: {},
         },
       }
     );
@@ -75,6 +94,7 @@ export class McpServerService implements OnModuleInit {
       createEmailToolsService(smtpService, imapService),
       createScrapbookToolsService(scrapbookService),
       createA2AToolsService(a2aClientService, a2aSettingsService, () => this.currentProjectRoot),
+      confirmationToolsService,  // Example tools demonstrating elicitation
     ];
 
     // Set up SDK request handlers
@@ -86,6 +106,109 @@ export class McpServerService implements OnModuleInit {
    */
   setProjectContext(projectRoot: string | null) {
     this.currentProjectRoot = projectRoot;
+  }
+
+  /**
+   * Set the event emitter for elicitation requests
+   * This is called by the controller to wire up SSE/streaming
+   */
+  setElicitationEventEmitter(emitter: ((event: ElicitationEvent) => void) | null) {
+    this.elicitationEventEmitter = emitter;
+    this.logger.log(`Elicitation event emitter ${emitter ? 'set' : 'cleared'}`);
+  }
+
+  /**
+   * Create an elicitation callback for a specific tool and session
+   * This is passed to tools during execution so they can request user input
+   */
+  createElicitationCallback(toolName: string, sessionId?: string): ElicitationCallback {
+    return async (message: string, requestedSchema: ElicitationSchema): Promise<ElicitationResult> => {
+      // Get project name from current project root (e.g., /workspace/pet-store -> pet-store)
+      const projectName = this.currentProjectRoot
+        ? this.currentProjectRoot.split('/').pop() || this.currentProjectRoot.split('\\').pop()
+        : null;
+
+      if (!projectName) {
+        this.logger.warn(`Elicitation requested but no project context - auto-declining`);
+        return { action: 'decline' };
+      }
+
+      const id = randomUUID();
+      this.logger.log(`🔔 Elicitation requested: ${id} for tool ${toolName} in project ${projectName}`);
+
+      return new Promise<ElicitationResult>((resolve, reject) => {
+        // Store the pending elicitation
+        const pending: PendingElicitation = {
+          id,
+          message,
+          requestedSchema,
+          resolve,
+          reject,
+          createdAt: new Date(),
+          toolName,
+          sessionId,
+        };
+        this.pendingElicitations.set(id, pending);
+
+        // Emit event to frontend via InterceptorsService
+        this.interceptorsService.emitElicitationRequest(projectName, {
+          id,
+          message,
+          requestedSchema,
+          toolName,
+        });
+        this.logger.log(`📤 Elicitation event emitted via interceptors: ${id}`);
+
+        // Also call the legacy event emitter if set
+        if (this.elicitationEventEmitter) {
+          const event: ElicitationEvent = {
+            type: 'elicitation_request',
+            id,
+            message,
+            requestedSchema,
+            toolName,
+          };
+          this.elicitationEventEmitter(event);
+        }
+
+        // Set a timeout (5 minutes) to auto-cancel if no response
+        setTimeout(() => {
+          if (this.pendingElicitations.has(id)) {
+            this.logger.warn(`⏰ Elicitation ${id} timed out`);
+            this.pendingElicitations.delete(id);
+            resolve({ action: 'cancel' });
+          }
+        }, 5 * 60 * 1000);
+      });
+    };
+  }
+
+  /**
+   * Handle a response from the frontend for a pending elicitation
+   */
+  handleElicitationResponse(response: ElicitationResponse): boolean {
+    const pending = this.pendingElicitations.get(response.id);
+    if (!pending) {
+      this.logger.warn(`No pending elicitation found for id: ${response.id}`);
+      return false;
+    }
+
+    this.logger.log(`📥 Elicitation response received: ${response.id} - action: ${response.action}`);
+    this.pendingElicitations.delete(response.id);
+
+    const result: ElicitationResult = {
+      action: response.action,
+      content: response.content,
+    };
+    pending.resolve(result);
+    return true;
+  }
+
+  /**
+   * Get all pending elicitations (for debugging/admin)
+   */
+  getPendingElicitations(): PendingElicitation[] {
+    return Array.from(this.pendingElicitations.values());
   }
 
   /**
@@ -153,9 +276,10 @@ export class McpServerService implements OnModuleInit {
       }
 
       try {
-        // Execute the tool
+        // Execute the tool with elicitation callback
         this.logger.log(`🔧 Executing tool: ${name} with args: ${JSON.stringify(args || {}).substring(0, 200)}`);
-        const result = await service.execute(name, args || {});
+        const elicitCallback = this.createElicitationCallback(name);
+        const result = await service.execute(name, args || {}, elicitCallback);
         this.logger.log(`✅ Tool ${name} executed successfully`);
 
         return {
