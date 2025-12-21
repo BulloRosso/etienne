@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
   UploadedFile,
@@ -167,6 +168,7 @@ export class ScrapbookController {
 
   /**
    * Upload an image for a node
+   * @param describe_image - If 'true', uses Claude to describe the image and appends to node description
    */
   @Post('nodes/:nodeId/images')
   @UseInterceptors(FileInterceptor('file'))
@@ -174,14 +176,17 @@ export class ScrapbookController {
     @Param('projectName') projectName: string,
     @Param('nodeId') nodeId: string,
     @UploadedFile() file: Express.Multer.File,
-  ): Promise<{ filename: string }> {
-    const filename = await this.scrapbookService.uploadImage(
+    @Query('describe_image') describeImage?: string,
+  ): Promise<{ filename: string; description?: string }> {
+    const shouldDescribe = describeImage === 'true';
+    const result = await this.scrapbookService.uploadImage(
       projectName,
       nodeId,
       file.originalname,
       file.buffer,
+      shouldDescribe,
     );
-    return { filename };
+    return result;
   }
 
   /**

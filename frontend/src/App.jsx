@@ -62,6 +62,22 @@ export default function App() {
     eventsEsRef.current?.close();
   }, []);
 
+  // Handle hash route for opening scrapbook modal
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#scrapbook') {
+        window.dispatchEvent(new CustomEvent('openScrapbook'));
+      }
+    };
+
+    // Check on mount
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   // Check if configuration exists on startup
   useEffect(() => {
     const checkConfiguration = async () => {

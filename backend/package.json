@@ -5,6 +5,7 @@
     "dev": "cross-env NODE_ENV=development node -r ts-node/register/transpile-only src/main.ts 2>&1 | tee -a runtime.log"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@arizeai/openinference-semantic-conventions": "^2.1.7",
     "@modelcontextprotocol/sdk": "^1.19.1",
     "@nestjs/common": "^10.0.0",

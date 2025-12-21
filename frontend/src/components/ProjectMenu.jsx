@@ -361,6 +361,16 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setScrapbookOpen(false);
   };
 
+  // Listen for openScrapbook event (triggered by #scrapbook hash route)
+  useEffect(() => {
+    const handleOpenScrapbook = () => {
+      setScrapbookOpen(true);
+    };
+
+    window.addEventListener('openScrapbook', handleOpenScrapbook);
+    return () => window.removeEventListener('openScrapbook', handleOpenScrapbook);
+  }, []);
+
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
 

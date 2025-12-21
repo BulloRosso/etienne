@@ -1247,6 +1247,24 @@ function ScrapbookInner({ projectName, onClose }) {
     }
   };
 
+  // Refresh node data without closing the dialog (used after image upload)
+  const handleNodeUpdated = async () => {
+    await fetchTree();
+    await fetchAllNodes();
+    // Update selectedNode if it was the one being edited
+    if (editNode && selectedNode && editNode.id === selectedNode.id) {
+      try {
+        const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+        if (response.ok) {
+          const updatedNode = await response.json();
+          setSelectedNode(updatedNode);
+        }
+      } catch (error) {
+        console.error('Failed to refresh selected node:', error);
+      }
+    }
+  };
+
   // Options menu
   const [optionsAnchor, setOptionsAnchor] = useState(null);
 
@@ -1518,6 +1536,7 @@ function ScrapbookInner({ projectName, onClose }) {
         node={editNode}
         parentNode={editParentNode}
         onSaved={handleNodeSaved}
+        onNodeUpdated={handleNodeUpdated}
       />
 
       {/* Delete Confirmation Dialog */}

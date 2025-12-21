@@ -55,7 +55,10 @@ export class ClaudeService {
     } catch {
       const assistantConfig = {
         assistant: {
-          greeting: 'Welcome to your new Etienne project. Please **change the system prompt** before we begin - for example give this agent the role web designer or spreadsheet expert.'
+          greeting: `Welcome to another session with your friendly general agent Etienne.
+Remember to adjust the role prompt if required and then start to describe your
+project using the [Scrapbook](#scrapbook)
+`
         }
       };
       await fs.writeFile(assistantPath, JSON.stringify(assistantConfig, null, 2), 'utf8');

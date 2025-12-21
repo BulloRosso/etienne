@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Generate UUID v4 using native crypto
 function uuidv4(): string {
@@ -553,8 +554,9 @@ export class ScrapbookService {
 
   /**
    * Upload an image for a node
+   * Returns the filename and optionally the updated description if describe_image was enabled
    */
-  async uploadImage(project: string, nodeId: string, filename: string, buffer: Buffer): Promise<string> {
+  async uploadImage(project: string, nodeId: string, filename: string, buffer: Buffer, describeImage: boolean = false): Promise<{ filename: string; description?: string }> {
     const imagesDir = this.getImagesDir(project);
     await fs.ensureDir(imagesDir);
 
@@ -566,12 +568,98 @@ export class ScrapbookService {
 
     // Update node with new image
     const node = await this.getNode(project, nodeId);
+    let updatedDescription: string | undefined;
+
     if (node) {
       const images = [...(node.images || []), newFilename];
-      await this.updateNode(project, nodeId, { images });
+      const updates: Partial<ScrapbookNode> = { images };
+
+      // If describe image is enabled, use Claude to describe the image
+      if (describeImage) {
+        try {
+          const imageDescription = await this.describeImageWithClaude(buffer, ext);
+          // Append description to existing description
+          const currentDescription = node.description || '';
+          const newDescription = currentDescription
+            ? `${currentDescription}\n\n${imageDescription}`
+            : imageDescription;
+          updates.description = newDescription;
+          updatedDescription = newDescription;
+          this.logger.log(`Added image description for node ${nodeId}`);
+        } catch (error: any) {
+          this.logger.error(`Failed to describe image: ${error.message}`);
+          // Continue without description - don't fail the upload
+        }
+      }
+
+      await this.updateNode(project, nodeId, updates);
     }
 
-    return newFilename;
+    return { filename: newFilename, description: updatedDescription };
+  }
+
+  /**
+   * Describe an image using Claude Sonnet 4.5
+   */
+  private async describeImageWithClaude(buffer: Buffer, extension: string): Promise<string> {
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    // Determine media type from extension
+    const extLower = extension.toLowerCase();
+    let mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    switch (extLower) {
+      case '.jpg':
+      case '.jpeg':
+        mediaType = 'image/jpeg';
+        break;
+      case '.png':
+        mediaType = 'image/png';
+        break;
+      case '.gif':
+        mediaType = 'image/gif';
+        break;
+      case '.webp':
+        mediaType = 'image/webp';
+        break;
+      default:
+        mediaType = 'image/jpeg'; // Default to JPEG
+    }
+
+    const base64Image = buffer.toString('base64');
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType,
+                data: base64Image,
+              },
+            },
+            {
+              type: 'text',
+              text: 'Describe what you see in 4 sentences. Be neutral and look for details to recognize the overall style, mood or tone. Do not start with "This image shows" or similar phrases - just describe the content directly.',
+            },
+          ],
+        },
+      ],
+    });
+
+    // Extract text from response
+    const textContent = response.content.find((block: any) => block.type === 'text');
+    if (textContent && textContent.type === 'text') {
+      return textContent.text;
+    }
+
+    throw new Error('No text response from Claude');
   }
 
   /**

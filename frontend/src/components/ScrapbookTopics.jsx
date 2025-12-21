@@ -211,6 +211,12 @@ export default function ScrapbookTopics({
     onNodeUpdated();
   };
 
+  // Handle node update without closing dialog (used after image upload)
+  const handleNodeUpdatedInDialog = async () => {
+    await fetchChildren();
+    onNodeUpdated();
+  };
+
   // Refresh children when dialog closes
   const handleDialogClose = async () => {
     setEditDialogOpen(false);
@@ -881,6 +887,7 @@ export default function ScrapbookTopics({
         node={editNode}
         parentNode={parentNode}
         onSaved={handleNodeSaved}
+        onNodeUpdated={handleNodeUpdatedInDialog}
         customProperties={customProperties}
       />
 
