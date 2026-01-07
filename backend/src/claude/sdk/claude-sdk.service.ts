@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { ClaudeConfig } from '../config/claude.config';
 import { safeRoot } from '../utils/path.utils';
+import { CanUseTool } from './sdk-permission.types';
 
 // Use Function constructor to prevent TypeScript from transpiling dynamic import to require()
 const dynamicImport = new Function('specifier', 'return import(specifier)');
@@ -39,9 +40,10 @@ export class ClaudeSdkService {
       allowedTools?: string[];
       hooks?: any;  // Hook handlers from orchestrator
       processId?: string;  // Process ID for abort tracking
+      canUseTool?: CanUseTool;  // Permission callback for tool approval
     } = {}
   ) {
-    const { sessionId, agentMode, maxTurns, allowedTools, hooks, processId } = options;
+    const { sessionId, agentMode, maxTurns, allowedTools, hooks, processId, canUseTool } = options;
 
     // Create abort controller for this stream
     const abortController = new AbortController();
@@ -85,7 +87,8 @@ export class ClaudeSdkService {
         includePartialMessages: true,  // Enable true streaming with partial message events
         abortController: abortController,  // Pass abort controller to SDK
         ...(sessionId && { resume: sessionId }),
-        ...(hooks && { hooks })  // Add hooks if provided
+        ...(hooks && { hooks }),  // Add hooks if provided
+        ...(canUseTool && { canUseTool })  // Add canUseTool callback if provided
       };
 
       // Configure environment variables for API access
@@ -114,6 +117,7 @@ export class ClaudeSdkService {
 
       this.logger.log(`Starting SDK conversation for project: ${projectDir} (cwd: ${projectRoot}), session: ${sessionId || 'new'}`);
       this.logger.log(`Hooks passed to SDK: ${!!hooks}, PreToolUse: ${hooks?.PreToolUse?.length || 0}, PostToolUse: ${hooks?.PostToolUse?.length || 0}`);
+      this.logger.log(`canUseTool callback provided: ${!!canUseTool}`);
       this.logger.log(`Query options keys: ${Object.keys(queryOptions).join(', ')}`);
       this.logger.log(`Hooks in queryOptions: ${!!queryOptions.hooks}`);
 

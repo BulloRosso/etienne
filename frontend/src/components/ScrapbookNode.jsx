@@ -58,6 +58,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
       <Handle type="target" position={Position.Left} id="left" style={{ background: '#555' }} />
       <Handle type="target" position={Position.Right} id="right" style={{ background: '#555' }} />
       <Handle type="target" position={Position.Top} id="top" style={{ background: '#555' }} />
+      <Handle type="target" position={Position.Bottom} id="bottom" style={{ background: '#555' }} />
 
       <Box
         onClick={onNodeClick}

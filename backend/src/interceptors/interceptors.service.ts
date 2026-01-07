@@ -4,7 +4,7 @@ import { ReplaySubject, Subject } from 'rxjs';
 export interface InterceptorEvent {
   project: string;
   timestamp: string;
-  type: 'hook' | 'event' | 'elicitation_request';
+  type: 'hook' | 'event' | 'elicitation_request' | 'permission_request' | 'ask_user_question' | 'plan_approval';
   data: any;
 }
 
@@ -91,6 +91,73 @@ export class InterceptorsService {
       timestamp,
       type: 'elicitation_request',
       data: elicitationData
+    });
+  }
+
+  /**
+   * Emit a permission request to the frontend via SSE
+   * This is called when the SDK's canUseTool callback needs user approval
+   */
+  emitPermissionRequest(project: string, data: {
+    id: string;
+    toolName: string;
+    toolInput: any;
+    suggestions?: Array<{ toolName: string; permission: 'allow' | 'deny' | 'ask' }>;
+  }) {
+    const timestamp = new Date().toISOString();
+    this.logger.log(`Emitting permission request for project "${project}": ${data.id} (tool: ${data.toolName})`);
+
+    const subject = this.getSubject(project);
+    subject.next({
+      project,
+      timestamp,
+      type: 'permission_request',
+      data
+    });
+  }
+
+  /**
+   * Emit an AskUserQuestion request to the frontend via SSE
+   * This is called when Claude uses the AskUserQuestion tool
+   */
+  emitAskUserQuestion(project: string, data: {
+    id: string;
+    questions: Array<{
+      question: string;
+      header: string;
+      options: Array<{ label: string; description: string }>;
+      multiSelect: boolean;
+    }>;
+  }) {
+    const timestamp = new Date().toISOString();
+    this.logger.log(`Emitting AskUserQuestion for project "${project}": ${data.id} (${data.questions.length} questions)`);
+
+    const subject = this.getSubject(project);
+    subject.next({
+      project,
+      timestamp,
+      type: 'ask_user_question',
+      data
+    });
+  }
+
+  /**
+   * Emit a plan approval request to the frontend via SSE
+   * This is called when Claude uses the ExitPlanMode tool
+   */
+  emitPlanApproval(project: string, data: {
+    id: string;
+    planFilePath: string;
+  }) {
+    const timestamp = new Date().toISOString();
+    this.logger.log(`Emitting plan approval request for project "${project}": ${data.id}`);
+
+    const subject = this.getSubject(project);
+    subject.next({
+      project,
+      timestamp,
+      type: 'plan_approval',
+      data
     });
   }
 }

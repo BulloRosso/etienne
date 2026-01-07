@@ -75,6 +75,7 @@ export interface CanvasSettings {
     id: string;
     position: { x: number; y: number };
     expanded: boolean;
+    childConnectorPosition?: 'Left' | 'Top' | 'Right' | 'Bottom'; // Which side the parent connector attaches to
   }>;
   zoom: number;
   viewport: { x: number; y: number };

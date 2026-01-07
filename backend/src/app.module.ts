@@ -5,6 +5,8 @@ import { ClaudeSdkService } from './claude/sdk/claude-sdk.service';
 import { SdkSessionManagerService } from './claude/sdk/sdk-session-manager.service';
 import { SdkHookEmitterService } from './claude/sdk/sdk-hook-emitter.service';
 import { ClaudeSdkOrchestratorService } from './claude/sdk/claude-sdk-orchestrator.service';
+import { SdkPermissionService } from './claude/sdk/sdk-permission.service';
+import { SdkPermissionController } from './claude/sdk/sdk-permission.controller';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -38,13 +40,14 @@ import { ProcessManagerModule } from './process-manager/process-manager.module';
 
 @Module({
   imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule],
-  controllers: [ClaudeController],
+  controllers: [ClaudeController, SdkPermissionController],
   providers: [
     ClaudeService,
     ClaudeSdkService,
     SdkSessionManagerService,
     SdkHookEmitterService,
     ClaudeSdkOrchestratorService,
+    SdkPermissionService,
     BudgetMonitoringService,
     GuardrailsService,
     OutputGuardrailsService,

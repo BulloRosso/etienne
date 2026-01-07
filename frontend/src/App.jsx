@@ -10,6 +10,9 @@ import WelcomePage from './components/WelcomePage';
 import ContextSwitcher from './components/ContextSwitcher';
 import ContextManager from './components/ContextManager';
 import ElicitationModal from './components/ElicitationModal';
+import PermissionModal from './components/PermissionModal';
+import AskUserQuestionModal from './components/AskUserQuestionModal';
+import PlanApprovalModal from './components/PlanApprovalModal';
 import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
@@ -47,6 +50,9 @@ export default function App() {
   const [allTags, setAllTags] = useState([]);
   const [showConfigurationRequired, setShowConfigurationRequired] = useState(null); // null = checking, true = show onboarding, false = show app
   const [pendingElicitation, setPendingElicitation] = useState(null); // Current elicitation request from MCP tool
+  const [pendingPermission, setPendingPermission] = useState(null); // Current permission request from SDK canUseTool
+  const [pendingQuestion, setPendingQuestion] = useState(null); // Current AskUserQuestion request
+  const [pendingPlanApproval, setPendingPlanApproval] = useState(null); // Current ExitPlanMode request
 
   const esRef = useRef(null);
   const interceptorEsRef = useRef(null);
@@ -390,6 +396,18 @@ export default function App() {
       } else if (event.type === 'elicitation_request') {
         // Handle MCP elicitation request - show modal for user input
         setPendingElicitation(event.data);
+      } else if (event.type === 'permission_request') {
+        // Handle SDK canUseTool permission request
+        console.log('Permission request received:', event.data);
+        setPendingPermission(event.data);
+      } else if (event.type === 'ask_user_question') {
+        // Handle AskUserQuestion tool request
+        console.log('AskUserQuestion received:', event.data);
+        setPendingQuestion(event.data);
+      } else if (event.type === 'plan_approval') {
+        // Handle ExitPlanMode tool request
+        console.log('Plan approval request received:', event.data);
+        setPendingPlanApproval(event.data);
       }
     });
 
@@ -422,6 +440,72 @@ export default function App() {
       console.error('Error sending elicitation response:', err);
     } finally {
       setPendingElicitation(null);
+    }
+  };
+
+  // Handle SDK permission response from user (canUseTool callback)
+  const handlePermissionResponse = async (response) => {
+    console.log('Sending permission response:', response);
+    try {
+      const res = await fetch('/api/claude/permission/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(response)
+      });
+
+      if (!res.ok) {
+        console.error('Failed to send permission response:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error sending permission response:', err);
+    } finally {
+      setPendingPermission(null);
+    }
+  };
+
+  // Handle AskUserQuestion response from user
+  const handleQuestionResponse = async (response) => {
+    console.log('Sending question response:', response);
+    try {
+      const res = await fetch('/api/claude/permission/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(response)
+      });
+
+      if (!res.ok) {
+        console.error('Failed to send question response:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error sending question response:', err);
+    } finally {
+      setPendingQuestion(null);
+    }
+  };
+
+  // Handle plan approval response from user (ExitPlanMode)
+  const handlePlanApprovalResponse = async (response) => {
+    console.log('Sending plan approval response:', response);
+    try {
+      const res = await fetch('/api/claude/permission/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(response)
+      });
+
+      if (!res.ok) {
+        console.error('Failed to send plan approval response:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error sending plan approval response:', err);
+    } finally {
+      setPendingPlanApproval(null);
     }
   };
 
@@ -1657,6 +1741,31 @@ export default function App() {
         elicitation={pendingElicitation}
         onRespond={handleElicitationResponse}
         onClose={() => setPendingElicitation(null)}
+      />
+
+      {/* SDK Permission Modal (canUseTool callback) */}
+      <PermissionModal
+        open={!!pendingPermission}
+        permission={pendingPermission}
+        onRespond={handlePermissionResponse}
+        onClose={() => setPendingPermission(null)}
+      />
+
+      {/* AskUserQuestion Modal */}
+      <AskUserQuestionModal
+        open={!!pendingQuestion}
+        question={pendingQuestion}
+        onRespond={handleQuestionResponse}
+        onClose={() => setPendingQuestion(null)}
+      />
+
+      {/* Plan Approval Modal (ExitPlanMode) */}
+      <PlanApprovalModal
+        open={!!pendingPlanApproval}
+        plan={pendingPlanApproval}
+        onRespond={handlePlanApprovalResponse}
+        onClose={() => setPendingPlanApproval(null)}
+        currentProject={currentProject}
       />
     </Box>
   );

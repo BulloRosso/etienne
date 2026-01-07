@@ -5,6 +5,8 @@ import { ClaudeSdkService } from './claude-sdk.service';
 import { SdkSessionManagerService } from './sdk-session-manager.service';
 import { SdkMessageTransformer } from './sdk-message-transformer';
 import { SdkHookEmitterService } from './sdk-hook-emitter.service';
+import { SdkPermissionService } from './sdk-permission.service';
+import { CanUseTool } from './sdk-permission.types';
 import { MessageEvent, Usage } from '../types';
 import { GuardrailsService } from '../../input-guardrails/guardrails.service';
 import { OutputGuardrailsService } from '../../output-guardrails/output-guardrails.service';
@@ -29,6 +31,7 @@ export class ClaudeSdkOrchestratorService {
     private readonly claudeSdkService: ClaudeSdkService,
     private readonly sessionManager: SdkSessionManagerService,
     private readonly hookEmitter: SdkHookEmitterService,
+    private readonly sdkPermissionService: SdkPermissionService,
     private readonly guardrailsService: GuardrailsService,
     private readonly outputGuardrailsService: OutputGuardrailsService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
@@ -419,9 +422,18 @@ export class ClaudeSdkOrchestratorService {
         PostToolUse: [{ hooks: [postToolUseHook] }]
       };
 
+      // Create canUseTool callback for 'plan' or 'acceptEdits' modes
+      // This enables the permission dialog flow for these modes
+      let canUseTool: CanUseTool | undefined;
+      if (agentMode === 'plan' || agentMode === 'acceptEdits') {
+        canUseTool = this.sdkPermissionService.createCanUseToolCallback(projectDir, sessionId);
+        this.logger.log(`canUseTool callback created for mode: ${agentMode}`);
+      }
+
       // Stream conversation via SDK
       this.logger.log(`Starting SDK stream for project: ${projectDir}, session: ${sessionId || 'new'}`);
       this.logger.log(`Hooks configured: PreToolUse=${!!hooks.PreToolUse}, PostToolUse=${!!hooks.PostToolUse}`);
+      this.logger.log(`canUseTool configured: ${!!canUseTool} (mode: ${agentMode || 'default'})`);
 
       try {
         for await (const sdkMessage of this.claudeSdkService.streamConversation(
@@ -432,7 +444,8 @@ export class ClaudeSdkOrchestratorService {
             agentMode,
             maxTurns,
             hooks,
-            processId
+            processId,
+            canUseTool
           }
         )) {
           try {

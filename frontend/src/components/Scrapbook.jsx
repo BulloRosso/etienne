@@ -102,7 +102,11 @@ function ScrapbookInner({ projectName, onClose }) {
             const positions = {};
             settings.nodes.forEach(n => {
               if (n.expanded) expanded.add(n.id);
-              positions[n.id] = n.position;
+              // Include childConnectorPosition if present, along with x/y coordinates
+              positions[n.id] = {
+                ...n.position,
+                ...(n.childConnectorPosition && { childConnectorPosition: n.childConnectorPosition })
+              };
             });
             setExpandedNodes(expanded);
             setSavedPositions(positions);
@@ -182,6 +186,7 @@ function ScrapbookInner({ projectName, onClose }) {
                 id: n.id,
                 position: n.position,
                 expanded: expandedNodes.has(n.id),
+                ...(savedPositions[n.id]?.childConnectorPosition && { childConnectorPosition: savedPositions[n.id].childConnectorPosition }),
               };
             }
           });
@@ -197,8 +202,9 @@ function ScrapbookInner({ projectName, onClose }) {
             if (!isVisibleNode) {
               nodeSettings[nodeId] = {
                 id: nodeId,
-                position: position,
+                position: { x: position.x, y: position.y },
                 expanded: expandedNodes.has(nodeId),
+                ...(position.childConnectorPosition && { childConnectorPosition: position.childConnectorPosition }),
               };
             }
           }
@@ -211,6 +217,7 @@ function ScrapbookInner({ projectName, onClose }) {
               id: n.id,
               position: n.position,
               expanded: expandedNodes.has(n.id),
+              ...(savedPositions[n.id]?.childConnectorPosition && { childConnectorPosition: savedPositions[n.id].childConnectorPosition }),
             };
           }
         });
@@ -222,6 +229,7 @@ function ScrapbookInner({ projectName, onClose }) {
               id: nodeId,
               position: null, // No position for hidden nodes
               expanded: true,
+              ...(savedPositions[nodeId]?.childConnectorPosition && { childConnectorPosition: savedPositions[nodeId].childConnectorPosition }),
             };
           }
         });
@@ -498,13 +506,13 @@ function ScrapbookInner({ projectName, onClose }) {
           const catExpanded = expandedNodes.has(category.id);
 
           flowNodes.push(createFlowNode(category, catX, categoryY, catExpanded));
-          // Connect root bottom to category top
+          // Connect root bottom to category (default: top, or saved connector position)
           flowEdges.push({
             id: `${rootNode.id}-${category.id}`,
             source: rootNode.id,
             target: category.id,
             sourceHandle: 'bottom',
-            targetHandle: 'top',
+            targetHandle: savedPositions[category.id]?.childConnectorPosition?.toLowerCase() || 'top',
             type: 'scrapbookEdge',
             data: { onDelete: handleEdgeDelete },
           });
@@ -518,13 +526,13 @@ function ScrapbookInner({ projectName, onClose }) {
               const subX = catX + SUBCATEGORY_INDENT; // Indent from parent
               const subExpanded = expandedNodes.has(sub.id);
               flowNodes.push(createFlowNode(sub, subX, subY, subExpanded));
-              // Connect category bottom to subcategory left
+              // Connect category bottom to subcategory (default: left, or saved connector position)
               flowEdges.push({
                 id: `${category.id}-${sub.id}`,
                 source: category.id,
                 target: sub.id,
                 sourceHandle: 'bottom',
-                targetHandle: 'left',
+                targetHandle: savedPositions[sub.id]?.childConnectorPosition?.toLowerCase() || 'left',
                 type: 'scrapbookEdge',
                 data: { onDelete: handleEdgeDelete },
               });
@@ -538,13 +546,13 @@ function ScrapbookInner({ projectName, onClose }) {
                   const childX = parentX + SUBCATEGORY_INDENT; // Further indent
                   const childExpanded = expandedNodes.has(child.id);
                   flowNodes.push(createFlowNode(child, childX, childY, childExpanded));
-                  // Connect parent bottom to child left
+                  // Connect parent bottom to child (default: left, or saved connector position)
                   flowEdges.push({
                     id: `${node.id}-${child.id}`,
                     source: node.id,
                     target: child.id,
                     sourceHandle: 'bottom',
-                    targetHandle: 'left',
+                    targetHandle: savedPositions[child.id]?.childConnectorPosition?.toLowerCase() || 'left',
                     type: 'scrapbookEdge',
                     data: { onDelete: handleEdgeDelete },
                   });
@@ -583,16 +591,18 @@ function ScrapbookInner({ projectName, onClose }) {
 
         // Add edge from parent with appropriate handles based on depth
         // depth 0 = root (no parent)
-        // depth 1 = categories (parent is root) - connect bottom-to-top
-        // depth 2+ = subcategories - connect bottom-to-left
+        // depth 1 = categories (parent is root) - default: top
+        // depth 2+ = subcategories - default: left
+        // Use saved connector position if available
         if (parentId) {
           const isCategory = depth === 1;
+          const defaultHandle = isCategory ? 'top' : 'left';
           flowEdges.push({
             id: `${parentId}-${nodeId}`,
             source: parentId,
             target: nodeId,
             sourceHandle: 'bottom',
-            targetHandle: isCategory ? 'top' : 'left',
+            targetHandle: savedPositions[nodeId]?.childConnectorPosition?.toLowerCase() || defaultHandle,
             type: 'scrapbookEdge',
             data: { onDelete: handleEdgeDelete },
           });
@@ -656,7 +666,7 @@ function ScrapbookInner({ projectName, onClose }) {
             source: node.id,
             target: child.id,
             sourceHandle: 'bottom',
-            targetHandle: 'left',
+            targetHandle: savedPositions[child.id]?.childConnectorPosition?.toLowerCase() || 'left',
             type: 'scrapbookEdge',
             data: { onDelete: handleEdgeDelete },
           });
@@ -1210,22 +1220,49 @@ function ScrapbookInner({ projectName, onClose }) {
     }
   }, [projectName, fetchTree, fetchAllNodes, selectedNode]);
 
-  // Keyboard shortcut for DEL key to delete selected node
+  // Keyboard shortcuts for DEL key to delete selected node and Space to cycle connector position
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Delete' && selectedNode && tabValue === 0) {
-        // Don't delete if we're in an input field or dialog
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        if (editDialogOpen || deleteConfirmOpen) return;
+      // Don't trigger if we're in an input field or dialog
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (editDialogOpen || deleteConfirmOpen) return;
 
+      // Delete key handling
+      if (e.key === 'Delete' && selectedNode && tabValue === 0) {
         e.preventDefault();
         deleteNodeDirect(selectedNode);
+      }
+
+      // Spacebar to cycle child connector position
+      if (e.key === ' ' && selectedNode && selectedNode.type !== 'ProjectTheme' && tabValue === 0) {
+        e.preventDefault();
+
+        // Determine default based on node type (Category=Top, Subcategory=Left)
+        const isCategory = selectedNode.type === 'Category';
+        const defaultPos = isCategory ? 'Top' : 'Left';
+
+        // Cycle clockwise: current -> next in [Left, Top, Right, Bottom]
+        const positions = ['Left', 'Top', 'Right', 'Bottom'];
+        const currentPos = savedPositions[selectedNode.id]?.childConnectorPosition || defaultPos;
+        const currentIndex = positions.indexOf(currentPos);
+        const nextPos = positions[(currentIndex + 1) % 4];
+
+        setSavedPositions(prev => ({
+          ...prev,
+          [selectedNode.id]: {
+            ...prev[selectedNode.id],
+            childConnectorPosition: nextPos
+          }
+        }));
+
+        // Save canvas settings after updating connector position
+        setTimeout(saveCanvasSettings, 100);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNode, tabValue, editDialogOpen, deleteConfirmOpen, deleteNodeDirect]);
+  }, [selectedNode, tabValue, editDialogOpen, deleteConfirmOpen, deleteNodeDirect, savedPositions, saveCanvasSettings]);
 
 
   const handleNodeSaved = async () => {
@@ -1382,12 +1419,12 @@ function ScrapbookInner({ projectName, onClose }) {
                       : [draggedNode.id]
                   );
 
-                  // Handle regular nodes - update savedPositions
+                  // Handle regular nodes - update savedPositions (preserve existing properties like childConnectorPosition)
                   setSavedPositions(prev => {
                     const updated = { ...prev };
                     currentNodes.forEach(n => {
                       if (!n.id.startsWith('sticky-') && movedNodeIds.has(n.id)) {
-                        updated[n.id] = { x: n.position.x, y: n.position.y };
+                        updated[n.id] = { ...prev[n.id], x: n.position.x, y: n.position.y };
                       }
                     });
                     return updated;
