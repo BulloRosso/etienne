@@ -27,8 +27,11 @@ export default function StreamingTimeline({
     const toolSteps = items.filter(item => item.type === 'tool_call');
 
     // Separate ExitPlanMode from other tools (will be rendered at the end)
+    // Also filter out AskUserQuestion - it's handled via modal dialog, not timeline
     const exitPlanModeTools = toolSteps.filter(item => item.toolName === 'ExitPlanMode');
-    const otherTools = toolSteps.filter(item => item.toolName !== 'ExitPlanMode');
+    const otherTools = toolSteps.filter(item =>
+      item.toolName !== 'ExitPlanMode' && item.toolName !== 'AskUserQuestion'
+    );
 
     // Merge consecutive text chunks into continuous text segments
     // Text chunks between tool calls are merged together regardless of timestamp
@@ -118,9 +121,11 @@ export default function StreamingTimeline({
     <Box sx={{ width: '100%', pl: '40px' }}>
       {/* Regular timeline items */}
       {timelineItems.map((item, idx) => {
-        // Determine if we should show a bullet point (only on type transitions)
+        // Determine if we should show a bullet point
+        // - Always show bullet for tool calls (each tool gets its own bullet)
+        // - For text segments, only show bullet on type transitions (text after tool)
         const prevItem = idx > 0 ? timelineItems[idx - 1] : null;
-        const showBullet = !prevItem || prevItem.type !== item.type;
+        const showBullet = item.type === 'tool' || !prevItem || prevItem.type !== item.type;
 
         if (item.type === 'text') {
           return (

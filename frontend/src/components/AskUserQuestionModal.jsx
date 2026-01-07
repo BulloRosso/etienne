@@ -111,6 +111,9 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
         answers: formattedAnswers
       }
     });
+
+    // Close the modal after submitting
+    onClose?.();
   };
 
   const handleCancel = () => {

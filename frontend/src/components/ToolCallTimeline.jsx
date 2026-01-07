@@ -28,15 +28,45 @@ const TOOL_ICONS = {
 };
 
 /**
- * Strips the workspace path prefix from a file path
- * C:\Data\GitHub\claude-multitenant\workspace\project-name\file.txt -> file.txt
+ * Strips the workspace/project path prefix from a file path to get relative path
+ * Returns null if the path is not within the workspace (e.g., ~/.claude/plans/)
+ * Examples:
+ * - C:\Data\GitHub\claude-multitenant\workspace\project-name\src\file.txt -> src/file.txt
+ * - /workspace/project-name/src/file.txt -> src/file.txt
+ * - C:\Users\ralph\.claude\plans\file.md -> null (not in workspace)
  */
 const stripWorkspacePath = (filePath) => {
+  if (!filePath) return null;
+
+  // Normalize path separators for consistent matching
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  // Match workspace/<project-name>/ prefix (Unix or normalized Windows)
+  const workspacePattern = /^.*\/workspace\/[^/]+\//;
+  const match = normalizedPath.match(workspacePattern);
+  if (match) {
+    return normalizedPath.substring(match[0].length);
+  }
+
+  // Path is not in workspace - return null to indicate non-clickable
+  return null;
+};
+
+/**
+ * Gets a display-friendly version of a file path (for non-workspace files)
+ */
+const getDisplayPath = (filePath) => {
   if (!filePath) return '';
 
-  // Handle both Windows and Unix paths
-  const workspacePattern = /^.*[\\\/]workspace[\\\/][^\\\/]+[\\\/]/;
-  return filePath.replace(workspacePattern, '');
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const parts = normalizedPath.split('/');
+
+  // Return last 2-3 path segments for context
+  if (parts.length > 1) {
+    return parts.slice(-Math.min(3, parts.length)).join('/');
+  }
+
+  return filePath;
 };
 
 /**
@@ -68,6 +98,8 @@ const formatToolDescription = (toolName, args) => {
       return args.pattern || '';
     case 'TodoWrite':
       return 'Update task list';
+    case 'Task':
+      return args.description || '';
     default:
       return JSON.stringify(args).substring(0, 100);
   }
@@ -117,22 +149,26 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
   const isFileSystemTool = ['Read', 'Write', 'Edit'].includes(toolName);
   const filePath = isFileSystemTool ? (args?.file_path || args?.path) : null;
 
+  // Get workspace-relative path (null if not in workspace)
+  const workspaceRelativePath = filePath ? stripWorkspacePath(filePath) : null;
+  // Get display path (always returns something for display)
+  const displayPath = filePath ? (workspaceRelativePath || getDisplayPath(filePath)) : null;
+  // File is clickable only if it's in the workspace
+  const isClickable = !!workspaceRelativePath;
+
   const inputLines = formattedInput.split('\n');
   const outputLines = formattedOutput.split('\n');
 
   const hasMoreInput = inputLines.length > 3;
   const hasMoreOutput = outputLines.length > 3;
 
-  // Handle file preview click
+  // Handle file preview click (only for workspace files)
   const handleFileClick = (e) => {
     e.preventDefault();
-    if (!filePath || !currentProject) return;
-
-    // Strip the workspace path to get just the relative filename
-    const strippedPath = stripWorkspacePath(filePath);
+    if (!workspaceRelativePath || !currentProject) return;
 
     // Determine the action based on file extension
-    const ext = strippedPath.split('.').pop().toLowerCase();
+    const ext = workspaceRelativePath.split('.').pop().toLowerCase();
     let action = 'html-preview'; // default
 
     if (['json'].includes(ext)) {
@@ -149,10 +185,10 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
       action = 'html-preview';
     }
 
-    // Emit file preview request with stripped path
+    // Emit file preview request with workspace-relative path
     claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
       action,
-      filePath: strippedPath,
+      filePath: workspaceRelativePath,
       projectName: currentProject
     });
   };
@@ -176,15 +212,18 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
         {/* Timeline point */}
         {showBullet && (
           <Box
+            component="span"
             sx={{
+              display: 'inline-block',
               width: '6px',
               height: '6px',
               borderRadius: '50%',
               backgroundColor: '#4caf50',
               zIndex: 1,
               flexShrink: 0,
-              mt: 0.5,
-              ml: '-3px'
+              flexGrow: 0,
+              ml: '-3px',
+              aspectRatio: '1 / 1'
             }}
           />
         )}
@@ -209,27 +248,42 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
 
         {/* Description */}
         {toolDescription && (
-          isFileSystemTool && filePath ? (
-            <Typography
-              component="a"
-              href="#"
-              onClick={handleFileClick}
-              variant="body2"
-              sx={{
-                color: '#1976d2',
-                textDecoration: 'underline',
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                '&:hover': {
-                  color: '#1565c0'
-                }
-              }}
-            >
-              {stripWorkspacePath(filePath)}
-            </Typography>
+          isFileSystemTool && displayPath ? (
+            isClickable ? (
+              <Typography
+                component="a"
+                href="#"
+                onClick={handleFileClick}
+                variant="body2"
+                sx={{
+                  color: '#1976d2',
+                  textDecoration: 'underline',
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: '#1565c0'
+                  }
+                }}
+              >
+                {displayPath}
+              </Typography>
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  color: '#666',
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {displayPath}
+              </Typography>
+            )
           ) : (
             <Typography
               variant="body2"

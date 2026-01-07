@@ -278,6 +278,81 @@ export class ClaudeSdkOrchestratorService {
             timestamp: new Date().toISOString()
           });
 
+          // Handle AskUserQuestion tool - intercept and show modal dialog
+          // The SDK doesn't call canUseTool for this tool, so we handle it in PreToolUse
+          if (input.tool_name === 'AskUserQuestion') {
+            this.logger.log(`🔔 Intercepting AskUserQuestion tool - showing user dialog`);
+
+            try {
+              // Use the permission service to handle the AskUserQuestion dialog
+              const result = await this.sdkPermissionService.handleAskUserQuestionViaHook(
+                projectDir,
+                input.tool_input,
+                sessionId
+              );
+
+              // If user responded with answers, modify the tool input
+              if (result.behavior === 'allow' && result.updatedInput) {
+                this.logger.log(`✅ User answered AskUserQuestion - proceeding with answers`);
+                // Update the tool input with user's answers
+                input.tool_input = result.updatedInput;
+
+                // Emit tool event WITHOUT showing in timeline (modal handles this)
+                // Don't add to structuredMessages - it's handled by modal
+
+                return { continue: true };
+              } else {
+                this.logger.log(`❌ User denied AskUserQuestion - blocking tool`);
+                return {
+                  continue: false,
+                  error: result.message || 'User cancelled the question'
+                };
+              }
+            } catch (error: any) {
+              this.logger.error(`Error handling AskUserQuestion: ${error.message}`);
+              return {
+                continue: false,
+                error: `Failed to get user response: ${error.message}`
+              };
+            }
+          }
+
+          // Handle ExitPlanMode tool - intercept and show plan approval dialog
+          // The SDK doesn't call canUseTool for this tool, so we handle it in PreToolUse
+          if (input.tool_name === 'ExitPlanMode') {
+            this.logger.log(`🔔 Intercepting ExitPlanMode tool - showing plan approval dialog`);
+
+            try {
+              // Use the permission service to handle the plan approval dialog
+              const result = await this.sdkPermissionService.handleExitPlanModeViaHook(
+                projectDir,
+                input.tool_input,
+                sessionId
+              );
+
+              // If user approved the plan, proceed
+              if (result.behavior === 'allow') {
+                this.logger.log(`✅ User approved plan - proceeding`);
+                // Update the tool input with approval status
+                input.tool_input = result.updatedInput;
+
+                return { continue: true };
+              } else {
+                this.logger.log(`❌ User rejected plan - blocking tool`);
+                return {
+                  continue: false,
+                  error: result.message || 'User rejected the plan'
+                };
+              }
+            } catch (error: any) {
+              this.logger.error(`Error handling ExitPlanMode: ${error.message}`);
+              return {
+                continue: false,
+                error: `Failed to get plan approval: ${error.message}`
+              };
+            }
+          }
+
           // Also emit to main observer stream for frontend UI
           const toolEvent = {
             type: 'tool',
@@ -422,13 +497,16 @@ export class ClaudeSdkOrchestratorService {
         PostToolUse: [{ hooks: [postToolUseHook] }]
       };
 
-      // Create canUseTool callback for 'plan' or 'acceptEdits' modes
-      // This enables the permission dialog flow for these modes
-      let canUseTool: CanUseTool | undefined;
-      if (agentMode === 'plan' || agentMode === 'acceptEdits') {
-        canUseTool = this.sdkPermissionService.createCanUseToolCallback(projectDir, sessionId);
-        this.logger.log(`canUseTool callback created for mode: ${agentMode}`);
-      }
+      // Create canUseTool callback for handling user interaction tools
+      // AskUserQuestion and ExitPlanMode always need user input regardless of mode
+      // In 'plan' or 'acceptEdits' modes, all tools go through permission flow
+      // In other modes, only AskUserQuestion and ExitPlanMode are handled
+      const canUseTool = this.sdkPermissionService.createCanUseToolCallback(
+        projectDir,
+        sessionId,
+        agentMode === 'plan' || agentMode === 'acceptEdits'  // requireAllPermissions flag
+      );
+      this.logger.log(`canUseTool callback created (mode: ${agentMode || 'default'}, requireAllPermissions: ${agentMode === 'plan' || agentMode === 'acceptEdits'})`);
 
       // Stream conversation via SDK
       this.logger.log(`Starting SDK stream for project: ${projectDir}, session: ${sessionId || 'new'}`);

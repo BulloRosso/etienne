@@ -29,15 +29,23 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
         {showBullet && (
           <Box
+            component="span"
             sx={{
+              display: 'inline-block',
               width: '6px',
               height: '6px',
+              minHeight: '6px',
+              maxHeight: '6px',
+              minWidth: '6px',
+              maxWidth: '6px',
               borderRadius: '50%',
               backgroundColor: '#000',
               zIndex: 1,
               flexShrink: 0,
+              flexGrow: 0,
               ml: '-3px',
-              transform: 'translateY(8px)'
+              mt: '8px',
+              aspectRatio: '1 / 1'
             }}
           />
         )}

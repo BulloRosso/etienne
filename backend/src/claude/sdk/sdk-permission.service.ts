@@ -30,46 +30,78 @@ export class SdkPermissionService {
 
   /**
    * Create the canUseTool callback for SDK query options
+   *
+   * @param projectName - The project name for SSE events
+   * @param sessionId - Optional session ID
+   * @param requireAllPermissions - If true, all tools require permission (plan/acceptEdits modes)
+   *                                If false, only AskUserQuestion and ExitPlanMode are handled
    */
-  createCanUseToolCallback(projectName: string, sessionId?: string): CanUseTool {
+  createCanUseToolCallback(
+    projectName: string,
+    sessionId?: string,
+    requireAllPermissions: boolean = false
+  ): CanUseTool {
     return async (
       toolName: string,
       input: any,
       options: { signal: AbortSignal; suggestions?: PermissionUpdate[] }
     ): Promise<PermissionResult> => {
-      this.logger.log(`canUseTool called: ${toolName} for project ${projectName}`);
+      this.logger.log(`canUseTool called: ${toolName} for project ${projectName} (requireAllPermissions: ${requireAllPermissions})`);
 
-      // Handle AskUserQuestion specially
+      // Handle AskUserQuestion specially - ALWAYS show dialog
       if (toolName === 'AskUserQuestion') {
         return this.handleAskUserQuestion(projectName, input, sessionId);
       }
 
-      // Handle ExitPlanMode specially
+      // Handle ExitPlanMode specially - ALWAYS show dialog
       if (toolName === 'ExitPlanMode') {
         return this.handleExitPlanMode(projectName, input, sessionId);
       }
 
-      // Generic permission request for other tools
-      return this.handlePermissionRequest(
-        projectName,
-        toolName,
-        input,
-        options.suggestions,
-        sessionId
-      );
+      // For other tools, only prompt if requireAllPermissions is true
+      if (requireAllPermissions) {
+        return this.handlePermissionRequest(
+          projectName,
+          toolName,
+          input,
+          options.suggestions,
+          sessionId
+        );
+      }
+
+      // Auto-allow other tools when not in permission-required mode
+      this.logger.debug(`Auto-allowing tool ${toolName} (requireAllPermissions is false)`);
+      return {
+        behavior: 'allow',
+        updatedInput: input,
+      };
     };
   }
 
   /**
    * Handle AskUserQuestion tool - show multi-choice dialog
+   * Called from canUseTool callback
    */
   private async handleAskUserQuestion(
     projectName: string,
     input: AskUserQuestionInput,
     sessionId?: string
   ): Promise<PermissionResult> {
+    return this.handleAskUserQuestionViaHook(projectName, input, sessionId);
+  }
+
+  /**
+   * Handle AskUserQuestion tool via PreToolUse hook
+   * This is the public method called from the orchestrator when the SDK
+   * doesn't invoke canUseTool for AskUserQuestion
+   */
+  async handleAskUserQuestionViaHook(
+    projectName: string,
+    input: AskUserQuestionInput,
+    sessionId?: string
+  ): Promise<PermissionResult> {
     const id = randomUUID();
-    this.logger.log(`AskUserQuestion request: ${id} with ${input.questions?.length || 0} questions`);
+    this.logger.log(`AskUserQuestion request (via hook): ${id} with ${input.questions?.length || 0} questions`);
 
     return new Promise<PermissionResult>((resolve, reject) => {
       const pending: PendingPermissionRequest = {
@@ -98,14 +130,28 @@ export class SdkPermissionService {
 
   /**
    * Handle ExitPlanMode tool - show plan approval dialog
+   * Called from canUseTool callback
    */
   private async handleExitPlanMode(
     projectName: string,
     input: any,
     sessionId?: string
   ): Promise<PermissionResult> {
+    return this.handleExitPlanModeViaHook(projectName, input, sessionId);
+  }
+
+  /**
+   * Handle ExitPlanMode tool via PreToolUse hook
+   * This is the public method called from the orchestrator when the SDK
+   * doesn't invoke canUseTool for ExitPlanMode
+   */
+  async handleExitPlanModeViaHook(
+    projectName: string,
+    input: any,
+    sessionId?: string
+  ): Promise<PermissionResult> {
     const id = randomUUID();
-    this.logger.log(`ExitPlanMode request: ${id} for project ${projectName}`);
+    this.logger.log(`ExitPlanMode request (via hook): ${id} for project ${projectName}`);
 
     return new Promise<PermissionResult>((resolve, reject) => {
       const pending: PendingPermissionRequest = {
