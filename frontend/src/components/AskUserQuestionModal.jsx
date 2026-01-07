@@ -111,9 +111,7 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
         answers: formattedAnswers
       }
     });
-
-    // Close the modal after submitting
-    onClose?.();
+    // Note: Modal is closed via setPendingQuestion(null) in App.jsx handleQuestionResponse
   };
 
   const handleCancel = () => {
@@ -256,7 +254,7 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <HelpIcon sx={{ color: '#9c27b0' }} />
-          <Typography variant="h6">Question from Claude</Typography>
+          <Typography variant="h6">Etienne needs your guidance</Typography>
         </Box>
         <IconButton onClick={handleCancel} size="small">
           <CloseIcon />

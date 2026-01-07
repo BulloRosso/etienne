@@ -110,7 +110,7 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <PlanIcon sx={{ color: '#4caf50' }} />
-          <Typography variant="h6">Review Claude's Plan</Typography>
+          <Typography variant="h6">Review Etienne's Plan</Typography>
         </Box>
         <IconButton onClick={handleCancel} size="small">
           <CloseIcon />

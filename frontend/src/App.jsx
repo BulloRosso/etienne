@@ -61,6 +61,7 @@ export default function App() {
   const currentUsageRef = useRef(null);
   const activeToolCallsRef = useRef(new Map());
   const currentSessionIdRef = useRef(null); // Ref to access current session ID in event listeners
+  const handledRequestIdsRef = useRef(new Set()); // Track handled permission/question request IDs to prevent duplicates
 
   useEffect(() => () => {
     esRef.current?.close();
@@ -398,14 +399,38 @@ export default function App() {
         setPendingElicitation(event.data);
       } else if (event.type === 'permission_request') {
         // Handle SDK canUseTool permission request
+        // Skip if already handled (ReplaySubject may replay old events)
+        const permId = event.data?.id;
+        if (handledRequestIdsRef.current.has(permId)) {
+          console.log('Skipping duplicate permission request:', permId);
+          return;
+        }
+        // Mark as handled IMMEDIATELY to prevent duplicates
+        handledRequestIdsRef.current.add(permId);
         console.log('Permission request received:', event.data);
         setPendingPermission(event.data);
       } else if (event.type === 'ask_user_question') {
         // Handle AskUserQuestion tool request
+        // Skip if already handled (ReplaySubject may replay old events)
+        const questionId = event.data?.id;
+        if (handledRequestIdsRef.current.has(questionId)) {
+          console.log('Skipping duplicate AskUserQuestion:', questionId);
+          return;
+        }
+        // Mark as handled IMMEDIATELY to prevent duplicates
+        handledRequestIdsRef.current.add(questionId);
         console.log('AskUserQuestion received:', event.data);
         setPendingQuestion(event.data);
       } else if (event.type === 'plan_approval') {
         // Handle ExitPlanMode tool request
+        // Skip if already handled (ReplaySubject may replay old events)
+        const planId = event.data?.id;
+        if (handledRequestIdsRef.current.has(planId)) {
+          console.log('Skipping duplicate plan approval:', planId);
+          return;
+        }
+        // Mark as handled IMMEDIATELY to prevent duplicates
+        handledRequestIdsRef.current.add(planId);
         console.log('Plan approval request received:', event.data);
         setPendingPlanApproval(event.data);
       }

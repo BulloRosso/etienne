@@ -280,7 +280,15 @@ export class ClaudeSdkOrchestratorService {
 
           // Handle AskUserQuestion tool - intercept and show modal dialog
           // The SDK doesn't call canUseTool for this tool, so we handle it in PreToolUse
+          // We collect user answers and inject them into the tool input via updatedInput
           if (input.tool_name === 'AskUserQuestion') {
+            // Check if answers are already present (from a previous hook call)
+            // This prevents showing the dialog again after we injected answers
+            if (input.tool_input?.answers && Object.keys(input.tool_input.answers).length > 0) {
+              this.logger.log(`🔔 AskUserQuestion already has answers - proceeding without dialog`);
+              return { continue: true };
+            }
+
             this.logger.log(`🔔 Intercepting AskUserQuestion tool - showing user dialog`);
 
             try {
@@ -291,16 +299,16 @@ export class ClaudeSdkOrchestratorService {
                 sessionId
               );
 
-              // If user responded with answers, modify the tool input
+              // If user responded with answers, inject them into the tool input
               if (result.behavior === 'allow' && result.updatedInput) {
-                this.logger.log(`✅ User answered AskUserQuestion - proceeding with answers`);
-                // Update the tool input with user's answers
-                input.tool_input = result.updatedInput;
+                this.logger.log(`✅ User answered AskUserQuestion - injecting answers into tool input`);
 
-                // Emit tool event WITHOUT showing in timeline (modal handles this)
-                // Don't add to structuredMessages - it's handled by modal
-
-                return { continue: true };
+                // Return with updatedInput containing the user's answers
+                // The SDK will then proceed with the modified input
+                return {
+                  continue: true,
+                  updatedInput: result.updatedInput
+                };
               } else {
                 this.logger.log(`❌ User denied AskUserQuestion - blocking tool`);
                 return {
@@ -319,7 +327,15 @@ export class ClaudeSdkOrchestratorService {
 
           // Handle ExitPlanMode tool - intercept and show plan approval dialog
           // The SDK doesn't call canUseTool for this tool, so we handle it in PreToolUse
+          // We collect approval and inject it into the tool input via updatedInput
           if (input.tool_name === 'ExitPlanMode') {
+            // Check if approval is already present (from a previous hook call)
+            // This prevents showing the dialog again after we injected approval
+            if (input.tool_input?.approved === true) {
+              this.logger.log(`🔔 ExitPlanMode already approved - proceeding without dialog`);
+              return { continue: true };
+            }
+
             this.logger.log(`🔔 Intercepting ExitPlanMode tool - showing plan approval dialog`);
 
             try {
@@ -330,13 +346,15 @@ export class ClaudeSdkOrchestratorService {
                 sessionId
               );
 
-              // If user approved the plan, proceed
+              // If user approved the plan, inject approval into tool input
               if (result.behavior === 'allow') {
-                this.logger.log(`✅ User approved plan - proceeding`);
-                // Update the tool input with approval status
-                input.tool_input = result.updatedInput;
+                this.logger.log(`✅ User approved plan - injecting approval into tool input`);
 
-                return { continue: true };
+                // Return with updatedInput containing the approval
+                return {
+                  continue: true,
+                  updatedInput: { approved: true, message: 'Plan approved by user' }
+                };
               } else {
                 this.logger.log(`❌ User rejected plan - blocking tool`);
                 return {
