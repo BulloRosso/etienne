@@ -6,6 +6,7 @@ import {
   MessageResult,
   ProjectSelectionResult,
   UploadResult,
+  DownloadResult,
 } from '../types';
 
 export class SessionManagerClientService {
@@ -190,6 +191,73 @@ export class SessionManagerClientService {
         success: false,
         error: error.response?.data?.message || error.message || 'Unknown error',
       };
+    }
+  }
+
+  /**
+   * Download a file from the project workspace
+   * Returns the file buffer and metadata for sending to Telegram
+   */
+  async downloadFile(chatId: number, filename: string): Promise<DownloadResult> {
+    try {
+      console.log(`[Download] Requesting file: ${filename} for chatId ${chatId}`);
+
+      const response = await axios.get(
+        `${this.backendUrl}/api/remote-sessions/file/${chatId}/${encodeURIComponent(filename)}`,
+        {
+          responseType: 'arraybuffer',
+          timeout: 60000, // 1 minute timeout
+        }
+      );
+
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const contentDisposition = response.headers['content-disposition'] || '';
+
+      // Extract filename from content-disposition header if available
+      let downloadFilename = filename;
+      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+      if (filenameMatch) {
+        downloadFilename = filenameMatch[1];
+      }
+
+      console.log(`[Download] File received: ${downloadFilename} (${response.data.byteLength} bytes)`);
+
+      return {
+        success: true,
+        buffer: Buffer.from(response.data),
+        filename: downloadFilename,
+        mimeType: contentType,
+      };
+    } catch (error: any) {
+      console.error('[Download] Error downloading file:', error.message);
+
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          error: 'File not found',
+        };
+      }
+
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Download failed',
+      };
+    }
+  }
+
+  /**
+   * List files in the project workspace
+   */
+  async listFiles(chatId: number, path?: string): Promise<{ files: string[]; error?: string }> {
+    try {
+      const url = `${this.backendUrl}/api/remote-sessions/files/${chatId}`;
+      const params = path ? { path } : {};
+
+      const response = await this.client.get(url, { params });
+      return response.data;
+    } catch (error: any) {
+      console.error('[ListFiles] Error:', error.message);
+      return { files: [], error: error.message };
     }
   }
 }

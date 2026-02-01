@@ -235,6 +235,25 @@ Example:
 - Send a screenshot with caption: "What's wrong with this error?"
 - Etienne receives: "Please have a look at photo_1234567890.jpg in the .attachments folder. What's wrong with this error?"
 
+### Downloading Files
+
+You can download files from your project workspace using these commands:
+
+```
+show me <filename>
+download <filename>
+get <filename>
+```
+
+Examples:
+```
+show me output.png
+download report.pdf
+get src/index.ts
+```
+
+The bot will send the file directly to your Telegram chat. Images are sent as photos with a preview, while other files are sent as documents.
+
 ### Available Commands
 
 | Command | Description |

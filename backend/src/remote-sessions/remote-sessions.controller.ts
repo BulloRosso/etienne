@@ -8,7 +8,10 @@ import {
   Logger,
   ParseIntPipe,
   Query,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { Observable, map } from 'rxjs';
 import { RemoteSessionsService } from './remote-sessions.service';
 import { SessionEventsService } from './session-events.service';
@@ -170,5 +173,45 @@ export class RemoteSessionsController {
         data: JSON.stringify(event),
       } as MessageEvent)),
     );
+  }
+
+  /**
+   * Download a file from the project workspace (called by Telegram provider)
+   * Returns the file content for sending to Telegram
+   */
+  @Get('file/:chatId/:filename')
+  async downloadFile(
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
+    this.logger.log(`File download request: chatId=${chatId}, filename=${filename}`);
+
+    const result = await this.remoteSessionsService.getProjectFile(chatId, filename);
+
+    if (!result) {
+      res.status(HttpStatus.NOT_FOUND).json({
+        success: false,
+        error: 'File not found or access denied',
+      });
+      return;
+    }
+
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader('Content-Length', result.content.length);
+    res.send(result.content);
+  }
+
+  /**
+   * List files in the project workspace (called by Telegram provider)
+   */
+  @Get('files/:chatId')
+  async listFiles(
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Query('path') path?: string,
+  ) {
+    const result = await this.remoteSessionsService.listProjectFiles(chatId, path);
+    return result;
   }
 }

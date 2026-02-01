@@ -1,4 +1,4 @@
-import { Bot, Context } from 'grammy';
+import { Bot, Context, InputFile } from 'grammy';
 import { SessionManagerClientService } from '../services/session-manager-client.service';
 
 export function registerMessageHandler(
@@ -26,6 +26,14 @@ export function registerMessageHandler(
     if (projectMatch) {
       const projectName = projectMatch[1];
       await handleProjectSelection(ctx, sessionManagerClient, chatId, projectName);
+      return;
+    }
+
+    // Check for file download commands: "show me <filename>", "download <filename>", "get <filename>"
+    const downloadMatch = text.match(/^(?:show\s+me|download|get)\s+['"]?([^'"]+?)['"]?\s*$/i);
+    if (downloadMatch) {
+      const filename = downloadMatch[1].trim();
+      await handleFileDownload(ctx, sessionManagerClient, chatId, filename);
       return;
     }
 
@@ -240,6 +248,70 @@ async function handleMediaMessage(
   } catch (error: any) {
     console.error('[Media] Error processing file:', error);
     await ctx.reply(`❌ Error processing file: ${error.message || 'Unknown error'}`);
+  }
+}
+
+async function handleFileDownload(
+  ctx: Context,
+  sessionManagerClient: SessionManagerClientService,
+  chatId: number,
+  filename: string,
+): Promise<void> {
+  console.log(`[Download] Requesting file "${filename}" for chatId=${chatId}`);
+
+  // Check if user is paired
+  const session = await sessionManagerClient.getSession(chatId);
+
+  if (!session) {
+    await ctx.reply(
+      '❌ You need to pair first before downloading files.\n\n' +
+      'Send /start to begin pairing.'
+    );
+    return;
+  }
+
+  if (!session.project?.name) {
+    await ctx.reply(
+      '📁 Please select a project first before downloading files.\n\n' +
+      'Use: `project \'project-name\'`',
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
+  // Show upload indicator while downloading/sending
+  await ctx.replyWithChatAction('upload_document');
+
+  // Download the file from the project workspace
+  const result = await sessionManagerClient.downloadFile(chatId, filename);
+
+  if (!result.success || !result.buffer) {
+    await ctx.reply(`❌ Could not download file: ${result.error || 'File not found'}`);
+    return;
+  }
+
+  try {
+    // Determine if this is an image or document based on mime type
+    const isImage = result.mimeType?.startsWith('image/') && !result.mimeType?.includes('svg');
+
+    if (isImage) {
+      // Send as photo for images (better preview in Telegram)
+      await ctx.replyWithPhoto(
+        new InputFile(result.buffer, result.filename),
+        { caption: `📁 ${result.filename}` }
+      );
+    } else {
+      // Send as document for other files
+      await ctx.replyWithDocument(
+        new InputFile(result.buffer, result.filename),
+        { caption: `📁 Downloaded from project workspace` }
+      );
+    }
+
+    console.log(`[Download] File sent: ${result.filename}`);
+  } catch (error: any) {
+    console.error('[Download] Error sending file to Telegram:', error);
+    await ctx.reply(`❌ Error sending file: ${error.message || 'Unknown error'}`);
   }
 }
 

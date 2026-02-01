@@ -48,6 +48,14 @@ export interface UploadResult {
   error?: string;
 }
 
+export interface DownloadResult {
+  success: boolean;
+  buffer?: Buffer;
+  filename?: string;
+  mimeType?: string;
+  error?: string;
+}
+
 export interface ProviderEvent {
   type: 'pairing_approved' | 'pairing_denied' | 'etienne_response' | 'error';
   data: {

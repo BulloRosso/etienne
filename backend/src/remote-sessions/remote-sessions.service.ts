@@ -236,4 +236,93 @@ export class RemoteSessionsService {
     this.logger.log(`Disconnected session for chatId ${chatId}`);
     return true;
   }
+
+  /**
+   * Get a file from the project workspace
+   * Returns null if session not found, project not selected, or file not found
+   */
+  async getProjectFile(
+    chatId: number,
+    filename: string,
+  ): Promise<{ content: Buffer; mimeType: string; filename: string } | null> {
+    const session = await this.storage.findByChatId(chatId);
+    if (!session) {
+      this.logger.warn(`File request from unknown chatId: ${chatId}`);
+      return null;
+    }
+
+    if (!session.project?.name) {
+      this.logger.warn(`File request without project selected: chatId ${chatId}`);
+      return null;
+    }
+
+    const projectName = session.project.name;
+
+    // Security: prevent path traversal by normalizing and checking the filename
+    const normalizedFilename = filename.replace(/\\/g, '/').replace(/^\.\//, '');
+    if (normalizedFilename.includes('..') || normalizedFilename.startsWith('/')) {
+      this.logger.warn(`Path traversal attempt blocked: ${filename}`);
+      return null;
+    }
+
+    try {
+      // Use the workspace file endpoint to get the file
+      const url = `${this.backendUrl}/api/workspace/${encodeURIComponent(projectName)}/files/${encodeURIComponent(normalizedFilename)}`;
+
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 60000, // 1 minute timeout
+      });
+
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+
+      this.logger.log(`File retrieved: ${normalizedFilename} from project ${projectName}`);
+
+      return {
+        content: Buffer.from(response.data),
+        mimeType: contentType,
+        filename: normalizedFilename.split('/').pop() || normalizedFilename,
+      };
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        this.logger.warn(`File not found: ${normalizedFilename} in project ${projectName}`);
+      } else {
+        this.logger.error(`Failed to get file: ${error.message}`);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * List files in the project workspace (or a subdirectory)
+   */
+  async listProjectFiles(
+    chatId: number,
+    path?: string,
+  ): Promise<{ files: string[]; error?: string } | null> {
+    const session = await this.storage.findByChatId(chatId);
+    if (!session) {
+      return { files: [], error: 'Session not found' };
+    }
+
+    if (!session.project?.name) {
+      return { files: [], error: 'No project selected' };
+    }
+
+    try {
+      const url = `${this.backendUrl}/api/claude/listFiles`;
+      const response = await axios.get(url, {
+        params: {
+          project: session.project.name,
+          path: path || '',
+        },
+        timeout: 30000,
+      });
+
+      return { files: response.data?.files || [] };
+    } catch (error: any) {
+      this.logger.error(`Failed to list files: ${error.message}`);
+      return { files: [], error: 'Failed to list files' };
+    }
+  }
 }
