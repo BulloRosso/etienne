@@ -9,7 +9,8 @@ export default defineConfig({
     strictPort: true,
     proxy: {
         '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true },
-        '/mcp': { target: 'http://localhost:6060', changeOrigin: true }
+        '/mcp': { target: 'http://localhost:6060', changeOrigin: true },
+        '/auth': { target: 'http://localhost:5950', changeOrigin: true }
     }
   }
 });

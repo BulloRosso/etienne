@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Paper, Typography, IconButton } from '@mui/material';
-import { InfoOutlined } from '@mui/icons-material';
+import { InfoOutlined, Logout } from '@mui/icons-material';
 
-const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) => {
+const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, user, onLogout }) => {
   const dashboardItems = [
     // 1st row
     {
@@ -125,6 +125,56 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick }) =
           <InfoOutlined fontSize="small" />
         </IconButton>
       </Box>
+
+      {/* Logout Tile */}
+      {user && (
+        <Box sx={{ px: 2, pb: 1 }}>
+          <Paper
+            elevation={3}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              p: 2,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 6,
+                bgcolor: 'error.light',
+                '& .logout-icon': {
+                  color: 'error.contrastText'
+                },
+                '& .logout-text': {
+                  color: 'error.contrastText'
+                }
+              }
+            }}
+            onClick={() => {
+              onLogout();
+              onClose();
+            }}
+          >
+            <Box>
+              <Typography
+                variant="body2"
+                className="logout-text"
+                sx={{ fontWeight: 600 }}
+              >
+                {user.displayName || user.username}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="logout-text"
+                sx={{ color: 'text.secondary', textTransform: 'capitalize' }}
+              >
+                {user.role}
+              </Typography>
+            </Box>
+            <Logout className="logout-icon" sx={{ color: 'text.secondary' }} />
+          </Paper>
+        </Box>
+      )}
 
       {/* Dashboard Grid */}
       <Box

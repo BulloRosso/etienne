@@ -1,0 +1,27 @@
+{
+  "name": "oauth-server",
+  "version": "1.0.0",
+  "description": "Minimal OAuth/JWT authentication server",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "init-users": "tsx src/init-users.ts",
+    "hash-password": "tsx src/hash-password.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "bcrypt": "^5.1.1",
+    "hono": "^4.6.14",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

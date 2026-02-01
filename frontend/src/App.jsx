@@ -14,14 +14,17 @@ import PermissionModal from './components/PermissionModal';
 import AskUserQuestionModal from './components/AskUserQuestionModal';
 import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
+import LoginDialog from './components/LoginDialog';
 import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
+import { useAuth } from './contexts/AuthContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 import Onboarding from './components/Onboarding';
 
 export default function App() {
   const { currentProject, projectExists, setProject } = useProject();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [streaming, setStreaming] = useState(false);
   const [messages, setMessages] = useState([]);
   const [structuredMessages, setStructuredMessages] = useState([]);
@@ -1647,6 +1650,20 @@ export default function App() {
     setShowConfigurationRequired(false);
     setProject(projectName);
   };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show login dialog if not authenticated
+  if (!isAuthenticated) {
+    return <LoginDialog onSuccess={() => {}} />;
+  }
 
   // Show loading while checking configuration
   if (showConfigurationRequired === null) {

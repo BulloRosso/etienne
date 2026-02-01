@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import App from './App.jsx';
 import { ProjectProvider } from './contexts/ProjectContext.jsx';
+import { AuthProvider } from './contexts/AuthContext.jsx';
 
 const theme = createTheme({
   typography: {
@@ -14,8 +15,10 @@ const theme = createTheme({
 createRoot(document.getElementById('root')).render(
   <ThemeProvider theme={theme}>
     <CssBaseline />
-    <ProjectProvider>
-      <App />
-    </ProjectProvider>
+    <AuthProvider>
+      <ProjectProvider>
+        <App />
+      </ProjectProvider>
+    </AuthProvider>
   </ThemeProvider>
 );

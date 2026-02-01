@@ -39,8 +39,10 @@ import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
 import Scrapbook from './Scrapbook';
 import Configuration from './Configuration';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
+  const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -448,6 +450,8 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
               onItemClick={handleDashboardItemClick}
               onClose={handleMenuClose}
               onAboutClick={handleAboutOpen}
+              user={user}
+              onLogout={logout}
             />
           </Box>
 

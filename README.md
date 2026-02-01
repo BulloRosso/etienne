@@ -250,7 +250,47 @@ The checkpoint system uses environment variables in `.env`:
 
 To switch to the Git provider, set `CHECKPOINT_PROVIDER=git` in your `.env` file.
 
+### OAuth Server (Authentication)
+
+The frontend requires authentication via a lightweight OAuth/JWT server running on port 5950.
+
+**Starting the OAuth server:**
+```bash
+cd oauth-server
+npm install
+npm run dev
+```
+
+**Default credentials:**
+| Username | Password | Role |
+|----------|----------|------|
+| admin | admin123 | admin |
+| user | user123 | user |
+| guest | guest123 | guest |
+
+**User management:**
+
+Users are configured in `oauth-server/config/users.json`. To add or change a password, generate a bcrypt hash:
+```bash
+cd oauth-server
+npm run hash-password YourNewPassword123
+```
+
+Copy the output hash into the `passwordHash` field in `users.json`.
+
+**Token behavior:**
+- Access tokens expire after 15 minutes (configurable in `users.json`)
+- Refresh tokens expire after 7 days
+- "Remember me" stores tokens in localStorage; otherwise sessionStorage
+
 ### Starting up the services
+
+Start the OAuth server on :5950
+```
+cd oauth-server
+npm i
+npm run dev
+```
 Start the backend on :6060
 ```
 cd backend
@@ -264,6 +304,47 @@ npm i
 npm run dev
 ```
 Then **open your browser** with http://localhost:5000
+
+## User Authentication
+
+The frontend requires authentication before use. You must start the OAuth server manually before accessing the application.
+
+**Quick Start:**
+1. Start the OAuth server (see "Starting up the services" above)
+2. Open http://localhost:5000 in your browser
+3. Login with username `user` and password `user123`
+
+**Managing Users:**
+
+Users and credentials are configured in [`oauth-server/config/users.json`](oauth-server/config/users.json). Each user has a username, bcrypt-hashed password, role, and display name.
+
+**Available Roles:**
+- `guest` - Read-only access
+- `user` - Full chat and project access
+- `admin` - All permissions including user management
+
+**Creating Password Hashes:**
+
+To add a new user or change a password, generate a bcrypt hash using the provided script:
+
+```bash
+cd oauth-server
+npm run hash-password MyNewPassword123
+```
+
+This outputs a hash like `$2b$10$...` which you copy into the `passwordHash` field in [`users.json`](oauth-server/config/users.json).
+
+**Example users.json entry:**
+```json
+{
+  "id": "u4",
+  "username": "newuser",
+  "passwordHash": "$2b$10$your-generated-hash-here",
+  "role": "user",
+  "displayName": "New User",
+  "enabled": true
+}
+```
 
 ## API Endpoints
 

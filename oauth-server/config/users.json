@@ -1,0 +1,33 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "username": "admin",
+      "passwordHash": "$2b$10$9C4loqnkDryW7GBug8BBueyMuYUHfQKXPZsEu2GEi32QBEQFpkVAC",
+      "role": "admin",
+      "displayName": "Administrator",
+      "enabled": true
+    },
+    {
+      "id": "u2",
+      "username": "user",
+      "passwordHash": "$2b$10$2bLYTxKM8eQG2CMwdBmgy.fx4.PwViLuOhLbYfVp0WW1BTglxf.0a",
+      "role": "user",
+      "displayName": "Standard User",
+      "enabled": true
+    },
+    {
+      "id": "u3",
+      "username": "guest",
+      "passwordHash": "$2b$10$gqEF0Dy268.TsXD0t.aN.eAy8ouEnxHSOvP/pLZjhX4L2CQFyaIsu",
+      "role": "guest",
+      "displayName": "Guest User",
+      "enabled": true
+    }
+  ],
+  "settings": {
+    "accessTokenExpiry": "15m",
+    "refreshTokenExpiry": "7d",
+    "jwtSecret": "change-this-secret-in-production-dobt7txrm3u"
+  }
+}
