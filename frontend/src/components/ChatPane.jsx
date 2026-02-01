@@ -261,6 +261,8 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               onPlanReject={onPlanReject}
               isStreaming={isStreaming}
               spanId={msg.spanId}
+              source={msg.source}
+              sourceMetadata={msg.sourceMetadata}
             />
           );
         })}

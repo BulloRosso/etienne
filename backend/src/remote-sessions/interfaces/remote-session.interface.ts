@@ -2,32 +2,42 @@
  * Remote Session interfaces for mapping external messaging platforms to Claude projects
  */
 
+export type RemoteProvider = 'telegram' | 'teams';
+
 export interface RemoteSessionMapping {
   id: string;
-  provider: 'telegram';
+  provider: RemoteProvider;
   created_at: string;
   updated_at: string;
   project: {
     name: string;
     sessionId: string;
   };
-  remoteSession: TelegramSession;
+  remoteSession: RemoteSession;
   status: 'active' | 'paused' | 'disconnected';
 }
 
-export interface TelegramSession {
-  chatId: number;
-  userId?: number;
+/**
+ * Generic remote session that supports both Telegram (numeric chatId) and Teams (string conversationId)
+ */
+export interface RemoteSession {
+  chatId: number | string;
+  userId?: number | string;
   username?: string;
   firstName?: string;
   lastName?: string;
 }
 
+/**
+ * @deprecated Use RemoteSession instead. Kept for backwards compatibility.
+ */
+export type TelegramSession = RemoteSession;
+
 export interface PendingPairing {
   id: string;
   code: string;
-  provider: 'telegram';
-  remoteSession: TelegramSession;
+  provider: RemoteProvider;
+  remoteSession: RemoteSession;
   created_at: string;
   expires_at: string;
 }

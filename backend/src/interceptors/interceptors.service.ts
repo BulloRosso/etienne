@@ -4,7 +4,7 @@ import { ReplaySubject, Subject } from 'rxjs';
 export interface InterceptorEvent {
   project: string;
   timestamp: string;
-  type: 'hook' | 'event' | 'elicitation_request' | 'permission_request' | 'ask_user_question' | 'plan_approval' | 'pairing_request';
+  type: 'hook' | 'event' | 'elicitation_request' | 'permission_request' | 'ask_user_question' | 'plan_approval' | 'pairing_request' | 'chat_message';
   data: any;
 }
 
@@ -186,6 +186,37 @@ export class InterceptorsService {
       project,
       timestamp,
       type: 'pairing_request',
+      data
+    });
+  }
+
+  /**
+   * Emit a chat message to the frontend via SSE
+   * This is called when a remote session (Telegram, Teams, etc.) sends or receives a message
+   * The source is always 'remote' - specific provider info is in sourceMetadata
+   */
+  emitChatMessage(project: string, data: {
+    sessionId: string;
+    timestamp: string;
+    isAgent: boolean;
+    message: string;
+    source: 'remote' | 'web' | 'scheduled' | 'automated';
+    sourceMetadata?: {
+      provider?: string;
+      username?: string;
+      firstName?: string;
+    };
+    costs?: any;
+  }) {
+    const timestamp = new Date().toISOString();
+    const role = data.isAgent ? 'assistant' : 'user';
+    this.logger.log(`Emitting chat message for project "${project}": ${role} (source: ${data.source})`);
+
+    const subject = this.getSubject(project);
+    subject.next({
+      project,
+      timestamp,
+      type: 'chat_message',
       data
     });
   }

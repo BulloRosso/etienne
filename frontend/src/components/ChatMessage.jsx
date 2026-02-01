@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Box, Typography, Paper, IconButton, Collapse, Chip } from '@mui/material';
-import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown } from '@mui/icons-material';
+import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups } from '@mui/icons-material';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -8,7 +8,7 @@ import StreamingTimeline from './StreamingTimeline';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
 
-export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], planApprovalState = {}, onPlanApprove, onPlanReject, isStreaming = false, spanId = null }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], planApprovalState = {}, onPlanApprove, onPlanReject, isStreaming = false, spanId = null, source = null, sourceMetadata = null }) {
   const isUser = role === 'user';
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -78,6 +78,55 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
     const rawHtml = marked.parse(text, { breaks: true, gfm: true });
     return DOMPurify.sanitize(rawHtml);
   }, [text]);
+
+  // Render source indicator for remote sessions, scheduled tasks, etc.
+  const renderSourceIndicator = () => {
+    if (!source || source === 'web') return null;
+
+    if (source === 'remote') {
+      // Remote session message - show indicator with optional provider-specific icon
+      const providerIcons = {
+        telegram: <Telegram sx={{ fontSize: '14px' }} />,
+        teams: <Groups sx={{ fontSize: '14px' }} />,
+      };
+      const icon = sourceMetadata?.provider ? providerIcons[sourceMetadata.provider] : <Cloud sx={{ fontSize: '14px' }} />;
+      const label = sourceMetadata?.username || 'Remote';
+
+      return (
+        <Chip
+          icon={icon}
+          label={label}
+          size="small"
+          sx={{
+            height: '20px',
+            fontSize: '0.7rem',
+            backgroundColor: '#e8f5e9',
+            color: '#2e7d32',
+            '& .MuiChip-icon': { fontSize: '14px', color: '#2e7d32' }
+          }}
+        />
+      );
+    }
+
+    if (source === 'scheduled') {
+      return (
+        <Chip
+          icon={<Schedule sx={{ fontSize: '14px' }} />}
+          label="Scheduled"
+          size="small"
+          sx={{
+            height: '20px',
+            fontSize: '0.7rem',
+            backgroundColor: '#fff3e0',
+            color: '#ff9800',
+            '& .MuiChip-icon': { fontSize: '14px', color: '#ff9800' }
+          }}
+        />
+      );
+    }
+
+    return null;
+  };
 
   // Make file paths in the content clickable
   useEffect(() => {
@@ -248,20 +297,23 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               }}
               dangerouslySetInnerHTML={{ __html: renderedContent }}
             />
-            {contextName && (
+            {(contextName || source) && (
               <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Chip
-                  icon={<Label sx={{ fontSize: '14px' }} />}
-                  label={contextName}
-                  size="small"
-                  sx={{
-                    height: '20px',
-                    fontSize: '0.7rem',
-                    backgroundColor: '#e3f2fd',
-                    color: '#1565c0',
-                    '& .MuiChip-icon': { fontSize: '14px', color: '#1565c0' }
-                  }}
-                />
+                {renderSourceIndicator()}
+                {contextName && (
+                  <Chip
+                    icon={<Label sx={{ fontSize: '14px' }} />}
+                    label={contextName}
+                    size="small"
+                    sx={{
+                      height: '20px',
+                      fontSize: '0.7rem',
+                      backgroundColor: '#e3f2fd',
+                      color: '#1565c0',
+                      '& .MuiChip-icon': { fontSize: '14px', color: '#1565c0' }
+                    }}
+                  />
+                )}
               </Box>
             )}
           </Paper>
@@ -422,21 +474,20 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
           </Box>
         )}
 
-        {/* Timestamp - show elapsed time during streaming, actual time after */}
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mt: 0.5,
-            pl: '40px',
-            color: isStreaming ? '#2196f3' : '#999',
-            fontSize: '11px',
-            textAlign: 'left',
-            fontWeight: isStreaming ? 500 : 400
-          }}
-        >
-          {isStreaming ? `Elapsed: ${formatElapsedTime(elapsedSeconds)}` : timestamp}
-        </Typography>
+        {/* Source indicator and timestamp */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, pl: '40px' }}>
+          {renderSourceIndicator()}
+          <Typography
+            variant="caption"
+            sx={{
+              color: isStreaming ? '#2196f3' : '#999',
+              fontSize: '11px',
+              fontWeight: isStreaming ? 500 : 400
+            }}
+          >
+            {isStreaming ? `Elapsed: ${formatElapsedTime(elapsedSeconds)}` : timestamp}
+          </Typography>
+        </Box>
       </Box>
     </Box>
   );

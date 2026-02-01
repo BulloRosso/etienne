@@ -475,6 +475,34 @@ export default function App() {
         handledRequestIdsRef.current.add(planId);
         console.log('Plan approval request received:', event.data);
         setPendingPlanApproval(event.data);
+      } else if (event.type === 'chat_message') {
+        // Handle chat message from remote sessions (Telegram, Teams, etc.)
+        const chatData = event.data;
+        console.log('Remote chat message received:', chatData);
+
+        // Only add message if it matches current session
+        // If no session, add it anyway (user can see remote conversation)
+        if (!currentSessionIdRef.current || currentSessionIdRef.current === chatData.sessionId) {
+          const newMessage = {
+            role: chatData.isAgent ? 'assistant' : 'user',
+            text: chatData.message,
+            timestamp: new Date(chatData.timestamp).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }),
+            usage: chatData.costs,
+            source: chatData.source,
+            sourceMetadata: chatData.sourceMetadata
+          };
+
+          setMessages(prev => [...prev, newMessage]);
+
+          // Update hasSessions if this creates a new session
+          if (!hasSessions) {
+            setHasSessions(true);
+          }
+        }
       }
     });
 

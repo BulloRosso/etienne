@@ -10,6 +10,14 @@ export interface ChatMessage {
   costs?: any;
   reasoningSteps?: any[];
   contextName?: string;
+  // Source tracking for remote sessions, scheduled tasks, etc.
+  source?: 'web' | 'remote' | 'scheduled' | 'automated';
+  sourceMetadata?: {
+    provider?: string;    // 'telegram', 'teams', etc. (for remote sessions)
+    username?: string;    // Display name from provider
+    firstName?: string;
+    taskId?: string;      // For scheduled tasks
+  };
 }
 
 export interface SessionMetadata {

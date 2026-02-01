@@ -1,8 +1,11 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
+import * as path from 'path';
 import { RemoteSessionsStorageService } from './remote-sessions-storage.service';
 import { SessionEventsService } from './session-events.service';
 import { PairingService } from './pairing.service';
+import { SessionsService } from '../sessions/sessions.service';
+import { InterceptorsService } from '../interceptors/interceptors.service';
 import {
   RemoteSessionMapping,
   TelegramSession,
@@ -14,13 +17,17 @@ import {
 export class RemoteSessionsService {
   private readonly logger = new Logger(RemoteSessionsService.name);
   private readonly backendUrl: string;
+  private readonly workspaceRoot: string;
 
   constructor(
     private readonly storage: RemoteSessionsStorageService,
     private readonly sessionEvents: SessionEventsService,
     private readonly pairingService: PairingService,
+    private readonly sessionsService: SessionsService,
+    private readonly interceptorsService: InterceptorsService,
   ) {
     this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
+    this.workspaceRoot = process.env.WORKSPACE_ROOT || path.join(process.cwd(), 'workspace');
   }
 
   /**
@@ -128,6 +135,7 @@ export class RemoteSessionsService {
 
   /**
    * Forward a message to Claude and return the response
+   * Also writes to chat history and emits SSE events for frontend real-time updates
    */
   async forwardMessage(chatId: number, message: string): Promise<MessageForwardResult> {
     const session = await this.storage.findByChatId(chatId);
@@ -139,18 +147,63 @@ export class RemoteSessionsService {
       return { success: false, error: 'No project selected. Use: project \'project-name\'' };
     }
 
-    this.logger.log(`Forwarding message from chatId ${chatId} to project "${session.project.name}"`);
+    const projectName = session.project.name;
+    const projectRoot = path.join(this.workspaceRoot, projectName);
+    const displayName = session.remoteSession.username || session.remoteSession.firstName || `User ${chatId}`;
+    const timestamp = new Date().toISOString();
+
+    this.logger.log(`Forwarding message from chatId ${chatId} to project "${projectName}"`);
+
+    // Get or create session ID for chat history
+    let sessionId = session.project.sessionId;
+    if (!sessionId) {
+      // Try to get most recent session ID, or generate a new one
+      sessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
+      if (!sessionId) {
+        sessionId = `session-${Date.now()}`;
+      }
+      // Update session mapping with sessionId
+      await this.storage.updateSession(session.id, {
+        project: { name: projectName, sessionId },
+      });
+    }
+
+    // 1. WRITE USER MESSAGE to chat history
+    await this.sessionsService.appendMessages(projectRoot, sessionId, [{
+      timestamp,
+      isAgent: false,
+      message,
+      source: 'remote',
+      sourceMetadata: {
+        provider: session.provider,
+        username: displayName,
+        firstName: session.remoteSession.firstName,
+      },
+    }]);
+
+    // 2. EMIT SSE for user message (frontend real-time update)
+    this.interceptorsService.emitChatMessage(projectName, {
+      sessionId,
+      timestamp,
+      isAgent: false,
+      message,
+      source: 'remote',
+      sourceMetadata: {
+        provider: session.provider,
+        username: displayName,
+      },
+    });
 
     try {
-      // Call the unattended endpoint
-      const url = `${this.backendUrl}/api/claude/unattended/${encodeURIComponent(session.project.name)}`;
+      // 3. Forward to Claude (call the unattended endpoint)
+      const url = `${this.backendUrl}/api/claude/unattended/${encodeURIComponent(projectName)}`;
 
       const response = await axios.post(
         url,
         {
           prompt: message,
           maxTurns: 20,
-          source: `Telegram: ${session.remoteSession.username || session.remoteSession.chatId}`,
+          source: `Remote: ${displayName}`,
         },
         { timeout: 300000 } // 5 minute timeout
       );
@@ -161,9 +214,33 @@ export class RemoteSessionsService {
         tokenUsage: response.data?.tokenUsage,
       };
 
-      // Emit response to Telegram provider via SSE
+      const responseTimestamp = new Date().toISOString();
+
+      // 4. WRITE ASSISTANT RESPONSE to chat history
+      await this.sessionsService.appendMessages(projectRoot, sessionId, [{
+        timestamp: responseTimestamp,
+        isAgent: true,
+        message: result.response!,
+        costs: result.tokenUsage,
+        source: 'remote',
+        sourceMetadata: {
+          provider: session.provider,
+        },
+      }]);
+
+      // 5. EMIT SSE for assistant response (frontend real-time update)
+      this.interceptorsService.emitChatMessage(projectName, {
+        sessionId,
+        timestamp: responseTimestamp,
+        isAgent: true,
+        message: result.response!,
+        source: 'remote',
+        costs: result.tokenUsage,
+      });
+
+      // 6. Emit response to provider SSE (telegram, teams, etc.)
       this.sessionEvents.emitClaudeResponse(
-        'telegram',
+        session.provider,
         chatId,
         result.response!,
         result.success,
@@ -179,7 +256,7 @@ export class RemoteSessionsService {
       this.logger.error(`Failed to forward message: ${errorMessage}`);
 
       // Emit error to provider
-      this.sessionEvents.emitError('telegram', chatId, errorMessage);
+      this.sessionEvents.emitError(session.provider, chatId, errorMessage);
 
       return {
         success: false,
