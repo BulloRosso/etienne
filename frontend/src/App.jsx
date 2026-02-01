@@ -129,6 +129,29 @@ export default function App() {
       globalInterceptorEsRef.current.close();
     }
 
+    // Fetch any existing pending pairings on mount
+    const fetchPendingPairings = async () => {
+      try {
+        const res = await fetch('/api/remote-sessions/pairing/pending');
+        if (res.ok) {
+          const data = await res.json();
+          const pairings = data.pairings || [];
+          if (pairings.length > 0) {
+            // Show the first pending pairing (oldest)
+            const pairing = pairings[0];
+            if (!handledRequestIdsRef.current.has(pairing.id)) {
+              console.log('Found existing pending pairing:', pairing);
+              handledRequestIdsRef.current.add(pairing.id);
+              setPendingPairing(pairing);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch pending pairings:', err);
+      }
+    };
+    fetchPendingPairings();
+
     // Connect to __global__ project for pairing events
     const es = new EventSource('/api/interceptors/stream/__global__');
     globalInterceptorEsRef.current = es;
@@ -273,7 +296,9 @@ export default function App() {
               }),
               usage: msg.costs,
               reasoningSteps: msg.reasoningSteps || [],
-              contextName: msg.contextName
+              contextName: msg.contextName,
+              source: msg.source,
+              sourceMetadata: msg.sourceMetadata
             });
           });
 
@@ -332,19 +357,28 @@ export default function App() {
     initializeProject();
   }, [currentProject]);
 
-  // Connect to interceptors SSE stream
+  // Connect to interceptors SSE stream with auto-reconnect
   useEffect(() => {
     if (!currentProject) return;
 
-    // Close existing connection
-    if (interceptorEsRef.current) {
-      interceptorEsRef.current.close();
-    }
+    let reconnectTimeout = null;
+    let isCancelled = false;
 
-    const es = new EventSource(`/api/interceptors/stream/${currentProject}`);
-    interceptorEsRef.current = es;
+    const connect = () => {
+      // Close existing connection
+      if (interceptorEsRef.current) {
+        interceptorEsRef.current.close();
+      }
 
-    es.addEventListener('interceptor', (e) => {
+      console.log(`[SSE] Connecting to /api/interceptors/stream/${currentProject}`);
+      const es = new EventSource(`/api/interceptors/stream/${currentProject}`);
+      interceptorEsRef.current = es;
+
+      es.onopen = () => {
+        console.log(`[SSE] Connected to interceptor stream for ${currentProject}`);
+      };
+
+      es.addEventListener('interceptor', (e) => {
       const event = JSON.parse(e.data);
 
       // Log ALL interceptor events for debugging
@@ -483,9 +517,13 @@ export default function App() {
         const chatData = event.data;
         console.log('Remote chat message received:', chatData);
 
-        // Only add message if it matches current session
-        // If no session, add it anyway (user can see remote conversation)
-        if (!currentSessionIdRef.current || currentSessionIdRef.current === chatData.sessionId) {
+        // For remote messages (from Telegram, Teams, etc.), always display them
+        // as a live feed - this lets users monitor remote conversations in real-time.
+        // For non-remote messages, filter by session ID.
+        const isRemoteMessage = chatData.source === 'remote';
+        const sessionMatches = !currentSessionIdRef.current || currentSessionIdRef.current === chatData.sessionId;
+
+        if (isRemoteMessage || sessionMatches) {
           const newMessage = {
             role: chatData.isAgent ? 'assistant' : 'user',
             text: chatData.message,
@@ -509,12 +547,31 @@ export default function App() {
       }
     });
 
-    es.onerror = () => {
-      console.error('Interceptor SSE connection error');
+      es.onerror = () => {
+        console.error('Interceptor SSE connection error, will reconnect in 3s...');
+        // Reconnect after a delay unless cancelled
+        if (!isCancelled) {
+          reconnectTimeout = setTimeout(() => {
+            if (!isCancelled) {
+              console.log('Reconnecting interceptor SSE...');
+              connect();
+            }
+          }, 3000);
+        }
+      };
     };
 
+    // Initial connection
+    connect();
+
     return () => {
-      es.close();
+      isCancelled = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (interceptorEsRef.current) {
+        interceptorEsRef.current.close();
+      }
     };
   }, [currentProject]);
 
@@ -759,7 +816,9 @@ export default function App() {
               }),
               usage: msg.costs,
               reasoningSteps: msg.reasoningSteps || [],
-              contextName: msg.contextName
+              contextName: msg.contextName,
+              source: msg.source,
+              sourceMetadata: msg.sourceMetadata
             });
           });
 
@@ -838,7 +897,9 @@ export default function App() {
               }),
               usage: msg.costs,
               reasoningSteps: msg.reasoningSteps || [],
-              contextName: msg.contextName
+              contextName: msg.contextName,
+              source: msg.source,
+              sourceMetadata: msg.sourceMetadata
             });
           });
 
@@ -968,7 +1029,9 @@ export default function App() {
               }),
               usage: msg.costs,
               reasoningSteps: msg.reasoningSteps || [],
-              contextName: msg.contextName
+              contextName: msg.contextName,
+              source: msg.source,
+              sourceMetadata: msg.sourceMetadata
             });
           });
 
@@ -1564,7 +1627,9 @@ export default function App() {
           }),
           usage: msg.costs,
           reasoningSteps: msg.reasoningSteps || [],
-          contextName: msg.contextName
+          contextName: msg.contextName,
+          source: msg.source,
+          sourceMetadata: msg.sourceMetadata
         });
       });
 

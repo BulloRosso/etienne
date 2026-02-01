@@ -1,13 +1,13 @@
 {
   "remote-sessions": [
     {
-      "id": "e7ea6628-24ee-4c0f-8609-baf583e65da7",
+      "id": "e1d99930-6f55-482e-a957-cdd8b67ca1df",
       "provider": "telegram",
-      "created_at": "2026-02-01T11:51:33.460Z",
-      "updated_at": "2026-02-01T20:44:38.845Z",
+      "created_at": "2026-02-01T21:16:20.086Z",
+      "updated_at": "2026-02-01T22:05:58.645Z",
       "project": {
         "name": "telegram",
-        "sessionId": "761081a5-b638-4b93-8457-75a97bc188f8"
+        "sessionId": "3f3a7895-62e1-474b-a668-5d568f555873"
       },
       "remoteSession": {
         "chatId": 8587702736,

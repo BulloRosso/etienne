@@ -126,9 +126,14 @@ export class ClaudeController {
   @Post('unattended/:project')
   async executeUnattendedOperation(
     @Param('project') project: string,
-    @Body() body: { prompt: string; maxTurns?: number; source?: string }
+    @Body() body: {
+      prompt: string;
+      maxTurns?: number;
+      source?: string;
+      sourceMetadata?: { provider?: string; username?: string; firstName?: string };
+    }
   ) {
-    const { prompt, maxTurns, source } = body;
+    const { prompt, maxTurns, source, sourceMetadata } = body;
     const projectRoot = join(this.workspaceRoot, project);
 
     // Collect all messages from the stream
@@ -195,14 +200,18 @@ export class ClaudeController {
             {
               timestamp,
               isAgent: false,
-              message: `[${sourceLabel}]\n${prompt}`,
-              costs: undefined
+              message: prompt,
+              costs: undefined,
+              source: source ? 'remote' : undefined,
+              sourceMetadata: sourceMetadata || (source ? { username: sourceLabel } : undefined)
             },
             {
               timestamp,
               isAgent: true,
               message: fullResponse || 'Task completed successfully',
-              costs
+              costs,
+              source: source ? 'remote' : undefined,
+              sourceMetadata: sourceMetadata ? { provider: sourceMetadata.provider } : undefined
             }
           ]);
 

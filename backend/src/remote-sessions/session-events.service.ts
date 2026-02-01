@@ -40,7 +40,7 @@ export class SessionEventsService {
     }
 
     const event: ProviderEvent = {
-      type: 'claude_response',
+      type: 'etienne_response',
       data: {
         chatId,
         response,
@@ -51,7 +51,7 @@ export class SessionEventsService {
     };
 
     subject.next(event);
-    this.logger.log(`Emitted claude_response for chatId ${chatId}`);
+    this.logger.log(`Emitted etienne_response for chatId ${chatId}`);
   }
 
   /**
