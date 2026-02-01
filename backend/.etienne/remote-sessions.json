@@ -4,10 +4,10 @@
       "id": "e7ea6628-24ee-4c0f-8609-baf583e65da7",
       "provider": "telegram",
       "created_at": "2026-02-01T11:51:33.460Z",
-      "updated_at": "2026-02-01T12:13:56.870Z",
+      "updated_at": "2026-02-01T20:44:38.845Z",
       "project": {
         "name": "telegram",
-        "sessionId": ""
+        "sessionId": "761081a5-b638-4b93-8457-75a97bc188f8"
       },
       "remoteSession": {
         "chatId": 8587702736,

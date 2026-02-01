@@ -1,5 +1,6 @@
 import { Bot, Context, InputFile } from 'grammy';
 import { SessionManagerClientService } from '../services/session-manager-client.service';
+import { markdownToTelegramHtml, splitTelegramMessage } from '../utils/markdown-to-telegram';
 
 export function registerMessageHandler(
   bot: Bot<Context>,
@@ -350,48 +351,22 @@ async function handleProjectSelection(
 
 /**
  * Send a long message by splitting it into chunks
- * Telegram has a 4096 character limit per message
+ * Converts markdown to Telegram HTML and respects the 4096 character limit
  */
 async function sendLongMessage(ctx: Context, text: string): Promise<void> {
-  const maxLength = 4000; // Leave some margin
+  // Convert markdown to Telegram HTML
+  const htmlText = markdownToTelegramHtml(text);
 
-  if (text.length <= maxLength) {
-    await ctx.reply(text);
-    return;
-  }
+  // Split into chunks if needed
+  const chunks = splitTelegramMessage(htmlText);
 
-  // Split by paragraphs first, then by length
-  const paragraphs = text.split('\n\n');
-  let currentChunk = '';
-
-  for (const paragraph of paragraphs) {
-    if (currentChunk.length + paragraph.length + 2 > maxLength) {
-      // Send current chunk
-      if (currentChunk) {
-        await ctx.reply(currentChunk);
-      }
-      // If single paragraph is too long, split by lines
-      if (paragraph.length > maxLength) {
-        const lines = paragraph.split('\n');
-        currentChunk = '';
-        for (const line of lines) {
-          if (currentChunk.length + line.length + 1 > maxLength) {
-            await ctx.reply(currentChunk);
-            currentChunk = line;
-          } else {
-            currentChunk += (currentChunk ? '\n' : '') + line;
-          }
-        }
-      } else {
-        currentChunk = paragraph;
-      }
-    } else {
-      currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
+  for (const chunk of chunks) {
+    try {
+      await ctx.reply(chunk, { parse_mode: 'HTML' });
+    } catch (error: any) {
+      // If HTML parsing fails, fall back to plain text
+      console.error('[Message] HTML parse error, falling back to plain text:', error.message);
+      await ctx.reply(text.substring(0, 4000));
     }
-  }
-
-  // Send remaining chunk
-  if (currentChunk) {
-    await ctx.reply(currentChunk);
   }
 }

@@ -5,6 +5,7 @@ import { SSEListenerService } from './services/sse-listener.service';
 import { registerCommandHandlers } from './handlers/command.handler';
 import { registerMessageHandler } from './handlers/message.handler';
 import { ProviderEvent } from './types';
+import { markdownToTelegramHtml, splitTelegramMessage } from './utils/markdown-to-telegram';
 
 async function main() {
   console.log('========================================');
@@ -119,46 +120,23 @@ async function main() {
 
 /**
  * Send a long message by splitting it into chunks
- * Telegram has a 4096 character limit per message
+ * Converts markdown to Telegram HTML and respects the 4096 character limit
  */
 async function sendLongMessage(bot: any, chatId: number, text: string): Promise<void> {
-  const maxLength = 4000;
+  // Convert markdown to Telegram HTML
+  const htmlText = markdownToTelegramHtml(text);
 
-  if (text.length <= maxLength) {
-    await bot.api.sendMessage(chatId, text);
-    return;
-  }
+  // Split into chunks if needed
+  const chunks = splitTelegramMessage(htmlText);
 
-  const paragraphs = text.split('\n\n');
-  let currentChunk = '';
-
-  for (const paragraph of paragraphs) {
-    if (currentChunk.length + paragraph.length + 2 > maxLength) {
-      if (currentChunk) {
-        await bot.api.sendMessage(chatId, currentChunk);
-      }
-      if (paragraph.length > maxLength) {
-        // Split by lines if paragraph is too long
-        const lines = paragraph.split('\n');
-        currentChunk = '';
-        for (const line of lines) {
-          if (currentChunk.length + line.length + 1 > maxLength) {
-            await bot.api.sendMessage(chatId, currentChunk);
-            currentChunk = line;
-          } else {
-            currentChunk += (currentChunk ? '\n' : '') + line;
-          }
-        }
-      } else {
-        currentChunk = paragraph;
-      }
-    } else {
-      currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
+  for (const chunk of chunks) {
+    try {
+      await bot.api.sendMessage(chatId, chunk, { parse_mode: 'HTML' });
+    } catch (error: any) {
+      // If HTML parsing fails, fall back to plain text
+      console.error('[SSE] HTML parse error, falling back to plain text:', error.message);
+      await bot.api.sendMessage(chatId, text.substring(0, 4000));
     }
-  }
-
-  if (currentChunk) {
-    await bot.api.sendMessage(chatId, currentChunk);
   }
 }
 
