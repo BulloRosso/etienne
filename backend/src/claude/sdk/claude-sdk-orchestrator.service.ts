@@ -278,99 +278,6 @@ export class ClaudeSdkOrchestratorService {
             timestamp: new Date().toISOString()
           });
 
-          // Handle AskUserQuestion tool - intercept and show modal dialog
-          // The SDK doesn't call canUseTool for this tool, so we handle it in PreToolUse
-          // We collect user answers and inject them into the tool input via updatedInput
-          if (input.tool_name === 'AskUserQuestion') {
-            // Check if answers are already present (from a previous hook call)
-            // This prevents showing the dialog again after we injected answers
-            if (input.tool_input?.answers && Object.keys(input.tool_input.answers).length > 0) {
-              this.logger.log(`🔔 AskUserQuestion already has answers - proceeding without dialog`);
-              return { continue: true };
-            }
-
-            this.logger.log(`🔔 Intercepting AskUserQuestion tool - showing user dialog`);
-
-            try {
-              // Use the permission service to handle the AskUserQuestion dialog
-              const result = await this.sdkPermissionService.handleAskUserQuestionViaHook(
-                projectDir,
-                input.tool_input,
-                sessionId
-              );
-
-              // If user responded with answers, inject them into the tool input
-              if (result.behavior === 'allow' && result.updatedInput) {
-                this.logger.log(`✅ User answered AskUserQuestion - injecting answers into tool input`);
-
-                // Return with updatedInput containing the user's answers
-                // The SDK will then proceed with the modified input
-                return {
-                  continue: true,
-                  updatedInput: result.updatedInput
-                };
-              } else {
-                this.logger.log(`❌ User denied AskUserQuestion - blocking tool`);
-                return {
-                  continue: false,
-                  error: result.message || 'User cancelled the question'
-                };
-              }
-            } catch (error: any) {
-              this.logger.error(`Error handling AskUserQuestion: ${error.message}`);
-              return {
-                continue: false,
-                error: `Failed to get user response: ${error.message}`
-              };
-            }
-          }
-
-          // Handle ExitPlanMode tool - intercept and show plan approval dialog
-          // The SDK doesn't call canUseTool for this tool, so we handle it in PreToolUse
-          // We collect approval and inject it into the tool input via updatedInput
-          if (input.tool_name === 'ExitPlanMode') {
-            // Check if approval is already present (from a previous hook call)
-            // This prevents showing the dialog again after we injected approval
-            if (input.tool_input?.approved === true) {
-              this.logger.log(`🔔 ExitPlanMode already approved - proceeding without dialog`);
-              return { continue: true };
-            }
-
-            this.logger.log(`🔔 Intercepting ExitPlanMode tool - showing plan approval dialog`);
-
-            try {
-              // Use the permission service to handle the plan approval dialog
-              const result = await this.sdkPermissionService.handleExitPlanModeViaHook(
-                projectDir,
-                input.tool_input,
-                sessionId
-              );
-
-              // If user approved the plan, inject approval into tool input
-              if (result.behavior === 'allow') {
-                this.logger.log(`✅ User approved plan - injecting approval into tool input`);
-
-                // Return with updatedInput containing the approval
-                return {
-                  continue: true,
-                  updatedInput: { approved: true, message: 'Plan approved by user' }
-                };
-              } else {
-                this.logger.log(`❌ User rejected plan - blocking tool`);
-                return {
-                  continue: false,
-                  error: result.message || 'User rejected the plan'
-                };
-              }
-            } catch (error: any) {
-              this.logger.error(`Error handling ExitPlanMode: ${error.message}`);
-              return {
-                continue: false,
-                error: `Failed to get plan approval: ${error.message}`
-              };
-            }
-          }
-
           // Also emit to main observer stream for frontend UI
           const toolEvent = {
             type: 'tool',
@@ -393,11 +300,33 @@ export class ClaudeSdkOrchestratorService {
             timestamp: Date.now()
           });
 
-          return { continue: true };
+          // AskUserQuestion and ExitPlanMode need user interaction via canUseTool callback
+          // Let them pass through hooks without auto-approval so canUseTool is invoked
+          // Per Claude Agent SDK docs: PreToolUse Hook → Permission Mode → canUseTool Callback
+          if (input.tool_name === 'AskUserQuestion' || input.tool_name === 'ExitPlanMode') {
+            this.logger.log(`🔔 Letting ${input.tool_name} pass to canUseTool callback for user interaction`);
+            return { continue: true };
+          }
+
+          // Auto-approve all other tools via hookSpecificOutput.permissionDecision
+          // This allows them to execute immediately without going to canUseTool
+          return {
+            continue: true,
+            hookSpecificOutput: {
+              hookEventName: 'PreToolUse',
+              permissionDecision: 'allow'
+            }
+          };
         } catch (hookError: any) {
           this.logger.error(`Error in PreToolUse hook: ${hookError.message}`, hookError.stack);
-          // Continue anyway - don't block tool execution
-          return { continue: true };
+          // Auto-approve on error - don't block tool execution
+          return {
+            continue: true,
+            hookSpecificOutput: {
+              hookEventName: 'PreToolUse',
+              permissionDecision: 'allow'
+            }
+          };
         }
       };
 

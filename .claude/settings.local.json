@@ -80,7 +80,9 @@
       "Bash(workspace/test-project/test-file-final.txt)",
       "Bash(ls:*)",
       "Bash(python3:*)",
-      "Bash(npx nest build:*)"
+      "Bash(npx nest build:*)",
+      "WebFetch(domain:grammy.dev)",
+      "WebFetch(domain:blog.logrocket.com)"
     ],
     "deny": [],
     "ask": []

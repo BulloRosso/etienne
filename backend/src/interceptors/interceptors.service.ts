@@ -4,7 +4,7 @@ import { ReplaySubject, Subject } from 'rxjs';
 export interface InterceptorEvent {
   project: string;
   timestamp: string;
-  type: 'hook' | 'event' | 'elicitation_request' | 'permission_request' | 'ask_user_question' | 'plan_approval';
+  type: 'hook' | 'event' | 'elicitation_request' | 'permission_request' | 'ask_user_question' | 'plan_approval' | 'pairing_request';
   data: any;
 }
 
@@ -157,6 +157,35 @@ export class InterceptorsService {
       project,
       timestamp,
       type: 'plan_approval',
+      data
+    });
+  }
+
+  /**
+   * Emit a pairing request to the frontend via SSE
+   * This is called when a Telegram user requests to pair with the system
+   */
+  emitPairingRequest(project: string, data: {
+    id: string;
+    code: string;
+    provider: string;
+    remoteSession: {
+      chatId: number;
+      userId?: number;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    expires_at: string;
+  }) {
+    const timestamp = new Date().toISOString();
+    this.logger.log(`Emitting pairing request for project "${project}": ${data.id} (provider: ${data.provider})`);
+
+    const subject = this.getSubject(project);
+    subject.next({
+      project,
+      timestamp,
+      type: 'pairing_request',
       data
     });
   }

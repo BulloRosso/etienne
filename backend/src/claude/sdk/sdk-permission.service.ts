@@ -23,8 +23,9 @@ export class SdkPermissionService {
   private readonly logger = new Logger(SdkPermissionService.name);
   private readonly pendingRequests = new Map<string, PendingPermissionRequest>();
 
-  // Timeout for pending requests (5 minutes, matching MCP elicitation)
-  private readonly REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+  // Timeout for pending requests (60 seconds, matching SDK canUseTool timeout)
+  // Per Claude Agent SDK docs: "Your callback must return within 60 seconds"
+  private readonly REQUEST_TIMEOUT_MS = 60 * 1000;
 
   constructor(private readonly interceptorsService: InterceptorsService) {}
 
@@ -91,9 +92,9 @@ export class SdkPermissionService {
   }
 
   /**
-   * Handle AskUserQuestion tool via PreToolUse hook
-   * This is the public method called from the orchestrator when the SDK
-   * doesn't invoke canUseTool for AskUserQuestion
+   * Handle AskUserQuestion tool
+   * This method is called from the canUseTool callback when the SDK
+   * invokes the callback for AskUserQuestion tool
    */
   async handleAskUserQuestionViaHook(
     projectName: string,
@@ -141,9 +142,9 @@ export class SdkPermissionService {
   }
 
   /**
-   * Handle ExitPlanMode tool via PreToolUse hook
-   * This is the public method called from the orchestrator when the SDK
-   * doesn't invoke canUseTool for ExitPlanMode
+   * Handle ExitPlanMode tool
+   * This method is called from the canUseTool callback when the SDK
+   * invokes the callback for ExitPlanMode tool
    */
   async handleExitPlanModeViaHook(
     projectName: string,

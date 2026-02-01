@@ -13,6 +13,7 @@ import ElicitationModal from './components/ElicitationModal';
 import PermissionModal from './components/PermissionModal';
 import AskUserQuestionModal from './components/AskUserQuestionModal';
 import PlanApprovalModal from './components/PlanApprovalModal';
+import PairingRequestModal from './components/PairingRequestModal';
 import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
 import { IoInformationCircle } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
@@ -53,8 +54,10 @@ export default function App() {
   const [pendingPermission, setPendingPermission] = useState(null); // Current permission request from SDK canUseTool
   const [pendingQuestion, setPendingQuestion] = useState(null); // Current AskUserQuestion request
   const [pendingPlanApproval, setPendingPlanApproval] = useState(null); // Current ExitPlanMode request
+  const [pendingPairing, setPendingPairing] = useState(null); // Current Telegram pairing request
 
   const esRef = useRef(null);
+  const globalInterceptorEsRef = useRef(null); // For global events like pairing requests
   const interceptorEsRef = useRef(null);
   const eventsEsRef = useRef(null);
   const currentMessageRef = useRef(null);
@@ -67,6 +70,7 @@ export default function App() {
     esRef.current?.close();
     interceptorEsRef.current?.close();
     eventsEsRef.current?.close();
+    globalInterceptorEsRef.current?.close();
   }, []);
 
   // Handle hash route for opening scrapbook modal
@@ -114,6 +118,44 @@ export default function App() {
   useEffect(() => {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
+
+  // Connect to global interceptors SSE stream for pairing requests (always active)
+  useEffect(() => {
+    // Close existing connection
+    if (globalInterceptorEsRef.current) {
+      globalInterceptorEsRef.current.close();
+    }
+
+    // Connect to __global__ project for pairing events
+    const es = new EventSource('/api/interceptors/stream/__global__');
+    globalInterceptorEsRef.current = es;
+
+    es.addEventListener('interceptor', (e) => {
+      const event = JSON.parse(e.data);
+
+      console.log('Global interceptor event:', event.type, event.data);
+
+      if (event.type === 'pairing_request') {
+        // Handle Telegram pairing request
+        const pairingId = event.data?.id;
+        if (handledRequestIdsRef.current.has(pairingId)) {
+          console.log('Skipping duplicate pairing request:', pairingId);
+          return;
+        }
+        handledRequestIdsRef.current.add(pairingId);
+        console.log('Pairing request received:', event.data);
+        setPendingPairing(event.data);
+      }
+    });
+
+    es.onerror = () => {
+      console.error('Global interceptor SSE connection error');
+    };
+
+    return () => {
+      es.close();
+    };
+  }, []); // Run once on mount
 
   // Load tags when project changes
   useEffect(() => {
@@ -531,6 +573,28 @@ export default function App() {
       console.error('Error sending plan approval response:', err);
     } finally {
       setPendingPlanApproval(null);
+    }
+  };
+
+  // Handle pairing request response from admin (Telegram pairing)
+  const handlePairingResponse = async (response) => {
+    console.log('Sending pairing response:', response);
+    try {
+      const res = await fetch('/api/remote-sessions/pairing/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(response)
+      });
+
+      if (!res.ok) {
+        console.error('Failed to send pairing response:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error sending pairing response:', err);
+    } finally {
+      setPendingPairing(null);
     }
   };
 
@@ -1791,6 +1855,14 @@ export default function App() {
         onRespond={handlePlanApprovalResponse}
         onClose={() => setPendingPlanApproval(null)}
         currentProject={currentProject}
+      />
+
+      {/* Telegram Pairing Request Modal */}
+      <PairingRequestModal
+        open={!!pendingPairing}
+        pairing={pendingPairing}
+        onRespond={handlePairingResponse}
+        onClose={() => setPendingPairing(null)}
       />
     </Box>
   );

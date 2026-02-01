@@ -68,9 +68,11 @@ export class ClaudeSdkService {
       // Map agentMode to permissionMode
       // - 'plan': Planning mode - Claude creates a plan without executing tools
       // - 'work': Work mode - Claude executes tools and makes changes
-      // - undefined/other: Default to bypassPermissions to ensure hooks are called
+      // - undefined/other: Use 'default' mode so canUseTool callback is invoked
+      //   for tools that need user interaction (AskUserQuestion, ExitPlanMode)
+      //   Other tools are auto-approved in PreToolUse hook
       const planningMode = agentMode === 'plan';
-      const permissionMode = planningMode ? 'plan' : 'bypassPermissions';
+      const permissionMode = planningMode ? 'plan' : 'default';
 
       this.logger.log(`Agent mode: ${agentMode || 'default'} → Permission mode: ${permissionMode}`);
 
