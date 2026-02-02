@@ -21,7 +21,7 @@ This repo contains 3 mandatory servers, 6 optional servers and many modules.
 Modules can be removed if their functionality is not required (e. g. A2A Client, Observability, SMTP IMAP).
 
 <div align="center">
-<img src="/docs/images/server-modules.jpg" alt="Servers and modules" width="900">
+<img src="/docs/images/servers-modules.jpg" alt="Servers and modules" width="900">
 </div>
 
 # Value Proposition
