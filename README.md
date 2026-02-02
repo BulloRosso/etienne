@@ -14,6 +14,16 @@ This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend
 
 In production deployments all components will be packaged together into a Docker Container which mounts a workspace folder for data.
 
+# Main Components
+
+This repo contains 3 mandatory servers, 6 optional servers and many modules.
+
+Modules can be removed if their functionality is not required (e. g. A2A Client, Observability, SMTP IMAP).
+
+<div align="center">
+<img src="/docs/images/server-modules.jpg" alt="Servers and modules" width="900">
+</div>
+
 # Value Proposition
 Etienne contains all the typical components you would need to recreate the user experience of Claude.ai or the ChatGPT web interface.
 
