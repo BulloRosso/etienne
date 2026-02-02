@@ -185,6 +185,42 @@ used to modify a claude-code/agents SDK seed projects.
     </p>
   </td>
 </tr>
+<tr>
+  <td><img src="/docs/images/article12.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/etienne-everywhere-using-telegram-microsoft-teams-ui-navasardyan-ut0ae/" target="_blank">Etienne Everywhere: Using Telegram and Microsoft Teams as an Alternative UI</a></b>
+    <p style="color:#999"><small>
+    That’s why Etienne supports messengers as an alternative UI - specifically Telegram and Microsoft Teams. Etienne is represented by a bot in both messengers.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article13.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/onboarding-etienne-next-best-thing-pip-boy-until-drop-navasardyan-vcuee/" target="_blank">Onboarding Etienne: The Next Best Thing to a Pip-Boy until the Nukes drop!</a></b>
+    <p style="color:#999"><small>
+    This article introduces the first steps with Etienne: an open-source seed project built on the Anthropic Agent SDK. Etienne is a personal, fully customizable agentic system that runs close to your data and depends only on an AI model exposing an Anthropic-compatible message API. No platform lock-in. No mandatory cloud brain. Just an agent you can actually own.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article14.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/diagnosing-etienne-inside-black-box-ai-agent-behavior-navasardyan-hqf7e/" target="_blank">Diagnosing Etienne: Inside the Black Box of AI Agent Behavior</a></b>
+    <p style="color:#999"><small>
+   AI agents no longer solve problems along a single, inspectable path. Each day adds new options: generate and execute code on the fly, delegate subtasks to MCP-backed tools, contract external specialists via A2A, chain services that themselves invoke other services. The agent’s action space is no longer a tree. It is a graph that keeps expanding while the agent is already moving through it. What used to be a prompt-and-response system now behaves like a distributed system assembled at runtime.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article15.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/beyond-mes-how-general-ai-agents-deliver-custom-ralph-navasardyan-p1mtf/" target="_blank">Beyond MES: How General AI Agents Deliver Custom Manufacturing Solutions On Demand</a></b>
+    <p style="color:#999"><small>
+   Manufacturing professionals often find themselves caught between two unsatisfying options: expensive, rigid MES implementations or cobbling together spreadsheets and manual processes. But there's a third path emerging - one that combines the sophistication of custom software with the accessibility of a conversation.</small>
+    </p>
+  </td>
+</tr>
 </table>
 
 ## SETUP
