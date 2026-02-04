@@ -24,6 +24,15 @@ Modules can be removed if their functionality is not required (e. g. A2A Client,
 <img src="/docs/images/servers-modules.jpg" alt="Servers and modules" width="900">
 </div>
 
+The following diagram shows the essential internal and external ports of a deployed Etienne instance:
+
+<div align="center">
+<img src="/docs/images/system-context.jpg" alt="System Context" width="900">
+</div>
+
+While the workbench (React frontend) serves as the primary user interface, messengers can optionally be added as secondary/mobile user interfaces.
+ 
+
 # Value Proposition
 Etienne contains all the typical components you would need to recreate the user experience of Claude.ai or the ChatGPT web interface.
 
