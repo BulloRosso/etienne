@@ -31,7 +31,21 @@ The following diagram shows the essential internal and external ports of a deplo
 </div>
 
 While the workbench (React frontend) serves as the primary user interface, messengers can optionally be added as secondary/mobile user interfaces.
- 
+
+# The Agent and the outside World
+
+Etienne is built to maximize what an AI agent can do outwardly in commercial and operational contexts.
+
+Etienne focuses on professional automation protocols in a single deployment, which is what commercial environments actually run on.
+
+<div align="center">
+<img src="/docs/images/etienne-outside-world.jpg" alt="Outside world" width="900">
+</div>
+
+Etienne extends the system boundary itself by implementing and exposing new interfaces such as MCP servers, API endpoints, or web applications.
+
+Etienne is about turning an agent into infrastructure.
+
 
 # Value Proposition
 Etienne contains all the typical components you would need to recreate the user experience of Claude.ai or the ChatGPT web interface.

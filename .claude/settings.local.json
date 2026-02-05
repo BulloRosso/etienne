@@ -82,7 +82,10 @@
       "Bash(python3:*)",
       "Bash(npx nest build:*)",
       "WebFetch(domain:grammy.dev)",
-      "WebFetch(domain:blog.logrocket.com)"
+      "WebFetch(domain:blog.logrocket.com)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker build:*)"
     ],
     "deny": [],
     "ask": []
