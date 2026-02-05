@@ -39,6 +39,7 @@ import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
 import Scrapbook from './Scrapbook';
 import Configuration from './Configuration';
+import ChangePasswordDialog from './ChangePasswordDialog';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
@@ -59,6 +60,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -363,6 +365,14 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setScrapbookOpen(false);
   };
 
+  const handleChangePasswordOpen = () => {
+    setChangePasswordOpen(true);
+  };
+
+  const handleChangePasswordClose = () => {
+    setChangePasswordOpen(false);
+  };
+
   // Listen for openScrapbook event (triggered by #scrapbook hash route)
   useEffect(() => {
     const handleOpenScrapbook = () => {
@@ -452,6 +462,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
               onAboutClick={handleAboutOpen}
               user={user}
               onLogout={logout}
+              onSettingsClick={handleChangePasswordOpen}
             />
           </Box>
 
@@ -845,6 +856,11 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <Scrapbook projectName={currentProject} onClose={handleScrapbookClose} />
         </DialogContent>
       </Dialog>
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onClose={handleChangePasswordClose}
+      />
     </>
   );
 }

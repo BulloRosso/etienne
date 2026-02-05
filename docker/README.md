@@ -29,9 +29,10 @@ docker build -t etienne -f docker/Dockerfile .
 
 ### Run the Container
 
-**Important:** You must mount two volumes:
+**Important:** You must mount three volumes:
 1. **Workspace directory** - for project storage
 2. **Backend .env file** - for configuration (API keys, settings)
+3. **Users directory** - for oauth-server user authentication
 
 Minimal configuration:
 
@@ -39,6 +40,7 @@ Minimal configuration:
 docker run -p 80:80 \
   -v /path/to/your/workspace:/app/workspace \
   -v /path/to/backend/.env:/app/backend/.env:ro \
+  -v /path/to/users:/users \
   etienne
 ```
 
@@ -48,6 +50,7 @@ Windows example:
 docker run -p 80:80 \
   -v C:/Data/GitHub/claude-multitenant/workspace:/app/workspace \
   -v C:/Data/GitHub/claude-multitenant/backend/.env:/app/backend/.env:ro \
+  -v C:/Data/GitHub/claude-multitenant/oauth-server/config:/users \
   etienne
 ```
 
@@ -57,6 +60,7 @@ Linux/macOS example:
 docker run -p 80:80 \
   -v ~/projects/etienne/workspace:/app/workspace \
   -v ~/projects/etienne/backend/.env:/app/backend/.env:ro \
+  -v ~/projects/etienne/oauth-server/config:/users \
   etienne
 ```
 
@@ -86,7 +90,7 @@ workspace/
 
 ### Volume Mounts (Required)
 
-You **must** mount two volumes:
+You **must** mount three volumes:
 
 #### 1. Workspace Directory
 
@@ -106,6 +110,16 @@ The `.env` file contains all backend configuration including API keys. Mount it 
 
 **Note:** The .env file is intentionally not included in the Docker image to prevent sensitive data from being baked into the image.
 
+#### 3. Users Directory
+
+```bash
+-v /host/path/to/users:/users
+```
+
+The users directory must contain `users.json` for oauth-server authentication. Mount the directory containing your `users.json` file (typically `oauth-server/config/`).
+
+**Note:** This allows user credentials to persist across container restarts and be managed outside the container.
+
 ### Path Formatting by Operating System
 
 The volume mount path format differs by operating system:
@@ -117,6 +131,7 @@ Use forward slashes with drive letter:
 docker run -p 80:80 ^
   -v C:/Data/GitHub/claude-multitenant/workspace:/app/workspace ^
   -v C:/Data/GitHub/claude-multitenant/backend/.env:/app/backend/.env:ro ^
+  -v C:/Data/GitHub/claude-multitenant/oauth-server/config:/users ^
   etienne
 ```
 
@@ -129,6 +144,7 @@ Use backtick for line continuation:
 docker run -p 80:80 `
   -v C:/Data/GitHub/claude-multitenant/workspace:/app/workspace `
   -v C:/Data/GitHub/claude-multitenant/backend/.env:/app/backend/.env:ro `
+  -v C:/Data/GitHub/claude-multitenant/oauth-server/config:/users `
   etienne
 ```
 
@@ -137,6 +153,7 @@ Or use `${PWD}` for current directory (when in the project root):
 docker run -p 80:80 `
   -v ${PWD}/workspace:/app/workspace `
   -v ${PWD}/backend/.env:/app/backend/.env:ro `
+  -v ${PWD}/oauth-server/config:/users `
   etienne
 ```
 
@@ -147,6 +164,7 @@ Prefix with extra slash to prevent path conversion:
 docker run -p 80:80 \
   -v //c/Data/GitHub/claude-multitenant/workspace:/app/workspace \
   -v //c/Data/GitHub/claude-multitenant/backend/.env:/app/backend/.env:ro \
+  -v //c/Data/GitHub/claude-multitenant/oauth-server/config:/users \
   etienne
 ```
 
@@ -155,6 +173,7 @@ Or use `MSYS_NO_PATHCONV` to disable path conversion:
 MSYS_NO_PATHCONV=1 docker run -p 80:80 \
   -v C:/Data/GitHub/claude-multitenant/workspace:/app/workspace \
   -v C:/Data/GitHub/claude-multitenant/backend/.env:/app/backend/.env:ro \
+  -v C:/Data/GitHub/claude-multitenant/oauth-server/config:/users \
   etienne
 ```
 
@@ -165,6 +184,7 @@ Use absolute paths starting with `/`:
 docker run -p 80:80 \
   -v /home/username/projects/workspace:/app/workspace \
   -v /home/username/projects/backend/.env:/app/backend/.env:ro \
+  -v /home/username/projects/oauth-server/config:/users \
   etienne
 ```
 
@@ -173,6 +193,7 @@ Or use `$(pwd)` for current directory (when in the project root):
 docker run -p 80:80 \
   -v $(pwd)/workspace:/app/workspace \
   -v $(pwd)/backend/.env:/app/backend/.env:ro \
+  -v $(pwd)/oauth-server/config:/users \
   etienne
 ```
 
@@ -181,6 +202,7 @@ Or use `$HOME` for home directory:
 docker run -p 80:80 \
   -v $HOME/projects/etienne/workspace:/app/workspace \
   -v $HOME/projects/etienne/backend/.env:/app/backend/.env:ro \
+  -v $HOME/projects/etienne/oauth-server/config:/users \
   etienne
 ```
 
@@ -191,6 +213,7 @@ Same as Linux - use absolute paths starting with `/`:
 docker run -p 80:80 \
   -v /Users/username/projects/workspace:/app/workspace \
   -v /Users/username/projects/backend/.env:/app/backend/.env:ro \
+  -v /Users/username/projects/oauth-server/config:/users \
   etienne
 ```
 
@@ -199,6 +222,7 @@ Or use `~` for home directory (in bash/zsh):
 docker run -p 80:80 \
   -v ~/projects/etienne/workspace:/app/workspace \
   -v ~/projects/etienne/backend/.env:/app/backend/.env:ro \
+  -v ~/projects/etienne/oauth-server/config:/users \
   etienne
 ```
 
@@ -207,6 +231,7 @@ Or use `$(pwd)` for current directory (when in the project root):
 docker run -p 80:80 \
   -v $(pwd)/workspace:/app/workspace \
   -v $(pwd)/backend/.env:/app/backend/.env:ro \
+  -v $(pwd)/oauth-server/config:/users \
   etienne
 ```
 
@@ -308,6 +333,7 @@ Internal services communicate via localhost within the container:
 docker run -p 80:80 \
   -v /path/to/workspace:/app/workspace \
   -v /path/to/backend/.env:/app/backend/.env:ro \
+  -v /path/to/oauth-server/config:/users \
   etienne
 ```
 
@@ -317,6 +343,7 @@ You can override specific environment variables with `-e` flags:
 docker run -p 80:80 \
   -v /path/to/workspace:/app/workspace \
   -v /path/to/backend/.env:/app/backend/.env:ro \
+  -v /path/to/oauth-server/config:/users \
   -e OTEL_ENABLED=true \
   -e PHOENIX_COLLECTOR_ENDPOINT=http://host.docker.internal:6006 \
   etienne
@@ -346,7 +373,12 @@ Ensure you've mounted the workspace volume:
 
 ### OAuth Server fails to start
 
-Check that port 5950 is not in use. The oauth-server requires the `config/users.json` file to be present.
+Check that port 5950 is not in use. The oauth-server requires a `users.json` file. Ensure you've mounted the users directory:
+```bash
+-v /path/to/oauth-server/config:/users
+```
+
+The mounted directory must contain a valid `users.json` file with user credentials.
 
 ### Backend fails to start
 
@@ -381,7 +413,7 @@ To modify the Dockerfile:
 
 1. Edit `docker/Dockerfile`
 2. Rebuild: `docker build -t etienne -f docker/Dockerfile .`
-3. Test: `docker run -p 80:80 -v /path/to/workspace:/app/workspace -v /path/to/backend/.env:/app/backend/.env:ro etienne`
+3. Test: `docker run -p 80:80 -v /path/to/workspace:/app/workspace -v /path/to/backend/.env:/app/backend/.env:ro -v /path/to/oauth-server/config:/users etienne`
 
 ### Files
 

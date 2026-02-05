@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, Paper, Typography, IconButton } from '@mui/material';
-import { InfoOutlined, Logout } from '@mui/icons-material';
+import { Box, Paper, Typography, IconButton, Tooltip } from '@mui/material';
+import { InfoOutlined, Logout, Settings } from '@mui/icons-material';
 
-const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, user, onLogout }) => {
+const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick }) => {
   const dashboardItems = [
     // 1st row
     {
@@ -171,7 +171,24 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
                 {user.role}
               </Typography>
             </Box>
-            <Logout className="logout-icon" sx={{ color: 'text.secondary' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Tooltip title="Change Password">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onSettingsClick) {
+                      onSettingsClick();
+                      onClose();
+                    }
+                  }}
+                  sx={{ color: 'text.secondary' }}
+                >
+                  <Settings fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Logout className="logout-icon" sx={{ color: 'text.secondary' }} />
+            </Box>
           </Paper>
         </Box>
       )}

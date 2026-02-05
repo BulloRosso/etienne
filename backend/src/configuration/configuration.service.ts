@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 
 interface ConfigurationDto {
@@ -29,8 +30,12 @@ export class ConfigurationService {
   private readonly envFilePath: string;
 
   constructor() {
-    // .env file is in the backend directory
-    this.envFilePath = join(__dirname, '..', '..', '.env');
+    // In Docker, .env is mounted at /app/backend/.env
+    // Outside Docker, it's relative to the compiled output directory
+    const dockerEnvPath = '/app/backend/.env';
+    const localEnvPath = join(__dirname, '..', '..', '.env');
+
+    this.envFilePath = existsSync(dockerEnvPath) ? dockerEnvPath : localEnvPath;
   }
 
   /**

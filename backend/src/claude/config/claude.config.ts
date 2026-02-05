@@ -8,7 +8,8 @@ export class ClaudeConfig {
 
   constructor() {
     this.container = process.env.CLAUDE_CONTAINER_NAME ?? 'claude-code';
-    this.hostRoot = process.env.WORKSPACE_HOST_ROOT ?? 'C:/Data/GitHub/claude-multitenant/workspace';
+    // Use WORKSPACE_ROOT for consistency (WORKSPACE_HOST_ROOT is kept for backwards compatibility)
+    this.hostRoot = process.env.WORKSPACE_ROOT ?? process.env.WORKSPACE_HOST_ROOT ?? 'C:/Data/GitHub/claude-multitenant/workspace';
     this.containerRoot = '/workspace';
     this.timeoutMs = Number(process.env.CLAUDE_TIMEOUT_MS ?? 600000);
     this.anthropicKey = process.env.ANTHROPIC_API_KEY ?? 'key' ;

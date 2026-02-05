@@ -93,8 +93,12 @@ RUN sed -i 's/\r$//' ./start.sh && chmod +x ./start.sh
 # Create workspace directory (mount point for projects)
 RUN mkdir -p /app/workspace
 
-# Declare workspace as a volume mount point
+# Create users directory (mount point for oauth-server users.json)
+RUN mkdir -p /users
+
+# Declare volume mount points
 VOLUME /app/workspace
+VOLUME /users
 
 # Set environment defaults
 ENV NODE_ENV=development
