@@ -34,6 +34,8 @@ WORKDIR /app
 COPY backend/package*.json ./backend/
 WORKDIR /app/backend
 RUN npm install
+# Install Claude Agent SDK (dynamically imported, not in package.json)
+RUN npm install @anthropic-ai/claude-agent-sdk
 
 COPY backend/src ./src/
 COPY backend/tsconfig.json ./
