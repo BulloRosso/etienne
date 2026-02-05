@@ -1,22 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import OpenAI from 'openai';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
 @Injectable()
 export class OpenAiService {
-  private client: OpenAI;
+  private client: OpenAI | null = null;
   private readonly workspaceDir = path.join(process.cwd(), '..', 'workspace');
+  private readonly logger = new Logger(OpenAiService.name);
+  private readonly isAvailable: boolean;
 
   constructor() {
-    this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey) {
+      this.client = new OpenAI({ apiKey });
+      this.isAvailable = true;
+      this.logger.log('OpenAI service initialized successfully');
+    } else {
+      this.isAvailable = false;
+      this.logger.warn('OPENAI_API_KEY not set. OpenAI features (embeddings, SPARQL translation, entity extraction) will not be available.');
+    }
+  }
+
+  /**
+   * Check if OpenAI service is available
+   */
+  public checkAvailability(): boolean {
+    return this.isAvailable;
+  }
+
+  /**
+   * Throws an error if OpenAI is not available
+   */
+  private ensureAvailable(): void {
+    if (!this.client) {
+      throw new Error('OpenAI service is not available. Please set OPENAI_API_KEY environment variable to enable this feature.');
+    }
   }
 
   async createEmbedding(text: string): Promise<number[]> {
+    this.ensureAvailable();
     try {
-      const response = await this.client.embeddings.create({
+      const response = await this.client!.embeddings.create({
         model: 'text-embedding-3-small',
         input: text
       });
@@ -28,6 +53,7 @@ export class OpenAiService {
   }
 
   async translateToSparql(query: string, project?: string): Promise<string> {
+    this.ensureAvailable();
     let schemaContext = '';
 
     // Load project-specific schema if project is provided
@@ -68,7 +94,7 @@ ${schemaContext}
 Convert the natural language query into a valid SPARQL query. Return ONLY the SPARQL query without any explanation or markdown formatting.`;
 
     try {
-      const response = await this.client.chat.completions.create({
+      const response = await this.client!.chat.completions.create({
         model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
@@ -89,8 +115,9 @@ Convert the natural language query into a valid SPARQL query. Return ONLY the SP
   }
 
   async expandSearchContext(query: string): Promise<string[]> {
+    this.ensureAvailable();
     try {
-      const response = await this.client.chat.completions.create({
+      const response = await this.client!.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           {
@@ -110,6 +137,7 @@ Convert the natural language query into a valid SPARQL query. Return ONLY the SP
   }
 
   async extractEntitiesFromMarkdown(project: string, content: string): Promise<any> {
+    this.ensureAvailable();
     try {
       // Load schema and extraction prompt from files
       const schemaPath = path.join(this.workspaceDir, project, 'knowledge-graph', 'entity-schema.ttl');
@@ -185,7 +213,7 @@ Convert the natural language query into a valid SPARQL query. Return ONLY the SP
       };
 
       // Use Responses API instead of Chat Completions
-      const response = await this.client.responses.create({
+      const response = await this.client!.responses.create({
         model: 'gpt-4.1-mini',
         instructions: instructions,
         input: content,

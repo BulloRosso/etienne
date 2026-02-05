@@ -34,7 +34,8 @@ interface ResearchEvent {
 export class DeepResearchService {
   private readonly logger = new Logger(DeepResearchService.name);
   private readonly workspaceRoot = process.env.WORKSPACE_ROOT || 'C:/Data/GitHub/claude-multitenant/workspace';
-  private readonly openaiClient: OpenAI;
+  private readonly openaiClient: OpenAI | null = null;
+  private readonly isAvailable: boolean;
   private eventSubjects = new Map<string, ReplaySubject<ResearchEvent>>();
   private activeSessions = new Map<string, ResearchSession>();
 
@@ -46,8 +47,27 @@ export class DeepResearchService {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       this.logger.warn('OPENAI_API_KEY environment variable is not set. Deep research will not be available.');
+      this.isAvailable = false;
+    } else {
+      this.openaiClient = new OpenAI({ apiKey });
+      this.isAvailable = true;
     }
-    this.openaiClient = new OpenAI({ apiKey });
+  }
+
+  /**
+   * Check if Deep Research service is available
+   */
+  public checkAvailability(): boolean {
+    return this.isAvailable;
+  }
+
+  /**
+   * Throws an error if OpenAI is not available
+   */
+  private ensureAvailable(): void {
+    if (!this.openaiClient) {
+      throw new Error('Deep Research service is not available. Please set OPENAI_API_KEY environment variable to enable this feature.');
+    }
   }
 
   async startResearch(
@@ -55,6 +75,7 @@ export class DeepResearchService {
     inputFile: string,
     outputFile?: string,
   ): Promise<{ sessionId: string; inputFile: string; outputFile: string }> {
+    this.ensureAvailable();
     this.logger.log(`Starting research for project: ${projectName}, input: ${inputFile}`);
 
     // Generate session ID and default output file if not provided

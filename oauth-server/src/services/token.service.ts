@@ -26,7 +26,7 @@ export class TokenService {
 
     return jwt.sign(payload, this.getSecret(), {
       expiresIn: this.getAccessExpiry(),
-    });
+    } as jwt.SignOptions);
   }
 
   public generateRefreshToken(user: User): string {
@@ -37,7 +37,7 @@ export class TokenService {
 
     return jwt.sign(payload, this.getSecret(), {
       expiresIn: this.getRefreshExpiry(),
-    });
+    } as jwt.SignOptions);
   }
 
   public verifyAccessToken(token: string): AccessTokenPayload | null {

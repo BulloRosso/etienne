@@ -1,0 +1,47 @@
+# Dependencies
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+
+# Git
+**/.git
+**/.gitignore
+
+# Build outputs
+**/dist
+**/build
+**/coverage
+
+# Logs
+**/*.log
+**/runtime.log
+
+# IDE
+**/.vscode
+**/.idea
+
+# Environment files (especially backend/.env)
+backend/.env
+**/.env.local
+**/.env.development
+
+# Docker
+docker/.dockerignore
+**/.docker
+
+# Documentation (not needed in image)
+**/docs
+**/*.md
+!docker/README.md
+
+# Test files
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+
+# Misc
+**/.DS_Store
+**/Thumbs.db
