@@ -667,6 +667,226 @@ workspace/<project>/knowledge-graph/
 - **Graph Queries**: Answer complex questions requiring multi-hop reasoning
 - **Custom Ontologies**: Define domain-specific entity types and relationships
 
+## Dynamic Python MCP Tools
+
+The Dynamic Python MCP Tools feature enables hot-reloadable Python tools that can be created by users or AI agents directly in project directories. These tools are automatically discovered and served through the existing MCP server at `localhost:6060/mcp` without requiring a server restart.
+
+### Overview
+
+This feature follows the same dynamic discovery pattern as the A2A tools: tools are generated per-request based on project context rather than being pre-registered at startup. This enables true hot-reload capability where changes are reflected immediately.
+
+### Directory Structure
+
+Python tools are placed in the `.etienne/tools/` directory within each project:
+
+```
+workspace/<project-name>/
+├── .etienne/
+│   └── tools/                    # Python MCP tools directory
+│       ├── calculator.py         # Example tool
+│       ├── hello_world.py        # Another tool
+│       ├── requirements.txt      # Shared dependencies (auto-installed)
+│       └── .packages/            # Auto-installed pip packages
+└── ...
+```
+
+### Python Tool Format
+
+Each Python tool is a self-contained file with metadata defined in the module docstring:
+
+```python
+#!/usr/bin/env python3
+"""
+MCP Tool: calculator
+Description: Performs basic arithmetic operations (add, subtract, multiply, divide)
+Input Schema:
+    operation:
+        type: string
+        enum: [add, subtract, multiply, divide]
+        description: The arithmetic operation to perform
+        required: true
+    a:
+        type: number
+        description: First operand
+        required: true
+    b:
+        type: number
+        description: Second operand
+        required: true
+"""
+
+import json
+import sys
+
+
+def execute(args: dict) -> dict:
+    """Execute the tool with the given arguments."""
+    operation = args.get("operation")
+    a = float(args.get("a", 0))
+    b = float(args.get("b", 0))
+
+    if operation == "add":
+        result = a + b
+    elif operation == "subtract":
+        result = a - b
+    elif operation == "multiply":
+        result = a * b
+    elif operation == "divide":
+        if b == 0:
+            return {"error": "Division by zero"}
+        result = a / b
+    else:
+        return {"error": f"Unknown operation: {operation}"}
+
+    return {"operation": operation, "a": a, "b": b, "result": result}
+
+
+if __name__ == "__main__":
+    # Read JSON input from stdin, execute, output JSON to stdout
+    input_data = json.loads(sys.stdin.read())
+    result = execute(input_data)
+    print(json.dumps(result))
+```
+
+### Tool Naming Convention
+
+Tools are automatically prefixed with `py_` to avoid conflicts with other MCP tools:
+- File: `calculator.py` → MCP Tool: `py_calculator`
+- File: `hello_world.py` → MCP Tool: `py_hello_world`
+
+### Docstring Metadata Format
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| `MCP Tool:` | Tool name (used with `py_` prefix) | Yes |
+| `Description:` | Human-readable description | No (defaults to "Python tool: {name}") |
+| `Input Schema:` | YAML-like parameter definitions | No (defaults to empty object) |
+
+**Input Schema Properties:**
+- `type`: string, number, integer, boolean, array, object
+- `description`: Parameter description
+- `enum`: Allowed values array
+- `default`: Default value
+- `required`: Set to `true` to make parameter required
+
+### Dependency Management
+
+Dependencies are managed via a project-level `requirements.txt` file:
+
+```
+workspace/<project-name>/.etienne/tools/
+├── requirements.txt    # pip requirements file
+└── .packages/          # Auto-installed packages
+```
+
+**Auto-Installation:**
+1. File watcher detects changes to `requirements.txt`
+2. Backend automatically runs: `pip install -r requirements.txt --target .etienne/tools/.packages`
+3. `PYTHONPATH` is set during tool execution to include `.packages` directory
+
+### Discovery & Execution Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1. TOOL CREATION                                               │
+│  Agent/user writes: .etienne/tools/mytool.py                    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  2. FILE DETECTION                                              │
+│  Chokidar watcher detects .py file → invalidates cache          │
+│  If requirements.txt changed → runs pip install                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  3. TOOL DISCOVERY (on MCP tools/list request)                  │
+│  - Glob .etienne/tools/*.py files                               │
+│  - Parse docstring metadata from each file                      │
+│  - Return tools with py_ prefix                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  4. TOOL EXECUTION (on MCP tools/call request)                  │
+│  - Spawn subprocess: python3 mytool.py                          │
+│  - Send args via stdin as JSON                                  │
+│  - Collect stdout as JSON result                                │
+│  - 30s timeout (configurable)                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Hot-Reload Behavior
+
+| Event | Action |
+|-------|--------|
+| `.py` file created | Cache invalidated, tool available on next `tools/list` |
+| `.py` file modified | Cache invalidated, changes reflected on next `tools/list` |
+| `.py` file deleted | Cache invalidated, tool removed from next `tools/list` |
+| `requirements.txt` changed | Auto pip install, then cache invalidated |
+
+### Environment Variables
+
+Tools receive these environment variables during execution:
+
+| Variable | Description |
+|----------|-------------|
+| `PROJECT_ROOT` | Absolute path to the project directory |
+| `PYTHONPATH` | Includes `.etienne/tools/.packages` for imports |
+
+### Example: Creating a Tool
+
+1. **Create the tool file:**
+   ```bash
+   # In workspace/pet-store/.etienne/tools/weather.py
+   ```
+
+2. **Write the tool code** with docstring metadata
+
+3. **Add dependencies** (optional):
+   ```bash
+   echo "requests>=2.28.0" >> .etienne/tools/requirements.txt
+   ```
+
+4. **Test via MCP:**
+   ```bash
+   curl -X POST http://localhost:6060/mcp \
+     -H "Content-Type: application/json" \
+     -H "X-Project-Name: pet-store" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+   ```
+
+5. **Call the tool:**
+   ```bash
+   curl -X POST http://localhost:6060/mcp \
+     -H "Content-Type: application/json" \
+     -H "X-Project-Name: pet-store" \
+     -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"py_weather","arguments":{"city":"Berlin"}}}'
+   ```
+
+### Security Considerations
+
+- Tools execute as subprocess on the backend host
+- 30-second default timeout prevents runaway processes
+- Tools can only access files within the project directory via `PROJECT_ROOT`
+- Consider network restrictions for production deployments
+
+### Agent Skill: create-mcp-tool
+
+A skill is available to help Claude Code create MCP tools correctly. The skill is pre-installed in the `onboarding` project and can be copied to any project.
+
+**Skill location**: `.claude/skills/create-mcp-tool/SKILL.md`
+
+The skill provides:
+- Complete Python tool template
+- Docstring metadata format reference
+- Dependency management instructions
+- Error handling patterns
+- Testing guidance
+
+To use the skill, ask Claude Code to "create an MCP tool" and it will follow the conventions defined in the skill.
+
 ## Context Management / Metadata Layer
 
 The Context Management system provides fine-grained control over which data sources Claude Code can access during task execution. By applying tags to files, vector documents, and knowledge graph entities, you can create named contexts that scope the agent's view to only relevant information.
@@ -826,6 +1046,9 @@ These features directly control or modify how Claude Code operates internally:
 
 * **MCP Servers** ([/requirements-docs/prd-mcp-servers.md](requirements-docs/prd-mcp-servers.md))
   Enables integration of Model Context Protocol (MCP) servers to extend Claude's capabilities with external tools and data sources. Each project can configure MCP servers in `.mcp.json` with settings for transport type (SSE/HTTP/STDOUT), authentication, and endpoints. MCP servers provide custom tools that become available to Claude during task execution.
+
+* **Dynamic Python MCP Tools** (Hot-Reloadable)
+  Enables users and agents to create Python-based MCP tools directly in project directories that are automatically discovered and served by the existing MCP server without restart. Tools placed in `.etienne/tools/*.py` are detected via file watcher, parsed for metadata, and exposed as `py_<toolname>` tools. Supports automatic pip dependency installation from `requirements.txt`. See [Dynamic Python MCP Tools](#dynamic-python-mcp-tools) section below for details.
 
 * **Interceptors** ([/requirements-docs/prd-interceptors.md](requirements-docs/prd-interceptors.md))
   Implements real-time tracking and tracing of Claude Code's behavior through hooks and events. All tool calls (PreToolUse/PostToolUse) and system events are captured, stored in-memory, and streamed to the frontend via SSE. This provides complete visibility into the agentic cycle for debugging, monitoring, and understanding Claude's decision-making process.

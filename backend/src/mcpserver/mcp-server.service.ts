@@ -32,6 +32,7 @@ import { ScrapbookService } from '../scrapbook/scrapbook.service';
 import { A2AClientService } from '../a2a-client/a2a-client.service';
 import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { InterceptorsService } from '../interceptors/interceptors.service';
+import { ProjectToolsService } from './project-tools/project-tools.service';
 
 /**
  * MCP Server Service
@@ -68,6 +69,7 @@ export class McpServerService implements OnModuleInit {
     private readonly a2aClientService: A2AClientService,
     private readonly a2aSettingsService: A2ASettingsService,
     private readonly interceptorsService: InterceptorsService,
+    private readonly projectToolsService: ProjectToolsService,
   ) {
     // Initialize the MCP SDK Server with tools and elicitation capabilities
     this.server = new Server(
@@ -244,6 +246,17 @@ export class McpServerService implements OnModuleInit {
         } catch (error) {
           this.logger.warn(`Failed to load dynamic A2A tools: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
+
+        // Add dynamic Python tools from project's .etienne/tools/ directory
+        try {
+          const projectTools = await this.projectToolsService.getTools(this.currentProjectRoot);
+          if (projectTools.length > 0) {
+            allTools.push(...projectTools);
+            this.logger.log(`Added ${projectTools.length} Python tools from project`);
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to load project Python tools: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
 
       return {
@@ -258,6 +271,11 @@ export class McpServerService implements OnModuleInit {
       // Validate tool name
       if (!name) {
         throw new Error('Invalid params: missing tool name');
+      }
+
+      // Check if this is a dynamic Python tool (starts with py_)
+      if (name.startsWith('py_')) {
+        return this.executeProjectTool(name, args || {});
       }
 
       // Check if this is a dynamic A2A tool (starts with a2a_ but not the static ones)
@@ -409,6 +427,60 @@ export class McpServerService implements OnModuleInit {
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`❌ Error executing dynamic A2A tool ${toolName}: ${err.message}`, err.stack);
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ error: true, tool: toolName, message: err.message }) }],
+        isError: true,
+      };
+    }
+  }
+
+  /**
+   * Execute a dynamic Python tool from the project's .etienne/tools/ directory
+   * Tools are named: py_<tool_name>
+   */
+  private async executeProjectTool(toolName: string, args: Record<string, any>) {
+    if (!this.currentProjectRoot) {
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ error: true, message: 'No project context available' }) }],
+        isError: true,
+      };
+    }
+
+    try {
+      this.logger.log(`🐍 Executing Python tool: ${toolName}`);
+
+      const result = await this.projectToolsService.executeTool(
+        toolName,
+        args,
+        this.currentProjectRoot,
+      );
+
+      if (result.success) {
+        this.logger.log(`✅ Python tool ${toolName} executed successfully in ${result.executionTimeMs}ms`);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result.result, null, 2) }],
+        };
+      } else {
+        this.logger.error(`❌ Python tool ${toolName} failed: ${result.error?.message}`);
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({
+              error: true,
+              tool: toolName,
+              errorType: result.error?.type,
+              message: result.error?.message,
+              stderr: result.error?.stderr,
+              executionTimeMs: result.executionTimeMs,
+            }, null, 2),
+          }],
+          isError: true,
+        };
+      }
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(`❌ Error executing Python tool ${toolName}: ${err.message}`, err.stack);
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({ error: true, tool: toolName, message: err.message }) }],

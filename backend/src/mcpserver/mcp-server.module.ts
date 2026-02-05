@@ -9,9 +9,10 @@ import { ScrapbookModule } from '../scrapbook/scrapbook.module';
 import { A2AClientModule } from '../a2a-client/a2a-client.module';
 import { A2ASettingsModule } from '../a2a-settings/a2a-settings.module';
 import { InterceptorsModule } from '../interceptors/interceptors.module';
+import { ProjectToolsModule } from './project-tools/project-tools.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule],
   controllers: [McpServerController],
   providers: [McpServerService, McpAuthGuard],
   exports: [McpServerService],
