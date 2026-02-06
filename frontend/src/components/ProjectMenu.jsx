@@ -43,7 +43,7 @@ import ChangePasswordDialog from './ChangePasswordDialog';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -73,13 +73,13 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     fetchProjects();
   }, []);
 
-  // Open About dialog with Configuration tab when configuration is required
+  // Open About dialog with Configuration tab when configuration is required (admin only)
   useEffect(() => {
-    if (showConfigurationRequired) {
+    if (showConfigurationRequired && hasRole('admin')) {
       setAboutOpen(true);
       setCurrentTab(3); // Configuration tab index
     }
-  }, [showConfigurationRequired]);
+  }, [showConfigurationRequired, hasRole]);
 
   useEffect(() => {
     if (currentProject) {
@@ -601,7 +601,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <Tab label="Intention" />
           <Tab label="How it works" />
           <Tab label="How to create your own solution" />
-          <Tab label="Configuration" />
+          {hasRole('admin') && <Tab label="Configuration" />}
         </Tabs>
         <DialogContent>
           {currentTab === 0 && (
@@ -666,7 +666,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             </Box>
           )}
 
-          {currentTab === 3 && (
+          {currentTab === 3 && hasRole('admin') && (
             <Box sx={{ minHeight: '400px' }}>
               <Configuration onSave={() => {
                 if (onConfigurationSaved) {

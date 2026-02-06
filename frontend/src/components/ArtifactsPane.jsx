@@ -14,6 +14,7 @@ import CheckpointsPane from './CheckpointsPane';
 import GuardrailsSettings from './GuardrailsSettings';
 import HealthToast from './HealthToast';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -28,6 +29,8 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab }) {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const [tabValue, setTabValue] = useState(0);
   const [filesystemDrawerOpen, setFilesystemDrawerOpen] = useState(false);
   const [filesystemTabValue, setFilesystemTabValue] = useState(0);
@@ -113,9 +116,9 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
           <Tab label="Artifacts" />
           {projectExists && <Tab label="Role" />}
-          {projectExists && <Tab label="Permissions" />}
-          {projectExists && <Tab label="Connectivity" />}
-          {projectExists && <Tab label="Observability" />}
+          {projectExists && isAdmin && <Tab label="Permissions" />}
+          {projectExists && isAdmin && <Tab label="Connectivity" />}
+          {projectExists && isAdmin && <Tab label="Observability" />}
         </Tabs>
         {guardrailsEnabled && projectExists && (
           <Tooltip title="Input Guardrails Active">
@@ -162,15 +165,19 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           <TabPanel value={tabValue} index={1}>
             <Strategy projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
           </TabPanel>
-          <TabPanel value={tabValue} index={2}>
-            <PermissionList projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-          </TabPanel>
-          <TabPanel value={tabValue} index={3}>
-            <ConnectivitySettings projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-          </TabPanel>
-          <TabPanel value={tabValue} index={4}>
-            <Interceptors projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-          </TabPanel>
+          {isAdmin && (
+            <>
+              <TabPanel value={tabValue} index={2}>
+                <PermissionList projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+              </TabPanel>
+              <TabPanel value={tabValue} index={3}>
+                <ConnectivitySettings projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+              </TabPanel>
+              <TabPanel value={tabValue} index={4}>
+                <Interceptors projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+              </TabPanel>
+            </>
+          )}
         </>
       )}
 

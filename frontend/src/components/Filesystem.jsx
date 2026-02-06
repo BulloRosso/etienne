@@ -30,8 +30,11 @@ import BackgroundInfo from './BackgroundInfo';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 import TagManager from './TagManager';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function Filesystem({ projectName, showBackgroundInfo }) {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -604,16 +607,19 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={showSystemFiles}
-              onChange={(e) => setShowSystemFiles(e.target.checked)}
-            />
-          }
-          label="Show System Files"
-          sx={{ ml: 2 }}
-        />
+        {isAdmin && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showSystemFiles}
+                onChange={(e) => setShowSystemFiles(e.target.checked)}
+              />
+            }
+            label="Show System Files"
+            sx={{ ml: 2 }}
+          />
+        )}
+        {!isAdmin && <Box />}
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Upload">
             <IconButton

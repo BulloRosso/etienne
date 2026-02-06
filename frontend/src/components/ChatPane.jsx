@@ -12,8 +12,11 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, planApprovalState = {}, onPlanApprove, onPlanReject }) {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
@@ -217,14 +220,16 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             </IconButton>
           )}
 
-          {/* Settings Button */}
-          <IconButton
-            onClick={() => setSettingsOpen(true)}
-            title="Settings"
-            sx={{ color: '#333' }}
-          >
-            <GiSettingsKnobs size={24} />
-          </IconButton>
+          {/* Settings Button - Admin only */}
+          {isAdmin && (
+            <IconButton
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+              sx={{ color: '#333' }}
+            >
+              <GiSettingsKnobs size={24} />
+            </IconButton>
+          )}
         </Box>
       </Box>
 
