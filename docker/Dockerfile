@@ -3,12 +3,13 @@
 
 FROM node:22-bookworm
 
-# Install Python 3.12 and pip
+# Install Python 3.12, pip, and curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
     build-essential \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -83,6 +84,28 @@ RUN pip3 install --no-cache-dir --break-system-packages flask
 COPY webserver/app.py ./webserver/
 
 # ============================================
+# Build telegram (optional service)
+# ============================================
+WORKDIR /app
+COPY telegram/package*.json ./telegram/
+WORKDIR /app/telegram
+RUN npm install
+
+COPY telegram/src ./src/
+COPY telegram/tsconfig.json ./
+
+# ============================================
+# Build ms-teams (optional service)
+# ============================================
+WORKDIR /app
+COPY ms-teams/package*.json ./ms-teams/
+WORKDIR /app/ms-teams
+RUN npm install
+
+COPY ms-teams/src ./src/
+COPY ms-teams/tsconfig.json ./
+
+# ============================================
 # Setup startup script
 # ============================================
 WORKDIR /app
@@ -103,6 +126,9 @@ VOLUME /users
 # Set environment defaults
 ENV NODE_ENV=development
 ENV WORKSPACE_ROOT=/app/workspace
+# Optional: comma-separated list of additional services to start
+# Valid values: vector-store, rdf-store, telegram, ms-teams, webserver
+ENV ADDITIONAL_SERVICES=""
 
 # Expose port 80 (mapped from frontend's 5000)
 EXPOSE 80

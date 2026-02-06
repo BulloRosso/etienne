@@ -51,6 +51,44 @@ fi
 echo "[backend] Started successfully (PID: $BACKEND_PID)"
 
 # ============================================
+# Start Additional Services via Process Manager
+# ============================================
+if [ -n "$ADDITIONAL_SERVICES" ]; then
+    echo "[additional-services] Starting additional services: $ADDITIONAL_SERVICES"
+
+    # Wait for backend API to be fully ready
+    echo "[additional-services] Waiting for backend API to be ready..."
+    MAX_RETRIES=30
+    RETRY_COUNT=0
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if curl -s http://localhost:6060/api/process-manager > /dev/null 2>&1; then
+            echo "[additional-services] Backend API is ready"
+            break
+        fi
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        sleep 1
+    done
+
+    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+        echo "[additional-services] WARNING: Backend API not responding, skipping additional services"
+    else
+        # Parse comma-separated list and start each service
+        IFS=',' read -ra SERVICES <<< "$ADDITIONAL_SERVICES"
+        for SERVICE in "${SERVICES[@]}"; do
+            # Trim whitespace
+            SERVICE=$(echo "$SERVICE" | xargs)
+            if [ -n "$SERVICE" ]; then
+                echo "[additional-services] Starting service: $SERVICE"
+                RESPONSE=$(curl -s -X POST "http://localhost:6060/api/process-manager/$SERVICE" \
+                    -H "Content-Type: application/json" \
+                    -d '{"action":"start"}' 2>&1)
+                echo "[additional-services] $SERVICE: $RESPONSE"
+            fi
+        done
+    fi
+fi
+
+# ============================================
 # Start Frontend (port 5000 -> external 80)
 # ============================================
 echo "[3/3] Starting Frontend on port 80..."

@@ -12,10 +12,15 @@ The Docker image includes all 6 project folders but only starts 3 services:
 | backend | 6060 | NestJS API backend |
 | frontend | 80 | React/Vite development server |
 
-**Built but not started:**
-- rdf-store (port 7000) - RDF triple store
-- vector-store (port 7100) - ChromaDB vector database
-- webserver (port 4000) - Flask API server
+**Built but not started by default (use ADDITIONAL_SERVICES to enable):**
+
+| Service | Port | Description |
+|---------|------|-------------|
+| rdf-store | 7000 | RDF triple store for knowledge graphs |
+| vector-store | 7100 | ChromaDB vector database for embeddings |
+| webserver | 4000 | Flask API server for custom endpoints |
+| telegram | - | Telegram bot for remote sessions |
+| ms-teams | 3978 | Microsoft Teams bot for remote sessions |
 
 ## Quick Start
 
@@ -260,6 +265,42 @@ mkdir C:\projects\etienne\workspace
 
 Environment variables are configured via the mounted `.env` file (`backend/.env`). You can also override them using `-e` flags.
 
+### Docker Environment Variables
+
+These variables are passed directly to the container via `-e` flags:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ADDITIONAL_SERVICES` | `` | Comma-separated list of additional services to start on boot |
+
+#### ADDITIONAL_SERVICES
+
+Start optional services automatically when the container boots. The services are started via the process-manager API after the backend is ready.
+
+**Valid values:** `vector-store`, `rdf-store`, `telegram`, `ms-teams`, `webserver`
+
+**Example - Start vector store and knowledge graph:**
+```bash
+docker run -p 80:80 \
+  -v /path/to/workspace:/app/workspace \
+  -v /path/to/backend/.env:/app/backend/.env:ro \
+  -v /path/to/oauth-server/config:/users \
+  -e ADDITIONAL_SERVICES="vector-store,rdf-store" \
+  etienne
+```
+
+**Example - Start all optional services:**
+```bash
+docker run -p 80:80 \
+  -v /path/to/workspace:/app/workspace \
+  -v /path/to/backend/.env:/app/backend/.env:ro \
+  -v /path/to/oauth-server/config:/users \
+  -e ADDITIONAL_SERVICES="vector-store,rdf-store,webserver,telegram,ms-teams" \
+  etienne
+```
+
+**Note:** Services like `telegram` and `ms-teams` require additional environment variables (bot tokens, etc.) configured in the backend `.env` file.
+
 ### Backend .env File Contents
 
 The `.env` file should contain the following variables:
@@ -406,6 +447,26 @@ On Linux, you may need to set proper permissions:
 ```bash
 sudo chown -R 1000:1000 /path/to/workspace
 ```
+
+### Additional services fail to start
+
+If services specified in `ADDITIONAL_SERVICES` don't start:
+
+1. Check that the backend API is running:
+   ```bash
+   docker logs <container_id> | grep "additional-services"
+   ```
+
+2. Verify the service name is valid (case-sensitive):
+   - `vector-store` (not `vectorstore` or `VectorStore`)
+   - `rdf-store` (not `rdfstore` or `knowledge-graph`)
+   - `webserver`
+   - `telegram`
+   - `ms-teams`
+
+3. For telegram/ms-teams, ensure required bot tokens are in the `.env` file.
+
+4. You can also start services manually after boot via the UI (Process Manager section).
 
 ## Development
 

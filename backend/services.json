@@ -31,6 +31,22 @@
       "directory": "webserver",
       "startCommand": "python app.py",
       "port": 4000
+    },
+    {
+      "name": "telegram",
+      "displayName": "Telegram Bot",
+      "description": "Telegram provider for Etienne remote sessions",
+      "directory": "telegram",
+      "startCommand": "npm run dev",
+      "port": null
+    },
+    {
+      "name": "ms-teams",
+      "displayName": "MS Teams Bot",
+      "description": "Microsoft Teams provider for Etienne remote sessions",
+      "directory": "ms-teams",
+      "startCommand": "npm run dev",
+      "port": 3978
     }
   ]
 }
