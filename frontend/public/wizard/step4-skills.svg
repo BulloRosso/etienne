@@ -1,0 +1,6 @@
+<svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="600" fill="#F3E5F5"/>
+  <text x="300" y="280" font-family="Arial, sans-serif" font-size="48" fill="#7B1FA2" text-anchor="middle">Step 4</text>
+  <text x="300" y="340" font-family="Arial, sans-serif" font-size="24" fill="#666" text-anchor="middle">Skills</text>
+  <text x="300" y="400" font-family="Arial, sans-serif" font-size="80" text-anchor="middle">⚡</text>
+</svg>

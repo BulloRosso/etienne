@@ -1,0 +1,109 @@
+import React from 'react';
+import {
+  Box,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Checkbox,
+  Typography,
+  Chip
+} from '@mui/material';
+import { RiRobot2Line } from 'react-icons/ri';
+
+export default function A2AAgentsSelector({
+  registryAgents = [],
+  selectedAgents = [],
+  onSelectionChange
+}) {
+  const isSelected = (agentUrl) =>
+    selectedAgents.some(a => a.url === agentUrl);
+
+  const toggleAgent = (agent) => {
+    if (isSelected(agent.url)) {
+      onSelectionChange(selectedAgents.filter(a => a.url !== agent.url));
+    } else {
+      onSelectionChange([...selectedAgents, agent]);
+    }
+  };
+
+  if (registryAgents.length === 0) {
+    return (
+      <Box>
+        <Typography variant="body2" color="text.secondary">
+          No external agents available in the registry.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Select external A2A agents to be available in this project.
+      </Typography>
+
+      <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1 }}>
+        {registryAgents.map(agent => (
+          <ListItem
+            key={agent.url}
+            onClick={() => toggleAgent(agent)}
+            sx={{
+              cursor: 'pointer',
+              '&:hover': { bgcolor: '#e0e0e0' },
+              borderRadius: 1,
+              alignItems: 'flex-start'
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 36, mt: '-3px' }}>
+              <Checkbox
+                edge="start"
+                checked={isSelected(agent.url)}
+                tabIndex={-1}
+                disableRipple
+              />
+            </ListItemIcon>
+            <ListItemIcon sx={{ minWidth: 36, mt: '5px' }}>
+              <RiRobot2Line size={24} />
+            </ListItemIcon>
+            <ListItemText
+              primary={agent.name}
+              secondary={
+                <Box>
+                  <Typography variant="body2" color="text.secondary" component="span">
+                    {agent.description}
+                  </Typography>
+                  {agent.skills && agent.skills.length > 0 && (
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                      {agent.skills.slice(0, 3).map((skill, idx) => (
+                        <Chip
+                          key={idx}
+                          size="small"
+                          label={skill.name || skill}
+                          sx={{ fontSize: '0.65rem', height: 20 }}
+                        />
+                      ))}
+                      {agent.skills.length > 3 && (
+                        <Chip
+                          size="small"
+                          label={`+${agent.skills.length - 3} more`}
+                          sx={{ fontSize: '0.65rem', height: 20 }}
+                        />
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              }
+            />
+          </ListItem>
+        ))}
+      </List>
+
+      {selectedAgents.length > 0 && (
+        <Typography variant="body2" sx={{ mt: 2 }}>
+          {selectedAgents.length} agent{selectedAgents.length > 1 ? 's' : ''} selected
+        </Typography>
+      )}
+    </Box>
+  );
+}

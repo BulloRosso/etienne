@@ -130,6 +130,16 @@ ENV WORKSPACE_ROOT=/app/workspace
 # Valid values: vector-store, rdf-store, telegram, ms-teams, webserver
 ENV ADDITIONAL_SERVICES=""
 
+# Registry paths (override with mounted files for custom configurations)
+# Skill Repository: directory containing standard and optional skills
+ENV SKILL_REPOSITORY=""
+# MCP Server Registry: JSON file with pre-approved MCP servers
+ENV MCP_REGISTRY=""
+# A2A Agent Registry: JSON file with pre-approved A2A agents
+ENV A2A_REGISTRY=""
+# Agent Role Registry: JSON file with predefined agent roles/system prompts
+ENV AGENT_ROLE_REGISTRY=""
+
 # Expose port 80 (mapped from frontend's 5000)
 EXPOSE 80
 

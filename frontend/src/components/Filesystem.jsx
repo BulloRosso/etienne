@@ -35,6 +35,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 export default function Filesystem({ projectName, showBackgroundInfo }) {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
+  const isGuest = hasRole('guest');
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -250,6 +251,8 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   // Handle new folder
   const handleNewFolderClick = () => {
+    // Guests cannot create folders
+    if (isGuest) return;
     setNewFolderDialog({ open: true, folderName: '' });
   };
 
@@ -278,6 +281,8 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   // Handle file upload
   const handleUploadClick = (node) => {
+    // Guests cannot upload files
+    if (isGuest) return;
     // Store the target folder in a ref or state for the upload handler
     fileInputRef.current.targetNode = node;
     fileInputRef.current.click();
@@ -285,6 +290,8 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   };
 
   const handleFileUpload = async (event) => {
+    // Guests cannot upload files
+    if (isGuest) return;
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -315,6 +322,12 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   // Handle drag and drop for OS files
   const handleDragOver = (event) => {
+    // Guests cannot drag and drop
+    if (isGuest) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
   };
@@ -322,6 +335,9 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const handleDropExternal = async (event, targetNode) => {
     event.preventDefault();
     event.stopPropagation();
+
+    // Guests cannot upload files via drag and drop
+    if (isGuest) return;
 
     const files = event.dataTransfer.files;
     if (!files || files.length === 0) return;
@@ -352,6 +368,11 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   // Handle drag and drop for moving files between folders
   const handleDragStart = (event, node) => {
+    // Guests cannot drag files
+    if (isGuest) {
+      event.preventDefault();
+      return;
+    }
     event.stopPropagation();
     setDraggedNode(node);
     event.dataTransfer.effectAllowed = 'move';
@@ -621,22 +642,29 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         )}
         {!isAdmin && <Box />}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Upload">
-            <IconButton
-              onClick={() => {
-                fileInputRef.current.targetNode = null;
-                fileInputRef.current.click();
-              }}
-            >
-              <PiUploadLight />
-            </IconButton>
+          <Tooltip title={isGuest ? "Upload (Not available for guests)" : "Upload"}>
+            <span>
+              <IconButton
+                onClick={() => {
+                  if (isGuest) return;
+                  fileInputRef.current.targetNode = null;
+                  fileInputRef.current.click();
+                }}
+                disabled={isGuest}
+              >
+                <PiUploadLight />
+              </IconButton>
+            </span>
           </Tooltip>
-          <Tooltip title="New Folder">
-            <IconButton
-              onClick={handleNewFolderClick}
-            >
-              <MdOutlineCreateNewFolder />
-            </IconButton>
+          <Tooltip title={isGuest ? "New Folder (Not available for guests)" : "New Folder"}>
+            <span>
+              <IconButton
+                onClick={handleNewFolderClick}
+                disabled={isGuest}
+              >
+                <MdOutlineCreateNewFolder />
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="Refresh">
             <IconButton
@@ -674,20 +702,24 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             Open for preview
           </MenuItem>
         )}
-        <MenuItem onClick={handleRenameClick}>
-          <Edit fontSize="small" sx={{ mr: 1 }} />
-          Rename
-        </MenuItem>
-        {contextMenu?.node?.type === 'folder' && (
+        {!isGuest && (
+          <MenuItem onClick={handleRenameClick}>
+            <Edit fontSize="small" sx={{ mr: 1 }} />
+            Rename
+          </MenuItem>
+        )}
+        {contextMenu?.node?.type === 'folder' && !isGuest && (
           <MenuItem onClick={() => handleUploadClick(contextMenu.node)}>
             <Upload fontSize="small" sx={{ mr: 1 }} />
             Upload to folder
           </MenuItem>
         )}
-        <MenuItem onClick={handleDeleteClick}>
-          <Delete fontSize="small" sx={{ mr: 1 }} />
-          Delete
-        </MenuItem>
+        {!isGuest && (
+          <MenuItem onClick={handleDeleteClick}>
+            <Delete fontSize="small" sx={{ mr: 1 }} />
+            Delete
+          </MenuItem>
+        )}
         <MenuItem onClick={handleManageTagsClick}>
           <LocalOffer fontSize="small" sx={{ mr: 1 }} />
           Manage Tags

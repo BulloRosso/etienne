@@ -108,6 +108,25 @@ export class A2ASettingsController {
   }
 
   /**
+   * Get agents from the local registry file
+   */
+  @Get('registry/local')
+  async getLocalRegistry() {
+    try {
+      const agents = await this.service.loadLocalRegistry();
+      const isAvailable = await this.service.isLocalRegistryAvailable();
+      return {
+        success: true,
+        available: isAvailable,
+        agents,
+      };
+    } catch (error) {
+      this.logger.error('Failed to load local A2A registry:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch agents from a registry
    */
   @Get('registry/fetch')

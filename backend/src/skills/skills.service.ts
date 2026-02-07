@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { RepositorySkill, ProvisionResult } from './dto/repository-skills.dto';
 
 export interface Skill {
   name: string;
@@ -16,6 +17,37 @@ export interface SkillWithProject {
 @Injectable()
 export class SkillsService {
   private readonly workspaceDir = path.resolve(process.cwd(), '../workspace');
+
+  /**
+   * Get the skill repository path with fallback to default
+   */
+  private getSkillRepositoryPath(): string {
+    const envPath = process.env.SKILL_REPOSITORY;
+    if (envPath) {
+      try {
+        // Check if the path exists synchronously is not ideal, but we need it for initialization
+        // We'll validate asynchronously in the methods that use it
+        return envPath;
+      } catch {
+        // Fallback to default
+      }
+    }
+    return path.resolve(process.cwd(), '..', 'skill-repository');
+  }
+
+  /**
+   * Get standard skills directory path
+   */
+  private getStandardSkillsDir(): string {
+    return path.join(this.getSkillRepositoryPath(), 'standard');
+  }
+
+  /**
+   * Get optional skills directory path
+   */
+  private getOptionalSkillsDir(): string {
+    return path.join(this.getSkillRepositoryPath(), 'standard', 'optional');
+  }
 
   /**
    * Get the skills directory path for a project
@@ -234,6 +266,205 @@ export class SkillsService {
       } else {
         await fs.copyFile(sourcePath, targetPath);
       }
+    }
+  }
+
+  /**
+   * Check if the skill repository is available
+   */
+  async isRepositoryAvailable(): Promise<boolean> {
+    try {
+      await fs.access(this.getSkillRepositoryPath());
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * List skills from the skill repository
+   * @param includeOptional - If true, also includes skills from the optional folder
+   */
+  async listRepositorySkills(includeOptional: boolean = false): Promise<RepositorySkill[]> {
+    const skills: RepositorySkill[] = [];
+    const standardDir = this.getStandardSkillsDir();
+    const optionalDir = this.getOptionalSkillsDir();
+
+    // List standard skills (excluding the 'optional' subdirectory)
+    try {
+      const entries = await fs.readdir(standardDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== 'optional') {
+          const description = await this.getSkillDescription(
+            path.join(standardDir, entry.name),
+          );
+          skills.push({
+            name: entry.name,
+            source: 'standard',
+            description,
+          });
+        }
+      }
+    } catch (error) {
+      // Standard directory doesn't exist or is not accessible
+    }
+
+    // List optional skills if requested
+    if (includeOptional) {
+      try {
+        const entries = await fs.readdir(optionalDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const description = await this.getSkillDescription(
+              path.join(optionalDir, entry.name),
+            );
+            skills.push({
+              name: entry.name,
+              source: 'optional',
+              description,
+            });
+          }
+        }
+      } catch (error) {
+        // Optional directory doesn't exist or is not accessible
+      }
+    }
+
+    return skills.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Extract description from a skill's SKILL.md file (first paragraph or first 200 chars)
+   */
+  private async getSkillDescription(skillDir: string): Promise<string | undefined> {
+    try {
+      const skillPath = path.join(skillDir, 'SKILL.md');
+      const content = await fs.readFile(skillPath, 'utf-8');
+
+      // Skip the title line if it starts with #
+      const lines = content.split('\n');
+      let startIndex = 0;
+      if (lines[0]?.startsWith('#')) {
+        startIndex = 1;
+      }
+
+      // Find the first non-empty paragraph
+      let description = '';
+      for (let i = startIndex; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line && !line.startsWith('#')) {
+          description = line;
+          break;
+        }
+      }
+
+      // Truncate if too long
+      if (description.length > 200) {
+        description = description.substring(0, 197) + '...';
+      }
+
+      return description || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Provision all standard skills to a project
+   */
+  async provisionStandardSkills(project: string): Promise<ProvisionResult[]> {
+    const standardDir = this.getStandardSkillsDir();
+    const results: ProvisionResult[] = [];
+
+    try {
+      const entries = await fs.readdir(standardDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        // Skip the 'optional' subdirectory
+        if (entry.isDirectory() && entry.name !== 'optional') {
+          const result = await this.provisionSingleSkill(
+            project,
+            entry.name,
+            path.join(standardDir, entry.name),
+          );
+          results.push(result);
+        }
+      }
+    } catch (error: any) {
+      // If standard directory doesn't exist, return empty results
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Provision specific skills from the repository to a project
+   */
+  async provisionSkillsFromRepository(
+    project: string,
+    skillNames: string[],
+    source: 'standard' | 'optional',
+  ): Promise<ProvisionResult[]> {
+    const sourceDir = source === 'standard'
+      ? this.getStandardSkillsDir()
+      : this.getOptionalSkillsDir();
+
+    const results: ProvisionResult[] = [];
+
+    for (const skillName of skillNames) {
+      const skillSourceDir = path.join(sourceDir, skillName);
+      const result = await this.provisionSingleSkill(project, skillName, skillSourceDir);
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  /**
+   * Provision a single skill from a source directory to a project
+   */
+  private async provisionSingleSkill(
+    project: string,
+    skillName: string,
+    sourceDir: string,
+  ): Promise<ProvisionResult> {
+    try {
+      // Check if source skill exists
+      await fs.access(sourceDir);
+
+      // Ensure project skills directory exists
+      await this.ensureSkillsDir(project);
+
+      const targetDir = path.join(this.getSkillsDir(project), skillName);
+
+      // Check if skill already exists in project
+      try {
+        await fs.access(targetDir);
+        return {
+          skillName,
+          success: false,
+          error: `Skill '${skillName}' already exists in project`,
+        };
+      } catch {
+        // Target doesn't exist, which is what we want
+      }
+
+      // Copy the skill directory
+      await this.copyDirectory(sourceDir, targetDir);
+
+      return {
+        skillName,
+        success: true,
+      };
+    } catch (error: any) {
+      return {
+        skillName,
+        success: false,
+        error: error.message || `Failed to provision skill '${skillName}'`,
+      };
     }
   }
 }

@@ -9,6 +9,51 @@ const DEFAULT_REGISTRY_URL = 'https://www.a2aregistry.org/registry.json';
 @Injectable()
 export class A2ASettingsService {
   private readonly logger = new Logger(A2ASettingsService.name);
+  private readonly localRegistryPath: string;
+
+  constructor() {
+    this.localRegistryPath =
+      process.env.A2A_REGISTRY ||
+      path.resolve(process.cwd(), 'a2a-registry.json');
+  }
+
+  /**
+   * Check if the local A2A registry is available
+   */
+  async isLocalRegistryAvailable(): Promise<boolean> {
+    try {
+      await fs.access(this.localRegistryPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Load agents from the local registry file
+   */
+  async loadLocalRegistry(): Promise<AgentCardDto[]> {
+    try {
+      const content = await fs.readFile(this.localRegistryPath, 'utf-8');
+      const data = JSON.parse(content);
+
+      // Support both array format and object with 'agents' property
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data.agents && Array.isArray(data.agents)) {
+        return data.agents;
+      }
+
+      return [];
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        // Registry file doesn't exist, return empty array
+        return [];
+      }
+      this.logger.error(`Failed to load local A2A registry: ${error.message}`);
+      throw new Error(`Failed to load local A2A registry: ${error.message}`);
+    }
+  }
 
   /**
    * Get the settings file path for a project

@@ -1,0 +1,81 @@
+import React, { useState, useEffect } from 'react';
+import { Box, Tooltip } from '@mui/material';
+import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext.jsx';
+import SkillsSettings from './SkillsSettings';
+
+export default function SkillIndicator({ projectName }) {
+  const { hasRole } = useAuth();
+  const [skills, setSkills] = useState([]);
+  const [skillsModalOpen, setSkillsModalOpen] = useState(false);
+
+  // Hide for admin role
+  const isAdmin = hasRole('admin');
+
+  useEffect(() => {
+    if (projectName && !isAdmin) {
+      loadSkills();
+    }
+  }, [projectName, isAdmin]);
+
+  const loadSkills = async () => {
+    try {
+      const response = await axios.get(`/api/skills/${encodeURIComponent(projectName)}`);
+      setSkills(response.data.skills || []);
+    } catch (error) {
+      console.error('Failed to load skills:', error);
+      setSkills([]);
+    }
+  };
+
+  // Don't render for admin role
+  if (isAdmin) {
+    return null;
+  }
+
+  const skillCount = skills.length;
+
+  // Don't render if no skills
+  if (skillCount === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <Tooltip title="Skills Active">
+        <Box
+          onClick={() => setSkillsModalOpen(true)}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            px: 1,
+            py: 0.5,
+            bgcolor: '#ff9800',
+            color: '#ffffff',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            mr: 1,
+            '&:hover': {
+              bgcolor: '#f57c00'
+            }
+          }}
+        >
+          <span>{skillCount}</span>
+          <span>skills active</span>
+        </Box>
+      </Tooltip>
+
+      <SkillsSettings
+        open={skillsModalOpen}
+        onClose={() => {
+          setSkillsModalOpen(false);
+          loadSkills(); // Refresh skills when modal closes
+        }}
+        project={projectName}
+      />
+    </>
+  );
+}

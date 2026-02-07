@@ -38,9 +38,12 @@ import { TelemetryModule } from './observability/telemetry.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { ProcessManagerModule } from './process-manager/process-manager.module';
 import { RemoteSessionsModule } from './remote-sessions/remote-sessions.module';
+import { McpRegistryModule } from './mcp-registry/mcp-registry.module';
+import { AgentRoleRegistryModule } from './agent-role-registry/agent-role-registry.module';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
-  imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule],
+  imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule],
   controllers: [ClaudeController, SdkPermissionController],
   providers: [
     ClaudeService,

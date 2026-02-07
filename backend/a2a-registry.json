@@ -1,0 +1,140 @@
+{
+  "agents": [
+    {
+      "name": "HubSpot Agent",
+      "description": "Specialized A2A agent for HubSpot CRM operations. Manages contacts, companies, deals, and marketing automation workflows. Can sync data, generate reports, and execute bulk operations via the HubSpot API.",
+      "url": "https://hubspot-agent.example.com",
+      "version": "1.0.0",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "stateTransitionHistory": false
+      },
+      "skills": [
+        {
+          "id": "contact-management",
+          "name": "Contact Management",
+          "description": "Create, update, search, and delete contacts in HubSpot CRM",
+          "inputModes": ["text"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "deal-tracking",
+          "name": "Deal Tracking",
+          "description": "Manage sales pipeline, track deal stages, and update deal properties",
+          "inputModes": ["text"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "marketing-automation",
+          "name": "Marketing Automation",
+          "description": "Create and manage email sequences, workflows, and marketing campaigns",
+          "inputModes": ["text"],
+          "outputModes": ["text"]
+        },
+        {
+          "id": "reporting",
+          "name": "CRM Reporting",
+          "description": "Generate sales and marketing reports with custom metrics and visualizations",
+          "inputModes": ["text"],
+          "outputModes": ["text", "data", "file"]
+        }
+      ],
+      "defaultInputModes": ["text"],
+      "defaultOutputModes": ["text", "data"]
+    },
+    {
+      "name": "TaxExpert Agent",
+      "description": "Expert A2A agent for tax-related queries and calculations. Provides guidance on income tax, VAT, corporate tax, and international tax matters. Supports tax planning, compliance checks, and document preparation.",
+      "url": "https://taxexpert-agent.example.com",
+      "version": "1.0.0",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": false,
+        "stateTransitionHistory": true
+      },
+      "skills": [
+        {
+          "id": "tax-calculation",
+          "name": "Tax Calculation",
+          "description": "Calculate estimated tax liabilities for individuals and businesses",
+          "inputModes": ["text", "data"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "deduction-finder",
+          "name": "Deduction Finder",
+          "description": "Identify applicable tax deductions and credits based on financial data",
+          "inputModes": ["text", "data"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "compliance-check",
+          "name": "Compliance Check",
+          "description": "Review tax filings for compliance issues and missing requirements",
+          "inputModes": ["text", "file"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "tax-planning",
+          "name": "Tax Planning",
+          "description": "Provide strategic tax planning recommendations and optimization strategies",
+          "inputModes": ["text"],
+          "outputModes": ["text"]
+        }
+      ],
+      "defaultInputModes": ["text"],
+      "defaultOutputModes": ["text"]
+    },
+    {
+      "name": "RentACar Agent",
+      "description": "Specialized A2A agent for car rental operations. Handles vehicle reservations, fleet management, pricing, and customer service. Integrates with rental management systems for real-time availability and booking.",
+      "url": "https://rentacar-agent.example.com",
+      "version": "1.0.0",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "stateTransitionHistory": true
+      },
+      "skills": [
+        {
+          "id": "vehicle-search",
+          "name": "Vehicle Search",
+          "description": "Search for available vehicles by location, dates, and vehicle category",
+          "inputModes": ["text"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "booking-management",
+          "name": "Booking Management",
+          "description": "Create, modify, and cancel vehicle reservations",
+          "inputModes": ["text"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "pricing-quote",
+          "name": "Pricing Quote",
+          "description": "Generate rental quotes with options for insurance, extras, and promotions",
+          "inputModes": ["text"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "fleet-status",
+          "name": "Fleet Status",
+          "description": "Check vehicle availability, maintenance schedules, and utilization metrics",
+          "inputModes": ["text"],
+          "outputModes": ["text", "data"]
+        },
+        {
+          "id": "customer-support",
+          "name": "Customer Support",
+          "description": "Handle customer inquiries, complaints, and special requests",
+          "inputModes": ["text"],
+          "outputModes": ["text"]
+        }
+      ],
+      "defaultInputModes": ["text"],
+      "defaultOutputModes": ["text", "data"]
+    }
+  ]
+}

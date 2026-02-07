@@ -13,6 +13,9 @@ import MemoryPanel from './MemoryPanel';
 import CheckpointsPane from './CheckpointsPane';
 import GuardrailsSettings from './GuardrailsSettings';
 import HealthToast from './HealthToast';
+import McpToolsIndicator from './McpToolsIndicator';
+import SkillIndicator from './SkillIndicator';
+import A2AAgentsIndicator from './A2AAgentsIndicator';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
@@ -139,6 +142,13 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
               <BiMemoryCard size={24} />
             </IconButton>
           </Tooltip>
+        )}
+        {projectExists && (
+          <>
+            <McpToolsIndicator projectName={projectName} />
+            <SkillIndicator projectName={projectName} />
+            <A2AAgentsIndicator projectName={projectName} />
+          </>
         )}
         {projectExists && (
           <Tooltip title="Filesystem Browser">

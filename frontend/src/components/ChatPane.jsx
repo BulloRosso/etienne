@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, planApprovalState = {}, onPlanApprove, onPlanReject }) {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
+  const isGuest = hasRole('guest');
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
@@ -81,10 +82,19 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
   };
 
   const handleModeChange = (event, newMode) => {
+    // Guests cannot change mode - they are locked to planning mode
+    if (isGuest) return;
     if (newMode !== null && onModeChange) {
       onModeChange(newMode);
     }
   };
+
+  // Force planning mode for guests on mount
+  useEffect(() => {
+    if (isGuest && mode !== 'plan' && onModeChange) {
+      onModeChange('plan');
+    }
+  }, [isGuest, mode, onModeChange]);
 
   const handleSettingsSave = async () => {
     console.log('Settings saved:', { aiModel });
@@ -182,10 +192,11 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           gap: 1.5
         }}>
           <ToggleButtonGroup
-            value={mode}
+            value={isGuest ? 'plan' : mode}
             exclusive
             onChange={handleModeChange}
             size="small"
+            disabled={isGuest}
             sx={{
               '& .MuiToggleButton-root.Mui-selected': {
                 backgroundColor: '#DEEBF7',
@@ -195,10 +206,10 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               }
             }}
           >
-            <ToggleButton value="plan" title="Planning Mode">
+            <ToggleButton value="plan" title={isGuest ? "Planning Mode (Guest users are restricted to planning mode)" : "Planning Mode"}>
               <LuBrain size={16} />
             </ToggleButton>
-            <ToggleButton value="work" title="Work Mode">
+            <ToggleButton value="work" title={isGuest ? "Work Mode (Not available for guests)" : "Work Mode"} disabled={isGuest}>
               <HiOutlineWrench size={20} />
             </ToggleButton>
           </ToggleButtonGroup>

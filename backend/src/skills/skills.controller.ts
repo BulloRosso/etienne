@@ -1,10 +1,93 @@
-import { Controller, Get, Post, Delete, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { SkillsService } from './skills.service';
 import { SaveSkillDto } from './dto/skills.dto';
+import { ProvisionSkillsDto } from './dto/repository-skills.dto';
 
 @Controller('api/skills')
 export class SkillsController {
   constructor(private readonly skillsService: SkillsService) {}
+
+  /**
+   * List skills from the skill repository
+   */
+  @Get('repository/list')
+  async listRepositorySkills(@Query('includeOptional') includeOptional?: string) {
+    try {
+      const include = includeOptional === 'true';
+      const skills = await this.skillsService.listRepositorySkills(include);
+      const isAvailable = await this.skillsService.isRepositoryAvailable();
+      return {
+        success: true,
+        available: isAvailable,
+        skills,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Provision all standard skills to a project
+   */
+  @Post(':project/provision-standard')
+  async provisionStandardSkills(@Param('project') project: string) {
+    try {
+      const results = await this.skillsService.provisionStandardSkills(project);
+      const successCount = results.filter((r) => r.success).length;
+      return {
+        success: true,
+        message: `Provisioned ${successCount} of ${results.length} standard skills`,
+        project,
+        results,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Provision specific skills from the repository to a project
+   */
+  @Post(':project/provision')
+  async provisionSkills(
+    @Param('project') project: string,
+    @Body() dto: ProvisionSkillsDto,
+  ) {
+    try {
+      const results = await this.skillsService.provisionSkillsFromRepository(
+        project,
+        dto.skillNames,
+        dto.source,
+      );
+      const successCount = results.filter((r) => r.success).length;
+      return {
+        success: true,
+        message: `Provisioned ${successCount} of ${results.length} skills`,
+        project,
+        results,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
 
   @Get(':project/all-skills')
   async listAllSkills(@Param('project') project: string) {

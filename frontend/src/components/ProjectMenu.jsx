@@ -40,6 +40,7 @@ import EventHandling from './EventHandling';
 import Scrapbook from './Scrapbook';
 import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
+import CreateProjectWizard from './CreateProjectWizard';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
@@ -506,89 +507,16 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         </Box>
       </Menu>
 
-      <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New Project</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Project Name"
-            fullWidth
-            value={newProjectName}
-            onChange={(e) => {
-              const value = e.target.value;
-              // Only allow lowercase letters, numbers, and hyphens, max 30 characters
-              if (value === '' || (/^[a-z0-9-]*$/.test(value) && value.length <= 30)) {
-                setNewProjectName(value);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !customizeUI) {
-                handleCreateProject();
-              }
-            }}
-            helperText="Only lowercase letters, numbers, and hyphens (max 30 characters)"
-            sx={{ mb: 2 }}
-          />
-
-          <FormControlLabel
-            control={
-              <Switch
-                checked={customizeUI}
-                onChange={handleCustomizeUIToggle}
-                size="small"
-              />
-            }
-            label="Customize UI"
-          />
-
-          {customizeUI && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-              {projectsWithUI.length > 0 ? (
-                <Box>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    Copy UI configuration from existing project:
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      select
-                      size="small"
-                      label="Copy from"
-                      value={copyFromProject}
-                      onChange={(e) => setCopyFromProject(e.target.value)}
-                      sx={{ flex: 1 }}
-                      SelectProps={{ native: true }}
-                    >
-                      <option value="">Select a project...</option>
-                      {projectsWithUI.map((proj) => (
-                        <option key={proj} value={proj}>
-                          {proj}
-                        </option>
-                      ))}
-                    </TextField>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={handleCopyUIConfig}
-                      disabled={!copyFromProject}
-                    >
-                      Copy
-                    </Button>
-                  </Box>
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No projects with UI customization found. You can customize the UI after creating the project.
-                </Typography>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          <Button onClick={handleCreateProject} variant="contained">Create</Button>
-        </DialogActions>
-      </Dialog>
+      <CreateProjectWizard
+        open={dialogOpen}
+        onClose={handleDialogClose}
+        existingProjects={projects}
+        onProjectCreated={(projectName) => {
+          handleDialogClose();
+          fetchProjects();
+          onProjectChange(projectName);
+        }}
+      />
 
       <Dialog open={aboutOpen} onClose={handleAboutClose} maxWidth="md"  fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
