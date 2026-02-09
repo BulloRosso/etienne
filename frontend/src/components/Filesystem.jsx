@@ -47,8 +47,14 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [error, setError] = useState(null);
   const [showSystemFiles, setShowSystemFiles] = useState(false);
 
-  // ── Tree expansion (adapted from VS Code's tree.getViewState()) ──
-  const [expandedSet, setExpandedSet] = useState(new Set());
+  // ── Tree expansion (persisted per project in localStorage) ──
+  const storageKey = `filesystem-expanded:${projectName}`;
+  const [expandedSet, setExpandedSet] = useState(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
 
   // ── Context menu ──
   const [contextMenu, setContextMenu] = useState(null);
@@ -114,6 +120,13 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       }),
     [tree, expandedSet, showSystemFiles, selectedTags, fileTags],
   );
+
+  // ── Persist expansion state to localStorage ──
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...expandedSet]));
+    } catch { /* storage full or unavailable */ }
+  }, [expandedSet, storageKey]);
 
   // ── Expand / collapse ──
   const handleToggleExpand = useCallback((rowId) => {
