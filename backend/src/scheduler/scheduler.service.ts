@@ -32,11 +32,37 @@ export class SchedulerService implements OnModuleInit {
       for (const project of projects) {
         try {
           const tasks = await this.storageService.loadTasks(project);
+          let tasksModified = false;
+          const activeTasks: TaskDefinition[] = [];
+
           for (const task of tasks) {
+            // Clean up expired one-time tasks
+            if (this.isOneTimeTask(task)) {
+              const parts = task.cronExpression.split(' ');
+              if (parts.length === 5) {
+                const [minute, hour, dayOfMonth, month] = parts;
+                if (dayOfMonth !== '*' && month !== '*') {
+                  const now = new Date();
+                  const taskDate = new Date(now.getFullYear(), parseInt(month) - 1, parseInt(dayOfMonth), parseInt(hour), parseInt(minute));
+                  if (taskDate < now) {
+                    this.logger.log(`Removing expired one-time task: ${task.name} (was scheduled for ${taskDate.toISOString()})`);
+                    tasksModified = true;
+                    continue;
+                  }
+                }
+              }
+            }
+
+            activeTasks.push(task);
             await this.registerCronJob(project, task);
           }
-          if (tasks.length > 0) {
-            this.logger.log(`Registered ${tasks.length} tasks for project: ${project}`);
+
+          if (tasksModified) {
+            await this.storageService.saveTasks(project, activeTasks);
+          }
+
+          if (activeTasks.length > 0) {
+            this.logger.log(`Registered ${activeTasks.length} tasks for project: ${project}`);
           }
         } catch (error: any) {
           this.logger.warn(`Failed to load tasks for project ${project}: ${error.message}`);
@@ -49,6 +75,22 @@ export class SchedulerService implements OnModuleInit {
 
   private getCronJobName(project: string, taskId: string): string {
     return `${project}__${taskId}`;
+  }
+
+  private isOneTimeTask(task: TaskDefinition): boolean {
+    if (task.type === 'one-time') return true;
+
+    // Heuristic fallback: if day-of-month and month are specific numbers
+    // while day-of-week is *, it's a one-time task
+    const parts = task.cronExpression.split(' ');
+    if (parts.length === 5) {
+      const [, , dayOfMonth, month, dayOfWeek] = parts;
+      if (dayOfMonth !== '*' && month !== '*' && dayOfWeek === '*') {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private async registerCronJob(project: string, task: TaskDefinition): Promise<void> {
@@ -141,6 +183,17 @@ export class SchedulerService implements OnModuleInit {
 
       await this.storageService.addHistoryEntry(project, historyEntry);
       this.logger.error(`Task ${task.name} failed: ${error.message}`);
+    }
+
+    // Auto-cleanup one-time tasks after execution
+    if (this.isOneTimeTask(task)) {
+      this.logger.log(`One-time task "${task.name}" executed, auto-deleting...`);
+      try {
+        await this.deleteTask(project, task.id);
+        this.logger.log(`One-time task "${task.name}" (${task.id}) deleted successfully`);
+      } catch (deleteError: any) {
+        this.logger.error(`Failed to auto-delete one-time task "${task.name}": ${deleteError.message}`);
+      }
     }
   }
 

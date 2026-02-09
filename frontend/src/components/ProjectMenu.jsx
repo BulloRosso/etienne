@@ -17,7 +17,8 @@ import {
   Tabs,
   Tab,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Drawer
 } from '@mui/material';
 import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
 import { TbCalendarTime, TbPalette } from 'react-icons/tb';
@@ -635,11 +636,25 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         </DialogActions>
       </Dialog>
 
-      <SchedulingOverview
+      <Drawer
+        anchor="right"
         open={schedulingOpen}
         onClose={handleSchedulingClose}
-        project={currentProject}
-      />
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: '500px',
+            maxWidth: '90vw',
+          },
+        }}
+      >
+        <Box sx={{ height: '100%', overflow: 'auto' }}>
+          <SchedulingOverview
+            open={schedulingOpen}
+            onClose={handleSchedulingClose}
+            project={currentProject}
+          />
+        </Box>
+      </Drawer>
 
       <GuardrailsSettings
         open={guardrailsOpen}

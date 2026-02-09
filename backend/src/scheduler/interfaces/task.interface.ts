@@ -4,6 +4,7 @@ export interface TaskDefinition {
   prompt: string;
   cronExpression: string;
   timeZone?: string;
+  type?: 'recurring' | 'one-time';
 }
 
 export interface TaskHistoryEntry {

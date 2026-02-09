@@ -53,14 +53,15 @@ Use the scheduler API to create the task:
 
 ```
 POST /api/scheduler/{project}/task
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
   "id": "unique-task-id",
   "name": "Task name (short description)",
   "prompt": "The full prompt to execute",
   "cronExpression": "0 16 7 2 *",
-  "timeZone": "Europe/Berlin"
+  "timeZone": "Europe/Berlin",
+  "type": "one-time"
 }
 ```
 
@@ -70,6 +71,7 @@ Content-Type: application/json
 - `prompt`: The exact prompt that Claude should execute when the task runs
 - `cronExpression`: The cron expression from Step 2
 - `timeZone`: Use the user's timezone (default: "Europe/Berlin" or ask if unclear)
+- `type`: Either `"recurring"` or `"one-time"`. Use `"one-time"` for tasks that should run once (today, tomorrow, specific date). Use `"recurring"` for repeating schedules (every day, every Monday, etc.)
 
 ### Step 4: Confirm to User
 
@@ -83,7 +85,7 @@ After creating the task, confirm with the user:
 ### Create Task
 ```
 POST /api/scheduler/{project}/task
-Body: { id, name, prompt, cronExpression, timeZone }
+Body: { id, name, prompt, cronExpression, timeZone, type }
 Response: { task: TaskDefinition }
 ```
 
@@ -123,7 +125,8 @@ POST /api/scheduler/current-project/task
   "name": "Stock prices email",
   "prompt": "look up the stock prices for nvidia and write me an email",
   "cronExpression": "0 16 7 2 *",
-  "timeZone": "Europe/Berlin"
+  "timeZone": "Europe/Berlin",
+  "type": "one-time"
 }
 ```
 
@@ -145,7 +148,8 @@ POST /api/scheduler/current-project/task
   "name": "Daily news summary",
   "prompt": "give me a summary of overnight news",
   "cronExpression": "0 9 * * *",
-  "timeZone": "Europe/Berlin"
+  "timeZone": "Europe/Berlin",
+  "type": "recurring"
 }
 ```
 
@@ -197,7 +201,10 @@ If time parsing is ambiguous, ask the user for clarification:
 
 ## Notes
 
-- For single-run tasks, the cron expression uses specific day/month values
+- For single-run tasks, the cron expression uses specific day/month values and `type` must be `"one-time"`
+- **One-time tasks are automatically deleted** after execution. They will not remain in the task list.
+- For recurring tasks, use `type: "recurring"` with wildcard day/month fields in the cron expression
 - The scheduler will execute the task and store results in task history
 - Users can view scheduled tasks and history through the UI or by asking
 - Tasks can be deleted by ID if no longer needed
+- Always use `charset=utf-8` in the Content-Type header to ensure proper encoding of non-ASCII characters

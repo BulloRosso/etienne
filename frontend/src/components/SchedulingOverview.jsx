@@ -9,13 +9,10 @@ import {
   Box,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
   Select,
   MenuItem,
   FormControl,
@@ -24,10 +21,20 @@ import {
   Chip,
   Alert,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
 } from '@mui/material';
-import { Close, Add, DeleteOutline, Edit, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { Close, Add, ExpandMore, ExpandLess } from '@mui/icons-material';
 import { TbCalendarTime } from 'react-icons/tb';
+import { IoIosTimer } from 'react-icons/io';
+import { IoClose } from 'react-icons/io5';
+import { AiOutlineDelete } from 'react-icons/ai';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
 
@@ -54,13 +61,40 @@ const weekdays = [
 ];
 
 // Helper functions to convert between cron and user-friendly format
-const parseCronExpression = (cronExpression) => {
+const isOneTimeCron = (cronExpression) => {
+  const parts = cronExpression.split(' ');
+  if (parts.length !== 5) return false;
+  const [, , dayOfMonth, month, dayOfWeek] = parts;
+  return dayOfMonth !== '*' && month !== '*' && dayOfWeek === '*';
+};
+
+const buildOneTimeCronExpression = (hour, minute, date) => {
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  return `${minute} ${hour} ${day} ${month} *`;
+};
+
+const parseCronExpression = (cronExpression, taskType) => {
   const parts = cronExpression.split(' ');
   if (parts.length !== 5) {
-    return { hour: '09', minute: '00', selectedDays: [1, 2, 3, 4, 5] };
+    return { hour: '09', minute: '00', selectedDays: [1, 2, 3, 4, 5], isOneTime: false, scheduledDate: null };
   }
 
-  const [minute, hour, , , dayOfWeek] = parts;
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+
+  const isOneTime = taskType === 'one-time' || isOneTimeCron(cronExpression);
+
+  if (isOneTime) {
+    const now = new Date();
+    const scheduledDate = new Date(now.getFullYear(), parseInt(month) - 1, parseInt(dayOfMonth), parseInt(hour), parseInt(minute));
+    return {
+      hour: hour.padStart(2, '0'),
+      minute: minute.padStart(2, '0'),
+      selectedDays: [],
+      isOneTime: true,
+      scheduledDate
+    };
+  }
 
   // Parse days
   let selectedDays = [];
@@ -84,7 +118,9 @@ const parseCronExpression = (cronExpression) => {
   return {
     hour: hour.padStart(2, '0'),
     minute: minute.padStart(2, '0'),
-    selectedDays
+    selectedDays,
+    isOneTime: false,
+    scheduledDate: null
   };
 };
 
@@ -111,9 +147,14 @@ const buildCronExpression = (hour, minute, selectedDays) => {
   return `${minute} ${hour} * * ${dayOfWeek}`;
 };
 
-const formatScheduleDisplay = (cronExpression) => {
-  const { hour, minute, selectedDays } = parseCronExpression(cronExpression);
+const formatScheduleDisplay = (cronExpression, taskType) => {
+  const parsed = parseCronExpression(cronExpression, taskType);
 
+  if (parsed.isOneTime && parsed.scheduledDate) {
+    return `Once on ${parsed.scheduledDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at ${parsed.hour}:${parsed.minute}`;
+  }
+
+  const { hour, minute, selectedDays } = parsed;
   let daysText = 'Every day';
   if (selectedDays.length < 7) {
     if (selectedDays.length === 5 && selectedDays.every(d => d >= 1 && d <= 5)) {
@@ -130,14 +171,16 @@ const formatScheduleDisplay = (cronExpression) => {
 };
 
 export default function SchedulingOverview({ open, onClose, project, showBackgroundInfo }) {
-  const [currentTab, setCurrentTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [history, setHistory] = useState([]);
-  const [editingTask, setEditingTask] = useState(null);
-  const [showTaskForm, setShowTaskForm] = useState(false);
   const [expandedHistory, setExpandedHistory] = useState(new Set());
 
-  // Form state - user-friendly inputs
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+
+  // Form state
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -146,7 +189,9 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
   });
   const [scheduleHour, setScheduleHour] = useState('09');
   const [scheduleMinute, setScheduleMinute] = useState('00');
-  const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5]); // Mon-Fri by default
+  const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5]);
+  const [taskType, setTaskType] = useState('recurring');
+  const [scheduledDate, setScheduledDate] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -175,10 +220,6 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
     }
   };
 
-  const handleTabChange = (event, newValue) => {
-    setCurrentTab(newValue);
-  };
-
   const handleAddTask = () => {
     setEditingTask(null);
     setFormData({
@@ -190,25 +231,41 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
     setScheduleHour('09');
     setScheduleMinute('00');
     setSelectedDays([1, 2, 3, 4, 5]);
-    setShowTaskForm(true);
+    setTaskType('recurring');
+    setScheduledDate('');
+    setEditDialogOpen(true);
   };
 
   const handleEditTask = (task) => {
     setEditingTask(task);
-    const { hour, minute, selectedDays: days } = parseCronExpression(task.cronExpression);
+    const parsed = parseCronExpression(task.cronExpression, task.type);
     setFormData({
       id: task.id,
       name: task.name,
       prompt: task.prompt,
       timeZone: task.timeZone || 'UTC'
     });
-    setScheduleHour(hour);
-    setScheduleMinute(minute);
-    setSelectedDays(days);
-    setShowTaskForm(true);
+    setScheduleHour(parsed.hour);
+    setScheduleMinute(parsed.minute);
+
+    if (parsed.isOneTime) {
+      setTaskType('one-time');
+      if (parsed.scheduledDate) {
+        const d = parsed.scheduledDate;
+        setScheduledDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      }
+      setSelectedDays([]);
+    } else {
+      setTaskType('recurring');
+      setSelectedDays(parsed.selectedDays);
+      setScheduledDate('');
+    }
+
+    setEditDialogOpen(true);
   };
 
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteTask = async (e, taskId) => {
+    e.stopPropagation();
     try {
       await fetch(`/api/scheduler/${project}/task/${taskId}`, {
         method: 'DELETE'
@@ -221,30 +278,36 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
 
   const handleSaveTask = async () => {
     try {
-      const cronExpression = buildCronExpression(scheduleHour, scheduleMinute, selectedDays);
+      let cronExpression;
+      if (taskType === 'one-time') {
+        const date = new Date(scheduledDate);
+        cronExpression = buildOneTimeCronExpression(scheduleHour, scheduleMinute, date);
+      } else {
+        cronExpression = buildCronExpression(scheduleHour, scheduleMinute, selectedDays);
+      }
+
       const taskData = {
         ...formData,
-        cronExpression
+        cronExpression,
+        type: taskType
       };
 
       if (editingTask) {
-        // Update existing task
         await fetch(`/api/scheduler/${project}/task/${editingTask.id}`, {
           method: 'PUT',
-          headers: { 'content-type': 'application/json' },
+          headers: { 'content-type': 'application/json; charset=utf-8' },
           body: JSON.stringify(taskData)
         });
       } else {
-        // Create new task
         await fetch(`/api/scheduler/${project}/task`, {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: { 'content-type': 'application/json; charset=utf-8' },
           body: JSON.stringify(taskData)
         });
       }
 
       await loadTasks();
-      setShowTaskForm(false);
+      setEditDialogOpen(false);
     } catch (error) {
       console.error('Failed to save task:', error);
     }
@@ -276,151 +339,322 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
     return response.substring(0, maxLength) + '...';
   };
 
+  const isTaskOneTime = (task) => task.type === 'one-time' || isOneTimeCron(task.cronExpression);
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <TbCalendarTime size={24} />
-          Scheduled Tasks
+    <>
+      {/* Drawer panel content */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Header */}
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 1
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: '14px' }}>
+            <TbCalendarTime size={22} color="#000" />
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Scheduled Tasks
+            </Typography>
+          </Box>
+          <IconButton onClick={onClose} size="small">
+            <IoClose size={24} />
+          </IconButton>
         </Box>
-        <IconButton onClick={onClose} size="small">
-          <Close />
-        </IconButton>
-      </DialogTitle>
 
-      <Box sx={{ px: 3, pt: 1 }}>
-        <BackgroundInfo infoId="scheduled-input" showBackgroundInfo={showBackgroundInfo} />
-      </Box>
-
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 3 }}>
-        <Tabs value={currentTab} onChange={handleTabChange} sx={{ borderBottom: 0 }}>
-          <Tab label="Task Definitions" />
-          <Tab label="History" />
-        </Tabs>
-        {currentTab === 0 && !showTaskForm && (
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<Add />}
-            onClick={handleAddTask}
-            sx={{ mb: 1 }}
+        {/* Tab Strip */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0', px: 1 }}>
+          <Tabs
+            value={activeTab}
+            onChange={(e, v) => setActiveTab(v)}
+            sx={{ minHeight: 40 }}
+            TabIndicatorProps={{ sx: { height: 2 } }}
           >
-            Add Task
-          </Button>
-        )}
-      </Box>
+            <Tab label="Tasks" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+            <Tab label="History" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+          </Tabs>
+          {activeTab === 0 && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Add />}
+              onClick={handleAddTask}
+            >
+              Add
+            </Button>
+          )}
+        </Box>
 
-      <DialogContent sx={{ minHeight: 400 }}>
-        {/* Task Definitions Tab */}
-        {currentTab === 0 && (
-          <Box>
-            {!showTaskForm ? (
-              <>
+        {/* Tab 0: Task List */}
+        {activeTab === 0 && (
+          <>
+            <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+              <BackgroundInfo infoId="scheduled-input" showBackgroundInfo={showBackgroundInfo} />
+
+              {tasks.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                  <Typography variant="body1">
+                    No scheduled tasks yet.
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Click "Add" to create a scheduled task.
+                  </Typography>
+                </Box>
+              ) : (
+                <List>
+                  {tasks.map((task) => (
+                    <ListItem
+                      key={task.id}
+                      onClick={() => handleEditTask(task)}
+                      sx={{
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 1,
+                        mb: 1,
+                        backgroundColor: '#fafafa',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: '#f5f5f5',
+                          '& .delete-icon': {
+                            opacity: 1
+                          }
+                        },
+                        alignItems: 'flex-start',
+                        flexDirection: 'column',
+                        position: 'relative'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
+                        <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
+                          {isTaskOneTime(task)
+                            ? <IoIosTimer size={20} color="#1976d2" />
+                            : <TbCalendarTime size={20} color="#1976d2" />
+                          }
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={task.name}
+                          secondary={
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {formatScheduleDisplay(task.cronExpression, task.type)}
+                            </Typography>
+                          }
+                          primaryTypographyProps={{
+                            variant: 'body2',
+                            sx: { fontWeight: 500 }
+                          }}
+                          sx={{ pr: 5 }}
+                        />
+                        <IconButton
+                          className="delete-icon"
+                          onClick={(e) => handleDeleteTask(e, task.id)}
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            right: 8,
+                            top: 8,
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            color: '#d32f2f',
+                            '&:hover': {
+                              backgroundColor: 'rgba(211, 47, 47, 0.08)'
+                            }
+                          }}
+                        >
+                          <AiOutlineDelete size={20} />
+                        </IconButton>
+                      </Box>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Box>
+
+            {/* Footer */}
+            {tasks.length > 0 && (
+              <Box sx={{
+                p: 2,
+                borderTop: '1px solid #e0e0e0',
+                backgroundColor: '#f5f5f5',
+                display: 'flex',
+                justifyContent: 'space-between'
+              }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} scheduled
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  .etienne/scheduled-tasks.json
+                </Typography>
+              </Box>
+            )}
+          </>
+        )}
+
+        {/* Tab 1: History */}
+        {activeTab === 1 && (
+          <>
+            <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+              {history.length === 0 ? (
+                <Alert severity="info">No execution history yet.</Alert>
+              ) : (
                 <TableContainer component={Paper} variant="outlined">
-                  <Table>
+                  <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ bgcolor: '#efefef' }}>Task</TableCell>
-                        <TableCell>Schedule</TableCell>
-                        <TableCell>Timezone</TableCell>
-                        <TableCell align="right">Actions</TableCell>
+                        <TableCell>Timestamp</TableCell>
+                        <TableCell>Task</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Response</TableCell>
+                        <TableCell></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {tasks.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                            No scheduled tasks. Click "Add Task" to create one.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        tasks.map((task) => (
-                          <TableRow key={task.id}>
-                            <TableCell sx={{ bgcolor: '#efefef', fontWeight: 'bold' }}>{task.name}</TableCell>
-                            <TableCell>{formatScheduleDisplay(task.cronExpression)}</TableCell>
-                            <TableCell>{task.timeZone || 'UTC'}</TableCell>
-                            <TableCell align="right">
-                              <IconButton size="small" onClick={() => handleEditTask(task)}>
-                                <Edit fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small" onClick={() => handleDeleteTask(task.id)} color="error">
-                                <DeleteOutline fontSize="small" />
-                              </IconButton>
+                      {history.map((entry, index) => (
+                        <React.Fragment key={index}>
+                          <TableRow>
+                            <TableCell sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{formatDate(entry.timestamp)}</TableCell>
+                            <TableCell sx={{ fontSize: '0.75rem' }}>{entry.name}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={entry.isError ? 'Error' : 'OK'}
+                                color={entry.isError ? 'error' : 'success'}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell sx={{ maxWidth: 200, fontSize: '0.75rem' }}>
+                              {expandedHistory.has(index) ? entry.response : truncateResponse(entry.response)}
+                            </TableCell>
+                            <TableCell>
+                              {entry.response.length > 80 && (
+                                <IconButton size="small" onClick={() => toggleHistoryExpand(index)}>
+                                  {expandedHistory.has(index) ? <ExpandLess /> : <ExpandMore />}
+                                </IconButton>
+                              )}
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
+                          {entry.duration !== undefined && (
+                            <TableRow>
+                              <TableCell colSpan={5} sx={{ py: 0, fontSize: '0.7rem', color: 'text.secondary' }}>
+                                Duration: {entry.duration}ms
+                                {entry.inputTokens && ` | In: ${entry.inputTokens}`}
+                                {entry.outputTokens && ` | Out: ${entry.outputTokens}`}
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography variant="h6">
-                  {editingTask ? 'Edit Task' : 'New Task'}
+              )}
+            </Box>
+
+            {/* Footer */}
+            {history.length > 0 && (
+              <Box sx={{
+                p: 2,
+                borderTop: '1px solid #e0e0e0',
+                backgroundColor: '#f5f5f5',
+                display: 'flex',
+                justifyContent: 'space-between'
+              }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {history.length} {history.length === 1 ? 'entry' : 'entries'}
                 </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  .etienne/task-history.json
+                </Typography>
+              </Box>
+            )}
+          </>
+        )}
+      </Box>
 
-                <TextField
-                  label="Task Name"
-                  fullWidth
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+      {/* Edit/Add Task Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+          {editingTask ? 'Edit Task' : 'New Task'}
+          <IconButton onClick={() => setEditDialogOpen(false)} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Task Name"
+              fullWidth
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Prompt</Typography>
+              <Box sx={{ border: '1px solid #ddd', borderRadius: 1, overflow: 'hidden' }}>
+                <Editor
+                  height="200px"
+                  defaultLanguage="markdown"
+                  value={formData.prompt}
+                  onChange={(value) => setFormData({ ...formData, prompt: value || '' })}
+                  theme="light"
+                  options={{
+                    minimap: { enabled: false },
+                    lineNumbers: 'off',
+                    wordWrap: 'on',
+                    scrollBeyondLastLine: false
+                  }}
                 />
+              </Box>
+            </Box>
 
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Prompt</Typography>
-                  <Box sx={{ border: '1px solid #ddd', borderRadius: 1, overflow: 'hidden' }}>
-                    <Editor
-                      height="200px"
-                      defaultLanguage="markdown"
-                      value={formData.prompt}
-                      onChange={(value) => setFormData({ ...formData, prompt: value || '' })}
-                      theme="light"
-                      options={{
-                        minimap: { enabled: false },
-                        lineNumbers: 'off',
-                        wordWrap: 'on',
-                        scrollBeyondLastLine: false
-                      }}
-                    />
-                  </Box>
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Schedule</Typography>
+
+              {/* Task type toggle */}
+              <Box sx={{ mb: 2 }}>
+                <ToggleButtonGroup
+                  value={taskType}
+                  exclusive
+                  onChange={(e, newType) => { if (newType) setTaskType(newType); }}
+                  size="small"
+                >
+                  <ToggleButton value="recurring">Recurring</ToggleButton>
+                  <ToggleButton value="one-time">One-time</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {/* Time input */}
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <TextField
+                  label="Hour"
+                  type="number"
+                  value={scheduleHour}
+                  onChange={(e) => {
+                    const val = Math.max(0, Math.min(23, parseInt(e.target.value) || 0));
+                    setScheduleHour(val.toString().padStart(2, '0'));
+                  }}
+                  inputProps={{ min: 0, max: 23 }}
+                  sx={{ width: 100 }}
+                />
+                <TextField
+                  label="Minute"
+                  type="number"
+                  value={scheduleMinute}
+                  onChange={(e) => {
+                    const val = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
+                    setScheduleMinute(val.toString().padStart(2, '0'));
+                  }}
+                  inputProps={{ min: 0, max: 59 }}
+                  sx={{ width: 100 }}
+                />
+                <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Time: {scheduleHour}:{scheduleMinute}
+                  </Typography>
                 </Box>
+              </Box>
 
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Schedule</Typography>
-
-                  {/* Time input */}
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                    <TextField
-                      label="Hour"
-                      type="number"
-                      value={scheduleHour}
-                      onChange={(e) => {
-                        const val = Math.max(0, Math.min(23, parseInt(e.target.value) || 0));
-                        setScheduleHour(val.toString().padStart(2, '0'));
-                      }}
-                      inputProps={{ min: 0, max: 23 }}
-                      sx={{ width: 100 }}
-                    />
-                    <TextField
-                      label="Minute"
-                      type="number"
-                      value={scheduleMinute}
-                      onChange={(e) => {
-                        const val = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
-                        setScheduleMinute(val.toString().padStart(2, '0'));
-                      }}
-                      inputProps={{ min: 0, max: 59 }}
-                      sx={{ width: 100 }}
-                    />
-                    <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Time: {scheduleHour}:{scheduleMinute}
-                      </Typography>
-                    </Box>
-                  </Box>
-
+              {taskType === 'recurring' ? (
+                <>
                   {/* Weekday selector */}
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1 }}>Days of the week:</Typography>
@@ -466,102 +700,62 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                       Every Day
                     </Button>
                   </Box>
-
-                  {/* Preview */}
-                  <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Preview: {formatScheduleDisplay(buildCronExpression(scheduleHour, scheduleMinute, selectedDays))}
-                    </Typography>
-                  </Box>
+                </>
+              ) : (
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1 }}>Date:</Typography>
+                  <TextField
+                    type="date"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                    sx={{ width: 200 }}
+                  />
                 </Box>
+              )}
 
-                <FormControl fullWidth>
-                  <InputLabel>Timezone</InputLabel>
-                  <Select
-                    value={formData.timeZone}
-                    label="Timezone"
-                    onChange={(e) => setFormData({ ...formData, timeZone: e.target.value })}
-                  >
-                    {timezones.map((tz) => (
-                      <MenuItem key={tz} value={tz}>{tz}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-                  <Button onClick={() => setShowTaskForm(false)}>Cancel</Button>
-                  <Button
-                    variant="contained"
-                    onClick={handleSaveTask}
-                    disabled={!formData.name || !formData.prompt || selectedDays.length === 0}
-                  >
-                    Save
-                  </Button>
-                </Box>
+              {/* Preview */}
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Preview: {taskType === 'one-time' && scheduledDate
+                    ? formatScheduleDisplay(buildOneTimeCronExpression(scheduleHour, scheduleMinute, new Date(scheduledDate)), 'one-time')
+                    : formatScheduleDisplay(buildCronExpression(scheduleHour, scheduleMinute, selectedDays), 'recurring')
+                  }
+                </Typography>
               </Box>
-            )}
-          </Box>
-        )}
+            </Box>
 
-        {/* History Tab */}
-        {currentTab === 1 && (
-          <Box>
-            {history.length === 0 ? (
-              <Alert severity="info">No execution history yet.</Alert>
-            ) : (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Timestamp</TableCell>
-                      <TableCell>Task Name</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Response</TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {history.map((entry, index) => (
-                      <React.Fragment key={index}>
-                        <TableRow>
-                          <TableCell>{formatDate(entry.timestamp)}</TableCell>
-                          <TableCell>{entry.name}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={entry.isError ? 'Error' : 'Success'}
-                              color={entry.isError ? 'error' : 'success'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell sx={{ maxWidth: 400 }}>
-                            {expandedHistory.has(index) ? entry.response : truncateResponse(entry.response)}
-                          </TableCell>
-                          <TableCell>
-                            {entry.response.length > 80 && (
-                              <IconButton size="small" onClick={() => toggleHistoryExpand(index)}>
-                                {expandedHistory.has(index) ? <ExpandLess /> : <ExpandMore />}
-                              </IconButton>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                        {entry.duration !== undefined && (
-                          <TableRow>
-                            <TableCell colSpan={5} sx={{ py: 0, fontSize: '0.75rem', color: 'text.secondary' }}>
-                              Duration: {entry.duration}ms
-                              {entry.inputTokens && ` | Input tokens: ${entry.inputTokens}`}
-                              {entry.outputTokens && ` | Output tokens: ${entry.outputTokens}`}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
+            <FormControl fullWidth>
+              <InputLabel>Timezone</InputLabel>
+              <Select
+                value={formData.timeZone}
+                label="Timezone"
+                onChange={(e) => setFormData({ ...formData, timeZone: e.target.value })}
+              >
+                {timezones.map((tz) => (
+                  <MenuItem key={tz} value={tz}>{tz}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+              <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              <Button
+                variant="contained"
+                onClick={handleSaveTask}
+                disabled={
+                  !formData.name || !formData.prompt ||
+                  (taskType === 'recurring' && selectedDays.length === 0) ||
+                  (taskType === 'one-time' && !scheduledDate)
+                }
+              >
+                Save
+              </Button>
+            </Box>
           </Box>
-        )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

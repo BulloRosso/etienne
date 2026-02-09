@@ -85,7 +85,8 @@
       "WebFetch(domain:blog.logrocket.com)",
       "Bash(docker stop:*)",
       "Bash(docker rm:*)",
-      "Bash(docker build:*)"
+      "Bash(docker build:*)",
+      "Bash(wait:*)"
     ],
     "deny": [],
     "ask": []

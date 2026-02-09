@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress, Drawer } from '@mui/material';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
@@ -1847,15 +1847,32 @@ export default function App() {
         )}
       </Box>
 
-      <SchedulingOverview
+      <Drawer
+        anchor="right"
         open={schedulingOpen}
         onClose={() => {
           setSchedulingOpen(false);
           refreshTaskCount();
         }}
-        project={currentProject}
-        showBackgroundInfo={showBackgroundInfo}
-      />
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: '500px',
+            maxWidth: '90vw',
+          },
+        }}
+      >
+        <Box sx={{ height: '100%', overflow: 'auto' }}>
+          <SchedulingOverview
+            open={schedulingOpen}
+            onClose={() => {
+              setSchedulingOpen(false);
+              refreshTaskCount();
+            }}
+            project={currentProject}
+            showBackgroundInfo={showBackgroundInfo}
+          />
+        </Box>
+      </Drawer>
 
       <Modal
         open={presentationOpen}

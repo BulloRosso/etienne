@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsIn } from 'class-validator';
 
 export class TaskDefinitionDto {
   @IsString()
@@ -20,6 +20,10 @@ export class TaskDefinitionDto {
   @IsString()
   @IsOptional()
   timeZone?: string;
+
+  @IsOptional()
+  @IsIn(['recurring', 'one-time'])
+  type?: 'recurring' | 'one-time';
 }
 
 export class TaskHistoryEntryDto {
