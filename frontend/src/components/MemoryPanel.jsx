@@ -1,14 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert, Tabs, Tab, Button } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
-import { TbTimelineEvent } from 'react-icons/tb';
+import { BiMemoryCard } from 'react-icons/bi';
 import { AiOutlineDelete } from 'react-icons/ai';
+import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, isOpen }) {
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Extraction prompt state
+  const [extractionPrompt, setExtractionPrompt] = useState('');
+  const [originalPrompt, setOriginalPrompt] = useState('');
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [promptSaving, setPromptSaving] = useState(false);
+  const [promptError, setPromptError] = useState(null);
+  const [isCustomPrompt, setIsCustomPrompt] = useState(false);
 
   useEffect(() => {
     loadMemories();
@@ -48,6 +58,80 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
     }
   };
 
+  const loadExtractionPrompt = async () => {
+    setPromptLoading(true);
+    setPromptError(null);
+
+    try {
+      const url = `/api/memories/extraction-prompt?project=${encodeURIComponent(projectName)}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load extraction prompt: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setExtractionPrompt(data.prompt);
+      setOriginalPrompt(data.prompt);
+      setIsCustomPrompt(data.isCustom);
+    } catch (err) {
+      console.error('Failed to load extraction prompt:', err);
+      setPromptError(err.message);
+    } finally {
+      setPromptLoading(false);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    setPromptSaving(true);
+    setPromptError(null);
+
+    try {
+      const url = `/api/memories/extraction-prompt?project=${encodeURIComponent(projectName)}`;
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: extractionPrompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save extraction prompt');
+      }
+
+      setOriginalPrompt(extractionPrompt);
+      setIsCustomPrompt(true);
+    } catch (err) {
+      console.error('Failed to save extraction prompt:', err);
+      setPromptError(err.message);
+    } finally {
+      setPromptSaving(false);
+    }
+  };
+
+  const handleResetPrompt = async () => {
+    setPromptSaving(true);
+    setPromptError(null);
+
+    try {
+      const url = `/api/memories/extraction-prompt?project=${encodeURIComponent(projectName)}`;
+      const response = await fetch(url, { method: 'DELETE' });
+
+      if (!response.ok) {
+        throw new Error('Failed to reset extraction prompt');
+      }
+
+      const data = await response.json();
+      setExtractionPrompt(data.prompt);
+      setOriginalPrompt(data.prompt);
+      setIsCustomPrompt(false);
+    } catch (err) {
+      console.error('Failed to reset extraction prompt:', err);
+      setPromptError(err.message);
+    } finally {
+      setPromptSaving(false);
+    }
+  };
+
   const handleDeleteMemory = async (memoryId) => {
     try {
       const userId = 'user';
@@ -68,6 +152,13 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
     }
   };
 
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+    if (newValue === 1) {
+      loadExtractionPrompt();
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
@@ -79,6 +170,8 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
     });
   };
 
+  const promptDirty = extractionPrompt !== originalPrompt;
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
@@ -88,122 +181,225 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
         alignItems: 'center',
         p: 1
       }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, marginLeft: '14px' }}>
-          Long Term Memory
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: '14px' }}>
+          <BiMemoryCard size={22} color="#000" />
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Long Term Memory
+          </Typography>
+        </Box>
         <IconButton onClick={onClose} size="small">
           <IoClose size={24} />
         </IconButton>
       </Box>
 
-      {/* Content */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-        <BackgroundInfo infoId="memory" showBackgroundInfo={showBackgroundInfo} />
+      {/* Tab Strip */}
+      <Tabs
+        value={activeTab}
+        onChange={handleTabChange}
+        sx={{ borderBottom: '1px solid #e0e0e0', px: 1, minHeight: 40 }}
+        TabIndicatorProps={{ sx: { height: 2 } }}
+      >
+        <Tab label="Memories" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+        <Tab label="Extraction Prompt" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+      </Tabs>
 
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <CircularProgress />
-          </Box>
-        )}
+      {/* Tab 0: Memories */}
+      {activeTab === 0 && (
+        <>
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+            <BackgroundInfo infoId="memory" showBackgroundInfo={showBackgroundInfo} />
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress />
+              </Box>
+            )}
 
-        {!loading && !error && memories.length === 0 && (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="body1">
-              No memories stored yet.
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Enable Long Term Memory in settings and start chatting to build a memory base.
-            </Typography>
-          </Box>
-        )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-        {!loading && !error && memories.length > 0 && (
-          <List>
-            {memories.map((memory) => (
-              <ListItem
-                key={memory.id}
-                sx={{
-                  border: '1px solid #e0e0e0',
-                  borderRadius: 1,
-                  mb: 1,
-                  backgroundColor: '#fafafa',
-                  '&:hover': {
-                    backgroundColor: '#f5f5f5',
-                    '& .delete-icon': {
-                      opacity: 1
-                    }
-                  },
-                  alignItems: 'flex-start',
-                  flexDirection: 'column',
-                  position: 'relative'
-                }}
-              >
-                <Box sx={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
-                  <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
-                    <TbTimelineEvent size={20} color="#1976d2" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={memory.memory}
-                    secondary={
-                      <Box sx={{ mt: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          Created: {formatDate(memory.created_at)}
-                        </Typography>
-                        {memory.updated_at && memory.updated_at !== memory.created_at && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary', ml: 2 }}>
-                            Updated: {formatDate(memory.updated_at)}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                    primaryTypographyProps={{
-                      variant: 'body2',
-                      sx: { fontWeight: 500 }
-                    }}
-                    sx={{ pr: 5 }}
-                  />
-                  <IconButton
-                    className="delete-icon"
-                    onClick={() => handleDeleteMemory(memory.id)}
-                    size="small"
+            {!loading && !error && memories.length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                <Typography variant="body1">
+                  No memories stored yet.
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Enable Long Term Memory in settings and start chatting to build a memory base.
+                </Typography>
+              </Box>
+            )}
+
+            {!loading && !error && memories.length > 0 && (
+              <List>
+                {memories.map((memory) => (
+                  <ListItem
+                    key={memory.id}
                     sx={{
-                      position: 'absolute',
-                      right: 8,
-                      top: 8,
-                      opacity: 0,
-                      transition: 'opacity 0.2s',
-                      color: '#d32f2f',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 1,
+                      mb: 1,
+                      backgroundColor: '#fafafa',
                       '&:hover': {
-                        backgroundColor: 'rgba(211, 47, 47, 0.08)'
-                      }
+                        backgroundColor: '#f5f5f5',
+                        '& .delete-icon': {
+                          opacity: 1
+                        }
+                      },
+                      alignItems: 'flex-start',
+                      flexDirection: 'column',
+                      position: 'relative'
                     }}
                   >
-                    <AiOutlineDelete size={20} />
-                  </IconButton>
-                </Box>
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </Box>
+                    <Box sx={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
+                      <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
+                        <BiMemoryCard size={20} color="#1976d2" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={memory.memory}
+                        secondary={
+                          <Box sx={{ mt: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Created: {formatDate(memory.created_at)}
+                            </Typography>
+                            {memory.updated_at && memory.updated_at !== memory.created_at && (
+                              <Typography variant="caption" sx={{ color: 'text.secondary', ml: 2 }}>
+                                Updated: {formatDate(memory.updated_at)}
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        primaryTypographyProps={{
+                          variant: 'body2',
+                          sx: { fontWeight: 500 }
+                        }}
+                        sx={{ pr: 5 }}
+                      />
+                      <IconButton
+                        className="delete-icon"
+                        onClick={() => handleDeleteMemory(memory.id)}
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          right: 8,
+                          top: 8,
+                          opacity: 0,
+                          transition: 'opacity 0.2s',
+                          color: '#d32f2f',
+                          '&:hover': {
+                            backgroundColor: 'rgba(211, 47, 47, 0.08)'
+                          }
+                        }}
+                      >
+                        <AiOutlineDelete size={20} />
+                      </IconButton>
+                    </Box>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Box>
 
-      {/* Footer */}
-      {!loading && !error && memories.length > 0 && (
-        <Box sx={{
-          p: 2,
-          borderTop: '1px solid #e0e0e0',
-          backgroundColor: '#f5f5f5'
-        }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {memories.length} {memories.length === 1 ? 'memory' : 'memories'} stored
-          </Typography>
-        </Box>
+          {/* Footer */}
+          {!loading && !error && memories.length > 0 && (
+            <Box sx={{
+              p: 2,
+              borderTop: '1px solid #e0e0e0',
+              backgroundColor: '#f5f5f5',
+              display: 'flex',
+              justifyContent: 'space-between'
+            }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {memories.length} {memories.length === 1 ? 'memory' : 'memories'} stored
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                .etienne/memories.json
+              </Typography>
+            </Box>
+          )}
+        </>
+      )}
+
+      {/* Tab 1: Extraction Prompt */}
+      {activeTab === 1 && (
+        <>
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2, display: 'flex', flexDirection: 'column' }}>
+            {promptLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+                <CircularProgress />
+              </Box>
+            )}
+
+            {promptError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {promptError}
+              </Alert>
+            )}
+
+            {!promptLoading && (
+              <>
+                {isCustomPrompt && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Using a custom extraction prompt for this project.
+                  </Alert>
+                )}
+                <Box sx={{ flex: 1, border: '1px solid #e0e0e0', borderRadius: 1, overflow: 'hidden' }}>
+                  <Editor
+                    height="100%"
+                    defaultLanguage="markdown"
+                    theme="light"
+                    value={extractionPrompt}
+                    onChange={(value) => setExtractionPrompt(value || '')}
+                    options={{
+                      minimap: { enabled: false },
+                      lineNumbers: 'off',
+                      wordWrap: 'on',
+                      scrollBeyondLastLine: false,
+                      fontSize: 13,
+                      automaticLayout: true,
+                    }}
+                  />
+                </Box>
+              </>
+            )}
+          </Box>
+
+          {/* Footer with actions */}
+          {!promptLoading && (
+            <Box sx={{
+              p: 2,
+              borderTop: '1px solid #e0e0e0',
+              backgroundColor: '#f5f5f5',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleResetPrompt}
+                disabled={promptSaving || !isCustomPrompt}
+              >
+                Reset to Default
+              </Button>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  .etienne/long-term-memory/extraction-prompt.md
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleSavePrompt}
+                  disabled={promptSaving || !promptDirty}
+                >
+                  {promptSaving ? 'Saving...' : 'Save'}
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );

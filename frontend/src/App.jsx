@@ -1213,7 +1213,7 @@ export default function App() {
     url.searchParams.set('aiModel', aiModel);
 
     // Add memory enabled parameter
-    const memoryEnabled = localStorage.getItem('memoryEnabled') === 'true';
+    const memoryEnabled = localStorage.getItem('memoryEnabled') !== 'false';
     if (memoryEnabled) {
       url.searchParams.set('memoryEnabled', 'true');
     }

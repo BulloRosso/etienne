@@ -23,7 +23,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(() => {
     const saved = localStorage.getItem('memoryEnabled');
-    return saved === 'true';
+    return saved !== 'false';
   });
   const [maxTurns, setMaxTurns] = useState(() => {
     const saved = localStorage.getItem('maxTurns');

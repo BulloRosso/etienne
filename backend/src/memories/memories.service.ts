@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import axios from 'axios';
+import Anthropic from '@anthropic-ai/sdk';
 import { InterceptorsService } from '../interceptors/interceptors.service';
 
 interface Memory {
@@ -73,6 +73,106 @@ export class MemoriesService {
   }
 
   /**
+   * Get the path to the custom extraction prompt file for a given project
+   */
+  private getExtractionPromptPath(projectName: string): string {
+    return join(this.workspaceRoot, projectName, '.etienne', 'long-term-memory', 'extraction-prompt.md');
+  }
+
+  /**
+   * Get the default extraction prompt (the hardcoded one)
+   */
+  getDefaultExtractionPrompt(): string {
+    return `You are a Personal Information Organizer, specialized in accurately storing facts, user memories, and preferences.
+
+Your task is to extract relevant pieces of information from conversations and organize them into distinct, manageable facts. This allows for easy retrieval and personalization in future interactions.
+
+**Types of Information to Extract:**
+
+1. **Personal Identity**: Name, age, location, occupation, education
+2. **Preferences**: Likes, dislikes, favorites (food, music, activities, etc.)
+3. **Biographical Facts**: Family, relationships, life events
+4. **Goals & Aspirations**: Future plans, ambitions, targets
+5. **Habits & Routines**: Daily activities, schedules, rituals
+6. **Skills & Expertise**: Professional skills, hobbies, talents
+7. **Health Information**: Dietary restrictions, allergies, fitness goals
+8. **Opinions & Values**: Beliefs, perspectives, principles
+9. **Experiences**: Past events, memories, stories
+10. **Context**: Work context, project details, ongoing tasks
+
+**Extraction Guidelines:**
+
+1. Extract ONLY from user and assistant messages (ignore system messages)
+2. Make facts concise and self-contained (5-15 words ideal)
+3. Start directly with the fact (e.g., "Prefers dark mode" not "The user prefers dark mode")
+4. Avoid redundancy - each fact should be distinct
+5. Include temporal information when relevant (e.g., "Started learning Python in 2023")
+6. Preserve specificity (e.g., "Drinks oat milk latte" not just "Drinks coffee")
+7. Detect input language and record facts in the same language
+8. If no relevant information found, return empty list
+9. Focus on facts that would be useful for future personalization
+
+**Output Format:**
+
+Return ONLY a valid JSON object with this structure:
+
+{
+    "facts": [
+        "fact 1 here",
+        "fact 2 here",
+        "fact 3 here"
+    ]
+}`;
+  }
+
+  /**
+   * Get the extraction prompt for a project (custom if exists, otherwise default)
+   */
+  async getExtractionPrompt(projectName: string): Promise<{ prompt: string; isCustom: boolean }> {
+    const filePath = this.getExtractionPromptPath(projectName);
+
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      return { prompt: content, isCustom: true };
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return { prompt: this.getDefaultExtractionPrompt(), isCustom: false };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Save a custom extraction prompt for a project
+   */
+  async saveExtractionPrompt(projectName: string, prompt: string): Promise<{ success: boolean }> {
+    const filePath = this.getExtractionPromptPath(projectName);
+    const dir = join(this.workspaceRoot, projectName, '.etienne', 'long-term-memory');
+
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(filePath, prompt, 'utf8');
+
+    return { success: true };
+  }
+
+  /**
+   * Reset extraction prompt to default by deleting the custom file
+   */
+  async resetExtractionPrompt(projectName: string): Promise<{ prompt: string }> {
+    const filePath = this.getExtractionPromptPath(projectName);
+
+    try {
+      await fs.unlink(filePath);
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    return { prompt: this.getDefaultExtractionPrompt() };
+  }
+
+  /**
    * Read memories from file
    */
   private async readMemories(projectName: string): Promise<Memory[]> {
@@ -119,58 +219,18 @@ export class MemoriesService {
   }
 
   /**
-   * Extract facts from conversation using OpenAI API
+   * Extract facts from conversation using Anthropic API
    */
-  private async extractFacts(messages: Message[]): Promise<string[]> {
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    const openaiBaseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
-    }
+  private async extractFacts(messages: Message[], projectName: string): Promise<string[]> {
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
 
     const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n');
 
-    const prompt = `You are a Personal Information Organizer, specialized in accurately storing facts, user memories, and preferences.
+    const { prompt: extractionPrompt } = await this.getExtractionPrompt(projectName);
 
-Your task is to extract relevant pieces of information from conversations and organize them into distinct, manageable facts. This allows for easy retrieval and personalization in future interactions.
-
-**Types of Information to Extract:**
-
-1. **Personal Identity**: Name, age, location, occupation, education
-2. **Preferences**: Likes, dislikes, favorites (food, music, activities, etc.)
-3. **Biographical Facts**: Family, relationships, life events
-4. **Goals & Aspirations**: Future plans, ambitions, targets
-5. **Habits & Routines**: Daily activities, schedules, rituals
-6. **Skills & Expertise**: Professional skills, hobbies, talents
-7. **Health Information**: Dietary restrictions, allergies, fitness goals
-8. **Opinions & Values**: Beliefs, perspectives, principles
-9. **Experiences**: Past events, memories, stories
-10. **Context**: Work context, project details, ongoing tasks
-
-**Extraction Guidelines:**
-
-1. Extract ONLY from user and assistant messages (ignore system messages)
-2. Make facts concise and self-contained (5-15 words ideal)
-3. Start directly with the fact (e.g., "Prefers dark mode" not "The user prefers dark mode")
-4. Avoid redundancy - each fact should be distinct
-5. Include temporal information when relevant (e.g., "Started learning Python in 2023")
-6. Preserve specificity (e.g., "Drinks oat milk latte" not just "Drinks coffee")
-7. Detect input language and record facts in the same language
-8. If no relevant information found, return empty list
-9. Focus on facts that would be useful for future personalization
-
-**Output Format:**
-
-Return ONLY a valid JSON object with this structure:
-
-{
-    "facts": [
-        "fact 1 here",
-        "fact 2 here",
-        "fact 3 here"
-    ]
-}
+    const prompt = `${extractionPrompt}
 
 **Conversation to Analyze:**
 
@@ -179,29 +239,24 @@ ${conversationText}
 **Important:** Return ONLY the JSON object, no additional text or explanation.`;
 
     try {
-      const response = await axios.post(
-        `${openaiBaseUrl}/chat/completions`,
-        {
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.7,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+      });
 
-      const content = response.data.choices[0].message.content.trim();
-      const cleanedContent = this.stripMarkdownFences(content);
+      const textContent = response.content.find((block: any) => block.type === 'text');
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text response from Claude');
+      }
+
+      const cleanedContent = this.stripMarkdownFences(textContent.text.trim());
       const result: MemoryExtractionResult = JSON.parse(cleanedContent);
       return result.facts || [];
     } catch (error: any) {
-      console.error('Error extracting facts:', error.response?.data || error.message);
+      console.error('Error extracting facts:', error.message);
       throw new Error(`Failed to extract facts: ${error.message}`);
     }
   }
@@ -218,12 +273,9 @@ ${conversationText}
       return { memory: [] };
     }
 
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    const openaiBaseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
-    }
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
 
     const existingMemoriesText = existingMemories
       .map(m => `${m.id}: ${m.memory}`)
@@ -282,29 +334,24 @@ Return ONLY a valid JSON object:
 **Important:** Be conservative with DELETE operations. Only delete when there's clear contradiction.`;
 
     try {
-      const response = await axios.post(
-        `${openaiBaseUrl}/chat/completions`,
-        {
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.7,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+      });
 
-      const content = response.data.choices[0].message.content.trim();
-      const cleanedContent = this.stripMarkdownFences(content);
+      const textContent = response.content.find((block: any) => block.type === 'text');
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text response from Claude');
+      }
+
+      const cleanedContent = this.stripMarkdownFences(textContent.text.trim());
       const result: MemoryUpdateResult = JSON.parse(cleanedContent);
       return result;
     } catch (error: any) {
-      console.error('Error updating memories:', error.response?.data || error.message);
+      console.error('Error updating memories:', error.message);
       throw new Error(`Failed to update memories: ${error.message}`);
     }
   }
@@ -323,7 +370,7 @@ Return ONLY a valid JSON object:
     const { messages, user_id, metadata } = dto;
 
     // Extract facts from conversation
-    const facts = await this.extractFacts(messages);
+    const facts = await this.extractFacts(messages, projectName);
 
     if (facts.length === 0) {
       return {

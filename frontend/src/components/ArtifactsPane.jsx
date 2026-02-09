@@ -40,7 +40,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   const [filesystemDrawerOpen, setFilesystemDrawerOpen] = useState(false);
   const [filesystemTabValue, setFilesystemTabValue] = useState(0);
   const [memoryDrawerOpen, setMemoryDrawerOpen] = useState(false);
-  const [memoryEnabled, setMemoryEnabled] = useState(false);
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [guardrailsEnabled, setGuardrailsEnabled] = useState(false);
   const [guardrailsModalOpen, setGuardrailsModalOpen] = useState(false);
 
@@ -48,7 +48,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   useEffect(() => {
     const checkMemoryEnabled = () => {
       const saved = localStorage.getItem('memoryEnabled');
-      setMemoryEnabled(saved === 'true');
+      setMemoryEnabled(saved !== 'false');
     };
 
     checkMemoryEnabled();

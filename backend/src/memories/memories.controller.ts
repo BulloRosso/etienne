@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { MemoriesService } from './memories.service';
 
 interface AddMemoryDto {
@@ -39,6 +39,40 @@ export class MemoriesController {
     @Body() dto: SearchMemoryDto
   ) {
     return this.memoriesService.searchMemories(projectName, dto);
+  }
+
+  /**
+   * GET /api/memories/extraction-prompt
+   * Get the extraction prompt for a project (custom or default)
+   */
+  @Get('extraction-prompt')
+  async getExtractionPrompt(
+    @Query('project') projectName: string,
+  ) {
+    return this.memoriesService.getExtractionPrompt(projectName);
+  }
+
+  /**
+   * PUT /api/memories/extraction-prompt
+   * Save a custom extraction prompt for a project
+   */
+  @Put('extraction-prompt')
+  async saveExtractionPrompt(
+    @Query('project') projectName: string,
+    @Body() body: { prompt: string },
+  ) {
+    return this.memoriesService.saveExtractionPrompt(projectName, body.prompt);
+  }
+
+  /**
+   * DELETE /api/memories/extraction-prompt
+   * Reset extraction prompt to default
+   */
+  @Delete('extraction-prompt')
+  async resetExtractionPrompt(
+    @Query('project') projectName: string,
+  ) {
+    return this.memoriesService.resetExtractionPrompt(projectName);
   }
 
   /**
