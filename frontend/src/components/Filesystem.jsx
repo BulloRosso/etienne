@@ -1,4 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+/**
+ * Filesystem.jsx
+ *
+ * VS Code-style file explorer adapted from explorerView.ts.
+ * Orchestrates the virtual tree, dialogs, context menu, tag filtering,
+ * and all file operations.
+ */
+
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -17,41 +25,49 @@ import {
   Typography,
   Tooltip,
   Chip,
-  Autocomplete
+  Autocomplete,
 } from '@mui/material';
-import { Refresh, Delete, Edit, Upload, MoreVert, ExpandMore, ChevronRight, Preview, LocalOffer } from '@mui/icons-material';
-import { TreeView } from '@mui/x-tree-view/TreeView';
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { PiFolderThin, PiFolderOpenThin, PiUploadLight } from "react-icons/pi";
-import { IoDocumentOutline } from "react-icons/io5";
-import { MdOutlineCreateNewFolder } from "react-icons/md";
+import '@vscode/codicons/dist/codicon.css';
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 import TagManager from './TagManager';
-import { formatDistanceToNow, format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import FileTreeVirtualList from './FileTreeVirtualList';
+import { flattenTree, getTagColor } from './fileTreeModel';
 
 export default function Filesystem({ projectName, showBackgroundInfo }) {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
   const isGuest = hasRole('guest');
+
+  // ── Data state ──
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSystemFiles, setShowSystemFiles] = useState(false);
+
+  // ── Tree expansion (adapted from VS Code's tree.getViewState()) ──
+  const [expandedSet, setExpandedSet] = useState(new Set());
+
+  // ── Context menu ──
   const [contextMenu, setContextMenu] = useState(null);
-  const [renameDialog, setRenameDialog] = useState({ open: false, node: null, newName: '' });
-  const [deleteDialog, setDeleteDialog] = useState({ open: false, node: null });
+
+  // ── Dialogs ──
+  const [renameDialog, setRenameDialog] = useState({ open: false, row: null, newName: '' });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, row: null });
   const [newFolderDialog, setNewFolderDialog] = useState({ open: false, folderName: '' });
-  const [draggedNode, setDraggedNode] = useState(null);
-  const [dropTarget, setDropTarget] = useState(null);
+
+  // ── Tags ──
   const [fileTags, setFileTags] = useState({});
   const [allTags, setAllTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
-  const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, node: null, filePath: '' });
+  const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, row: null, filePath: '' });
+
+  // ── File upload ──
   const fileInputRef = useRef(null);
 
+  // ── Load data ──
   useEffect(() => {
     loadFilesystem();
     loadTags();
@@ -61,9 +77,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post('/api/claude/filesystem', {
-        projectName
-      });
+      const response = await axios.post('/api/claude/filesystem', { projectName });
       setTree(response.data.tree || []);
     } catch (err) {
       setError('Failed to load filesystem');
@@ -77,14 +91,10 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     try {
       const response = await axios.get(`/api/workspace/${projectName}/tags`);
       setAllTags(response.data || []);
-
-      // Build file tags map
       const tagsMap = {};
-      response.data.forEach(tagInfo => {
-        tagInfo.files.forEach(file => {
-          if (!tagsMap[file]) {
-            tagsMap[file] = [];
-          }
+      response.data.forEach((tagInfo) => {
+        tagInfo.files.forEach((file) => {
+          if (!tagsMap[file]) tagsMap[file] = [];
           tagsMap[file].push(tagInfo.tag);
         });
       });
@@ -94,164 +104,108 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     }
   };
 
-  const getTagColor = (tag) => {
-    const colors = ['#1976d2', '#388e3c', '#d32f2f', '#f57c00', '#7b1fa2', '#c2185b', '#0097a7', '#689f38', '#e64a19'];
-    const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return colors[Math.abs(hash) % colors.length];
-  };
+  // ── Flatten tree (useMemo for performance) ──
+  const flatRows = useMemo(
+    () =>
+      flattenTree(tree, expandedSet, {
+        showSystemFiles,
+        selectedTags,
+        fileTags,
+      }),
+    [tree, expandedSet, showSystemFiles, selectedTags, fileTags],
+  );
 
-  const formatTimestamp = (mtimeString) => {
-    if (!mtimeString) return '';
+  // ── Expand / collapse ──
+  const handleToggleExpand = useCallback((rowId) => {
+    setExpandedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return next;
+    });
+  }, []);
 
-    const date = new Date(mtimeString);
-    const now = new Date();
-    const diffInDays = (now - date) / (1000 * 60 * 60 * 24);
-
-    // If less than or equal to 3 days, show relative time
-    if (diffInDays <= 3) {
-      return formatDistanceToNow(date, { addSuffix: true });
-    }
-
-    // Otherwise show full timestamp in browser's local timezone
-    return format(date, 'yyyy-MM-dd HH:mm:ss');
-  };
-
-  // Helper function to get node path from tree
-  const getNodePath = (nodeId, nodes = tree, parentPath = '') => {
-    for (const node of nodes) {
-      const currentPath = parentPath ? `${parentPath}/${node.label}` : node.label;
-      if (node.id === nodeId) {
-        return currentPath;
-      }
-      if (node.children) {
-        const childPath = getNodePath(nodeId, node.children, currentPath);
-        if (childPath) return childPath;
-      }
-    }
-    return null;
-  };
-
-  // Helper function to find node by ID
-  const findNodeById = (nodeId, nodes = tree) => {
-    for (const node of nodes) {
-      if (node.id === nodeId) return node;
-      if (node.children) {
-        const found = findNodeById(nodeId, node.children);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  // Handle context menu
-  const handleContextMenu = (event, node) => {
+  // ── Context menu ──
+  const handleContextMenu = useCallback((event, row) => {
     event.preventDefault();
     event.stopPropagation();
-    setContextMenu({
-      mouseX: event.clientX,
-      mouseY: event.clientY,
-      node
-    });
+    setContextMenu({ mouseX: event.clientX, mouseY: event.clientY, row });
+  }, []);
+
+  const handleCloseContextMenu = () => setContextMenu(null);
+
+  // ── Preview ──
+  const handlePreviewClick = () => {
+    if (contextMenu?.row && contextMenu.row.type !== 'folder') {
+      filePreviewHandler.handlePreview(contextMenu.row.path, projectName);
+    }
+    handleCloseContextMenu();
   };
 
-  const handleCloseContextMenu = () => {
-    setContextMenu(null);
-  };
-
-  // Handle rename
+  // ── Rename ──
   const handleRenameClick = () => {
-    if (contextMenu?.node) {
-      setRenameDialog({
-        open: true,
-        node: contextMenu.node,
-        newName: contextMenu.node.label
-      });
+    if (contextMenu?.row) {
+      setRenameDialog({ open: true, row: contextMenu.row, newName: contextMenu.row.labels[contextMenu.row.labels.length - 1] });
     }
     handleCloseContextMenu();
   };
 
   const handleRenameSubmit = async () => {
-    if (!renameDialog.newName.trim() || renameDialog.newName === renameDialog.node?.label) {
-      setRenameDialog({ open: false, node: null, newName: '' });
+    const row = renameDialog.row;
+    if (!renameDialog.newName.trim() || renameDialog.newName === row?.labels[row.labels.length - 1]) {
+      setRenameDialog({ open: false, row: null, newName: '' });
       return;
     }
-
     try {
-      const nodePath = getNodePath(renameDialog.node.id);
       await axios.put(`/api/workspace/${projectName}/files/rename`, {
-        filepath: nodePath,
-        newName: renameDialog.newName.trim()
+        filepath: row.path,
+        newName: renameDialog.newName.trim(),
       });
       await loadFilesystem();
-      setRenameDialog({ open: false, node: null, newName: '' });
+      setRenameDialog({ open: false, row: null, newName: '' });
     } catch (err) {
       setError(`Failed to rename: ${err.response?.data?.message || err.message}`);
-      console.error('Rename error:', err);
-      setRenameDialog({ open: false, node: null, newName: '' });
+      setRenameDialog({ open: false, row: null, newName: '' });
     }
   };
 
-  const handleRenameCancel = () => {
-    setRenameDialog({ open: false, node: null, newName: '' });
-  };
+  const handleRenameCancel = () => setRenameDialog({ open: false, row: null, newName: '' });
 
-  // Handle delete
+  // ── Delete ──
   const handleDeleteClick = () => {
-    if (contextMenu?.node) {
-      setDeleteDialog({ open: true, node: contextMenu.node });
-    }
+    if (contextMenu?.row) setDeleteDialog({ open: true, row: contextMenu.row });
     handleCloseContextMenu();
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteDialog.node) return;
-
+    if (!deleteDialog.row) return;
     try {
-      const nodePath = getNodePath(deleteDialog.node.id);
-      await axios.delete(`/api/workspace/${projectName}/files/${nodePath}`);
+      await axios.delete(`/api/workspace/${projectName}/files/${deleteDialog.row.path}`);
       await loadFilesystem();
-      setDeleteDialog({ open: false, node: null });
+      setDeleteDialog({ open: false, row: null });
     } catch (err) {
       setError(`Failed to delete: ${err.response?.data?.message || err.message}`);
-      console.error('Delete error:', err);
-      setDeleteDialog({ open: false, node: null });
+      setDeleteDialog({ open: false, row: null });
     }
   };
 
-  const handleDeleteCancel = () => {
-    setDeleteDialog({ open: false, node: null });
-  };
+  const handleDeleteCancel = () => setDeleteDialog({ open: false, row: null });
 
-  // Handle file preview
-  const handlePreviewClick = () => {
-    if (contextMenu?.node && contextMenu.node.type !== 'folder') {
-      const filePath = getNodePath(contextMenu.node.id);
-      filePreviewHandler.handlePreview(filePath, projectName);
-    }
-    handleCloseContextMenu();
-  };
-
-  // Handle tag management
+  // ── Tag management ──
   const handleManageTagsClick = () => {
-    if (contextMenu?.node) {
-      const filePath = getNodePath(contextMenu.node.id);
-      setTagManagerDialog({
-        open: true,
-        node: contextMenu.node,
-        filePath
-      });
+    if (contextMenu?.row) {
+      setTagManagerDialog({ open: true, row: contextMenu.row, filePath: contextMenu.row.path });
     }
     handleCloseContextMenu();
   };
 
   const handleTagManagerClose = () => {
-    setTagManagerDialog({ open: false, node: null, filePath: '' });
-    loadTags(); // Reload tags after changes
+    setTagManagerDialog({ open: false, row: null, filePath: '' });
+    loadTags();
   };
 
-  // Handle new folder
+  // ── New folder ──
   const handleNewFolderClick = () => {
-    // Guests cannot create folders
     if (isGuest) return;
     setNewFolderDialog({ open: true, folderName: '' });
   };
@@ -261,298 +215,97 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       setNewFolderDialog({ open: false, folderName: '' });
       return;
     }
-
     try {
       await axios.post(`/api/workspace/${projectName}/files/create-folder`, {
-        folderPath: newFolderDialog.folderName.trim()
+        folderPath: newFolderDialog.folderName.trim(),
       });
       await loadFilesystem();
       setNewFolderDialog({ open: false, folderName: '' });
     } catch (err) {
       setError(`Failed to create folder: ${err.response?.data?.message || err.message}`);
-      console.error('Create folder error:', err);
       setNewFolderDialog({ open: false, folderName: '' });
     }
   };
 
-  const handleNewFolderCancel = () => {
-    setNewFolderDialog({ open: false, folderName: '' });
-  };
+  const handleNewFolderCancel = () => setNewFolderDialog({ open: false, folderName: '' });
 
-  // Handle file upload
-  const handleUploadClick = (node) => {
-    // Guests cannot upload files
+  // ── File upload ──
+  const handleUploadClick = (row) => {
     if (isGuest) return;
-    // Store the target folder in a ref or state for the upload handler
-    fileInputRef.current.targetNode = node;
+    fileInputRef.current.targetRow = row || null;
     fileInputRef.current.click();
     handleCloseContextMenu();
   };
 
   const handleFileUpload = async (event) => {
-    // Guests cannot upload files
     if (isGuest) return;
     const files = event.target.files;
     if (!files || files.length === 0) return;
-
-    const targetNode = event.target.targetNode;
-    const targetPath = targetNode ? getNodePath(targetNode.id) : '';
-
+    const targetRow = event.target.targetRow;
+    const targetPath = targetRow ? targetRow.path : '';
     try {
       for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
         const filepath = targetPath ? `${targetPath}/${file.name}` : file.name;
         formData.append('filepath', filepath);
-
         await axios.post(`/api/workspace/${projectName}/files/upload`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
       await loadFilesystem();
     } catch (err) {
       setError(`Failed to upload: ${err.response?.data?.message || err.message}`);
-      console.error('Upload error:', err);
     }
-
-    event.target.value = ''; // Reset input
+    event.target.value = '';
   };
 
-  // Handle drag and drop for OS files
-  const handleDragOver = (event) => {
-    // Guests cannot drag and drop
-    if (isGuest) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const handleDropExternal = async (event, targetNode) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    // Guests cannot upload files via drag and drop
+  // ── Internal drag-and-drop (move files) ──
+  const handleDrop = async (e, draggedRow, targetRow) => {
     if (isGuest) return;
-
-    const files = event.dataTransfer.files;
-    if (!files || files.length === 0) return;
-
-    const targetPath = targetNode ? getNodePath(targetNode.id) : '';
-
+    if (!draggedRow) return;
+    // Drop to root
+    const targetPath = targetRow ? targetRow.path : '';
+    const destinationPath = targetPath
+      ? `${targetPath}/${draggedRow.labels[draggedRow.labels.length - 1]}`
+      : draggedRow.labels[draggedRow.labels.length - 1];
+    if (draggedRow.path === destinationPath) return;
     try {
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        const filepath = targetPath ? `${targetPath}/${file.name}` : file.name;
-        formData.append('filepath', filepath);
-
-        await axios.post(`/api/workspace/${projectName}/files/upload`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-      }
-      await loadFilesystem();
-      setDropTarget(null);
-    } catch (err) {
-      setError(`Failed to upload: ${err.response?.data?.message || err.message}`);
-      console.error('Upload error:', err);
-      setDropTarget(null);
-    }
-  };
-
-  // Handle drag and drop for moving files between folders
-  const handleDragStart = (event, node) => {
-    // Guests cannot drag files
-    if (isGuest) {
-      event.preventDefault();
-      return;
-    }
-    event.stopPropagation();
-    setDraggedNode(node);
-    event.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragEnter = (event, node) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (node.type === 'folder' && draggedNode && node.id !== draggedNode.id) {
-      setDropTarget(node.id);
-    }
-  };
-
-  const handleDragLeave = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const handleDrop = async (event, targetNode) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    // Check if it's an external file drop
-    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-      await handleDropExternal(event, targetNode);
-      return;
-    }
-
-    // Internal drag-and-drop (moving files)
-    if (!draggedNode || !targetNode) {
-      setDraggedNode(null);
-      setDropTarget(null);
-      return;
-    }
-
-    // Don't allow dropping into self
-    if (draggedNode.id === targetNode.id) {
-      setDraggedNode(null);
-      setDropTarget(null);
-      return;
-    }
-
-    try {
-      const sourcePath = getNodePath(draggedNode.id);
-      const targetPath = targetNode ? getNodePath(targetNode.id) : '';
-      const destinationPath = targetPath ? `${targetPath}/${draggedNode.label}` : draggedNode.label;
-
       await axios.post(`/api/workspace/${projectName}/files/move`, {
-        sourcePath,
-        destinationPath
+        sourcePath: draggedRow.path,
+        destinationPath,
       });
       await loadFilesystem();
     } catch (err) {
       setError(`Failed to move: ${err.response?.data?.message || err.message}`);
-      console.error('Move error:', err);
-    } finally {
-      setDraggedNode(null);
-      setDropTarget(null);
     }
   };
 
-  const filterSystemFiles = (nodes, parentPath = '') => {
-    return nodes.filter(node => {
-      // Filter system files if needed
-      if (!showSystemFiles) {
-        if (node.label === 'CLAUDE.md' || node.label === 'data' || node.label === '.claude' || node.label === '.mcp.json' || node.label === '.etienne') {
-          return false;
-        }
+  // ── External file drop (upload from OS) ──
+  const handleDropExternal = async (e, targetRow) => {
+    if (isGuest) return;
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    const targetPath = targetRow ? targetRow.path : '';
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const filepath = targetPath ? `${targetPath}/${file.name}` : file.name;
+        formData.append('filepath', filepath);
+        await axios.post(`/api/workspace/${projectName}/files/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       }
-
-      // Build current path
-      const currentPath = parentPath ? `${parentPath}/${node.label}` : node.label;
-
-      // Filter by tags if selected
-      if (selectedTags.length > 0) {
-        const nodeTags = fileTags[currentPath] || [];
-        const hasMatchingTag = selectedTags.some(tag => nodeTags.includes(tag));
-
-        // For folders, check if any children match
-        if (node.type === 'folder' && node.children) {
-          const filteredChildren = filterSystemFiles(node.children, currentPath);
-          if (filteredChildren.length > 0) {
-            node.children = filteredChildren;
-            return true;
-          }
-        }
-
-        if (!hasMatchingTag) {
-          return false;
-        }
-      }
-
-      // Recursively filter children
-      if (node.children) {
-        node.children = filterSystemFiles(node.children, currentPath);
-      }
-
-      return true;
-    });
+      await loadFilesystem();
+    } catch (err) {
+      setError(`Failed to upload: ${err.response?.data?.message || err.message}`);
+    }
   };
 
-  const renderTree = (nodes, parentPath = '') => {
-    return nodes.map((node) => {
-      const isFolder = node.type === 'folder';
-      const isDropTarget = dropTarget === node.id;
-      const currentPath = parentPath ? `${parentPath}/${node.label}` : node.label;
-      const nodeTags = fileTags[currentPath] || [];
+  const handleDropToRoot = (e) => handleDropExternal(e, null);
 
-      // Custom label with drag-and-drop, tags, and timestamp
-      const customLabel = (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 0.5,
-            padding: '2px 4px',
-            backgroundColor: isDropTarget ? 'rgba(25, 118, 210, 0.12)' : 'transparent',
-            borderRadius: 1,
-            cursor: 'pointer',
-            width: '100%',
-            marginLeft: '-4px',
-            marginRight: '-4px',
-            paddingLeft: '8px',
-            paddingRight: '8px',
-            '&:hover': {
-              backgroundColor: isDropTarget ? 'rgba(25, 118, 210, 0.2)' : '#FFD700'
-            }
-          }}
-          draggable
-          onDragStart={(e) => handleDragStart(e, node)}
-          onDragOver={handleDragOver}
-          onDragEnter={(e) => isFolder && handleDragEnter(e, node)}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => isFolder && handleDrop(e, node)}
-          onClick={(e) => handleContextMenu(e, node)}
-        >
-          {isFolder ? (
-            <PiFolderThin size={19} style={{ color: '#999', marginRight: '4px', flexShrink: 0 }} />
-          ) : (
-            <IoDocumentOutline style={{ color: '#999', marginRight: '4px', flexShrink: 0 }} />
-          )}
-          <span style={{ fontSize: '0.8em' }}>{node.label}</span>
-          {nodeTags.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-              {nodeTags.map(tag => (
-                <Chip
-                  key={tag}
-                  label={tag}
-                  size="small"
-                  sx={{
-                    height: '16px',
-                    fontSize: '0.7rem',
-                    backgroundColor: getTagColor(tag),
-                    color: 'white',
-                    '& .MuiChip-label': {
-                      px: 0.5
-                    }
-                  }}
-                />
-              ))}
-            </Box>
-          )}
-          <Box sx={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {formatTimestamp(node.mtime)}
-          </Box>
-        </Box>
-      );
-
-      return (
-        <TreeItem
-          key={node.id}
-          itemId={node.id}
-          label={customLabel}
-        >
-          {isFolder && node.children && renderTree(node.children, currentPath)}
-        </TreeItem>
-      );
-    });
-  };
-
+  // ── Loading state ──
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -564,19 +317,20 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', p: 2, mr: '0px' }}>
       <BackgroundInfo infoId="filesystem" showBackgroundInfo={showBackgroundInfo} />
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      {/* Tag Filter Bar */}
+      {/* ── Tag Filter Bar ── */}
       {allTags.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Autocomplete
             multiple
             size="small"
-            options={allTags.map(t => t.tag)}
+            options={allTags.map((t) => t.tag)}
             value={selectedTags}
             onChange={(event, newValue) => setSelectedTags(newValue)}
             renderInput={(params) => (
@@ -589,10 +343,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
                   key={option}
                   label={option}
                   size="small"
-                  sx={{
-                    backgroundColor: getTagColor(option),
-                    color: 'white'
-                  }}
+                  sx={{ backgroundColor: getTagColor(option), color: 'white' }}
                 />
               ))
             }
@@ -600,33 +351,20 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         </Box>
       )}
 
-      <Box
-        sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1, overflow: 'auto', p: 1, mr: '0px' }}
-        onDragOver={handleDragOver}
-        onDrop={(e) => handleDrop(e, null)} // Drop to root
-      >
-        <TreeView
-          aria-label="file system navigator"
-          defaultCollapseIcon={<ExpandMore />}
-          defaultExpandIcon={<ChevronRight />}
-          sx={{
-            fontSize: '90%',
-            fontWeight: 300,
-            '& .MuiTreeItem-content': {
-              alignItems: 'flex-start !important',
-              '&:hover': {
-                backgroundColor: 'transparent !important'
-              }
-            },
-            '& .MuiTreeItem-iconContainer': {
-              marginTop: '5px'
-            }
-          }}
-        >
-          {renderTree(filterSystemFiles(tree))}
-        </TreeView>
-      </Box>
+      {/* ── Virtual File Tree ── */}
+      <FileTreeVirtualList
+        flatRows={flatRows}
+        fileTags={fileTags}
+        getTagColor={getTagColor}
+        isGuest={isGuest}
+        onToggleExpand={handleToggleExpand}
+        onContextMenu={handleContextMenu}
+        onDrop={handleDrop}
+        onDropExternal={handleDropExternal}
+        onDropToRoot={handleDropToRoot}
+      />
 
+      {/* ── Toolbar ── */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
         {isAdmin && (
           <FormControlLabel
@@ -642,35 +380,30 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         )}
         {!isAdmin && <Box />}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title={isGuest ? "Upload (Not available for guests)" : "Upload"}>
+          <Tooltip title={isGuest ? 'Upload (Not available for guests)' : 'Upload'}>
             <span>
               <IconButton
                 onClick={() => {
                   if (isGuest) return;
-                  fileInputRef.current.targetNode = null;
+                  fileInputRef.current.targetRow = null;
                   fileInputRef.current.click();
                 }}
                 disabled={isGuest}
               >
-                <PiUploadLight />
+                <i className="codicon codicon-cloud-upload" style={{ fontSize: 20 }} />
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title={isGuest ? "New Folder (Not available for guests)" : "New Folder"}>
+          <Tooltip title={isGuest ? 'New Folder (Not available for guests)' : 'New Folder'}>
             <span>
-              <IconButton
-                onClick={handleNewFolderClick}
-                disabled={isGuest}
-              >
-                <MdOutlineCreateNewFolder />
+              <IconButton onClick={handleNewFolderClick} disabled={isGuest}>
+                <i className="codicon codicon-new-folder" style={{ fontSize: 20 }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title="Refresh">
-            <IconButton
-              onClick={loadFilesystem}
-            >
-              <Refresh />
+            <IconButton onClick={loadFilesystem}>
+              <i className="codicon codicon-refresh" style={{ fontSize: 20 }} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -685,7 +418,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         onChange={handleFileUpload}
       />
 
-      {/* Context Menu */}
+      {/* ── Context Menu ── */}
       <Menu
         open={contextMenu !== null}
         onClose={handleCloseContextMenu}
@@ -696,43 +429,38 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             : undefined
         }
       >
-        {contextMenu?.node?.type !== 'folder' && (
+        {contextMenu?.row?.type !== 'folder' && (
           <MenuItem onClick={handlePreviewClick}>
-            <Preview fontSize="small" sx={{ mr: 1 }} />
+            <i className="codicon codicon-eye" style={{ fontSize: 16, marginRight: 8 }} />
             Open for preview
           </MenuItem>
         )}
         {!isGuest && (
           <MenuItem onClick={handleRenameClick}>
-            <Edit fontSize="small" sx={{ mr: 1 }} />
+            <i className="codicon codicon-edit" style={{ fontSize: 16, marginRight: 8 }} />
             Rename
           </MenuItem>
         )}
-        {contextMenu?.node?.type === 'folder' && !isGuest && (
-          <MenuItem onClick={() => handleUploadClick(contextMenu.node)}>
-            <Upload fontSize="small" sx={{ mr: 1 }} />
+        {contextMenu?.row?.type === 'folder' && !isGuest && (
+          <MenuItem onClick={() => handleUploadClick(contextMenu.row)}>
+            <i className="codicon codicon-cloud-upload" style={{ fontSize: 16, marginRight: 8 }} />
             Upload to folder
           </MenuItem>
         )}
         {!isGuest && (
           <MenuItem onClick={handleDeleteClick}>
-            <Delete fontSize="small" sx={{ mr: 1 }} />
+            <i className="codicon codicon-trash" style={{ fontSize: 16, marginRight: 8 }} />
             Delete
           </MenuItem>
         )}
         <MenuItem onClick={handleManageTagsClick}>
-          <LocalOffer fontSize="small" sx={{ mr: 1 }} />
+          <i className="codicon codicon-tag" style={{ fontSize: 16, marginRight: 8 }} />
           Manage Tags
         </MenuItem>
       </Menu>
 
-      {/* Rename Dialog */}
-      <Dialog
-        open={renameDialog.open}
-        onClose={handleRenameCancel}
-        maxWidth="sm"
-        fullWidth
-      >
+      {/* ── Rename Dialog ── */}
+      <Dialog open={renameDialog.open} onClose={handleRenameCancel} maxWidth="sm" fullWidth>
         <DialogTitle>Rename</DialogTitle>
         <DialogContent>
           <TextField
@@ -743,11 +471,8 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             value={renameDialog.newName}
             onChange={(e) => setRenameDialog({ ...renameDialog, newName: e.target.value })}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleRenameSubmit();
-              } else if (e.key === 'Escape') {
-                handleRenameCancel();
-              }
+              if (e.key === 'Enter') handleRenameSubmit();
+              else if (e.key === 'Escape') handleRenameCancel();
             }}
           />
         </DialogContent>
@@ -759,13 +484,8 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         </DialogActions>
       </Dialog>
 
-      {/* New Folder Dialog */}
-      <Dialog
-        open={newFolderDialog.open}
-        onClose={handleNewFolderCancel}
-        maxWidth="sm"
-        fullWidth
-      >
+      {/* ── New Folder Dialog ── */}
+      <Dialog open={newFolderDialog.open} onClose={handleNewFolderCancel} maxWidth="sm" fullWidth>
         <DialogTitle>New Folder</DialogTitle>
         <DialogContent>
           <TextField
@@ -776,11 +496,8 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             value={newFolderDialog.folderName}
             onChange={(e) => setNewFolderDialog({ ...newFolderDialog, folderName: e.target.value })}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleNewFolderSubmit();
-              } else if (e.key === 'Escape') {
-                handleNewFolderCancel();
-              }
+              if (e.key === 'Enter') handleNewFolderSubmit();
+              else if (e.key === 'Escape') handleNewFolderCancel();
             }}
           />
         </DialogContent>
@@ -792,16 +509,13 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialog.open}
-        onClose={handleDeleteCancel}
-      >
+      {/* ── Delete Confirmation Dialog ── */}
+      <Dialog open={deleteDialog.open} onClose={handleDeleteCancel}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete "{deleteDialog.node?.label}"?
-            {deleteDialog.node?.type === 'folder' && (
+            Are you sure you want to delete &quot;{deleteDialog.row?.label}&quot;?
+            {deleteDialog.row?.type === 'folder' && (
               <Box component="span" sx={{ display: 'block', mt: 1, color: 'error.main' }}>
                 This will delete the folder and all its contents.
               </Box>
@@ -816,13 +530,13 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         </DialogActions>
       </Dialog>
 
-      {/* Tag Manager Dialog */}
+      {/* ── Tag Manager Dialog ── */}
       <TagManager
         open={tagManagerDialog.open}
         onClose={handleTagManagerClose}
         projectName={projectName}
         filePath={tagManagerDialog.filePath}
-        fileName={tagManagerDialog.node?.label || ''}
+        fileName={tagManagerDialog.row?.label || ''}
         currentTags={fileTags[tagManagerDialog.filePath] || []}
         allTags={allTags}
       />
