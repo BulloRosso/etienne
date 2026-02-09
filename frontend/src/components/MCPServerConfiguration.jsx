@@ -34,7 +34,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
   const [newServer, setNewServer] = useState({
     name: 'internetretrieval',
     transport: 'http',
-    url: 'http://host.docker.internal:6060/mcp',
+    url: 'http://host.docker.internal:6060/mcp/demo',
     command: '',
     args: '',
     auth: 'test123'
@@ -124,7 +124,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     setNewServer({
       name: 'internetretrieval',
       transport: 'http',
-      url: 'http://host.docker.internal:6060/mcp',
+      url: 'http://host.docker.internal:6060/mcp/demo',
       command: '',
       args: '',
       auth: 'Bearer test123'

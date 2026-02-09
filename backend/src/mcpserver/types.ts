@@ -128,3 +128,28 @@ export interface ElicitationResponse {
   action: 'accept' | 'decline' | 'cancel';
   content?: Record<string, any>;
 }
+
+// ============================================
+// MCP Server Factory Types
+// ============================================
+
+/**
+ * Configuration for a tool group within the MCP server factory.
+ * Each group becomes its own independent MCP server endpoint.
+ */
+export interface ToolGroupConfig {
+  toolServices: ToolService[];
+  dynamicToolsLoader?: (projectRoot: string) => Promise<McpTool[]>;
+  dynamicToolExecutor?: (toolName: string, args: Record<string, any>, projectRoot: string) => Promise<any>;
+}
+
+/**
+ * Runtime instance of a tool group's MCP server.
+ * Created lazily by the factory on first access.
+ */
+export interface McpGroupInstance {
+  server: import('@modelcontextprotocol/sdk/server/index.js').Server;
+  toolMap: Map<string, ToolService>;
+  transports: Map<string, import('@modelcontextprotocol/sdk/server/streamableHttp.js').StreamableHTTPServerTransport>;
+  config: ToolGroupConfig;
+}

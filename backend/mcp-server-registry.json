@@ -1,13 +1,67 @@
 {
   "servers": [
     {
-      "name": "etienne-tools",
+      "name": "demo",
       "transport": "http",
-      "url": "http://localhost:6060/mcp",
-      "headers": {
-        "Authorization": "test123"
-      },
-      "description": "Etienne built-in tools server providing standard project capabilities"
+      "url": "http://localhost:6060/mcp/demo",
+      "headers": { "Authorization": "test123" },
+      "description": "Demo pet store tools"
+    },
+    {
+      "name": "diffbot",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/diffbot",
+      "headers": { "Authorization": "test123" },
+      "description": "Web scraping tools via Diffbot"
+    },
+    {
+      "name": "deep-research",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/deep-research",
+      "headers": { "Authorization": "test123" },
+      "description": "OpenAI o3 deep research"
+    },
+    {
+      "name": "knowledge-graph",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/knowledge-graph",
+      "headers": { "Authorization": "test123" },
+      "description": "Knowledge graph and vector search"
+    },
+    {
+      "name": "email",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/email",
+      "headers": { "Authorization": "test123" },
+      "description": "Email send/receive tools"
+    },
+    {
+      "name": "scrapbook",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/scrapbook",
+      "headers": { "Authorization": "test123" },
+      "description": "Scrapbook note-taking tools"
+    },
+    {
+      "name": "a2a",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/a2a",
+      "headers": { "Authorization": "test123" },
+      "description": "Agent-to-Agent integration tools"
+    },
+    {
+      "name": "project-tools",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/project-tools",
+      "headers": { "Authorization": "test123" },
+      "description": "Dynamic Python project tools"
+    },
+    {
+      "name": "confirmation",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/confirmation",
+      "headers": { "Authorization": "test123" },
+      "description": "Elicitation/confirmation example tools"
     }
   ]
 }

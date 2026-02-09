@@ -39,7 +39,7 @@ export default function EmailConfiguration() {
             <strong>Transport:</strong> http
           </Typography>
           <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 1 }}>
-            <strong>URL:</strong> http://host.docker.internal:6060/mcp
+            <strong>URL:</strong> http://host.docker.internal:6060/mcp/email
           </Typography>
           <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
             <strong>Auth Token:</strong> test123

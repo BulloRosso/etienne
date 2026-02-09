@@ -21,7 +21,7 @@ import {
   AccordionSummary,
   AccordionDetails
 } from '@mui/material';
-import { Delete, Add, Build, ExpandMore } from '@mui/icons-material';
+import { Delete, Add, Build, ExpandMore, Close } from '@mui/icons-material';
 import axios from 'axios';
 
 export default function McpToolsSelector({
@@ -138,9 +138,27 @@ export default function McpToolsSelector({
             <ListItem
               key={name}
               secondaryAction={
-                <IconButton edge="end" onClick={() => handleRemoveServer(name)}>
-                  <Delete />
-                </IconButton>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  {config.url && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<Build sx={{ fontSize: 16 }} />}
+                      onClick={() => handleShowTools({
+                        name,
+                        url: config.url,
+                        headers: config.headers,
+                        description: registryServers.find(s => s.name === name)?.description
+                      })}
+                      sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                    >
+                      Provided Tools
+                    </Button>
+                  )}
+                  <IconButton edge="end" onClick={() => handleRemoveServer(name)}>
+                    <Delete />
+                  </IconButton>
+                </Box>
               }
             >
               <ListItemText
@@ -224,32 +242,6 @@ export default function McpToolsSelector({
         </>
       )}
 
-      {/* Also show Provided Tools button for configured servers */}
-      {Object.keys(configuredServers).length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          {Object.entries(configuredServers).map(([name, config]) => {
-            const registryServer = registryServers.find(s => s.name === name);
-            return config.url ? (
-              <Button
-                key={name}
-                size="small"
-                variant="outlined"
-                startIcon={<Build sx={{ fontSize: 16 }} />}
-                onClick={() => handleShowTools({
-                  name,
-                  url: config.url,
-                  headers: config.headers,
-                  description: registryServer?.description
-                })}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', mr: 1, mb: 1 }}
-              >
-                {name} - Provided Tools
-              </Button>
-            ) : null;
-          })}
-        </Box>
-      )}
-
       {/* Add Custom Server Section - Admin only, collapsible */}
       {isAdmin && (
         <>
@@ -322,9 +314,14 @@ export default function McpToolsSelector({
         sx={{ zIndex: 1400 }}
       >
         <Box sx={{ width: 420, p: 3 }}>
-          <Typography variant="h6" sx={{ mb: 0.5 }}>
-            Provided Tools
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+            <Typography variant="h6">
+              Provided Tools
+            </Typography>
+            <IconButton onClick={() => setToolsDrawerOpen(false)} size="small">
+              <Close />
+            </IconButton>
+          </Box>
           {toolsDrawerServer && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {toolsDrawerServer.name}
@@ -376,15 +373,6 @@ export default function McpToolsSelector({
             </>
           )}
 
-          <Box sx={{ mt: 3 }}>
-            <Button
-              variant="outlined"
-              onClick={() => setToolsDrawerOpen(false)}
-              fullWidth
-            >
-              Close
-            </Button>
-          </Box>
         </Box>
       </Drawer>
     </Box>

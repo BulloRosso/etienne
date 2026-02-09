@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { McpServerController } from './mcp-server.controller';
-import { McpServerService } from './mcp-server.service';
+import { McpServerFactoryService } from './mcp-server-factory.service';
 import { McpAuthGuard } from './auth.guard';
 import { DeepResearchModule } from '../deep-research/deep-research.module';
 import { KnowledgeGraphModule } from '../knowledge-graph/knowledge-graph.module';
@@ -14,7 +14,7 @@ import { ProjectToolsModule } from './project-tools/project-tools.module';
 @Module({
   imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule],
   controllers: [McpServerController],
-  providers: [McpServerService, McpAuthGuard],
-  exports: [McpServerService],
+  providers: [McpServerFactoryService, McpAuthGuard],
+  exports: [McpServerFactoryService],
 })
 export class McpServerModule {}
