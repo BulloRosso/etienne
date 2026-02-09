@@ -378,7 +378,29 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
         {/* Tab 0: Task List */}
         {activeTab === 0 && (
           <>
-            <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+            <Box sx={{
+              flex: 1,
+              overflow: 'auto',
+              p: 2,
+              position: 'relative',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                left: '50%',
+                bottom: 0,
+                transform: 'translateX(-50%)',
+                width: '100%',
+                maxWidth: 220,
+                height: '33.3%',
+                backgroundImage: 'url(/feature-scheduled-tasks.jpg)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center bottom',
+                opacity: 0.5,
+                pointerEvents: 'none',
+                zIndex: 0,
+              }
+            }}>
               <BackgroundInfo infoId="scheduled-input" showBackgroundInfo={showBackgroundInfo} />
 
               {tasks.length === 0 ? (

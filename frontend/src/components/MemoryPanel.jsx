@@ -269,7 +269,29 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       {/* Tab 0: Memories */}
       {activeTab === 0 && (
         <>
-          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+          <Box sx={{
+            flex: 1,
+            overflow: 'auto',
+            p: 2,
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              left: '50%',
+              bottom: 0,
+              transform: 'translateX(-50%)',
+              width: '100%',
+              maxWidth: 220,
+              height: '33.3%',
+              backgroundImage: 'url(/feature-long-term-memory.jpg)',
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center bottom',
+              opacity: 0.5,
+              pointerEvents: 'none',
+              zIndex: 0,
+            }
+          }}>
             <BackgroundInfo infoId="memory" showBackgroundInfo={showBackgroundInfo} />
 
             {loading && (
