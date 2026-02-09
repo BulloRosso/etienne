@@ -4,6 +4,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemIcon,
   IconButton,
   TextField,
   Button,
@@ -13,14 +14,21 @@ import {
   FormControl,
   InputLabel,
   Divider,
-  Chip
+  Chip,
+  Drawer,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
-import { Delete, Add } from '@mui/icons-material';
+import { Delete, Add, Build, ExpandMore } from '@mui/icons-material';
+import axios from 'axios';
 
 export default function McpToolsSelector({
   registryServers = [],
   configuredServers = {},
-  onServersChange
+  onServersChange,
+  isAdmin = false
 }) {
   const [newServer, setNewServer] = useState({
     name: '',
@@ -28,6 +36,11 @@ export default function McpToolsSelector({
     url: '',
     headers: ''
   });
+  const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);
+  const [toolsDrawerServer, setToolsDrawerServer] = useState(null);
+  const [toolsList, setToolsList] = useState([]);
+  const [toolsLoading, setToolsLoading] = useState(false);
+  const [toolsError, setToolsError] = useState(null);
 
   const handleAddFromRegistry = (server) => {
     const config = {
@@ -83,6 +96,26 @@ export default function McpToolsSelector({
       url: '',
       headers: ''
     });
+  };
+
+  const handleShowTools = async (server) => {
+    setToolsDrawerServer(server);
+    setToolsDrawerOpen(true);
+    setToolsList([]);
+    setToolsError(null);
+    setToolsLoading(true);
+
+    try {
+      const response = await axios.post('/api/mcp-registry/list-tools', {
+        url: server.url,
+        headers: server.headers
+      });
+      setToolsList(response.data.tools || []);
+    } catch (error) {
+      setToolsError(error.response?.data?.message || error.message || 'Failed to fetch tools');
+    } finally {
+      setToolsLoading(false);
+    }
   };
 
   const isInRegistry = (serverName) => {
@@ -152,13 +185,24 @@ export default function McpToolsSelector({
               <ListItem
                 key={server.name}
                 secondaryAction={
-                  <IconButton
-                    edge="end"
-                    onClick={() => handleAddFromRegistry(server)}
-                    color="primary"
-                  >
-                    <Add />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<Build sx={{ fontSize: 16 }} />}
+                      onClick={() => handleShowTools(server)}
+                      sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                    >
+                      Provided Tools
+                    </Button>
+                    <IconButton
+                      edge="end"
+                      onClick={() => handleAddFromRegistry(server)}
+                      color="primary"
+                    >
+                      <Add />
+                    </IconButton>
+                  </Box>
                 }
               >
                 <ListItemText
@@ -180,59 +224,169 @@ export default function McpToolsSelector({
         </>
       )}
 
-      {/* Add Custom Server Section */}
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        Add Custom MCP Server
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField
-            size="small"
-            label="Name"
-            value={newServer.name}
-            onChange={(e) => setNewServer({ ...newServer, name: e.target.value.toLowerCase() })}
-            placeholder="my-server"
-            sx={{ width: 150 }}
-          />
-          <FormControl size="small" sx={{ width: 100 }}>
-            <InputLabel>Transport</InputLabel>
-            <Select
-              value={newServer.transport}
-              onChange={(e) => setNewServer({ ...newServer, transport: e.target.value })}
-              label="Transport"
+      {/* Also show Provided Tools button for configured servers */}
+      {Object.keys(configuredServers).length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          {Object.entries(configuredServers).map(([name, config]) => {
+            const registryServer = registryServers.find(s => s.name === name);
+            return config.url ? (
+              <Button
+                key={name}
+                size="small"
+                variant="outlined"
+                startIcon={<Build sx={{ fontSize: 16 }} />}
+                onClick={() => handleShowTools({
+                  name,
+                  url: config.url,
+                  headers: config.headers,
+                  description: registryServer?.description
+                })}
+                sx={{ fontSize: '0.75rem', textTransform: 'none', mr: 1, mb: 1 }}
+              >
+                {name} - Provided Tools
+              </Button>
+            ) : null;
+          })}
+        </Box>
+      )}
+
+      {/* Add Custom Server Section - Admin only, collapsible */}
+      {isAdmin && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Accordion defaultExpanded={false} sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ px: 0, minHeight: 'auto' }}>
+              <Typography variant="subtitle2">
+                Add Custom MCP Server
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: 0 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    label="Name"
+                    value={newServer.name}
+                    onChange={(e) => setNewServer({ ...newServer, name: e.target.value.toLowerCase() })}
+                    placeholder="my-server"
+                    sx={{ width: 150 }}
+                  />
+                  <FormControl size="small" sx={{ width: 100 }}>
+                    <InputLabel>Transport</InputLabel>
+                    <Select
+                      value={newServer.transport}
+                      onChange={(e) => setNewServer({ ...newServer, transport: e.target.value })}
+                      label="Transport"
+                    >
+                      <MenuItem value="http">HTTP</MenuItem>
+                      <MenuItem value="sse">SSE</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    size="small"
+                    label="URL"
+                    value={newServer.url}
+                    onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
+                    placeholder="https://mcp.example.com"
+                    sx={{ flex: 1 }}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    label="Auth Header (optional)"
+                    value={newServer.headers}
+                    onChange={(e) => setNewServer({ ...newServer, headers: e.target.value })}
+                    placeholder="Bearer token..."
+                    sx={{ flex: 1 }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleAddCustomServer}
+                    disabled={!newServer.name || !newServer.url}
+                  >
+                    Add
+                  </Button>
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        </>
+      )}
+
+      {/* Tools Drawer */}
+      <Drawer
+        anchor="left"
+        open={toolsDrawerOpen}
+        onClose={() => setToolsDrawerOpen(false)}
+        sx={{ zIndex: 1400 }}
+      >
+        <Box sx={{ width: 420, p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 0.5 }}>
+            Provided Tools
+          </Typography>
+          {toolsDrawerServer && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {toolsDrawerServer.name}
+              {toolsDrawerServer.description && ` \u2014 ${toolsDrawerServer.description}`}
+            </Typography>
+          )}
+
+          {toolsLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {toolsError && (
+            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+              {toolsError}
+            </Typography>
+          )}
+
+          {!toolsLoading && !toolsError && toolsList.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No tools available from this server.
+            </Typography>
+          )}
+
+          {!toolsLoading && toolsList.length > 0 && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {toolsList.length} tool{toolsList.length !== 1 ? 's' : ''} available
+              </Typography>
+              <List dense>
+                {toolsList.map((tool, index) => (
+                  <ListItem key={tool.name || index} sx={{ alignItems: 'flex-start', px: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 32, mt: '4px' }}>
+                      <Build sx={{ fontSize: 18, color: 'primary.main' }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                          {tool.name}
+                        </Typography>
+                      }
+                      secondary={tool.description || 'No description available'}
+                      secondaryTypographyProps={{ sx: { fontSize: '0.75rem' } }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+
+          <Box sx={{ mt: 3 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setToolsDrawerOpen(false)}
+              fullWidth
             >
-              <MenuItem value="http">HTTP</MenuItem>
-              <MenuItem value="sse">SSE</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            size="small"
-            label="URL"
-            value={newServer.url}
-            onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
-            placeholder="https://mcp.example.com"
-            sx={{ flex: 1 }}
-          />
+              Close
+            </Button>
+          </Box>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField
-            size="small"
-            label="Auth Header (optional)"
-            value={newServer.headers}
-            onChange={(e) => setNewServer({ ...newServer, headers: e.target.value })}
-            placeholder="Bearer token..."
-            sx={{ flex: 1 }}
-          />
-          <Button
-            variant="contained"
-            onClick={handleAddCustomServer}
-            disabled={!newServer.name || !newServer.url}
-          >
-            Add
-          </Button>
-        </Box>
-      </Box>
+      </Drawer>
     </Box>
   );
 }

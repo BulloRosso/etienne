@@ -1,0 +1,13 @@
+{
+  "servers": [
+    {
+      "name": "etienne-tools",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp",
+      "headers": {
+        "Authorization": "test123"
+      },
+      "description": "Etienne built-in tools server providing standard project capabilities"
+    }
+  ]
+}

@@ -26,6 +26,7 @@ import axios from 'axios';
 import SkillsSelector from './SkillsSelector';
 import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const WIZARD_STEPS = [
   {
@@ -73,6 +74,7 @@ const WIZARD_STEPS = [
 ];
 
 export default function CreateProjectWizard({ open, onClose, onProjectCreated, existingProjects = [] }) {
+  const { hasRole } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
@@ -270,7 +272,6 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
 
       if (response.data.success) {
         onProjectCreated(projectName);
-        onClose();
       } else {
         setError(response.data.errors?.[0] || 'Failed to create project');
       }
@@ -416,6 +417,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 registryServers={registryMcpServers}
                 configuredServers={mcpServers}
                 onServersChange={setMcpServers}
+                isAdmin={hasRole('admin')}
               />
             )}
           </Box>

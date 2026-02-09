@@ -136,6 +136,54 @@ export class SkillsService {
   }
 
   /**
+   * List extra files in a skill directory (everything except SKILL.md)
+   */
+  async listSkillFiles(project: string, skillName: string): Promise<string[]> {
+    const skillDir = path.join(this.getSkillsDir(project), skillName);
+
+    try {
+      const entries = await fs.readdir(skillDir);
+      return entries.filter((name) => name !== 'SKILL.md').sort();
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Upload a file into a skill directory
+   */
+  async uploadSkillFile(
+    project: string,
+    skillName: string,
+    fileName: string,
+    fileBuffer: Buffer,
+  ): Promise<void> {
+    const skillDir = path.join(this.getSkillsDir(project), skillName);
+
+    // Ensure skill directory exists
+    await fs.mkdir(skillDir, { recursive: true });
+
+    const filePath = path.join(skillDir, fileName);
+    await fs.writeFile(filePath, fileBuffer);
+  }
+
+  /**
+   * Delete a file from a skill directory
+   */
+  async deleteSkillFile(
+    project: string,
+    skillName: string,
+    fileName: string,
+  ): Promise<void> {
+    if (fileName === 'SKILL.md') {
+      throw new Error('Cannot delete the SKILL.md file');
+    }
+
+    const filePath = path.join(this.getSkillsDir(project), skillName, fileName);
+    await fs.unlink(filePath);
+  }
+
+  /**
    * Delete a skill
    */
   async deleteSkill(project: string, skillName: string): Promise<void> {

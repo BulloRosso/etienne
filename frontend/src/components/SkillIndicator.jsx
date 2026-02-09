@@ -49,22 +49,28 @@ export default function SkillIndicator({ projectName }) {
             display: 'flex',
             alignItems: 'center',
             gap: 0.5,
-            px: 1,
-            py: 0.5,
-            bgcolor: '#ff9800',
-            color: '#ffffff',
-            borderRadius: '12px',
             cursor: 'pointer',
             fontSize: '0.75rem',
-            fontWeight: 500,
             mr: 1,
-            '&:hover': {
-              bgcolor: '#f57c00'
-            }
+            '&:hover': { opacity: 0.8 }
           }}
         >
-          <span>{skillCount}</span>
-          <span>skills active</span>
+          <Box component="span" sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 20,
+            px: 0.5,
+            py: 0.25,
+            bgcolor: '#ff9800',
+            color: '#ffffff',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.7rem'
+          }}>
+            {skillCount}
+          </Box>
+          <Box component="span" sx={{ color: 'text.secondary' }}>skills active</Box>
         </Box>
       </Tooltip>
 

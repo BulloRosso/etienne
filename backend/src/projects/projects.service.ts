@@ -42,9 +42,10 @@ export class ProjectsService {
       await this.createProjectStructure(projectPath);
       this.logger.log(`Created project structure for ${dto.projectName}`);
 
-      // 3. Build and write CLAUDE.md (mission brief + agent role)
-      await this.writeClaudeMd(projectPath, dto);
-      this.logger.log(`Wrote CLAUDE.md for ${dto.projectName}`);
+      // 3. Write mission brief to root CLAUDE.md and agent role to .claude/CLAUDE.md
+      await this.writeMissionBrief(projectPath, dto);
+      await this.writeAgentRole(projectPath, dto);
+      this.logger.log(`Wrote CLAUDE.md files for ${dto.projectName}`);
 
       // 4. Provision standard skills
       try {
@@ -165,34 +166,37 @@ export class ProjectsService {
   }
 
   /**
-   * Build and write the CLAUDE.md file with mission brief and agent role
+   * Write the mission brief to the root CLAUDE.md file
    */
-  private async writeClaudeMd(projectPath: string, dto: CreateProjectDto): Promise<void> {
+  private async writeMissionBrief(projectPath: string, dto: CreateProjectDto): Promise<void> {
+    let content = '# Mission Brief\n\n';
+    content += dto.missionBrief;
+
+    const claudeMdPath = path.join(projectPath, 'CLAUDE.md');
+    await fs.writeFile(claudeMdPath, content.trim(), 'utf-8');
+  }
+
+  /**
+   * Write the agent role to .claude/CLAUDE.md
+   */
+  private async writeAgentRole(projectPath: string, dto: CreateProjectDto): Promise<void> {
+    if (!dto.agentRole) return;
+
     let content = '';
 
-    // Add mission brief section
-    content += '# Mission Brief\n\n';
-    content += dto.missionBrief;
-    content += '\n\n';
-
-    // Add agent role if specified
-    if (dto.agentRole) {
-      if (dto.agentRole.type === 'registry' && dto.agentRole.roleId) {
-        // Get role content from registry
-        const roleContent = await this.agentRoleRegistryService.getRoleContent(dto.agentRole.roleId);
-        if (roleContent) {
-          content += '---\n\n';
-          content += roleContent;
-        }
-      } else if (dto.agentRole.type === 'custom' && dto.agentRole.customContent) {
-        content += '---\n\n';
-        content += dto.agentRole.customContent;
+    if (dto.agentRole.type === 'registry' && dto.agentRole.roleId) {
+      const roleContent = await this.agentRoleRegistryService.getRoleContent(dto.agentRole.roleId);
+      if (roleContent) {
+        content = roleContent;
       }
+    } else if (dto.agentRole.type === 'custom' && dto.agentRole.customContent) {
+      content = dto.agentRole.customContent;
     }
 
-    // Write to CLAUDE.md
-    const claudeMdPath = path.join(projectPath, '.claude', 'CLAUDE.md');
-    await fs.writeFile(claudeMdPath, content.trim(), 'utf-8');
+    if (content) {
+      const claudeMdPath = path.join(projectPath, '.claude', 'CLAUDE.md');
+      await fs.writeFile(claudeMdPath, content.trim(), 'utf-8');
+    }
   }
 
   /**
@@ -200,11 +204,13 @@ export class ProjectsService {
    * Either copies from another project or creates a new one with the agent name
    */
   private async createUIConfig(dto: CreateProjectDto, projectPath: string): Promise<void> {
-    const uiConfigPath = path.join(projectPath, 'data', 'ui-config.json');
+    const etienneDir = path.join(projectPath, '.etienne');
+    await fs.ensureDir(etienneDir);
+    const uiConfigPath = path.join(etienneDir, 'user-interface.json');
 
     if (dto.copyUIFrom) {
       // Copy from existing project
-      const fromPath = path.join(this.workspaceDir, dto.copyUIFrom, 'data', 'ui-config.json');
+      const fromPath = path.join(this.workspaceDir, dto.copyUIFrom, '.etienne', 'user-interface.json');
       if (await fs.pathExists(fromPath)) {
         const existingConfig = await fs.readJson(fromPath);
         // Override the title with the new agent name if provided
@@ -290,7 +296,7 @@ ${customRoleContent.substring(0, 1000)}`,
 
       for (const entry of entries) {
         if (entry.isDirectory() && !entry.name.startsWith('.')) {
-          const uiConfigPath = path.join(this.workspaceDir, entry.name, 'data', 'ui-config.json');
+          const uiConfigPath = path.join(this.workspaceDir, entry.name, '.etienne', 'user-interface.json');
           if (await fs.pathExists(uiConfigPath)) {
             projectsWithUI.push(entry.name);
           }

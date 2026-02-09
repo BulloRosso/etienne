@@ -1,3 +1,7 @@
+---
+name: schedule-task
+description: Allows the agent to create cron job to execute actions later or regularly
+---
 # Schedule Task
 
 This skill enables you to schedule tasks to run at specific times. When a user requests something to happen at a future time, this skill parses the time expression, creates a scheduled task, and optionally saves the prompt for reuse.

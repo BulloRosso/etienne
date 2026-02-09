@@ -1,4 +1,8 @@
-import { Controller, Get, Post, Delete, Param, Body, Query, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller, Get, Post, Delete, Param, Body, Query,
+  HttpException, HttpStatus, UseInterceptors, UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { SkillsService } from './skills.service';
 import { SaveSkillDto } from './dto/skills.dto';
 import { ProvisionSkillsDto } from './dto/repository-skills.dto';
@@ -125,6 +129,73 @@ export class SkillsController {
           message: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':project/:skillName/files')
+  async listSkillFiles(
+    @Param('project') project: string,
+    @Param('skillName') skillName: string,
+  ) {
+    try {
+      const files = await this.skillsService.listSkillFiles(project, skillName);
+      return { success: true, files };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':project/:skillName/files/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadSkillFile(
+    @Param('project') project: string,
+    @Param('skillName') skillName: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    try {
+      if (!file) {
+        throw new Error('No file provided');
+      }
+      await this.skillsService.uploadSkillFile(
+        project,
+        skillName,
+        file.originalname,
+        file.buffer,
+      );
+      return {
+        success: true,
+        message: 'File uploaded successfully',
+        fileName: file.originalname,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Delete(':project/:skillName/files/:fileName')
+  async deleteSkillFile(
+    @Param('project') project: string,
+    @Param('skillName') skillName: string,
+    @Param('fileName') fileName: string,
+  ) {
+    try {
+      await this.skillsService.deleteSkillFile(project, skillName, fileName);
+      return {
+        success: true,
+        message: 'File deleted successfully',
+        fileName,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
       );
     }
   }

@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Tooltip, Menu, MenuItem, Typography } from '@mui/material';
+import {
+  Box, Tooltip, Menu, MenuItem, Typography,
+  Drawer, List, ListItem, ListItemIcon, ListItemText,
+  CircularProgress, Button
+} from '@mui/material';
+import { Build } from '@mui/icons-material';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
@@ -7,6 +12,11 @@ export default function McpToolsIndicator({ projectName }) {
   const { hasRole } = useAuth();
   const [mcpServers, setMcpServers] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
+  const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);
+  const [toolsDrawerServer, setToolsDrawerServer] = useState(null);
+  const [toolsList, setToolsList] = useState([]);
+  const [toolsLoading, setToolsLoading] = useState(false);
+  const [toolsError, setToolsError] = useState(null);
 
   // Hide for admin role
   const isAdmin = hasRole('admin');
@@ -26,6 +36,30 @@ export default function McpToolsIndicator({ projectName }) {
     } catch (error) {
       console.error('Failed to load MCP config:', error);
       setMcpServers({});
+    }
+  };
+
+  const handleServerClick = async (name) => {
+    setAnchorEl(null);
+    const config = mcpServers[name];
+    if (!config || !config.url) return;
+
+    setToolsDrawerServer({ name, ...config });
+    setToolsDrawerOpen(true);
+    setToolsList([]);
+    setToolsError(null);
+    setToolsLoading(true);
+
+    try {
+      const response = await axios.post('/api/mcp-registry/list-tools', {
+        url: config.url,
+        headers: config.headers
+      });
+      setToolsList(response.data.tools || []);
+    } catch (error) {
+      setToolsError(error.response?.data?.message || error.message || 'Failed to fetch tools');
+    } finally {
+      setToolsLoading(false);
     }
   };
 
@@ -52,22 +86,28 @@ export default function McpToolsIndicator({ projectName }) {
             display: 'flex',
             alignItems: 'center',
             gap: 0.5,
-            px: 1,
-            py: 0.5,
-            bgcolor: '#000000',
-            color: '#ffffff',
-            borderRadius: '12px',
             cursor: 'pointer',
             fontSize: '0.75rem',
-            fontWeight: 500,
             mr: 1,
-            '&:hover': {
-              bgcolor: '#333333'
-            }
+            '&:hover': { opacity: 0.8 }
           }}
         >
-          <span>{serverCount}</span>
-          <span>tools available</span>
+          <Box component="span" sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 20,
+            px: 0.5,
+            py: 0.25,
+            bgcolor: '#000000',
+            color: '#ffffff',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.7rem'
+          }}>
+            {serverCount}
+          </Box>
+          <Box component="span" sx={{ color: 'text.secondary' }}>tools available</Box>
         </Box>
       </Tooltip>
 
@@ -77,11 +117,83 @@ export default function McpToolsIndicator({ projectName }) {
         onClose={() => setAnchorEl(null)}
       >
         {sortedServerNames.map(name => (
-          <MenuItem key={name} onClick={() => setAnchorEl(null)}>
+          <MenuItem key={name} onClick={() => handleServerClick(name)}>
+            <Build sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
             <Typography variant="body2">{name}</Typography>
           </MenuItem>
         ))}
       </Menu>
+
+      <Drawer
+        anchor="left"
+        open={toolsDrawerOpen}
+        onClose={() => setToolsDrawerOpen(false)}
+      >
+        <Box sx={{ width: 420, p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 0.5 }}>
+            Provided Tools
+          </Typography>
+          {toolsDrawerServer && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {toolsDrawerServer.name}
+            </Typography>
+          )}
+
+          {toolsLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {toolsError && (
+            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+              {toolsError}
+            </Typography>
+          )}
+
+          {!toolsLoading && !toolsError && toolsList.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No tools available from this server.
+            </Typography>
+          )}
+
+          {!toolsLoading && toolsList.length > 0 && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {toolsList.length} tool{toolsList.length !== 1 ? 's' : ''} available
+              </Typography>
+              <List dense>
+                {toolsList.map((tool, index) => (
+                  <ListItem key={tool.name || index} sx={{ alignItems: 'flex-start', px: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 32, mt: '4px' }}>
+                      <Build sx={{ fontSize: 18, color: 'primary.main' }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                          {tool.name}
+                        </Typography>
+                      }
+                      secondary={tool.description || 'No description available'}
+                      secondaryTypographyProps={{ sx: { fontSize: '0.75rem' } }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+
+          <Box sx={{ mt: 3 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setToolsDrawerOpen(false)}
+              fullWidth
+            >
+              Close
+            </Button>
+          </Box>
+        </Box>
+      </Drawer>
     </>
   );
 }

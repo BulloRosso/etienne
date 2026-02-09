@@ -50,22 +50,28 @@ export default function A2AAgentsIndicator({ projectName }) {
             display: 'flex',
             alignItems: 'center',
             gap: 0.5,
-            px: 1,
-            py: 0.5,
-            bgcolor: '#001f3f',
-            color: '#ffffff',
-            borderRadius: '12px',
             cursor: 'pointer',
             fontSize: '0.75rem',
-            fontWeight: 500,
             mr: 1,
-            '&:hover': {
-              bgcolor: '#003366'
-            }
+            '&:hover': { opacity: 0.8 }
           }}
         >
-          <span>{agentCount}</span>
-          <span>agents available</span>
+          <Box component="span" sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 20,
+            px: 0.5,
+            py: 0.25,
+            bgcolor: '#001f3f',
+            color: '#ffffff',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.7rem'
+          }}>
+            {agentCount}
+          </Box>
+          <Box component="span" sx={{ color: 'text.secondary' }}>agents available</Box>
         </Box>
       </Tooltip>
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
 import { McpRegistryService } from './mcp-registry.service';
 
 @Controller('api/mcp-registry')
@@ -18,6 +18,28 @@ export class McpRegistryController {
         available: isAvailable,
         servers,
       };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * List tools from an MCP server
+   */
+  @Post('list-tools')
+  async listTools(@Body() body: { url: string; headers?: Record<string, string> }) {
+    try {
+      const tools = await this.mcpRegistryService.listToolsFromServer(
+        body.url,
+        body.headers,
+      );
+      return { success: true, tools };
     } catch (error: any) {
       throw new HttpException(
         {
