@@ -76,6 +76,29 @@ export class MemoriesController {
   }
 
   /**
+   * GET /api/memories/settings
+   * Get memory settings for a project
+   */
+  @Get('settings')
+  async getSettings(
+    @Query('project') projectName: string,
+  ) {
+    return this.memoriesService.getSettings(projectName);
+  }
+
+  /**
+   * PUT /api/memories/settings
+   * Save memory settings for a project
+   */
+  @Put('settings')
+  async saveSettings(
+    @Query('project') projectName: string,
+    @Body() body: { memoryEnabled?: boolean; decayDays?: number; searchLimit?: number },
+  ) {
+    return this.memoriesService.saveSettings(projectName, body);
+  }
+
+  /**
    * GET /api/memories/:user_id/
    * Get all memories for a user
    */

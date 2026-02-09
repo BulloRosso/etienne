@@ -149,20 +149,33 @@ export class ClaudeSdkOrchestratorService {
       if (memoryEnabled && isFirstRequest) {
         try {
           const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
-          const searchResponse = await axios.post(
-            `${memoryBaseUrl}/search?project=${encodeURIComponent(projectDir)}`,
-            {
-              query: sanitizedPrompt,
-              user_id: userId,
-              limit: 5
-            }
-          );
 
-          const memories = searchResponse.data.results || [];
-          if (memories.length > 0) {
-            const memoryContext = memories.map((m: any) => m.memory).join('\n- ');
-            enhancedPrompt = `[Context from previous conversations:\n- ${memoryContext}]\n\n${sanitizedPrompt}`;
-            this.logger.log(`📚 Enhanced prompt with ${memories.length} memories`);
+          // Load per-project memory settings
+          const settingsResponse = await axios.get(
+            `${memoryBaseUrl}/settings?project=${encodeURIComponent(projectDir)}`
+          );
+          const memorySettings = settingsResponse.data;
+
+          // Skip if memory is disabled in project settings
+          if (memorySettings.memoryEnabled === false) {
+            this.logger.log('Memory disabled in project settings, skipping');
+          } else {
+            const searchLimit = memorySettings.searchLimit ?? 5;
+            const searchResponse = await axios.post(
+              `${memoryBaseUrl}/search?project=${encodeURIComponent(projectDir)}`,
+              {
+                query: sanitizedPrompt,
+                user_id: userId,
+                limit: searchLimit > 0 ? searchLimit : 100
+              }
+            );
+
+            const memories = searchResponse.data.results || [];
+            if (memories.length > 0) {
+              const memoryContext = memories.map((m: any) => m.memory).join('\n- ');
+              enhancedPrompt = `[Context from previous conversations:\n- ${memoryContext}]\n\n${sanitizedPrompt}`;
+              this.logger.log(`📚 Enhanced prompt with ${memories.length} memories`);
+            }
           }
         } catch (error: any) {
           this.logger.error('Failed to fetch memories:', error.message);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert, Tabs, Tab, Button } from '@mui/material';
+import { Box, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert, Tabs, Tab, Button, Switch, FormControlLabel, TextField } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { BiMemoryCard } from 'react-icons/bi';
 import { AiOutlineDelete } from 'react-icons/ai';
@@ -19,6 +19,13 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptError, setPromptError] = useState(null);
   const [isCustomPrompt, setIsCustomPrompt] = useState(false);
+
+  // Settings state
+  const [settings, setSettings] = useState({ memoryEnabled: true, decayDays: 6, searchLimit: 5 });
+  const [originalSettings, setOriginalSettings] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState(null);
 
   useEffect(() => {
     loadMemories();
@@ -132,6 +139,58 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
     }
   };
 
+  const loadSettings = async () => {
+    setSettingsLoading(true);
+    setSettingsError(null);
+
+    try {
+      const url = `/api/memories/settings?project=${encodeURIComponent(projectName)}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load settings: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSettings(data);
+      setOriginalSettings(JSON.stringify(data));
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+      setSettingsError(err.message);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setSettingsSaving(true);
+    setSettingsError(null);
+
+    try {
+      const url = `/api/memories/settings?project=${encodeURIComponent(projectName)}`;
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save settings');
+      }
+
+      setOriginalSettings(JSON.stringify(settings));
+
+      // Sync memoryEnabled to localStorage so the rest of the UI reacts
+      localStorage.setItem('memoryEnabled', String(settings.memoryEnabled));
+      window.dispatchEvent(new Event('memoryChanged'));
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+      setSettingsError(err.message);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
   const handleDeleteMemory = async (memoryId) => {
     try {
       const userId = 'user';
@@ -156,6 +215,8 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
     setActiveTab(newValue);
     if (newValue === 1) {
       loadExtractionPrompt();
+    } else if (newValue === 2) {
+      loadSettings();
     }
   };
 
@@ -171,6 +232,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
   };
 
   const promptDirty = extractionPrompt !== originalPrompt;
+  const settingsDirty = originalSettings !== null && JSON.stringify(settings) !== originalSettings;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -201,6 +263,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       >
         <Tab label="Memories" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
         <Tab label="Extraction Prompt" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+        <Tab label="Settings" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
       </Tabs>
 
       {/* Tab 0: Memories */}
@@ -397,6 +460,85 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                   {promptSaving ? 'Saving...' : 'Save'}
                 </Button>
               </Box>
+            </Box>
+          )}
+        </>
+      )}
+
+      {/* Tab 2: Settings */}
+      {activeTab === 2 && (
+        <>
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+            {settingsLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress />
+              </Box>
+            )}
+
+            {settingsError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {settingsError}
+              </Alert>
+            )}
+
+            {!settingsLoading && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.memoryEnabled}
+                      onChange={(e) => setSettings({ ...settings, memoryEnabled: e.target.checked })}
+                    />
+                  }
+                  label="Memory Enabled"
+                />
+
+                <TextField
+                  label="Memory Decay Window (days)"
+                  type="number"
+                  size="small"
+                  value={settings.decayDays}
+                  onChange={(e) => setSettings({ ...settings, decayDays: parseInt(e.target.value, 10) || 0 })}
+                  helperText="Number of days before memories expire. Set to 0 to keep forever."
+                  inputProps={{ min: 0 }}
+                  sx={{ maxWidth: 300 }}
+                />
+
+                <TextField
+                  label="Memory Search Limit"
+                  type="number"
+                  size="small"
+                  value={settings.searchLimit}
+                  onChange={(e) => setSettings({ ...settings, searchLimit: parseInt(e.target.value, 10) || 0 })}
+                  helperText="Maximum number of memories injected per session. Set to 0 for unlimited."
+                  inputProps={{ min: 0 }}
+                  sx={{ maxWidth: 300 }}
+                />
+              </Box>
+            )}
+          </Box>
+
+          {/* Footer */}
+          {!settingsLoading && (
+            <Box sx={{
+              p: 2,
+              borderTop: '1px solid #e0e0e0',
+              backgroundColor: '#f5f5f5',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                .etienne/long-term-memory/settings.json
+              </Typography>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleSaveSettings}
+                disabled={settingsSaving || !settingsDirty}
+              >
+                {settingsSaving ? 'Saving...' : 'Save'}
+              </Button>
             </Box>
           )}
         </>

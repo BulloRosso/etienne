@@ -80,6 +80,50 @@ export class MemoriesService {
   }
 
   /**
+   * Get the path to the settings file for a given project
+   */
+  private getSettingsPath(projectName: string): string {
+    return join(this.workspaceRoot, projectName, '.etienne', 'long-term-memory', 'settings.json');
+  }
+
+  private readonly defaultSettings = {
+    memoryEnabled: true,
+    decayDays: 6,
+    searchLimit: 5,
+  };
+
+  /**
+   * Get memory settings for a project (merged with defaults)
+   */
+  async getSettings(projectName: string): Promise<{ memoryEnabled: boolean; decayDays: number; searchLimit: number }> {
+    const filePath = this.getSettingsPath(projectName);
+
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      const saved = JSON.parse(content);
+      return { ...this.defaultSettings, ...saved };
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return { ...this.defaultSettings };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Save memory settings for a project
+   */
+  async saveSettings(projectName: string, settings: Partial<{ memoryEnabled: boolean; decayDays: number; searchLimit: number }>): Promise<{ success: boolean }> {
+    const filePath = this.getSettingsPath(projectName);
+    const dir = join(this.workspaceRoot, projectName, '.etienne', 'long-term-memory');
+
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), 'utf8');
+
+    return { success: true };
+  }
+
+  /**
    * Get the default extraction prompt (the hardcoded one)
    */
   getDefaultExtractionPrompt(): string {
@@ -201,15 +245,15 @@ Return ONLY a valid JSON object with this structure:
   }
 
   /**
-   * Apply memory decay filter based on MEMORY_DECAY_DAYS
+   * Apply memory decay filter based on decayDays parameter
    */
-  private filterDecayedMemories(memories: Memory[]): Memory[] {
-    if (this.memoryDecayDays <= 0) {
+  private filterDecayedMemories(memories: Memory[], decayDays: number): Memory[] {
+    if (decayDays <= 0) {
       return memories;
     }
 
     const now = new Date();
-    const decayThreshold = new Date(now.getTime() - this.memoryDecayDays * 24 * 60 * 60 * 1000);
+    const decayThreshold = new Date(now.getTime() - decayDays * 24 * 60 * 60 * 1000);
 
     return memories.filter(memory => {
       const relevantDate = memory.updated_at || memory.created_at;
@@ -440,14 +484,17 @@ Return ONLY a valid JSON object:
   async searchMemories(projectName: string, dto: SearchMemoryDto) {
     const { query, user_id, limit = 5 } = dto;
 
+    // Load per-project settings
+    const settings = await this.getSettings(projectName);
+
     // Read memories
     let memories = await this.readMemories(projectName);
 
     // Filter by user_id
     memories = memories.filter(m => m.user_id === user_id);
 
-    // Apply decay
-    memories = this.filterDecayedMemories(memories);
+    // Apply decay using per-project setting
+    memories = this.filterDecayedMemories(memories, settings.decayDays);
 
     // Simple keyword search (for a production system, use vector embeddings)
     const queryLower = query.toLowerCase();
@@ -480,14 +527,17 @@ Return ONLY a valid JSON object:
    * Get all memories for a user
    */
   async getAllMemories(projectName: string, userId: string, limit?: number) {
+    // Load per-project settings
+    const settings = await this.getSettings(projectName);
+
     // Read memories
     let memories = await this.readMemories(projectName);
 
     // Filter by user_id
     memories = memories.filter(m => m.user_id === userId);
 
-    // Apply decay
-    memories = this.filterDecayedMemories(memories);
+    // Apply decay using per-project setting
+    memories = this.filterDecayedMemories(memories, settings.decayDays);
 
     // Sort by created_at (newest first)
     memories.sort((a, b) => {
