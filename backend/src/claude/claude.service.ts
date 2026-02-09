@@ -133,6 +133,24 @@ project using the [Scrapbook](#scrapbook)
     return { success: true };
   }
 
+  public async getMission(projectDir: string) {
+    const root = safeRoot(this.config.hostRoot, projectDir);
+    const missionPath = join(root, 'CLAUDE.md');
+    try {
+      const content = await fs.readFile(missionPath, 'utf8');
+      return { content };
+    } catch {
+      return { content: '' };
+    }
+  }
+
+  public async saveMission(projectDir: string, content: string) {
+    const root = await this.ensureProject(projectDir);
+    const missionPath = join(root, 'CLAUDE.md');
+    await fs.writeFile(missionPath, content, 'utf8');
+    return { success: true };
+  }
+
   public async getPermissions(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
     const permissionsPath = join(root, 'data', 'permissions.json');

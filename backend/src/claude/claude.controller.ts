@@ -4,7 +4,7 @@ import { join } from 'path';
 import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
-import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
+import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
 
 @Controller('api/claude')
 export class ClaudeController {
@@ -41,6 +41,12 @@ export class ClaudeController {
 
   @Post('strategy/save')
   saveStrategy(@Body() dto: SaveStrategyDto) { return this.svc.saveStrategy(dto.projectName, dto.content); }
+
+  @Post('mission')
+  getMission(@Body() dto: GetMissionDto) { return this.svc.getMission(dto.projectName); }
+
+  @Post('mission/save')
+  saveMission(@Body() dto: SaveMissionDto) { return this.svc.saveMission(dto.projectName, dto.content); }
 
   @Post('filesystem')
   getFilesystem(@Body() dto: GetFilesystemDto) { return this.svc.getFilesystem(dto.projectName); }

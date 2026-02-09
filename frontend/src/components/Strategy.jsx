@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Button, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, Typography } from '@mui/material';
 import { Save } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
@@ -100,6 +100,17 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
         </Alert>
       )}
 
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+        <img
+          src="/project-wizard-step-3.jpg"
+          alt="Agent Role"
+          style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain', borderRadius: 4 }}
+        />
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          Select a predefined role that matches your project's needs, or create a custom role definition. The agent role determines the assistant's personality, knowledge focus, and working style.
+        </Typography>
+      </Box>
+
       <Box sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1, overflow: 'hidden' }}>
         <Editor
           height="100%"
@@ -111,7 +122,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
             minimap: { enabled: false },
             fontSize: 14,
             wordWrap: 'on',
-            lineNumbers: 'on',
+            lineNumbers: 'off',
             scrollBeyondLastLine: false,
             automaticLayout: true
           }}

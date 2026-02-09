@@ -30,6 +30,15 @@ export class SaveStrategyDto {
   @IsString() @IsNotEmpty() content!: string;
 }
 
+export class GetMissionDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+}
+
+export class SaveMissionDto {
+  @IsString() @IsNotEmpty() projectName!: string;
+  @IsString() content!: string;
+}
+
 export class GetFilesystemDto {
   @IsString() @IsNotEmpty() projectName!: string;
 }

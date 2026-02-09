@@ -9,6 +9,7 @@ import Filesystem from './Filesystem';
 import PermissionList from './PermissionList';
 import Interceptors from './Interceptors';
 import ConnectivitySettings from './ConnectivitySettings';
+import Mission from './Mission';
 import MemoryPanel from './MemoryPanel';
 import CheckpointsPane from './CheckpointsPane';
 import GuardrailsSettings from './GuardrailsSettings';
@@ -34,6 +35,7 @@ function TabPanel({ children, value, index }) {
 export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab }) {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
+  const isUser = hasRole('user');
   const [tabValue, setTabValue] = useState(0);
   const [filesystemDrawerOpen, setFilesystemDrawerOpen] = useState(false);
   const [filesystemTabValue, setFilesystemTabValue] = useState(0);
@@ -119,6 +121,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
           <Tab label="Artifacts" />
           {projectExists && <Tab label="Role" />}
+          {projectExists && isUser && <Tab label="Mission" />}
           {projectExists && isAdmin && <Tab label="Permissions" />}
           {projectExists && isAdmin && <Tab label="Connectivity" />}
           {projectExists && isAdmin && <Tab label="Observability" />}
@@ -175,6 +178,11 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           <TabPanel value={tabValue} index={1}>
             <Strategy projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
           </TabPanel>
+          {isUser && (
+            <TabPanel value={tabValue} index={2}>
+              <Mission projectName={projectName} />
+            </TabPanel>
+          )}
           {isAdmin && (
             <>
               <TabPanel value={tabValue} index={2}>
