@@ -31,6 +31,7 @@ import {
   Paper
 } from '@mui/material';
 import { Close, Add, ExpandMore, ExpandLess } from '@mui/icons-material';
+import Fab from '@mui/material/Fab';
 import { TbCalendarTime } from 'react-icons/tb';
 import { IoIosTimer } from 'react-icons/io';
 import { IoClose } from 'react-icons/io5';
@@ -364,27 +365,15 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
         </Box>
 
         {/* Tab Strip */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0', px: 1 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(e, v) => setActiveTab(v)}
-            sx={{ minHeight: 40 }}
-            TabIndicatorProps={{ sx: { height: 2 } }}
-          >
-            <Tab label="Tasks" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
-            <Tab label="History" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
-          </Tabs>
-          {activeTab === 0 && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Add />}
-              onClick={handleAddTask}
-            >
-              Add
-            </Button>
-          )}
-        </Box>
+        <Tabs
+          value={activeTab}
+          onChange={(e, v) => setActiveTab(v)}
+          sx={{ borderBottom: '1px solid #e0e0e0', px: 1, minHeight: 40 }}
+          TabIndicatorProps={{ sx: { height: 2 } }}
+        >
+          <Tab label="Tasks" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+          <Tab label="History" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+        </Tabs>
 
         {/* Tab 0: Task List */}
         {activeTab === 0 && (
@@ -470,22 +459,34 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
             </Box>
 
             {/* Footer */}
-            {tasks.length > 0 && (
-              <Box sx={{
-                p: 2,
-                borderTop: '1px solid #e0e0e0',
-                backgroundColor: '#f5f5f5',
-                display: 'flex',
-                justifyContent: 'space-between'
-              }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} scheduled
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  .etienne/scheduled-tasks.json
-                </Typography>
-              </Box>
-            )}
+            <Box sx={{
+              p: 2,
+              borderTop: '1px solid #e0e0e0',
+              backgroundColor: '#f5f5f5',
+              display: 'flex',
+              justifyContent: 'space-between',
+              position: 'relative'
+            }}>
+              <Fab
+                color="primary"
+                size="small"
+                onClick={handleAddTask}
+                sx={{
+                  position: 'absolute',
+                  top: -20,
+                  left: '50%',
+                  transform: 'translateX(-50%)'
+                }}
+              >
+                <Add />
+              </Fab>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} scheduled
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                .etienne/scheduled-tasks.json
+              </Typography>
+            </Box>
           </>
         )}
 
