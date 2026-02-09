@@ -297,14 +297,65 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   // ── External file drop (upload from OS) ──
   const handleDropExternal = async (e, targetRow) => {
     if (isGuest) return;
-    const files = e.dataTransfer.files;
-    if (!files || files.length === 0) return;
+    const items = e.dataTransfer.items;
+    if (!items || items.length === 0) return;
     const targetPath = targetRow ? targetRow.path : '';
+
+    // Recursively read all files from a directory entry
+    const readEntries = (dirReader) =>
+      new Promise((resolve, reject) => {
+        const allEntries = [];
+        const readBatch = () => {
+          dirReader.readEntries((entries) => {
+            if (entries.length === 0) {
+              resolve(allEntries);
+            } else {
+              allEntries.push(...entries);
+              readBatch();
+            }
+          }, reject);
+        };
+        readBatch();
+      });
+
+    const fileFromEntry = (fileEntry) =>
+      new Promise((resolve, reject) => fileEntry.file(resolve, reject));
+
+    const traverseDirectory = async (dirEntry, basePath, results) => {
+      const entries = await readEntries(dirEntry.createReader());
+      for (const entry of entries) {
+        const relativePath = `${basePath}/${entry.name}`;
+        if (entry.isFile) {
+          const file = await fileFromEntry(entry);
+          results.push({ file, relativePath });
+        } else if (entry.isDirectory) {
+          await traverseDirectory(entry, relativePath, results);
+        }
+      }
+    };
+
     try {
-      for (const file of files) {
+      const filesToUpload = [];
+
+      for (const item of items) {
+        const entry = item.webkitGetAsEntry?.();
+        if (entry) {
+          if (entry.isDirectory) {
+            await traverseDirectory(entry, entry.name, filesToUpload);
+          } else {
+            const file = item.getAsFile();
+            if (file) filesToUpload.push({ file, relativePath: file.name });
+          }
+        } else {
+          const file = item.getAsFile();
+          if (file) filesToUpload.push({ file, relativePath: file.name });
+        }
+      }
+
+      for (const { file, relativePath } of filesToUpload) {
         const formData = new FormData();
         formData.append('file', file);
-        const filepath = targetPath ? `${targetPath}/${file.name}` : file.name;
+        const filepath = targetPath ? `${targetPath}/${relativePath}` : relativePath;
         formData.append('filepath', filepath);
         await axios.post(`/api/workspace/${projectName}/files/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
