@@ -41,7 +41,8 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
       id: 'guardrails',
       image: '/guardrails.jpg',
       label: 'Guardrails',
-      disabled: !currentProject
+      disabled: !currentProject,
+      adminOnly: true
     },
     // 4th row
     {
@@ -141,12 +142,12 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
               '&:hover': {
                 transform: 'translateY(-2px)',
                 boxShadow: 6,
-                bgcolor: 'error.light',
+                bgcolor: '#e3f2fd',
                 '& .logout-icon': {
-                  color: 'error.contrastText'
+                  color: 'text.primary'
                 },
                 '& .logout-text': {
-                  color: 'error.contrastText'
+                  color: 'text.primary'
                 }
               }
             }}
@@ -155,22 +156,6 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
               onClose();
             }}
           >
-            <Box>
-              <Typography
-                variant="body2"
-                className="logout-text"
-                sx={{ fontWeight: 600 }}
-              >
-                {user.displayName || user.username}
-              </Typography>
-              <Typography
-                variant="caption"
-                className="logout-text"
-                sx={{ color: 'text.secondary', textTransform: 'capitalize' }}
-              >
-                {user.role}
-              </Typography>
-            </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Tooltip title="Change Password">
                 <IconButton
@@ -187,8 +172,24 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
                   <Settings fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Logout className="logout-icon" sx={{ color: 'text.secondary' }} />
             </Box>
+            <Box sx={{ flex: 1, ml: 1 }}>
+              <Typography
+                variant="body2"
+                className="logout-text"
+                sx={{ fontWeight: 600 }}
+              >
+                {user.displayName || user.username}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="logout-text"
+                sx={{ color: 'text.secondary', textTransform: 'capitalize' }}
+              >
+                {user.role}
+              </Typography>
+            </Box>
+            <Logout className="logout-icon" sx={{ color: 'text.secondary' }} />
           </Paper>
         </Box>
       )}
@@ -204,7 +205,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
           pt: 1
         }}
       >
-        {dashboardItems.map((item) => (
+        {dashboardItems.filter((item) => !item.adminOnly || (user && user.role === 'admin')).map((item) => (
           <Paper
             key={item.id}
             elevation={3}

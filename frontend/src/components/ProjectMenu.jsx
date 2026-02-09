@@ -500,7 +500,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
                 <ListItemIcon>
                   <AddOutlined fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>New Project</ListItemText>
+                <ListItemText primaryTypographyProps={{ fontWeight: 'bold' }}>New Project</ListItemText>
               </MenuItem>
             </Box>
           </Box>
