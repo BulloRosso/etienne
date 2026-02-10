@@ -271,7 +271,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       const response = await axios.post('/api/projects/create', dto);
 
       if (response.data.success) {
-        onProjectCreated(projectName);
+        onProjectCreated(projectName, response.data.guidanceDocuments);
       } else {
         setError(response.data.errors?.[0] || 'Failed to create project');
       }

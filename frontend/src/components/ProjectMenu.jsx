@@ -512,10 +512,10 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         open={dialogOpen}
         onClose={handleDialogClose}
         existingProjects={projects}
-        onProjectCreated={async (projectName) => {
+        onProjectCreated={async (projectName, guidanceDocuments) => {
           handleDialogClose();
           await fetchProjects();
-          onProjectChange(projectName);
+          onProjectChange(projectName, guidanceDocuments);
         }}
       />
 

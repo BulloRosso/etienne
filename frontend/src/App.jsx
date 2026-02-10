@@ -1690,7 +1690,7 @@ export default function App() {
     }
   };
 
-  const handleProjectChange = async (newProject) => {
+  const handleProjectChange = async (newProject, guidanceDocuments) => {
     // Reset state before project change
     setMessages([]);
     setStructuredMessages([]);
@@ -1708,6 +1708,15 @@ export default function App() {
     setTimeout(() => {
       restoreWorkbench(newProject);
     }, 1000);
+
+    // Open guidance documents from newly created project in the preview pane
+    if (guidanceDocuments && Array.isArray(guidanceDocuments) && guidanceDocuments.length > 0) {
+      setTimeout(() => {
+        guidanceDocuments.forEach(docPath => {
+          fetchFile(docPath, newProject);
+        });
+      }, 1500);
+    }
   };
 
   const handleOnboardingComplete = (projectName) => {

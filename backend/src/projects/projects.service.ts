@@ -107,10 +107,14 @@ export class ProjectsService {
         warnings.push(`Failed to create UI config: ${error.message}`);
       }
 
+      // 9. Collect guidance documents from provisioned skills
+      const guidanceDocuments = await this.findGuidanceDocuments(projectPath);
+
       return {
         success: true,
         projectName: dto.projectName,
         warnings: warnings.length > 0 ? warnings : undefined,
+        guidanceDocuments: guidanceDocuments.length > 0 ? guidanceDocuments : undefined,
       };
     } catch (error: any) {
       this.logger.error(`Failed to create project ${dto.projectName}:`, error);
@@ -239,6 +243,36 @@ export class ProjectsService {
     };
 
     await fs.writeJson(uiConfigPath, uiConfig, { spaces: 2 });
+  }
+
+  /**
+   * Find user-guidance.md files in provisioned skills
+   * Returns paths relative to the project root (e.g., ".claude/skills/rag-search/user-guidance.md")
+   */
+  private async findGuidanceDocuments(projectPath: string): Promise<string[]> {
+    const guidanceDocs: string[] = [];
+
+    try {
+      const skillsDir = path.join(projectPath, '.claude', 'skills');
+      if (!(await fs.pathExists(skillsDir))) {
+        return guidanceDocs;
+      }
+
+      const skillEntries = await fs.readdir(skillsDir, { withFileTypes: true });
+      for (const entry of skillEntries) {
+        if (entry.isDirectory()) {
+          const guidancePath = path.join(skillsDir, entry.name, 'user-guidance.md');
+          if (await fs.pathExists(guidancePath)) {
+            // Return path relative to project root
+            guidanceDocs.push(`.claude/skills/${entry.name}/user-guidance.md`);
+          }
+        }
+      }
+    } catch (error: any) {
+      this.logger.warn(`Failed to scan for guidance documents: ${error.message}`);
+    }
+
+    return guidanceDocs;
   }
 
   /**

@@ -53,4 +53,5 @@ export interface CreateProjectResult {
   projectName: string;
   errors?: string[];
   warnings?: string[];
+  guidanceDocuments?: string[];
 }
