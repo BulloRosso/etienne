@@ -22,6 +22,13 @@
       "description": "OpenAI o3 deep research"
     },
     {
+      "name": "vapi-voice-server",
+      "transport": "http",
+      "url": "https://mcp.vapi.ai/mcp",
+      "headers": { "Authorization": "Bearer ${VAPI_TOKEN}" },
+      "description": "Manage voice calls and make outbound calls."
+    },
+    {
       "name": "knowledge-graph",
       "transport": "http",
       "url": "http://localhost:6060/mcp/knowledge-graph",

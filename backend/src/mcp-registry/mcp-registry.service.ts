@@ -33,7 +33,8 @@ export class McpRegistryService {
     try {
       const content = await fs.readFile(this.registryPath, 'utf-8');
       const data: McpRegistryData = JSON.parse(content);
-      return data.servers || [];
+      const resolved = this.resolveEnvPlaceholders(data) as McpRegistryData;
+      return resolved.servers || [];
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         // Registry file doesn't exist, return empty array
@@ -41,6 +42,29 @@ export class McpRegistryService {
       }
       throw new Error(`Failed to load MCP registry: ${error.message}`);
     }
+  }
+
+  /**
+   * Recursively resolve ${VAR_NAME} placeholders in string values
+   * with corresponding process.env values.
+   */
+  private resolveEnvPlaceholders(value: any): any {
+    if (typeof value === 'string') {
+      return value.replace(/\$\{(\w+)\}/g, (match, varName) => {
+        return process.env[varName] ?? match;
+      });
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => this.resolveEnvPlaceholders(item));
+    }
+    if (value !== null && typeof value === 'object') {
+      const result: any = {};
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = this.resolveEnvPlaceholders(v);
+      }
+      return result;
+    }
+    return value;
   }
 
   /**
