@@ -60,7 +60,7 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
             fontFamily: 'Roboto',
             fontSize: '14px',
             wordBreak: 'break-word',
-            color: themeMode === 'dark' ? '#fff' : 'inherit',
+            color: themeMode === 'dark' ? '#cccccc' : 'inherit',
             '& p': { margin: '0 0 0.5em 0' },
             '& p:last-child': { marginBottom: 0 },
             '& ul, & ol': { marginLeft: 0, paddingLeft: '1.2em', marginTop: '0.5em', marginBottom: '0.5em' },
@@ -104,7 +104,7 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
               backgroundColor: 'rgba(0,0,0,0.03)'
             },
             '& td': {
-              backgroundColor: themeMode === 'dark' ? '#000' : '#fff'
+              backgroundColor: themeMode === 'dark' ? 'transparent' : '#fff'
             }
           }}
           dangerouslySetInnerHTML={{ __html: renderedContent }}

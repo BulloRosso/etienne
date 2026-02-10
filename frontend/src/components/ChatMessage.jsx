@@ -241,8 +241,8 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
             elevation={2}
             sx={{
               p: 2,
-              backgroundColor: themeMode === 'dark' ? 'navy' : '#fff',
-              color: themeMode === 'dark' ? '#fff' : 'inherit',
+              backgroundColor: themeMode === 'dark' ? 'gold' : '#fff',
+              color: themeMode === 'dark' ? '#000' : 'inherit',
               borderRadius: 2,
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}
@@ -295,7 +295,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                   backgroundColor: 'rgba(0,0,0,0.03)'
                 },
                 '& td': {
-                  backgroundColor: themeMode === 'dark' ? '#000' : '#fff'
+                  backgroundColor: themeMode === 'dark' ? 'transparent' : '#fff'
                 }
               }}
               dangerouslySetInnerHTML={{ __html: renderedContent }}
@@ -369,7 +369,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               fontFamily: 'Roboto',
               fontSize: '14px',
               wordBreak: 'break-word',
-              color: themeMode === 'dark' ? '#fff' : 'inherit',
+              color: themeMode === 'dark' ? '#cccccc' : 'inherit',
               mb: 2,
               pl: '40px',
               '& p': { margin: '0 0 0.5em 0' },
@@ -415,7 +415,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                 backgroundColor: 'rgba(0,0,0,0.03)'
               },
               '& td': {
-                backgroundColor: '#fff'
+                backgroundColor: themeMode === 'dark' ? 'transparent' : '#fff'
               }
             }}
             dangerouslySetInnerHTML={{ __html: renderedContent }}

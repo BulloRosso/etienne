@@ -3,6 +3,7 @@ import { Box, TextField, IconButton, Paper, List, ListItem, ListItemText, Popper
 import { AttachFile, MicOutlined, Send, InsertDriveFile, Close } from '@mui/icons-material';
 import { BsStopCircle } from 'react-icons/bs';
 import { useProject } from '../contexts/ProjectContext';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { SlMicrophone } from "react-icons/sl";
 import { GoArrowUp } from "react-icons/go";
 import { GoPlus } from "react-icons/go";
@@ -20,6 +21,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
   const textFieldRef = useRef(null);
   const suggestionRefs = useRef([]);
   const { currentProject } = useProject();
+  const { mode: themeMode } = useThemeMode();
 
   // Scroll selected item into view
   useEffect(() => {
@@ -207,7 +209,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 1, pr: 0, pl: 3, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative' }}>
+    <Paper elevation={3} sx={{ p: 1, pr: 0, pl: 3, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined, backgroundImage: themeMode === 'dark' ? 'none' : undefined }}>
       <style>
         {`
           @keyframes rotateIcon {

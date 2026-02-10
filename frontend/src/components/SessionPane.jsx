@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Box, Drawer, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { PiChatsThin } from 'react-icons/pi';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function SessionPane({ open, onClose, projectName, onSessionSelect }) {
+  const { mode: themeMode } = useThemeMode();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -130,7 +132,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                   sx={{
                     borderBottom: index < sessions.length - 1 ? '1px solid #e0e0e0' : 'none',
                     '&:hover': {
-                      backgroundColor: '#f5f5f5'
+                      backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5'
                     },
                     alignItems: 'flex-start'
                   }}

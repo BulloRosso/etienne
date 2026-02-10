@@ -302,13 +302,13 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#13579b' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: themeMode === 'dark' ? 'transparent' : '#999' }}>
       <Box sx={{ p: 2, pb: 0 }}>
         <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
       </Box>
 
       {/* Tab Strip */}
-      <Box sx={{ borderBottom: 0, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: '#13579b' }}>
+      <Box sx={{ borderBottom: 0, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: themeMode === 'dark' ? 'transparent' : '#999' }}>
         <Tabs
           value={activeTab}
           onChange={(e, newValue) => setActiveTab(newValue)}
