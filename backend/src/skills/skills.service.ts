@@ -388,15 +388,31 @@ export class SkillsService {
     try {
       const skillPath = path.join(skillDir, 'SKILL.md');
       const content = await fs.readFile(skillPath, 'utf-8');
-
-      // Skip the title line if it starts with #
       const lines = content.split('\n');
+
+      // Parse YAML front matter if present
+      if (lines[0]?.trim() === '---') {
+        for (let i = 1; i < lines.length; i++) {
+          if (lines[i].trim() === '---') {
+            break;
+          }
+          const match = lines[i].match(/^description:\s*(.+)/);
+          if (match) {
+            const desc = match[1].trim();
+            if (desc.length > 200) {
+              return desc.substring(0, 197) + '...';
+            }
+            return desc || undefined;
+          }
+        }
+      }
+
+      // Fallback: find the first non-empty, non-heading paragraph line
       let startIndex = 0;
       if (lines[0]?.startsWith('#')) {
         startIndex = 1;
       }
 
-      // Find the first non-empty paragraph
       let description = '';
       for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -406,7 +422,6 @@ export class SkillsService {
         }
       }
 
-      // Truncate if too long
       if (description.length > 200) {
         description = description.substring(0, 197) + '...';
       }

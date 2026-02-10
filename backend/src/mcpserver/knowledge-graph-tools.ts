@@ -19,7 +19,7 @@ import * as crypto from 'crypto';
 const tools: McpTool[] = [
   {
     name: 'kg_learn_document',
-    description: 'Adds a document to the vector store of the knowledge base. Reads the document content, generates embeddings, and stores it for semantic search. The filepath is relative to the project directory in the workspace.',
+    description: 'Adds a document to the vector store of the knowledge base. Reads the document content, generates embeddings, and stores it for semantic search. The filepath is relative to the project directory in the workspace. For binary files (PDF, DOCX, XLSX, PPTX) that cannot be read as UTF-8, convert the file to markdown text first using the markitdown library, then pass the converted text in the optional content parameter.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,7 +29,11 @@ const tools: McpTool[] = [
         },
         filepath: {
           type: 'string',
-          description: 'Relative path to the document file within the project workspace (e.g., "docs/readme.md", "data/report.txt").',
+          description: 'Relative path to the document file within the project workspace (e.g., "docs/readme.md", "data/report.txt"). This is used as the document identifier even when content is provided directly.',
+        },
+        content: {
+          type: 'string',
+          description: 'Optional. Pre-extracted text content of the document. When provided, the tool uses this content instead of reading from the file. Use this for binary files (PDF, DOCX, XLSX, PPTX) that have been converted to text using markitdown.',
         },
       },
       required: ['project', 'filepath'],
@@ -157,7 +161,7 @@ export function createKnowledgeGraphToolsService(
    * @param filepath - Relative path to the document file
    * @returns Success message with document info
    */
-  async function learnDocument(project: string, filepath: string): Promise<any> {
+  async function learnDocument(project: string, filepath: string, providedContent?: string): Promise<any> {
     if (!project) {
       throw new Error('Project name is required. Extract it from the workspace path.');
     }
@@ -167,18 +171,24 @@ export function createKnowledgeGraphToolsService(
     }
 
     try {
-      // Construct full path to the document
-      const fullPath = path.join(workspaceDir, project, filepath);
+      let content: string;
 
-      // Check if file exists
-      try {
-        await fs.access(fullPath);
-      } catch (error) {
-        throw new Error(`File not found: ${filepath}`);
+      if (providedContent) {
+        // Use pre-extracted content (e.g., from markitdown conversion of binary files)
+        content = providedContent;
+      } else {
+        // Read content from file
+        const fullPath = path.join(workspaceDir, project, filepath);
+
+        // Check if file exists
+        try {
+          await fs.access(fullPath);
+        } catch (error) {
+          throw new Error(`File not found: ${filepath}`);
+        }
+
+        content = await fs.readFile(fullPath, 'utf-8');
       }
-
-      // Read file content
-      const content = await fs.readFile(fullPath, 'utf-8');
 
       if (!content || content.trim().length === 0) {
         throw new Error('File is empty or contains no readable content.');
@@ -556,7 +566,7 @@ Important rules:
   async function execute(toolName: string, args: any): Promise<any> {
     switch (toolName) {
       case 'kg_learn_document':
-        return learnDocument(args.project, args.filepath);
+        return learnDocument(args.project, args.filepath, args.content);
 
       case 'kg_search_document':
         return searchDocument(args.project, args.query);
