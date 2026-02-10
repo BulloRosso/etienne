@@ -21,8 +21,9 @@ import {
   AccordionSummary,
   AccordionDetails
 } from '@mui/material';
-import { Delete, Add, Build, ExpandMore, Close } from '@mui/icons-material';
+import { DeleteOutlined, Add, Build, ExpandMore, Close } from '@mui/icons-material';
 import axios from 'axios';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function McpToolsSelector({
   registryServers = [],
@@ -30,6 +31,7 @@ export default function McpToolsSelector({
   onServersChange,
   isAdmin = false
 }) {
+  const { mode: themeMode } = useThemeMode();
   const [newServer, setNewServer] = useState({
     name: '',
     transport: 'http',
@@ -133,7 +135,7 @@ export default function McpToolsSelector({
         Configured MCP Servers
       </Typography>
       {Object.keys(configuredServers).length > 0 ? (
-        <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
+        <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2, color: '#000' }}>
           {Object.entries(configuredServers).map(([name, config]) => (
             <ListItem
               key={name}
@@ -150,13 +152,13 @@ export default function McpToolsSelector({
                         headers: config.headers,
                         description: registryServers.find(s => s.name === name)?.description
                       })}
-                      sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                      sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'navy', borderColor: 'navy' }}
                     >
                       Provided Tools
                     </Button>
                   )}
-                  <IconButton edge="end" onClick={() => handleRemoveServer(name)}>
-                    <Delete />
+                  <IconButton edge="end" onClick={() => handleRemoveServer(name)} sx={{ color: themeMode === 'dark' ? 'navy' : 'darkred' }}>
+                    <DeleteOutlined />
                   </IconButton>
                 </Box>
               }
@@ -167,8 +169,9 @@ export default function McpToolsSelector({
                     {name}
                     <Chip
                       size="small"
+                      variant="outlined"
                       label={config.type || 'http'}
-                      sx={{ fontSize: '0.7rem' }}
+                      sx={{ fontSize: '0.7rem', color: '#000', borderColor: '#000' }}
                     />
                     {isInRegistry(name) && (
                       <Chip
@@ -181,6 +184,7 @@ export default function McpToolsSelector({
                   </Box>
                 }
                 secondary={config.url || config.command}
+                secondaryTypographyProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
               />
             </ListItem>
           ))}
@@ -198,7 +202,7 @@ export default function McpToolsSelector({
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Available from Registry
           </Typography>
-          <List dense sx={{ bgcolor: '#e3f2fd', borderRadius: 1, mb: 2 }}>
+          <List dense sx={{ bgcolor: '#e3f2fd', borderRadius: 1, mb: 2, color: '#000' }}>
             {availableRegistryServers.map(server => (
               <ListItem
                 key={server.name}
@@ -209,14 +213,14 @@ export default function McpToolsSelector({
                       variant="outlined"
                       startIcon={<Build sx={{ fontSize: 16 }} />}
                       onClick={() => handleShowTools(server)}
-                      sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                      sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'navy', borderColor: 'navy' }}
                     >
                       Provided Tools
                     </Button>
                     <IconButton
                       edge="end"
                       onClick={() => handleAddFromRegistry(server)}
-                      color="primary"
+                      sx={{ color: 'navy' }}
                     >
                       <Add />
                     </IconButton>
@@ -229,12 +233,14 @@ export default function McpToolsSelector({
                       {server.name}
                       <Chip
                         size="small"
+                        variant="outlined"
                         label={server.transport}
-                        sx={{ fontSize: '0.7rem' }}
+                        sx={{ fontSize: '0.7rem', color: '#000', borderColor: '#000' }}
                       />
                     </Box>
                   }
                   secondary={server.description || server.url}
+                  secondaryTypographyProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
                 />
               </ListItem>
             ))}

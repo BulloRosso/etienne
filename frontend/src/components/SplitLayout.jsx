@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function SplitLayout({ left, right }) {
+  const { mode: themeMode } = useThemeMode();
   const [splitRatio, setSplitRatio] = useState(() => {
     const saved = localStorage.getItem('splitRatio');
     return saved ? parseFloat(saved) : 50;
@@ -69,12 +71,12 @@ export default function SplitLayout({ left, right }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#fff',
+          backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#fff',
           '&:hover': {
-            backgroundColor: '#efefef'
+            backgroundColor: themeMode === 'dark' ? '#444' : '#efefef'
           },
           '&:active': {
-            backgroundColor: '#efefef'
+            backgroundColor: themeMode === 'dark' ? '#444' : '#efefef'
           }
         }}
       >

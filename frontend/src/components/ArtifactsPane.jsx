@@ -19,6 +19,7 @@ import SkillIndicator from './SkillIndicator';
 import A2AAgentsIndicator from './A2AAgentsIndicator';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -34,6 +35,7 @@ function TabPanel({ children, value, index }) {
 
 export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab }) {
   const { hasRole } = useAuth();
+  const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
   const isUser = hasRole('user');
   const [tabValue, setTabValue] = useState(0);
@@ -116,8 +118,8 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   }, []);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider', backgroundColor: themeMode === 'dark' ? '#383838' : undefined }}>
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
           <Tab label="Artifacts" />
           {projectExists && <Tab label="Role" />}

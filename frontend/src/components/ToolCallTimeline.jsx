@@ -12,6 +12,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 // Tool icon mapping
 const TOOL_ICONS = {
@@ -138,6 +139,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
   const [inExpanded, setInExpanded] = useState(false);
   const [outExpanded, setOutExpanded] = useState(false);
   const { currentProject } = useProject();
+  const { mode: themeMode } = useThemeMode();
 
   const IconComponent = TOOL_ICONS[toolName];
   const toolDescription = description || formatToolDescription(toolName, args);
@@ -203,7 +205,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
           top: showBullet ? '24px' : '0px',
           bottom: '-16px',
           width: '1px',
-          backgroundColor: '#e0e0e0'
+          backgroundColor: themeMode === 'dark' ? '#ccc' : '#e0e0e0'
         }}
       />
 
@@ -218,7 +220,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              backgroundColor: '#4caf50',
+              backgroundColor: themeMode === 'dark' ? '#fff' : '#4caf50',
               zIndex: 1,
               flexShrink: 0,
               flexGrow: 0,
@@ -230,7 +232,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
 
         {/* Tool icon */}
         {IconComponent && (
-          <IconComponent sx={{ fontSize: '18px', color: '#666', flexShrink: 0 }} />
+          <IconComponent sx={{ fontSize: '18px', color: themeMode === 'dark' ? '#ccc' : '#666', flexShrink: 0 }} />
         )}
 
         {/* Tool name */}
@@ -238,7 +240,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
           variant="body2"
           sx={{
             fontWeight: 'bold',
-            color: '#333',
+            color: themeMode === 'dark' ? '#fff' : '#333',
             fontFamily: 'monospace',
             flexShrink: 0
           }}
@@ -274,7 +276,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
               <Typography
                 variant="body2"
                 sx={{
-                  color: '#666',
+                  color: themeMode === 'dark' ? '#ccc' : '#666',
                   flex: 1,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -288,7 +290,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
             <Typography
               variant="body2"
               sx={{
-                color: '#666',
+                color: themeMode === 'dark' ? '#ccc' : '#666',
                 flex: 1,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -322,7 +324,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
         >
         {/* IN section */}
         {args && (
-          <Box sx={{ borderBottom: result ? '1px solid #e0e0e0' : 'none' }}>
+          <Box sx={{ borderBottom: result ? `1px solid ${themeMode === 'dark' ? '#555' : '#e0e0e0'}` : 'none' }}>
             <Box
               sx={{
                 display: 'flex',
@@ -331,14 +333,14 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                 p: 0.5,
                 pl: 1,
                 pr: 0.5,
-                backgroundColor: '#f5f5f5'
+                backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5'
               }}
             >
               <Typography
                 variant="caption"
                 sx={{
                   fontWeight: 'bold',
-                  color: '#666',
+                  color: themeMode === 'dark' ? '#ccc' : '#666',
                   fontSize: '0.7rem'
                 }}
               >
@@ -361,7 +363,8 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                 fontSize: '0.75rem',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
-                backgroundColor: '#fafafa',
+                backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#fafafa',
+                color: themeMode === 'dark' ? '#ccc' : 'inherit',
                 maxHeight: inExpanded ? 'none' : '80px',
                 overflow: inExpanded ? 'auto' : 'hidden'
               }}
@@ -382,14 +385,14 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                 p: 0.5,
                 pl: 1,
                 pr: 0.5,
-                backgroundColor: '#f5f5f5'
+                backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5'
               }}
             >
               <Typography
                 variant="caption"
                 sx={{
                   fontWeight: 'bold',
-                  color: '#666',
+                  color: themeMode === 'dark' ? '#ccc' : '#666',
                   fontSize: '0.7rem'
                 }}
               >
@@ -412,7 +415,8 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                 fontSize: '0.75rem',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
-                backgroundColor: '#fafafa',
+                backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#fafafa',
+                color: themeMode === 'dark' ? '#ccc' : 'inherit',
                 maxHeight: outExpanded ? 'none' : '80px',
                 overflow: outExpanded ? 'auto' : 'hidden'
               }}

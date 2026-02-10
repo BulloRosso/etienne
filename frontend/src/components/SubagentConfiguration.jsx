@@ -29,8 +29,10 @@ import { Add, Delete, ArrowBack } from '@mui/icons-material';
 import { RiRobot2Line } from 'react-icons/ri';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function SubagentConfiguration({ project }) {
+  const { mode: themeMode } = useThemeMode();
   const [subagents, setSubagents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -415,7 +417,7 @@ export default function SubagentConfiguration({ project }) {
                     defaultLanguage="markdown"
                     value={systemPrompt}
                     onChange={(value) => setSystemPrompt(value || '')}
-                    theme="light"
+                    theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                     options={{
                       readOnly: !editMode,
                       minimap: { enabled: false },

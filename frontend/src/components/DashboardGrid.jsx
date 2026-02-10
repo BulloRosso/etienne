@@ -215,6 +215,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
               alignItems: 'center',
               justifyContent: 'center',
               p: 2,
+              backgroundColor: '#fff',
               cursor: item.disabled ? 'not-allowed' : 'pointer',
               opacity: item.disabled ? 0.5 : 1,
               transition: 'all 0.2s',
@@ -242,7 +243,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
               variant="caption"
               align="center"
               sx={{
-                color: item.disabled ? 'text.disabled' : 'text.primary',
+                color: item.disabled ? 'rgba(0,0,0,0.38)' : '#000',
                 fontWeight: 500,
                 fontSize: '0.75rem'
               }}

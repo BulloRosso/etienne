@@ -4,11 +4,13 @@ import ContentPasteOutlinedIcon from '@mui/icons-material/ContentPasteOutlined';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LoopIcon from '@mui/icons-material/Loop';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
  * TodoWrite displayed in timeline format - shows the full todo list inline
  */
 export default function TodoWriteTimeline({ args, showBullet = true }) {
+  const { mode: themeMode } = useThemeMode();
   const todos = args?.todos || args?.newTodos || args?.oldTodos || [];
 
   return (
@@ -21,7 +23,7 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
           top: showBullet ? '24px' : '0px',
           bottom: '-16px',
           width: '1px',
-          backgroundColor: '#e0e0e0'
+          backgroundColor: themeMode === 'dark' ? '#ccc' : '#e0e0e0'
         }}
       />
 
@@ -34,7 +36,7 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              backgroundColor: '#2196f3',
+              backgroundColor: themeMode === 'dark' ? '#fff' : '#2196f3',
               zIndex: 1,
               flexShrink: 0,
               mt: 0.5,
@@ -44,14 +46,14 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
         )}
 
         {/* Tool icon */}
-        <ContentPasteOutlinedIcon sx={{ fontSize: '18px', color: '#666', flexShrink: 0 }} />
+        <ContentPasteOutlinedIcon sx={{ fontSize: '18px', color: themeMode === 'dark' ? '#ccc' : '#666', flexShrink: 0 }} />
 
         {/* Tool name */}
         <Typography
           variant="body2"
           sx={{
             fontWeight: 'bold',
-            color: '#333',
+            color: themeMode === 'dark' ? '#fff' : '#333',
             fontFamily: 'monospace',
             flexShrink: 0
           }}
@@ -63,7 +65,7 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
         <Typography
           variant="body2"
           sx={{
-            color: '#666',
+            color: themeMode === 'dark' ? '#ccc' : '#666',
             flex: 1
           }}
         >

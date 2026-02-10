@@ -38,6 +38,7 @@ import { IoClose } from 'react-icons/io5';
 import { AiOutlineDelete } from 'react-icons/ai';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 const timezones = [
   'UTC',
@@ -172,6 +173,7 @@ const formatScheduleDisplay = (cronExpression, taskType) => {
 };
 
 export default function SchedulingOverview({ open, onClose, project, showBackgroundInfo }) {
+  const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [history, setHistory] = useState([]);
@@ -618,7 +620,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                   defaultLanguage="markdown"
                   value={formData.prompt}
                   onChange={(value) => setFormData({ ...formData, prompt: value || '' })}
-                  theme="light"
+                  theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                   options={{
                     minimap: { enabled: false },
                     lineNumbers: 'off',

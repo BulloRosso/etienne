@@ -43,7 +43,7 @@ export default function A2AAgentsSelector({
         Select external A2A agents to be available in this project.
       </Typography>
 
-      <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1 }}>
+      <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, color: '#000' }}>
         {registryAgents.map(agent => (
           <ListItem
             key={agent.url}
@@ -61,16 +61,17 @@ export default function A2AAgentsSelector({
                 checked={isSelected(agent.url)}
                 tabIndex={-1}
                 disableRipple
+                sx={{ color: '#000', '&.Mui-checked': { color: '#000' } }}
               />
             </ListItemIcon>
-            <ListItemIcon sx={{ minWidth: 36, mt: '5px' }}>
+            <ListItemIcon sx={{ minWidth: 36, mt: '5px', color: '#000' }}>
               <RiRobot2Line size={24} />
             </ListItemIcon>
             <ListItemText
               primary={agent.name}
               secondary={
                 <Box>
-                  <Typography variant="body2" color="text.secondary" component="span">
+                  <Typography variant="body2" component="span" sx={{ color: 'rgba(0,0,0,0.6)' }}>
                     {agent.description}
                   </Typography>
                   {agent.skills && agent.skills.length > 0 && (
@@ -79,15 +80,17 @@ export default function A2AAgentsSelector({
                         <Chip
                           key={idx}
                           size="small"
+                          variant="outlined"
                           label={skill.name || skill}
-                          sx={{ fontSize: '0.65rem', height: 20 }}
+                          sx={{ fontSize: '0.65rem', height: 20, color: '#000', borderColor: '#000' }}
                         />
                       ))}
                       {agent.skills.length > 3 && (
                         <Chip
                           size="small"
+                          variant="outlined"
                           label={`+${agent.skills.length - 3} more`}
-                          sx={{ fontSize: '0.65rem', height: 20 }}
+                          sx={{ fontSize: '0.65rem', height: 20, color: '#000', borderColor: '#000' }}
                         />
                       )}
                     </Box>

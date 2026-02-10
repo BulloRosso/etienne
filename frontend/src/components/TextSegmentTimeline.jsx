@@ -2,11 +2,13 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
  * Text segment displayed in timeline format (for interleaved text between tool calls)
  */
 export default function TextSegmentTimeline({ text, showBullet = true }) {
+  const { mode: themeMode } = useThemeMode();
   // Parse markdown
   const rawHtml = marked.parse(text, { breaks: true, gfm: true });
   const renderedContent = DOMPurify.sanitize(rawHtml);
@@ -21,7 +23,7 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
           top: showBullet ? '24px' : '0px',
           bottom: '-16px',
           width: '1px',
-          backgroundColor: '#e0e0e0'
+          backgroundColor: themeMode === 'dark' ? '#ccc' : '#e0e0e0'
         }}
       />
 
@@ -39,7 +41,7 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
               minWidth: '6px',
               maxWidth: '6px',
               borderRadius: '50%',
-              backgroundColor: '#000',
+              backgroundColor: themeMode === 'dark' ? '#fff' : '#000',
               zIndex: 1,
               flexShrink: 0,
               flexGrow: 0,
@@ -58,6 +60,7 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
             fontFamily: 'Roboto',
             fontSize: '14px',
             wordBreak: 'break-word',
+            color: themeMode === 'dark' ? '#fff' : 'inherit',
             '& p': { margin: '0 0 0.5em 0' },
             '& p:last-child': { marginBottom: 0 },
             '& ul, & ol': { marginLeft: 0, paddingLeft: '1.2em', marginTop: '0.5em', marginBottom: '0.5em' },
@@ -101,7 +104,7 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
               backgroundColor: 'rgba(0,0,0,0.03)'
             },
             '& td': {
-              backgroundColor: '#fff'
+              backgroundColor: themeMode === 'dark' ? '#000' : '#fff'
             }
           }}
           dangerouslySetInnerHTML={{ __html: renderedContent }}

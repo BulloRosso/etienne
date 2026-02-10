@@ -22,8 +22,10 @@ import {
 import { Close, DeleteOutline, Edit, Save, UploadFile, InsertDriveFileOutlined, InfoOutlined } from '@mui/icons-material';
 import { GiAtom } from 'react-icons/gi';
 import Editor from '@monaco-editor/react';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function SkillsSettings({ open, onClose, project }) {
+  const { mode: themeMode } = useThemeMode();
   const [skills, setSkills] = useState([]);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -430,7 +432,7 @@ Show what the expected output should look like.
               defaultLanguage="markdown"
               value={skillContent}
               onChange={(value) => setSkillContent(value || '')}
-              theme="light"
+              theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
               options={{
                 minimap: { enabled: false },
                 fontSize: 13,

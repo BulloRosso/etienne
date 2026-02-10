@@ -13,9 +13,11 @@ import TypingIndicator from './TypingIndicator';
 import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, planApprovalState = {}, onPlanApprove, onPlanReject }) {
   const { hasRole } = useAuth();
+  const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
   const isGuest = hasRole('guest');
   const messagesEndRef = useRef(null);
@@ -161,23 +163,23 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      backgroundColor: '#fffef5'
+      backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#fffef5'
     }}>
       {/* Header */}
       <Box sx={{
         height: '48px',
-        backgroundColor: 'white',
+        backgroundColor: themeMode === 'dark' ? '#383838' : 'white',
         display: 'flex',
         alignItems: 'center',
         px: 2,
-        borderBottom: '1px solid #e0e0e0',
+        borderBottom: themeMode === 'dark' ? '1px solid #555' : '1px solid #e0e0e0',
         position: 'relative'
       }}>
         {/* Left: New Conversation Button */}
         <IconButton
           onClick={handleNewSession}
           title="Start New Session"
-          sx={{ color: '#1976d2' }}
+          sx={{ color: themeMode === 'dark' ? 'gold' : '#1976d2' }}
         >
           <RiChatNewLine size={19} />
         </IconButton>
@@ -200,6 +202,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             sx={{
               '& .MuiToggleButton-root.Mui-selected': {
                 backgroundColor: '#DEEBF7',
+                color: '#000',
                 '&:hover': {
                   backgroundColor: '#90caf9'
                 }
@@ -225,7 +228,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             <IconButton
               onClick={handleResumeSession}
               title="Resume Session"
-              sx={{ color: '#333' }}
+              sx={{ color: themeMode === 'dark' ? '#fff' : '#333' }}
             >
               <PiCaretCircleDownLight size={24} />
             </IconButton>
@@ -248,7 +251,15 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       <Box sx={{
         flex: 1,
         overflowY: 'auto',
-        py: 2
+        py: 2,
+        '&::-webkit-scrollbar': { width: '8px' },
+        '&::-webkit-scrollbar-track': { backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f5f5f0' },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: themeMode === 'dark' ? '#555' : '#ccc',
+          borderRadius: '4px',
+          '&:hover': { backgroundColor: themeMode === 'dark' ? '#777' : '#aaa' }
+        },
+        scrollbarColor: themeMode === 'dark' ? '#555 #2c2c2c' : '#ccc #f5f5f0',
       }}>
         {messages.map((msg, idx) => {
           const isLastMessage = idx === messages.length - 1;

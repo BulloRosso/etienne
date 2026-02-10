@@ -25,6 +25,7 @@ import GraphViewer from './GraphViewer';
 import VectorStoreItems from './VectorStoreItems';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 const SAMPLE_SPARQL = `PREFIX kg: <http://example.org/kg/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -232,6 +233,7 @@ Now, please extract entities and relationships from the following text:
 [INPUT_TEXT_PLACEHOLDER]`;
 
 export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
+  const { mode: themeMode } = useThemeMode();
   const [currentTab, setCurrentTab] = useState(0);
   const [similaritySearchQuery, setSimilaritySearchQuery] = useState('');
   const [similarityResults, setSimilarityResults] = useState([]);
@@ -899,7 +901,7 @@ SELECT ?document WHERE {
                 defaultLanguage="sparql"
                 value={sparqlQuery}
                 onChange={(value) => setSparqlQuery(value || '')}
-                theme="vs-dark"
+                theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 12,
@@ -935,7 +937,7 @@ SELECT ?document WHERE {
                     defaultLanguage="markdown"
                     value={markdownContent}
                     onChange={(value) => setMarkdownContent(value || '')}
-                    theme="vs-dark"
+                    theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                     options={{
                       minimap: { enabled: false },
                       fontSize: 12,
@@ -1148,7 +1150,7 @@ SELECT ?document WHERE {
                     defaultLanguage="turtle"
                     value={entitySchema}
                     onChange={(value) => setEntitySchema(value || '')}
-                    theme="vs-dark"
+                    theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                     options={{
                       minimap: { enabled: false },
                       fontSize: 12,
@@ -1190,7 +1192,7 @@ SELECT ?document WHERE {
                     defaultLanguage="markdown"
                     value={extractionPrompt}
                     onChange={(value) => setExtractionPrompt(value || '')}
-                    theme="vs-dark"
+                    theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                     options={{
                       minimap: { enabled: false },
                       fontSize: 12,

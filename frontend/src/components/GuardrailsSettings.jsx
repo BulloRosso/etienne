@@ -16,6 +16,7 @@ import {
 import { Close } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 const GUARDRAIL_OPTIONS = [
   { id: 'creditCard', label: 'Credit Card Numbers', description: 'Detects and redacts credit card numbers' },
@@ -26,6 +27,7 @@ const GUARDRAIL_OPTIONS = [
 ];
 
 export default function GuardrailsSettings({ open, onClose, project, showBackgroundInfo }) {
+  const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [enabledGuardrails, setEnabledGuardrails] = useState([]);
   const [outputGuardrailsEnabled, setOutputGuardrailsEnabled] = useState(false);
@@ -171,7 +173,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
                 defaultLanguage="markdown"
                 value={outputGuardrailsPrompt}
                 onChange={(value) => setOutputGuardrailsPrompt(value || '')}
-                theme="light"
+                theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 13,

@@ -7,9 +7,11 @@ import DOMPurify from 'dompurify';
 import StreamingTimeline from './StreamingTimeline';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], planApprovalState = {}, onPlanApprove, onPlanReject, isStreaming = false, spanId = null, source = null, sourceMetadata = null }) {
   const isUser = role === 'user';
+  const { mode: themeMode } = useThemeMode();
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [feedback, setFeedback] = useState(null); // 'up', 'down', or null
@@ -239,7 +241,8 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
             elevation={2}
             sx={{
               p: 2,
-              backgroundColor: '#fff',
+              backgroundColor: themeMode === 'dark' ? 'navy' : '#fff',
+              color: themeMode === 'dark' ? '#fff' : 'inherit',
               borderRadius: 2,
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}
@@ -292,7 +295,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                   backgroundColor: 'rgba(0,0,0,0.03)'
                 },
                 '& td': {
-                  backgroundColor: '#fff'
+                  backgroundColor: themeMode === 'dark' ? '#000' : '#fff'
                 }
               }}
               dangerouslySetInnerHTML={{ __html: renderedContent }}
@@ -366,6 +369,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               fontFamily: 'Roboto',
               fontSize: '14px',
               wordBreak: 'break-word',
+              color: themeMode === 'dark' ? '#fff' : 'inherit',
               mb: 2,
               pl: '40px',
               '& p': { margin: '0 0 0.5em 0' },

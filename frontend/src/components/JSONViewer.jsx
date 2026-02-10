@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function JSONViewer({ filename, projectName, className = '' }) {
+  const { mode: themeMode } = useThemeMode();
   const [jsonContent, setJsonContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -145,7 +147,7 @@ export default function JSONViewer({ filename, projectName, className = '' }) {
         defaultLanguage="json"
         language="json"
         value={jsonContent}
-        theme="light"
+        theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
         options={{
           readOnly: true,
           minimap: { enabled: false },

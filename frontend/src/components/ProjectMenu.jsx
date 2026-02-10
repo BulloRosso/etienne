@@ -43,9 +43,11 @@ import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
   const { user, logout, hasRole } = useAuth();
+  const { mode: themeMode } = useThemeMode();
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -455,7 +457,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           <Box sx={{
             overflowY: 'auto',
             overflowX: 'hidden',
-            mb: '8px'
+            mb: '8px',
+            '&::-webkit-scrollbar': { width: '8px' },
+            '&::-webkit-scrollbar-track': { backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f5f5f0' },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: themeMode === 'dark' ? '#555' : '#ccc',
+              borderRadius: '4px',
+              '&:hover': { backgroundColor: themeMode === 'dark' ? '#777' : '#aaa' }
+            },
+            scrollbarColor: themeMode === 'dark' ? '#555 #2c2c2c' : '#ccc #f5f5f0',
           }}>
             <DashboardGrid
               currentProject={currentProject}
@@ -480,7 +490,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <Box sx={{
               flex: 1,
               overflowY: 'auto',
-              overflowX: 'hidden'
+              overflowX: 'hidden',
+              '&::-webkit-scrollbar': { width: '8px' },
+              '&::-webkit-scrollbar-track': { backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f5f5f0' },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: themeMode === 'dark' ? '#555' : '#ccc',
+                borderRadius: '4px',
+                '&:hover': { backgroundColor: themeMode === 'dark' ? '#777' : '#aaa' }
+              },
+              scrollbarColor: themeMode === 'dark' ? '#555 #2c2c2c' : '#ccc #f5f5f0',
             }}>
               {projects.filter(project => !project.startsWith('.')).map((project) => (
                 <MenuItem
@@ -498,10 +516,10 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <Box sx={{ flexShrink: 0, mb: '10px' }}>
               <Divider />
               <MenuItem onClick={handleNewProject}>
-                <ListItemIcon>
+                <ListItemIcon sx={{ color: themeMode === 'dark' ? 'gold' : 'inherit' }}>
                   <AddOutlined fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primaryTypographyProps={{ fontWeight: 'bold' }}>New Project</ListItemText>
+                <ListItemText primaryTypographyProps={{ fontWeight: 'bold', color: themeMode === 'dark' ? 'gold' : 'inherit' }}>New Project</ListItemText>
               </MenuItem>
             </Box>
           </Box>

@@ -45,18 +45,19 @@ export default function SkillsSelector({
         Standard Skills (automatically included)
       </Typography>
       {standardSkills.length > 0 ? (
-        <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
+        <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2, color: '#000' }}>
           {standardSkills.map(skill => (
             <ListItem key={skill.name} sx={{ alignItems: 'flex-start' }}>
               <ListItemIcon sx={{ minWidth: 36, mt: '-5px' }}>
-                <Checkbox checked disabled />
+                <Checkbox checked disabled sx={{ color: '#000', '&.Mui-checked': { color: '#000' }, '&.Mui-disabled': { color: '#000' } }} />
               </ListItemIcon>
-              <ListItemIcon sx={{ minWidth: 42, mt: '8px' }}>
+              <ListItemIcon sx={{ minWidth: 42, mt: '8px', color: '#000' }}>
                 <GiAtom />
               </ListItemIcon>
               <ListItemText
                 primary={skill.name}
                 secondary={skill.description}
+                secondaryTypographyProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
               />
             </ListItem>
           ))}

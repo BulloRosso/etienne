@@ -27,47 +27,48 @@ import SkillsSelector from './SkillsSelector';
 import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 const WIZARD_STEPS = [
   {
     label: 'Project Name',
-    image: '/project-wizard-step-1.jpg',
+    image: '/project-wizard-step-1.png',
     benefitTitle: 'Give your project a unique identity',
     benefitDescription: 'A clear project name helps you organize your work and quickly find what you need. Choose a name that reflects the project\'s purpose.'
   },
   {
     label: 'Mission Brief',
-    image: '/project-wizard-step-2.jpg',
+    image: '/project-wizard-step-2.png',
     benefitTitle: 'Define your project\'s goals',
     benefitDescription: 'The mission brief guides your AI assistant\'s behavior. A detailed description ensures better, more focused results aligned with your objectives.'
   },
   {
     label: 'Agent Role',
-    image: '/project-wizard-step-3.jpg',
+    image: '/project-wizard-step-3.png',
     benefitTitle: 'Choose your AI assistant\'s expertise',
     benefitDescription: 'Select a predefined role that matches your project\'s needs, or create a custom role definition. The agent role determines the assistant\'s personality, knowledge focus, and working style.'
   },
   {
     label: 'Skills',
-    image: '/project-wizard-step-4.jpg',
+    image: '/project-wizard-step-4.png',
     benefitTitle: 'Equip your project with capabilities',
     benefitDescription: 'Skills are pre-built behaviors that enhance your AI assistant. Standard skills are included automatically. Add optional skills to extend functionality.'
   },
   {
     label: 'Tools',
-    image: '/project-wizard-step-5.jpg',
+    image: '/project-wizard-step-5.png',
     benefitTitle: 'Connect to external services',
     benefitDescription: 'MCP tools let your AI assistant interact with external systems and APIs. Add pre-approved tools from the registry or connect to custom servers.'
   },
   {
     label: 'External Agents',
-    image: '/project-wizard-step-6.jpg',
+    image: '/project-wizard-step-6.png',
     benefitTitle: 'Collaborate with specialized agents',
     benefitDescription: 'External A2A agents bring specialized expertise to your project. Select agents that complement your project\'s goals for enhanced capabilities.'
   },
   {
     label: 'Customize UI',
-    image: '/project-wizard-step-7.jpg',
+    image: '/project-wizard-step-7.png',
     benefitTitle: 'Personalize your workspace',
     benefitDescription: 'Start with a familiar look by copying UI settings from an existing project, or begin fresh with the default configuration.'
   }
@@ -75,6 +76,7 @@ const WIZARD_STEPS = [
 
 export default function CreateProjectWizard({ open, onClose, onProjectCreated, existingProjects = [] }) {
   const { hasRole } = useAuth();
+  const { mode: themeMode } = useThemeMode();
   const [activeStep, setActiveStep] = useState(0);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
@@ -314,7 +316,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 defaultLanguage="markdown"
                 value={missionBrief}
                 onChange={(v) => setMissionBrief(v || '')}
-                theme="light"
+                theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 13,
@@ -379,7 +381,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                   defaultLanguage="markdown"
                   value={customRoleContent}
                   onChange={(v) => setCustomRoleContent(v || '')}
-                  theme="light"
+                  theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 13,

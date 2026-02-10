@@ -11,8 +11,10 @@ import ResearchDocument from './ResearchDocument';
 import ImageViewer from './ImageViewer';
 import ExcelViewer from './ExcelViewer';
 import BackgroundInfo from './BackgroundInfo';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll }) {
+  const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [visibleIndices, setVisibleIndices] = useState([]);
@@ -283,7 +285,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           }}
         >
           <img
-            src="/etienne-intro.jpg"
+            src={themeMode === 'dark' ? '/etienne-intro.png' : '/etienne-intro.jpg'}
             alt="Introduction"
             style={{
               maxWidth: '100%',
@@ -389,7 +391,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
       </Box>
 
       {/* Content Area */}
-      <Box sx={{ flex: 1, overflow: 'hidden', border: 0, position: 'relative', backgroundColor: '#ffffff' }}>
+      <Box sx={{ flex: 1, overflow: 'hidden', border: 0, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#ffffff' }}>
         {visibleFiles[activeTab] && renderFileContent(visibleFiles[activeTab])}
       </Box>
     </Box>

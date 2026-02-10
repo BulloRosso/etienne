@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, CircularProgress } from '@mui/material';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
  * ImageViewer - Displays images with metadata extracted from file headers
@@ -12,6 +13,7 @@ import { Box, Typography, Paper, CircularProgress } from '@mui/material';
  * - Additional format-specific metadata
  */
 export default function ImageViewer({ filename, projectName }) {
+  const { mode: themeMode } = useThemeMode();
   const [imageUrl, setImageUrl] = useState(null);
   const [metadata, setMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -287,62 +289,62 @@ export default function ImageViewer({ filename, projectName }) {
 
       {/* Metadata Display */}
       {metadata && (
-        <Paper elevation={2} sx={{ p: 2, backgroundColor: '#f5f5f5' }}>
+        <Paper elevation={2} sx={{ p: 2, backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5' }}>
           <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem', fontWeight: 'bold' }}>
             Image Information
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 1, fontSize: '0.875rem' }}>
-            <Typography sx={{ fontWeight: 'bold', color: '#666' }}>Format:</Typography>
+            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Format:</Typography>
             <Typography>{metadata.format}</Typography>
 
             {metadata.width && metadata.height && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: '#666' }}>Dimensions:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Dimensions:</Typography>
                 <Typography>{metadata.width} × {metadata.height} pixels</Typography>
               </>
             )}
 
-            <Typography sx={{ fontWeight: 'bold', color: '#666' }}>File Size:</Typography>
+            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>File Size:</Typography>
             <Typography>{metadata.fileSize}</Typography>
 
             {metadata.bitDepth && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: '#666' }}>Bit Depth:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Bit Depth:</Typography>
                 <Typography>{metadata.bitDepth}</Typography>
               </>
             )}
 
             {metadata.colorType && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: '#666' }}>Color Type:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Color Type:</Typography>
                 <Typography>{metadata.colorType}</Typography>
               </>
             )}
 
             {metadata.compression && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: '#666' }}>Compression:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Compression:</Typography>
                 <Typography>{metadata.compression}</Typography>
               </>
             )}
 
             {metadata.version && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: '#666' }}>Version:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Version:</Typography>
                 <Typography>{metadata.version}</Typography>
               </>
             )}
 
             {metadata.colorResolution && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: '#666' }}>Color Resolution:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Color Resolution:</Typography>
                 <Typography>{metadata.colorResolution}</Typography>
               </>
             )}
           </Box>
 
-          <Typography variant="caption" sx={{ display: 'block', mt: 2, color: '#888', fontSize: '0.75rem' }}>
+          <Typography variant="caption" sx={{ display: 'block', mt: 2, color: themeMode === 'dark' ? '#999' : '#888', fontSize: '0.75rem' }}>
             Filename: {filename}
           </Typography>
         </Paper>

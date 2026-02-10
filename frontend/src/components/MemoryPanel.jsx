@@ -5,8 +5,10 @@ import { BiMemoryCard } from 'react-icons/bi';
 import { AiOutlineDelete } from 'react-icons/ai';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, isOpen }) {
+  const { mode: themeMode } = useThemeMode();
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -244,7 +246,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
         p: 1
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: '14px' }}>
-          <BiMemoryCard size={22} color="#000" />
+          <BiMemoryCard size={22} color={themeMode === 'dark' ? '#fff' : '#000'} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Long Term Memory
           </Typography>
@@ -258,7 +260,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       <Tabs
         value={activeTab}
         onChange={handleTabChange}
-        sx={{ borderBottom: '1px solid #e0e0e0', px: 1, minHeight: 40 }}
+        sx={{ borderBottom: '1px solid', borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0', px: 1, minHeight: 40 }}
         TabIndicatorProps={{ sx: { height: 2 } }}
       >
         <Tab label="Memories" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
@@ -283,7 +285,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
               width: '100%',
               maxWidth: 220,
               height: '33.3%',
-              backgroundImage: 'url(/feature-long-term-memory.jpg)',
+              backgroundImage: 'url(/feature-long-term-memory.png)',
               backgroundSize: 'contain',
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'center bottom',
@@ -318,17 +320,19 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
             )}
 
             {!loading && !error && memories.length > 0 && (
-              <List>
+              <List sx={{ position: 'relative', zIndex: 1 }}>
                 {memories.map((memory) => (
                   <ListItem
                     key={memory.id}
                     sx={{
-                      border: '1px solid #e0e0e0',
+                      border: '1px solid',
+                      borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
                       borderRadius: 1,
                       mb: 1,
-                      backgroundColor: '#fafafa',
+                      backgroundColor: themeMode === 'dark' ? '#383838' : '#fafafa',
+                      color: themeMode === 'dark' ? '#fff' : 'inherit',
                       '&:hover': {
-                        backgroundColor: '#f5f5f5',
+                        backgroundColor: themeMode === 'dark' ? '#444' : '#f5f5f5',
                         '& .delete-icon': {
                           opacity: 1
                         }
@@ -340,17 +344,17 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                   >
                     <Box sx={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
                       <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
-                        <BiMemoryCard size={20} color="#1976d2" />
+                        <BiMemoryCard size={20} color={themeMode === 'dark' ? '#90caf9' : '#1976d2'} />
                       </ListItemIcon>
                       <ListItemText
                         primary={memory.memory}
                         secondary={
                           <Box sx={{ mt: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography variant="caption" sx={{ color: themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>
                               Created: {formatDate(memory.created_at)}
                             </Typography>
                             {memory.updated_at && memory.updated_at !== memory.created_at && (
-                              <Typography variant="caption" sx={{ color: 'text.secondary', ml: 2 }}>
+                              <Typography variant="caption" sx={{ color: themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'text.secondary', ml: 2 }}>
                                 Updated: {formatDate(memory.updated_at)}
                               </Typography>
                             )}
@@ -358,7 +362,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                         }
                         primaryTypographyProps={{
                           variant: 'body2',
-                          sx: { fontWeight: 500 }
+                          sx: { fontWeight: 500, color: themeMode === 'dark' ? '#fff' : 'inherit' }
                         }}
                         sx={{ pr: 5 }}
                       />
@@ -372,9 +376,9 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                           top: 8,
                           opacity: 0,
                           transition: 'opacity 0.2s',
-                          color: '#d32f2f',
+                          color: themeMode === 'dark' ? '#ef9a9a' : '#d32f2f',
                           '&:hover': {
-                            backgroundColor: 'rgba(211, 47, 47, 0.08)'
+                            backgroundColor: themeMode === 'dark' ? 'rgba(239, 154, 154, 0.12)' : 'rgba(211, 47, 47, 0.08)'
                           }
                         }}
                       >
@@ -391,8 +395,9 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
           {!loading && !error && memories.length > 0 && (
             <Box sx={{
               p: 2,
-              borderTop: '1px solid #e0e0e0',
-              backgroundColor: '#f5f5f5',
+              borderTop: '1px solid',
+              borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+              backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5',
               display: 'flex',
               justifyContent: 'space-between'
             }}>
@@ -430,11 +435,11 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                     Using a custom extraction prompt for this project.
                   </Alert>
                 )}
-                <Box sx={{ flex: 1, border: '1px solid #e0e0e0', borderRadius: 1, overflow: 'hidden' }}>
+                <Box sx={{ flex: 1, border: '1px solid', borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0', borderRadius: 1, overflow: 'hidden' }}>
                   <Editor
                     height="100%"
                     defaultLanguage="markdown"
-                    theme="light"
+                    theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
                     value={extractionPrompt}
                     onChange={(value) => setExtractionPrompt(value || '')}
                     options={{
@@ -455,8 +460,9 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
           {!promptLoading && (
             <Box sx={{
               p: 2,
-              borderTop: '1px solid #e0e0e0',
-              backgroundColor: '#f5f5f5',
+              borderTop: '1px solid',
+              borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+              backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -544,8 +550,9 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
           {!settingsLoading && (
             <Box sx={{
               p: 2,
-              borderTop: '1px solid #e0e0e0',
-              backgroundColor: '#f5f5f5',
+              borderTop: '1px solid',
+              borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+              backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',

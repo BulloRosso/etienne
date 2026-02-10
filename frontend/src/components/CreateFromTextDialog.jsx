@@ -12,8 +12,10 @@ import {
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function CreateFromTextDialog({ open, onClose, projectName, onCreated }) {
+  const { mode: themeMode } = useThemeMode();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -86,7 +88,7 @@ export default function CreateFromTextDialog({ open, onClose, projectName, onCre
           <Editor
             height="350px"
             defaultLanguage="plaintext"
-            theme="light"
+            theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
             value={text}
             onChange={(value) => setText(value || '')}
             options={{

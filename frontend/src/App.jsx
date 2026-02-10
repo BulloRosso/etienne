@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress, Drawer } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress, Drawer, Switch } from '@mui/material';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
@@ -16,15 +16,17 @@ import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
 import LoginDialog from './components/LoginDialog';
 import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
-import { IoInformationCircle } from "react-icons/io5";
+import { IoInformationCircle, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
+import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 import Onboarding from './components/Onboarding';
 
 export default function App() {
   const { currentProject, projectExists, setProject } = useProject();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const { mode: themeMode, toggleMode } = useThemeMode();
   const [streaming, setStreaming] = useState(false);
   const [messages, setMessages] = useState([]);
   const [structuredMessages, setStructuredMessages] = useState([]);
@@ -1728,7 +1730,7 @@ export default function App() {
   // Show loading while checking authentication
   if (authLoading) {
     return (
-      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
         <CircularProgress />
       </Box>
     );
@@ -1742,7 +1744,7 @@ export default function App() {
   // Show loading while checking configuration
   if (showConfigurationRequired === null) {
     return (
-      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
         <CircularProgress />
       </Box>
     );
@@ -1759,7 +1761,7 @@ export default function App() {
         position="static"
         sx={{
           zIndex: 10,
-          backgroundColor: uiConfig?.appBar?.backgroundColor,
+          backgroundColor: themeMode === 'dark' ? 'navy' : uiConfig?.appBar?.backgroundColor,
           color: uiConfig?.appBar?.fontColor,
         }}
       >
@@ -1795,6 +1797,20 @@ export default function App() {
             <TbPresentation size={24} />
           </IconButton>
           <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', mr: '30px' }}>
+            <IoSunnyOutline size={18} style={{ opacity: themeMode === 'light' ? 1 : 0.4 }} />
+            <Switch
+              size="small"
+              checked={themeMode === 'dark'}
+              onChange={toggleMode}
+              sx={{
+                mx: 0.5,
+                '& .MuiSwitch-thumb': { backgroundColor: '#fff' },
+                '& .MuiSwitch-track': { backgroundColor: 'rgba(255,255,255,0.3)' },
+              }}
+            />
+            <IoMoonOutline size={18} style={{ opacity: themeMode === 'dark' ? 1 : 0.4 }} />
+          </Box>
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
             [{currentProject || 'Select/Create a Project'}]
           </Typography>

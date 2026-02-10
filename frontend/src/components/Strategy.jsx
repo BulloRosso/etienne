@@ -4,11 +4,13 @@ import { Save } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 // Import role templates
 const roleTemplates = import.meta.glob('../role-templates/*.md', { as: 'raw', eager: true });
 
 export default function Strategy({ projectName, showBackgroundInfo }) {
+  const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -102,7 +104,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <img
-          src="/project-wizard-step-3.jpg"
+          src="/project-wizard-step-3.png"
           alt="Agent Role"
           style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain', borderRadius: 4 }}
         />
@@ -115,7 +117,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
         <Editor
           height="100%"
           defaultLanguage="markdown"
-          theme="light"
+          theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
           value={content}
           onChange={(value) => setContent(value || '')}
           options={{

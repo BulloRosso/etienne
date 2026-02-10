@@ -3,8 +3,10 @@ import { Box, Button, CircularProgress, Alert, Typography } from '@mui/material'
 import { Save } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function Mission({ projectName }) {
+  const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,7 @@ export default function Mission({ projectName }) {
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <img
-          src="/project-wizard-step-2.jpg"
+          src="/project-wizard-step-2.png"
           alt="Mission Brief"
           style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain', borderRadius: 4 }}
         />
@@ -86,7 +88,7 @@ export default function Mission({ projectName }) {
         <Editor
           height="100%"
           defaultLanguage="markdown"
-          theme="light"
+          theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
           value={content}
           onChange={(value) => setContent(value || '')}
           options={{
