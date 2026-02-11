@@ -41,6 +41,7 @@ import Scrapbook from './Scrapbook';
 import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
+import ServiceControlDrawer from './ServiceControlDrawer';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
@@ -63,6 +64,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [serviceControlOpen, setServiceControlOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -363,6 +365,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setChangePasswordOpen(false);
   };
 
+  const handleServiceControlOpen = () => {
+    setServiceControlOpen(true);
+    handleMenuClose();
+  };
+
+  const handleServiceControlClose = () => {
+    setServiceControlOpen(false);
+  };
+
   // Listen for openScrapbook event (triggered by #scrapbook hash route)
   useEffect(() => {
     const handleOpenScrapbook = () => {
@@ -461,6 +472,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
               user={user}
               onLogout={logout}
               onSettingsClick={handleChangePasswordOpen}
+              onServiceControlClick={handleServiceControlOpen}
             />
           </Box>
 
@@ -793,6 +805,11 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
       <ChangePasswordDialog
         open={changePasswordOpen}
         onClose={handleChangePasswordClose}
+      />
+
+      <ServiceControlDrawer
+        open={serviceControlOpen}
+        onClose={handleServiceControlClose}
       />
     </>
   );

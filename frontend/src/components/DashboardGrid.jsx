@@ -1,8 +1,9 @@
 import React from 'react';
 import { Box, Paper, Typography, IconButton, Tooltip } from '@mui/material';
 import { InfoOutlined, Logout, Settings } from '@mui/icons-material';
+import { VscServerProcess } from 'react-icons/vsc';
 
-const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick }) => {
+const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick }) => {
   const dashboardItems = [
     // 1st row
     {
@@ -85,7 +86,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
   };
 
   return (
-    <Box sx={{ width: '300px' }}>
+    <Box sx={{ width: '300px', display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <Box
         sx={{
@@ -247,6 +248,37 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
           </Paper>
         ))}
       </Box>
+
+      {/* Service Control link - bottom aligned, centered, hidden for guest role */}
+      {user && user.role !== 'guest' && (
+        <Box
+          onClick={() => {
+            if (onServiceControlClick) {
+              onServiceControlClick();
+              onClose();
+            }
+          }}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            px: 2,
+            py: 1.5,
+            mt: 'auto',
+            cursor: 'pointer',
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'primary.main'
+            }
+          }}
+        >
+          <VscServerProcess size={16} />
+          <Typography variant="caption" sx={{ fontWeight: 500 }}>
+            Service Control
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };
