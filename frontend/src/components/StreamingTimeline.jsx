@@ -3,32 +3,23 @@ import { Box } from '@mui/material';
 import ToolCallTimeline from './ToolCallTimeline';
 import TextSegmentTimeline from './TextSegmentTimeline';
 import TodoWriteTimeline from './TodoWriteTimeline';
-import PlanApprovalTimeline from './PlanApprovalTimeline';
 
 /**
  * Unified timeline component that renders a sequence of text chunks, tool calls, and TodoWrite
  * in chronological order. Works identically during streaming and after completion.
  *
  * @param {Array} items - Array of reasoning steps (text_chunk and tool_call types)
- * @param {Function} onPlanApprove - Callback when user approves a plan (ExitPlanMode)
- * @param {Function} onPlanReject - Callback when user rejects a plan
- * @param {Object} planApprovalState - State of plan approvals { [toolId]: 'approved' | 'rejected' }
  */
 export default function StreamingTimeline({
-  items = [],
-  onPlanApprove,
-  onPlanReject,
-  planApprovalState = {}
+  items = []
 }) {
   // Process items into timeline format
-  const { timelineItems, exitPlanModeItems } = useMemo(() => {
+  const timelineItems = useMemo(() => {
     // Separate by type
     const textChunks = items.filter(item => item.type === 'text_chunk');
     const toolSteps = items.filter(item => item.type === 'tool_call');
 
-    // Separate ExitPlanMode from other tools (will be rendered at the end)
-    // Also filter out AskUserQuestion - it's handled via modal dialog, not timeline
-    const exitPlanModeTools = toolSteps.filter(item => item.toolName === 'ExitPlanMode');
+    // Filter out ExitPlanMode and AskUserQuestion - both handled via modal dialogs, not timeline
     const otherTools = toolSteps.filter(item =>
       item.toolName !== 'ExitPlanMode' && item.toolName !== 'AskUserQuestion'
     );
@@ -91,7 +82,7 @@ export default function StreamingTimeline({
       }
     }
 
-    // Merge text segments and tool calls (excluding ExitPlanMode), sorted by timestamp
+    // Merge text segments and tool calls, sorted by timestamp
     const allItems = [
       ...textSegments.map(seg => ({ ...seg, sortTime: seg.timestamp })),
       ...otherTools.map(tool => ({
@@ -102,18 +93,10 @@ export default function StreamingTimeline({
       }))
     ].sort((a, b) => a.sortTime - b.sortTime);
 
-    // ExitPlanMode items to render at the end
-    const exitItems = exitPlanModeTools.map(tool => ({
-      type: 'tool',
-      content: tool,
-      sortTime: tool.timestamp || 0,
-      key: `tool-${tool.id || tool.timestamp}`
-    }));
-
-    return { timelineItems: allItems, exitPlanModeItems: exitItems };
+    return allItems;
   }, [items]);
 
-  if (timelineItems.length === 0 && exitPlanModeItems.length === 0) {
+  if (timelineItems.length === 0) {
     return null;
   }
 
@@ -158,22 +141,6 @@ export default function StreamingTimeline({
         }
       })}
 
-      {/* ExitPlanMode always rendered at the very end */}
-      {exitPlanModeItems.map((item) => {
-        const toolId = item.content.id || item.key;
-        const approvalState = planApprovalState[toolId];
-        return (
-          <PlanApprovalTimeline
-            key={item.key}
-            args={item.content.args}
-            showBullet={true}
-            onApprove={() => onPlanApprove && onPlanApprove(toolId)}
-            onReject={() => onPlanReject && onPlanReject(toolId)}
-            isApproved={approvalState === 'approved'}
-            isRejected={approvalState === 'rejected'}
-          />
-        );
-      })}
     </Box>
   );
 }

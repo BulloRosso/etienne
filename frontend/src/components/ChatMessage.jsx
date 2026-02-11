@@ -9,7 +9,7 @@ import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
-export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], planApprovalState = {}, onPlanApprove, onPlanReject, isStreaming = false, spanId = null, source = null, sourceMetadata = null }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, source = null, sourceMetadata = null }) {
   const isUser = role === 'user';
   const { mode: themeMode } = useThemeMode();
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
@@ -355,9 +355,6 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         {useTimelineFormat && (
           <StreamingTimeline
             items={reasoningSteps}
-            planApprovalState={planApprovalState}
-            onPlanApprove={onPlanApprove}
-            onPlanReject={onPlanReject}
           />
         )}
 

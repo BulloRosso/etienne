@@ -35,7 +35,6 @@ export default function App() {
   const [currentSessionId, setCurrentSessionId] = useState(null); // Track which session we're viewing
   const [hasSessions, setHasSessions] = useState(false); // Track if sessions exist
   const [mode, setMode] = useState('work'); // 'plan' or 'work'
-  const [planApprovalState, setPlanApprovalState] = useState({}); // { [toolId]: 'approved' | 'rejected' }
   const [aiModel, setAiModel] = useState('anthropic'); // 'anthropic' or 'openai'
   const [budgetSettings, setBudgetSettings] = useState({ enabled: false, limit: 0 });
   const [hasTasks, setHasTasks] = useState(false);
@@ -1161,27 +1160,6 @@ export default function App() {
     }
   };
 
-  // Handle plan approval (ExitPlanMode)
-  const handlePlanApprove = async (toolId) => {
-    console.log('Plan approved:', toolId);
-    setPlanApprovalState(prev => ({ ...prev, [toolId]: 'approved' }));
-
-    // Switch to work mode to execute the plan
-    setMode('work');
-
-    // Send a continuation message to execute the plan
-    // The assistant will continue from where it left off
-    setTimeout(() => {
-      handleSendMessage('Please proceed with executing the plan.');
-    }, 500);
-  };
-
-  const handlePlanReject = async (toolId) => {
-    console.log('Plan rejected:', toolId);
-    setPlanApprovalState(prev => ({ ...prev, [toolId]: 'rejected' }));
-    // User can provide feedback in their next message
-  };
-
   const handleSendMessage = async (messageText) => {
     // Get active context name if available
     const activeContext = activeContextId ? contexts.find(c => c.id === activeContextId) : null;
@@ -1866,7 +1844,7 @@ export default function App() {
           />
         ) : (
           <SplitLayout
-            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} planApprovalState={planApprovalState} onPlanApprove={handlePlanApprove} onPlanReject={handlePlanReject} />}
+            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} />}
             right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} />}
           />
         )}

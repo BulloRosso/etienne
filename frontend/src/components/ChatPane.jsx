@@ -15,7 +15,7 @@ import SessionPane from './SessionPane';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, planApprovalState = {}, onPlanApprove, onPlanReject }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig }) {
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
@@ -283,9 +283,6 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               usage={msg.usage}
               contextName={msg.contextName}
               reasoningSteps={reasoningStepsToShow}
-              planApprovalState={planApprovalState}
-              onPlanApprove={onPlanApprove}
-              onPlanReject={onPlanReject}
               isStreaming={isStreaming}
               spanId={msg.spanId}
               source={msg.source}
@@ -300,9 +297,6 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           <Box sx={{ px: 2 }}>
             <StreamingTimeline
               items={structuredMessages}
-              planApprovalState={planApprovalState}
-              onPlanApprove={onPlanApprove}
-              onPlanReject={onPlanReject}
             />
           </Box>
         )}
