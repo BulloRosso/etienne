@@ -5,6 +5,7 @@ import { VscServerProcess } from 'react-icons/vsc';
 import { PiShareNetworkLight, PiTelegramLogo, PiMicrosoftTeamsLogo, PiVectorThree } from 'react-icons/pi';
 import { AiOutlineMail } from 'react-icons/ai';
 import { RiRobot2Line } from 'react-icons/ri';
+import { MdSecurity } from 'react-icons/md';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 const serviceIcons = {
@@ -14,6 +15,7 @@ const serviceIcons = {
   'imap-connector': AiOutlineMail,
   'a2a-server': RiRobot2Line,
   'vector-store': PiVectorThree,
+  'oauth-server': MdSecurity,
 };
 
 export default function ServiceControlDrawer({ open, onClose }) {
