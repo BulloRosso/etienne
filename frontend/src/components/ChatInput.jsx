@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, TextField, IconButton, Paper, List, ListItem, ListItemText, Popper, ClickAwayListener } from '@mui/material';
+import { Box, TextField, IconButton, Paper, List, ListItem, ListItemText, Popper, ClickAwayListener, Tooltip } from '@mui/material';
 import { AttachFile, MicOutlined, Send, InsertDriveFile, Close } from '@mui/icons-material';
 import { BsStopCircle } from 'react-icons/bs';
 import { useProject } from '../contexts/ProjectContext';
@@ -209,7 +209,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 1, pr: 0, pl: 3, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined, backgroundImage: themeMode === 'dark' ? 'none' : undefined }}>
+    <Paper elevation={3} sx={{ p: 1, pr: 0, pl: 1, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined, backgroundImage: themeMode === 'dark' ? 'none' : undefined }}>
       <style>
         {`
           @keyframes rotateIcon {
@@ -340,10 +340,12 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
           style={{ display: 'none' }}
           onChange={handleFileUpload}
         />
-        <label htmlFor="file-upload">
-          <IconButton component="span" disabled={disabled || uploading || streaming}>
-            <GoPlus />
-          </IconButton>
+        <label htmlFor="file-upload" style={{ marginRight: '5px' }}>
+          <Tooltip title="Add file attachments">
+            <IconButton component="span" disabled={disabled || uploading || streaming}>
+              <GoPlus />
+            </IconButton>
+          </Tooltip>
         </label>
 
         <TextField
