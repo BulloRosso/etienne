@@ -73,14 +73,8 @@ The start document must be located at `web/index.html`. Use this template:
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <!-- MUI -->
     <script crossorigin src="https://unpkg.com/@mui/material@5/umd/material-ui.production.min.js"></script>
-
-    <!-- MUI Icons -->
-    <script crossorigin src="https://unpkg.com/@mui/icons-material@5/umd/material-ui-icons-material.production.min.js"></script>
 
     <!-- Roboto Font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" />
@@ -114,6 +108,7 @@ The start document must be located at `web/index.html`. Use this template:
 </body>
 </html>
 ```
+In the App Bar include our company name "Music Parts GmbH" 
 
 ## Step 4: Create API Endpoints (if needed)
 
