@@ -356,7 +356,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
           p: 1
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: '14px' }}>
-            <TbCalendarTime size={22} color="#000" />
+            <TbCalendarTime size={22} color={themeMode === 'dark' ? '#fff' : '#000'} />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Scheduled Tasks
             </Typography>
@@ -370,7 +370,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
         <Tabs
           value={activeTab}
           onChange={(e, v) => setActiveTab(v)}
-          sx={{ borderBottom: '1px solid #e0e0e0', px: 1, minHeight: 40 }}
+          sx={{ borderBottom: '1px solid', borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0', px: 1, minHeight: 40 }}
           TabIndicatorProps={{ sx: { height: 2 } }}
         >
           <Tab label="Tasks" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
@@ -394,7 +394,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                 width: '100%',
                 maxWidth: 220,
                 height: '33.3%',
-                backgroundImage: 'url(/feature-scheduled-tasks.jpg)',
+                backgroundImage: 'url(/feature-scheduled-tasks.png)',
                 backgroundSize: 'contain',
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'center bottom',
@@ -415,19 +415,21 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                   </Typography>
                 </Box>
               ) : (
-                <List>
+                <List sx={{ position: 'relative', zIndex: 1 }}>
                   {tasks.map((task) => (
                     <ListItem
                       key={task.id}
                       onClick={() => handleEditTask(task)}
                       sx={{
-                        border: '1px solid #e0e0e0',
+                        border: '1px solid',
+                        borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
                         borderRadius: 1,
                         mb: 1,
-                        backgroundColor: '#fafafa',
+                        backgroundColor: themeMode === 'dark' ? '#383838' : '#fafafa',
+                        color: themeMode === 'dark' ? '#fff' : 'inherit',
                         cursor: 'pointer',
                         '&:hover': {
-                          backgroundColor: '#f5f5f5',
+                          backgroundColor: themeMode === 'dark' ? '#444' : '#f5f5f5',
                           '& .delete-icon': {
                             opacity: 1
                           }
@@ -440,20 +442,20 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                       <Box sx={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
                         <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
                           {isTaskOneTime(task)
-                            ? <IoIosTimer size={20} color="#1976d2" />
-                            : <TbCalendarTime size={20} color="#1976d2" />
+                            ? <IoIosTimer size={20} color={themeMode === 'dark' ? '#90caf9' : '#1976d2'} />
+                            : <TbCalendarTime size={20} color={themeMode === 'dark' ? '#90caf9' : '#1976d2'} />
                           }
                         </ListItemIcon>
                         <ListItemText
                           primary={task.name}
                           secondary={
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography variant="caption" sx={{ color: themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>
                               {formatScheduleDisplay(task.cronExpression, task.type)}
                             </Typography>
                           }
                           primaryTypographyProps={{
                             variant: 'body2',
-                            sx: { fontWeight: 500 }
+                            sx: { fontWeight: 500, color: themeMode === 'dark' ? '#fff' : 'inherit' }
                           }}
                           sx={{ pr: 5 }}
                         />
@@ -467,9 +469,9 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                             top: 8,
                             opacity: 0,
                             transition: 'opacity 0.2s',
-                            color: '#d32f2f',
+                            color: themeMode === 'dark' ? '#ef9a9a' : '#d32f2f',
                             '&:hover': {
-                              backgroundColor: 'rgba(211, 47, 47, 0.08)'
+                              backgroundColor: themeMode === 'dark' ? 'rgba(239, 154, 154, 0.12)' : 'rgba(211, 47, 47, 0.08)'
                             }
                           }}
                         >
@@ -485,8 +487,9 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
             {/* Footer */}
             <Box sx={{
               p: 2,
-              borderTop: '1px solid #e0e0e0',
-              backgroundColor: '#f5f5f5',
+              borderTop: '1px solid',
+              borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+              backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5',
               display: 'flex',
               justifyContent: 'space-between',
               position: 'relative'
@@ -577,8 +580,9 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
             {history.length > 0 && (
               <Box sx={{
                 p: 2,
-                borderTop: '1px solid #e0e0e0',
-                backgroundColor: '#f5f5f5',
+                borderTop: '1px solid',
+                borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+                backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5',
                 display: 'flex',
                 justifyContent: 'space-between'
               }}>
