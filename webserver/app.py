@@ -105,6 +105,10 @@ def list_projects():
 def project_root(project: str) -> str:
     return os.path.join(WORKSPACE, project)
 
+def web_root(project: str) -> str:
+    """Return the path to the public web subdirectory for a project."""
+    return os.path.join(WORKSPACE, project, "web")
+
 def api_dir(project: str) -> str:
     return os.path.join(project_root(project), "api")
 
@@ -206,7 +210,150 @@ def list_api_modules(project: str):
     return jsonify({"project": project, "modules": mods})
 
 # ------------------------------------------------------------
-# Statische Datei-Auslieferung
+# Public Web Routes (/web/<project>/...)
+# Serves static content from workspace/<project>/web/
+# API endpoints reuse the existing hot-reload dispatcher
+# ------------------------------------------------------------
+@app.route("/web/")
+def web_project_list():
+    """List all projects that have a web/ subdirectory."""
+    projects = [p for p in list_projects()
+                if os.path.isdir(web_root(p))]
+
+    html = [
+        "<!DOCTYPE html>",
+        "<html><head><meta charset='utf-8'><title>Public Websites</title>",
+        "<style>body{font-family:system-ui;padding:2rem;max-width:800px;margin:0 auto}",
+        "a{color:#1976d2;text-decoration:none}a:hover{text-decoration:underline}",
+        "ul{list-style:none;padding:0}li{padding:0.5rem 0;border-bottom:1px solid #eee}</style></head>",
+        "<body>",
+        "<h2>Public Websites</h2>",
+    ]
+    if projects:
+        html.append("<ul>")
+        for p in projects:
+            html.append(f'<li><a href="/web/{p}/">{p}</a></li>')
+        html.append("</ul>")
+    else:
+        html.append("<p>No projects with public websites found.</p>")
+    html.append("</body></html>")
+
+    return Response("\n".join(html), mimetype="text/html")
+
+@app.route("/web/<project>/api/<module_name>", methods=HTTP_METHODS)
+def web_dynamic_api(project: str, module_name: str):
+    """API dispatcher for public web endpoints (delegates to existing hot-reload)."""
+    return dynamic_api(project, module_name)
+
+@app.route("/web/<project>/api/")
+def web_list_api_modules(project: str):
+    """List API modules for a project (via /web prefix)."""
+    return list_api_modules(project)
+
+@app.route("/web/<project>/")
+def web_serve_index(project: str):
+    """Serve index.html from the project's web/ subdirectory."""
+    root = web_root(project)
+    if not os.path.isdir(root):
+        abort(404, description=f"No web directory for project: {project}")
+
+    idx = os.path.join(root, "index.html")
+    if os.path.isfile(idx):
+        response = send_from_directory(root, "index.html")
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+
+    # Directory listing for web/ subdirectory
+    entries = []
+    for name in sorted(os.listdir(root)):
+        if name.startswith("."):
+            continue
+        p = os.path.join(root, name)
+        entries.append({"name": name, "is_dir": os.path.isdir(p)})
+
+    html = [
+        "<!DOCTYPE html>",
+        "<html><head><meta charset='utf-8'><title>{} - Web</title>".format(project),
+        "<style>body{font-family:system-ui;padding:2rem;max-width:800px;margin:0 auto}",
+        "a{color:#1976d2;text-decoration:none}a:hover{text-decoration:underline}",
+        "ul{list-style:none;padding:0}li{padding:0.5rem 0;border-bottom:1px solid #eee}</style></head>",
+        "<body>",
+        "<h2>/web/{}</h2>".format(project),
+        '<p><a href="/web/">Back to project list</a></p>',
+        "<ul>"
+    ]
+    for e in entries:
+        suffix = "/" if e["is_dir"] else ""
+        icon = "📁" if e["is_dir"] else "📄"
+        html.append(f'<li>{icon} <a href="/web/{project}/{e["name"]}{suffix}">{e["name"]}{suffix}</a></li>')
+    html.append("</ul></body></html>")
+
+    return Response("\n".join(html), mimetype="text/html")
+
+@app.route("/web/<project>/<path:filepath>")
+def web_serve_file(project: str, filepath: str):
+    """Serve static files from the project's web/ subdirectory."""
+    root = web_root(project)
+    full = os.path.join(root, filepath)
+    _ensure_in_dir(root, full)
+
+    if os.path.isdir(full):
+        # Check for index.html in subdirectory
+        idx = os.path.join(full, "index.html")
+        if os.path.isfile(idx):
+            response = send_from_directory(full, "index.html")
+            response.headers['Content-Type'] = 'text/html; charset=utf-8'
+            return response
+
+        # Directory listing
+        try:
+            entries = sorted(os.listdir(full))
+        except Exception:
+            abort(404)
+
+        html = [
+            "<!DOCTYPE html>",
+            "<html><head><meta charset='utf-8'><title>{}/{}</title>".format(project, filepath),
+            "<style>body{font-family:system-ui;padding:2rem;max-width:800px;margin:0 auto}",
+            "a{color:#1976d2;text-decoration:none}a:hover{text-decoration:underline}",
+            "ul{list-style:none;padding:0}li{padding:0.5rem 0;border-bottom:1px solid #eee}</style></head>",
+            "<body>",
+            "<h2>/web/{}/{}</h2>".format(project, filepath),
+            '<p><a href="/web/{}/{}">Parent</a></p>'.format(project, "/".join(filepath.split("/")[:-1])),
+            "<ul>"
+        ]
+        for name in entries:
+            if name.startswith("."):
+                continue
+            p = os.path.join(full, name)
+            is_dir = os.path.isdir(p)
+            suffix = "/" if is_dir else ""
+            icon = "📁" if is_dir else "📄"
+            html.append(f'<li>{icon} <a href="/web/{project}/{filepath}/{name}{suffix}">{name}{suffix}</a></li>')
+        html.append("</ul></body></html>")
+
+        return Response("\n".join(html), mimetype="text/html")
+
+    # Serve the file
+    if not os.path.isfile(full):
+        abort(404)
+
+    directory = os.path.dirname(filepath)
+    filename = os.path.basename(filepath)
+    directory_fs = os.path.join(root, directory) if directory else root
+
+    response = send_from_directory(directory_fs, filename)
+    response.headers['Content-Type'] = get_mime_type(filename)
+
+    # Cache-Control for development
+    if filename.endswith(('.html', '.js', '.jsx', '.css')):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+
+    return response
+
+# ------------------------------------------------------------
+# Statische Datei-Auslieferung (legacy routes)
 # ------------------------------------------------------------
 @app.route("/<project>/")
 def serve_index(project: str):

@@ -10,6 +10,7 @@ export default defineConfig({
     proxy: {
         '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true },
         '/mcp': { target: 'http://localhost:6060', changeOrigin: true },
+        '/web': { target: 'http://localhost:4000', changeOrigin: true },
         '/auth': { target: 'http://localhost:5950', changeOrigin: true }
     }
   }
