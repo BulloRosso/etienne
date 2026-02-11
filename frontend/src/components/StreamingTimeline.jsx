@@ -24,6 +24,18 @@ export default function StreamingTimeline({
       item.toolName !== 'ExitPlanMode' && item.toolName !== 'AskUserQuestion'
     );
 
+    // Only keep the last TodoWrite - each call contains the full todo list,
+    // so earlier ones are superseded and should be removed from the timeline
+    const lastTodoWriteId = (() => {
+      const todoWrites = otherTools.filter(item => item.toolName === 'TodoWrite');
+      if (todoWrites.length <= 1) return null;
+      const sorted = [...todoWrites].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      return sorted[sorted.length - 1].id;
+    })();
+    const filteredTools = lastTodoWriteId
+      ? otherTools.filter(item => item.toolName !== 'TodoWrite' || item.id === lastTodoWriteId)
+      : otherTools;
+
     // Merge consecutive text chunks into continuous text segments
     // Text chunks between tool calls are merged together regardless of timestamp
     // This ensures proper rendering both during streaming and after session restore
@@ -34,7 +46,7 @@ export default function StreamingTimeline({
       const sortedTextChunks = [...textChunks].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       // Find timestamps where tool calls occur to split text segments
-      const toolTimestamps = otherTools.map(t => t.timestamp || 0).sort((a, b) => a - b);
+      const toolTimestamps = filteredTools.map(t => t.timestamp || 0).sort((a, b) => a - b);
 
       let currentSegment = {
         type: 'text',
@@ -85,7 +97,7 @@ export default function StreamingTimeline({
     // Merge text segments and tool calls, sorted by timestamp
     const allItems = [
       ...textSegments.map(seg => ({ ...seg, sortTime: seg.timestamp })),
-      ...otherTools.map(tool => ({
+      ...filteredTools.map(tool => ({
         type: 'tool',
         content: tool,
         sortTime: tool.timestamp || 0,
