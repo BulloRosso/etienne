@@ -51,12 +51,6 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
       label: 'Budget Settings',
       disabled: !currentProject
     },
-    {
-      id: 'email',
-      image: '/email.jpg',
-      label: 'Email',
-      disabled: false // Email configuration is global, not project-specific
-    },
     // 5th row
     {
       id: 'customui',

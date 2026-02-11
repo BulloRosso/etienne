@@ -35,7 +35,6 @@ import CustomUI from './CustomUI';
 import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
 import SkillsSettings from './SkillsSettings';
 import DashboardGrid from './DashboardGrid';
-import EmailConfiguration from './EmailConfiguration';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
 import Scrapbook from './Scrapbook';
@@ -60,7 +59,6 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [customUIOpen, setCustomUIOpen] = useState(false);
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
@@ -154,9 +152,6 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'externalevents':
         handleExternalEventsOpen();
-        break;
-      case 'email':
-        handleEmailOpen();
         break;
       case 'contexts':
         handleContextsOpen();
@@ -331,15 +326,6 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleSkillsClose = () => {
     setSkillsOpen(false);
-  };
-
-  const handleEmailOpen = () => {
-    setEmailOpen(true);
-    handleMenuClose();
-  };
-
-  const handleEmailClose = () => {
-    setEmailOpen(false);
   };
 
   const handleContextsOpen = () => {
@@ -752,20 +738,6 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         onClose={handleSkillsClose}
         project={currentProject}
       />
-
-      <Dialog open={emailOpen} onClose={handleEmailClose} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            Email Configuration
-            <IconButton onClick={handleEmailClose} size="small">
-              <Close />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          <EmailConfiguration />
-        </DialogContent>
-      </Dialog>
 
       <ContextManager
         open={contextsOpen}

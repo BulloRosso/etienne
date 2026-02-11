@@ -114,6 +114,26 @@ ${promptTemplate}
       return webhookContext;
     }
 
+    // For Email events, prepend the email content
+    if (event.group === 'Email') {
+      const emailContext = `The agent received an email:
+From: ${event.payload.From}
+To: ${event.payload.To}
+Subject: ${event.payload.Subject}
+Important: ${event.payload.Important ? 'Yes' : 'No'}
+Attachments: ${event.payload.Attachments?.length > 0 ? event.payload.Attachments.join(', ') : 'None'}
+
+Body:
+${event.payload.BodyText}
+
+---
+
+${promptTemplate}
+`.trim();
+
+      return emailContext;
+    }
+
     // For Filesystem events, prepend the file path information
     if (event.group === 'Filesystem') {
       const payload = event.payload as { path?: string; projectName?: string };

@@ -8,10 +8,12 @@ import {
   KnowledgeGraphCondition,
   CompoundCondition,
   TemporalConstraint,
+  EmailSemanticCondition,
   RuleExecutionResult,
 } from '../interfaces/event.interface';
 import { VectorStoreService } from '../../knowledge-graph/vector-store/vector-store.service';
 import { KnowledgeGraphService } from '../../knowledge-graph/knowledge-graph.service';
+import Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -227,6 +229,8 @@ export class RuleEngineService {
         return this.evaluateSimpleCondition(event, condition);
       case 'semantic':
         return await this.evaluateSemanticCondition(event, condition, projectName);
+      case 'email-semantic':
+        return await this.evaluateEmailSemanticCondition(event, condition as EmailSemanticCondition);
       case 'knowledge-graph':
         return await this.evaluateKnowledgeGraphCondition(event, condition, projectName);
       case 'compound':
@@ -441,9 +445,52 @@ export class RuleEngineService {
   }
 
   /**
+   * Evaluate email semantic condition using Haiku LLM
+   */
+  private async evaluateEmailSemanticCondition(
+    event: InternalEvent,
+    condition: EmailSemanticCondition,
+  ): Promise<boolean> {
+    if (event.group !== 'Email') return false;
+
+    try {
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      });
+
+      const prompt = `You are an email rule evaluator. Given an email and a rule criteria, determine if the email matches the criteria.
+
+Email data:
+${JSON.stringify(event.payload, null, 2)}
+
+Rule criteria: "${condition.criteria}"
+
+Does this email match the criteria? Respond with ONLY "YES" or "NO".`;
+
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const text = response.content.find((b) => b.type === 'text')?.text?.trim().toUpperCase();
+      const matched = text === 'YES';
+
+      if (matched) {
+        this.logger.log(`Email semantic condition matched: "${condition.criteria}"`);
+      }
+
+      return matched;
+    } catch (error) {
+      this.logger.error('Error evaluating email semantic condition', error);
+      return false;
+    }
+  }
+
+  /**
    * Get available event groups
    */
   getEventGroups(): string[] {
-    return ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code', 'Webhook'];
+    return ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code', 'Webhook', 'Email'];
   }
 }

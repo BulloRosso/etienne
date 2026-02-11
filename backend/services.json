@@ -47,6 +47,14 @@
       "directory": "ms-teams",
       "startCommand": "npm run dev",
       "port": 3978
+    },
+    {
+      "name": "imap-connector",
+      "displayName": "IMAP Connector",
+      "description": "Listens for incoming emails via IMAP IDLE and publishes events",
+      "directory": "imap",
+      "startCommand": "npm run dev",
+      "port": 4440
     }
   ]
 }

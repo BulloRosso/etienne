@@ -12,6 +12,7 @@ import {
   Sensors as MqttIcon,
   Schedule as ScheduleIcon,
   Webhook as WebhookIcon,
+  Email as EmailIcon,
   PlayCircle as PlayingIcon,
   CheckCircle as CompletedIcon,
   Error as ErrorIcon,
@@ -47,6 +48,11 @@ const EVENT_SOURCES = {
     icon: ScheduleIcon,
     color: '#00bcd4',
     group: 'Scheduling'
+  },
+  'IMAP Connector': {
+    icon: EmailIcon,
+    color: '#e91e63',
+    group: 'Email'
   }
 };
 

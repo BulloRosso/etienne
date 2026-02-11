@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject, forwardRef } from '@nestjs/common';
 import * as zmq from 'zeromq';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import { InternalEvent } from '../interfaces/event.interface';
 import { RuleEngineService } from './rule-engine.service';
 import { EventStoreService } from './event-store.service';
@@ -65,38 +67,15 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
         const event: InternalEvent = JSON.parse(msg.toString());
         this.logger.debug(`Received event: ${event.name} (${event.id})`);
 
-        // Use projectName from event (set by API endpoints) or default to 'default'
-        const projectName = event.projectName || 'default';
-
-        // Load rules for this project
-        await this.ruleEngine.loadRules(projectName);
-
-        // Evaluate event against rules
-        const executionResults = await this.ruleEngine.evaluateEvent(event, projectName);
-
-        // Store event and execute actions if any rules triggered
-        const triggeredResults = executionResults.filter((r) => r.success);
-        if (triggeredResults.length > 0) {
-          await this.eventStore.storeTriggeredEvent(projectName, event, executionResults);
-
-          // Publish via SSE with rule execution info
-          this.ssePublisher.publishRuleExecution(projectName, event, triggeredResults);
-
-          // Execute actions for triggered rules (fire-and-forget, don't block event processing)
-          for (const result of triggeredResults) {
-            this.logger.log(`Looking up rule ${result.ruleId} for project ${projectName}`);
-            const rule = this.ruleEngine.getRule(projectName, result.ruleId);
-            this.logger.log(`Rule found: ${rule ? rule.name : 'null'}, action: ${rule?.action ? JSON.stringify(rule.action) : 'none'}`);
-            if (rule && rule.action) {
-              this.logger.log(`Executing action for rule "${rule.name}" (${rule.id})`);
-              // Execute asynchronously without awaiting
-              this.actionExecutor.executeAction(projectName, rule, event).catch((err) => {
-                this.logger.error(`Failed to execute action for rule ${rule.id}:`, err);
-              });
-            } else {
-              this.logger.warn(`No action defined for rule ${result.ruleId} or rule not found`);
-            }
+        // Email events without projectName are evaluated against ALL projects
+        if (event.group === 'Email' && !event.projectName) {
+          const projectNames = await this.getAllProjectNames();
+          for (const projectName of projectNames) {
+            await this.evaluateEventForProject(event, projectName);
           }
+        } else {
+          const projectName = event.projectName || 'default';
+          await this.evaluateEventForProject(event, projectName);
         }
 
         // Distribute to internal subscribers
@@ -107,6 +86,50 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
       } catch (error) {
         this.logger.error('Error processing event', error);
       }
+    }
+  }
+
+  /**
+   * Evaluate an event against rules for a specific project
+   */
+  private async evaluateEventForProject(event: InternalEvent, projectName: string): Promise<void> {
+    await this.ruleEngine.loadRules(projectName);
+    const executionResults = await this.ruleEngine.evaluateEvent(event, projectName);
+
+    const triggeredResults = executionResults.filter((r) => r.success);
+    if (triggeredResults.length > 0) {
+      await this.eventStore.storeTriggeredEvent(projectName, event, executionResults);
+      this.ssePublisher.publishRuleExecution(projectName, event, triggeredResults);
+
+      for (const result of triggeredResults) {
+        this.logger.log(`Looking up rule ${result.ruleId} for project ${projectName}`);
+        const rule = this.ruleEngine.getRule(projectName, result.ruleId);
+        this.logger.log(`Rule found: ${rule ? rule.name : 'null'}, action: ${rule?.action ? JSON.stringify(rule.action) : 'none'}`);
+        if (rule && rule.action) {
+          this.logger.log(`Executing action for rule "${rule.name}" (${rule.id})`);
+          this.actionExecutor.executeAction(projectName, rule, event).catch((err) => {
+            this.logger.error(`Failed to execute action for rule ${rule.id}:`, err);
+          });
+        } else {
+          this.logger.warn(`No action defined for rule ${result.ruleId} or rule not found`);
+        }
+      }
+    }
+  }
+
+  /**
+   * Get all project names from the workspace directory
+   */
+  private async getAllProjectNames(): Promise<string[]> {
+    try {
+      const workspaceDir = path.join(process.cwd(), '..', 'workspace');
+      const entries = await fs.readdir(workspaceDir, { withFileTypes: true });
+      return entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+    } catch (error) {
+      this.logger.error('Failed to read workspace directory for project names', error);
+      return ['default'];
     }
   }
 

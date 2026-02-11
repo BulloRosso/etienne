@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join, resolve } from 'path';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import * as net from 'net';
 
 interface ServiceConfig {
@@ -27,6 +27,8 @@ interface RunningProcess {
 export class ProcessManagerService implements OnModuleDestroy {
   private servicesConfig: ServicesConfig | null = null;
   private runningProcesses: Map<string, RunningProcess> = new Map();
+  private shellPath: string | null = null;
+  private shellChecked = false;
 
   async onModuleDestroy() {
     // Clean up all spawned processes when the module is destroyed
@@ -38,6 +40,79 @@ export class ProcessManagerService implements OnModuleDestroy {
         console.error(`Error stopping service ${name}:`, error);
       }
     }
+  }
+
+  /**
+   * Find bash/sh shell on the current platform.
+   * - macOS/Linux: uses /bin/bash or /bin/sh (always available)
+   * - Windows: checks for Git Bash, then WSL bash, then falls back to null (cmd.exe)
+   * Result is cached after first call.
+   */
+  private findShell(): string | null {
+    if (this.shellChecked) return this.shellPath;
+    this.shellChecked = true;
+
+    const isWindows = process.platform === 'win32';
+
+    if (!isWindows) {
+      // macOS / Linux — check bash first, fall back to sh
+      const unixCandidates = ['/bin/bash', '/usr/bin/bash', '/bin/sh'];
+      for (const candidate of unixCandidates) {
+        try {
+          require('fs').accessSync(candidate);
+          this.shellPath = candidate;
+          console.log(`[ProcessManager] Using shell: ${candidate}`);
+          return this.shellPath;
+        } catch {
+          // Try next
+        }
+      }
+      // sh should always exist, but try which as last resort
+      try {
+        const result = execSync('which sh', { encoding: 'utf8', timeout: 3000 }).trim();
+        if (result) {
+          this.shellPath = result;
+          console.log(`[ProcessManager] Using shell (via which): ${result}`);
+          return this.shellPath;
+        }
+      } catch {
+        // Shouldn't happen on Unix
+      }
+      return null;
+    }
+
+    // Windows — look for Git Bash
+    const winCandidates = [
+      'C:\\Program Files\\Git\\bin\\bash.exe',
+      'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+    ];
+
+    for (const candidate of winCandidates) {
+      try {
+        require('fs').accessSync(candidate);
+        this.shellPath = candidate;
+        console.log(`[ProcessManager] Found Git Bash at: ${candidate}`);
+        return this.shellPath;
+      } catch {
+        // Not found, try next
+      }
+    }
+
+    // Try to find bash via PATH using 'where'
+    try {
+      const result = execSync('where bash.exe', { encoding: 'utf8', timeout: 3000 }).trim();
+      const lines = result.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length > 0) {
+        this.shellPath = lines[0];
+        console.log(`[ProcessManager] Found bash via PATH: ${lines[0]}`);
+        return this.shellPath;
+      }
+    } catch {
+      // 'where' failed or bash not in PATH
+    }
+
+    console.log('[ProcessManager] No bash found on Windows, falling back to cmd.exe');
+    return null;
   }
 
   private async loadServicesConfig(): Promise<ServicesConfig> {
@@ -62,31 +137,27 @@ export class ProcessManagerService implements OnModuleDestroy {
   }
 
   private async isPortInUse(port: number): Promise<boolean> {
-    // Try to connect to the port - this works regardless of which interface the service is bound to
+    if (!port) return false;
+
     return new Promise((resolve) => {
       const socket = new net.Socket();
       socket.setTimeout(1000);
 
-      socket.once('connect', () => {
+      const cleanup = (result: boolean) => {
+        socket.removeAllListeners();
         socket.destroy();
-        resolve(true); // Port is in use - something accepted our connection
-      });
+        resolve(result);
+      };
 
-      socket.once('timeout', () => {
-        socket.destroy();
-        resolve(false); // Timeout - nothing listening
-      });
+      socket.once('connect', () => cleanup(true));
+      socket.once('timeout', () => cleanup(false));
+      socket.once('error', () => cleanup(false));
 
-      socket.once('error', (err: NodeJS.ErrnoException) => {
-        socket.destroy();
-        if (err.code === 'ECONNREFUSED') {
-          resolve(false); // Connection refused - nothing listening
-        } else {
-          resolve(false); // Other error - assume not in use
-        }
-      });
-
-      socket.connect(port, '127.0.0.1');
+      try {
+        socket.connect(port, '127.0.0.1');
+      } catch {
+        cleanup(false);
+      }
     });
   }
 
@@ -96,17 +167,16 @@ export class ProcessManagerService implements OnModuleDestroy {
       return { status: 'stopped', error: `Service '${serviceName}' not found` };
     }
 
-    // Check if we have a running process for this service
-    const running = this.runningProcesses.get(serviceName);
-    if (running && !running.process.killed) {
-      // Process exists in our map, check if port is still in use
-      const portInUse = await this.isPortInUse(service.port);
-      if (portInUse) {
-        return { status: 'running', port: service.port };
+    // Services without a port — check if we have a tracked process
+    if (!service.port) {
+      const running = this.runningProcesses.get(serviceName);
+      if (running && !running.process.killed) {
+        return { status: 'running' };
       }
+      return { status: 'stopped' };
     }
 
-    // Check if port is in use (service might be running externally)
+    // Check if port is in use (covers both tracked and externally-started services)
     const portInUse = await this.isPortInUse(service.port);
     if (portInUse) {
       return { status: 'running', port: service.port };
@@ -140,23 +210,28 @@ export class ProcessManagerService implements OnModuleDestroy {
         return { success: false, message: `Directory not found: ${serviceDir}` };
       }
 
-      // Spawn the process in a new shell
-      // On Windows, use 'start' command to open a new console window
-      // This is the most reliable way to spawn independent background processes on Windows
-      const isWindows = process.platform === 'win32';
       let childProcess: ChildProcess;
 
       console.log(`[${serviceName}] Starting in directory: ${serviceDir}`);
       console.log(`[${serviceName}] Command: ${service.startCommand}`);
 
-      if (isWindows) {
-        // Use 'start' to open a new console window that runs independently
-        // The /D flag sets the working directory
-        // The title is the service name (required when path has spaces)
+      const shell = this.findShell();
+
+      if (shell) {
+        // Use bash/sh on all platforms (native on macOS/Linux, Git Bash on Windows)
+        childProcess = spawn(shell, ['-c', service.startCommand], {
+          cwd: serviceDir,
+          detached: true,
+          stdio: 'ignore',
+          env: { ...process.env }
+        });
+        console.log(`[${serviceName}] Started via ${shell} (pid: ${childProcess.pid})`);
+      } else {
+        // Fallback: cmd.exe on Windows (no bash available)
         childProcess = spawn('cmd.exe', [
           '/c',
           'start',
-          `"${serviceName}"`,  // Window title (required)
+          `"${serviceName}"`,
           '/D',
           serviceDir,
           'cmd.exe',
@@ -165,24 +240,16 @@ export class ProcessManagerService implements OnModuleDestroy {
         ], {
           cwd: serviceDir,
           detached: true,
-          stdio: 'ignore',  // Must be 'ignore' for proper Windows detachment
+          stdio: 'ignore',
           env: { ...process.env },
           windowsHide: false
-        });
-      } else {
-        // On Unix, use sh -c with nohup for background execution
-        childProcess = spawn('sh', ['-c', `nohup ${service.startCommand} > /dev/null 2>&1 &`], {
-          cwd: serviceDir,
-          detached: true,
-          stdio: 'ignore',
-          env: { ...process.env }
         });
       }
 
       // Unref to allow the parent process to exit independently
       childProcess.unref();
 
-      // Store the running process (note: on Windows with 'start', this tracks the launcher, not the actual service)
+      // Store the running process
       this.runningProcesses.set(serviceName, {
         process: childProcess,
         service,

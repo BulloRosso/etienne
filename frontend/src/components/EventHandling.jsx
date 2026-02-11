@@ -34,7 +34,8 @@ import {
   Sensors as MqttIcon,
   Code as ClaudeCodeIcon,
   Schedule as ScheduleIcon,
-  Webhook as WebhookIcon
+  Webhook as WebhookIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
 import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
 import { PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
@@ -77,6 +78,11 @@ const EVENT_GROUP_CONFIG = {
     icon: WebhookIcon,
     color: '#ff9800',
     bgColor: '#fff3e0'
+  },
+  'Email': {
+    icon: EmailIcon,
+    color: '#e91e63',
+    bgColor: '#fce4ec'
   }
 };
 
@@ -130,7 +136,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
     mqtt: { connected: false, subscriptions: [] }
   });
 
-  const eventGroups = ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code', 'Webhook'];
+  const eventGroups = ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code', 'Webhook', 'Email'];
 
   // Define supported event names per group
   const eventNamesByGroup = {
@@ -138,7 +144,8 @@ const EventHandling = ({ selectedProject, onClose }) => {
     'MQTT': ['Message Received', 'Connection Established', 'Connection Lost'],
     'Scheduling': ['Task Scheduled', 'Task Executed', 'Task Failed'],
     'Claude Code': ['File Created', 'File Modified', 'Session Started', 'Session Ended', 'Tool Executed'],
-    'Webhook': ['Webhook Received']
+    'Webhook': ['Webhook Received'],
+    'Email': ['Email Received']
   };
 
   // Load rules from API
@@ -302,11 +309,19 @@ const EventHandling = ({ selectedProject, onClose }) => {
       setEditingRule(rule);
       setRuleName(rule.name);
       setRuleEnabled(rule.enabled);
-      setConditionType(rule.condition.type);
-      setEventGroup(rule.condition.event?.group || '');
-      setEventName(rule.condition.event?.name || '');
-      setEventTopic(rule.condition.event?.topic || '');
-      setPayloadPath(extractPayloadMatcher(rule.condition.event));
+      if (rule.condition.type === 'email-semantic') {
+        setConditionType('email-semantic');
+        setEventGroup('Email');
+        setPayloadPath(rule.condition.criteria || '');
+        setEventName('');
+        setEventTopic('');
+      } else {
+        setConditionType(rule.condition.type);
+        setEventGroup(rule.condition.event?.group || '');
+        setEventName(rule.condition.event?.name || '');
+        setEventTopic(rule.condition.event?.topic || '');
+        setPayloadPath(extractPayloadMatcher(rule.condition.event));
+      }
       setActionPromptId(rule.action.promptId);
     } else {
       setEditingRule(null);
@@ -343,7 +358,11 @@ const EventHandling = ({ selectedProject, onClose }) => {
     const ruleData = {
       name: ruleName,
       enabled: ruleEnabled,
-      condition: {
+      condition: eventGroup === 'Email' ? {
+        type: 'email-semantic',
+        criteria: payloadPath,
+        event: { group: 'Email' }
+      } : {
         type: conditionType,
         event: {
           ...(eventGroup && { group: eventGroup }),
@@ -643,55 +662,105 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
             <Box sx={{ display: 'flex', gap: 2 }}>
               <FormControl sx={{ flex: 1 }} size="small">
-                <InputLabel>Condition Type</InputLabel>
+                <InputLabel>Event Group</InputLabel>
                 <Select
-                  value={conditionType}
-                  onChange={(e) => setConditionType(e.target.value)}
-                  label="Condition Type"
+                  value={eventGroup}
+                  onChange={(e) => {
+                    const group = e.target.value;
+                    setEventGroup(group);
+                    if (group === 'Email') {
+                      setConditionType('email-semantic');
+                      setEventName('');
+                      setEventTopic('');
+                    } else if (conditionType === 'email-semantic') {
+                      setConditionType('simple');
+                    }
+                  }}
+                  label="Event Group"
+                  renderValue={(selected) => {
+                    const style = getGroupStyle(selected);
+                    const GroupIcon = style.icon;
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <GroupIcon sx={{ fontSize: 16, color: style.color }} />
+                        {selected}
+                      </Box>
+                    );
+                  }}
                 >
-                  <MenuItem value="simple">Simple</MenuItem>
-                  <MenuItem value="semantic">Semantic</MenuItem>
-                  <MenuItem value="compound">Compound</MenuItem>
-                  <MenuItem value="temporal">Temporal</MenuItem>
+                  {eventGroups.map((group) => {
+                    const style = getGroupStyle(group);
+                    const GroupIcon = style.icon;
+                    return (
+                      <MenuItem key={group} value={group}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <GroupIcon sx={{ fontSize: 16, color: style.color }} />
+                          {group}
+                        </Box>
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
 
-              {conditionType === 'simple' && (
+              {eventGroup !== 'Email' && (
                 <FormControl sx={{ flex: 1 }} size="small">
-                  <InputLabel>Event Group</InputLabel>
+                  <InputLabel>Condition Type</InputLabel>
                   <Select
-                    value={eventGroup}
-                    onChange={(e) => setEventGroup(e.target.value)}
-                    label="Event Group"
-                    renderValue={(selected) => {
-                      const style = getGroupStyle(selected);
-                      const GroupIcon = style.icon;
-                      return (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <GroupIcon sx={{ fontSize: 16, color: style.color }} />
-                          {selected}
-                        </Box>
-                      );
-                    }}
+                    value={conditionType}
+                    onChange={(e) => setConditionType(e.target.value)}
+                    label="Condition Type"
                   >
-                    {eventGroups.map((group) => {
-                      const style = getGroupStyle(group);
-                      const GroupIcon = style.icon;
-                      return (
-                        <MenuItem key={group} value={group}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <GroupIcon sx={{ fontSize: 16, color: style.color }} />
-                            {group}
-                          </Box>
-                        </MenuItem>
-                      );
-                    })}
+                    <MenuItem value="simple">Simple</MenuItem>
+                    <MenuItem value="semantic">Semantic</MenuItem>
+                    <MenuItem value="compound">Compound</MenuItem>
+                    <MenuItem value="temporal">Temporal</MenuItem>
                   </Select>
                 </FormControl>
               )}
+
+              {eventGroup === 'Email' && (
+                <Chip
+                  label="Semantic (AI)"
+                  size="small"
+                  sx={{ alignSelf: 'center', backgroundColor: '#fce4ec', color: '#e91e63' }}
+                />
+              )}
             </Box>
 
-            {conditionType === 'simple' && (
+            {eventGroup === 'Email' && (
+              <>
+                <TextField
+                  label="Email Criteria (Natural Language)"
+                  fullWidth
+                  size="small"
+                  multiline
+                  rows={3}
+                  value={payloadPath}
+                  onChange={(e) => setPayloadPath(e.target.value)}
+                  placeholder='e.g., "the mail should be flagged as important and the sender must be from the domain entegration.de"'
+                  helperText="Describe the conditions for matching emails in natural language. Uses AI (Haiku) to evaluate."
+                  required
+                />
+                <Alert severity="info" icon={<InfoIcon fontSize="small" />} sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
+                  <Typography variant="caption" component="div">
+                    <strong>Email data structure available for criteria:</strong>
+                    <pre style={{ margin: '4px 0', fontSize: '0.7rem', whiteSpace: 'pre-wrap' }}>
+{`{
+  From: "sender@example.com",
+  To: "recipient@example.com",
+  Important: true/false,
+  Subject: "Email subject line",
+  BodyText: "Full email body text",
+  Attachments: ["file1.pdf", "image.png"]
+}`}
+                    </pre>
+                  </Typography>
+                </Alert>
+              </>
+            )}
+
+            {conditionType === 'simple' && eventGroup !== 'Email' && (
               <>
                 <FormControl fullWidth size="small">
                   <InputLabel>Event Name (optional)</InputLabel>
@@ -732,7 +801,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
               </>
             )}
 
-            {conditionType === 'semantic' && (
+            {conditionType === 'semantic' && eventGroup !== 'Email' && (
               <TextField
                 label="Semantic Query"
                 fullWidth
@@ -748,10 +817,11 @@ const EventHandling = ({ selectedProject, onClose }) => {
             )}
 
             <Alert severity="info" icon={<InfoIcon fontSize="small" />} sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
-              {conditionType === 'simple' && 'Simple conditions match event fields exactly'}
-              {conditionType === 'semantic' && 'Semantic conditions use AI similarity matching (threshold: 0.86)'}
+              {conditionType === 'simple' && eventGroup !== 'Email' && 'Simple conditions match event fields exactly'}
+              {conditionType === 'semantic' && eventGroup !== 'Email' && 'Semantic conditions use AI similarity matching (threshold: 0.86)'}
               {conditionType === 'compound' && 'Compound conditions combine multiple conditions with AND/OR/NOT'}
               {conditionType === 'temporal' && 'Temporal conditions filter by time or day of week'}
+              {eventGroup === 'Email' && 'Email conditions use AI (Haiku) to evaluate natural language criteria against the email content'}
             </Alert>
 
             <Divider>

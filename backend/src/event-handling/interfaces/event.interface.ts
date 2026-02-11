@@ -54,12 +54,21 @@ export interface CompoundCondition {
   timeWindow?: number;  // milliseconds
 }
 
+export interface EmailSemanticCondition {
+  type: 'email-semantic';
+  criteria: string;  // Natural language criteria from user
+  event?: {
+    group?: string;  // Will always be 'Email'
+  };
+}
+
 export type EventCondition =
   | SimpleCondition
   | SemanticCondition
   | KnowledgeGraphCondition
   | CompoundCondition
-  | TemporalConstraint;
+  | TemporalConstraint
+  | EmailSemanticCondition;
 
 export interface RuleAction {
   type: 'prompt';
