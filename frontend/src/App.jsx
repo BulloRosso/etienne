@@ -15,7 +15,7 @@ import AskUserQuestionModal from './components/AskUserQuestionModal';
 import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
 import LoginDialog from './components/LoginDialog';
-import { TbCalendarTime, TbPresentation, TbDeviceAirtag } from 'react-icons/tb';
+import { TbCalendarTime, TbPresentation, TbDeviceAirtag, TbWorld } from 'react-icons/tb';
 import { IoInformationCircle, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
@@ -38,6 +38,7 @@ export default function App() {
   const [aiModel, setAiModel] = useState('anthropic'); // 'anthropic' or 'openai'
   const [budgetSettings, setBudgetSettings] = useState({ enabled: false, limit: 0 });
   const [hasTasks, setHasTasks] = useState(false);
+  const [hasPublicWebsite, setHasPublicWebsite] = useState(false);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationText, setPresentationText] = useState('');
@@ -348,6 +349,20 @@ export default function App() {
         const tasksRes = await fetch(`/api/scheduler/${currentProject}/tasks`);
         const tasksData = await tasksRes.json();
         setHasTasks((tasksData.tasks || []).length > 0);
+
+        // Check if public website is available (webserver running on :4000 + /web subdir exists)
+        try {
+          const [webserverRes, filesRes] = await Promise.all([
+            fetch('/api/process-manager/webserver'),
+            fetch(`/api/claude/listFiles?project_dir=${encodeURIComponent(currentProject)}&sub_dir=.`),
+          ]);
+          const webserverData = await webserverRes.json();
+          const filesData = await filesRes.json();
+          const hasWebDir = Array.isArray(filesData) && filesData.some(f => f.name === 'web' && f.isDir);
+          setHasPublicWebsite(webserverData.status === 'running' && hasWebDir);
+        } catch {
+          setHasPublicWebsite(false);
+        }
       } catch (error) {
         console.error('Failed to initialize project:', error);
         setUiConfig(null);
@@ -1764,6 +1779,20 @@ export default function App() {
             >
               <TbCalendarTime size={24} />
             </IconButton>
+          )}
+          {hasPublicWebsite && currentProject && (
+            <Tooltip title="Public Website" arrow>
+              <IconButton
+                color="inherit"
+                onClick={() => {
+                  const url = `${window.location.protocol}//${window.location.host}/web/${encodeURIComponent(currentProject)}`;
+                  window.open(url, '_blank');
+                }}
+                sx={{ ml: 1 }}
+              >
+                <TbWorld size={24} />
+              </IconButton>
+            </Tooltip>
           )}
           <Box sx={{ flexGrow: 1 }} />
           <IconButton
