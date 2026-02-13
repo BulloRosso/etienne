@@ -14,13 +14,34 @@ import {
   Button,
   Typography,
   CircularProgress,
-  Alert
+  Alert,
+  Collapse,
+  Chip,
 } from '@mui/material';
-import { MdOutlineRestorePage, MdClose } from 'react-icons/md';
+import { MdOutlineRestorePage, MdClose, MdExpandMore, MdExpandLess } from 'react-icons/md';
 import { IoMdAdd } from 'react-icons/io';
+import { IoShieldCheckmark } from 'react-icons/io5';
 import { RiDeleteBinLine } from 'react-icons/ri';
+import { VscDiscard } from 'react-icons/vsc';
 import axios from 'axios';
 import BackgroundInfo from './BackgroundInfo';
+import ComplianceReleaseWizard from './ComplianceReleaseWizard';
+
+const statusColors = {
+  modified: '#f59e0b',
+  added: '#22c55e',
+  untracked: '#22c55e',
+  deleted: '#ef4444',
+  renamed: '#3b82f6',
+};
+
+const statusLabels = {
+  modified: 'M',
+  added: 'A',
+  untracked: '?',
+  deleted: 'D',
+  renamed: 'R',
+};
 
 export default function CheckpointsPane({ projectName, showBackgroundInfo, onRestoreComplete }) {
   const [checkpoints, setCheckpoints] = useState([]);
@@ -30,13 +51,31 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
   const [selectedCheckpoint, setSelectedCheckpoint] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [complianceWizardOpen, setComplianceWizardOpen] = useState(false);
+  const [complianceStatus, setComplianceStatus] = useState(null);
+  const [complianceLoading, setComplianceLoading] = useState(false);
+
+  // Uncommitted changes
+  const [changes, setChanges] = useState([]);
+  const [changesLoading, setChangesLoading] = useState(false);
+  const [changesExpanded, setChangesExpanded] = useState(true);
+  const [discardConfirm, setDiscardConfirm] = useState(null);
+
+  // Commit files for selected checkpoint dialog
+  const [commitFiles, setCommitFiles] = useState([]);
+  const [commitFilesLoading, setCommitFilesLoading] = useState(false);
+
+  // Git connection check
+  const [connectionStatus, setConnectionStatus] = useState(null);
+  const [connectionLoading, setConnectionLoading] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6060';
 
-  // Load checkpoints on mount and when projectName changes
+  // Load checkpoints and changes on mount and when projectName changes
   useEffect(() => {
     if (projectName) {
       loadCheckpoints();
+      loadChanges();
     }
   }, [projectName]);
 
@@ -60,6 +99,24 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     }
   };
 
+  const loadChanges = async () => {
+    if (!projectName) return;
+
+    setChangesLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE}/api/checkpoints/${projectName}/changes`);
+      if (response.data.success) {
+        setChanges(response.data.changes || []);
+      }
+    } catch (err) {
+      // Changes endpoint may not be available with legacy provider — silently ignore
+      console.debug('Changes not available:', err.message);
+      setChanges([]);
+    } finally {
+      setChangesLoading(false);
+    }
+  };
+
   const createCheckpoint = async () => {
     if (!newCheckpointMessage.trim() || !projectName) return;
 
@@ -74,6 +131,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
       if (response.data.success) {
         setNewCheckpointMessage('');
         await loadCheckpoints();
+        await loadChanges();
       } else {
         setError(response.data.message || 'Failed to create checkpoint');
       }
@@ -98,7 +156,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
       if (response.data.success) {
         setDialogOpen(false);
         setSelectedCheckpoint(null);
-        // Switch to Files tab to show restored content
+        await loadChanges();
         if (onRestoreComplete) {
           onRestoreComplete();
         }
@@ -137,16 +195,94 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     }
   };
 
-  const handleCheckpointClick = (checkpoint) => {
+  const discardFile = async (filePath) => {
+    if (!projectName) return;
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.post(`${API_BASE}/api/checkpoints/${projectName}/discard`, {
+        path: filePath
+      });
+
+      if (response.data.success) {
+        setDiscardConfirm(null);
+        await loadChanges();
+      } else {
+        setError(response.data.message || 'Failed to discard changes');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to discard changes');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCheckpointClick = async (checkpoint) => {
     setSelectedCheckpoint(checkpoint);
     setDialogOpen(true);
     setError(null);
+    setCommitFiles([]);
+
+    // Load files changed in this commit
+    setCommitFilesLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE}/api/checkpoints/${projectName}/commit-files/${checkpoint.gitId}`
+      );
+      if (response.data.success) {
+        setCommitFiles(response.data.files || []);
+      }
+    } catch (err) {
+      console.debug('Commit files not available:', err.message);
+    } finally {
+      setCommitFilesLoading(false);
+    }
   };
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setSelectedCheckpoint(null);
+    setCommitFiles([]);
     setError(null);
+  };
+
+  const openComplianceWizard = async () => {
+    setComplianceLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_BASE}/api/compliance/${projectName}/status`);
+      setComplianceStatus(response.data);
+      setComplianceWizardOpen(true);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to load compliance status');
+    } finally {
+      setComplianceLoading(false);
+    }
+  };
+
+  const handleReleaseCreated = () => {
+    loadCheckpoints();
+    loadChanges();
+  };
+
+  const checkGitConnection = async () => {
+    setConnectionLoading(true);
+    setConnectionStatus(null);
+    try {
+      const response = await axios.get(`${API_BASE}/api/checkpoints/connection-check`);
+      setConnectionStatus(response.data);
+    } catch (err) {
+      setConnectionStatus({
+        connected: false,
+        url: '',
+        username: '',
+        error: err.response?.data?.message || err.message || 'Connection check failed',
+      });
+    } finally {
+      setConnectionLoading(false);
+    }
   };
 
   if (!projectName) {
@@ -156,6 +292,8 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
       </Box>
     );
   }
+
+  const hasChanges = changes.length > 0;
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
@@ -179,7 +317,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         <IconButton
           color="primary"
           onClick={createCheckpoint}
-          disabled={!newCheckpointMessage.trim() || actionLoading}
+          disabled={!newCheckpointMessage.trim() || actionLoading || !hasChanges}
         >
           {actionLoading ? <CircularProgress size={24} /> : <IoMdAdd />}
         </IconButton>
@@ -191,6 +329,87 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
           {error}
         </Alert>
       )}
+
+      {/* Uncommitted changes */}
+      <Box sx={{ mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            userSelect: 'none',
+            mb: 0.5,
+          }}
+          onClick={() => setChangesExpanded(!changesExpanded)}
+        >
+          {changesExpanded ? <MdExpandLess size={18} /> : <MdExpandMore size={18} />}
+          <Typography variant="subtitle2" sx={{ ml: 0.5, flex: 1 }}>
+            Uncommitted Changes
+          </Typography>
+          {changesLoading ? (
+            <CircularProgress size={14} />
+          ) : (
+            <Chip
+              label={changes.length}
+              size="small"
+              color={hasChanges ? 'warning' : 'default'}
+              sx={{ height: 20, fontSize: '0.7rem' }}
+            />
+          )}
+          <IconButton size="small" onClick={(e) => { e.stopPropagation(); loadChanges(); }} sx={{ ml: 0.5 }}>
+            <i className="codicon codicon-refresh" style={{ fontSize: 14 }} />
+          </IconButton>
+        </Box>
+        <Collapse in={changesExpanded}>
+          {!hasChanges && !changesLoading ? (
+            <Typography variant="body2" color="text.secondary" sx={{ pl: 3, py: 1 }}>
+              No uncommitted changes
+            </Typography>
+          ) : (
+            <List dense sx={{ maxHeight: 200, overflowY: 'auto', py: 0 }}>
+              {changes.map((change) => (
+                <ListItem
+                  key={change.path}
+                  disablePadding
+                  secondaryAction={
+                    <IconButton
+                      edge="end"
+                      size="small"
+                      onClick={() => setDiscardConfirm(change)}
+                      disabled={actionLoading}
+                      title="Discard changes"
+                    >
+                      <VscDiscard size={14} />
+                    </IconButton>
+                  }
+                >
+                  <ListItemButton sx={{ py: 0.25, px: 1 }} dense>
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 1,
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        color: statusColors[change.status] || '#999',
+                      }}
+                    >
+                      {statusLabels[change.status] || '?'}
+                    </Box>
+                    <ListItemText
+                      primary={change.path}
+                      primaryTypographyProps={{ variant: 'body2', noWrap: true, fontSize: '0.8rem' }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Collapse>
+      </Box>
 
       {/* Checkpoints list */}
       <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
@@ -223,6 +442,52 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         )}
       </Box>
 
+      {/* Bottom actions */}
+      <Button
+        fullWidth
+        variant="outlined"
+        size="small"
+        startIcon={complianceLoading ? <CircularProgress size={16} /> : <IoShieldCheckmark />}
+        onClick={openComplianceWizard}
+        disabled={complianceLoading || actionLoading}
+        sx={{ mb: 1 }}
+      >
+        Create Release
+      </Button>
+      {connectionStatus && (
+        <Alert
+          severity={connectionStatus.connected ? 'success' : 'error'}
+          onClose={() => setConnectionStatus(null)}
+          sx={{ mb: 1, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
+        >
+          {connectionStatus.connected ? (
+            <>
+              Connected to <strong>{connectionStatus.url}</strong> as <strong>{connectionStatus.username}</strong>
+            </>
+          ) : (
+            <>
+              {connectionStatus.error}
+              {connectionStatus.url && (
+                <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                  URL: {connectionStatus.url}
+                </Typography>
+              )}
+            </>
+          )}
+        </Alert>
+      )}
+      <Button
+        fullWidth
+        variant="text"
+        size="small"
+        onClick={checkGitConnection}
+        disabled={connectionLoading}
+        sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.75rem' }}
+      >
+        {connectionLoading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : null}
+        Check Git Connection
+      </Button>
+
       {/* Checkpoint actions dialog */}
       <Dialog
         open={dialogOpen}
@@ -248,7 +513,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}>
-            Restore Content to {selectedCheckpoint?.commit}
+            Checkpoint: {selectedCheckpoint?.commit}
           </Box>
           <IconButton
             edge="end"
@@ -273,6 +538,50 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1, wordBreak: 'break-all' }}>
             Hash: {selectedCheckpoint?.gitId?.substring(0, 8)}
           </Typography>
+
+          {/* Files changed in this commit */}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Files Changed
+            </Typography>
+            {commitFilesLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={20} />
+              </Box>
+            ) : commitFiles.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No file information available
+              </Typography>
+            ) : (
+              <List dense sx={{ maxHeight: 200, overflowY: 'auto', py: 0 }}>
+                {commitFiles.map((file) => (
+                  <ListItem key={file.path} disablePadding>
+                    <ListItemButton sx={{ py: 0.25, px: 1 }} dense>
+                      <Box
+                        sx={{
+                          width: 16,
+                          height: 16,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1,
+                          fontWeight: 700,
+                          fontSize: '0.7rem',
+                          color: statusColors[file.status] || '#999',
+                        }}
+                      >
+                        {statusLabels[file.status] || '?'}
+                      </Box>
+                      <ListItemText
+                        primary={file.path}
+                        primaryTypographyProps={{ variant: 'body2', noWrap: true, fontSize: '0.8rem' }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
           <IconButton
@@ -292,6 +601,46 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Discard confirmation dialog */}
+      <Dialog
+        open={discardConfirm !== null}
+        onClose={() => setDiscardConfirm(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Discard Changes</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Discard all changes to <strong>{discardConfirm?.path}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {discardConfirm?.status === 'untracked'
+              ? 'This file will be deleted.'
+              : 'This file will be reverted to its last committed state.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDiscardConfirm(null)}>Cancel</Button>
+          <Button
+            onClick={() => discardFile(discardConfirm?.path)}
+            color="error"
+            variant="contained"
+            disabled={actionLoading}
+          >
+            {actionLoading ? <CircularProgress size={20} /> : 'Discard'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Compliance Release Wizard */}
+      <ComplianceReleaseWizard
+        open={complianceWizardOpen}
+        onClose={() => setComplianceWizardOpen(false)}
+        projectName={projectName}
+        status={complianceStatus}
+        onReleaseCreated={handleReleaseCreated}
+      />
     </Box>
   );
 }

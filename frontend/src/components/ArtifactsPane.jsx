@@ -45,6 +45,24 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [guardrailsEnabled, setGuardrailsEnabled] = useState(false);
   const [guardrailsModalOpen, setGuardrailsModalOpen] = useState(false);
+  const [checkpointsEnabled, setCheckpointsEnabled] = useState(false);
+
+  // Check if checkpoints are enabled (CHECKPOINT_PROVIDER configured in backend)
+  useEffect(() => {
+    const checkCheckpointsEnabled = async () => {
+      try {
+        const response = await fetch('/api/configuration');
+        if (response.ok) {
+          const config = await response.json();
+          setCheckpointsEnabled(!!config.CHECKPOINT_PROVIDER);
+        }
+      } catch (error) {
+        console.error('Failed to check checkpoint configuration:', error);
+      }
+    };
+
+    checkCheckpointsEnabled();
+  }, []);
 
   // Check if memory is enabled from localStorage
   useEffect(() => {
@@ -219,13 +237,13 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
             sx={{ borderBottom: 1, borderColor: 'divider' }}
           >
             <Tab label="Files" />
-            <Tab label="Checkpoints" />
+            {checkpointsEnabled && <Tab label="Checkpoints" />}
           </Tabs>
           <Box sx={{ flex: 1, overflow: 'auto' }}>
             {filesystemTabValue === 0 && (
               <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
             )}
-            {filesystemTabValue === 1 && (
+            {checkpointsEnabled && filesystemTabValue === 1 && (
               <CheckpointsPane
                 projectName={projectName}
                 showBackgroundInfo={showBackgroundInfo}

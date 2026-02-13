@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { ICheckpointProvider, Checkpoint } from './checkpoint-provider.interface';
+import { ICheckpointProvider, Checkpoint, FileChange, GitTag, GitConnectionStatus } from './checkpoint-provider.interface';
 
 const execAsync = promisify(exec);
 
@@ -258,5 +258,29 @@ export class GitCheckpointProvider implements ICheckpointProvider {
     } catch (error: any) {
       throw new Error(`Delete failed for checkpoint ${commitHash}: ${error.message}`);
     }
+  }
+
+  async getChanges(): Promise<FileChange[]> {
+    throw new Error('getChanges not supported by legacy Git provider');
+  }
+
+  async discardFile(): Promise<void> {
+    throw new Error('discardFile not supported by legacy Git provider');
+  }
+
+  async getCommitFiles(): Promise<FileChange[]> {
+    throw new Error('getCommitFiles not supported by legacy Git provider');
+  }
+
+  async createTag(): Promise<void> {
+    throw new Error('createTag not supported by legacy Git provider');
+  }
+
+  async listTags(): Promise<GitTag[]> {
+    throw new Error('listTags not supported by legacy Git provider');
+  }
+
+  async checkConnection(): Promise<GitConnectionStatus> {
+    throw new Error('checkConnection not supported by legacy Git provider');
   }
 }

@@ -33,6 +33,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   index,
   fileTags,
   getTagColor,
+  releaseComments,
   isGuest,
   isDropTarget,
   isDragged,
@@ -45,6 +46,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   onDragLeaveRow,
 }) {
   const nodeTags = fileTags[row.path] || [];
+  const hasReleaseComment = releaseComments && !!releaseComments[row.path];
 
   // For compressed rows use the last (deepest) folder name for icon lookup
   const folderName = row.labels[row.labels.length - 1];
@@ -172,6 +174,21 @@ const FileTreeRow = React.memo(function FileTreeRow({
         </Box>
       )}
 
+      {/* ── Release comment indicator ── */}
+      {hasReleaseComment && (
+        <Box
+          sx={{
+            ml: 0.5,
+            flexShrink: 0,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: '#1976d2',
+          }}
+          title="Has release comment"
+        />
+      )}
+
       {/* ── Timestamp ── */}
       <Box
         sx={{
@@ -197,6 +214,7 @@ export default function FileTreeVirtualList({
   flatRows,
   fileTags,
   getTagColor,
+  releaseComments = {},
   isGuest,
   onToggleExpand,
   onContextMenu,
@@ -380,6 +398,7 @@ export default function FileTreeVirtualList({
             index={index}
             fileTags={fileTags}
             getTagColor={getTagColor}
+            releaseComments={releaseComments}
             isGuest={isGuest}
             isDropTarget={dropTargetId === row.id}
             isDragged={draggedRowId === row.id}

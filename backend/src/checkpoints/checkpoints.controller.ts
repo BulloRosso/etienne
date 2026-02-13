@@ -12,9 +12,27 @@ class RestoreCheckpointDto {
   commitHash!: string;
 }
 
+class DiscardFileDto {
+  @IsString()
+  path!: string;
+}
+
 @Controller('api/checkpoints')
 export class CheckpointsController {
   constructor(private readonly checkpointsService: CheckpointsService) {}
+
+  @Get('connection-check')
+  async checkConnection() {
+    try {
+      const status = await this.checkpointsService.checkConnection();
+      return { success: true, ...status };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   @Post(':project/create')
   async createCheckpoint(
@@ -111,6 +129,64 @@ export class CheckpointsController {
           success: false,
           message: error.message,
         },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':project/changes')
+  async getChanges(@Param('project') project: string) {
+    try {
+      const changes = await this.checkpointsService.getChanges(project);
+      return { success: true, project, changes };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':project/discard')
+  async discardFile(
+    @Param('project') project: string,
+    @Body() dto: DiscardFileDto,
+  ) {
+    try {
+      await this.checkpointsService.discardFile(project, dto.path);
+      return { success: true, message: 'File changes discarded', project, path: dto.path };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':project/commit-files/:hash')
+  async getCommitFiles(
+    @Param('project') project: string,
+    @Param('hash') hash: string,
+  ) {
+    try {
+      const files = await this.checkpointsService.getCommitFiles(project, hash);
+      return { success: true, project, files };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':project/tags')
+  async listTags(@Param('project') project: string) {
+    try {
+      const tags = await this.checkpointsService.listTags(project);
+      return { success: true, project, tags };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -88,7 +88,9 @@
       "Bash(docker build:*)",
       "Bash(wait:*)",
       "WebFetch(domain:microsoft.github.io)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git -C c:DataGitHubclaude-multitenant tag -l)",
+      "Bash(npm ls:*)"
     ],
     "deny": [],
     "ask": []

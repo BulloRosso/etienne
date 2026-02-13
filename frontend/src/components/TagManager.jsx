@@ -14,6 +14,7 @@ import {
   Alert
 } from '@mui/material';
 import { Add, Close } from '@mui/icons-material';
+import { IoShieldCheckmark } from 'react-icons/io5';
 import axios from 'axios';
 
 export default function TagManager({
@@ -23,19 +24,25 @@ export default function TagManager({
   filePath,
   fileName,
   currentTags,
-  allTags
+  allTags,
+  releaseEnabled = false,
+  releaseComment = '',
+  onReleaseCommentSaved,
 }) {
   const [tags, setTags] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [commentSaving, setCommentSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
       setTags([...currentTags]);
+      setCommentText(releaseComment || '');
       setError(null);
     }
-  }, [open, currentTags]);
+  }, [open, currentTags, releaseComment]);
 
   const getTagColor = (tag) => {
     const colors = ['#1976d2', '#388e3c', '#d32f2f', '#f57c00', '#7b1fa2', '#c2185b', '#0097a7', '#689f38', '#e64a19'];
@@ -89,6 +96,41 @@ export default function TagManager({
       console.error('Remove tag error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveReleaseComment = async () => {
+    if (!commentText.trim()) {
+      // If empty, delete the comment
+      await handleDeleteReleaseComment();
+      return;
+    }
+    setCommentSaving(true);
+    try {
+      await axios.post(`/api/compliance/${projectName}/release-comments`, {
+        path: filePath,
+        comment: commentText.trim(),
+      });
+      if (onReleaseCommentSaved) onReleaseCommentSaved();
+    } catch (err) {
+      setError(`Failed to save release comment: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  const handleDeleteReleaseComment = async () => {
+    setCommentSaving(true);
+    try {
+      await axios.delete(`/api/compliance/${projectName}/release-comments`, {
+        data: { path: filePath },
+      });
+      setCommentText('');
+      if (onReleaseCommentSaved) onReleaseCommentSaved();
+    } catch (err) {
+      setError(`Failed to delete release comment: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setCommentSaving(false);
     }
   };
 
@@ -221,6 +263,50 @@ export default function TagManager({
                   />
                 ))}
             </Box>
+          </Box>
+        )}
+        {/* Release Comment Section — only visible after first release */}
+        {releaseEnabled && (
+          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #e0e0e0' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <IoShieldCheckmark size={18} color="#1976d2" />
+              <Typography variant="subtitle2">
+                Release Comment
+              </Typography>
+            </Box>
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              size="small"
+              placeholder="Describe what changed in this file for the next release"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              disabled={commentSaving}
+            />
+            <Box sx={{ display: 'flex', gap: 1, mt: 1, justifyContent: 'flex-end' }}>
+              {releaseComment && (
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={handleDeleteReleaseComment}
+                  disabled={commentSaving}
+                >
+                  Clear
+                </Button>
+              )}
+              <Button
+                size="small"
+                variant="contained"
+                onClick={handleSaveReleaseComment}
+                disabled={commentSaving || !commentText.trim()}
+              >
+                {commentSaving ? 'Saving...' : 'Save Comment'}
+              </Button>
+            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              Release comments are compiled into the diff protocol on the next update release.
+            </Typography>
           </Box>
         )}
       </DialogContent>

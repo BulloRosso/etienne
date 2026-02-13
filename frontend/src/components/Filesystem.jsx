@@ -70,6 +70,10 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, row: null, filePath: '' });
 
+  // ── Release comments (compliance) ──
+  const [releaseComments, setReleaseComments] = useState({});
+  const [releaseEnabled, setReleaseEnabled] = useState(false);
+
   // ── File upload ──
   const fileInputRef = useRef(null);
 
@@ -77,6 +81,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   useEffect(() => {
     loadFilesystem();
     loadTags();
+    loadReleaseData();
   }, [projectName]);
 
   const loadFilesystem = async () => {
@@ -107,6 +112,18 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       setFileTags(tagsMap);
     } catch (err) {
       console.error('Load tags error:', err);
+    }
+  };
+
+  const loadReleaseData = async () => {
+    try {
+      const statusRes = await axios.get(`/api/compliance/${projectName}/status`);
+      setReleaseEnabled(!statusRes.data.isInitialRelease);
+      const commentsRes = await axios.get(`/api/compliance/${projectName}/release-comments`);
+      setReleaseComments(commentsRes.data || {});
+    } catch (err) {
+      // Compliance module may not be available — silently ignore
+      console.debug('Release data not available:', err.message);
     }
   };
 
@@ -215,6 +232,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const handleTagManagerClose = () => {
     setTagManagerDialog({ open: false, row: null, filePath: '' });
     loadTags();
+    loadReleaseData();
   };
 
   // ── New folder ──
@@ -420,6 +438,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         flatRows={flatRows}
         fileTags={fileTags}
         getTagColor={getTagColor}
+        releaseComments={releaseComments}
         isGuest={isGuest}
         onToggleExpand={handleToggleExpand}
         onContextMenu={handleContextMenu}
@@ -603,6 +622,9 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         fileName={tagManagerDialog.row?.label || ''}
         currentTags={fileTags[tagManagerDialog.filePath] || []}
         allTags={allTags}
+        releaseEnabled={releaseEnabled}
+        releaseComment={releaseComments[tagManagerDialog.filePath] || ''}
+        onReleaseCommentSaved={loadReleaseData}
       />
     </Box>
   );
