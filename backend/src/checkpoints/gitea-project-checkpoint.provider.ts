@@ -396,11 +396,17 @@ node_modules/
 
     return status
       .split('\n')
-      .filter((line) => line.trim())
+      .map((line) => line.replace(/\r$/, ''))
+      .filter((line) => line.length > 0)
       .map((line) => {
-        const x = line[0]; // index status
-        const y = line[1]; // worktree status
-        const filePath = line.substring(3).trim();
+        // git status --porcelain format: XY<space>PATH
+        // Match two status chars, then a space, then the rest as the file path
+        const match = line.match(/^(.)(.) (.+)$/);
+        if (!match) return null;
+
+        const x = match[1]; // index status
+        const y = match[2]; // worktree status
+        const filePath = match[3];
 
         let fileStatus: FileChange['status'];
 
@@ -417,7 +423,8 @@ node_modules/
         }
 
         return { path: filePath, status: fileStatus };
-      });
+      })
+      .filter((entry): entry is FileChange => entry !== null);
   }
 
   async discardFile(project: string, filePath: string): Promise<void> {

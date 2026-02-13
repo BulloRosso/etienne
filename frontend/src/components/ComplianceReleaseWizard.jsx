@@ -128,10 +128,11 @@ export default function ComplianceReleaseWizard({ open, onClose, projectName, st
 
   const loadClaudeMd = async () => {
     try {
-      const response = await fetch(`/api/claude/getFile?project=${projectName}&path=CLAUDE.md`);
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6060';
+      const response = await fetch(`${API_BASE}/api/claude/getFile?project_dir=${encodeURIComponent(projectName)}&file_name=CLAUDE.md`);
       if (response.ok) {
-        const text = await response.text();
-        setClaudeMdContent(text);
+        const data = await response.json();
+        setClaudeMdContent(data.content || '');
       }
     } catch (err) {
       console.error('Failed to load CLAUDE.md:', err);
