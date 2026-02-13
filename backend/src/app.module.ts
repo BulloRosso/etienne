@@ -7,6 +7,9 @@ import { SdkHookEmitterService } from './claude/sdk/sdk-hook-emitter.service';
 import { ClaudeSdkOrchestratorService } from './claude/sdk/claude-sdk-orchestrator.service';
 import { SdkPermissionService } from './claude/sdk/sdk-permission.service';
 import { SdkPermissionController } from './claude/sdk/sdk-permission.controller';
+import { CodexSdkService } from './claude/codex-sdk/codex-sdk.service';
+import { CodexSdkOrchestratorService } from './claude/codex-sdk/codex-sdk-orchestrator.service';
+import { CodexSessionManagerService } from './claude/codex-sdk/codex-session-manager.service';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -53,6 +56,9 @@ import { ComplianceModule } from './compliance/compliance.module';
     SdkHookEmitterService,
     ClaudeSdkOrchestratorService,
     SdkPermissionService,
+    CodexSdkService,
+    CodexSdkOrchestratorService,
+    CodexSessionManagerService,
     BudgetMonitoringService,
     GuardrailsService,
     OutputGuardrailsService,

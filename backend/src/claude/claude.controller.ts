@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { join } from 'path';
 import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
+import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
 
@@ -13,9 +14,14 @@ export class ClaudeController {
   constructor(
     private readonly svc: ClaudeService,
     private readonly sdkOrchestrator: ClaudeSdkOrchestratorService,
+    private readonly codexOrchestrator: CodexSdkOrchestratorService,
     private readonly sessionsService: SessionsService
   ) {
     this.workspaceRoot = process.env.WORKSPACE_ROOT || join(process.cwd(), '..', 'workspace');
+  }
+
+  private get isCodexActive(): boolean {
+    return (process.env.CODING_AGENT || 'anthropic') === 'openai';
   }
 
   @Post('addFile')
@@ -93,6 +99,18 @@ export class ClaudeController {
   ): Observable<MessageEvent> {
     const memoryEnabledBool = memoryEnabled === 'true';
     const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
+
+    if (this.isCodexActive) {
+      return this.codexOrchestrator.streamPrompt(
+        projectDir,
+        prompt,
+        agentMode,
+        memoryEnabledBool,
+        false,
+        maxTurnsNum
+      );
+    }
+
     return this.sdkOrchestrator.streamPrompt(
       projectDir,
       prompt,
@@ -112,6 +130,12 @@ export class ClaudeController {
     if (legacyResult.success) {
       console.log(`[ClaudeController] Successfully aborted legacy process: ${processId}`);
       return legacyResult;
+    }
+
+    // If Codex process, try Codex orchestrator
+    if (processId.startsWith('codex_')) {
+      console.log(`[ClaudeController] Attempting Codex orchestrator abort for: ${processId}`);
+      return this.codexOrchestrator.abortProcess(processId);
     }
 
     // If not found in legacy processes, try SDK orchestrator
@@ -148,7 +172,8 @@ export class ClaudeController {
     let tokenUsage = { input_tokens: 0, output_tokens: 0 };
 
     try {
-      const observable = this.sdkOrchestrator.streamPrompt(
+      const orchestrator = this.isCodexActive ? this.codexOrchestrator : this.sdkOrchestrator;
+      const observable = orchestrator.streamPrompt(
         project,
         prompt,
         undefined, // agentMode

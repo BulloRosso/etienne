@@ -60,6 +60,7 @@ export default function App() {
   const [pendingQuestion, setPendingQuestion] = useState(null); // Current AskUserQuestion request
   const [pendingPlanApproval, setPendingPlanApproval] = useState(null); // Current ExitPlanMode request
   const [pendingPairing, setPendingPairing] = useState(null); // Current Telegram pairing request
+  const [codingAgent, setCodingAgent] = useState('anthropic'); // 'anthropic' or 'openai' — from CODING_AGENT env var
 
   const esRef = useRef(null);
   const globalInterceptorEsRef = useRef(null); // For global events like pairing requests
@@ -105,6 +106,13 @@ export default function App() {
         } else if (response.ok) {
           // Configuration exists, show main app
           setShowConfigurationRequired(false);
+          // Read CODING_AGENT setting for A/B agent selection
+          try {
+            const config = await response.json();
+            if (config.CODING_AGENT) {
+              setCodingAgent(config.CODING_AGENT);
+            }
+          } catch { /* ignore parse errors */ }
         } else {
           // Other error, show onboarding
           setShowConfigurationRequired(true);
@@ -118,6 +126,13 @@ export default function App() {
 
     checkConfiguration();
   }, []);
+
+  // When Codex (OpenAI) is active, force mode to 'work' — plan mode is not supported
+  useEffect(() => {
+    if (codingAgent === 'openai') {
+      setMode('work');
+    }
+  }, [codingAgent]);
 
   // Keep currentSessionIdRef in sync with state for use in event listeners
   useEffect(() => {
@@ -1873,7 +1888,7 @@ export default function App() {
           />
         ) : (
           <SplitLayout
-            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} />}
+            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} />}
             right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} />}
           />
         )}

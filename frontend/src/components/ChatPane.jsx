@@ -15,7 +15,7 @@ import SessionPane from './SessionPane';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic' }) {
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
@@ -184,7 +184,8 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           <RiChatNewLine size={19} />
         </IconButton>
 
-        {/* Center: Mode Toggle */}
+        {/* Center: Mode Toggle — hidden when CODING_AGENT=openai (Codex has no plan mode) */}
+        {codingAgent !== 'openai' && (
         <Box sx={{
           position: 'absolute',
           left: '50%',
@@ -220,6 +221,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             {mode === 'work' ? 'Work Mode' : 'Planning Mode'}
           </Typography>
         </Box>
+        )}
 
         {/* Right-aligned buttons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>

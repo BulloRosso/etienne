@@ -66,6 +66,53 @@ export class MemoriesService {
   }
 
   /**
+   * Attempt to parse JSON, repairing common truncation issues.
+   * When max_tokens cuts off a response mid-JSON, the string may have
+   * unterminated strings or missing closing brackets.
+   */
+  private safeJsonParse<T>(raw: string): T {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      // Try to repair truncated JSON by closing open strings and brackets
+      let repaired = raw;
+
+      // Remove any trailing incomplete key-value or comma
+      repaired = repaired.replace(/,\s*$/, '');
+
+      // Count unmatched quotes — if odd, close the string
+      const quoteCount = (repaired.match(/(?<!\\)"/g) || []).length;
+      if (quoteCount % 2 !== 0) {
+        repaired += '"';
+      }
+
+      // Close any unclosed arrays/objects
+      const opens = { '{': 0, '[': 0 };
+      let inString = false;
+      for (let i = 0; i < repaired.length; i++) {
+        const ch = repaired[i];
+        if (ch === '"' && (i === 0 || repaired[i - 1] !== '\\')) {
+          inString = !inString;
+          continue;
+        }
+        if (inString) continue;
+        if (ch === '{') opens['{']++;
+        else if (ch === '}') opens['{']--;
+        else if (ch === '[') opens['[']++;
+        else if (ch === ']') opens['[']--;
+      }
+
+      // Remove trailing comma before closing
+      repaired = repaired.replace(/,\s*$/, '');
+
+      for (let i = 0; i < opens['[']; i++) repaired += ']';
+      for (let i = 0; i < opens['{']; i++) repaired += '}';
+
+      return JSON.parse(repaired);
+    }
+  }
+
+  /**
    * Get the path to the memories.json file for a given project
    */
   private getMemoryFilePath(projectName: string): string {
@@ -285,7 +332,7 @@ ${conversationText}
     try {
       const response = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 4096,
         messages: [
           { role: 'user', content: prompt }
         ],
@@ -297,7 +344,7 @@ ${conversationText}
       }
 
       const cleanedContent = this.stripMarkdownFences(textContent.text.trim());
-      const result: MemoryExtractionResult = JSON.parse(cleanedContent);
+      const result: MemoryExtractionResult = this.safeJsonParse(cleanedContent);
       return result.facts || [];
     } catch (error: any) {
       console.error('Error extracting facts:', error.message);
@@ -380,7 +427,7 @@ Return ONLY a valid JSON object:
     try {
       const response = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 4096,
         messages: [
           { role: 'user', content: prompt }
         ],
@@ -392,7 +439,7 @@ Return ONLY a valid JSON object:
       }
 
       const cleanedContent = this.stripMarkdownFences(textContent.text.trim());
-      const result: MemoryUpdateResult = JSON.parse(cleanedContent);
+      const result: MemoryUpdateResult = this.safeJsonParse(cleanedContent);
       return result;
     } catch (error: any) {
       console.error('Error updating memories:', error.message);

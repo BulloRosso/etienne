@@ -90,7 +90,14 @@
       "WebFetch(domain:microsoft.github.io)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git -C c:DataGitHubclaude-multitenant tag -l)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "WebFetch(domain:openai.github.io)",
+      "WebFetch(domain:developers.openai.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npx codex:*)",
+      "WebFetch(domain:community.openai.com)",
+      "WebFetch(domain:cookbook.openai.com)",
+      "WebFetch(domain:funnelstory.ai)"
     ],
     "deny": [],
     "ask": []
