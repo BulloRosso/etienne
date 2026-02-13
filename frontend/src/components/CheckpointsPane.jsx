@@ -18,6 +18,7 @@ import {
   Collapse,
   Chip,
   Tooltip,
+  Paper,
 } from '@mui/material';
 import { MdOutlineRestorePage, MdClose, MdExpandMore, MdExpandLess } from 'react-icons/md';
 import { IoMdAdd, IoIosGitNetwork } from 'react-icons/io';
@@ -425,10 +426,14 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
             <Typography variant="body2">Create your first checkpoint above</Typography>
           </Box>
         ) : (
-          <List dense>
+          <>
+          <Typography variant="subtitle2" sx={{ px: 1, pt: 1, pb: 0.5 }}>
+            Previous Checkpoints
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {checkpoints.map((checkpoint) => (
-              <ListItem key={checkpoint.gitId} disablePadding>
-                <ListItemButton onClick={() => handleCheckpointClick(checkpoint)}>
+              <Paper key={checkpoint.gitId} variant="outlined" sx={{ overflow: 'hidden' }}>
+                <ListItemButton onClick={() => handleCheckpointClick(checkpoint)} sx={{ py: 0.75 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                     <MdOutlineRestorePage size={20} />
                     <ListItemText
@@ -437,9 +442,10 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
                     />
                   </Box>
                 </ListItemButton>
-              </ListItem>
+              </Paper>
             ))}
-          </List>
+          </Box>
+          </>
         )}
       </Box>
 
