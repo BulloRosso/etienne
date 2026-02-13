@@ -17,9 +17,10 @@ import {
   Alert,
   Collapse,
   Chip,
+  Tooltip,
 } from '@mui/material';
 import { MdOutlineRestorePage, MdClose, MdExpandMore, MdExpandLess } from 'react-icons/md';
-import { IoMdAdd } from 'react-icons/io';
+import { IoMdAdd, IoIosGitNetwork } from 'react-icons/io';
 import { IoShieldCheckmark } from 'react-icons/io5';
 import { RiDeleteBinLine } from 'react-icons/ri';
 import { VscDiscard } from 'react-icons/vsc';
@@ -443,17 +444,6 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
       </Box>
 
       {/* Bottom actions */}
-      <Button
-        fullWidth
-        variant="outlined"
-        size="small"
-        startIcon={complianceLoading ? <CircularProgress size={16} /> : <IoShieldCheckmark />}
-        onClick={openComplianceWizard}
-        disabled={complianceLoading || actionLoading}
-        sx={{ mb: 1 }}
-      >
-        Create Release
-      </Button>
       {connectionStatus && (
         <Alert
           severity={connectionStatus.connected ? 'success' : 'error'}
@@ -476,17 +466,32 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
           )}
         </Alert>
       )}
-      <Button
-        fullWidth
-        variant="text"
-        size="small"
-        onClick={checkGitConnection}
-        disabled={connectionLoading}
-        sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.75rem' }}
-      >
-        {connectionLoading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : null}
-        Check Git Connection
-      </Button>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          size="small"
+          startIcon={complianceLoading ? <CircularProgress size={16} /> : <IoShieldCheckmark />}
+          onClick={openComplianceWizard}
+          disabled={complianceLoading || actionLoading}
+        >
+          Create Release
+        </Button>
+        <Tooltip title="Check Git Connection">
+          <span>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={connectionLoading ? <CircularProgress size={16} /> : <IoIosGitNetwork />}
+              onClick={checkGitConnection}
+              disabled={connectionLoading}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              Test Connection
+            </Button>
+          </span>
+        </Tooltip>
+      </Box>
 
       {/* Checkpoint actions dialog */}
       <Dialog

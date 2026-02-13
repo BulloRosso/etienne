@@ -139,6 +139,19 @@ export default function ComplianceReleaseWizard({ open, onClose, projectName, st
     }
   };
 
+  const saveClaudeMd = async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6060';
+      await fetch(`${API_BASE}/api/claude/mission/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectName, content: claudeMdContent }),
+      });
+    } catch (err) {
+      console.error('Failed to save CLAUDE.md:', err);
+    }
+  };
+
   const compileDocument = () => {
     const comments = status?.releaseComments || {};
     const previousVersion = status?.currentVersion || 'v1.0';
@@ -221,6 +234,9 @@ git checkout ${previousVersion}
   };
 
   const handleNext = () => {
+    if (activeStep === 0) {
+      saveClaudeMd();
+    }
     if (activeStep < steps.length - 1) {
       setActiveStep(activeStep + 1);
     }
@@ -300,10 +316,10 @@ git checkout ${previousVersion}
   // ── Step renderers ──
 
   const renderReviewRequirements = () => (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="subtitle1" fontWeight={600}>
-          Project Requirements (CLAUDE.md)
+          Project Requirements
         </Typography>
         <Button
           variant="outlined"
@@ -317,13 +333,14 @@ git checkout ${previousVersion}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Review the project requirements below. Confirm they accurately reflect the project intent, constraints, and acceptance criteria.
       </Typography>
-      <Box sx={{ height: 300, border: '1px solid #ddd', borderRadius: 1 }}>
+      <Box sx={{ flex: 1, minHeight: 0, border: '1px solid #ddd', borderRadius: 1 }}>
         <Editor
           height="100%"
           language="markdown"
           value={claudeMdContent}
+          onChange={(value) => setClaudeMdContent(value || '')}
           theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
-          options={{ readOnly: true, minimap: { enabled: false }, wordWrap: 'on', lineNumbers: 'off' }}
+          options={{ minimap: { enabled: false }, wordWrap: 'on', lineNumbers: 'off' }}
         />
       </Box>
       {!isInitial && (
@@ -708,7 +725,7 @@ git checkout ${previousVersion}
           </Stepper>
         </Box>
 
-        <DialogContent dividers sx={{ overflow: 'auto' }}>
+        <DialogContent dividers sx={{ overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           {renderStep()}
         </DialogContent>
 
