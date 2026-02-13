@@ -4,7 +4,7 @@
 
 # Etienne - AI Harness Integration Layer
 
-# What it does in one sentence
+## What it does in one sentence
 
 <div align="center">
 <img src="/docs/images/core-functions.jpg" alt="Core Functions" width="500">
@@ -12,7 +12,7 @@
 
 Etienne showcases how to attach typical business requirements to an agent harness - with a simple user interface.
 
-# Base Technologies
+## Base Technologies
 
 Demonstrates how to use Anthropic Claude Code 2.0 with the **Claude Agent SDK** to build an agent integration layer for **virtual collaborator use cases**.
 
@@ -24,7 +24,7 @@ This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend
 
 In production deployments all components will be packaged together into a Docker Container which mounts a workspace folder for data.
 
-# Main Components
+## Main Components
 
 This repo contains 3 mandatory servers, 6 optional servers and many modules.
 
