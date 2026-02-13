@@ -2,9 +2,19 @@
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
 
-# Etienne - Headless Claude Code
+# Etienne - AI Harness Integration Layer
 
-Demonstrates to use Claude Code 2.0 with the **Anthropic Agent SDK** to build an agent engine for **virtual collaborator use cases**.
+# What it does in one sentence
+
+<div align="center">
+<img src="/docs/images/core-functions.jpg" alt="Core Functions" width="500">
+</div> 
+
+Etienne showcases how to attach typical business requirements to an agent harness - with a simple user interface.
+
+# Base Technologies
+
+Demonstrates how to use Anthropic Claude Code 2.0 with the **Claude Agent SDK** to build an agent integration layer for **virtual collaborator use cases**.
 
 <div align="center">
 <img src="/docs/images/raw-architecture.jpg" alt="Etienne Logo" width="500">
