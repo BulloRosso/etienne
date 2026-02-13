@@ -35,7 +35,7 @@ const TAG_COLORS = [
 // ---------------------------------------------------------------------------
 
 export function isSystemFile(label) {
-  return SYSTEM_FILES.has(label);
+  return label.startsWith('.') || SYSTEM_FILES.has(label);
 }
 
 export function getTagColor(tag) {
