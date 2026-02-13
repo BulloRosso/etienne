@@ -26,6 +26,6 @@ import { ProcessManagerModule } from '../process-manager/process-manager.module'
     InitExternalServicesService,
     SSEPublisherService,
   ],
-  exports: [EventRouterService, RuleEngineService, SSEPublisherService, PromptsStorageService],
+  exports: [EventRouterService, RuleEngineService, SSEPublisherService, PromptsStorageService, FileWatcherService],
 })
 export class EventHandlingModule {}

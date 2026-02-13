@@ -7,10 +7,14 @@
 ## What it does in one sentence
 
 <div align="center">
-<img src="/docs/images/core-functions.jpg" alt="Core Functions" width="500">
+<img src="/docs/images/core-functions.jpg" alt="Core Functions" width="800">
 </div> 
 
-Etienne showcases how to attach typical business requirements to an agent harness - with a simple user interface.
+Etienne showcases how to attach typical business requirements to an agent harness - with a business workbench user interface:
+
+<div align="center">
+<img src="/docs/images/ui-example.jpg" alt="UI example" width="900">
+</div> 
 
 ## Base Technologies
 

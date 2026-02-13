@@ -10,12 +10,21 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
   private watcher: chokidar.FSWatcher | null = null;
   private readonly workspaceDir: string;
   private isInitialized = false;
+  private isSuspended = false;
 
   constructor(private readonly eventRouter: EventRouterService) {
     this.workspaceDir = path.join(process.cwd(), '..', 'workspace');
   }
 
   async onModuleInit() {
+    await this.startWatcher();
+  }
+
+  async onModuleDestroy() {
+    await this.stopWatcher();
+  }
+
+  private async startWatcher() {
     try {
       // Ensure workspace directory exists
       await fs.ensureDir(this.workspaceDir);
@@ -57,9 +66,10 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async onModuleDestroy() {
+  private async stopWatcher() {
     if (this.watcher) {
       await this.watcher.close();
+      this.watcher = null;
       this.logger.log('File watcher closed');
     }
   }
@@ -225,6 +235,28 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
    */
   private handleError(error: Error) {
     this.logger.error('File watcher error', error);
+  }
+
+  /**
+   * Suspend the file watcher — closes all native OS handles.
+   * Must be called before rename/move/delete operations on Windows,
+   * where chokidar's fs.watch holds directory handles that block fs.rename().
+   */
+  async suspend(): Promise<void> {
+    if (this.isSuspended) return;
+    this.isSuspended = true;
+    this.logger.debug('Suspending file watcher');
+    await this.stopWatcher();
+  }
+
+  /**
+   * Resume the file watcher after a suspend.
+   */
+  async resume(): Promise<void> {
+    if (!this.isSuspended) return;
+    this.logger.debug('Resuming file watcher');
+    this.isSuspended = false;
+    await this.startWatcher();
   }
 
   /**

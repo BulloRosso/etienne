@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Optional, Inject } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join, extname, dirname, basename } from 'path';
 import { ClaudeConfig } from '../claude/config/claude.config';
 import { safeRoot } from '../claude/utils/path.utils';
+import { FileWatcherService } from '../event-handling/core/file-watcher.service';
 
 @Injectable()
 export class ContentManagementService {
   private readonly config = new ClaudeConfig();
+
+  constructor(
+    @Optional() @Inject(FileWatcherService) private readonly fileWatcher?: FileWatcherService,
+  ) {}
 
   /**
    * Get MIME type based on file extension
@@ -76,15 +81,28 @@ export class ContentManagementService {
       // Check if it's a file or directory
       const stats = await fs.stat(fullPath);
 
-      if (stats.isDirectory()) {
-        // Remove directory and all its contents
-        await fs.rm(fullPath, { recursive: true, force: true });
-        return { success: true, message: `Directory deleted: ${filepath}` };
-      } else {
-        // Remove file
-        await fs.unlink(fullPath);
-        return { success: true, message: `File deleted: ${filepath}` };
+      // Suspend file watcher to release all OS handles (Windows EPERM fix)
+      if (this.fileWatcher) {
+        await this.fileWatcher.suspend();
       }
+      try {
+        if (stats.isDirectory()) {
+          // Remove directory and all its contents
+          await fs.rm(fullPath, { recursive: true, force: true });
+        } else {
+          // Remove file
+          await fs.unlink(fullPath);
+        }
+      } finally {
+        if (this.fileWatcher) {
+          await this.fileWatcher.resume();
+        }
+      }
+
+      return {
+        success: true,
+        message: stats.isDirectory() ? `Directory deleted: ${filepath}` : `File deleted: ${filepath}`,
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -128,8 +146,17 @@ export class ContentManagementService {
         // Destination doesn't exist, which is what we want
       }
 
-      // Move the file or folder
-      await fs.rename(sourceFullPath, destFullPath);
+      // Suspend file watcher to release all OS handles (Windows EPERM fix)
+      if (this.fileWatcher) {
+        await this.fileWatcher.suspend();
+      }
+      try {
+        await fs.rename(sourceFullPath, destFullPath);
+      } finally {
+        if (this.fileWatcher) {
+          await this.fileWatcher.resume();
+        }
+      }
 
       return {
         success: true,
@@ -177,8 +204,17 @@ export class ContentManagementService {
         // Destination doesn't exist, which is what we want
       }
 
-      // Rename
-      await fs.rename(fullPath, newFullPath);
+      // Suspend file watcher to release all OS handles (Windows EPERM fix)
+      if (this.fileWatcher) {
+        await this.fileWatcher.suspend();
+      }
+      try {
+        await fs.rename(fullPath, newFullPath);
+      } finally {
+        if (this.fileWatcher) {
+          await this.fileWatcher.resume();
+        }
+      }
 
       const newRelativePath = join(dirname(filepath), newName);
       return {
