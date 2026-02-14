@@ -6,11 +6,23 @@ import { join } from 'path';
 import { CodexConfig } from './codex.config';
 import { safeRoot } from '../utils/path.utils';
 
-/** JSON-RPC notification from the Codex app-server */
+/** JSON-RPC notification from the Codex app-server (no id — fire-and-forget) */
 export interface AppServerNotification {
   method: string;
   params: any;
 }
+
+/** JSON-RPC server-initiated request (has both id and method — requires a response) */
+export interface AppServerRequest {
+  id: number;
+  method: string;
+  params: any;
+}
+
+/** Discriminated union of all message types that flow through the async queue */
+export type AppServerMessage =
+  | (AppServerNotification & { _type: 'notification' })
+  | (AppServerRequest & { _type: 'request' });
 
 /** JSON-RPC response from the Codex app-server */
 interface AppServerResponse {
@@ -54,7 +66,7 @@ class AsyncQueue<T> {
       const resolve = this.waitResolve;
       this.waitResolve = null;
       // Signal error via a special notification
-      resolve({ value: { method: 'error', params: { message: err.message } } as any, done: false });
+      resolve({ value: { method: 'error', params: { message: err.message }, _type: 'notification' } as any, done: false });
     }
   }
 
@@ -216,8 +228,17 @@ export class CodexSdkService implements OnModuleDestroy {
       try {
         const msg = JSON.parse(trimmed);
 
-        if ('id' in msg && !('method' in msg)) {
-          // Response to a request we sent
+        if ('id' in msg && 'method' in msg) {
+          // Server-initiated request — has both id and method, requires a JSON-RPC response
+          this.logger.debug(`Server request: ${msg.method} (id=${msg.id})`);
+          this.notificationEmitter.emit('notification', {
+            id: msg.id,
+            method: msg.method,
+            params: msg.params,
+            _type: 'request',
+          } as AppServerMessage);
+        } else if ('id' in msg && !('method' in msg)) {
+          // Response to a client-initiated request
           const pending = this.pendingRequests.get(msg.id);
           if (pending) {
             this.pendingRequests.delete(msg.id);
@@ -230,8 +251,12 @@ export class CodexSdkService implements OnModuleDestroy {
             this.logger.warn(`Received response for unknown request id: ${msg.id}`);
           }
         } else if ('method' in msg) {
-          // Server notification
-          this.notificationEmitter.emit('notification', msg as AppServerNotification);
+          // Server notification (no id, fire-and-forget)
+          this.notificationEmitter.emit('notification', {
+            method: msg.method,
+            params: msg.params,
+            _type: 'notification',
+          } as AppServerMessage);
         } else {
           this.logger.debug(`Unknown message from app-server: ${trimmed.substring(0, 200)}`);
         }
@@ -304,10 +329,11 @@ export class CodexSdkService implements OnModuleDestroy {
 
   /**
    * Stream a conversation using the Codex app-server.
-   * Yields AppServerNotification objects for the orchestrator to transform.
+   * Yields AppServerMessage objects (notifications and server-initiated requests)
+   * for the orchestrator to transform and handle.
    *
    * Handles thread start/resume + turn/start internally,
-   * then yields all notifications until turn/completed.
+   * then yields all messages until turn/completed.
    */
   async *streamConversation(
     projectDir: string,
@@ -316,7 +342,7 @@ export class CodexSdkService implements OnModuleDestroy {
       threadId?: string;
       processId?: string;
     } = {}
-  ): AsyncGenerator<AppServerNotification> {
+  ): AsyncGenerator<AppServerMessage> {
     const { threadId, processId } = options;
 
     // Load alternative AI model configuration
@@ -328,14 +354,14 @@ export class CodexSdkService implements OnModuleDestroy {
 
     const projectRoot = safeRoot(this.config.hostRoot, projectDir);
 
-    this.logger.log(`Starting Codex app-server conversation: project=${projectDir}, cwd=${projectRoot}, thread=${threadId || 'new'}, model=${model}`);
+    this.logger.log(`Starting Codex app-server conversation: project=${projectDir}, cwd=${projectRoot}, thread=${threadId || 'new'}, model=${model}, approvalPolicy=${this.config.approvalPolicy}`);
 
-    // Create async queue for notification streaming
-    const queue = new AsyncQueue<AppServerNotification>();
-    const notificationHandler = (msg: AppServerNotification) => queue.push(msg);
+    // Create async queue for message streaming (notifications + server requests)
+    const queue = new AsyncQueue<AppServerMessage>();
+    const messageHandler = (msg: AppServerMessage) => queue.push(msg);
     const exitHandler = () => queue.finish();
 
-    this.notificationEmitter.on('notification', notificationHandler);
+    this.notificationEmitter.on('notification', messageHandler);
     this.notificationEmitter.on('exit', exitHandler);
 
     try {
@@ -348,7 +374,7 @@ export class CodexSdkService implements OnModuleDestroy {
             model,
             cwd: projectRoot,
             sandbox: this.config.sandboxMode,
-            approvalPolicy: 'never',
+            approvalPolicy: this.config.approvalPolicy,
           });
           resolvedThreadId = resumeResult?.thread?.id || threadId;
           this.logger.log(`Resumed thread: ${resolvedThreadId}`);
@@ -358,7 +384,7 @@ export class CodexSdkService implements OnModuleDestroy {
             model,
             cwd: projectRoot,
             sandbox: this.config.sandboxMode,
-            approvalPolicy: 'never',
+            approvalPolicy: this.config.approvalPolicy,
             experimentalRawEvents: false,
           });
           resolvedThreadId = startResult?.thread?.id || '';
@@ -369,7 +395,7 @@ export class CodexSdkService implements OnModuleDestroy {
           model,
           cwd: projectRoot,
           sandbox: this.config.sandboxMode,
-          approvalPolicy: 'never',
+          approvalPolicy: this.config.approvalPolicy,
           experimentalRawEvents: false,
         });
         resolvedThreadId = startResult?.thread?.id || '';
@@ -381,7 +407,7 @@ export class CodexSdkService implements OnModuleDestroy {
         threadId: resolvedThreadId,
         input: [{ type: 'text', text: prompt, text_elements: [] }],
         cwd: projectRoot,
-        approvalPolicy: 'never',
+        approvalPolicy: this.config.approvalPolicy,
         sandboxPolicy: { type: 'dangerFullAccess' },
         model,
         effort: null,
@@ -389,21 +415,44 @@ export class CodexSdkService implements OnModuleDestroy {
       });
       this.logger.log(`Turn started: ${JSON.stringify(turnResult).substring(0, 200)}`);
 
-      // Yield notifications until turn/completed
-      for await (const notification of queue) {
-        yield notification;
+      // Yield messages until turn/completed
+      for await (const message of queue) {
+        yield message;
 
         // Stop yielding after turn completes
-        if (notification.method === 'turn/completed') {
+        if (message.method === 'turn/completed') {
           break;
         }
       }
 
       this.logger.log(`Codex conversation completed for project: ${projectDir}`);
     } finally {
-      this.notificationEmitter.off('notification', notificationHandler);
+      this.notificationEmitter.off('notification', messageHandler);
       this.notificationEmitter.off('exit', exitHandler);
     }
+  }
+
+  /**
+   * Send a JSON-RPC response to the app-server for a server-initiated request.
+   * Used by CodexPermissionService to respond to approval/elicitation requests.
+   */
+  public sendResponse(id: number, result?: any, error?: { code: number; message: string }): void {
+    if (!this.process || !this.process.stdin || this.process.killed) {
+      this.logger.warn(`Cannot send response for id=${id}: process not running`);
+      return;
+    }
+
+    const response = error
+      ? JSON.stringify({ id, error })
+      : JSON.stringify({ id, result });
+
+    this.logger.log(`Sending JSON-RPC response: id=${id}, hasError=${!!error}`);
+
+    this.process.stdin.write(response + '\n', (err) => {
+      if (err) {
+        this.logger.error(`Failed to write response to app-server stdin: ${err.message}`);
+      }
+    });
   }
 
   /**

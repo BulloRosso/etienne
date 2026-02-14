@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import axios from 'axios';
-import { CodexSdkService, AppServerNotification } from './codex-sdk.service';
+import { CodexSdkService, AppServerMessage } from './codex-sdk.service';
 import { CodexSessionManagerService } from './codex-session-manager.service';
+import { CodexPermissionService } from './codex-permission.service';
 import { SdkHookEmitterService } from '../sdk/sdk-hook-emitter.service';
 import { MessageEvent, Usage } from '../types';
 import { GuardrailsService } from '../../input-guardrails/guardrails.service';
@@ -32,6 +33,7 @@ export class CodexSdkOrchestratorService {
   constructor(
     private readonly codexSdkService: CodexSdkService,
     private readonly sessionManager: CodexSessionManagerService,
+    private readonly codexPermissionService: CodexPermissionService,
     private readonly hookEmitter: SdkHookEmitterService,
     private readonly guardrailsService: GuardrailsService,
     private readonly outputGuardrailsService: OutputGuardrailsService,
@@ -223,12 +225,58 @@ export class CodexSdkOrchestratorService {
       // === Stream Codex app-server conversation ===
       this.logger.log(`Starting Codex stream for project: ${projectDir}, thread: ${threadId || 'new'}`);
 
-      for await (const notification of this.codexSdkService.streamConversation(
+      for await (const message of this.codexSdkService.streamConversation(
         projectDir,
         finalPrompt,
         { threadId, processId }
       )) {
         try {
+          // === Handle server-initiated requests (approval/elicitation) ===
+          if (message._type === 'request') {
+            this.logger.log(`Codex server request: ${message.method} (id=${message.id})`);
+
+            // Fire-and-forget: the permission service handles the full lifecycle
+            // (emit SSE event → wait for frontend response → send JSON-RPC response back)
+            this.codexPermissionService.handleServerRequest(projectDir, {
+              id: message.id,
+              method: message.method,
+              params: message.params,
+            }).catch((err) => {
+              this.logger.error(`Error handling server request ${message.method}: ${err.message}`);
+            });
+
+            // Emit a "running" tool event so the frontend shows visual feedback
+            if (message.method === 'item/commandExecution/requestApproval') {
+              const parsedCmd = message.params?.parsedCmd || {};
+              const cmdStr = [parsedCmd.command, ...(parsedCmd.args || [])].join(' ');
+              observer.next({
+                type: 'tool',
+                data: {
+                  toolName: 'Bash',
+                  status: 'running',
+                  callId: message.params?.itemId || `approval_${message.id}`,
+                  input: { command: cmdStr, description: 'Awaiting approval...' },
+                },
+              });
+            } else if (message.method === 'item/fileChange/requestApproval') {
+              const changes = message.params?.changes || [];
+              const primaryPath = changes[0]?.path || '';
+              observer.next({
+                type: 'tool',
+                data: {
+                  toolName: 'Edit',
+                  status: 'running',
+                  callId: message.params?.itemId || `approval_${message.id}`,
+                  input: { file_path: primaryPath, description: 'Awaiting approval...' },
+                },
+              });
+            }
+
+            continue; // Don't fall through to notification handling
+          }
+
+          // === Handle notifications ===
+          const notification = message;
           this.logger.debug(`Codex notification: ${notification.method}`);
 
           switch (notification.method) {
@@ -651,6 +699,18 @@ export class CodexSdkOrchestratorService {
             case 'codex/event/mcp_startup_complete':
             case 'codex/event/error':
               // Known notifications that don't need frontend forwarding
+              break;
+
+            // Approval/elicitation methods — normally handled as server requests
+            // (with id field) above. If they arrive here as pure notifications
+            // (no id), it means the approval policy is 'never' or the app-server
+            // sent them without an id.
+            case 'item/commandExecution/requestApproval':
+            case 'item/fileChange/requestApproval':
+            case 'tool/requestUserInput':
+            case 'agent/requestUserInput':
+            case 'agent/askUserQuestion':
+              this.logger.debug(`Received ${notification.method} as notification (no id) — ignoring`);
               break;
 
             default:

@@ -10,6 +10,8 @@ import { SdkPermissionController } from './claude/sdk/sdk-permission.controller'
 import { CodexSdkService } from './claude/codex-sdk/codex-sdk.service';
 import { CodexSdkOrchestratorService } from './claude/codex-sdk/codex-sdk-orchestrator.service';
 import { CodexSessionManagerService } from './claude/codex-sdk/codex-session-manager.service';
+import { CodexPermissionService } from './claude/codex-sdk/codex-permission.service';
+import { CodexPermissionController } from './claude/codex-sdk/codex-permission.controller';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -50,7 +52,7 @@ import { CodingAgentConfigurationService } from './coding-agent-configuration/co
 
 @Module({
   imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule],
-  controllers: [ClaudeController, SdkPermissionController],
+  controllers: [ClaudeController, SdkPermissionController, CodexPermissionController],
   providers: [
     ClaudeService,
     ClaudeSdkService,
@@ -61,6 +63,7 @@ import { CodingAgentConfigurationService } from './coding-agent-configuration/co
     CodexSdkService,
     CodexSdkOrchestratorService,
     CodexSessionManagerService,
+    CodexPermissionService,
     BudgetMonitoringService,
     GuardrailsService,
     OutputGuardrailsService,
