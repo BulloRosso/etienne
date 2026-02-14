@@ -1,0 +1,43 @@
+# How Codex's VS Code plugin handles modal dialogs without MCP elicitation
+
+**The Codex VS Code extension bypasses MCP elicitation entirely by using a custom bidirectional JSON-RPC protocol over stdio** to communicate with a locally spawned `codex app-server` process. When the agent needs user input—whether for approving a shell command, confirming a file edit, or asking a clarifying question—the app-server sends a server-initiated JSON-RPC request to the extension, which renders the appropriate UI and returns the user's decision. This architecture emerged because OpenAI found that "maintaining MCP semantics in a way that made sense for VS Code proved difficult," leading them to build an independent protocol with richer interaction primitives than MCP elicitation provides.
+
+## The app-server sits between the extension and the agent loop
+
+The VS Code extension (marketplace ID: `openai.chatgpt`, closed source) bundles a platform-specific Codex binary and spawns it as a child process running `codex app-server`. All communication flows through **JSONL (JSON Lines) over stdin/stdout pipes**, using a "JSON-RPC lite" format—structurally JSON-RPC 2.0 but omitting the `"jsonrpc": "2.0"` header. The extension identifies itself as `clientInfo.name: "codex_vscode"`.
+
+Internally, the app-server (written in Rust, open source at `github.com/openai/codex/codex-rs/app-server/`) contains four components: a **stdio reader** that ingests JSONL from the client, a **message processor** that routes JSON-RPC messages, a **thread manager** that orchestrates conversation sessions, and **core threads** running the actual Codex agent loop from `codex-core`. This architecture means every Codex surface—CLI TUI, VS Code extension, macOS app—shares the identical agent harness. One client request can trigger many streamed event notifications, enabling the extension to build rich, responsive UI on top of a simple pipe transport.
+
+The protocol organizes work into three nested primitives: **threads** (conversations), **turns** (a single user request plus the agent's response), and **items** (atomic I/O units like messages, command executions, file changes, or approval requests). Clients can generate TypeScript or JSON Schema bindings from the app-server itself, ensuring type safety across the boundary.
+
+## Server-initiated requests drive all approval and dialog flows
+
+The core mechanism for modal dialogs is **server-initiated JSON-RPC requests flowing from the app-server to the VS Code extension**. Unlike MCP elicitation's single `elicitation/create` method, the Codex protocol defines multiple specialized request types, each carrying rich metadata tailored to its use case:
+
+**Command execution approval** works through `item/commandExecution/requestApproval`. When the agent wants to run a shell command that falls outside the current approval policy, the app-server emits this request with the `itemId`, `threadId`, `turnId`, a parsed command structure for display, optional `reason` and `risk` fields, and a set of `commandActions`. The extension renders this as a dialog showing the proposed command. The user responds with `{"decision": "accept", "acceptSettings": {"forSession": false}}` or `{"decision": "decline"}`, and the server resumes or aborts accordingly.
+
+**File change approval** follows the same pattern via `item/fileChange/requestApproval`, carrying diff information so the extension can display exactly what will be modified before the user decides.
+
+**Structured user questions** use the experimental `tool/requestUserInput` method, which prompts the user with **1–3 short questions**, each optionally including an `isOther` flag for free-form input. This handles cases where the agent needs clarifying information—not just a yes/no approval—during tool execution. If the user declines or cancels, the related item completes with an error. A session-scoped "Allow and remember" option was added for repeated tool approvals.
+
+**Free-form user input** is handled by the `request_user_input` core agent tool, available only in Plan and Pair collaboration modes. In the CLI TUI this renders as an overlay prompt; in the VS Code extension it surfaces through the app-server protocol. Outside these modes, the tool is rejected to prevent invalid calls; in non-interactive `codex exec` mode, it is removed from the toolset entirely.
+
+A newer `ask_user_question` tool (tracked in GitHub Issue #9926) adds **constrained-answer questionnaires** with single-choice and multiple-choice options, rendered as a tabbed UI in the TUI with keyboard navigation. Each question can include a custom "Other" option for free-form input.
+
+## Why MCP elicitation was set aside—and what replaced it
+
+OpenAI explicitly attempted to expose Codex as an MCP server first but abandoned the approach for the VS Code integration. The **custom app-server protocol** replaced MCP elicitation because it offers several advantages for IDE integration: multiple specialized request types rather than a single generic form, richer metadata per request (parsed commands, risk levels, diff views), bidirectional streaming for real-time progress, and tighter control over the interaction lifecycle.
+
+The relationship between Codex and MCP elicitation is nuanced. **When Codex acts as an MCP server** (`codex mcp-server`), it does use MCP elicitation to request exec and patch approvals from external MCP clients, correlating responses via a `HashMap<RequestId, oneshot::Sender<Result>>`. **When Codex acts as an MCP client** connecting to external MCP servers, it advertises `"capabilities": {"elicitation": {}}` during the MCP handshake but historically **auto-declined all incoming elicitation requests**—a known bug tracked as `CODEX-3571` and GitHub Issue #6992. The code at `codex-rs/rmcp-client/src/logging_client_handler.rs` contained a TODO noting this gap. The issue has since been closed, suggesting resolution, though the changelog does not explicitly confirm full client-side elicitation support.
+
+Beyond the protocol-level mechanisms, Codex employs several complementary strategies to reduce runtime user interaction needs: **approval policies** (untrusted, on-failure, on-request, never) that control which actions need explicit confirmation; **AGENTS.md** files providing persistent configuration and constraints; **rules files** (`.rules`) defining per-command approval policies; and **mid-turn steering**, which lets users inject instructions while the agent is working without a formal dialog. For cloud tasks running in sandboxed containers, the system is fundamentally asynchronous—users review results after completion rather than approving actions in real time.
+
+## The protocol in practice: a complete approval sequence
+
+A typical approval interaction follows this sequence on the wire. The agent decides to run `npm test`. The app-server emits `item/started` with a `commandExecution` item showing the command and working directory, then immediately sends `item/commandExecution/requestApproval` as a server-initiated request. The VS Code extension renders a modal showing the command, its risk assessment, and accept/decline buttons. The user clicks accept. The extension sends back the JSON-RPC response with `{"decision": "accept"}`. The app-server executes the command, streams output via `item/agentMessage/delta` notifications, and finally emits `item/completed` with a status of `completed`, `failed`, or `declined`.
+
+All protocol types are defined in `codex-rs/app-server-protocol/src/protocol/v2.rs` and `common.rs`, with experimental features gated behind `#[experimental("method/name")]` annotations that clients opt into via `capabilities.experimentalApi`. Fields use camelCase on the wire via Serde renaming. TypeScript bindings can be auto-generated with `codex app-server generate-ts`, and client SDKs exist in **Go, Python, TypeScript, Swift, and Kotlin**.
+
+## Conclusion
+
+The Codex VS Code extension solves the user-interaction problem through architectural separation rather than protocol conformance. By spawning a local app-server process and communicating over a purpose-built JSON-RPC protocol, OpenAI gained fine-grained control over approval flows, structured questions, and free-form input collection—capabilities that MCP elicitation's single generic form mode could not adequately express. The key insight is that **the app-server protocol is not a workaround for missing MCP elicitation but a deliberate replacement** designed for richer IDE interactions. MCP elicitation remains relevant only at the boundaries: when Codex exposes itself as an MCP server to external clients, or (eventually) when Codex's own MCP client properly handles elicitation from external servers.

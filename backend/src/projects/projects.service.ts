@@ -7,6 +7,7 @@ import { SkillsService } from '../skills/skills.service';
 import { AgentRoleRegistryService } from '../agent-role-registry/agent-role-registry.service';
 import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
+import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 
 @Injectable()
 export class ProjectsService {
@@ -18,6 +19,7 @@ export class ProjectsService {
     private readonly agentRoleRegistryService: AgentRoleRegistryService,
     private readonly a2aSettingsService: A2ASettingsService,
     private readonly mcpServerConfigService: McpServerConfigService,
+    private readonly codingAgentConfigService: CodingAgentConfigurationService,
   ) {}
 
   /**
@@ -146,17 +148,34 @@ export class ProjectsService {
     await fs.ensureDir(path.join(projectPath, 'out'));
     await fs.ensureDir(path.join(projectPath, '.attachments'));
 
-    // Create default settings.json
-    const defaultSettings = {
-      hooks: {},
-      enabledMcpjsonServers: [],
-      allowedTools: [],
-    };
-    await fs.writeJson(
-      path.join(projectPath, '.claude', 'settings.json'),
-      defaultSettings,
-      { spaces: 2 },
-    );
+    // Write coding agent configuration from custom override or default template
+    const activeAgent = this.codingAgentConfigService.getActiveAgentType();
+    try {
+      if (activeAgent === 'openai') {
+        // For Codex: write .codex/config.toml
+        const codexConfig = await this.codingAgentConfigService.getConfigForProject('openai');
+        await fs.ensureDir(path.join(projectPath, '.codex'));
+        await fs.writeFile(path.join(projectPath, '.codex', 'config.toml'), codexConfig, 'utf-8');
+        // Also create a minimal .claude/settings.json for structure compatibility
+        await fs.writeJson(
+          path.join(projectPath, '.claude', 'settings.json'),
+          { hooks: {}, enabledMcpjsonServers: [], allowedTools: [] },
+          { spaces: 2 },
+        );
+      } else {
+        // For Claude: write .claude/settings.json from template/custom
+        const claudeConfig = await this.codingAgentConfigService.getConfigForProject('anthropic');
+        await fs.writeFile(path.join(projectPath, '.claude', 'settings.json'), claudeConfig, 'utf-8');
+      }
+    } catch (error: any) {
+      this.logger.warn(`Failed to write coding agent config: ${error.message}`);
+      // Fallback to minimal defaults
+      await fs.writeJson(
+        path.join(projectPath, '.claude', 'settings.json'),
+        { hooks: {}, enabledMcpjsonServers: [], allowedTools: [] },
+        { spaces: 2 },
+      );
+    }
 
     // Create default permissions.json
     const defaultPermissions = {

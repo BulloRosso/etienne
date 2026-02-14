@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer, Box, Typography, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress } from '@mui/material';
-import { Close, PlayArrow, Stop } from '@mui/icons-material';
+import { Close, PlayArrow, Stop, MoreVert } from '@mui/icons-material';
+import CodingAgentConfigDialog from './CodingAgentConfigDialog.jsx';
 import { VscServerProcess } from 'react-icons/vsc';
 import { PiShareNetworkLight, PiTelegramLogo, PiMicrosoftTeamsLogo, PiVectorThree } from 'react-icons/pi';
 import { AiOutlineMail } from 'react-icons/ai';
@@ -26,6 +27,8 @@ export default function ServiceControlDrawer({ open, onClose }) {
   const [actionInProgress, setActionInProgress] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
+  const [settingsMenuAnchor, setSettingsMenuAnchor] = useState(null);
+  const [codingAgentConfigOpen, setCodingAgentConfigOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -139,9 +142,17 @@ export default function ServiceControlDrawer({ open, onClose }) {
             flexShrink: 0
           }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Service Control</Typography>
-            <IconButton onClick={onClose} size="small">
-              <Close />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <IconButton
+                onClick={(e) => setSettingsMenuAnchor(e.currentTarget)}
+                size="small"
+              >
+                <MoreVert />
+              </IconButton>
+              <IconButton onClick={onClose} size="small">
+                <Close />
+              </IconButton>
+            </Box>
           </Box>
 
           {/* Service Tiles */}
@@ -252,6 +263,26 @@ export default function ServiceControlDrawer({ open, onClose }) {
           </MenuItem>
         )}
       </Menu>
+
+      {/* Settings Menu */}
+      <Menu
+        anchorEl={settingsMenuAnchor}
+        open={Boolean(settingsMenuAnchor)}
+        onClose={() => setSettingsMenuAnchor(null)}
+      >
+        <MenuItem onClick={() => {
+          setSettingsMenuAnchor(null);
+          setCodingAgentConfigOpen(true);
+        }}>
+          <ListItemText>Coding Agent Config</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Coding Agent Configuration Dialog */}
+      <CodingAgentConfigDialog
+        open={codingAgentConfigOpen}
+        onClose={() => setCodingAgentConfigOpen(false)}
+      />
     </>
   );
 }

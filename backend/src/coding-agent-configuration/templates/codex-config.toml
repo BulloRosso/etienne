@@ -1,0 +1,6 @@
+# Codex Configuration
+# See https://developers.openai.com/codex/config-reference/
+
+model = "gpt-5.2-codex"
+sandbox_mode = "danger-full-access"
+approval_policy = "on-request"
