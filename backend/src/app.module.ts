@@ -46,6 +46,7 @@ import { AgentRoleRegistryModule } from './agent-role-registry/agent-role-regist
 import { ProjectsModule } from './projects/projects.module';
 import { ComplianceModule } from './compliance/compliance.module';
 import { CodingAgentConfigurationModule } from './coding-agent-configuration/coding-agent-configuration.module';
+import { CodingAgentConfigurationService } from './coding-agent-configuration/coding-agent-configuration.service';
 
 @Module({
   imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule],
@@ -63,7 +64,8 @@ import { CodingAgentConfigurationModule } from './coding-agent-configuration/cod
     BudgetMonitoringService,
     GuardrailsService,
     OutputGuardrailsService,
-    SessionsService
+    SessionsService,
+    CodingAgentConfigurationService
   ],
 })
 export class AppModule {}

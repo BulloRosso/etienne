@@ -1212,7 +1212,7 @@ export default function App() {
     await fetch(`/api/claude/addFile`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ project_dir: currentProject, file_name: 'CLAUDE.md', file_content: `# ${currentProject}\n` })
+      body: JSON.stringify({ project_dir: currentProject, file_name: codingAgent === 'anthropic' ? 'CLAUDE.md' : 'AGENTS.md', file_content: `# ${currentProject}\n` })
     });
 
     // Stream prompt

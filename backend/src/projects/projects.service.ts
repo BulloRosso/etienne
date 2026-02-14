@@ -44,10 +44,11 @@ export class ProjectsService {
       await this.createProjectStructure(projectPath);
       this.logger.log(`Created project structure for ${dto.projectName}`);
 
-      // 3. Write mission brief to root CLAUDE.md and agent role to .claude/CLAUDE.md
+      // 3. Write mission brief and agent role using agent-appropriate filenames
+      const missionFileName = this.codingAgentConfigService.getMissionFileName();
       await this.writeMissionBrief(projectPath, dto);
       await this.writeAgentRole(projectPath, dto);
-      this.logger.log(`Wrote CLAUDE.md files for ${dto.projectName}`);
+      this.logger.log(`Wrote ${missionFileName} files for ${dto.projectName}`);
 
       // 4. Provision standard skills
       try {
@@ -189,18 +190,20 @@ export class ProjectsService {
   }
 
   /**
-   * Write the mission brief to the root CLAUDE.md file
+   * Write the mission brief to the root mission file (CLAUDE.md or AGENTS.md)
    */
   private async writeMissionBrief(projectPath: string, dto: CreateProjectDto): Promise<void> {
     let content = '# Mission Brief\n\n';
     content += dto.missionBrief;
 
-    const claudeMdPath = path.join(projectPath, 'CLAUDE.md');
-    await fs.writeFile(claudeMdPath, content.trim(), 'utf-8');
+    const missionFileName = this.codingAgentConfigService.getMissionFileName();
+    const missionPath = path.join(projectPath, missionFileName);
+    await fs.writeFile(missionPath, content.trim(), 'utf-8');
   }
 
   /**
-   * Write the agent role to .claude/CLAUDE.md
+   * Write the agent role to the agent config directory
+   * (.claude/CLAUDE.md for anthropic, .codex/AGENTS.md for openai/others)
    */
   private async writeAgentRole(projectPath: string, dto: CreateProjectDto): Promise<void> {
     if (!dto.agentRole) return;
@@ -217,8 +220,11 @@ export class ProjectsService {
     }
 
     if (content) {
-      const claudeMdPath = path.join(projectPath, '.claude', 'CLAUDE.md');
-      await fs.writeFile(claudeMdPath, content.trim(), 'utf-8');
+      const agentConfigDir = this.codingAgentConfigService.getAgentConfigDir();
+      const missionFileName = this.codingAgentConfigService.getMissionFileName();
+      const rolePath = path.join(projectPath, agentConfigDir, missionFileName);
+      await fs.ensureDir(path.join(projectPath, agentConfigDir));
+      await fs.writeFile(rolePath, content.trim(), 'utf-8');
     }
   }
 

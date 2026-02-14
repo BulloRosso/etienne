@@ -16,6 +16,7 @@ import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.
 import { GuardrailsService } from '../input-guardrails/guardrails.service';
 import { sanitize_user_message } from '../input-guardrails/index';
 import { OutputGuardrailsService } from '../output-guardrails/output-guardrails.service';
+import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 
 @Injectable()
 export class ClaudeService {
@@ -27,7 +28,8 @@ export class ClaudeService {
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly guardrailsService: GuardrailsService,
     private readonly outputGuardrailsService: OutputGuardrailsService,
-    private readonly sessionsService: SessionsService
+    private readonly sessionsService: SessionsService,
+    private readonly codingAgentConfigService: CodingAgentConfigurationService,
   ) {}
 
   private async ensureProject(projectDir: string) {
@@ -36,7 +38,13 @@ export class ClaudeService {
     await fs.mkdir(join(root, 'out'), { recursive: true });
     await fs.mkdir(join(root, '.claude'), { recursive: true });
 
-    const cm = join(root, '.claude', 'CLAUDE.md');
+    const agentConfigDir = this.codingAgentConfigService.getAgentConfigDir();
+    const missionFileName = this.codingAgentConfigService.getMissionFileName();
+    if (agentConfigDir !== '.claude') {
+      await fs.mkdir(join(root, agentConfigDir), { recursive: true });
+    }
+
+    const cm = join(root, agentConfigDir, missionFileName);
     try { await fs.access(cm); } catch { await fs.writeFile(cm, `# ${projectDir}\n`); }
 
     // Create .claude/settings.json with interceptor hooks
@@ -70,15 +78,18 @@ project using the [Scrapbook](#scrapbook)
   public async addFile(projectDir: string, fileName: string, content: string) {
     const root = await this.ensureProject(projectDir);
 
-    // Don't overwrite CLAUDE.md if it already exists (check .claude/CLAUDE.md location)
-    if (fileName === 'CLAUDE.md') {
-      const claudeMdPath = join(root, '.claude', 'CLAUDE.md');
+    const missionFileName = this.codingAgentConfigService.getMissionFileName();
+    const agentConfigDir = this.codingAgentConfigService.getAgentConfigDir();
+
+    // Don't overwrite mission file if it already exists
+    if (fileName === 'CLAUDE.md' || fileName === 'AGENTS.md') {
+      const missionPath = join(root, agentConfigDir, missionFileName);
       try {
-        await fs.access(claudeMdPath);
-        return { ok: true, path: claudeMdPath, skipped: true };
+        await fs.access(missionPath);
+        return { ok: true, path: missionPath, skipped: true };
       } catch {
         // File doesn't exist, ensureProject() already created it
-        return { ok: true, path: claudeMdPath, skipped: false };
+        return { ok: true, path: missionPath, skipped: false };
       }
     }
 
@@ -117,9 +128,11 @@ project using the [Scrapbook](#scrapbook)
 
   public async getStrategy(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
-    const claudeMdPath = join(root, '.claude', 'CLAUDE.md');
+    const agentConfigDir = this.codingAgentConfigService.getAgentConfigDir();
+    const missionFileName = this.codingAgentConfigService.getMissionFileName();
+    const rolePath = join(root, agentConfigDir, missionFileName);
     try {
-      const content = await fs.readFile(claudeMdPath, 'utf8');
+      const content = await fs.readFile(rolePath, 'utf8');
       return { content };
     } catch {
       return { content: `# ${projectDir}\n` };
@@ -128,14 +141,17 @@ project using the [Scrapbook](#scrapbook)
 
   public async saveStrategy(projectDir: string, content: string) {
     const root = await this.ensureProject(projectDir);
-    const claudeMdPath = join(root, '.claude', 'CLAUDE.md');
-    await fs.writeFile(claudeMdPath, content, 'utf8');
+    const agentConfigDir = this.codingAgentConfigService.getAgentConfigDir();
+    const missionFileName = this.codingAgentConfigService.getMissionFileName();
+    const rolePath = join(root, agentConfigDir, missionFileName);
+    await fs.writeFile(rolePath, content, 'utf8');
     return { success: true };
   }
 
   public async getMission(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
-    const missionPath = join(root, 'CLAUDE.md');
+    const missionFileName = this.codingAgentConfigService.getMissionFileName();
+    const missionPath = join(root, missionFileName);
     try {
       const content = await fs.readFile(missionPath, 'utf8');
       return { content };
@@ -146,7 +162,8 @@ project using the [Scrapbook](#scrapbook)
 
   public async saveMission(projectDir: string, content: string) {
     const root = await this.ensureProject(projectDir);
-    const missionPath = join(root, 'CLAUDE.md');
+    const missionFileName = this.codingAgentConfigService.getMissionFileName();
+    const missionPath = join(root, missionFileName);
     await fs.writeFile(missionPath, content, 'utf8');
     return { success: true };
   }

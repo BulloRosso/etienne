@@ -50,6 +50,24 @@ export class CodingAgentConfigurationService {
     return process.env.CODING_AGENT || 'anthropic';
   }
 
+  /**
+   * Get the mission/role markdown filename based on the active coding agent.
+   * - anthropic: CLAUDE.md
+   * - openai/others: AGENTS.md
+   */
+  getMissionFileName(): string {
+    return this.getActiveAgentType() === 'anthropic' ? 'CLAUDE.md' : 'AGENTS.md';
+  }
+
+  /**
+   * Get the agent config directory based on the active coding agent.
+   * - anthropic: .claude
+   * - openai/others: .codex
+   */
+  getAgentConfigDir(): string {
+    return this.getActiveAgentType() === 'anthropic' ? '.claude' : '.codex';
+  }
+
   async getConfig(agentType: string): Promise<{ content: string; isCustom: boolean }> {
     const customPath = this.getCustomOverridePath(agentType);
 

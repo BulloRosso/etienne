@@ -87,7 +87,7 @@ export default function ComplianceReleaseWizard({ open, onClose, projectName, st
   const isInitial = status?.isInitialRelease;
   const steps = isInitial ? INITIAL_STEPS : UPDATE_STEPS;
 
-  // Load CLAUDE.md content when dialog opens
+  // Load mission file content when dialog opens
   useEffect(() => {
     if (open && projectName) {
       loadClaudeMd();
@@ -129,13 +129,17 @@ export default function ComplianceReleaseWizard({ open, onClose, projectName, st
   const loadClaudeMd = async () => {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6060';
-      const response = await fetch(`${API_BASE}/api/claude/getFile?project_dir=${encodeURIComponent(projectName)}&file_name=CLAUDE.md`);
+      const response = await fetch(`${API_BASE}/api/claude/mission`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectName }),
+      });
       if (response.ok) {
         const data = await response.json();
         setClaudeMdContent(data.content || '');
       }
     } catch (err) {
-      console.error('Failed to load CLAUDE.md:', err);
+      console.error('Failed to load mission file:', err);
     }
   };
 
@@ -148,7 +152,7 @@ export default function ComplianceReleaseWizard({ open, onClose, projectName, st
         body: JSON.stringify({ projectName, content: claudeMdContent }),
       });
     } catch (err) {
-      console.error('Failed to save CLAUDE.md:', err);
+      console.error('Failed to save mission file:', err);
     }
   };
 
@@ -633,7 +637,7 @@ git checkout ${previousVersion}
             </ListItem>
             <ListItem>
               <ListItemIcon sx={{ minWidth: 36 }}><MdDescription size={20} /></ListItemIcon>
-              <ListItemText primary="CLAUDE.md update" secondary="Requirements baseline v1.0 header added" />
+              <ListItemText primary="Mission file update" secondary="Requirements baseline v1.0 header added" />
             </ListItem>
           </>
         ) : (
@@ -649,7 +653,7 @@ git checkout ${previousVersion}
             {requirementsChanged && (
               <ListItem>
                 <ListItemIcon sx={{ minWidth: 36 }}><MdDescription size={20} /></ListItemIcon>
-                <ListItemText primary="CLAUDE.md update" secondary={`Requirements update ${nextVersion} header added`} />
+                <ListItemText primary="Mission file update" secondary={`Requirements update ${nextVersion} header added`} />
               </ListItem>
             )}
           </>

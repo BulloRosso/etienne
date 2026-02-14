@@ -19,8 +19,10 @@ export const INDENT_SIZE = 16;
 
 const SYSTEM_FILES = new Set([
   'CLAUDE.md',
+  'AGENTS.md',
   'data',
   '.claude',
+  '.codex',
   '.mcp.json',
   '.etienne',
 ]);
