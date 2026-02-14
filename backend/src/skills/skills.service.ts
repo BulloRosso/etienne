@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RepositorySkill, ProvisionResult } from './dto/repository-skills.dto';
+import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 
 export interface Skill {
   name: string;
@@ -17,6 +18,10 @@ export interface SkillWithProject {
 @Injectable()
 export class SkillsService {
   private readonly workspaceDir = path.resolve(process.cwd(), '../workspace');
+
+  constructor(
+    private readonly codingAgentConfig: CodingAgentConfigurationService,
+  ) {}
 
   /**
    * Get the skill repository path with fallback to default
@@ -50,10 +55,20 @@ export class SkillsService {
   }
 
   /**
+   * Get the agent-specific skills config directory name.
+   * - anthropic: .claude/skills
+   * - openai: .agents/skills
+   */
+  private getSkillsConfigDir(): string {
+    const agentType = this.codingAgentConfig.getActiveAgentType();
+    return agentType === 'openai' ? path.join('.agents', 'skills') : path.join('.claude', 'skills');
+  }
+
+  /**
    * Get the skills directory path for a project
    */
   private getSkillsDir(project: string): string {
-    return path.join(this.workspaceDir, project, '.claude', 'skills');
+    return path.join(this.workspaceDir, project, this.getSkillsConfigDir());
   }
 
   /**
