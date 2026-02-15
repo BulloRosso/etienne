@@ -1428,29 +1428,36 @@ export default function App() {
       }]);
     });
 
+    let stopped = false;
     const stop = () => {
+      if (stopped) return;
+      stopped = true;
       es.close();
       setStreaming(false);
       setCurrentProcessId(null);
 
-      // Flush any remaining text buffer
-      if (textBuffer.trim()) {
-        const timestamp = Date.now();
-        setStructuredMessages(prev => [...prev, {
-          id: `text_${timestamp}_final`,
-          type: 'text_chunk',
-          content: textBuffer,
-          timestamp: lastChunkTime
-        }]);
-        textBuffer = '';
-      }
-
-      // Mark all structured messages as complete
+      // Flush remaining text buffer, mark running items complete, and capture
+      // final structured messages in a single state update to avoid races.
       const finalStructuredMessages = [];
       setStructuredMessages(prev => {
-        const updated = prev.map(msg =>
+        let updated = [...prev];
+
+        // Flush any remaining text buffer
+        if (textBuffer.trim()) {
+          updated.push({
+            id: `text_${Date.now()}_final`,
+            type: 'text_chunk',
+            content: textBuffer,
+            timestamp: lastChunkTime
+          });
+          textBuffer = '';
+        }
+
+        // Mark all running items as complete
+        updated = updated.map(msg =>
           msg.status === 'running' ? { ...msg, status: 'complete' } : msg
         );
+
         finalStructuredMessages.push(...updated);
         return updated;
       });
@@ -1537,6 +1544,20 @@ export default function App() {
           }];
         }
       });
+    });
+
+    // Listen for thinking/reasoning events (Codex reasoning items)
+    es.addEventListener('thinking', (e) => {
+      const data = JSON.parse(e.data);
+      if (data.content) {
+        const timestamp = Date.now();
+        setStructuredMessages(prev => [...prev, {
+          id: `thinking_${timestamp}`,
+          type: 'thinking',
+          content: data.content,
+          timestamp
+        }]);
+      }
     });
 
     es.addEventListener('completed', stop);

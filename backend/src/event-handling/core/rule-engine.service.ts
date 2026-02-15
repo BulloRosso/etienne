@@ -13,7 +13,7 @@ import {
 } from '../interfaces/event.interface';
 import { VectorStoreService } from '../../knowledge-graph/vector-store/vector-store.service';
 import { KnowledgeGraphService } from '../../knowledge-graph/knowledge-graph.service';
-import Anthropic from '@anthropic-ai/sdk';
+import { LlmService } from '../../llm/llm.service';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -29,6 +29,7 @@ export class RuleEngineService {
   constructor(
     private readonly vectorStore: VectorStoreService,
     private readonly knowledgeGraph: KnowledgeGraphService,
+    private readonly llmService: LlmService,
   ) {}
 
   /**
@@ -454,10 +455,6 @@ export class RuleEngineService {
     if (event.group !== 'Email') return false;
 
     try {
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
-
       const prompt = `You are an email rule evaluator. Given an email and a rule criteria, determine if the email matches the criteria.
 
 Email data:
@@ -467,13 +464,12 @@ Rule criteria: "${condition.criteria}"
 
 Does this email match the criteria? Respond with ONLY "YES" or "NO".`;
 
-      const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const text = (await this.llmService.generateText({
+        tier: 'small',
+        prompt,
+        maxOutputTokens: 10,
+      })).trim().toUpperCase();
 
-      const text = response.content.find((b) => b.type === 'text')?.text?.trim().toUpperCase();
       const matched = text === 'YES';
 
       if (matched) {

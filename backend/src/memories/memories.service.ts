@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import Anthropic from '@anthropic-ai/sdk';
 import { InterceptorsService } from '../interceptors/interceptors.service';
+import { LlmService } from '../llm/llm.service';
 
 interface Memory {
   id: string;
@@ -48,7 +48,10 @@ export class MemoriesService {
   private readonly workspaceRoot: string;
   private readonly memoryDecayDays: number;
 
-  constructor(private readonly interceptorsService: InterceptorsService) {
+  constructor(
+    private readonly interceptorsService: InterceptorsService,
+    private readonly llmService: LlmService,
+  ) {
     this.workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace';
     this.memoryDecayDays = parseInt(process.env.MEMORY_DECAY_DAYS || '6', 10);
   }
@@ -313,10 +316,6 @@ Return ONLY a valid JSON object with this structure:
    * Extract facts from conversation using Anthropic API
    */
   private async extractFacts(messages: Message[], projectName: string): Promise<string[]> {
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-
     const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n');
 
     const { prompt: extractionPrompt } = await this.getExtractionPrompt(projectName);
@@ -330,20 +329,13 @@ ${conversationText}
 **Important:** Return ONLY the JSON object, no additional text or explanation.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4096,
-        messages: [
-          { role: 'user', content: prompt }
-        ],
+      const text = await this.llmService.generateText({
+        tier: 'small',
+        prompt,
+        maxOutputTokens: 4096,
       });
 
-      const textContent = response.content.find((block: any) => block.type === 'text');
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text response from Claude');
-      }
-
-      const cleanedContent = this.stripMarkdownFences(textContent.text.trim());
+      const cleanedContent = this.stripMarkdownFences(text.trim());
       const result: MemoryExtractionResult = this.safeJsonParse(cleanedContent);
       return result.facts || [];
     } catch (error: any) {
@@ -363,10 +355,6 @@ ${conversationText}
     if (newFacts.length === 0) {
       return { memory: [] };
     }
-
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
 
     const existingMemoriesText = existingMemories
       .map(m => `${m.id}: ${m.memory}`)
@@ -425,20 +413,13 @@ Return ONLY a valid JSON object:
 **Important:** Be conservative with DELETE operations. Only delete when there's clear contradiction.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4096,
-        messages: [
-          { role: 'user', content: prompt }
-        ],
+      const text = await this.llmService.generateText({
+        tier: 'small',
+        prompt,
+        maxOutputTokens: 4096,
       });
 
-      const textContent = response.content.find((block: any) => block.type === 'text');
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text response from Claude');
-      }
-
-      const cleanedContent = this.stripMarkdownFences(textContent.text.trim());
+      const cleanedContent = this.stripMarkdownFences(text.trim());
       const result: MemoryUpdateResult = this.safeJsonParse(cleanedContent);
       return result;
     } catch (error: any) {

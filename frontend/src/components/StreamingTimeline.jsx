@@ -1,8 +1,11 @@
 import React, { useMemo } from 'react';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import ToolCallTimeline from './ToolCallTimeline';
 import TextSegmentTimeline from './TextSegmentTimeline';
 import TodoWriteTimeline from './TodoWriteTimeline';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
  * Unified timeline component that renders a sequence of text chunks, tool calls, and TodoWrite
@@ -94,7 +97,10 @@ export default function StreamingTimeline({
       }
     }
 
-    // Merge text segments and tool calls, sorted by timestamp
+    // Collect thinking items
+    const thinkingItems = items.filter(item => item.type === 'thinking');
+
+    // Merge text segments, tool calls, and thinking items, sorted by timestamp
     const allItems = [
       ...textSegments.map(seg => ({ ...seg, sortTime: seg.timestamp })),
       ...filteredTools.map(tool => ({
@@ -102,6 +108,12 @@ export default function StreamingTimeline({
         content: tool,
         sortTime: tool.timestamp || 0,
         key: `tool-${tool.id || tool.timestamp}`
+      })),
+      ...thinkingItems.map(item => ({
+        type: 'thinking',
+        content: item.content,
+        sortTime: item.timestamp || 0,
+        key: `thinking-${item.id || item.timestamp}`
       }))
     ].sort((a, b) => a.sortTime - b.sortTime);
 
@@ -130,6 +142,14 @@ export default function StreamingTimeline({
               showBullet={showBullet}
             />
           );
+        } else if (item.type === 'thinking') {
+          return (
+            <ThinkingTimeline
+              key={item.key}
+              content={item.content}
+              showBullet={showBullet}
+            />
+          );
         } else if (item.content.toolName === 'TodoWrite') {
           // Render TodoWrite with dedicated timeline component
           return (
@@ -153,6 +173,92 @@ export default function StreamingTimeline({
         }
       })}
 
+    </Box>
+  );
+}
+
+/**
+ * Inline thinking/reasoning display for timeline
+ */
+function ThinkingTimeline({ content, showBullet = true }) {
+  const { mode: themeMode } = useThemeMode();
+
+  return (
+    <Box sx={{ mb: 2, position: 'relative' }}>
+      {/* Timeline connector line */}
+      <Box
+        sx={{
+          position: 'absolute',
+          left: '0px',
+          top: showBullet ? '24px' : '0px',
+          bottom: '-16px',
+          width: '1px',
+          backgroundColor: themeMode === 'dark' ? '#ccc' : '#e0e0e0'
+        }}
+      />
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+        {showBullet && (
+          <Box
+            component="span"
+            sx={{
+              display: 'inline-block',
+              width: '6px',
+              height: '6px',
+              minHeight: '6px',
+              maxHeight: '6px',
+              minWidth: '6px',
+              maxWidth: '6px',
+              borderRadius: '50%',
+              backgroundColor: '#1976d2',
+              zIndex: 1,
+              flexShrink: 0,
+              flexGrow: 0,
+              ml: '-3px',
+              mt: '8px',
+              aspectRatio: '1 / 1'
+            }}
+          />
+        )}
+        <Box
+          sx={{
+            flex: 1,
+            ml: showBullet ? 0 : '10px',
+          }}
+        >
+          <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600, display: 'block', mb: 0.5 }}>
+            Thinking
+          </Typography>
+          <Box
+            sx={{
+              color: themeMode === 'dark' ? '#aaa' : '#555',
+              fontSize: '13px',
+              fontFamily: 'Roboto',
+              wordBreak: 'break-word',
+              '& p': { margin: '0 0 0.5em 0' },
+              '& p:last-child': { marginBottom: 0 },
+              '& ul, & ol': { marginLeft: 0, paddingLeft: '1.2em', marginTop: '0.5em', marginBottom: '0.5em' },
+              '& li': { marginTop: '0.25em', marginBottom: 0 },
+              '& code': {
+                backgroundColor: 'rgba(0,0,0,0.05)',
+                padding: '0.1em 0.3em',
+                borderRadius: '3px',
+                fontFamily: 'monospace',
+                fontSize: '0.9em'
+              },
+              '& pre': {
+                backgroundColor: 'rgba(0,0,0,0.05)',
+                padding: '0.75em',
+                borderRadius: '4px',
+                overflow: 'auto',
+                marginTop: '0.5em',
+                marginBottom: '0.5em'
+              },
+              '& pre code': { backgroundColor: 'transparent', padding: 0 },
+            }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(content, { breaks: true, gfm: true })) }}
+          />
+        </Box>
+      </Box>
     </Box>
   );
 }

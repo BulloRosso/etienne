@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import Anthropic from '@anthropic-ai/sdk';
 import { CreateProjectDto, CreateProjectResult } from './dto/create-project.dto';
 import { SkillsService } from '../skills/skills.service';
 import { AgentRoleRegistryService } from '../agent-role-registry/agent-role-registry.service';
 import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
+import { LlmService } from '../llm/llm.service';
 
 @Injectable()
 export class ProjectsService {
@@ -20,6 +20,7 @@ export class ProjectsService {
     private readonly a2aSettingsService: A2ASettingsService,
     private readonly mcpServerConfigService: McpServerConfigService,
     private readonly codingAgentConfigService: CodingAgentConfigurationService,
+    private readonly llmService: LlmService,
   ) {}
 
   /**
@@ -310,35 +311,17 @@ export class ProjectsService {
     }
 
     try {
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
+      const text = await this.llmService.generateText({
+        tier: 'regular',
+        prompt: `Based on the following agent role description, suggest a short, memorable name for this AI assistant. The name should be a single word or short phrase (2-3 words max) that reflects the agent's purpose or personality. Just respond with the name, nothing else.\n\nRole description:\n${customRoleContent.substring(0, 1000)}`,
+        maxOutputTokens: 50,
       });
 
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 50,
-        messages: [
-          {
-            role: 'user',
-            content: `Based on the following agent role description, suggest a short, memorable name for this AI assistant. The name should be a single word or short phrase (2-3 words max) that reflects the agent's purpose or personality. Just respond with the name, nothing else.
-
-Role description:
-${customRoleContent.substring(0, 1000)}`,
-          },
-        ],
-      });
-
-      const textContent = response.content.find((block: any) => block.type === 'text');
-      if (textContent && textContent.type === 'text') {
-        // Clean up the response - remove quotes, trim, limit length
-        let name = textContent.text.trim().replace(/["']/g, '');
-        if (name.length > 30) {
-          name = name.substring(0, 30);
-        }
-        return name || 'Etienne';
+      let name = text.trim().replace(/["']/g, '');
+      if (name.length > 30) {
+        name = name.substring(0, 30);
       }
-
-      return 'Etienne';
+      return name || 'Etienne';
     } catch (error: any) {
       this.logger.error(`Failed to generate agent name: ${error.message}`);
       return 'Etienne';

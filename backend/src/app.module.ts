@@ -50,9 +50,10 @@ import { ComplianceModule } from './compliance/compliance.module';
 import { CodingAgentConfigurationModule } from './coding-agent-configuration/coding-agent-configuration.module';
 import { CodingAgentConfigurationService } from './coding-agent-configuration/coding-agent-configuration.service';
 import { McpServerConfigService } from './claude/mcpserverconfig/mcp.server.config';
+import { LlmModule } from './llm/llm.module';
 
 @Module({
-  imports: [TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule],
+  imports: [LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule],
   controllers: [ClaudeController, SdkPermissionController, CodexPermissionController],
   providers: [
     ClaudeService,

@@ -385,6 +385,7 @@ export class CodexSdkOrchestratorService {
             // === Item completed ===
             case 'item/completed': {
               const item = notification.params?.item;
+              this.logger.debug(`item/completed: type=${item?.type}`);
               if (!item) break;
 
               // commandExecution completed
@@ -574,6 +575,7 @@ export class CodexSdkOrchestratorService {
             // === Turn completed ===
             case 'turn/completed': {
               const turn = notification.params?.turn;
+              this.logger.debug(`turn/completed: status=${turn?.status}, assistantTextLen=${assistantText.length}, structuredMsgs=${structuredMessages.length}, shouldBuffer=${shouldBufferOutput}`);
 
               // Check for failure
               if (turn?.status === 'failed') {
@@ -698,6 +700,13 @@ export class CodexSdkOrchestratorService {
             case 'codex/event/user_message':
             case 'codex/event/mcp_startup_complete':
             case 'codex/event/error':
+            case 'codex/event/agent_message_delta':
+            case 'codex/event/agent_message_content_delta':
+            case 'codex/event/agent_message':
+            case 'codex/event/token_count':
+            case 'codex/event/exec_command_begin':
+            case 'codex/event/exec_command_output_delta':
+            case 'codex/event/exec_command_end':
               // Known notifications that don't need frontend forwarding
               break;
 

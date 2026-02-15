@@ -18,6 +18,7 @@ import { sanitize_user_message } from '../input-guardrails/index';
 import { OutputGuardrailsService } from '../output-guardrails/output-guardrails.service';
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 import { McpServerConfigService } from './mcpserverconfig/mcp.server.config';
+import { LlmService } from '../llm/llm.service';
 
 @Injectable()
 export class ClaudeService {
@@ -32,6 +33,7 @@ export class ClaudeService {
     private readonly sessionsService: SessionsService,
     private readonly codingAgentConfigService: CodingAgentConfigurationService,
     private readonly mcpServerConfigService: McpServerConfigService,
+    private readonly llmService: LlmService,
   ) {}
 
   private async ensureProject(projectDir: string) {
@@ -327,47 +329,31 @@ project using the [Scrapbook](#scrapbook)
   }
 
   public async checkModelHealth() {
-    // Check if ANTHROPIC_API_KEY is set
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!this.llmService.hasApiKey()) {
+      const keyName = this.llmService.getProvider() === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY';
       return {
         healthy: false,
-        reason: 'ANTHROPIC_API_KEY not set in environment'
+        reason: `${keyName} not set in environment`
       };
     }
 
-    // Try a simple API request to Anthropic
     try {
-      const response = await axios.post(
-        'https://api.anthropic.com/v1/messages',
-        {
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 50,
-          messages: [{ role: 'user', content: 'What is your model id? Reply with just the model id.' }]
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          timeout: 30000
-        }
-      );
+      const text = await this.llmService.generateText({
+        tier: 'small',
+        prompt: 'What is your model id? Reply with just the model id.',
+        maxOutputTokens: 50,
+      });
 
-      const modelResponse = response.data?.content?.[0]?.text || 'Unknown';
       return {
         healthy: true,
-        model: response.data?.model,
-        response: modelResponse
+        model: this.llmService.getModelId('small'),
+        provider: this.llmService.getProvider(),
+        response: text.trim(),
       };
     } catch (error: any) {
-      const reason = error.response?.data?.error?.message
-        || error.message
-        || 'Unknown error connecting to Anthropic API';
       return {
         healthy: false,
-        reason
+        reason: error.message || 'Unknown error connecting to LLM API',
       };
     }
   }

@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
 import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
+import { LlmService } from '../llm/llm.service';
 
 // Generate UUID v4 using native crypto
 function uuidv4(): string {
@@ -98,7 +98,7 @@ export class ScrapbookService {
   private readonly workspaceDir = process.env.WORKSPACE_ROOT || path.join(process.cwd(), '..', 'workspace');
   private quadstoreAvailable = false;
 
-  constructor() {
+  constructor(private readonly llmService: LlmService) {
     this.checkQuadstoreAvailability();
   }
 
@@ -600,51 +600,17 @@ export class ScrapbookService {
   }
 
   /**
-   * Describe an image using Claude Sonnet 4.5
+   * Describe an image using the configured LLM provider (vision)
    */
   private async describeImageWithClaude(buffer: Buffer, extension: string): Promise<string> {
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-
-    // Determine media type from extension
-    const extLower = extension.toLowerCase();
-    let mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-    switch (extLower) {
-      case '.jpg':
-      case '.jpeg':
-        mediaType = 'image/jpeg';
-        break;
-      case '.png':
-        mediaType = 'image/png';
-        break;
-      case '.gif':
-        mediaType = 'image/gif';
-        break;
-      case '.webp':
-        mediaType = 'image/webp';
-        break;
-      default:
-        mediaType = 'image/jpeg'; // Default to JPEG
-    }
-
-    const base64Image = buffer.toString('base64');
-
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1024,
+    const text = await this.llmService.generateTextWithMessages({
+      tier: 'regular',
+      maxOutputTokens: 1024,
       messages: [
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64Image,
-              },
-            },
+            { type: 'image', image: buffer },
             {
               type: 'text',
               text: 'Describe what you see in 4 sentences. Be neutral and look for details to recognize the overall style, mood or tone. Do not start with "This image shows" or similar phrases - just describe the content directly.',
@@ -654,13 +620,10 @@ export class ScrapbookService {
       ],
     });
 
-    // Extract text from response
-    const textContent = response.content.find((block: any) => block.type === 'text');
-    if (textContent && textContent.type === 'text') {
-      return textContent.text;
+    if (!text) {
+      throw new Error('No text response from LLM');
     }
-
-    throw new Error('No text response from Claude');
+    return text;
   }
 
   /**
