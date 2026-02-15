@@ -4,3 +4,8 @@
 model = "gpt-5.2-codex"
 sandbox_mode = "danger-full-access"
 approval_policy = "on-request"
+
+# Trust the project directory so Codex loads this project-scoped config.
+# {{PROJECT_PATH}} is replaced at project creation time.
+[projects."{{PROJECT_PATH}}"]
+trust_level = "trusted"

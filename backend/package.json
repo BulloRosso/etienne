@@ -43,6 +43,7 @@
     "rdf-data-factory": "^2.0.2",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
+    "smol-toml": "^1.6.0",
     "smtp-connection": "^4.0.2",
     "sparqljs": "^3.7.3",
     "uuid": "^11.0.3",

@@ -153,8 +153,9 @@ export class ProjectsService {
     const activeAgent = this.codingAgentConfigService.getActiveAgentType();
     try {
       if (activeAgent === 'openai') {
-        // For Codex: write .codex/config.toml
-        const codexConfig = await this.codingAgentConfigService.getConfigForProject('openai');
+        // For Codex: write .codex/config.toml with project trust path replaced
+        let codexConfig = await this.codingAgentConfigService.getConfigForProject('openai');
+        codexConfig = codexConfig.replaceAll('{{PROJECT_PATH}}', projectPath.replace(/\\/g, '/'));
         await fs.ensureDir(path.join(projectPath, '.codex'));
         await fs.writeFile(path.join(projectPath, '.codex', 'config.toml'), codexConfig, 'utf-8');
         // Also create a minimal .claude/settings.json for structure compatibility
