@@ -69,8 +69,7 @@ export default function SplitLayout({ left, right }) {
           height: '100%',
           cursor: 'col-resize',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flexDirection: 'column',
           backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#fff',
           '&:hover': {
             backgroundColor: themeMode === 'dark' ? '#444' : '#efefef'
@@ -81,11 +80,24 @@ export default function SplitLayout({ left, right }) {
         }}
       >
         <Box sx={{
-          width: '2px',
-          height: '30px',
-          backgroundColor: '#ccc',
-          borderRadius: '1px'
+          height: '48px',
+          flexShrink: 0,
+          backgroundColor: themeMode === 'dark' ? '#383838' : '#fff',
+          borderBottom: themeMode === 'dark' ? '1px solid #555' : '1px solid #e0e0e0',
         }} />
+        <Box sx={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Box sx={{
+            width: '2px',
+            height: '30px',
+            backgroundColor: '#ccc',
+            borderRadius: '1px'
+          }} />
+        </Box>
       </Box>
 
       <Box sx={{ flex: 1, height: '100%', overflow: 'hidden' }}>
