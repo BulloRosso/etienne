@@ -1834,7 +1834,7 @@ export default function App() {
           <IconButton
             color="inherit"
             onClick={() => setPresentationOpen(true)}
-            sx={{ opacity: 0.5 }}
+            sx={{ opacity: 0, '&:hover': { opacity: 0.5 } }}
             title="Presentation"
           >
             <TbPresentation size={24} />
