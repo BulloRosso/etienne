@@ -44,6 +44,13 @@ export class CodexSdkOrchestratorService {
   ) {}
 
   /**
+   * Clear the Codex thread for a project (called on "new session")
+   */
+  async clearSession(projectDir: string): Promise<void> {
+    await this.sessionManager.clearSession(projectDir);
+  }
+
+  /**
    * Stream a prompt using the Codex app-server with full integration.
    * agentMode is accepted for interface compatibility but ignored — Codex
    * does not support plan/work mode distinction.

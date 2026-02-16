@@ -156,7 +156,7 @@ export class GiteaProjectCheckpointProvider implements ICheckpointProvider {
           name: repoName,
           description: `Workspace project: ${project}`,
           private: false,
-          auto_init: true,
+          auto_init: false,
         });
       } else {
         throw error;

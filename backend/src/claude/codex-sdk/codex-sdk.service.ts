@@ -328,6 +328,20 @@ export class CodexSdkService implements OnModuleDestroy {
   }
 
   /**
+   * Reload MCP server configuration from disk.
+   * Should be called after creating a new thread so the thread picks up
+   * the latest MCP settings.
+   */
+  private async reloadMcpServers(): Promise<void> {
+    try {
+      const result = await this.sendRequest('config/mcpServer/reload', {});
+      this.logger.log(`MCP server config reloaded: ${JSON.stringify(result).substring(0, 200)}`);
+    } catch (error: any) {
+      this.logger.warn(`Failed to reload MCP server config: ${error.message}`);
+    }
+  }
+
+  /**
    * Stream a conversation using the Codex app-server.
    * Yields AppServerMessage objects (notifications and server-initiated requests)
    * for the orchestrator to transform and handle.
@@ -389,6 +403,7 @@ export class CodexSdkService implements OnModuleDestroy {
           });
           resolvedThreadId = startResult?.thread?.id || '';
           this.logger.log(`Started new thread (after resume failure): ${resolvedThreadId}`);
+          await this.reloadMcpServers();
         }
       } else {
         const startResult = await this.sendRequest('thread/start', {
@@ -400,6 +415,7 @@ export class CodexSdkService implements OnModuleDestroy {
         });
         resolvedThreadId = startResult?.thread?.id || '';
         this.logger.log(`Started new thread: ${resolvedThreadId}`);
+        await this.reloadMcpServers();
       }
 
       // Start turn

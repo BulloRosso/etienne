@@ -152,7 +152,7 @@ export class GiteaCheckpointProvider implements ICheckpointProvider {
         name: this.giteaRepo,
         description: 'Workspace checkpoints repository',
         private: false,
-        auto_init: true,
+        auto_init: false,
       });
 
       this.logger.log(`Repository ${this.giteaRepo} created successfully`);

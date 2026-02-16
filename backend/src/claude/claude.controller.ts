@@ -150,6 +150,9 @@ export class ClaudeController {
 
   @Post('clearSession/:projectDir')
   async clearSession(@Param('projectDir') projectDir: string) {
+    if (this.isCodexActive) {
+      await this.codexOrchestrator.clearSession(projectDir);
+    }
     return this.svc.clearSession(projectDir);
   }
 
