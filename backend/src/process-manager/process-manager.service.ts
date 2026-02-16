@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join, resolve } from 'path';
 import { spawn, ChildProcess, execSync } from 'child_process';
@@ -25,6 +25,7 @@ interface RunningProcess {
 
 @Injectable()
 export class ProcessManagerService implements OnModuleDestroy {
+  private readonly logger = new Logger(ProcessManagerService.name);
   private servicesConfig: ServicesConfig | null = null;
   private runningProcesses: Map<string, RunningProcess> = new Map();
   private shellPath: string | null = null;
@@ -194,8 +195,11 @@ export class ProcessManagerService implements OnModuleDestroy {
     // Check if already running
     const status = await this.getServiceStatus(serviceName);
     if (status.status === 'running') {
+      this.logger.log(`[${serviceName}] Already running on port ${service.port}`);
       return { success: true, message: `Service '${serviceName}' is already running`, port: service.port };
     }
+
+    this.logger.log(`[${serviceName}] Starting service...`);
 
     try {
       // Resolve directory path relative to project root (parent of backend folder)
@@ -222,10 +226,10 @@ export class ProcessManagerService implements OnModuleDestroy {
         childProcess = spawn(shell, ['-c', service.startCommand], {
           cwd: serviceDir,
           detached: true,
-          stdio: 'ignore',
+          stdio: ['ignore', 'pipe', 'pipe'],
           env: { ...process.env }
         });
-        console.log(`[${serviceName}] Started via ${shell} (pid: ${childProcess.pid})`);
+        this.logger.log(`[${serviceName}] Started via ${shell} (pid: ${childProcess.pid})`);
       } else {
         // Fallback: cmd.exe on Windows (no bash available)
         childProcess = spawn('cmd.exe', [
@@ -240,11 +244,14 @@ export class ProcessManagerService implements OnModuleDestroy {
         ], {
           cwd: serviceDir,
           detached: true,
-          stdio: 'ignore',
+          stdio: ['ignore', 'pipe', 'pipe'],
           env: { ...process.env },
           windowsHide: false
         });
       }
+
+      // Forward child stdout/stderr to NestJS logger with service name prefix
+      this.pipeChildOutput(serviceName, childProcess);
 
       // Unref to allow the parent process to exit independently
       childProcess.unref();
@@ -257,7 +264,12 @@ export class ProcessManagerService implements OnModuleDestroy {
       });
 
       childProcess.on('error', (error) => {
-        console.error(`[${serviceName}] Process error:`, error);
+        this.logger.error(`[${serviceName}] Process error: ${error.message}`);
+        this.runningProcesses.delete(serviceName);
+      });
+
+      childProcess.on('exit', (code, signal) => {
+        this.logger.warn(`[${serviceName}] Process exited (code: ${code}, signal: ${signal})`);
         this.runningProcesses.delete(serviceName);
       });
 
@@ -275,22 +287,122 @@ export class ProcessManagerService implements OnModuleDestroy {
       return { success: false, message: `Service '${serviceName}' not found` };
     }
 
+    this.logger.log(`[${serviceName}] Stopping service...`);
+
+    // First try: kill tracked process
     const running = this.runningProcesses.get(serviceName);
     if (running && !running.process.killed) {
       try {
-        // On Windows, we need to kill the process tree
         if (process.platform === 'win32') {
           spawn('taskkill', ['/pid', running.process.pid!.toString(), '/f', '/t'], { shell: true });
         } else {
           running.process.kill('SIGTERM');
         }
         this.runningProcesses.delete(serviceName);
+        this.logger.log(`[${serviceName}] Stopped tracked process (pid: ${running.process.pid})`);
         return { success: true, message: `Service '${serviceName}' stopped` };
       } catch (error: any) {
+        this.logger.error(`[${serviceName}] Failed to stop: ${error.message}`);
         return { success: false, message: `Failed to stop service: ${error.message}` };
       }
     }
 
-    return { success: false, message: `Service '${serviceName}' is not running (or was started externally)` };
+    // Second try: if a port is configured and in use, find and kill the process by port
+    if (service.port) {
+      const portInUse = await this.isPortInUse(service.port);
+      if (portInUse) {
+        this.logger.log(`[${serviceName}] Not tracked, but port ${service.port} in use — finding PID...`);
+        try {
+          const pid = await this.findPidByPort(service.port);
+          if (pid) {
+            if (process.platform === 'win32') {
+              execSync(`taskkill /pid ${pid} /f /t`, { timeout: 5000 });
+            } else {
+              process.kill(pid, 'SIGTERM');
+            }
+            this.runningProcesses.delete(serviceName);
+            this.logger.log(`[${serviceName}] Killed process on port ${service.port} (pid: ${pid})`);
+            return { success: true, message: `Service '${serviceName}' stopped (killed pid ${pid} on port ${service.port})` };
+          }
+        } catch (error: any) {
+          this.logger.error(`[${serviceName}] Failed to kill process by port: ${error.message}`);
+          return { success: false, message: `Failed to stop service on port ${service.port}: ${error.message}` };
+        }
+      }
+    }
+
+    this.logger.warn(`[${serviceName}] Service is not running`);
+    return { success: false, message: `Service '${serviceName}' is not running` };
+  }
+
+  /**
+   * Forward child process stdout/stderr to NestJS logger with service name prefix.
+   * Each line is logged individually; partial lines are buffered until a newline arrives.
+   */
+  private pipeChildOutput(serviceName: string, child: ChildProcess): void {
+    const forwardStream = (stream: NodeJS.ReadableStream | null, level: 'log' | 'error') => {
+      if (!stream) return;
+      let buffer = '';
+      stream.setEncoding?.('utf8');
+      stream.on('data', (chunk: string | Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // keep incomplete last line in buffer
+        for (const line of lines) {
+          const trimmed = line.trimEnd();
+          if (trimmed) {
+            if (level === 'error') {
+              this.logger.error(`[${serviceName}] ${trimmed}`);
+            } else {
+              this.logger.log(`[${serviceName}] ${trimmed}`);
+            }
+          }
+        }
+      });
+      stream.on('end', () => {
+        if (buffer.trim()) {
+          if (level === 'error') {
+            this.logger.error(`[${serviceName}] ${buffer.trim()}`);
+          } else {
+            this.logger.log(`[${serviceName}] ${buffer.trim()}`);
+          }
+        }
+      });
+    };
+
+    forwardStream(child.stdout, 'log');
+    forwardStream(child.stderr, 'error');
+  }
+
+  /**
+   * Find the PID of the process listening on a given port
+   */
+  private async findPidByPort(port: number): Promise<number | null> {
+    try {
+      if (process.platform === 'win32') {
+        const output = execSync(`netstat -ano | findstr :${port} | findstr LISTENING`, {
+          encoding: 'utf8',
+          timeout: 5000,
+        });
+        // Parse: "  TCP    0.0.0.0:4440    0.0.0.0:0    LISTENING    12345"
+        const lines = output.trim().split('\n');
+        for (const line of lines) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parseInt(parts[parts.length - 1], 10);
+          if (pid > 0) return pid;
+        }
+      } else {
+        // Unix: use lsof
+        const output = execSync(`lsof -ti :${port}`, {
+          encoding: 'utf8',
+          timeout: 5000,
+        });
+        const pid = parseInt(output.trim().split('\n')[0], 10);
+        if (pid > 0) return pid;
+      }
+    } catch {
+      // Command failed or no process found
+    }
+    return null;
   }
 }

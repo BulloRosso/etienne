@@ -10,6 +10,8 @@ import MermaidViewer from './MermaidViewer';
 import ResearchDocument from './ResearchDocument';
 import ImageViewer from './ImageViewer';
 import ExcelViewer from './ExcelViewer';
+import WorkflowVisualizer from './WorkflowVisualizer';
+import PromptEditor from './PromptEditor';
 import BackgroundInfo from './BackgroundInfo';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
@@ -65,6 +67,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
     return filename && filename.endsWith('.json');
   };
 
+  const isJsonlFile = (filename) => {
+    return filename && filename.endsWith('.jsonl');
+  };
+
   const isMarkdownFile = (filename) => {
     return filename && filename.endsWith('.md');
   };
@@ -84,6 +90,14 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
 
   const isExcelFile = (filename) => {
     return filename && (filename.endsWith('.xls') || filename.endsWith('.xlsx'));
+  };
+
+  const isPromptFile = (filename) => {
+    return filename && filename.endsWith('.prompt');
+  };
+
+  const isWorkflowFile = (filename) => {
+    return filename && filename.endsWith('.workflow.json');
   };
 
   const getFilename = (path) => {
@@ -156,6 +170,20 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
       );
     }
 
+    if (isWorkflowFile(file.path)) {
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',
+          }}
+        >
+          <WorkflowVisualizer workflowFile={file.path} projectName={projectName} />
+        </Box>
+      );
+    }
+
     if (isJsonFile(file.path)) {
       return (
         <Box
@@ -168,6 +196,38 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           }}
         >
           <JSONViewer filename={file.path} projectName={projectName} />
+        </Box>
+      );
+    }
+
+    if (isJsonlFile(file.path)) {
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <JSONViewer filename={file.path} projectName={projectName} isJsonl />
+        </Box>
+      );
+    }
+
+    if (isPromptFile(file.path)) {
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <PromptEditor filename={file.path} projectName={projectName} />
         </Box>
       );
     }

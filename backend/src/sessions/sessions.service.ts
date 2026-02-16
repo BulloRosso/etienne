@@ -33,6 +33,29 @@ export interface SessionsData {
 
 @Injectable()
 export class SessionsService {
+  /** Per-project write locks to prevent concurrent read-modify-write corruption */
+  private writeLocks = new Map<string, Promise<void>>();
+
+  /**
+   * Serialize write operations per project to prevent race conditions.
+   * Multiple concurrent callers will queue up and execute sequentially.
+   */
+  private async withLock<T>(projectRoot: string, fn: () => Promise<T>): Promise<T> {
+    const key = projectRoot;
+    const previous = this.writeLocks.get(key) ?? Promise.resolve();
+
+    let resolve!: () => void;
+    const next = new Promise<void>(r => { resolve = r; });
+    this.writeLocks.set(key, next);
+
+    try {
+      await previous;
+      return await fn();
+    } finally {
+      resolve();
+    }
+  }
+
   private getEtienneDir(projectRoot: string): string {
     return join(projectRoot, '.etienne');
   }
@@ -64,29 +87,34 @@ export class SessionsService {
   async saveSessions(projectRoot: string, data: SessionsData): Promise<void> {
     const dir = this.getEtienneDir(projectRoot);
     await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(this.getSessionsFilePath(projectRoot), JSON.stringify(data, null, 2), 'utf8');
+    const filePath = this.getSessionsFilePath(projectRoot);
+    const tmpPath = filePath + '.tmp';
+    await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+    await fs.rename(tmpPath, filePath);
   }
 
   /**
    * Update or create session metadata (updates timestamp)
    */
   async updateSessionMetadata(projectRoot: string, sessionId: string): Promise<void> {
-    const data = await this.loadSessions(projectRoot);
-    const existingIndex = data.sessions.findIndex(s => s.sessionId === sessionId);
+    return this.withLock(projectRoot, async () => {
+      const data = await this.loadSessions(projectRoot);
+      const existingIndex = data.sessions.findIndex(s => s.sessionId === sessionId);
 
-    if (existingIndex >= 0) {
-      // Update existing session timestamp
-      data.sessions[existingIndex].timestamp = new Date().toISOString();
-    } else {
-      // Create new session entry
-      data.sessions.push({
-        timestamp: new Date().toISOString(),
-        sessionId,
-        summary: undefined, // Will be generated on demand
-      });
-    }
+      if (existingIndex >= 0) {
+        // Update existing session timestamp
+        data.sessions[existingIndex].timestamp = new Date().toISOString();
+      } else {
+        // Create new session entry
+        data.sessions.push({
+          timestamp: new Date().toISOString(),
+          sessionId,
+          summary: undefined, // Will be generated on demand
+        });
+      }
 
-    await this.saveSessions(projectRoot, data);
+      await this.saveSessions(projectRoot, data);
+    });
   }
 
   /**
@@ -183,20 +211,22 @@ export class SessionsService {
    * Get all sessions with summaries (generates missing summaries)
    */
   async getSessionsWithSummaries(projectRoot: string): Promise<SessionsData> {
-    const data = await this.loadSessions(projectRoot);
+    return this.withLock(projectRoot, async () => {
+      const data = await this.loadSessions(projectRoot);
 
-    // Generate missing summaries
-    for (const session of data.sessions) {
-      if (!session.summary) {
-        console.log(`[SessionsService] Generating summary for session ${session.sessionId}`);
-        session.summary = await this.generateSummary(projectRoot, session.sessionId);
+      // Generate missing summaries
+      for (const session of data.sessions) {
+        if (!session.summary) {
+          console.log(`[SessionsService] Generating summary for session ${session.sessionId}`);
+          session.summary = await this.generateSummary(projectRoot, session.sessionId);
+        }
       }
-    }
 
-    // Save updated sessions with new summaries
-    await this.saveSessions(projectRoot, data);
+      // Save updated sessions with new summaries
+      await this.saveSessions(projectRoot, data);
 
-    return data;
+      return data;
+    });
   }
 
   /**
@@ -254,24 +284,26 @@ export class SessionsService {
    * Set the active context for a session
    */
   async setActiveContext(projectRoot: string, sessionId: string, contextId: string | null): Promise<void> {
-    const data = await this.loadSessions(projectRoot);
-    const existingIndex = data.sessions.findIndex(s => s.sessionId === sessionId);
+    return this.withLock(projectRoot, async () => {
+      const data = await this.loadSessions(projectRoot);
+      const existingIndex = data.sessions.findIndex(s => s.sessionId === sessionId);
 
-    if (existingIndex >= 0) {
-      // Update existing session
-      data.sessions[existingIndex].activeContextId = contextId;
-      data.sessions[existingIndex].timestamp = new Date().toISOString();
-    } else {
-      // Create new session entry with context
-      data.sessions.push({
-        timestamp: new Date().toISOString(),
-        sessionId,
-        summary: undefined,
-        activeContextId: contextId,
-      });
-    }
+      if (existingIndex >= 0) {
+        // Update existing session
+        data.sessions[existingIndex].activeContextId = contextId;
+        data.sessions[existingIndex].timestamp = new Date().toISOString();
+      } else {
+        // Create new session entry with context
+        data.sessions.push({
+          timestamp: new Date().toISOString(),
+          sessionId,
+          summary: undefined,
+          activeContextId: contextId,
+        });
+      }
 
-    await this.saveSessions(projectRoot, data);
-    console.log(`[SessionsService] Set active context to ${contextId} for session ${sessionId}`);
+      await this.saveSessions(projectRoot, data);
+      console.log(`[SessionsService] Set active context to ${contextId} for session ${sessionId}`);
+    });
   }
 }

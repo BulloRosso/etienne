@@ -76,6 +76,15 @@ export class ContentManagementController {
     return result;
   }
 
+  @Put(':project/files/save/*')
+  async saveFile(
+    @Param('project') project: string,
+    @Param('0') filepath: string,
+    @Body() body: { content: string },
+  ) {
+    return await this.contentManagementService.saveFileContent(project, filepath, body.content);
+  }
+
   @Post(':project/files/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(

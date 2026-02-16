@@ -16,7 +16,10 @@ import {
   PlayCircle as PlayingIcon,
   CheckCircle as CompletedIcon,
   Error as ErrorIcon,
-  LinkOff as DisconnectedIcon
+  LinkOff as DisconnectedIcon,
+  AccountTree as WorkflowIcon,
+  NotInterested as IgnoredIcon,
+  Code as ScriptIcon
 } from '@mui/icons-material';
 import { BiMessageEdit } from 'react-icons/bi';
 import { RiRobot2Line } from 'react-icons/ri';
@@ -481,7 +484,400 @@ const PromptExecutionsColumn = ({ executions }) => {
   );
 };
 
-const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], serviceStatus = {} }) => {
+// Workflow execution card component
+const WorkflowExecutionCard = ({ execution }) => {
+  const timestamp = new Date(execution.timestamp);
+  const timeStr = timestamp.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  const getStatusIcon = () => {
+    switch (execution.status) {
+      case 'started':
+        return <PlayingIcon sx={{ color: '#2196f3', fontSize: 16, animation: 'spin 1s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />;
+      case 'completed':
+        return <CompletedIcon sx={{ color: '#4caf50', fontSize: 16 }} />;
+      case 'ignored':
+        return <IgnoredIcon sx={{ color: '#ff9800', fontSize: 16 }} />;
+      case 'error':
+        return <ErrorIcon sx={{ color: '#f44336', fontSize: 16 }} />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (execution.status) {
+      case 'started': return '#e3f2fd';
+      case 'completed': return '#e8f5e9';
+      case 'ignored': return '#fff3e0';
+      case 'error': return '#ffebee';
+      default: return 'transparent';
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        py: 1,
+        px: 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        backgroundColor: getStatusColor(),
+      }}
+    >
+      <Tooltip
+        title={
+          <Box sx={{ maxWidth: 300 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+              {execution.workflowId}
+            </Typography>
+            <Typography variant="caption" display="block">
+              Event: {execution.workflowEvent}
+            </Typography>
+            <Typography variant="caption" display="block">Rule: {execution.ruleName}</Typography>
+            <Typography variant="caption" display="block">Status: {execution.status}</Typography>
+            {execution.previousState && execution.currentState && (
+              <Typography variant="caption" display="block" sx={{ color: 'success.main', mt: 0.5 }}>
+                {execution.previousState} → {execution.currentState}
+              </Typography>
+            )}
+            {execution.error && (
+              <Typography variant="caption" display="block" sx={{ color: 'error.main' }}>
+                Error: {execution.error}
+              </Typography>
+            )}
+          </Box>
+        }
+        placement="left"
+        arrow
+      >
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            {getStatusIcon()}
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {execution.workflowId}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.7rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '60%'
+              }}
+            >
+              {execution.status === 'completed' && execution.previousState
+                ? `${execution.previousState} → ${execution.currentState}`
+                : execution.status === 'ignored'
+                  ? `Ignored in ${execution.currentState}`
+                  : execution.ruleName}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.disabled',
+                fontSize: '0.65rem',
+                fontFamily: 'monospace'
+              }}
+            >
+              {timeStr}
+            </Typography>
+          </Box>
+        </Box>
+      </Tooltip>
+    </Box>
+  );
+};
+
+// Workflow executions column component
+const WorkflowExecutionsColumn = ({ executions }) => {
+  const hasActiveExecution = executions.some(e => e.status === 'started');
+
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        flex: '1 1 0',
+        minWidth: 180,
+        maxWidth: 280,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Column Header */}
+      <Box
+        sx={{
+          p: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          borderBottom: '2px solid',
+          borderColor: '#ff9800',
+          backgroundColor: '#ff980010'
+        }}
+      >
+        <ActivityIndicator active={hasActiveExecution} />
+        <WorkflowIcon sx={{ color: '#ff9800', fontSize: 20 }} />
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Workflow Events
+        </Typography>
+      </Box>
+
+      {/* Executions Stack */}
+      <Box
+        sx={{
+          flex: 1,
+          overflow: 'auto',
+          '&::-webkit-scrollbar': {
+            width: 6
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: 3
+          }
+        }}
+      >
+        {executions.length === 0 ? (
+          <Box sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="caption" color="text.disabled">
+              No workflow events
+            </Typography>
+          </Box>
+        ) : (
+          executions.map((execution, idx) => (
+            <WorkflowExecutionCard key={`${execution.ruleId}-${execution.eventId}-${idx}`} execution={execution} />
+          ))
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+// Script execution card component
+const ScriptExecutionCard = ({ execution }) => {
+  const timestamp = new Date(execution.timestamp);
+  const timeStr = timestamp.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  const getStatusIcon = () => {
+    switch (execution.status) {
+      case 'started':
+        return <PlayingIcon sx={{ color: '#2196f3', fontSize: 16, animation: 'spin 1s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />;
+      case 'completed':
+        return <CompletedIcon sx={{ color: '#4caf50', fontSize: 16 }} />;
+      case 'error':
+        return <ErrorIcon sx={{ color: '#f44336', fontSize: 16 }} />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (execution.status) {
+      case 'started': return '#e3f2fd';
+      case 'completed': return '#e8f5e9';
+      case 'error': return '#ffebee';
+      default: return 'transparent';
+    }
+  };
+
+  const durationStr = execution.durationMs != null ? `${(execution.durationMs / 1000).toFixed(1)}s` : '';
+
+  return (
+    <Box
+      sx={{
+        py: 1,
+        px: 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        backgroundColor: getStatusColor(),
+      }}
+    >
+      <Tooltip
+        title={
+          <Box sx={{ maxWidth: 300 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>{execution.scriptFile}</Typography>
+            <Typography variant="caption" display="block">Workflow: {execution.workflowId}</Typography>
+            <Typography variant="caption" display="block">State: {execution.state}</Typography>
+            <Typography variant="caption" display="block">Status: {execution.status}</Typography>
+            {durationStr && (
+              <Typography variant="caption" display="block">Duration: {durationStr}</Typography>
+            )}
+            {execution.exitCode != null && execution.exitCode !== 0 && (
+              <Typography variant="caption" display="block">Exit code: {execution.exitCode}</Typography>
+            )}
+            {execution.stderr && (
+              <Typography variant="caption" display="block" sx={{ color: 'error.main', mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                {execution.stderr.substring(0, 200)}
+              </Typography>
+            )}
+            {execution.stdout && (
+              <Typography variant="caption" display="block" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                {execution.stdout.substring(0, 200)}
+              </Typography>
+            )}
+          </Box>
+        }
+        placement="left"
+        arrow
+      >
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            {getStatusIcon()}
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {execution.scriptFile || 'Running script...'}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.7rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '50%'
+              }}
+            >
+              {execution.workflowId}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.disabled',
+                fontSize: '0.65rem',
+                fontFamily: 'monospace'
+              }}
+            >
+              {durationStr ? `${durationStr} · ${timeStr}` : timeStr}
+            </Typography>
+          </Box>
+        </Box>
+      </Tooltip>
+    </Box>
+  );
+};
+
+// Script executions column component
+const ScriptExecutionsColumn = ({ executions }) => {
+  const hasActiveExecution = executions.some(e => e.status === 'started');
+
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        flex: '1 1 0',
+        minWidth: 180,
+        maxWidth: 280,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Column Header */}
+      <Box
+        sx={{
+          p: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          borderBottom: '2px solid',
+          borderColor: '#00897b',
+          backgroundColor: '#00897b10'
+        }}
+      >
+        <ActivityIndicator active={hasActiveExecution} />
+        <ScriptIcon sx={{ color: '#00897b', fontSize: 20 }} />
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Script Executions
+        </Typography>
+      </Box>
+
+      {/* Executions Stack */}
+      <Box
+        sx={{
+          flex: 1,
+          overflow: 'auto',
+          '&::-webkit-scrollbar': {
+            width: 6
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: 3
+          }
+        }}
+      >
+        {executions.length === 0 ? (
+          <Box sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="caption" color="text.disabled">
+              No script executions
+            </Typography>
+          </Box>
+        ) : (
+          executions.map((execution, idx) => (
+            <ScriptExecutionCard key={`${execution.workflowId}-${execution.scriptFile}-${idx}`} execution={execution} />
+          ))
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflowExecutions = [], scriptExecutions = [], serviceStatus = {} }) => {
   // Track active sources (which sources had recent activity)
   const [activeSources, setActiveSources] = useState({});
   const prevEventsRef = useRef([]);
@@ -611,6 +1007,12 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], service
 
         {/* Prompt Executions Column */}
         <PromptExecutionsColumn executions={promptExecutions} />
+
+        {/* Workflow Executions Column */}
+        <WorkflowExecutionsColumn executions={workflowExecutions} />
+
+        {/* Script Executions Column */}
+        <ScriptExecutionsColumn executions={scriptExecutions} />
       </Box>
 
       {/* Connection status bar - at bottom */}

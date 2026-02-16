@@ -1,7 +1,8 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
-import { InternalEvent, EventRule, RuleExecutionResult } from '../interfaces/event.interface';
+import { Injectable, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
+import { InternalEvent, EventRule, RuleExecutionResult, WorkflowEventAction } from '../interfaces/event.interface';
 import { PromptsStorageService } from './prompts-storage.service';
 import { SSEPublisherService } from '../publishers/sse-publisher.service';
+import { StatefulWorkflowsService } from '../../stateful-workflows/stateful-workflows.service';
 import axios from 'axios';
 
 @Injectable()
@@ -13,6 +14,8 @@ export class RuleActionExecutorService {
     private readonly promptsStorage: PromptsStorageService,
     @Inject(forwardRef(() => SSEPublisherService))
     private readonly ssePublisher: SSEPublisherService,
+    @Optional()
+    private readonly workflowsService: StatefulWorkflowsService,
   ) {
     this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
   }
@@ -25,20 +28,37 @@ export class RuleActionExecutorService {
     rule: EventRule,
     event: InternalEvent,
   ): Promise<{ success: boolean; error?: string; response?: string }> {
-    this.logger.log(`Executing action for rule "${rule.name}" (${rule.id})`);
+    this.logger.log(`Executing action for rule "${rule.name}" (${rule.id}), type: ${rule.action.type}`);
 
-    if (rule.action.type !== 'prompt') {
-      this.logger.warn(`Unsupported action type: ${rule.action.type}`);
-      return { success: false, error: `Unsupported action type: ${rule.action.type}` };
+    switch (rule.action.type) {
+      case 'prompt':
+        return this.executePromptAction(projectName, rule, event);
+
+      case 'workflow_event':
+        return this.executeWorkflowEventAction(projectName, rule, event);
+
+      default:
+        this.logger.warn(`Unsupported action type: ${(rule.action as any).type}`);
+        return { success: false, error: `Unsupported action type: ${(rule.action as any).type}` };
     }
+  }
 
+  /**
+   * Execute a prompt action (existing behavior)
+   */
+  private async executePromptAction(
+    projectName: string,
+    rule: EventRule,
+    event: InternalEvent,
+  ): Promise<{ success: boolean; error?: string; response?: string }> {
     try {
+      const action = rule.action as { type: 'prompt'; promptId: string };
       // Load the prompt template
-      const prompt = await this.promptsStorage.getPrompt(projectName, rule.action.promptId);
+      const prompt = await this.promptsStorage.getPrompt(projectName, action.promptId);
 
       if (!prompt) {
-        this.logger.error(`Prompt not found: ${rule.action.promptId}`);
-        return { success: false, error: `Prompt not found: ${rule.action.promptId}` };
+        this.logger.error(`Prompt not found: ${action.promptId}`);
+        return { success: false, error: `Prompt not found: ${action.promptId}` };
       }
 
       // Build the final prompt with event context
@@ -82,6 +102,124 @@ export class RuleActionExecutorService {
         status: 'error',
         ruleId: rule.id,
         ruleName: rule.name,
+        eventId: event.id,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Execute a workflow_event action: send an event to a stateful workflow
+   */
+  private async executeWorkflowEventAction(
+    projectName: string,
+    rule: EventRule,
+    event: InternalEvent,
+  ): Promise<{ success: boolean; error?: string; response?: string }> {
+    if (!this.workflowsService) {
+      this.logger.error('StatefulWorkflowsService not available for workflow_event action');
+      return { success: false, error: 'Workflow service not available' };
+    }
+
+    const action = rule.action as WorkflowEventAction;
+
+    try {
+      this.logger.log(
+        `Sending event "${action.event}" to workflow "${action.workflowId}" in project ${projectName} (triggered by ${event.name})`,
+      );
+
+      // Notify frontend that workflow execution is starting
+      this.ssePublisher.publishWorkflowExecution(projectName, {
+        status: 'started',
+        ruleId: rule.id,
+        ruleName: rule.name,
+        workflowId: action.workflowId,
+        workflowEvent: action.event,
+        eventId: event.id,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Build event data from the triggering event
+      const eventData = action.mapPayload
+        ? {
+            triggerEvent: event.name,
+            triggerGroup: event.group,
+            triggerSource: event.source,
+            triggerTimestamp: event.timestamp,
+            topic: event.topic,
+            payload: event.payload,
+            ruleId: rule.id,
+            ruleName: rule.name,
+          }
+        : {
+            triggerEvent: event.name,
+            triggerGroup: event.group,
+            ruleId: rule.id,
+            ruleName: rule.name,
+          };
+
+      const result = await this.workflowsService.sendEvent(
+        projectName,
+        action.workflowId,
+        action.event,
+        eventData,
+        { ignoreInvalidTransitions: true },
+      );
+
+      if (result.ignored) {
+        // Event was ignored because the workflow is not in a state that accepts it
+        const response = `Workflow "${action.workflowId}" ignored event "${action.event}" in state "${result.currentState}": ${result.reason}`;
+        this.logger.warn(response);
+
+        // Notify frontend with 'ignored' status
+        this.ssePublisher.publishWorkflowExecution(projectName, {
+          status: 'ignored',
+          ruleId: rule.id,
+          ruleName: rule.name,
+          workflowId: action.workflowId,
+          workflowEvent: action.event,
+          eventId: event.id,
+          previousState: result.previousState,
+          currentState: result.currentState,
+          error: result.reason,
+          timestamp: new Date().toISOString(),
+        });
+
+        return { success: true, response };
+      }
+
+      const response = `Workflow "${action.workflowId}" transitioned: ${result.previousState} -> ${result.currentState}`;
+      this.logger.log(response);
+
+      // Notify frontend of completion
+      this.ssePublisher.publishWorkflowExecution(projectName, {
+        status: 'completed',
+        ruleId: rule.id,
+        ruleName: rule.name,
+        workflowId: action.workflowId,
+        workflowEvent: action.event,
+        eventId: event.id,
+        previousState: result.previousState,
+        currentState: result.currentState,
+        timestamp: new Date().toISOString(),
+      });
+
+      return { success: true, response };
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send event to workflow "${action.workflowId}": ${error.message}`,
+      );
+
+      // Notify frontend of error
+      this.ssePublisher.publishWorkflowExecution(projectName, {
+        status: 'error',
+        ruleId: rule.id,
+        ruleName: rule.name,
+        workflowId: action.workflowId,
+        workflowEvent: action.event,
         eventId: event.id,
         error: error.message,
         timestamp: new Date().toISOString(),

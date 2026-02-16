@@ -70,11 +70,20 @@ export type EventCondition =
   | TemporalConstraint
   | EmailSemanticCondition;
 
-export interface RuleAction {
+export interface PromptAction {
   type: 'prompt';
   promptId: string;
   parameters?: any;
 }
+
+export interface WorkflowEventAction {
+  type: 'workflow_event';
+  workflowId: string;   // Workflow slug (e.g., "customer-onboarding")
+  event: string;         // Event to send (e.g., "EMAIL_RECEIVED", "SENSOR_ALERT")
+  mapPayload?: boolean;  // If true, pass the triggering event's payload as event data
+}
+
+export type RuleAction = PromptAction | WorkflowEventAction;
 
 export interface EventRule {
   id: string;

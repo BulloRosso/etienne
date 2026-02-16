@@ -7,14 +7,16 @@ import { PromptsStorageService } from './core/prompts-storage.service';
 import { RuleActionExecutorService } from './core/rule-action-executor.service';
 import { InitExternalServicesService } from './core/init-external-services.service';
 import { SSEPublisherService } from './publishers/sse-publisher.service';
+import { WorkflowEntryActionService } from './core/workflow-entry-action.service';
 import { EventsController } from './api/events.controller';
 import { RulesController } from './api/rules.controller';
 import { PromptsController } from './api/prompts.controller';
 import { KnowledgeGraphModule } from '../knowledge-graph/knowledge-graph.module';
 import { ProcessManagerModule } from '../process-manager/process-manager.module';
+import { StatefulWorkflowsModule } from '../stateful-workflows/stateful-workflows.module';
 
 @Module({
-  imports: [KnowledgeGraphModule, ProcessManagerModule],
+  imports: [KnowledgeGraphModule, ProcessManagerModule, StatefulWorkflowsModule],
   controllers: [EventsController, RulesController, PromptsController],
   providers: [
     EventRouterService,
@@ -25,6 +27,7 @@ import { ProcessManagerModule } from '../process-manager/process-manager.module'
     RuleActionExecutorService,
     InitExternalServicesService,
     SSEPublisherService,
+    WorkflowEntryActionService,
   ],
   exports: [EventRouterService, RuleEngineService, SSEPublisherService, PromptsStorageService, FileWatcherService],
 })

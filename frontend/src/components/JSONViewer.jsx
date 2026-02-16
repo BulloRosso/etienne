@@ -4,7 +4,7 @@ import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
-export default function JSONViewer({ filename, projectName, className = '' }) {
+export default function JSONViewer({ filename, projectName, className = '', isJsonl = false }) {
   const { mode: themeMode } = useThemeMode();
   const [jsonContent, setJsonContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -27,13 +27,26 @@ export default function JSONViewer({ filename, projectName, className = '' }) {
 
       const text = await response.text();
 
-      // Try to parse and format JSON for better display
-      try {
-        const parsed = JSON.parse(text);
-        setJsonContent(JSON.stringify(parsed, null, 2));
-      } catch (parseError) {
-        // If it's not valid JSON, display as-is
-        setJsonContent(text);
+      // Handle JSONL: parse each line as JSON and wrap in an array
+      const detectJsonl = isJsonl || filename?.endsWith('.jsonl');
+      if (detectJsonl) {
+        try {
+          const lines = text.split('\n').filter(l => l.trim());
+          const parsed = lines.map(line => JSON.parse(line));
+          setJsonContent(JSON.stringify(parsed, null, 2));
+        } catch (parseError) {
+          // If parsing fails, display as-is
+          setJsonContent(text);
+        }
+      } else {
+        // Try to parse and format JSON for better display
+        try {
+          const parsed = JSON.parse(text);
+          setJsonContent(JSON.stringify(parsed, null, 2));
+        } catch (parseError) {
+          // If it's not valid JSON, display as-is
+          setJsonContent(text);
+        }
       }
 
       setLoading(false);

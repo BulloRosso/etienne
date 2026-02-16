@@ -121,6 +121,55 @@ export class SSEPublisherService {
   }
 
   /**
+   * Publish workflow execution status to all clients of a project
+   */
+  publishWorkflowExecution(projectName: string, data: {
+    status: 'started' | 'completed' | 'ignored' | 'error';
+    ruleId: string;
+    ruleName: string;
+    workflowId: string;
+    workflowEvent: string;
+    eventId: string;
+    previousState?: string;
+    currentState?: string;
+    error?: string;
+    timestamp: string;
+  }): void {
+    const clientCount = this.getClientCount(projectName);
+    this.logger.log(`Publishing workflow-execution (${data.status}) to ${clientCount} clients for project ${projectName}`);
+
+    for (const client of this.clients.values()) {
+      if (client.projectName === projectName) {
+        this.sendToClient(client.id, 'workflow-execution', data);
+      }
+    }
+  }
+
+  /**
+   * Publish script execution status to all clients of a project
+   */
+  publishScriptExecution(projectName: string, data: {
+    status: 'started' | 'completed' | 'error';
+    workflowId: string;
+    scriptFile: string;
+    state: string;
+    stdout?: string;
+    stderr?: string;
+    exitCode?: number;
+    durationMs?: number;
+    timestamp: string;
+  }): void {
+    const clientCount = this.getClientCount(projectName);
+    this.logger.log(`Publishing script-execution (${data.status}) to ${clientCount} clients for project ${projectName}`);
+
+    for (const client of this.clients.values()) {
+      if (client.projectName === projectName) {
+        this.sendToClient(client.id, 'script-execution', data);
+      }
+    }
+  }
+
+  /**
    * Publish chat refresh notification to all clients of a project
    */
   publishChatRefresh(projectName: string, data: {

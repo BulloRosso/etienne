@@ -231,6 +231,34 @@ export class ContentManagementService {
   }
 
   /**
+   * Save text content to a file
+   */
+  async saveFileContent(
+    projectName: string,
+    filepath: string,
+    content: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const root = safeRoot(this.config.hostRoot, projectName);
+      const fullPath = join(root, filepath);
+
+      // Ensure directory exists
+      const dir = dirname(fullPath);
+      await fs.mkdir(dir, { recursive: true });
+
+      // Write text content
+      await fs.writeFile(fullPath, content, 'utf-8');
+
+      return {
+        success: true,
+        message: `File saved: ${filepath}`,
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to save file: ${error.message}`);
+    }
+  }
+
+  /**
    * Upload a file
    */
   async uploadFile(

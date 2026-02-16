@@ -35,7 +35,8 @@ import {
   Code as ClaudeCodeIcon,
   Schedule as ScheduleIcon,
   Webhook as WebhookIcon,
-  Email as EmailIcon
+  Email as EmailIcon,
+  AccountTree as WorkflowIcon
 } from '@mui/icons-material';
 import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
 import { PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
@@ -112,7 +113,11 @@ const EventHandling = ({ selectedProject, onClose }) => {
   const [eventName, setEventName] = useState('');
   const [eventTopic, setEventTopic] = useState('');
   const [payloadPath, setPayloadPath] = useState('');
+  const [actionType, setActionType] = useState('prompt');
   const [actionPromptId, setActionPromptId] = useState('');
+  const [actionWorkflowId, setActionWorkflowId] = useState('');
+  const [actionWorkflowEvent, setActionWorkflowEvent] = useState('');
+  const [actionMapPayload, setActionMapPayload] = useState(true);
 
   // Webhook state
   const [copySuccess, setCopySuccess] = useState(false);
@@ -128,8 +133,17 @@ const EventHandling = ({ selectedProject, onClose }) => {
   const [ruleMenuAnchor, setRuleMenuAnchor] = useState(null);
   const [selectedRuleForMenu, setSelectedRuleForMenu] = useState(null);
 
+  // Workflows list for action selector
+  const [workflows, setWorkflows] = useState([]);
+
   // Prompt execution state
   const [promptExecutions, setPromptExecutions] = useState([]);
+
+  // Workflow execution state
+  const [workflowExecutions, setWorkflowExecutions] = useState([]);
+
+  // Script execution state
+  const [scriptExecutions, setScriptExecutions] = useState([]);
 
   // Service status state
   const [serviceStatus, setServiceStatus] = useState({
@@ -214,6 +228,36 @@ const EventHandling = ({ selectedProject, onClose }) => {
       });
     });
 
+    sse.addEventListener('workflow-execution', (e) => {
+      const data = JSON.parse(e.data);
+      setWorkflowExecutions((prev) => {
+        const existingIndex = prev.findIndex(
+          (w) => w.ruleId === data.ruleId && w.eventId === data.eventId
+        );
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...updated[existingIndex], ...data };
+          return updated;
+        }
+        return [data, ...prev].slice(0, 20);
+      });
+    });
+
+    sse.addEventListener('script-execution', (e) => {
+      const data = JSON.parse(e.data);
+      setScriptExecutions((prev) => {
+        const existingIndex = prev.findIndex(
+          (s) => s.workflowId === data.workflowId && s.scriptFile === data.scriptFile && s.state === data.state
+        );
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...updated[existingIndex], ...data };
+          return updated;
+        }
+        return [data, ...prev].slice(0, 20);
+      });
+    });
+
     sse.addEventListener('service-status', (e) => {
       const data = JSON.parse(e.data);
       if (data.service === 'mqtt') {
@@ -256,6 +300,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
   useEffect(() => {
     loadRules();
     loadPrompts();
+    loadWorkflows();
     loadEventLog();
     loadMqttStatus();
   }, [selectedProject]);
@@ -292,6 +337,19 @@ const EventHandling = ({ selectedProject, onClose }) => {
     }
   };
 
+  // Load workflows for action selector
+  const loadWorkflows = async () => {
+    if (!selectedProject) return;
+
+    try {
+      const response = await axios.get(`http://localhost:6060/api/workspace/${selectedProject}/workflows`);
+      setWorkflows(response.data || []);
+    } catch (error) {
+      console.log('Failed to load workflows:', error.message);
+      setWorkflows([]);
+    }
+  };
+
   // Extract payload matcher from rule condition event object
   const extractPayloadMatcher = (event) => {
     if (!event) return '';
@@ -322,7 +380,12 @@ const EventHandling = ({ selectedProject, onClose }) => {
         setEventTopic(rule.condition.event?.topic || '');
         setPayloadPath(extractPayloadMatcher(rule.condition.event));
       }
-      setActionPromptId(rule.action.promptId);
+      // Load action fields based on type
+      setActionType(rule.action.type || 'prompt');
+      setActionPromptId(rule.action.promptId || '');
+      setActionWorkflowId(rule.action.workflowId || '');
+      setActionWorkflowEvent(rule.action.event || '');
+      setActionMapPayload(rule.action.mapPayload !== false);
     } else {
       setEditingRule(null);
       setRuleName('');
@@ -332,7 +395,11 @@ const EventHandling = ({ selectedProject, onClose }) => {
       setEventName('');
       setEventTopic('');
       setPayloadPath('');
+      setActionType('prompt');
       setActionPromptId('');
+      setActionWorkflowId('');
+      setActionWorkflowEvent('');
+      setActionMapPayload(true);
     }
     setRuleDialogOpen(true);
   };
@@ -355,6 +422,19 @@ const EventHandling = ({ selectedProject, onClose }) => {
   const handleSaveRule = async () => {
     const payloadMatcher = parsePayloadMatcher(payloadPath);
 
+    // Build action based on selected type
+    const action = actionType === 'workflow_event'
+      ? {
+          type: 'workflow_event',
+          workflowId: actionWorkflowId,
+          event: actionWorkflowEvent,
+          mapPayload: actionMapPayload,
+        }
+      : {
+          type: 'prompt',
+          promptId: actionPromptId,
+        };
+
     const ruleData = {
       name: ruleName,
       enabled: ruleEnabled,
@@ -371,10 +451,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
           ...payloadMatcher
         }
       },
-      action: {
-        type: 'prompt',
-        promptId: actionPromptId
-      }
+      action,
     };
 
     try {
@@ -594,6 +671,8 @@ const EventHandling = ({ selectedProject, onClose }) => {
             liveEvents={liveEvents}
             eventStream={eventStream}
             promptExecutions={promptExecutions}
+            workflowExecutions={workflowExecutions}
+            scriptExecutions={scriptExecutions}
             serviceStatus={serviceStatus}
           />
         ) : currentTab === 3 ? (
@@ -828,29 +907,120 @@ const EventHandling = ({ selectedProject, onClose }) => {
               <Chip label="Action" size="small" />
             </Divider>
 
-            <FormControl fullWidth size="small" required>
-              <InputLabel>Prompt</InputLabel>
+            <FormControl fullWidth size="small">
+              <InputLabel>Action Type</InputLabel>
               <Select
-                value={actionPromptId}
-                onChange={(e) => setActionPromptId(e.target.value)}
-                label="Prompt"
+                value={actionType}
+                onChange={(e) => setActionType(e.target.value)}
+                label="Action Type"
               >
-                {prompts.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    <em>No prompts available - create one in the Prompts tab</em>
-                  </MenuItem>
-                ) : (
-                  prompts.map((prompt) => (
-                    <MenuItem key={prompt.id} value={prompt.id}>
-                      {prompt.title}
-                    </MenuItem>
-                  ))
-                )}
+                <MenuItem value="prompt">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BiMessageEdit style={{ fontSize: 16, color: '#9c27b0' }} />
+                    Execute Prompt
+                  </Box>
+                </MenuItem>
+                <MenuItem value="workflow_event">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <WorkflowIcon sx={{ fontSize: 16, color: '#ff9800' }} />
+                    Send Workflow Event
+                  </Box>
+                </MenuItem>
               </Select>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
-                The prompt/template to execute when this rule triggers
-              </Typography>
             </FormControl>
+
+            {actionType === 'prompt' && (
+              <FormControl fullWidth size="small" required>
+                <InputLabel>Prompt</InputLabel>
+                <Select
+                  value={actionPromptId}
+                  onChange={(e) => setActionPromptId(e.target.value)}
+                  label="Prompt"
+                >
+                  {prompts.length === 0 ? (
+                    <MenuItem value="" disabled>
+                      <em>No prompts available - create one in the Action tab</em>
+                    </MenuItem>
+                  ) : (
+                    prompts.map((prompt) => (
+                      <MenuItem key={prompt.id} value={prompt.id}>
+                        {prompt.title}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                  The prompt/template to execute when this rule triggers
+                </Typography>
+              </FormControl>
+            )}
+
+            {actionType === 'workflow_event' && (
+              <>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  {workflows.length > 0 ? (
+                    <FormControl sx={{ flex: 1 }} size="small" required>
+                      <InputLabel>Workflow</InputLabel>
+                      <Select
+                        value={actionWorkflowId}
+                        onChange={(e) => setActionWorkflowId(e.target.value)}
+                        label="Workflow"
+                      >
+                        {workflows.map((wf) => (
+                          <MenuItem key={wf.id} value={wf.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <WorkflowIcon sx={{ fontSize: 14, color: '#ff9800' }} />
+                              {wf.name}
+                              <Typography variant="caption" color="text.disabled" sx={{ ml: 0.5 }}>({wf.id})</Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <TextField
+                      label="Workflow ID"
+                      sx={{ flex: 1 }}
+                      size="small"
+                      value={actionWorkflowId}
+                      onChange={(e) => setActionWorkflowId(e.target.value)}
+                      placeholder="e.g., customer-onboarding"
+                      helperText="Workflow slug (no workflows found in project)"
+                      required
+                    />
+                  )}
+                  <TextField
+                    label="Event Name"
+                    sx={{ flex: 1 }}
+                    size="small"
+                    value={actionWorkflowEvent}
+                    onChange={(e) => setActionWorkflowEvent(e.target.value.toUpperCase())}
+                    placeholder="e.g., EMAIL_RECEIVED"
+                    helperText="Must match a transition in the workflow"
+                    required
+                  />
+                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      size="small"
+                      checked={actionMapPayload}
+                      onChange={(e) => setActionMapPayload(e.target.checked)}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" color="text.secondary">
+                      Pass event payload to workflow
+                    </Typography>
+                  }
+                />
+                {actionWorkflowId && (
+                  <Alert severity="info" icon={<WorkflowIcon fontSize="small" />} sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
+                    When triggered, event "{actionWorkflowEvent || '...'}" will be sent to workflow "{actionWorkflowId}"
+                  </Alert>
+                )}
+              </>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -860,7 +1030,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
           <Button
             onClick={handleSaveRule}
             variant="contained"
-            disabled={!ruleName || !actionPromptId}
+            disabled={!ruleName || (actionType === 'prompt' ? !actionPromptId : (!actionWorkflowId || !actionWorkflowEvent))}
             sx={{ textTransform: 'none' }}
           >
             {editingRule ? 'Update Rule' : 'Create Rule'}

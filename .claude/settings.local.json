@@ -97,7 +97,8 @@
       "Bash(npx codex:*)",
       "WebFetch(domain:community.openai.com)",
       "WebFetch(domain:cookbook.openai.com)",
-      "WebFetch(domain:funnelstory.ai)"
+      "WebFetch(domain:funnelstory.ai)",
+      "WebFetch(domain:stately.ai)"
     ],
     "deny": [],
     "ask": []

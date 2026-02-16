@@ -69,6 +69,13 @@
       "url": "http://localhost:6060/mcp/confirmation",
       "headers": { "Authorization": "test123" },
       "description": "Elicitation/confirmation example tools"
+    },
+    {
+      "name": "workflows",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/workflows",
+      "headers": { "Authorization": "test123" },
+      "description": "Stateful workflow management tools (XState v5)"
     }
   ]
 }

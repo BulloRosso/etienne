@@ -26,7 +26,7 @@ class FilePreviewHandler {
     // Handle HTML files
     if (extension === 'html' || extension === 'htm') {
       this.handleHtmlPreview(filePath, projectName);
-    } else if (extension === 'json' || extension === 'csv' || extension === 'txt') {
+    } else if (extension === 'json' || extension === 'jsonl' || extension === 'csv' || extension === 'txt') {
       this.handleJsonPreview(filePath, projectName);
     } else if (extension === 'md') {
       this.handleMarkdownPreview(filePath, projectName);
@@ -34,6 +34,8 @@ class FilePreviewHandler {
       this.handleMermaidPreview(filePath, projectName);
     } else if (extension === 'research') {
       this.handleResearchPreview(filePath, projectName);
+    } else if (extension === 'prompt') {
+      this.handlePromptPreview(filePath, projectName);
     } else if (extension === 'jpg' || extension === 'jpeg' || extension === 'png' || extension === 'gif') {
       this.handleImagePreview(filePath, projectName);
     } else if (extension === 'xls' || extension === 'xlsx') {
@@ -136,6 +138,21 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'research-preview'
+    });
+  }
+
+  /**
+   * Handle Prompt file preview
+   * @param {string} filePath - The path to the Prompt file
+   * @param {string} projectName - The project name
+   */
+  handlePromptPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Prompt preview for', filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'prompt-preview'
     });
   }
 

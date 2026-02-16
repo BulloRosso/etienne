@@ -21,8 +21,10 @@ import {
   Delete as DeleteIcon,
   PlayArrow as PlayIcon,
   Pause as PauseIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  AccountTree as WorkflowIcon
 } from '@mui/icons-material';
+import { BiMessageEdit } from 'react-icons/bi';
 import { IoMdNotificationsOutline, IoMdNotificationsOff } from 'react-icons/io';
 
 const RulesTab = ({
@@ -92,7 +94,8 @@ const RulesTab = ({
                 {rules.map((rule, idx) => {
                   const groupStyle = rule.condition.event?.group ? getGroupStyle(rule.condition.event.group) : null;
                   const GroupIcon = groupStyle?.icon;
-                  const actionPrompt = prompts.find(p => p.id === rule.action.promptId);
+                  const actionPrompt = rule.action.type === 'prompt' ? prompts.find(p => p.id === rule.action.promptId) : null;
+                  const isWorkflowAction = rule.action.type === 'workflow_event';
                   return (
                     <TableRow
                       key={rule.id}
@@ -131,9 +134,22 @@ const RulesTab = ({
                         )}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {actionPrompt?.title || rule.action.promptId}
-                        </Typography>
+                        {isWorkflowAction ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <WorkflowIcon sx={{ fontSize: 16, color: '#ff9800' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {rule.action.workflowId}
+                            </Typography>
+                            <Chip label={rule.action.event} size="small" variant="outlined" sx={{ fontSize: '0.7rem', height: 20 }} />
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <BiMessageEdit style={{ fontSize: 16, color: '#9c27b0' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {actionPrompt?.title || rule.action.promptId}
+                            </Typography>
+                          </Box>
+                        )}
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <IconButton

@@ -35,6 +35,9 @@ import { A2AClientService } from '../a2a-client/a2a-client.service';
 import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { InterceptorsService } from '../interceptors/interceptors.service';
 import { ProjectToolsService } from './project-tools/project-tools.service';
+import { StatefulWorkflowsService } from '../stateful-workflows/stateful-workflows.service';
+import { createWorkflowToolsService } from '../stateful-workflows/workflow-tools';
+import { RuleEngineService } from '../event-handling/core/rule-engine.service';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -61,6 +64,8 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly a2aSettingsService: A2ASettingsService,
     private readonly interceptorsService: InterceptorsService,
     private readonly projectToolsService: ProjectToolsService,
+    private readonly workflowsService: StatefulWorkflowsService,
+    private readonly ruleEngineService: RuleEngineService,
   ) {
     this.groupConfigs = {
       'demo': {
@@ -105,6 +110,9 @@ export class McpServerFactoryService implements OnModuleInit {
       },
       'confirmation': {
         toolServices: [confirmationToolsService],
+      },
+      'workflows': {
+        toolServices: [createWorkflowToolsService(workflowsService, ruleEngineService)],
       },
     };
   }
