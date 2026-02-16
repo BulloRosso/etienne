@@ -8,6 +8,7 @@ import { PiChats, PiFile, PiFileText, PiFilePdf, PiImage } from 'react-icons/pi'
 const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const recognitionRef = useRef(null);
@@ -134,6 +135,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
     if (isRecording) {
       recognitionRef.current?.stop();
       setIsRecording(false);
+      setInterimTranscript('');
     } else {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -141,30 +143,35 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
       recognition.interimResults = true;
 
       recognition.onresult = (event) => {
+        let interim = '';
         let finalTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' ';
+          } else {
+            interim += transcript;
           }
         }
 
-        setMessage((prev) => {
-          if (finalTranscript) {
-            return prev + finalTranscript;
-          }
-          return prev;
-        });
+        if (finalTranscript) {
+          setMessage((prev) => prev + finalTranscript);
+          setInterimTranscript('');
+        } else {
+          setInterimTranscript(interim);
+        }
       };
 
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
+        setInterimTranscript('');
       };
 
       recognition.onend = () => {
         setIsRecording(false);
+        setInterimTranscript('');
       };
 
       recognition.start();
@@ -258,7 +265,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
             fullWidth
             multiline
             minRows={6}
-            value={message}
+            value={isRecording && interimTranscript ? message + interimTranscript : message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {

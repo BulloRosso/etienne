@@ -12,6 +12,7 @@ import { CiFileOn } from "react-icons/ci";
 export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [uploading, setUploading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -166,6 +167,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
     if (isRecording) {
       recognitionRef.current?.stop();
       setIsRecording(false);
+      setInterimTranscript('');
     } else {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -173,7 +175,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
       recognition.interimResults = true;
 
       recognition.onresult = (event) => {
-        let interimTranscript = '';
+        let interim = '';
         let finalTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -181,25 +183,27 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' ';
           } else {
-            interimTranscript += transcript;
+            interim += transcript;
           }
         }
 
-        setMessage((prev) => {
-          if (finalTranscript) {
-            return prev + finalTranscript;
-          }
-          return prev;
-        });
+        if (finalTranscript) {
+          setMessage((prev) => prev + finalTranscript);
+          setInterimTranscript('');
+        } else {
+          setInterimTranscript(interim);
+        }
       };
 
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
+        setInterimTranscript('');
       };
 
       recognition.onend = () => {
         setIsRecording(false);
+        setInterimTranscript('');
       };
 
       recognition.start();
@@ -352,7 +356,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
           fullWidth
           multiline
           maxRows={6}
-          value={message}
+          value={isRecording && interimTranscript ? message + interimTranscript : message}
           onChange={handleMessageChange}
           onKeyDown={(e) => {
             if (showSuggestions) {
