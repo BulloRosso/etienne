@@ -8,6 +8,7 @@ import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 import { LlmService } from '../llm/llm.service';
+import { McpRegistryService } from '../mcp-registry/mcp-registry.service';
 
 @Injectable()
 export class ProjectsService {
@@ -21,6 +22,7 @@ export class ProjectsService {
     private readonly mcpServerConfigService: McpServerConfigService,
     private readonly codingAgentConfigService: CodingAgentConfigurationService,
     private readonly llmService: LlmService,
+    private readonly mcpRegistryService: McpRegistryService,
   ) {}
 
   /**
@@ -111,7 +113,23 @@ export class ProjectsService {
         warnings.push(`Failed to create UI config: ${error.message}`);
       }
 
-      // 9. Collect guidance documents from provisioned skills
+      // 9. Generate chat greeting message from mission brief
+      if (dto.missionBrief && dto.missionBrief.trim().length > 0) {
+        try {
+          const greetingMessage = await this.generateWelcomeMessage(dto, projectPath);
+          if (greetingMessage) {
+            const assistantPath = path.join(projectPath, 'data', 'assistant.json');
+            const assistantConfig = { assistant: { greeting: greetingMessage } };
+            await fs.writeJson(assistantPath, assistantConfig, { spaces: 2 });
+            this.logger.log(`Generated chat greeting for ${dto.projectName}`);
+          }
+        } catch (error: any) {
+          this.logger.warn(`Failed to generate chat greeting: ${error.message}`);
+          warnings.push(`Chat greeting generation skipped: ${error.message}`);
+        }
+      }
+
+      // 10. Collect guidance documents from provisioned skills
       const guidanceDocuments = await this.findGuidanceDocuments(projectPath);
 
       return {
@@ -350,5 +368,127 @@ export class ProjectsService {
     }
 
     return projectsWithUI.sort();
+  }
+
+  /**
+   * Extract description from SKILL.md content (YAML frontmatter)
+   */
+  private extractSkillDescription(content: string): string | undefined {
+    const lines = content.split('\n');
+    if (lines[0]?.trim() !== '---') return undefined;
+
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '---') break;
+      const match = lines[i].match(/^description:\s*(.+)/);
+      if (match) {
+        return match[1].trim().substring(0, 200);
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Gather skill names and descriptions from provisioned skills
+   */
+  private async gatherSkillDescriptions(projectName: string): Promise<string[]> {
+    const descriptions: string[] = [];
+    try {
+      const skillNames = await this.skillsService.listSkills(projectName);
+      for (const name of skillNames) {
+        try {
+          const skill = await this.skillsService.getSkill(projectName, name);
+          const desc = this.extractSkillDescription(skill.content);
+          descriptions.push(desc ? `${name}: ${desc}` : name);
+        } catch {
+          descriptions.push(name);
+        }
+      }
+    } catch {
+      // Non-critical — return empty
+    }
+    return descriptions;
+  }
+
+  /**
+   * Gather MCP server descriptions from the registry for selected servers
+   */
+  private async gatherMcpServerDescriptions(mcpServerKeys: string[]): Promise<string[]> {
+    const descriptions: string[] = [];
+    try {
+      const registry = await this.mcpRegistryService.loadRegistry();
+      const registryMap = new Map(registry.map((s) => [s.name, s.description]));
+      for (const key of mcpServerKeys) {
+        const desc = registryMap.get(key);
+        descriptions.push(desc ? `${key}: ${desc}` : key);
+      }
+    } catch {
+      descriptions.push(...mcpServerKeys);
+    }
+    return descriptions;
+  }
+
+  /**
+   * Read the agent role content from the file written at step 3
+   */
+  private async getAgentRoleContent(projectPath: string): Promise<string | null> {
+    try {
+      const agentConfigDir = this.codingAgentConfigService.getAgentConfigDir();
+      const missionFileName = this.codingAgentConfigService.getMissionFileName();
+      const rolePath = path.join(projectPath, agentConfigDir, missionFileName);
+      if (await fs.pathExists(rolePath)) {
+        const content = await fs.readFile(rolePath, 'utf-8');
+        return content.substring(0, 1500);
+      }
+    } catch {
+      // Non-critical
+    }
+    return null;
+  }
+
+  /**
+   * Generate a welcome message using LLM based on mission, role, skills, and MCP servers
+   */
+  private async generateWelcomeMessage(
+    dto: CreateProjectDto,
+    projectPath: string,
+  ): Promise<string | null> {
+    if (!dto.missionBrief || dto.missionBrief.trim().length === 0) {
+      return null;
+    }
+
+    const skillDescriptions = await this.gatherSkillDescriptions(dto.projectName);
+    const mcpServerKeys = dto.mcpServers ? Object.keys(dto.mcpServers) : [];
+    const mcpDescriptions = await this.gatherMcpServerDescriptions(mcpServerKeys);
+    const roleContent = await this.getAgentRoleContent(projectPath);
+
+    let prompt = `You are writing a welcome message for an AI assistant project. Based on the mission, the assistant's role and strengths, and available capabilities, write a friendly welcome message (maximum 3 sentences) that greets the user and suggests concrete first steps.
+
+Mission:
+${dto.missionBrief.substring(0, 3000)}
+`;
+
+    if (roleContent) {
+      prompt += `\nAssistant role and strengths:\n${roleContent}\n`;
+    }
+
+    if (skillDescriptions.length > 0) {
+      prompt += `\nAvailable skills:\n${skillDescriptions.map((s) => `- ${s}`).join('\n')}\n`;
+    }
+
+    if (mcpDescriptions.length > 0) {
+      prompt += `\nAvailable tools/integrations:\n${mcpDescriptions.map((s) => `- ${s}`).join('\n')}\n`;
+    }
+
+    prompt += `\nWrite ONLY the welcome message text. No headings, labels, or markdown formatting. Maximum 3 sentences. Be specific about first steps based on the mission and available capabilities. Mention any information or files the user should provide to get started.`;
+
+    const text = await this.llmService.generateText({
+      tier: 'regular',
+      prompt,
+      maxOutputTokens: 512,
+    });
+
+    const message = text.trim().replace(/^["']|["']$/g, '');
+
+    return message || null;
   }
 }

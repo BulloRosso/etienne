@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Box, Typography, Chip, TextField, IconButton, Paper } from '@mui/material';
 import { useProject } from '../contexts/ProjectContext';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { SlMicrophone } from 'react-icons/sl';
 import { GoArrowUp, GoPlus, GoX } from 'react-icons/go';
 import { PiChats, PiFile, PiFileText, PiFilePdf, PiImage } from 'react-icons/pi';
 
 const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
+  const { mode: themeMode } = useThemeMode();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -192,7 +194,9 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100%',
-        backgroundColor: welcomeConfig?.backgroundColor || '#f5f5f5',
+        backgroundColor: themeMode === 'dark'
+          ? '#1e1e1e'
+          : (welcomeConfig?.backgroundColor || '#f5f5f5'),
         p: 4,
         position: 'relative',
       }}
@@ -236,10 +240,10 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
         {/* Welcome Message */}
         {welcomeConfig?.message && (
           <Typography
-            variant="h6"
+            variant="body1"
             align="center"
             color="text.secondary"
-            sx={{ mb: 4 }}
+            sx={{ mb: 4, fontSize: '1.1rem', whiteSpace: 'pre-wrap' }}
           >
             {welcomeConfig.message}
           </Typography>
@@ -289,7 +293,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
             onClick={handleSend}
             disabled={!message.trim() && selectedFiles.length === 0}
             color="primary"
-            sx={{ backgroundColor: '#DEEBF7' }}
+            sx={{ backgroundColor: themeMode === 'dark' ? '#2a3a4a' : '#DEEBF7' }}
           >
             <GoArrowUp />
           </IconButton>
@@ -313,7 +317,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
                     p: 1,
                     pr: 0.5,
                     borderRadius: 1,
-                    backgroundColor: '#f9f9f9',
+                    backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f9f9f9',
                     maxWidth: 250,
                   }}
                 >
