@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { ClaudeConfig } from '../config/claude.config';
 import { safeRoot } from '../utils/path.utils';
+import { posixProjectPath } from '../../common/path.util';
 import { CanUseTool } from './sdk-permission.types';
 
 // Use Function constructor to prevent TypeScript from transpiling dynamic import to require()
@@ -57,7 +58,10 @@ export class ClaudeSdkService {
       await this.ensureSdkLoaded();
 
       // Get the absolute path to the project workspace directory
-      const projectRoot = safeRoot(this.config.hostRoot, projectDir);
+      const isContainer = process.env.DEVCONTAINER === 'true';
+      const projectRoot = isContainer
+        ? posixProjectPath(this.config.containerRoot, projectDir)
+        : safeRoot(this.config.hostRoot, projectDir);
 
       // Load permissions if not provided
       const tools = allowedTools || await this.loadPermissions(projectDir);
