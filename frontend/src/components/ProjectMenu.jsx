@@ -560,18 +560,18 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
               </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography>
-                  <strong>Headless Claude Code</strong>
+                  <strong>Coding Agent Harness</strong>
                   <br />
-                  A learner project for AI system engineers to understand how Claude Code works in non-interactive mode.
+                  Etienne integrates traditional IT backend services (like CRON jobs) with coding agents like Anthropic Claude Code or OpenAI Codex. It can be run on the local machine for development and inside a docker container for production.
                 </Typography>
                 <Box component="ul" sx={{ color: 'text.secondary', mt: 2, pl: 2 }}>
-                  <li>see hooks and events in action</li>
-                  <li>learn how to build a live preview</li>
-                  <li>play around with permissions</li>
-                  <li>understand multi-tenant project organization</li>
-                  <li>manage content in the Claude workspace</li>
-                  <li>observe session management files</li>
-                  <li>use local or OpenAI inference via the integrated model proxy</li>
+                  <li>works on private/local storage ("workspace")</li>
+                  <li>adds a event bus (ZeroMQ) and a condition monitoring system</li>
+                  <li>can create public websites exposed under /web</li>
+                  <li>adds RBAC security layer</li>
+                  <li>showcases service management for additional local services (e.g. vector store, RDF store)</li>
+                  <li>demonstrates how to seamlessly integrate agent skills and MCP tools into business processes</li>
+                  <li>provides a file system explorer and file type dependent previewers (e.g. mindmaps)</li>
                 </Box>
               </Box>
             </Box>
