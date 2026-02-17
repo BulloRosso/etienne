@@ -452,16 +452,13 @@ export default function App() {
             window.dispatchEvent(claudeHookEvent);
             console.log('Dispatched claudeHook for file:', toolInput.file_path);
 
-            // Auto-preview files with supported extensions
+            // Auto-preview files with supported extensions (must end with the extension)
             const filePath = toolInput.file_path;
-            const extension = filePath.split('.').pop()?.toLowerCase();
-            const supportedExtensions = ['html', 'htm', 'json', 'md', 'mermaid'];
 
-            if (supportedExtensions.includes(extension)) {
+            if (hasPreviewExtension(filePath)) {
               // Extract relative path from absolute path
               const relativePath = extractRelativePath(filePath);
               console.log(`[Auto-preview] File created: ${filePath}`);
-              console.log(`[Auto-preview] Extension: ${extension}`);
               console.log(`[Auto-preview] Relative path: ${relativePath}`);
               console.log(`[Auto-preview] Current project: ${currentProject}`);
               console.log(`[Auto-preview] Waiting 800ms before fetching...`);
@@ -1099,6 +1096,16 @@ export default function App() {
     return absolutePath;
   };
 
+  // Supported file extensions for auto-preview
+  const autoPreviewExtensions = ['.html', '.htm', '.json', '.md', '.mermaid'];
+
+  // Check if a file path ends with a supported preview extension
+  const hasPreviewExtension = (filePath) => {
+    if (!filePath) return false;
+    const lowerPath = filePath.toLowerCase();
+    return autoPreviewExtensions.some(ext => lowerPath.endsWith(ext));
+  };
+
   // Fetch file content and add/update it in the files list
   const fetchFile = async (path, projectDir, retries = 3, delayMs = 500) => {
     console.log(`[fetchFile] Attempting to fetch: ${path} from project: ${projectDir}`);
@@ -1375,7 +1382,9 @@ export default function App() {
       window.dispatchEvent(claudeHookEvent);
       console.log('[file_added] Dispatched claudeHook event for:', absolutePath);
 
-      fetchFile(relativePath, currentProject);
+      if (hasPreviewExtension(absolutePath)) {
+        fetchFile(relativePath, currentProject);
+      }
     });
     es.addEventListener('file_changed', (e) => {
       const absolutePath = JSON.parse(e.data).path;
@@ -1392,7 +1401,9 @@ export default function App() {
       window.dispatchEvent(claudeHookEvent);
       console.log('[file_changed] Dispatched claudeHook event for:', absolutePath);
 
-      fetchFile(relativePath, currentProject);
+      if (hasPreviewExtension(absolutePath)) {
+        fetchFile(relativePath, currentProject);
+      }
     });
 
     es.addEventListener('guardrails_triggered', (e) => {
@@ -1796,7 +1807,7 @@ export default function App() {
       >
         <Toolbar>
           <Typography variant="h6">
-            {uiConfig?.appBar?.title || 'Etienne: an Anthropic Agent SDK Seed'}
+            {uiConfig?.appBar?.title || 'Etienne: a Coding Agent Harness'}
           </Typography>
           {currentProject && (
             <BudgetIndicator
