@@ -18,6 +18,61 @@ Etienne showcases how to attach typical business requirements to a **coding agen
 
 This setup addresses the use case **business collaborator agent** working on local data.
 
+## Table of Contents
+
+- [Main Components](#main-components)
+- [The Agent and the outside World](#the-agent-and-the-outside-world)
+- [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
+  - [IT Budget Situation](#it-budget-situation)
+  - [Extended Use Case](#extended-use-case)
+  - [Live Demonstrations](#live-demonstrations)
+  - [Etienne Articles](#etienne-articles)
+- [SETUP](#setup)
+  - [API Keys](#api-keys)
+  - [Checkpoints](#checkpoints)
+  - [OAuth Server (Authentication)](#oauth-server-authentication)
+  - [Starting up the services](#starting-up-the-services)
+- [User Authentication](#user-authentication)
+- [API Endpoints](#api-endpoints)
+- [Knowledge Base](#knowledge-base)
+  - [Architecture](#architecture)
+  - [Entity Extraction & Storage Flow](#entity-extraction--storage-flow)
+  - [Customizable Schema & Prompts](#customizable-schema--prompts)
+  - [Query Capabilities](#query-capabilities)
+  - [Data Visualization](#data-visualization)
+  - [Storage Requirements & Setup](#storage-requirements--setup)
+  - [Use Cases](#use-cases)
+- [Dynamic Python MCP Tools](#dynamic-python-mcp-tools)
+  - [Overview](#overview)
+  - [Directory Structure](#directory-structure)
+  - [Python Tool Format](#python-tool-format)
+  - [Tool Naming Convention](#tool-naming-convention)
+  - [Docstring Metadata Format](#docstring-metadata-format)
+  - [Dependency Management](#dependency-management)
+  - [Discovery & Execution Flow](#discovery--execution-flow)
+  - [Hot-Reload Behavior](#hot-reload-behavior)
+  - [Environment Variables](#environment-variables)
+  - [Example: Creating a Tool](#example-creating-a-tool)
+  - [Security Considerations](#security-considerations)
+  - [Agent Skill: create-mcp-tool](#agent-skill-create-mcp-tool)
+- [Context Management / Metadata Layer](#context-management--metadata-layer)
+  - [Filesystem Context](#filesystem-context)
+  - [Vector Store Context](#vector-store-context)
+  - [Knowledge Graph Context](#knowledge-graph-context)
+  - [Session-Level Context Switching](#session-level-context-switching)
+- [Observability](#observability)
+  - [Configuration](#configuration)
+  - [Starting Phoenix Locally](#starting-phoenix-locally)
+  - [Traced Information](#traced-information)
+  - [Viewing Traces](#viewing-traces)
+- [Spec-driven Development](#spec-driven-development)
+  - [Claude Control (inner agentic cycle)](#claude-control-inner-agentic-cycle)
+  - [Complementary Features (to the agentic cycle)](#complementary-features-to-the-agentic-cycle)
+  - [Other](#other)
+- [File Type Previewers](#file-type-previewers)
+- [Messenger Integration](#messenger-integration)
+- [Maintainer](#maintainer)
+
 ## Main Components
 
 This repo contains 3 mandatory servers, 6 optional servers and many modules.
@@ -112,19 +167,6 @@ As a forward deployed engineer you can bring a complete working AI business solu
 </div>
 
 [See the basic project settings and how a live website is created from specifications](https://youtu.be/I9aNyB07AaA)
-
-### Basic Functionality (Inner Agentic Loop)
-
-[![Youtube Video](https://img.youtube.com/vi/ljInSy96zkY/0.jpg)](https://youtu.be/ljInSy96zkY)
-
-[Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform](https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/)
-
-### Enhanced Functionality (Outer Agentic Loop)
-
-[![Youtube Video](https://img.youtube.com/vi/o-1VXTT6g3g/0.jpg)](https://youtu.be/o-1VXTT6g3g)
-
-[Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/)
-
 
 
 ## Etienne Articles
