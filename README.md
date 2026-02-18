@@ -7,22 +7,28 @@
 ## What it does in one sentence
 
 <div align="center">
-<img src="/docs/images/core-functions.jpg" alt="Core Functions" width="500">
+<img src="/docs/images/core-functions.jpg" alt="Core Functions" style="marginBottom: 24px" width="500">
 </div> 
 
 Etienne showcases how to attach typical business requirements to a **coding agent harness** in order to enable a non-technical user to interact with the agent using a refined UI.
 
 <div align="center">
-<img src="/docs/images/ui-example.jpg" alt="UI example" width="900">
+<img src="/docs/images/ui-example.jpg" style="marginTop: 24px;marginBottom: 24px" alt="UI example" width="900">
 </div> 
 
 This setup addresses the use case **business collaborator agent** working on local data.
 
 <div align="center">
-<img src="/docs/images/rbac.jpg" alt="Role basec access control" width="900">
+<img src="/docs/images/rbac.jpg" alt="Role based access control" width="900">
 </div> 
 
 Etienne uses different roles to have clear responsibilities defined - it is usually NOT deployed as a personal AI assistant where the admin and the user role would be the same person.
+
+The following comparison illustrates the conceptual differences between Etienne and OpenClaw as of early 2026:
+
+<div align="center">
+<img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="900">
+</div> 
 
 ## Table of Contents
 
