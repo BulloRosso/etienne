@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Roles } from '../../auth/roles.decorator';
 import { CreateRuleDto, UpdateRuleDto } from '../dto/create-rule.dto';
 import { RuleEngineService } from '../core/rule-engine.service';
 import { EventRule } from '../interfaces/event.interface';
@@ -81,6 +82,7 @@ export class RulesController {
    * POST /api/rules/:project - Create a new rule
    */
   @Post(':project')
+  @Roles('user')
   async createRule(
     @Param('project') projectName: string,
     @Body(ValidationPipe) dto: CreateRuleDto,
@@ -120,6 +122,7 @@ export class RulesController {
    * PUT /api/rules/:project/:ruleId - Update a rule
    */
   @Put(':project/:ruleId')
+  @Roles('user')
   async updateRule(
     @Param('project') projectName: string,
     @Param('ruleId') ruleId: string,
@@ -158,6 +161,7 @@ export class RulesController {
    * DELETE /api/rules/:project/:ruleId - Delete a rule
    */
   @Delete(':project/:ruleId')
+  @Roles('user')
   @HttpCode(HttpStatus.OK)
   async deleteRule(@Param('project') projectName: string, @Param('ruleId') ruleId: string) {
     try {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, CircularProgress } from '@mui/material';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 /**
  * ImageViewer - Displays images with metadata extracted from file headers
@@ -28,7 +29,7 @@ export default function ImageViewer({ filename, projectName }) {
         setError(null);
 
         // Fetch the image file
-        const response = await fetch(`/api/workspace/${projectName}/files/${filename}`);
+        const response = await apiFetch(`/api/workspace/${projectName}/files/${filename}`);
         if (!response.ok) {
           throw new Error(`Failed to load image: ${response.statusText}`);
         }

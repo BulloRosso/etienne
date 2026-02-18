@@ -6,6 +6,7 @@ import { AiOutlineDelete } from 'react-icons/ai';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, isOpen }) {
   const { mode: themeMode } = useThemeMode();
@@ -48,7 +49,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       const userId = 'user'; // Default user ID for single-user system
       const url = `/api/memories/${userId}?project=${encodeURIComponent(projectName)}&limit=100`;
       console.log('Loading memories from:', url);
-      const response = await fetch(url);
+      const response = await apiFetch(url);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -73,7 +74,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
 
     try {
       const url = `/api/memories/extraction-prompt?project=${encodeURIComponent(projectName)}`;
-      const response = await fetch(url);
+      const response = await apiFetch(url);
 
       if (!response.ok) {
         throw new Error(`Failed to load extraction prompt: ${response.status}`);
@@ -97,7 +98,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
 
     try {
       const url = `/api/memories/extraction-prompt?project=${encodeURIComponent(projectName)}`;
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: extractionPrompt }),
@@ -123,7 +124,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
 
     try {
       const url = `/api/memories/extraction-prompt?project=${encodeURIComponent(projectName)}`;
-      const response = await fetch(url, { method: 'DELETE' });
+      const response = await apiFetch(url, { method: 'DELETE' });
 
       if (!response.ok) {
         throw new Error('Failed to reset extraction prompt');
@@ -147,7 +148,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
 
     try {
       const url = `/api/memories/settings?project=${encodeURIComponent(projectName)}`;
-      const response = await fetch(url);
+      const response = await apiFetch(url);
 
       if (!response.ok) {
         throw new Error(`Failed to load settings: ${response.status}`);
@@ -170,7 +171,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
 
     try {
       const url = `/api/memories/settings?project=${encodeURIComponent(projectName)}`;
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
@@ -197,7 +198,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
     try {
       const userId = 'user';
       const url = `/api/memories/${memoryId}?user_id=${userId}&project=${encodeURIComponent(projectName)}`;
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'DELETE'
       });
 

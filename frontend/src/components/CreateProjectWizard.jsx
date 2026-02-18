@@ -22,7 +22,7 @@ import {
   Alert
 } from '@mui/material';
 import Editor from '@monaco-editor/react';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import SkillsSelector from './SkillsSelector';
 import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
@@ -150,7 +150,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   const fetchAgentRoles = async () => {
     setRolesLoading(true);
     try {
-      const response = await axios.get('/api/agent-role-registry');
+      const response = await apiAxios.get('/api/agent-role-registry');
       setAvailableRoles(response.data.roles || []);
     } catch (error) {
       console.error('Failed to fetch agent roles:', error);
@@ -162,7 +162,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   const fetchRepositorySkills = async () => {
     setSkillsLoading(true);
     try {
-      const response = await axios.get('/api/skills/repository/list?includeOptional=true');
+      const response = await apiAxios.get('/api/skills/repository/list?includeOptional=true');
       const skills = response.data.skills || [];
       setRepositorySkills({
         standard: skills.filter(s => s.source === 'standard'),
@@ -178,7 +178,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   const fetchMcpRegistry = async () => {
     setMcpLoading(true);
     try {
-      const response = await axios.get('/api/mcp-registry');
+      const response = await apiAxios.get('/api/mcp-registry');
       setRegistryMcpServers(response.data.servers || []);
     } catch (error) {
       console.error('Failed to fetch MCP registry:', error);
@@ -190,7 +190,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   const fetchA2ARegistry = async () => {
     setAgentsLoading(true);
     try {
-      const response = await axios.get('/api/a2a-settings/registry/local');
+      const response = await apiAxios.get('/api/a2a-settings/registry/local');
       setRegistryAgents(response.data.agents || []);
     } catch (error) {
       console.error('Failed to fetch A2A registry:', error);
@@ -201,7 +201,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
 
   const fetchPreviewers = async () => {
     try {
-      const response = await axios.get('/api/previewers/configuration');
+      const response = await apiAxios.get('/api/previewers/configuration');
       setRegisteredPreviewers(response.data.previewers || []);
     } catch (error) {
       console.error('Failed to fetch previewers:', error);
@@ -210,7 +210,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
 
   const fetchProjectsWithUI = async () => {
     try {
-      const response = await axios.get('/api/projects/with-ui-config');
+      const response = await apiAxios.get('/api/projects/with-ui-config');
       setProjectsWithUI(response.data.projects || []);
     } catch (error) {
       console.error('Failed to fetch projects with UI config:', error);
@@ -232,7 +232,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     if (roleType === 'custom' && customRoleContent.trim()) {
       setAgentNameLoading(true);
       try {
-        const response = await axios.post('/api/projects/generate-agent-name', {
+        const response = await apiAxios.post('/api/projects/generate-agent-name', {
           customRoleContent: customRoleContent
         });
         setAgentName(response.data.agentName || 'Etienne');
@@ -285,7 +285,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
         autoFilePreviewExtensions: autoFilePreviewExtensions.length > 0 ? autoFilePreviewExtensions : undefined
       };
 
-      const response = await axios.post('/api/projects/create', dto);
+      const response = await apiAxios.post('/api/projects/create', dto);
 
       if (response.data.success) {
         onProjectCreated(projectName, response.data.guidanceDocuments);

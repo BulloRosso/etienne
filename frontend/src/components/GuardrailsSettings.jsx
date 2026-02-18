@@ -17,6 +17,7 @@ import { Close } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 const GUARDRAIL_OPTIONS = [
   { id: 'creditCard', label: 'Credit Card Numbers', description: 'Detects and redacts credit card numbers' },
@@ -43,7 +44,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
 
   const loadConfig = async () => {
     try {
-      const response = await fetch(`/api/guardrails/${project}/input`);
+      const response = await apiFetch(`/api/guardrails/${project}/input`);
       if (response.ok) {
         const data = await response.json();
         setEnabledGuardrails(data.config?.enabled || []);
@@ -55,7 +56,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
 
   const loadOutputConfig = async () => {
     try {
-      const response = await fetch(`/api/guardrails/${project}/output`);
+      const response = await apiFetch(`/api/guardrails/${project}/output`);
       if (response.ok) {
         const data = await response.json();
         setOutputGuardrailsEnabled(data.config?.enabled || false);
@@ -80,14 +81,14 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
     setLoading(true);
     try {
       // Save input guardrails
-      const inputResponse = await fetch(`/api/guardrails/${project}/input`, {
+      const inputResponse = await apiFetch(`/api/guardrails/${project}/input`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: enabledGuardrails }),
       });
 
       // Save output guardrails
-      const outputResponse = await fetch(`/api/guardrails/${project}/output`, {
+      const outputResponse = await apiFetch(`/api/guardrails/${project}/output`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

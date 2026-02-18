@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Delete, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import { IsString } from 'class-validator';
 import { CheckpointsService } from './checkpoints.service';
 
@@ -35,6 +36,7 @@ export class CheckpointsController {
   }
 
   @Post(':project/create')
+  @Roles('user')
   async createCheckpoint(
     @Param('project') project: string,
     @Body() dto: CreateCheckpointDto,
@@ -64,6 +66,7 @@ export class CheckpointsController {
   }
 
   @Post(':project/restore')
+  @Roles('user')
   async restoreCheckpoint(
     @Param('project') project: string,
     @Body() dto: RestoreCheckpointDto,
@@ -111,6 +114,7 @@ export class CheckpointsController {
   }
 
   @Delete(':project/:hash')
+  @Roles('user')
   async deleteCheckpoint(
     @Param('project') project: string,
     @Param('hash') hash: string,
@@ -148,6 +152,7 @@ export class CheckpointsController {
   }
 
   @Post(':project/discard')
+  @Roles('user')
   async discardFile(
     @Param('project') project: string,
     @Body() dto: DiscardFileDto,

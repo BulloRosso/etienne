@@ -25,6 +25,7 @@ import * as AiIcons from 'react-icons/ai';
 import * as GiIcons from 'react-icons/gi';
 import * as FiIcons from 'react-icons/fi';
 import * as TbIcons from 'react-icons/tb';
+import { apiFetch } from '../services/api';
 
 // Build searchable icon list
 const allIcons = {
@@ -105,14 +106,14 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
       let response;
       if (isEdit) {
         // Update existing node
-        response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+        response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
         // Create new node
-        response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes`, {
+        response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -151,7 +152,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
         ? `/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images?describe_image=true`
         : `/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images`;
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'POST',
         body: formData,
       });
@@ -180,7 +181,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
     if (!node?.id) return;
 
     try {
-      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images/${filename}`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images/${filename}`, {
         method: 'DELETE',
       });
       setImages(images.filter(img => img !== filename));

@@ -3,6 +3,7 @@ import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { apiFetch } from '../services/api';
 
 export default function MarkdownViewer({ filename, projectName, className = '' }) {
   const [htmlContent, setHtmlContent] = useState('');
@@ -16,7 +17,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/workspace/${encodeURIComponent(projectName)}/files/${filename}?v=${refreshKey}`
       );
 

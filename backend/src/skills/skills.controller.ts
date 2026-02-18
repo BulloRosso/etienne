@@ -2,6 +2,7 @@ import {
   Controller, Get, Post, Delete, Param, Body, Query,
   HttpException, HttpStatus, UseInterceptors, UploadedFile,
 } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SkillsService } from './skills.service';
 import { SaveSkillDto } from './dto/skills.dto';
@@ -40,6 +41,7 @@ export class SkillsController {
    * Provision all standard skills to a project
    */
   @Post(':project/provision-standard')
+  @Roles('user')
   async provisionStandardSkills(@Param('project') project: string) {
     try {
       const results = await this.skillsService.provisionStandardSkills(project);
@@ -65,6 +67,7 @@ export class SkillsController {
    * Provision specific skills from the repository to a project
    */
   @Post(':project/provision')
+  @Roles('user')
   async provisionSkills(
     @Param('project') project: string,
     @Body() dto: ProvisionSkillsDto,
@@ -150,6 +153,7 @@ export class SkillsController {
   }
 
   @Post(':project/:skillName/files/upload')
+  @Roles('user')
   @UseInterceptors(FileInterceptor('file'))
   async uploadSkillFile(
     @Param('project') project: string,
@@ -180,6 +184,7 @@ export class SkillsController {
   }
 
   @Delete(':project/:skillName/files/:fileName')
+  @Roles('user')
   async deleteSkillFile(
     @Param('project') project: string,
     @Param('skillName') skillName: string,
@@ -224,6 +229,7 @@ export class SkillsController {
   }
 
   @Post(':project/copy')
+  @Roles('user')
   async copySkill(
     @Param('project') project: string,
     @Body() dto: { fromProject: string; skillName: string },
@@ -252,6 +258,7 @@ export class SkillsController {
   }
 
   @Post(':project')
+  @Roles('user')
   async saveSkill(
     @Param('project') project: string,
     @Body() dto: SaveSkillDto,
@@ -280,6 +287,7 @@ export class SkillsController {
   }
 
   @Delete(':project/:skillName')
+  @Roles('user')
   async deleteSkill(
     @Param('project') project: string,
     @Param('skillName') skillName: string,

@@ -14,6 +14,7 @@ import {
   Divider
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
+import { apiFetch } from '../services/api';
 import BudgetSettings from './BudgetSettings';
 import BackgroundInfo from './BackgroundInfo';
 
@@ -51,7 +52,7 @@ export default function BudgetOverview({
     const fetchRecentCosts = async () => {
       try {
         console.log(`Fetching costs for project: ${project}`);
-        const response = await fetch(`/api/budget-monitoring/${project}/all`);
+        const response = await apiFetch(`/api/budget-monitoring/${project}/all`);
         const data = await response.json();
         console.log('Received costs data:', data);
         // Set the costs (already limited to 10 by backend)

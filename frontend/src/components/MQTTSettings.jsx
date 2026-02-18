@@ -21,6 +21,7 @@ import {
 import { Close, Delete } from '@mui/icons-material';
 import { FcElectricalSensor } from 'react-icons/fc';
 import { FaAssistiveListeningSystems } from 'react-icons/fa';
+import { apiFetch } from '../services/api';
 
 export default function MQTTSettings({ open, onClose, project }) {
   const [activeTab, setActiveTab] = useState(0);
@@ -48,7 +49,7 @@ export default function MQTTSettings({ open, onClose, project }) {
 
   const loadBrokerSetup = async () => {
     try {
-      const response = await fetch(`/api/external-events/${project}/broker-setup`);
+      const response = await apiFetch(`/api/external-events/${project}/broker-setup`);
       if (response.ok) {
         const config = await response.json();
         if (config.broker) {
@@ -67,7 +68,7 @@ export default function MQTTSettings({ open, onClose, project }) {
 
   const loadStatus = async () => {
     try {
-      const response = await fetch(`/api/external-events/${project}/status`);
+      const response = await apiFetch(`/api/external-events/${project}/status`);
       if (response.ok) {
         const statusData = await response.json();
         setStatus(statusData);
@@ -83,7 +84,7 @@ export default function MQTTSettings({ open, onClose, project }) {
     setSuccess(null);
 
     try {
-      const response = await fetch(`/api/external-events/${project}/broker-setup`, {
+      const response = await apiFetch(`/api/external-events/${project}/broker-setup`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -120,7 +121,7 @@ export default function MQTTSettings({ open, onClose, project }) {
     setSuccess(null);
 
     try {
-      const response = await fetch(`/api/external-events/${project}/subscriptions`, {
+      const response = await apiFetch(`/api/external-events/${project}/subscriptions`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ topic: topic.trim(), qos: 0 }),
@@ -179,7 +180,7 @@ export default function MQTTSettings({ open, onClose, project }) {
     setSuccess(null);
 
     try {
-      const response = await fetch(`/api/external-events/${project}/connect`, {
+      const response = await apiFetch(`/api/external-events/${project}/connect`, {
         method: 'POST',
       });
 

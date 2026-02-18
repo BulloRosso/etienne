@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Add, Settings } from '@mui/icons-material';
 import { TiTags } from "react-icons/ti";
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 
 export default function ContextSwitcher({
   projectName,
@@ -35,7 +35,7 @@ export default function ContextSwitcher({
 
   const loadContexts = async () => {
     try {
-      const response = await axios.get(`/api/workspace/${projectName}/contexts`);
+      const response = await apiAxios.get(`/api/workspace/${projectName}/contexts`);
       setContexts(response.data || []);
     } catch (err) {
       console.error('Failed to load contexts:', err);
@@ -55,7 +55,7 @@ export default function ContextSwitcher({
       setLoading(true);
 
       // Set the active context for this session
-      await axios.post(`/api/sessions/${projectName}/${sessionId}/context`, {
+      await apiAxios.post(`/api/sessions/${projectName}/${sessionId}/context`, {
         contextId
       });
 

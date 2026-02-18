@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Delete, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { CodingAgentConfigurationService } from './coding-agent-configuration.service';
+import { Roles } from '../auth/roles.decorator';
 
+@Roles('admin')
 @Controller('api/coding-agent-configuration')
 export class CodingAgentConfigurationController {
   constructor(private readonly service: CodingAgentConfigurationService) {}

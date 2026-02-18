@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Tooltip } from '@mui/material';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import SkillsSettings from './SkillsSettings';
 
@@ -20,7 +20,7 @@ export default function SkillIndicator({ projectName }) {
 
   const loadSkills = async () => {
     try {
-      const response = await axios.get(`/api/skills/${encodeURIComponent(projectName)}`);
+      const response = await apiAxios.get(`/api/skills/${encodeURIComponent(projectName)}`);
       setSkills(response.data.skills || []);
     } catch (error) {
       console.error('Failed to load skills:', error);

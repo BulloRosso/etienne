@@ -8,6 +8,7 @@ import { AiOutlineMail } from 'react-icons/ai';
 import { RiRobot2Line } from 'react-icons/ri';
 import { MdSecurity } from 'react-icons/md';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 const serviceIcons = {
   'rdf-store': PiShareNetworkLight,
@@ -39,7 +40,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
   const fetchServicesAndStatuses = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/process-manager');
+      const response = await apiFetch('/api/process-manager');
       const data = await response.json();
       const serviceList = (data.services || []).sort((a, b) =>
         a.displayName.localeCompare(b.displayName)
@@ -50,7 +51,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
       await Promise.all(
         serviceList.map(async (svc) => {
           try {
-            const res = await fetch(`/api/process-manager/${svc.name}`);
+            const res = await apiFetch(`/api/process-manager/${svc.name}`);
             const statusData = await res.json();
             statusResults[svc.name] = statusData;
           } catch {
@@ -83,7 +84,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
     setActionInProgress(serviceName);
 
     try {
-      await fetch(`/api/process-manager/${serviceName}`, {
+      await apiFetch(`/api/process-manager/${serviceName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
@@ -92,7 +93,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
       // Poll for status update
       const pollStatus = async (attempts = 0) => {
         try {
-          const res = await fetch(`/api/process-manager/${serviceName}`);
+          const res = await apiFetch(`/api/process-manager/${serviceName}`);
           const statusData = await res.json();
           setStatuses(prev => ({ ...prev, [serviceName]: statusData }));
           if (attempts < 5 && statusData.status === (action === 'start' ? 'stopped' : 'running')) {

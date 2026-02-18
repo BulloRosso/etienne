@@ -26,6 +26,7 @@ import VectorStoreItems from './VectorStoreItems';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 const SAMPLE_SPARQL = `PREFIX kg: <http://example.org/kg/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -275,7 +276,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
     if (!project) return;
 
     try {
-      const response = await fetch(`/api/knowledge-graph/${project}/stats`);
+      const response = await apiFetch(`/api/knowledge-graph/${project}/stats`);
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -289,7 +290,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
     if (!project) return;
 
     try {
-      const response = await fetch(`/api/knowledge-graph/${project}/entity-schema`);
+      const response = await apiFetch(`/api/knowledge-graph/${project}/entity-schema`);
       if (response.ok) {
         const data = await response.json();
         setEntitySchema(data.schema || '');
@@ -303,7 +304,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
     if (!project) return;
 
     try {
-      const response = await fetch(`/api/knowledge-graph/${project}/extraction-prompt`);
+      const response = await apiFetch(`/api/knowledge-graph/${project}/extraction-prompt`);
       if (response.ok) {
         const data = await response.json();
         setExtractionPrompt(data.prompt || '');
@@ -321,7 +322,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
     setSchemaSuccess(false);
 
     try {
-      const response = await fetch(`/api/knowledge-graph/${project}/entity-schema`, {
+      const response = await apiFetch(`/api/knowledge-graph/${project}/entity-schema`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schema: entitySchema })
@@ -348,7 +349,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
     setSchemaSuccess(false);
 
     try {
-      const response = await fetch(`/api/knowledge-graph/${project}/extraction-prompt`, {
+      const response = await apiFetch(`/api/knowledge-graph/${project}/extraction-prompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: extractionPrompt })
@@ -380,7 +381,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
 
     try {
       // First, translate to SPARQL
-      const translateResponse = await fetch(`/api/knowledge-graph/${project}/translate/sparql`, {
+      const translateResponse = await apiFetch(`/api/knowledge-graph/${project}/translate/sparql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: naturalLanguageQuery })
@@ -394,7 +395,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
       setSparqlQuery(generatedSparql);
 
       // Execute the SPARQL query
-      const searchResponse = await fetch(`/api/knowledge-graph/${project}/search/sparql`, {
+      const searchResponse = await apiFetch(`/api/knowledge-graph/${project}/search/sparql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: generatedSparql })
@@ -421,7 +422,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/knowledge-graph/${project}/search/sparql`, {
+      const response = await apiFetch(`/api/knowledge-graph/${project}/search/sparql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: sparqlQuery })
@@ -447,7 +448,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/knowledge-graph/${project}/search/vector`, {
+      const response = await apiFetch(`/api/knowledge-graph/${project}/search/vector`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -488,7 +489,7 @@ export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
 
     try {
       // Parse markdown and upload to vector store (handles both entity extraction and storage)
-      const parseResponse = await fetch(`/api/knowledge-graph/${project}/parse-markdown`, {
+      const parseResponse = await apiFetch(`/api/knowledge-graph/${project}/parse-markdown`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -582,7 +583,7 @@ SELECT ?document WHERE {
   ?document kg:contains <${entityUri}> .
 }`;
 
-      const response = await fetch(`/api/knowledge-graph/${project}/search/sparql`, {
+      const response = await apiFetch(`/api/knowledge-graph/${project}/search/sparql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: sparqlQuery })
@@ -635,7 +636,7 @@ SELECT ?document WHERE {
       const documentId = docIdMatch[1];
 
       // Fetch the document content from vector store
-      const docResponse = await fetch(`/api/knowledge-graph/${project}/documents/${documentId}`);
+      const docResponse = await apiFetch(`/api/knowledge-graph/${project}/documents/${documentId}`);
 
       if (!docResponse.ok) {
         throw new Error('Failed to fetch document content');

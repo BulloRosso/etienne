@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { MemoriesService } from './memories.service';
+import { Roles } from '../auth/roles.decorator';
 
 interface AddMemoryDto {
   messages: Array<{ role: string; content: string }>;
@@ -21,6 +22,7 @@ export class MemoriesController {
    * POST /api/memories/
    * Add memories from conversation
    */
+  @Roles('user')
   @Post()
   async addMemories(
     @Query('project') projectName: string,
@@ -33,6 +35,7 @@ export class MemoriesController {
    * POST /api/memories/search/
    * Search for relevant memories
    */
+  @Roles('user')
   @Post('search')
   async searchMemories(
     @Query('project') projectName: string,
@@ -56,6 +59,7 @@ export class MemoriesController {
    * PUT /api/memories/extraction-prompt
    * Save a custom extraction prompt for a project
    */
+  @Roles('user')
   @Put('extraction-prompt')
   async saveExtractionPrompt(
     @Query('project') projectName: string,
@@ -68,6 +72,7 @@ export class MemoriesController {
    * DELETE /api/memories/extraction-prompt
    * Reset extraction prompt to default
    */
+  @Roles('user')
   @Delete('extraction-prompt')
   async resetExtractionPrompt(
     @Query('project') projectName: string,
@@ -90,6 +95,7 @@ export class MemoriesController {
    * PUT /api/memories/settings
    * Save memory settings for a project
    */
+  @Roles('user')
   @Put('settings')
   async saveSettings(
     @Query('project') projectName: string,
@@ -116,6 +122,7 @@ export class MemoriesController {
    * DELETE /api/memories/:memory_id/
    * Delete a specific memory
    */
+  @Roles('user')
   @Delete(':memory_id')
   async deleteMemory(
     @Query('project') projectName: string,
@@ -129,6 +136,7 @@ export class MemoriesController {
    * DELETE /api/memories/
    * Delete all memories for a user
    */
+  @Roles('admin')
   @Delete()
   async deleteAllMemories(
     @Query('project') projectName: string,

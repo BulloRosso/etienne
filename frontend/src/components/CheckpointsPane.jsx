@@ -25,7 +25,7 @@ import { IoMdAdd, IoIosGitNetwork } from 'react-icons/io';
 import { IoShieldCheckmark } from 'react-icons/io5';
 import { RiDeleteBinLine } from 'react-icons/ri';
 import { VscDiscard } from 'react-icons/vsc';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 import ComplianceReleaseWizard from './ComplianceReleaseWizard';
 
@@ -88,7 +88,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     setError(null);
 
     try {
-      const response = await axios.get(`${API_BASE}/api/checkpoints/${projectName}/list`);
+      const response = await apiAxios.get(`${API_BASE}/api/checkpoints/${projectName}/list`);
       if (response.data.success) {
         setCheckpoints(response.data.checkpoints || []);
       } else {
@@ -106,7 +106,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
 
     setChangesLoading(true);
     try {
-      const response = await axios.get(`${API_BASE}/api/checkpoints/${projectName}/changes`);
+      const response = await apiAxios.get(`${API_BASE}/api/checkpoints/${projectName}/changes`);
       if (response.data.success) {
         setChanges(response.data.changes || []);
       }
@@ -126,7 +126,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     setError(null);
 
     try {
-      const response = await axios.post(`${API_BASE}/api/checkpoints/${projectName}/create`, {
+      const response = await apiAxios.post(`${API_BASE}/api/checkpoints/${projectName}/create`, {
         message: newCheckpointMessage
       });
 
@@ -151,7 +151,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     setError(null);
 
     try {
-      const response = await axios.post(`${API_BASE}/api/checkpoints/${projectName}/restore`, {
+      const response = await apiAxios.post(`${API_BASE}/api/checkpoints/${projectName}/restore`, {
         commitHash: selectedCheckpoint.gitId
       });
 
@@ -179,7 +179,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     setError(null);
 
     try {
-      const response = await axios.delete(
+      const response = await apiAxios.delete(
         `${API_BASE}/api/checkpoints/${projectName}/${selectedCheckpoint.gitId}`
       );
 
@@ -204,7 +204,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     setError(null);
 
     try {
-      const response = await axios.post(`${API_BASE}/api/checkpoints/${projectName}/discard`, {
+      const response = await apiAxios.post(`${API_BASE}/api/checkpoints/${projectName}/discard`, {
         path: filePath
       });
 
@@ -230,7 +230,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     // Load files changed in this commit
     setCommitFilesLoading(true);
     try {
-      const response = await axios.get(
+      const response = await apiAxios.get(
         `${API_BASE}/api/checkpoints/${projectName}/commit-files/${checkpoint.gitId}`
       );
       if (response.data.success) {
@@ -254,7 +254,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     setComplianceLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/compliance/${projectName}/status`);
+      const response = await apiAxios.get(`${API_BASE}/api/compliance/${projectName}/status`);
       setComplianceStatus(response.data);
       setComplianceWizardOpen(true);
     } catch (err) {
@@ -273,7 +273,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
     setConnectionLoading(true);
     setConnectionStatus(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/checkpoints/connection-check`);
+      const response = await apiAxios.get(`${API_BASE}/api/checkpoints/connection-check`);
       setConnectionStatus(response.data);
     } catch (err) {
       setConnectionStatus({

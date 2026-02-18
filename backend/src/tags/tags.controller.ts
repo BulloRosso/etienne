@@ -11,6 +11,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { TagsService, TagInfo } from './tags.service';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/workspace/:projectName/tags')
 export class TagsController {
@@ -63,6 +64,7 @@ export class TagsController {
    * Add tags to a file
    * Body: { path: string, tags: string[] }
    */
+  @Roles('user')
   @Post('file')
   @HttpCode(HttpStatus.OK)
   async addTagsToFile(
@@ -79,6 +81,7 @@ export class TagsController {
    * Remove tags from a file
    * Body: { path: string, tags: string[] }
    */
+  @Roles('user')
   @Delete('file')
   @HttpCode(HttpStatus.OK)
   async removeTagsFromFile(
@@ -95,6 +98,7 @@ export class TagsController {
    * Rename a tag across all files
    * Body: { oldTag: string, newTag: string }
    */
+  @Roles('user')
   @Post('rename')
   @HttpCode(HttpStatus.OK)
   async renameTag(
@@ -110,6 +114,7 @@ export class TagsController {
    * DELETE /api/workspace/:project/tags/:tag
    * Delete a tag from all files
    */
+  @Roles('user')
   @Delete(':tag')
   @HttpCode(HttpStatus.OK)
   async deleteTag(

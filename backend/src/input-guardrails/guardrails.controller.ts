@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { IsArray, IsString } from 'class-validator';
 import { GuardrailsService } from './guardrails.service';
+import { Roles } from '../auth/roles.decorator';
 
 class UpdateGuardrailsDto {
   @IsArray()
@@ -32,6 +33,7 @@ export class GuardrailsController {
     }
   }
 
+  @Roles('user')
   @Post(':project/input')
   async updateConfig(
     @Param('project') project: string,

@@ -28,7 +28,7 @@ import {
 import { Add, Delete, ArrowBack } from '@mui/icons-material';
 import { RiRobot2Line } from 'react-icons/ri';
 import Editor from '@monaco-editor/react';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function SubagentConfiguration({ project }) {
@@ -63,7 +63,7 @@ export default function SubagentConfiguration({ project }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/subagents/${project}`);
+      const response = await apiAxios.get(`/api/subagents/${project}`);
       setSubagents(response.data.subagents || []);
     } catch (err) {
       setError('Failed to load subagents');
@@ -75,7 +75,7 @@ export default function SubagentConfiguration({ project }) {
 
   const loadMcpTools = async () => {
     try {
-      const response = await axios.post('/api/claude/mcp/config', {
+      const response = await apiAxios.post('/api/claude/mcp/config', {
         projectName: project
       });
       const mcpServers = response.data.mcpServers || {};
@@ -168,10 +168,10 @@ export default function SubagentConfiguration({ project }) {
 
       if (originalName === '') {
         // Creating new subagent
-        await axios.post(`/api/subagents/${project}`, config);
+        await apiAxios.post(`/api/subagents/${project}`, config);
       } else {
         // Updating existing subagent
-        await axios.put(`/api/subagents/${project}/${originalName}`, config);
+        await apiAxios.put(`/api/subagents/${project}/${originalName}`, config);
       }
 
       setSuccess(true);
@@ -198,7 +198,7 @@ export default function SubagentConfiguration({ project }) {
     if (!subagentToDelete) return;
 
     try {
-      await axios.delete(`/api/subagents/${project}/${subagentToDelete.name}`);
+      await apiAxios.delete(`/api/subagents/${project}/${subagentToDelete.name}`);
       setDeleteDialogOpen(false);
       setSubagentToDelete(null);
 

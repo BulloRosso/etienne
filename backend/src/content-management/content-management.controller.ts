@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ContentManagementService } from './content-management.service';
 import { TagsService } from '../tags/tags.service';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/workspace')
 export class ContentManagementController {
@@ -23,6 +24,7 @@ export class ContentManagementController {
     res.send(content);
   }
 
+  @Roles('user')
   @Delete(':project/files/*')
   async deleteFile(
     @Param('project') project: string,
@@ -38,6 +40,7 @@ export class ContentManagementController {
     return result;
   }
 
+  @Roles('user')
   @Post(':project/files/move')
   async moveFile(
     @Param('project') project: string,
@@ -57,6 +60,7 @@ export class ContentManagementController {
     return result;
   }
 
+  @Roles('user')
   @Put(':project/files/rename')
   async renameFile(
     @Param('project') project: string,
@@ -76,6 +80,7 @@ export class ContentManagementController {
     return result;
   }
 
+  @Roles('user')
   @Put(':project/files/save/*')
   async saveFile(
     @Param('project') project: string,
@@ -85,6 +90,7 @@ export class ContentManagementController {
     return await this.contentManagementService.saveFileContent(project, filepath, body.content);
   }
 
+  @Roles('user')
   @Post(':project/files/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
@@ -99,6 +105,7 @@ export class ContentManagementController {
     );
   }
 
+  @Roles('user')
   @Post(':project/files/create-folder')
   async createFolder(
     @Param('project') project: string,
@@ -110,6 +117,7 @@ export class ContentManagementController {
     );
   }
 
+  @Roles('user')
   @Post(':project/attachments/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadAttachment(
@@ -130,6 +138,7 @@ export class ContentManagementController {
     return res.json(config);
   }
 
+  @Roles('user')
   @Post(':project/user-interface')
   async saveUserInterface(
     @Param('project') project: string,
@@ -150,6 +159,7 @@ export class ContentManagementController {
     res.send(content);
   }
 
+  @Roles('user')
   @Post(':project/project-history')
   async appendProjectHistory(
     @Param('project') project: string,
@@ -172,6 +182,7 @@ export class ContentManagementController {
     return res.json(config);
   }
 
+  @Roles('user')
   @Post(':project/workbench')
   async saveWorkbench(
     @Param('project') project: string,

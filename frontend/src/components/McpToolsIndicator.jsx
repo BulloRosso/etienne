@@ -5,7 +5,7 @@ import {
   CircularProgress, Button
 } from '@mui/material';
 import { Build } from '@mui/icons-material';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function McpToolsIndicator({ projectName }) {
@@ -29,7 +29,7 @@ export default function McpToolsIndicator({ projectName }) {
 
   const loadMcpConfig = async () => {
     try {
-      const response = await axios.post('/api/claude/mcp/config', {
+      const response = await apiAxios.post('/api/claude/mcp/config', {
         projectName
       });
       setMcpServers(response.data.mcpServers || {});
@@ -51,7 +51,7 @@ export default function McpToolsIndicator({ projectName }) {
     setToolsLoading(true);
 
     try {
-      const response = await axios.post('/api/mcp-registry/list-tools', {
+      const response = await apiAxios.post('/api/mcp-registry/list-tools', {
         url: config.url,
         headers: config.headers
       });

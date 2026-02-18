@@ -22,7 +22,7 @@ import {
   Divider
 } from '@mui/material';
 import { Add, Edit, Delete, Close, Visibility } from '@mui/icons-material';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -60,7 +60,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
   const loadContexts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/workspace/${projectName}/contexts`);
+      const response = await apiAxios.get(`/api/workspace/${projectName}/contexts`);
       setContexts(response.data || []);
       setError(null);
     } catch (err) {
@@ -96,7 +96,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
 
     try {
       setLoading(true);
-      await axios.delete(`/api/workspace/${projectName}/contexts/${contextId}`);
+      await apiAxios.delete(`/api/workspace/${projectName}/contexts/${contextId}`);
       await loadContexts();
       setError(null);
     } catch (err) {
@@ -110,7 +110,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
   const handlePreview = async (contextId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/workspace/${projectName}/contexts/${contextId}/scope`);
+      const response = await apiAxios.get(`/api/workspace/${projectName}/contexts/${contextId}/scope`);
       setPreviewScope(response.data);
       setError(null);
     } catch (err) {
@@ -152,10 +152,10 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
       setLoading(true);
       if (editingContext) {
         // Update existing context
-        await axios.put(`/api/workspace/${projectName}/contexts/${editingContext.id}`, contextData);
+        await apiAxios.put(`/api/workspace/${projectName}/contexts/${editingContext.id}`, contextData);
       } else {
         // Create new context
-        await axios.post(`/api/workspace/${projectName}/contexts`, contextData);
+        await apiAxios.post(`/api/workspace/${projectName}/contexts`, contextData);
       }
 
       await loadContexts();

@@ -3,6 +3,7 @@ import { Box, CircularProgress, Typography, Paper, Dialog, DialogTitle, DialogCo
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { ToolCallMessage } from './StructuredMessage';
+import { apiFetch, authSSEUrl } from '../services/api';
 
 /**
  * ResearchDocument Component
@@ -58,7 +59,7 @@ export default function ResearchDocument({ input, output, projectName }) {
   // Check if output file exists
   const checkFileExists = async () => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/deep-research/${encodeURIComponent(projectName)}/file-exists/${output}`
       );
       const data = await response.json();
@@ -72,7 +73,7 @@ export default function ResearchDocument({ input, output, projectName }) {
   // Fetch markdown content and check if it has substantial content
   const fetchMarkdownContent = async () => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/workspace/${encodeURIComponent(projectName)}/files/${output}`
       );
 
@@ -149,7 +150,7 @@ export default function ResearchDocument({ input, output, projectName }) {
 
     console.log('Connecting to research event stream:', projectName);
     const eventSource = new EventSource(
-      `/api/deep-research/${encodeURIComponent(projectName)}/stream`
+      authSSEUrl(`/api/deep-research/${encodeURIComponent(projectName)}/stream`)
     );
 
     // Helper to check if event is for this research session (by output file)
@@ -470,7 +471,7 @@ export default function ResearchDocument({ input, output, projectName }) {
       formData.append('file', new Blob([content], { type: 'application/json' }));
       formData.append('filepath', filepath);
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/workspace/${encodeURIComponent(projectName)}/files/upload`,
         {
           method: 'POST',

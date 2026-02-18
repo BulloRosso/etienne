@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { ProcessManagerService } from './process-manager.service';
+import { Roles } from '../auth/roles.decorator';
 
 interface ServiceActionDto {
   action: 'start' | 'stop';
@@ -33,6 +34,7 @@ export class ProcessManagerController {
    * Starts or stops a service based on the action in the request body
    * Body: { action: 'start' | 'stop' }
    */
+  @Roles('admin')
   @Post(':serviceName')
   async controlService(
     @Param('serviceName') serviceName: string,

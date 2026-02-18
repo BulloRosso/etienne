@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Delete, Body, Param, Query, HttpCode } from '@nestjs/common';
+import { Roles } from '../../auth/roles.decorator';
 import { SearchService } from './search.service';
 import {
   CreateDocumentDto,
@@ -15,6 +16,7 @@ export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
   @Post('documents')
+  @Roles('user')
   async createDocument(@Param('project') project: string, @Body() dto: CreateDocumentDto) {
     return this.searchService.createDocument(project, dto);
   }
@@ -30,11 +32,13 @@ export class SearchController {
   }
 
   @Delete('documents/:id')
+  @Roles('user')
   async deleteDocument(@Param('project') project: string, @Param('id') id: string) {
     return this.searchService.deleteDocument(project, id);
   }
 
   @Post('entities')
+  @Roles('user')
   async createEntity(@Param('project') project: string, @Body() dto: CreateEntityDto) {
     return this.searchService.createEntity(project, dto);
   }
@@ -50,11 +54,13 @@ export class SearchController {
   }
 
   @Delete('entities/:id')
+  @Roles('user')
   async deleteEntity(@Param('project') project: string, @Param('id') id: string) {
     return this.searchService.deleteEntity(project, id);
   }
 
   @Post('relationships')
+  @Roles('user')
   async createRelationship(@Param('project') project: string, @Body() dto: CreateRelationshipDto) {
     return this.searchService.createRelationship(project, dto);
   }
@@ -95,6 +101,7 @@ export class SearchController {
   }
 
   @Post('parse-markdown')
+  @Roles('user')
   @HttpCode(200)
   async parseMarkdown(@Param('project') project: string, @Body() dto: ParseMarkdownDto) {
     return this.searchService.parseMarkdown(project, dto.content, dto.sourceDocument, dto.useGraphLayer);
@@ -106,6 +113,7 @@ export class SearchController {
   }
 
   @Post('entity-schema')
+  @Roles('user')
   @HttpCode(200)
   async saveEntitySchema(@Param('project') project: string, @Body() body: { schema: string }) {
     return this.searchService.saveEntitySchema(project, body.schema);
@@ -117,6 +125,7 @@ export class SearchController {
   }
 
   @Post('extraction-prompt')
+  @Roles('user')
   @HttpCode(200)
   async saveExtractionPrompt(@Param('project') project: string, @Body() body: { prompt: string }) {
     return this.searchService.saveExtractionPrompt(project, body.prompt);

@@ -6,6 +6,7 @@ import {
 import { Close, Settings } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function CodingAgentConfigDialog({ open, onClose }) {
   const { mode: themeMode } = useThemeMode();
@@ -29,8 +30,8 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
     setSuccess('');
     try {
       const [claudeRes, codexRes] = await Promise.all([
-        fetch('/api/coding-agent-configuration/anthropic'),
-        fetch('/api/coding-agent-configuration/openai'),
+        apiFetch('/api/coding-agent-configuration/anthropic'),
+        apiFetch('/api/coding-agent-configuration/openai'),
       ]);
       const claudeData = await claudeRes.json();
       const codexData = await codexRes.json();
@@ -50,7 +51,7 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
     setError('');
     setSuccess('');
     try {
-      const res = await fetch(`/api/coding-agent-configuration/${agentType}`, {
+      const res = await apiFetch(`/api/coding-agent-configuration/${agentType}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
@@ -77,8 +78,8 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
     setError('');
     setSuccess('');
     try {
-      await fetch(`/api/coding-agent-configuration/${agentType}`, { method: 'DELETE' });
-      const res = await fetch(`/api/coding-agent-configuration/${agentType}`);
+      await apiFetch(`/api/coding-agent-configuration/${agentType}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/coding-agent-configuration/${agentType}`);
       const data = await res.json();
       if (activeTab === 0) {
         setClaudeContent(data.content || '');

@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { safeRoot } from '../claude/utils/path.utils';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/sessions')
 export class SessionsController {
@@ -73,6 +74,7 @@ export class SessionsController {
     }
   }
 
+  @Roles('user')
   @Post(':projectname/:sessionId/context')
   async setActiveContext(
     @Param('projectname') projectname: string,

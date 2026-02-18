@@ -19,7 +19,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { Add, Delete, Edit as EditIcon, Check, Close, Key } from '@mui/icons-material';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function MCPServerConfiguration({ projectName, showBackgroundInfo }) {
@@ -59,7 +59,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post('/api/claude/mcp/config', {
+      const response = await apiAxios.post('/api/claude/mcp/config', {
         projectName
       });
       const loadedServers = response.data.mcpServers || {};
@@ -78,7 +78,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     setError(null);
     setSuccess(false);
     try {
-      await axios.post('/api/claude/mcp/config/save', {
+      await apiAxios.post('/api/claude/mcp/config/save', {
         projectName,
         mcpServers: servers
       });

@@ -4,6 +4,7 @@ import { TbCloudDataConnection } from 'react-icons/tb';
 import { IoClose } from 'react-icons/io5';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { apiFetch } from '../services/api';
 
 export default function HealthToast() {
   const [error, setError] = useState(null);
@@ -14,7 +15,7 @@ export default function HealthToast() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch('/api/claude/health', {
+      const response = await apiFetch('/api/claude/health', {
         signal: controller.signal
       });
 

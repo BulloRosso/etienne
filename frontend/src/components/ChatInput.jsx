@@ -4,6 +4,7 @@ import { AttachFile, MicOutlined, Send, InsertDriveFile, Close } from '@mui/icon
 import { BsStopCircle } from 'react-icons/bs';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 import { SlMicrophone } from "react-icons/sl";
 import { GoArrowUp } from "react-icons/go";
 import { GoPlus } from "react-icons/go";
@@ -42,7 +43,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
     }
 
     try {
-      const response = await fetch(`/api/workspace/${currentProject}/search-files?query=${encodeURIComponent(query)}`);
+      const response = await apiFetch(`/api/workspace/${currentProject}/search-files?query=${encodeURIComponent(query)}`);
       if (response.ok) {
         const files = await response.json();
         setSuggestions(files.slice(0, 11)); // Limit to 11 items
@@ -133,7 +134,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`/api/workspace/${currentProject}/attachments/upload`, {
+        const response = await apiFetch(`/api/workspace/${currentProject}/attachments/upload`, {
           method: 'POST',
           body: formData,
         });

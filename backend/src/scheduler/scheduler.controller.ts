@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Param, Body, HttpException, HttpSta
 import { SchedulerService } from './scheduler.service';
 import { TaskDefinitionDto } from './dto/task-definition.dto';
 import { TaskDefinition } from './interfaces/task.interface';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/scheduler')
 export class SchedulerController {
@@ -33,6 +34,7 @@ export class SchedulerController {
     }
   }
 
+  @Roles('user')
   @Post(':project/tasks')
   async saveTasks(
     @Param('project') project: string,
@@ -71,6 +73,7 @@ export class SchedulerController {
     }
   }
 
+  @Roles('user')
   @Post(':project/task')
   async createTask(
     @Param('project') project: string,
@@ -87,6 +90,7 @@ export class SchedulerController {
     }
   }
 
+  @Roles('user')
   @Put(':project/task/:taskId')
   async updateTask(
     @Param('project') project: string,
@@ -104,6 +108,7 @@ export class SchedulerController {
     }
   }
 
+  @Roles('user')
   @Delete(':project/task/:taskId')
   async deleteTask(
     @Param('project') project: string,

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Box, Typography, Chip, TextField, IconButton, Paper } from '@mui/material';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 import { SlMicrophone } from 'react-icons/sl';
 import { GoArrowUp, GoPlus, GoX } from 'react-icons/go';
 import { PiChats, PiFile, PiFileText, PiFilePdf, PiImage } from 'react-icons/pi';
@@ -43,7 +44,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await fetch(`/api/workspace/${currentProject}/attachments/upload`, {
+            const response = await apiFetch(`/api/workspace/${currentProject}/attachments/upload`, {
               method: 'POST',
               body: formData,
             });
@@ -71,7 +72,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
           const timestamp = new Date().toISOString();
           const historyEntry = `## ${timestamp}\n\n${finalMessage}`;
 
-          await fetch(`/api/workspace/${currentProject}/project-history`, {
+          await apiFetch(`/api/workspace/${currentProject}/project-history`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

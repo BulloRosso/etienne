@@ -32,6 +32,7 @@ import * as AiIcons from 'react-icons/ai';
 import * as XLSX from 'xlsx';
 import ScrapbookNodeEdit from './ScrapbookNodeEdit';
 import ColumnSettingsDialog from './ColumnSettingsDialog';
+import { apiFetch } from '../services/api';
 
 // Icon resolver - tries to find icon from various react-icons libraries
 const getIcon = (iconName) => {
@@ -109,7 +110,7 @@ export default function ScrapbookTopics({
     try {
       setLoading(true);
       // Get all nodes with groups to have group info populated
-      const allNodesResponse = await fetch(`/api/workspace/${projectName}/scrapbook/nodes-with-groups`);
+      const allNodesResponse = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes-with-groups`);
       if (allNodesResponse.ok) {
         const allNodes = await allNodesResponse.json();
         // Filter to children of the parent node
@@ -193,7 +194,7 @@ export default function ScrapbookTopics({
   // Handle delete node
   const handleDelete = async (node) => {
     try {
-      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
         method: 'DELETE',
       });
       await fetchChildren();
@@ -254,7 +255,7 @@ export default function ScrapbookTopics({
     if (!contextMenuNode) return;
 
     try {
-      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${contextMenuNode.id}/group`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${contextMenuNode.id}/group`, {
         method: 'DELETE',
       });
       await fetchChildren();
@@ -271,7 +272,7 @@ export default function ScrapbookTopics({
     if (selectedNodeIds.size < 2) return;
 
     try {
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/groups`, {
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -331,7 +332,7 @@ export default function ScrapbookTopics({
     console.log('Saving custom property:', { nodeId: node.id, propertyId, value, updatedCustomProps });
 
     try {
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customProperties: updatedCustomProps }),
@@ -417,7 +418,7 @@ export default function ScrapbookTopics({
       formData.append('file', file);
 
       try {
-        await fetch(
+        await apiFetch(
           `/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images`,
           { method: 'POST', body: formData }
         );

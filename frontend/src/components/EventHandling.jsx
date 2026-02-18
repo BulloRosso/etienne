@@ -42,7 +42,7 @@ import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
 import { PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
 import { FcWorkflow } from 'react-icons/fc';
 import { IoMdNotificationsOutline } from 'react-icons/io';
-import axios from 'axios';
+import { apiAxios, authSSEUrl } from '../services/api';
 import LiveEventsTab from './LiveEventsTab';
 import {
   ActionsTab,
@@ -168,7 +168,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:6060/api/rules/${selectedProject}`);
+      const response = await apiAxios.get(`http://localhost:6060/api/rules/${selectedProject}`);
       if (response.data.success) {
         setRules(response.data.rules || []);
       }
@@ -183,7 +183,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
   useEffect(() => {
     if (!selectedProject) return;
 
-    const sse = new EventSource(`http://localhost:6060/api/events/${selectedProject}/stream`);
+    const sse = new EventSource(authSSEUrl(`http://localhost:6060/api/events/${selectedProject}/stream`));
 
     const addOrUpdateEvent = (newEvent) => {
       setLiveEvents((prev) => {
@@ -284,7 +284,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
     if (!selectedProject) return;
 
     try {
-      const response = await axios.get(`http://localhost:6060/api/external-events/${selectedProject}/status`);
+      const response = await apiAxios.get(`http://localhost:6060/api/external-events/${selectedProject}/status`);
       setServiceStatus(prev => ({
         ...prev,
         mqtt: {
@@ -311,7 +311,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
     try {
       setLoadingEventLog(true);
-      const response = await axios.get(`http://localhost:6060/api/events/${selectedProject}/latest?limit=50`);
+      const response = await apiAxios.get(`http://localhost:6060/api/events/${selectedProject}/latest?limit=50`);
       if (response.data.success) {
         setEventLog(response.data.events || []);
       }
@@ -327,7 +327,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
     if (!selectedProject) return;
 
     try {
-      const response = await axios.get(`http://localhost:6060/api/prompts/${selectedProject}`);
+      const response = await apiAxios.get(`http://localhost:6060/api/prompts/${selectedProject}`);
       if (response.data.success) {
         setPrompts(response.data.prompts || []);
       }
@@ -342,7 +342,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
     if (!selectedProject) return;
 
     try {
-      const response = await axios.get(`http://localhost:6060/api/workspace/${selectedProject}/workflows`);
+      const response = await apiAxios.get(`http://localhost:6060/api/workspace/${selectedProject}/workflows`);
       setWorkflows(response.data || []);
     } catch (error) {
       console.log('Failed to load workflows:', error.message);
@@ -456,9 +456,9 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
     try {
       if (editingRule) {
-        await axios.put(`http://localhost:6060/api/rules/${selectedProject}/${editingRule.id}`, ruleData);
+        await apiAxios.put(`http://localhost:6060/api/rules/${selectedProject}/${editingRule.id}`, ruleData);
       } else {
-        await axios.post(`http://localhost:6060/api/rules/${selectedProject}`, ruleData);
+        await apiAxios.post(`http://localhost:6060/api/rules/${selectedProject}`, ruleData);
       }
       await loadRules();
       handleCloseRuleDialog();
@@ -469,7 +469,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
   const handleToggleRule = async (rule) => {
     try {
-      await axios.put(`http://localhost:6060/api/rules/${selectedProject}/${rule.id}`, {
+      await apiAxios.put(`http://localhost:6060/api/rules/${selectedProject}/${rule.id}`, {
         enabled: !rule.enabled
       });
       await loadRules();
@@ -482,7 +482,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
     if (!confirm('Are you sure you want to delete this rule?')) return;
 
     try {
-      await axios.delete(`http://localhost:6060/api/rules/${selectedProject}/${ruleId}`);
+      await apiAxios.delete(`http://localhost:6060/api/rules/${selectedProject}/${ruleId}`);
       await loadRules();
     } catch (error) {
       console.error('Failed to delete rule:', error);
@@ -519,12 +519,12 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
     try {
       if (editingPrompt) {
-        await axios.put(`http://localhost:6060/api/prompts/${selectedProject}/${editingPrompt.id}`, {
+        await apiAxios.put(`http://localhost:6060/api/prompts/${selectedProject}/${editingPrompt.id}`, {
           title: promptTitle,
           content: promptContent
         });
       } else {
-        await axios.post(`http://localhost:6060/api/prompts/${selectedProject}`, {
+        await apiAxios.post(`http://localhost:6060/api/prompts/${selectedProject}`, {
           title: promptTitle,
           content: promptContent
         });
@@ -540,7 +540,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
     if (!confirm('Are you sure you want to delete this prompt?')) return;
 
     try {
-      await axios.delete(`http://localhost:6060/api/prompts/${selectedProject}/${promptId}`);
+      await apiAxios.delete(`http://localhost:6060/api/prompts/${selectedProject}/${promptId}`);
       await loadPrompts();
     } catch (error) {
       console.error('Failed to delete prompt:', error);

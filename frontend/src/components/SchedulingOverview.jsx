@@ -39,6 +39,7 @@ import { AiOutlineDelete } from 'react-icons/ai';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 const timezones = [
   'UTC',
@@ -205,7 +206,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
 
   const loadTasks = async () => {
     try {
-      const response = await fetch(`/api/scheduler/${project}/tasks`);
+      const response = await apiFetch(`/api/scheduler/${project}/tasks`);
       const data = await response.json();
       setTasks(data.tasks || []);
     } catch (error) {
@@ -215,7 +216,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
 
   const loadHistory = async () => {
     try {
-      const response = await fetch(`/api/scheduler/${project}/history`);
+      const response = await apiFetch(`/api/scheduler/${project}/history`);
       const data = await response.json();
       setHistory(data.history || []);
     } catch (error) {
@@ -270,7 +271,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
   const handleDeleteTask = async (e, taskId) => {
     e.stopPropagation();
     try {
-      await fetch(`/api/scheduler/${project}/task/${taskId}`, {
+      await apiFetch(`/api/scheduler/${project}/task/${taskId}`, {
         method: 'DELETE'
       });
       await loadTasks();
@@ -296,13 +297,13 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
       };
 
       if (editingTask) {
-        await fetch(`/api/scheduler/${project}/task/${editingTask.id}`, {
+        await apiFetch(`/api/scheduler/${project}/task/${editingTask.id}`, {
           method: 'PUT',
           headers: { 'content-type': 'application/json; charset=utf-8' },
           body: JSON.stringify(taskData)
         });
       } else {
-        await fetch(`/api/scheduler/${project}/task`, {
+        await apiFetch(`/api/scheduler/${project}/task`, {
           method: 'POST',
           headers: { 'content-type': 'application/json; charset=utf-8' },
           body: JSON.stringify(taskData)

@@ -27,6 +27,7 @@ import {
 import { TbPlus, TbTrash, TbFolder, TbFolderOpen } from 'react-icons/tb';
 import { PiFile } from 'react-icons/pi';
 import AutoFilePreviewExtensions from './AutoFilePreviewExtensions';
+import { apiFetch } from '../services/api';
 
 const CustomUI = ({ project, onSave }) => {
   const [config, setConfig] = useState({
@@ -65,7 +66,7 @@ const CustomUI = ({ project, onSave }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/workspace/${project}/user-interface`);
+      const response = await apiFetch(`/api/workspace/${project}/user-interface`);
 
       if (response.ok) {
         const data = await response.json();
@@ -94,7 +95,7 @@ const CustomUI = ({ project, onSave }) => {
 
       // Load registered previewers
       try {
-        const previewersRes = await fetch('/api/previewers/configuration');
+        const previewersRes = await apiFetch('/api/previewers/configuration');
         if (previewersRes.ok) {
           const previewersData = await previewersRes.json();
           setRegisteredPreviewers(previewersData.previewers || []);
@@ -105,7 +106,7 @@ const CustomUI = ({ project, onSave }) => {
 
       // Load welcome chat message from assistant.json
       try {
-        const assistantRes = await fetch('/api/claude/assistant', {
+        const assistantRes = await apiFetch('/api/claude/assistant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ projectName: project })
@@ -130,7 +131,7 @@ const CustomUI = ({ project, onSave }) => {
       setError(null);
       setSuccess(false);
 
-      const response = await fetch(`/api/workspace/${project}/user-interface`, {
+      const response = await apiFetch(`/api/workspace/${project}/user-interface`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,7 +147,7 @@ const CustomUI = ({ project, onSave }) => {
               greeting: welcomeChatMessage
             }
           };
-          await fetch('/api/claude/addFile', {
+          await apiFetch('/api/claude/addFile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -220,7 +221,7 @@ const CustomUI = ({ project, onSave }) => {
     try {
       const url = new URL(`/api/workspace/${project}/search-files`, window.location.origin);
       url.searchParams.set('query', '');
-      const response = await fetch(url.toString());
+      const response = await apiFetch(url.toString());
 
       if (response.ok) {
         const data = await response.json();

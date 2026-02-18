@@ -32,7 +32,7 @@ import {
   History
 } from '@mui/icons-material';
 import { RiRobot2Line } from 'react-icons/ri';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 
 const DEFAULT_REGISTRY_URL = 'http://localhost:5600/directory';
@@ -61,7 +61,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/a2a-settings/${encodeURIComponent(projectName)}`);
+      const response = await apiAxios.get(`/api/a2a-settings/${encodeURIComponent(projectName)}`);
       setSettings(response.data);
       setRegistryUrl(response.data.registryUrl || DEFAULT_REGISTRY_URL);
     } catch (err) {
@@ -76,7 +76,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
     setRegistryLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/a2a-settings/registry/fetch?url=${encodeURIComponent(registryUrl)}`);
+      const response = await apiAxios.get(`/api/a2a-settings/registry/fetch?url=${encodeURIComponent(registryUrl)}`);
       setRegistryAgents(response.data.agents || []);
     } catch (err) {
       setError(`Failed to fetch registry: ${err.response?.data?.message || err.message}`);
@@ -91,7 +91,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
     setError(null);
     setSuccess(false);
     try {
-      const response = await axios.post(`/api/a2a-settings/${encodeURIComponent(projectName)}`, newSettings);
+      const response = await apiAxios.post(`/api/a2a-settings/${encodeURIComponent(projectName)}`, newSettings);
       setSettings(response.data);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -105,7 +105,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
 
   const handleToggleAgent = async (agentUrl, enabled) => {
     try {
-      const response = await axios.post(`/api/a2a-settings/${encodeURIComponent(projectName)}/toggle`, {
+      const response = await apiAxios.post(`/api/a2a-settings/${encodeURIComponent(projectName)}/toggle`, {
         agentUrl,
         enabled
       });
@@ -118,7 +118,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
 
   const handleAddAgent = async (agent) => {
     try {
-      const response = await axios.post(`/api/a2a-settings/${encodeURIComponent(projectName)}/agents`, agent);
+      const response = await apiAxios.post(`/api/a2a-settings/${encodeURIComponent(projectName)}/agents`, agent);
       setSettings(response.data);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -130,7 +130,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
 
   const handleRemoveAgent = async (agentUrl) => {
     try {
-      const response = await axios.delete(`/api/a2a-settings/${encodeURIComponent(projectName)}/agents`, {
+      const response = await apiAxios.delete(`/api/a2a-settings/${encodeURIComponent(projectName)}/agents`, {
         data: { agentUrl }
       });
       setSettings(response.data);
@@ -143,7 +143,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
   const handleTestConnection = async (agentUrl) => {
     setTestingAgent(agentUrl);
     try {
-      const response = await axios.post('/api/a2a-settings/test-connection', { agentUrl });
+      const response = await apiAxios.post('/api/a2a-settings/test-connection', { agentUrl });
       setTestResults(prev => ({
         ...prev,
         [agentUrl]: response.data

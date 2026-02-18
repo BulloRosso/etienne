@@ -14,6 +14,7 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { ScrapbookService, ScrapbookNode, CanvasSettings, AlternativeGroup } from './scrapbook.service';
@@ -102,6 +103,7 @@ export class ScrapbookController {
    * Create a new node
    */
   @Post('nodes')
+  @Roles('user')
   @HttpCode(HttpStatus.CREATED)
   async createNode(
     @Param('projectName') projectName: string,
@@ -125,6 +127,7 @@ export class ScrapbookController {
    * Update a node
    */
   @Put('nodes/:nodeId')
+  @Roles('user')
   async updateNode(
     @Param('projectName') projectName: string,
     @Param('nodeId') nodeId: string,
@@ -137,6 +140,7 @@ export class ScrapbookController {
    * Delete a node (and all descendants)
    */
   @Delete('nodes/:nodeId')
+  @Roles('user')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteNode(
     @Param('projectName') projectName: string,
@@ -157,6 +161,7 @@ export class ScrapbookController {
    * Save canvas settings
    */
   @Post('canvas')
+  @Roles('user')
   @HttpCode(HttpStatus.OK)
   async saveCanvasSettings(
     @Param('projectName') projectName: string,
@@ -171,6 +176,7 @@ export class ScrapbookController {
    * @param describe_image - If 'true', uses Claude to describe the image and appends to node description
    */
   @Post('nodes/:nodeId/images')
+  @Roles('user')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
     @Param('projectName') projectName: string,
@@ -226,6 +232,7 @@ export class ScrapbookController {
    * Delete an image from a node
    */
   @Delete('nodes/:nodeId/images/:filename')
+  @Roles('user')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteImage(
     @Param('projectName') projectName: string,
@@ -269,6 +276,7 @@ export class ScrapbookController {
    * Create scrapbook from text using LLM extraction
    */
   @Post('create-from-text')
+  @Roles('user')
   @HttpCode(HttpStatus.CREATED)
   async createFromText(
     @Param('projectName') projectName: string,
@@ -281,6 +289,7 @@ export class ScrapbookController {
    * Update the parent of a node (change or remove connection)
    */
   @Put('nodes/:nodeId/parent')
+  @Roles('user')
   async updateNodeParent(
     @Param('projectName') projectName: string,
     @Param('nodeId') nodeId: string,
@@ -303,6 +312,7 @@ export class ScrapbookController {
    * Assign nodes to a group
    */
   @Post('groups')
+  @Roles('user')
   @HttpCode(HttpStatus.CREATED)
   async assignNodesToGroup(
     @Param('projectName') projectName: string,
@@ -326,6 +336,7 @@ export class ScrapbookController {
    * Remove a node from its group
    */
   @Delete('nodes/:nodeId/group')
+  @Roles('user')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeNodeFromGroup(
     @Param('projectName') projectName: string,

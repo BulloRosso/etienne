@@ -8,6 +8,7 @@ import StreamingTimeline from './StreamingTimeline';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, source = null, sourceMetadata = null }) {
   const isUser = role === 'user';
@@ -26,7 +27,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
 
     setFeedbackSending(true);
     try {
-      const response = await fetch('/api/feedback', {
+      const response = await apiFetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ spanId, feedback: type }),

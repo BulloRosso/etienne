@@ -22,7 +22,7 @@ import {
   AccordionDetails
 } from '@mui/material';
 import { DeleteOutlined, Add, Build, ExpandMore, Close } from '@mui/icons-material';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function McpToolsSelector({
@@ -108,7 +108,7 @@ export default function McpToolsSelector({
     setToolsLoading(true);
 
     try {
-      const response = await axios.post('/api/mcp-registry/list-tools', {
+      const response = await apiAxios.post('/api/mcp-registry/list-tools', {
         url: server.url,
         headers: server.headers
       });

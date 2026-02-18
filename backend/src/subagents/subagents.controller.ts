@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { SubagentsService, SubagentConfig } from './subagents.service';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/subagents')
 export class SubagentsController {
@@ -49,6 +50,7 @@ export class SubagentsController {
     }
   }
 
+  @Roles('user')
   @Post(':project')
   async createSubagent(
     @Param('project') project: string,
@@ -71,6 +73,7 @@ export class SubagentsController {
     }
   }
 
+  @Roles('user')
   @Put(':project/:name')
   async updateSubagent(
     @Param('project') project: string,
@@ -94,6 +97,7 @@ export class SubagentsController {
     }
   }
 
+  @Roles('user')
   @Delete(':project/:name')
   async deleteSubagent(
     @Param('project') project: string,

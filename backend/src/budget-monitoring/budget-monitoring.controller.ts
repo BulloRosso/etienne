@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, Sse } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 import { BudgetMonitoringService, BudgetSettings } from './budget-monitoring.service';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/budget-monitoring')
 export class BudgetMonitoringController {
@@ -21,6 +22,7 @@ export class BudgetMonitoringController {
     return this.service.getSettings(project);
   }
 
+  @Roles('admin')
   @Post(':project/settings')
   async saveSettings(
     @Param('project') project: string,

@@ -13,6 +13,7 @@ import {
 import { Close as CloseIcon, Assignment as PlanIcon } from '@mui/icons-material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { apiFetch } from '../services/api';
 
 /**
  * PlanApprovalModal - Plan Review and Approval Dialog
@@ -39,7 +40,7 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
       setError(null);
 
       // Fetch the plan file content
-      fetch(`/api/content-management/${encodeURIComponent(currentProject)}/files?path=${encodeURIComponent(plan.planFilePath)}`)
+      apiFetch(`/api/content-management/${encodeURIComponent(currentProject)}/files?path=${encodeURIComponent(plan.planFilePath)}`)
         .then(res => {
           if (!res.ok) throw new Error('Failed to load plan file');
           return res.json();

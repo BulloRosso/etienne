@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function JSONViewer({ filename, projectName, className = '', isJsonl = false }) {
   const { mode: themeMode } = useThemeMode();
@@ -17,7 +18,7 @@ export default function JSONViewer({ filename, projectName, className = '', isJs
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/workspace/${encodeURIComponent(projectName)}/files/${filename}?v=${refreshKey}`
       );
 

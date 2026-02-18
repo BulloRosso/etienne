@@ -11,6 +11,7 @@ import {
   Alert
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { apiFetch } from '../services/api';
 
 const defaultValues = {
   ANTHROPIC_API_KEY: '',
@@ -48,7 +49,7 @@ export default function Configuration({ onSave }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/configuration');
+      const response = await apiFetch('/api/configuration');
 
       if (response.status === 404) {
         // No configuration exists, use defaults
@@ -82,7 +83,7 @@ export default function Configuration({ onSave }) {
       setError(null);
       setSuccess(false);
 
-      const response = await fetch('/api/configuration', {
+      const response = await apiFetch('/api/configuration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)

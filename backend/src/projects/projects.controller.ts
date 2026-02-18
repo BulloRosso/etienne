@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 
@@ -19,6 +20,7 @@ export class ProjectsController {
    * Generate an agent name from custom role content using LLM
    */
   @Post('generate-agent-name')
+  @Roles('user')
   async generateAgentName(@Body() body: { customRoleContent: string }) {
     const agentName = await this.projectsService.generateAgentName(body.customRoleContent);
     return { agentName };
@@ -28,6 +30,7 @@ export class ProjectsController {
    * Create a new project with full configuration
    */
   @Post('create')
+  @Roles('user')
   async createProject(@Body() dto: CreateProjectDto) {
     // Validate project name
     if (!/^[a-z0-9-]+$/.test(dto.projectName)) {

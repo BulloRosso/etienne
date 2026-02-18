@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { IoDocumentOutline } from "react-icons/io5";
+import { apiFetch } from '../services/api';
 
 export default function VectorStoreItems({ project }) {
   const [documents, setDocuments] = useState([]);
@@ -32,7 +33,7 @@ export default function VectorStoreItems({ project }) {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/knowledge-graph/${project}/documents`);
+      const response = await apiFetch(`/api/knowledge-graph/${project}/documents`);
       if (response.ok) {
         const data = await response.json();
         setDocuments(data);
@@ -57,7 +58,7 @@ export default function VectorStoreItems({ project }) {
 
     try {
       setDeleting(true);
-      const response = await fetch(`/api/knowledge-graph/${project}/documents/${docId}`, {
+      const response = await apiFetch(`/api/knowledge-graph/${project}/documents/${docId}`, {
         method: 'DELETE'
       });
 

@@ -9,6 +9,7 @@ import {
   IconButton
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
+import { apiFetch } from '../services/api';
 
 const getCurrencySymbol = (currency) => {
   const symbols = {
@@ -42,7 +43,7 @@ export default function BudgetSettings({
     const limitValue = parseFloat(limit) || 0;
 
     try {
-      const response = await fetch(`/api/budget-monitoring/${project}/settings`, {
+      const response = await apiFetch(`/api/budget-monitoring/${project}/settings`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

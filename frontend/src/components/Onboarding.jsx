@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { GoArrowRight } from 'react-icons/go';
 import { marked } from 'marked';
+import { apiFetch } from '../services/api';
 
 // Configure marked to convert line breaks to <br>
 marked.setOptions({
@@ -100,7 +101,7 @@ export default function Onboarding({ onComplete }) {
 
         case 1:
           // Save configuration and validate API key
-          const saveResponse = await fetch('/api/configuration', {
+          const saveResponse = await apiFetch('/api/configuration', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -114,7 +115,7 @@ export default function Onboarding({ onComplete }) {
           }
 
           // Validate the API key
-          const healthResponse = await fetch('/api/claude/health/model');
+          const healthResponse = await apiFetch('/api/claude/health/model');
           const healthData = await healthResponse.json();
 
           if (!healthData.healthy) {
@@ -132,7 +133,7 @@ export default function Onboarding({ onComplete }) {
 
           // Start all services simultaneously (don't wait for each one)
           const startPromises = servicesToStart.map(serviceId =>
-            fetch(`/api/process-manager/${serviceId}`, {
+            apiFetch(`/api/process-manager/${serviceId}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'start' })
@@ -153,7 +154,7 @@ export default function Onboarding({ onComplete }) {
           const checkAllStatuses = async () => {
             const statusPromises = servicesToStart.map(async (serviceId) => {
               try {
-                const statusResponse = await fetch(`/api/process-manager/${serviceId}`);
+                const statusResponse = await apiFetch(`/api/process-manager/${serviceId}`);
                 const statusData = await statusResponse.json();
                 return { serviceId, status: statusData.status, error: null };
               } catch (err) {
@@ -212,7 +213,7 @@ export default function Onboarding({ onComplete }) {
 
         case 3:
           // Create project
-          const createResponse = await fetch('/api/claude/addFile', {
+          const createResponse = await apiFetch('/api/claude/addFile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

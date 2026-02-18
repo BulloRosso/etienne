@@ -14,7 +14,7 @@ import {
   CircularProgress,
   Typography
 } from '@mui/material';
-import axios from 'axios';
+import { apiAxios, authSSEUrl } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function Interceptors({ projectName, showBackgroundInfo }) {
@@ -41,7 +41,7 @@ export default function Interceptors({ projectName, showBackgroundInfo }) {
       const endpoint = mode === 'events'
         ? `/api/interceptors/events/${projectName}`
         : `/api/interceptors/hooks/${projectName}`;
-      const response = await axios.get(endpoint);
+      const response = await apiAxios.get(endpoint);
       const data = mode === 'events' ? response.data.events : response.data.hooks;
       setItems(data || []);
     } catch (err) {
@@ -57,7 +57,7 @@ export default function Interceptors({ projectName, showBackgroundInfo }) {
       esRef.current.close();
     }
 
-    const es = new EventSource(`/api/interceptors/stream/${projectName}`);
+    const es = new EventSource(authSSEUrl(`/api/interceptors/stream/${projectName}`));
     esRef.current = es;
 
     es.addEventListener('interceptor', (e) => {

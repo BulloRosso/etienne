@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Param, Query, Body, Logger } from '@nestjs/common';
 import { StatefulWorkflowsService } from './stateful-workflows.service';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/workspace/:projectName/workflows')
 export class StatefulWorkflowsController {
@@ -41,6 +42,7 @@ export class StatefulWorkflowsController {
     return this.workflowsService.getGraphRepresentation(projectName, workflowId);
   }
 
+  @Roles('user')
   @Post(':workflowId/event')
   async sendEvent(
     @Param('projectName') projectName: string,
@@ -53,6 +55,7 @@ export class StatefulWorkflowsController {
     return this.workflowsService.sendEvent(projectName, workflowId, body.event, body.data);
   }
 
+  @Roles('user')
   @Delete(':workflowId')
   async deleteWorkflow(
     @Param('projectName') projectName: string,

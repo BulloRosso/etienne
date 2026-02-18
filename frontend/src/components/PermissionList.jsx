@@ -15,7 +15,7 @@ import {
   TextField
 } from '@mui/material';
 import { Save, Add, Delete, Edit as EditIcon, Check, Close } from '@mui/icons-material';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function PermissionList({ projectName, showBackgroundInfo }) {
@@ -37,7 +37,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post('/api/claude/permissions', {
+      const response = await apiAxios.post('/api/claude/permissions', {
         projectName
       });
       setAllowedTools(response.data.allowedTools || []);
@@ -54,7 +54,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
     setError(null);
     setSuccess(false);
     try {
-      await axios.post('/api/claude/permissions/save', {
+      await apiAxios.post('/api/claude/permissions/save', {
         projectName,
         allowedTools
       });

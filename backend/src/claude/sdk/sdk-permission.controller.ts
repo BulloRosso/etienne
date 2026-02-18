@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, Logger } from '@nestjs/common';
 import { SdkPermissionService } from './sdk-permission.service';
 import { PermissionResponse } from './sdk-permission.types';
+import { Roles } from '../../auth/roles.decorator';
 
 /**
  * Controller for SDK permission requests
@@ -19,6 +20,7 @@ export class SdkPermissionController {
   /**
    * Handle permission response from frontend
    */
+  @Roles('user')
   @Post('respond')
   async handlePermissionResponse(
     @Body() response: PermissionResponse

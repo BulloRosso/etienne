@@ -38,6 +38,7 @@
     "fs-extra": "^11.3.2",
     "imap": "^0.8.19",
     "js-yaml": "^4.1.0",
+    "jsonwebtoken": "^9.0.3",
     "mailparser": "^3.9.0",
     "mqtt": "^5.14.1",
     "multer": "^2.0.2",
@@ -56,6 +57,7 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/imap": "^0.8.42",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^20.11.17",
     "@types/uuid": "^10.0.0",

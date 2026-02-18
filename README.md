@@ -60,15 +60,34 @@ Etienne extends the system boundary itself by implementing and exposing new inte
 
 Etienne is about turning an agent into infrastructure.
 
+# Securing the Agent against Prompt Injection
 
-# Value Proposition
-Etienne contains all the typical components you would need to recreate the user experience of Claude.ai or the ChatGPT web interface.
+Prompt injection is the #1 security threat to AI agents right now.
+
+When Etienne connects to tools and databases, every user input becomes a potential attack. Malicious prompts can trick it into leaking data, bypassing safety rules, or executing unintended actions.
+
+The solution: 
+A **security gateway** that sits between users and our AI models.
+
+It scans every request real-time, blocking attacks before they reach your systems. Simple concept, but here's the reality most vendors won't share:
+
+Security isn't a one-time fix. New attack patterns emerge daily. 
+
+Effective protection requires:
+✅ Always-on cloud infrastructure (for speed)
+✅ Continuous threat updates (not static rules)
+✅ Active learning (adapting to new risks)
+
+This means your security layer becomes a complex system itself. But that's the cost of staying protected.
 
 <div align="center">
-<img src="/docs/images/what-it-does.jpg" alt="Buy and Build" width="800">
+<img src="/docs/images/prompt-injection-2.jpg" alt="Prompt Injection" width="700">
 </div>
 
-It is called a seed project, because all implementations are functional but minimal. You can start with a working system and tweak/evolve it in any way you want...
+Start your security journey with understanding these services:
+* NeuralTrust API Gateway
+* Google ModelArmorAPI
+* AWS Bedrock Guardrails
 
 ## IT Budget Situation
 This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
@@ -99,12 +118,6 @@ forward-deployed engineers to draft a first solution on-site with the customer.
 The engineer uses Claude code to modify the seed projects (frontend and backend) during breakout sessions. Claude Code in this case is 
 used to modify a claude-code/agents SDK seed projects.
 
-## Architecture
-
-<div align="center">
-<img src="/docs/images/building-blocks.jpg" alt="Architecture Diagram" width="500">
-</div>
-
 ## Live Demonstrations
 
 ### Basic Functionality (Inner Agentic Loop)
@@ -119,8 +132,43 @@ used to modify a claude-code/agents SDK seed projects.
 
 [Understanding Etienne: Complementing Claude Code's Agentic Loop](https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/)
 
+
+
 ## Articles
 <table>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article16.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/formal-guarantees-vs-flexible-composition-choosing-ai-navasardyan-hhf8f/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BYaOWcdYmQTea5Nn4p8LHNg%3D%3D" target="_blank">Formal Guarantees vs. Flexible Composition: Choosing the Right AI Workflow Architecture</a></b>
+    <p style="color:#999"><small>
+  Welcome to the great AI architecture debate of 2026: LLM Event Loops vs. Hierarchical Agent Trees vs. Finite State Machines. Three approaches. Three different answers to the same question: Who should control your workflow - your LLM, your code, or a formal state machine?</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article17.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/why-your-ai-agents-compliance-process-might-secret-ralph-navasardyan-6yxnf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BfrZezl85SnO2qtvbbXaAuQ%3D%3D" target="_blank">Why Your AI Agent's Compliance Process Might Be Your Secret Competitive Advantage</a></b>
+    <p style="color:#999"><small>
+  Etienne takes a different approach. Instead of treating compliance as the annoying thing you do after building something cool, it treats your requirements document as the single source of truth from day one.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article18.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/from-chatbots-colleagues-rbac-engineered-context-ralph-navasardyan-vdsmf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BFcvig7gzTIOhrd18bgWBYQ%3D%3D" target="_blank">From Chatbots to Colleagues: RBAC and Engineered Context as the Missing Layer</a></b>
+    <p style="color:#999"><small>
+  Etienne is designed as a professional collaborator inside a company environment. It operates on private files, inside a workspace that is subdivided into projects, and assumes a clear separation between technical stewardship and business usage. That separation is enforced through RBAC and amplified through deliberate context engineering.</small>
+    </p>
+  </td>
+</tr>
 <tr>
   <td width="220">
     <img src="/docs/images/article1.jpg" width="220"/>
@@ -431,123 +479,8 @@ This outputs a hash like `$2b$10$...` which you copy into the `passwordHash` fie
 
 ## API Endpoints
 
-### ClaudeController (`/api/claude`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/claude/addFile` | POST | Adds a file to a project's workspace. Creates project directories if they don't exist. |
-| `/api/claude/getFile` | GET | Retrieves the content of a specific file from a project. |
-| `/api/claude/listFiles` | GET | Lists all files and directories in a project's subdirectory. |
-| `/api/claude/listProjects` | GET | Returns a list of all available projects in the workspace. |
-| `/api/claude/strategy` | POST | Retrieves the `.claude/CLAUDE.md` strategy/prompt file for a project. |
-| `/api/claude/strategy/save` | POST | Saves the `.claude/CLAUDE.md` strategy/prompt file for a project. |
-| `/api/claude/filesystem` | POST | Returns the complete filesystem tree structure for a project. |
-| `/api/claude/permissions` | POST | Gets the list of allowed tools/permissions for a project. |
-| `/api/claude/permissions/save` | POST | Updates the allowed tools/permissions configuration for a project. |
-| `/api/claude/assistant` | POST | Retrieves the assistant configuration including greeting message. |
-| `/api/claude/chat/history` | POST | Gets the chat history for a project from the persistence layer. |
-| `/api/claude/mcp/config` | POST | Retrieves the MCP server configuration from .mcp.json file. |
-| `/api/claude/mcp/config/save` | POST | Saves MCP server configuration and updates Claude settings accordingly. |
-| `/api/claude/streamPrompt/sdk` | GET (SSE) | Streams Claude Code execution with real-time updates via Server-Sent Events. Supports memory-enabled prompts. |
-
-### InterceptorsController (`/api/interceptors`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/interceptors/in` | POST | Receives interceptor events from Claude Code hooks (PreToolUse, PostToolUse, etc.). |
-| `/api/interceptors/hooks/:project` | GET | Returns all hook events (PreToolUse, PostToolUse) for a specific project. |
-| `/api/interceptors/events/:project` | GET | Returns all general events (Notification, UserPromptSubmit) for a project. |
-| `/api/interceptors/stream/:project` | GET (SSE) | Streams interceptor events in real-time via Server-Sent Events for live UI updates. |
-
-### ContentManagementController (`/api/workspace`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/workspace/:project/files/*` | GET | Retrieves file content from the workspace with appropriate MIME type headers. |
-| `/api/workspace/:project/files/*` | DELETE | Deletes a file or folder from the project workspace. |
-| `/api/workspace/:project/files/move` | POST | Moves a file or folder from source path to destination path. |
-| `/api/workspace/:project/files/rename` | PUT | Renames a file or folder to a new name. |
-| `/api/workspace/:project/files/upload` | POST | Uploads a file to the specified path in the project workspace. |
-| `/api/workspace/:project/files/create-folder` | POST | Creates a new folder at the specified path in the workspace. |
-
-### McpServerController (`/`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/mcp` | ALL | Handles MCP (Model Context Protocol) streamable HTTP transport. Supports GET for SSE connections, POST for messages, DELETE for session termination. |
-| `/sse` | ALL | Legacy SSE transport endpoint for MCP connections. Maintained for backwards compatibility with older MCP clients. |
-
-### MemoriesController (`/api/memories`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/memories` | POST | Extracts and stores memories from conversation messages using OpenAI for fact extraction. Returns added/updated/deleted memories. |
-| `/api/memories/search` | POST | Searches for relevant memories based on a query string. Returns ranked results using keyword matching. |
-| `/api/memories/:user_id` | GET | Retrieves all memories for a user with optional limit. Applies memory decay filter based on configuration. |
-| `/api/memories/:memory_id` | DELETE | Deletes a specific memory by ID for a given user. |
-| `/api/memories` | DELETE | Deletes all memories for a specific user from the project. |
-
-### BudgetMonitoringController (`/api/budget-monitoring`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/budget-monitoring/:project/current` | GET | Returns current accumulated costs, number of requests, and currency for a project. Used to initialize the budget indicator. |
-| `/api/budget-monitoring/:project/all` | GET | Retrieves all cost entries from costs.json, sorted from newest to oldest. Each entry includes timestamp, tokens, request cost, and accumulated costs. |
-| `/api/budget-monitoring/:project/settings` | GET | Gets the budget monitoring settings (enabled status and limit) for a project. |
-| `/api/budget-monitoring/:project/settings` | POST | Saves budget monitoring settings (enabled/disabled and cost limit). Body: `{ enabled: boolean, limit: number }` |
-| `/api/budget-monitoring/:project/stream` | GET (SSE) | Streams real-time budget updates via Server-Sent Events. Emits events whenever costs are tracked after Claude Code responses. |
-
-### SchedulerController (`/api/scheduler`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/scheduler/:project/tasks` | GET | Retrieves all scheduled task definitions for a project. Returns array of tasks with id, name, prompt, cronExpression, and timeZone. |
-| `/api/scheduler/:project/history` | GET | Retrieves task execution history for a project, sorted newest to oldest. Includes timestamp, task name, response, error status, duration, and token usage. |
-| `/api/scheduler/:project/tasks` | POST | Updates the complete list of task definitions for a project. Body: `{ tasks: TaskDefinition[] }` |
-| `/api/scheduler/:project/task/:taskId` | GET | Retrieves a single task definition by its ID. Returns 404 if task not found. |
-| `/api/scheduler/:project/task` | POST | Creates a new scheduled task. Body: `{ id, name, prompt, cronExpression, timeZone }`. Task will be immediately registered with the scheduler. |
-| `/api/scheduler/:project/task/:taskId` | PUT | Updates an existing task by ID. Body: `{ id, name, prompt, cronExpression, timeZone }`. Cron job will be updated dynamically. |
-| `/api/scheduler/:project/task/:taskId` | DELETE | Deletes a task by ID and removes its associated cron job. Returns error if task not found. |
-
-### SessionsController (`/api/sessions`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/sessions/:projectname` | GET | Retrieves all sessions for a project with AI-generated summaries sorted by timestamp (newest first). Returns session metadata including sessionId, timestamp, and summary. Automatically generates missing summaries before returning. |
-| `/api/sessions/:projectname/:sessionId/history` | GET | Retrieves the complete message history for a specific session from the `.etienne/chat.history-<sessionId>.jsonl` file. Returns messages array with timestamps and content. |
-
-### SubagentsController (`/api/subagents`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/subagents/:project` | GET | Lists all subagents configured for a project. Reads from `.claude/agents/*.md` files and returns name, description, tools, model, and system prompt for each. |
-| `/api/subagents/:project/:name` | GET | Retrieves a specific subagent configuration by name. Returns 404 if the subagent file doesn't exist. |
-| `/api/subagents/:project` | POST | Creates a new subagent. Body: `{ name, description, tools?, model?, systemPrompt }`. Creates markdown file with YAML frontmatter in `.claude/agents/` directory. |
-| `/api/subagents/:project/:name` | PUT | Updates an existing subagent configuration. Supports renaming by providing new name in config body. Deletes old file if name changed. |
-| `/api/subagents/:project/:name` | DELETE | Deletes a subagent by removing its configuration file from `.claude/agents/`. Returns error if subagent not found. |
-
-### GuardrailsController (`/api/guardrails`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/guardrails/:project/input` | GET | Retrieves input guardrails configuration from `.etienne/input-guardrails.json`. Returns array of enabled guardrail types (CreditCard, IPAddress, Email, URL, IBAN). |
-| `/api/guardrails/:project/input` | POST | Updates input guardrails configuration. Body: `{ enabled: string[] }`. Enabled array contains guardrail type names to activate for PII detection and redaction. |
-| `/api/guardrails/:project/output` | GET | Retrieves output guardrails configuration from `.etienne/output-guardrails.json`. Returns enabled status, custom prompt, and violations enum array. |
-| `/api/guardrails/:project/output` | POST | Updates output guardrails configuration. Body: `{ enabled?: boolean, prompt?: string, violationsEnum?: string[] }`. Controls post-processing LLM-based content filtering. |
-
-### Knowledge Graph & Vector Store (`/api/knowledge-graph/:project`)
-| Path | Verb | Description |
-|------|------|-------------|
-| `/api/knowledge-graph/:project/documents` | GET | Lists all documents in vector store with metadata (ID, content, embeddings, uploadedAt, graph layer status). |
-| `/api/knowledge-graph/:project/documents` | POST | Stores document in vector database with embedding and metadata. |
-| `/api/knowledge-graph/:project/documents/:id` | GET | Retrieves document by ID from vector store. |
-| `/api/knowledge-graph/:project/documents/:id` | DELETE | Deletes document from vector store by ID. Returns success status and remaining count. |
-| `/api/knowledge-graph/:project/entities` | POST | Creates entity in RDF knowledge graph. |
-| `/api/knowledge-graph/:project/entities/:id` | GET | Retrieves entity by ID from knowledge graph. |
-| `/api/knowledge-graph/:project/entities` | GET | Retrieves entities by type (query param: `type`). |
-| `/api/knowledge-graph/:project/entities/:id` | DELETE | Deletes entity and related vector documents. |
-| `/api/knowledge-graph/:project/entities/:id/relationships` | GET | Retrieves all relationships for a specific entity. |
-| `/api/knowledge-graph/:project/relationships` | POST | Creates relationship between entities in knowledge graph. |
-| `/api/knowledge-graph/:project/search/hybrid` | POST | Performs hybrid search combining vector similarity and SPARQL graph queries. |
-| `/api/knowledge-graph/:project/search/vector` | POST | Vector similarity search using OpenAI embeddings. |
-| `/api/knowledge-graph/:project/search/sparql` | POST | Executes SPARQL query against knowledge graph. |
-| `/api/knowledge-graph/:project/translate/sparql` | POST | Translates natural language to SPARQL using GPT-4. |
-| `/api/knowledge-graph/:project/stats` | GET | Returns statistics (document count, entity count, triple count). |
-| `/api/knowledge-graph/:project/parse-markdown` | POST | Extracts entities from markdown using AI and stores in both vector store and knowledge graph. |
-| `/api/knowledge-graph/:project/entity-schema` | GET | Retrieves custom RDF ontology schema for entity extraction. |
-| `/api/knowledge-graph/:project/entity-schema` | POST | Saves custom RDF ontology schema. Body: `{ schema: string }` |
-| `/api/knowledge-graph/:project/extraction-prompt` | GET | Retrieves custom entity extraction prompt. |
-| `/api/knowledge-graph/:project/extraction-prompt` | POST | Saves custom entity extraction prompt. Body: `{ prompt: string }` |
+* [Full API Reference](api.md)
+* [Live API Documentation](http://localhost:6060/api)
 
 ## Knowledge Base
 

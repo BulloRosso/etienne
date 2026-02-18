@@ -23,6 +23,7 @@ import { Close, DeleteOutline, Edit, Save, UploadFile, InsertDriveFileOutlined, 
 import { GiAtom } from 'react-icons/gi';
 import Editor from '@monaco-editor/react';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function SkillsSettings({ open, onClose, project }) {
   const { mode: themeMode } = useThemeMode();
@@ -45,7 +46,7 @@ export default function SkillsSettings({ open, onClose, project }) {
 
   const loadSkills = async () => {
     try {
-      const response = await fetch(`/api/skills/${project}/all-skills`);
+      const response = await apiFetch(`/api/skills/${project}/all-skills`);
       if (response.ok) {
         const data = await response.json();
         setSkills(data.skills || []);
@@ -57,7 +58,7 @@ export default function SkillsSettings({ open, onClose, project }) {
 
   const loadSkillFiles = async (skillName) => {
     try {
-      const response = await fetch(`/api/skills/${project}/${skillName}/files`);
+      const response = await apiFetch(`/api/skills/${project}/${skillName}/files`);
       if (response.ok) {
         const data = await response.json();
         setSkillFiles(data.files || []);
@@ -76,7 +77,7 @@ export default function SkillsSettings({ open, onClose, project }) {
     formData.append('file', file);
 
     try {
-      const response = await fetch(`/api/skills/${project}/${skillName}/files/upload`, {
+      const response = await apiFetch(`/api/skills/${project}/${skillName}/files/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -98,7 +99,7 @@ export default function SkillsSettings({ open, onClose, project }) {
 
   const handleDeleteFile = async (fileName) => {
     try {
-      const response = await fetch(`/api/skills/${project}/${skillName}/files/${encodeURIComponent(fileName)}`, {
+      const response = await apiFetch(`/api/skills/${project}/${skillName}/files/${encodeURIComponent(fileName)}`, {
         method: 'DELETE',
       });
 
@@ -159,7 +160,7 @@ Show what the expected output should look like.
     const skillProject = typeof skillObj === 'string' ? project : skillObj.project;
 
     try {
-      const response = await fetch(`/api/skills/${skillProject}/${skillName}`);
+      const response = await apiFetch(`/api/skills/${skillProject}/${skillName}`);
       if (response.ok) {
         const data = await response.json();
         setSkillName(skillName);
@@ -176,7 +177,7 @@ Show what the expected output should look like.
   const handleCopySkill = async (skillObj) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/skills/${project}/copy`, {
+      const response = await apiFetch(`/api/skills/${project}/copy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,7 +203,7 @@ Show what the expected output should look like.
 
   const handleDeleteSkill = async (skill) => {
     try {
-      const response = await fetch(`/api/skills/${project}/${skill}`, {
+      const response = await apiFetch(`/api/skills/${project}/${skill}`, {
         method: 'DELETE',
       });
 
@@ -225,7 +226,7 @@ Show what the expected output should look like.
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/skills/${project}`, {
+      const response = await apiFetch(`/api/skills/${project}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

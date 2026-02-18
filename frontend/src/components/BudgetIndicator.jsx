@@ -13,6 +13,7 @@ import {
   TbPercentage90,
   TbPercentage100
 } from 'react-icons/tb';
+import { apiFetch, authSSEUrl } from '../services/api';
 import BudgetOverview from './BudgetOverview';
 
 const getCurrencySymbol = (currency) => {
@@ -52,7 +53,7 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
 
     const fetchCurrentCosts = async () => {
       try {
-        const response = await fetch(`/api/budget-monitoring/${project}/current`);
+        const response = await apiFetch(`/api/budget-monitoring/${project}/current`);
         const data = await response.json();
         setCurrentCosts(data.currentCosts || 0);
         setNumberOfRequests(data.numberOfRequests || 0);
@@ -69,7 +70,7 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
   useEffect(() => {
     if (!project || !budgetSettings?.enabled) return;
 
-    const es = new EventSource(`/api/budget-monitoring/${project}/stream`);
+    const es = new EventSource(authSSEUrl(`/api/budget-monitoring/${project}/stream`));
 
     es.addEventListener('budget-update', (e) => {
       const data = JSON.parse(e.data);

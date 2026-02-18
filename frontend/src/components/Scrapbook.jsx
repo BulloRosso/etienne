@@ -38,6 +38,7 @@ import ScrapbookEdge from './ScrapbookEdge';
 import ScrapbookTopics from './ScrapbookTopics';
 import ScrapbookNodeEdit from './ScrapbookNodeEdit';
 import CreateFromTextDialog from './CreateFromTextDialog';
+import { apiFetch } from '../services/api';
 
 const nodeTypes = {
   scrapbookNode: ScrapbookNode,
@@ -92,7 +93,7 @@ function ScrapbookInner({ projectName, onClose }) {
   // Load canvas settings from backend
   const loadCanvasSettings = useCallback(async () => {
     try {
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/canvas`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/canvas`);
       if (response.ok) {
         const settings = await response.json();
         if (settings) {
@@ -153,7 +154,7 @@ function ScrapbookInner({ projectName, onClose }) {
         // and customProperties/columnConfig when not loaded into state
         let existingSettings = null;
         try {
-          const response = await fetch(`/api/workspace/${projectName}/scrapbook/canvas`);
+          const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/canvas`);
           if (response.ok) {
             existingSettings = await response.json();
           }
@@ -260,7 +261,7 @@ function ScrapbookInner({ projectName, onClose }) {
           columnConfig: columnConfig.length > 0 ? columnConfig : (existingSettings?.columnConfig || []),
         };
 
-        await fetch(`/api/workspace/${projectName}/scrapbook/canvas`, {
+        await apiFetch(`/api/workspace/${projectName}/scrapbook/canvas`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(settings),
@@ -275,7 +276,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const fetchTree = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/tree`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/tree`);
       if (response.ok) {
         const data = await response.json();
         setTree(data);
@@ -293,7 +294,7 @@ function ScrapbookInner({ projectName, onClose }) {
   // Fetch all nodes as flat list with group info
   const fetchAllNodes = useCallback(async () => {
     try {
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes-with-groups`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes-with-groups`);
       if (response.ok) {
         const data = await response.json();
         setAllNodes(data || []);
@@ -401,7 +402,7 @@ function ScrapbookInner({ projectName, onClose }) {
 
     try {
       // Update parent to null (orphan the node)
-      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parentId: null }),
@@ -441,7 +442,7 @@ function ScrapbookInner({ projectName, onClose }) {
     }
 
     try {
-      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parentId: newParentId }),
@@ -1025,7 +1026,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const handleInitializeExample = async () => {
     try {
       setLoading(true);
-      await fetch(`/api/workspace/${projectName}/scrapbook/example-data`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/example-data`, {
         method: 'POST',
       });
       await fetchTree();
@@ -1131,7 +1132,7 @@ function ScrapbookInner({ projectName, onClose }) {
     setOptionsAnchor(null);
 
     try {
-      const response = await fetch(`/api/workspace/${projectName}/scrapbook/describe/${encodeURIComponent(selectedNode.label)}`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/describe/${encodeURIComponent(selectedNode.label)}`);
       if (!response.ok) {
         throw new Error('Failed to fetch agentic view');
       }
@@ -1186,7 +1187,7 @@ function ScrapbookInner({ projectName, onClose }) {
     if (!nodeToDelete) return;
 
     try {
-      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${nodeToDelete.id}`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${nodeToDelete.id}`, {
         method: 'DELETE',
       });
       await fetchTree();
@@ -1207,7 +1208,7 @@ function ScrapbookInner({ projectName, onClose }) {
     if (!node || node.type === 'ProjectTheme') return;
 
     try {
-      await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
         method: 'DELETE',
       });
       await fetchTree();
@@ -1273,7 +1274,7 @@ function ScrapbookInner({ projectName, onClose }) {
     if (editNode && selectedNode && editNode.id === selectedNode.id) {
       // Fetch fresh data for the selected node
       try {
-        const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+        const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
         if (response.ok) {
           const updatedNode = await response.json();
           setSelectedNode(updatedNode);
@@ -1291,7 +1292,7 @@ function ScrapbookInner({ projectName, onClose }) {
     // Update selectedNode if it was the one being edited
     if (editNode && selectedNode && editNode.id === selectedNode.id) {
       try {
-        const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+        const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
         if (response.ok) {
           const updatedNode = await response.json();
           setSelectedNode(updatedNode);
@@ -1535,7 +1536,7 @@ function ScrapbookInner({ projectName, onClose }) {
               // Refresh the selected node to get updated data
               if (selectedNode) {
                 try {
-                  const response = await fetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+                  const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
                   if (response.ok) {
                     const updatedNode = await response.json();
                     setSelectedNode(updatedNode);

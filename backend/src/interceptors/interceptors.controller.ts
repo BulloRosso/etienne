@@ -3,6 +3,7 @@ import { Observable, map } from 'rxjs';
 import { InterceptorsService } from './interceptors.service';
 import { SchedulerService } from '../scheduler/scheduler.service';
 import { GetInterceptorsDto } from './dto';
+import { Public } from '../auth/public.decorator';
 
 @Controller('api/interceptors')
 export class InterceptorsController {
@@ -11,6 +12,7 @@ export class InterceptorsController {
     private readonly schedulerService: SchedulerService
   ) {}
 
+  @Public()
   @Post('in')
   receiveInterceptor(
     @Headers('x-claude-code-project') project: string,

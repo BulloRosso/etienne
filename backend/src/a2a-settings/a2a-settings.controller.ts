@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Param, Body, Query, Logger } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import { A2ASettingsService } from './a2a-settings.service';
 import { UpdateA2ASettingsDto, ToggleAgentDto, AgentCardDto } from './dto/a2a-settings.dto';
 import { safeRoot } from '../claude/utils/path.utils';
@@ -28,6 +29,7 @@ export class A2ASettingsController {
    * Update A2A settings for a project
    */
   @Post(':project')
+  @Roles('user')
   async updateSettings(
     @Param('project') projectName: string,
     @Body() updates: UpdateA2ASettingsDto,
@@ -45,6 +47,7 @@ export class A2ASettingsController {
    * Toggle agent enabled status
    */
   @Post(':project/toggle')
+  @Roles('user')
   async toggleAgent(
     @Param('project') projectName: string,
     @Body() toggleDto: ToggleAgentDto,
@@ -62,6 +65,7 @@ export class A2ASettingsController {
    * Add an agent to the settings
    */
   @Post(':project/agents')
+  @Roles('user')
   async addAgent(
     @Param('project') projectName: string,
     @Body() agent: AgentCardDto,
@@ -79,6 +83,7 @@ export class A2ASettingsController {
    * Remove an agent from the settings
    */
   @Delete(':project/agents')
+  @Roles('user')
   async removeAgent(
     @Param('project') projectName: string,
     @Body() body: { agentUrl: string },

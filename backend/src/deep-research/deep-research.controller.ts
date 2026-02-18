@@ -2,11 +2,13 @@ import { Controller, Post, Get, Param, Body, Sse } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 import { DeepResearchService } from './deep-research.service';
 import { StartResearchDto } from './dto/start-research.dto';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/deep-research')
 export class DeepResearchController {
   constructor(private readonly deepResearchService: DeepResearchService) {}
 
+  @Roles('user')
   @Post(':project/start')
   async startResearch(
     @Param('project') project: string,

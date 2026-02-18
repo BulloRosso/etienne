@@ -28,7 +28,7 @@ import {
   Autocomplete,
 } from '@mui/material';
 import '@vscode/codicons/dist/codicon.css';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 import TagManager from './TagManager';
@@ -88,7 +88,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post('/api/claude/filesystem', { projectName });
+      const response = await apiAxios.post('/api/claude/filesystem', { projectName });
       setTree(response.data.tree || []);
     } catch (err) {
       setError('Failed to load filesystem');
@@ -100,7 +100,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   const loadTags = async () => {
     try {
-      const response = await axios.get(`/api/workspace/${projectName}/tags`);
+      const response = await apiAxios.get(`/api/workspace/${projectName}/tags`);
       setAllTags(response.data || []);
       const tagsMap = {};
       response.data.forEach((tagInfo) => {
@@ -117,9 +117,9 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   const loadReleaseData = async () => {
     try {
-      const statusRes = await axios.get(`/api/compliance/${projectName}/status`);
+      const statusRes = await apiAxios.get(`/api/compliance/${projectName}/status`);
       setReleaseEnabled(!statusRes.data.isInitialRelease);
-      const commentsRes = await axios.get(`/api/compliance/${projectName}/release-comments`);
+      const commentsRes = await apiAxios.get(`/api/compliance/${projectName}/release-comments`);
       setReleaseComments(commentsRes.data || {});
     } catch (err) {
       // Compliance module may not be available — silently ignore
@@ -187,7 +187,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       return;
     }
     try {
-      await axios.put(`/api/workspace/${projectName}/files/rename`, {
+      await apiAxios.put(`/api/workspace/${projectName}/files/rename`, {
         filepath: row.path,
         newName: renameDialog.newName.trim(),
       });
@@ -210,7 +210,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const handleDeleteConfirm = async () => {
     if (!deleteDialog.row) return;
     try {
-      await axios.delete(`/api/workspace/${projectName}/files/${deleteDialog.row.path}`);
+      await apiAxios.delete(`/api/workspace/${projectName}/files/${deleteDialog.row.path}`);
       await loadFilesystem();
       setDeleteDialog({ open: false, row: null });
     } catch (err) {
@@ -247,7 +247,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       return;
     }
     try {
-      await axios.post(`/api/workspace/${projectName}/files/create-folder`, {
+      await apiAxios.post(`/api/workspace/${projectName}/files/create-folder`, {
         folderPath: newFolderDialog.folderName.trim(),
       });
       await loadFilesystem();
@@ -280,7 +280,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         formData.append('file', file);
         const filepath = targetPath ? `${targetPath}/${file.name}` : file.name;
         formData.append('filepath', filepath);
-        await axios.post(`/api/workspace/${projectName}/files/upload`, formData, {
+        await apiAxios.post(`/api/workspace/${projectName}/files/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -302,7 +302,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       : draggedRow.labels[draggedRow.labels.length - 1];
     if (draggedRow.path === destinationPath) return;
     try {
-      await axios.post(`/api/workspace/${projectName}/files/move`, {
+      await apiAxios.post(`/api/workspace/${projectName}/files/move`, {
         sourcePath: draggedRow.path,
         destinationPath,
       });
@@ -375,7 +375,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         formData.append('file', file);
         const filepath = targetPath ? `${targetPath}/${relativePath}` : relativePath;
         formData.append('filepath', filepath);
-        await axios.post(`/api/workspace/${projectName}/files/upload`, formData, {
+        await apiAxios.post(`/api/workspace/${projectName}/files/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }

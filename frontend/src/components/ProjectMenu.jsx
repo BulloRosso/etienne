@@ -44,6 +44,7 @@ import CreateProjectWizard from './CreateProjectWizard';
 import ServiceControlDrawer from './ServiceControlDrawer';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
   const { user, logout, hasRole } = useAuth();
@@ -93,7 +94,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/claude/listProjects');
+      const response = await apiFetch('/api/claude/listProjects');
       const data = await response.json();
       setProjects(data.projects || []);
     } catch (error) {
@@ -103,7 +104,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const fetchTags = async () => {
     try {
-      const response = await fetch(`/api/workspace/${currentProject}/tags`);
+      const response = await apiFetch(`/api/workspace/${currentProject}/tags`);
       const data = await response.json();
       setAllTags(data || []);
     } catch (error) {
@@ -178,7 +179,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const fetchProjectsWithUI = async () => {
     try {
-      const response = await fetch('/api/workspace/projects-with-ui');
+      const response = await apiFetch('/api/workspace/projects-with-ui');
       const data = await response.json();
       setProjectsWithUI(data || []);
     } catch (error) {
@@ -198,7 +199,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     if (!copyFromProject) return;
 
     try {
-      const response = await fetch(`/api/workspace/${copyFromProject}/user-interface`);
+      const response = await apiFetch(`/api/workspace/${copyFromProject}/user-interface`);
       if (response.ok) {
         const config = await response.json();
         // Store for later use after project creation
@@ -214,7 +215,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     // Validate: only lowercase letters, numbers, hyphens, max 30 characters
     if (projectName && /^[a-z0-9-]{1,30}$/.test(projectName)) {
       // Create project by creating a CLAUDE.md file
-      await fetch('/api/claude/addFile', {
+      await apiFetch('/api/claude/addFile', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -227,7 +228,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
       // If customizeUI is enabled and we have a pending config, save it
       if (customizeUI && window._pendingUIConfig) {
         try {
-          await fetch(`/api/workspace/${projectName}/user-interface`, {
+          await apiFetch(`/api/workspace/${projectName}/user-interface`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(window._pendingUIConfig)
@@ -388,7 +389,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     const enabled = event.target.checked;
 
     try {
-      const response = await fetch(`/api/budget-monitoring/${currentProject}/settings`, {
+      const response = await apiFetch(`/api/budget-monitoring/${currentProject}/settings`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

@@ -12,6 +12,8 @@ import {
   UseInterceptors,
   UploadedFiles,
 } from '@nestjs/common';
+import { Roles } from '../../auth/roles.decorator';
+import { Public } from '../../auth/public.decorator';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { CreateEventDto } from '../dto/create-event.dto';
@@ -53,6 +55,7 @@ export class EventsController {
    * to ensure proper route matching in NestJS
    */
   @Post(':project/webhook')
+  @Public()
   @UseInterceptors(AnyFilesInterceptor())
   async receiveWebhook(
     @Param('project') projectName: string,
@@ -154,6 +157,7 @@ export class EventsController {
    * POST /api/events/:project - Ingest an event
    */
   @Post(':project')
+  @Roles('user')
   async ingestEvent(
     @Param('project') projectName: string,
     @Body(ValidationPipe) dto: CreateEventDto,

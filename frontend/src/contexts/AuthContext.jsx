@@ -25,6 +25,13 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Listen for forced logout from API client (e.g. unrecoverable 401)
+  useEffect(() => {
+    const handleForceLogout = () => { clearAuth(); };
+    window.addEventListener('auth:logout', handleForceLogout);
+    return () => window.removeEventListener('auth:logout', handleForceLogout);
+  }, []);
+
   // Check for existing token on mount
   useEffect(() => {
     const checkAuth = async () => {

@@ -5,6 +5,7 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import mermaid from 'mermaid';
+import { apiFetch } from '../services/api';
 
 export default function MermaidViewer({ filename, projectName, className = '' }) {
   const [mermaidContent, setMermaidContent] = useState('');
@@ -30,7 +31,7 @@ export default function MermaidViewer({ filename, projectName, className = '' })
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/workspace/${encodeURIComponent(projectName)}/files/${filename}?v=${refreshKey}`
       );
 

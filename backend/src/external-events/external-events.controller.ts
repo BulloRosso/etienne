@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Param, Body, Logger } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import { ExternalEventsService } from './external-events.service';
 import { MqttBrokerConfigDto, MqttSubscriptionDto } from './dto/mqtt-config.dto';
 import { safeRoot } from '../claude/utils/path.utils';
@@ -22,6 +23,7 @@ export class ExternalEventsController {
   }
 
   @Post(':project/broker-setup')
+  @Roles('user')
   async updateBrokerSetup(
     @Param('project') projectname: string,
     @Body() brokerConfig: MqttBrokerConfigDto,
@@ -36,6 +38,7 @@ export class ExternalEventsController {
   }
 
   @Post(':project/subscriptions')
+  @Roles('user')
   async subscribe(
     @Param('project') projectname: string,
     @Body() subscription: MqttSubscriptionDto,
@@ -54,6 +57,7 @@ export class ExternalEventsController {
   }
 
   @Delete(':project/subscriptions/:topic')
+  @Roles('user')
   async unsubscribe(@Param('project') projectname: string, @Param('topic') topic: string) {
     try {
       const projectRoot = safeRoot(this.hostRoot, projectname);
@@ -97,6 +101,7 @@ export class ExternalEventsController {
   }
 
   @Post(':project/connect')
+  @Roles('user')
   async connect(@Param('project') projectname: string) {
     try {
       const projectRoot = safeRoot(this.hostRoot, projectname);

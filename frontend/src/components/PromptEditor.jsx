@@ -4,6 +4,7 @@ import { Box, Button, CircularProgress, IconButton, Tooltip } from '@mui/materia
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function PromptEditor({ filename, projectName, className = '' }) {
   const { mode: themeMode } = useThemeMode();
@@ -21,7 +22,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/workspace/${encodeURIComponent(projectName)}/files/${filename}?v=${refreshKey}`
       );
 
@@ -51,7 +52,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/workspace/${encodeURIComponent(projectName)}/files/save/${filename}`,
         {
           method: 'PUT',

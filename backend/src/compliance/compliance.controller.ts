@@ -9,6 +9,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import {
   ComplianceService,
   CreateReleaseDto,
@@ -76,6 +77,7 @@ export class ComplianceController {
    * Save/update a release comment for a file
    */
   @Post(':project/release-comments')
+  @Roles('user')
   async saveReleaseComment(
     @Param('project') project: string,
     @Body() dto: ReleaseCommentDto,
@@ -96,6 +98,7 @@ export class ComplianceController {
    * Delete a release comment for a file
    */
   @Delete(':project/release-comments')
+  @Roles('user')
   async deleteReleaseComment(
     @Param('project') project: string,
     @Body() dto: DeleteReleaseCommentDto,
@@ -116,6 +119,7 @@ export class ComplianceController {
    * Create a compliance release
    */
   @Post(':project/release')
+  @Roles('admin')
   async createRelease(
     @Param('project') project: string,
     @Body() dto: CreateReleaseDto,

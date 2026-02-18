@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiFetch } from '../services/api';
 
 const ProjectContext = createContext();
 
@@ -24,7 +25,7 @@ export const ProjectProvider = ({ children }) => {
       if (storedProject) {
         // Verify project exists
         try {
-          const response = await fetch('/api/claude/listProjects');
+          const response = await apiFetch('/api/claude/listProjects');
           const data = await response.json();
           const projects = data.projects || [];
 

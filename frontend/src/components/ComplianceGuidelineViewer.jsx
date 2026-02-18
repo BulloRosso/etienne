@@ -14,6 +14,7 @@ import {
 import { MdClose } from 'react-icons/md';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { apiFetch } from '../services/api';
 
 export default function ComplianceGuidelineViewer({ open, onClose }) {
   const [content, setContent] = useState('');
@@ -30,7 +31,7 @@ export default function ComplianceGuidelineViewer({ open, onClose }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/compliance/guideline');
+      const response = await apiFetch('/api/compliance/guideline');
       if (!response.ok) throw new Error('Failed to load guideline');
       const data = await response.json();
       setContent(data.content);

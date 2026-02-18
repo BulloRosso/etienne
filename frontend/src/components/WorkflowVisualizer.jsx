@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { AccountTree, Refresh } from '@mui/icons-material';
 import WorkflowStateNode from './WorkflowStateNode';
+import { apiFetch } from '../services/api';
 
 const nodeTypes = { workflowState: WorkflowStateNode };
 
@@ -69,7 +70,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     setLoading(true);
     setError(null);
 
-    fetch(`/api/workspace/${encodeURIComponent(projectName)}/workflows`)
+    apiFetch(`/api/workspace/${encodeURIComponent(projectName)}/workflows`)
       .then(res => {
         if (!res.ok) throw new Error(`Failed to load workflows: ${res.status}`);
         return res.json();
@@ -98,8 +99,8 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     const base = `/api/workspace/${encodeURIComponent(projectName)}/workflows/${encodeURIComponent(selectedWorkflowId)}`;
 
     Promise.all([
-      fetch(`${base}/graph`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load graph'))),
-      fetch(`${base}/status`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load status'))),
+      apiFetch(`${base}/graph`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load graph'))),
+      apiFetch(`${base}/status`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load status'))),
     ])
       .then(([graph, status]) => {
         setGraphData(graph);
@@ -162,8 +163,8 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     if (!projectName || !selectedWorkflowId) return;
     const base = `/api/workspace/${encodeURIComponent(projectName)}/workflows/${encodeURIComponent(selectedWorkflowId)}`;
     Promise.all([
-      fetch(`${base}/graph`).then(r => r.json()),
-      fetch(`${base}/status`).then(r => r.json()),
+      apiFetch(`${base}/graph`).then(r => r.json()),
+      apiFetch(`${base}/status`).then(r => r.json()),
     ]).then(([graph, status]) => {
       setGraphData(graph);
       setStatusData(status);

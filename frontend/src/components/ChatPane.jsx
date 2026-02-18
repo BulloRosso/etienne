@@ -14,6 +14,7 @@ import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic' }) {
   const { hasRole } = useAuth();
@@ -58,7 +59,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       url.searchParams.set('project_dir', projectName);
       url.searchParams.set('file_name', '.etienne/ai-model.json');
 
-      const response = await fetch(url.toString());
+      const response = await apiFetch(url.toString());
       if (response.ok) {
         const data = await response.json();
         const config = JSON.parse(data.content);
@@ -111,7 +112,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           token: altModelToken
         };
 
-        await fetch('/api/claude/addFile', {
+        await apiFetch('/api/claude/addFile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -23,6 +23,7 @@ import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 import { buildExtensionMap } from './components/viewerRegistry.jsx';
 import Onboarding from './components/Onboarding';
+import { apiFetch, authSSEUrl } from './services/api';
 
 export default function App() {
   const { currentProject, projectExists, setProject } = useProject();
@@ -101,7 +102,7 @@ export default function App() {
   useEffect(() => {
     const checkConfiguration = async () => {
       try {
-        const response = await fetch('/api/configuration');
+        const response = await apiFetch('/api/configuration');
         if (response.status === 404) {
           // No configuration exists, show onboarding
           setShowConfigurationRequired(true);
@@ -133,7 +134,7 @@ export default function App() {
   useEffect(() => {
     const fetchPreviewers = async () => {
       try {
-        const response = await fetch('/api/previewers/configuration');
+        const response = await apiFetch('/api/previewers/configuration');
         if (response.ok) {
           const data = await response.json();
           setPreviewersConfig(data.previewers || []);
@@ -167,7 +168,7 @@ export default function App() {
     // Fetch any existing pending pairings on mount
     const fetchPendingPairings = async () => {
       try {
-        const res = await fetch('/api/remote-sessions/pairing/pending');
+        const res = await apiFetch('/api/remote-sessions/pairing/pending');
         if (res.ok) {
           const data = await res.json();
           const pairings = data.pairings || [];
@@ -188,7 +189,7 @@ export default function App() {
     fetchPendingPairings();
 
     // Connect to __global__ project for pairing events
-    const es = new EventSource('/api/interceptors/stream/__global__');
+    const es = new EventSource(authSSEUrl('/api/interceptors/stream/__global__'));
     globalInterceptorEsRef.current = es;
 
     es.addEventListener('interceptor', (e) => {
@@ -241,7 +242,7 @@ export default function App() {
 
   const loadTags = async () => {
     try {
-      const response = await fetch(`/api/workspace/${encodeURIComponent(currentProject)}/tags`);
+      const response = await apiFetch(`/api/workspace/${encodeURIComponent(currentProject)}/tags`);
       const data = await response.json();
       setAllTags(data || []);
     } catch (err) {
@@ -251,7 +252,7 @@ export default function App() {
 
   const loadContexts = async () => {
     try {
-      const response = await fetch(`/api/workspace/${encodeURIComponent(currentProject)}/contexts`);
+      const response = await apiFetch(`/api/workspace/${encodeURIComponent(currentProject)}/contexts`);
       const data = await response.json();
       setContexts(data || []);
     } catch (err) {
@@ -261,7 +262,7 @@ export default function App() {
 
   const loadActiveContext = async () => {
     try {
-      const response = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/context`);
+      const response = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/context`);
       const data = await response.json();
       if (data.success) {
         setActiveContextId(data.contextId);
@@ -286,13 +287,13 @@ export default function App() {
     const initializeProject = async () => {
       try {
         // Check if sessions exist
-        const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+        const sessionsRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
         const sessionsData = await sessionsRes.json();
         const hasExistingSessions = sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0;
         setHasSessions(hasExistingSessions);
 
         // Load assistant greeting
-        const assistantRes = await fetch('/api/claude/assistant', {
+        const assistantRes = await apiFetch('/api/claude/assistant', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ projectName: currentProject })
@@ -307,7 +308,7 @@ export default function App() {
           setSessionId(mostRecentSession.sessionId);
 
           // Load the most recent session's history
-          const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${mostRecentSession.sessionId}/history`);
+          const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${mostRecentSession.sessionId}/history`);
           const historyData = await historyRes.json();
           const chatMessages = historyData?.messages || [];
 
@@ -352,7 +353,7 @@ export default function App() {
         }
 
         // Load UI configuration with session info
-        const uiResponse = await fetch(`/api/workspace/${currentProject}/user-interface`);
+        const uiResponse = await apiFetch(`/api/workspace/${currentProject}/user-interface`);
         if (uiResponse.ok) {
           const config = await uiResponse.json();
           setUiConfig(config);
@@ -374,20 +375,20 @@ export default function App() {
         }
 
         // Load budget settings
-        const budgetRes = await fetch(`/api/budget-monitoring/${currentProject}/settings`);
+        const budgetRes = await apiFetch(`/api/budget-monitoring/${currentProject}/settings`);
         const budgetData = await budgetRes.json();
         setBudgetSettings(budgetData || { enabled: false, limit: 0 });
 
         // Check if project has scheduled tasks
-        const tasksRes = await fetch(`/api/scheduler/${currentProject}/tasks`);
+        const tasksRes = await apiFetch(`/api/scheduler/${currentProject}/tasks`);
         const tasksData = await tasksRes.json();
         setHasTasks((tasksData.tasks || []).length > 0);
 
         // Check if public website is available (webserver running on :4000 + /web subdir exists)
         try {
           const [webserverRes, filesRes] = await Promise.all([
-            fetch('/api/process-manager/webserver'),
-            fetch(`/api/claude/listFiles?project_dir=${encodeURIComponent(currentProject)}&sub_dir=.`),
+            apiFetch('/api/process-manager/webserver'),
+            apiFetch(`/api/claude/listFiles?project_dir=${encodeURIComponent(currentProject)}&sub_dir=.`),
           ]);
           const webserverData = await webserverRes.json();
           const filesData = await filesRes.json();
@@ -420,7 +421,7 @@ export default function App() {
       }
 
       console.log(`[SSE] Connecting to /api/interceptors/stream/${currentProject}`);
-      const es = new EventSource(`/api/interceptors/stream/${currentProject}`);
+      const es = new EventSource(authSSEUrl(`/api/interceptors/stream/${currentProject}`));
       interceptorEsRef.current = es;
 
       es.onopen = () => {
@@ -648,7 +649,7 @@ export default function App() {
   const handlePermissionResponse = async (response) => {
     console.log('Sending permission response:', response);
     try {
-      const res = await fetch('/api/claude/permission/respond', {
+      const res = await apiFetch('/api/claude/permission/respond', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -670,7 +671,7 @@ export default function App() {
   const handleQuestionResponse = async (response) => {
     console.log('Sending question response:', response);
     try {
-      const res = await fetch('/api/claude/permission/respond', {
+      const res = await apiFetch('/api/claude/permission/respond', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -692,7 +693,7 @@ export default function App() {
   const handlePlanApprovalResponse = async (response) => {
     console.log('Sending plan approval response:', response);
     try {
-      const res = await fetch('/api/claude/permission/respond', {
+      const res = await apiFetch('/api/claude/permission/respond', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -714,7 +715,7 @@ export default function App() {
   const handlePairingResponse = async (response) => {
     console.log('Sending pairing response:', response);
     try {
-      const res = await fetch('/api/remote-sessions/pairing/respond', {
+      const res = await apiFetch('/api/remote-sessions/pairing/respond', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -736,7 +737,7 @@ export default function App() {
   useEffect(() => {
     if (!currentProject) return;
 
-    const researchEs = new EventSource(`/api/deep-research/${encodeURIComponent(currentProject)}/stream`);
+    const researchEs = new EventSource(authSSEUrl(`/api/deep-research/${encodeURIComponent(currentProject)}/stream`));
 
     researchEs.addEventListener('Research.started', (e) => {
       const data = JSON.parse(e.data);
@@ -794,7 +795,7 @@ export default function App() {
       eventsEsRef.current.close();
     }
 
-    const es = new EventSource(`/api/events/${encodeURIComponent(currentProject)}/stream`);
+    const es = new EventSource(authSSEUrl(`/api/events/${encodeURIComponent(currentProject)}/stream`));
     eventsEsRef.current = es;
 
     es.addEventListener('prompt-execution', async (e) => {
@@ -810,7 +811,7 @@ export default function App() {
       // If no session is currently selected, fetch the most recent session
       if (!sessionId) {
         try {
-          const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+          const sessionsRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
           const sessionsData = await sessionsRes.json();
           if (sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0) {
             sessionId = sessionsData.sessions[0].sessionId;
@@ -829,12 +830,12 @@ export default function App() {
           // Add a small delay to ensure the message is persisted
           await new Promise(resolve => setTimeout(resolve, 500));
 
-          const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
+          const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
           const historyData = await historyRes.json();
           const chatMessages = historyData?.messages || [];
 
           // Load assistant greeting
-          const assistantRes = await fetch('/api/claude/assistant', {
+          const assistantRes = await apiFetch('/api/claude/assistant', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ projectName: currentProject })
@@ -891,7 +892,7 @@ export default function App() {
       // If no session is currently selected, fetch the most recent session
       if (!sessionId) {
         try {
-          const sessionsRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+          const sessionsRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
           const sessionsData = await sessionsRes.json();
           if (sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0) {
             sessionId = sessionsData.sessions[0].sessionId;
@@ -910,12 +911,12 @@ export default function App() {
           // Add a small delay to ensure the message is persisted
           await new Promise(resolve => setTimeout(resolve, 500));
 
-          const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
+          const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
           const historyData = await historyRes.json();
           const chatMessages = historyData?.messages || [];
 
           // Load assistant greeting
-          const assistantRes = await fetch('/api/claude/assistant', {
+          const assistantRes = await apiFetch('/api/claude/assistant', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ projectName: currentProject })
@@ -975,7 +976,7 @@ export default function App() {
 
     const checkSessions = async () => {
       try {
-        const response = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+        const response = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
         const data = await response.json();
         setHasSessions(data.success && data.sessions && data.sessions.length > 0);
       } catch (err) {
@@ -994,7 +995,7 @@ export default function App() {
   useEffect(() => {
     const loadBudgetSettings = async () => {
       try {
-        const response = await fetch(`/api/budget-monitoring/${currentProject}/settings`);
+        const response = await apiFetch(`/api/budget-monitoring/${currentProject}/settings`);
         const settings = await response.json();
         setBudgetSettings(settings || { enabled: false, limit: 0 });
       } catch (err) {
@@ -1012,7 +1013,7 @@ export default function App() {
   const refreshTaskCount = async () => {
     if (!currentProject) return;
     try {
-      const response = await fetch(`/api/scheduler/${currentProject}/tasks`);
+      const response = await apiFetch(`/api/scheduler/${currentProject}/tasks`);
       const data = await response.json();
       setHasTasks((data.tasks || []).length > 0);
     } catch (err) {
@@ -1032,13 +1033,13 @@ export default function App() {
 
     const pollChatRefresh = async () => {
       try {
-        const response = await fetch(`/api/interceptors/chat/${currentProject}`);
+        const response = await apiFetch(`/api/interceptors/chat/${currentProject}`);
         const data = await response.json();
 
         if (data.needsRefresh) {
           console.log('Chat refresh triggered by scheduled task');
           // Reload chat history
-          const historyRes = await fetch('/api/claude/chat/history', {
+          const historyRes = await apiFetch('/api/claude/chat/history', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ projectName: currentProject })
@@ -1047,7 +1048,7 @@ export default function App() {
           const chatMessages = historyData?.messages || [];
 
           // Get assistant greeting
-          const assistantRes = await fetch('/api/claude/assistant', {
+          const assistantRes = await apiFetch('/api/claude/assistant', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ projectName: currentProject })
@@ -1141,7 +1142,7 @@ export default function App() {
         q.searchParams.set('file_name', path);
 
         console.log(`[fetchFile] Attempt ${attempt + 1}/${retries}: ${q.toString()}`);
-        const r = await fetch(q.toString());
+        const r = await apiFetch(q.toString());
 
         if (!r.ok) {
           const errorText = await r.text();
@@ -1240,7 +1241,7 @@ export default function App() {
     setStructuredMessages([]); // Clear previous structured messages
 
     // Ensure project file exists
-    await fetch(`/api/claude/addFile`, {
+    await apiFetch(`/api/claude/addFile`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ project_dir: currentProject, file_name: codingAgent === 'anthropic' ? 'CLAUDE.md' : 'AGENTS.md', file_content: `# ${currentProject}\n` })
@@ -1265,6 +1266,8 @@ export default function App() {
       url.searchParams.set('maxTurns', maxTurns);
     }
 
+    const token = localStorage.getItem('auth_accessToken') || sessionStorage.getItem('auth_accessToken');
+    if (token) url.searchParams.set('token', token);
     const es = new EventSource(url.toString());
     esRef.current = es;
 
@@ -1515,7 +1518,7 @@ export default function App() {
 
       // Refresh sessions list (a new session may have been created)
       if (currentProject) {
-        fetch(`/api/sessions/${encodeURIComponent(currentProject)}`)
+        apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`)
           .then(res => res.json())
           .then(data => {
             setHasSessions(data.success && data.sessions && data.sessions.length > 0);
@@ -1602,7 +1605,7 @@ export default function App() {
   const handleAbort = async () => {
     if (currentProcessId) {
       try {
-        await fetch(`/api/claude/abort/${currentProcessId}`, {
+        await apiFetch(`/api/claude/abort/${currentProcessId}`, {
           method: 'POST'
         });
         esRef.current?.close();
@@ -1624,7 +1627,7 @@ export default function App() {
 
       // Clear the session.id file on the backend
       try {
-        await fetch(`/api/claude/clearSession/${encodeURIComponent(currentProject)}`, {
+        await apiFetch(`/api/claude/clearSession/${encodeURIComponent(currentProject)}`, {
           method: 'POST'
         });
       } catch (err) {
@@ -1633,7 +1636,7 @@ export default function App() {
 
       // Load just the greeting
       try {
-        const assistantRes = await fetch('/api/claude/assistant', {
+        const assistantRes = await apiFetch('/api/claude/assistant', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ projectName: currentProject })
@@ -1660,12 +1663,12 @@ export default function App() {
 
     try {
       // Load session history
-      const historyRes = await fetch(`/api/sessions/${encodeURIComponent(currentProject)}/${newSessionId}/history`);
+      const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${newSessionId}/history`);
       const historyData = await historyRes.json();
       const chatMessages = historyData?.messages || [];
 
       // Load greeting
-      const assistantRes = await fetch('/api/claude/assistant', {
+      const assistantRes = await apiFetch('/api/claude/assistant', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ projectName: currentProject })
@@ -1715,7 +1718,7 @@ export default function App() {
         const workbenchConfig = {
           openTabs: files.map(f => f.path)
         };
-        await fetch(`/api/workspace/${encodeURIComponent(currentProject)}/workbench`, {
+        await apiFetch(`/api/workspace/${encodeURIComponent(currentProject)}/workbench`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(workbenchConfig)
@@ -1733,7 +1736,7 @@ export default function App() {
   // Restore open tabs from workbench.json when project loads
   const restoreWorkbench = async (projectName) => {
     try {
-      const response = await fetch(`/api/workspace/${encodeURIComponent(projectName)}/workbench`);
+      const response = await apiFetch(`/api/workspace/${encodeURIComponent(projectName)}/workbench`);
       if (response.ok) {
         const config = await response.json();
         if (config && config.openTabs && Array.isArray(config.openTabs)) {

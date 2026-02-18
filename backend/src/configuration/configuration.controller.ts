@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
 import { ConfigurationService } from './configuration.service';
 
 interface ConfigurationDto {
@@ -45,6 +46,7 @@ export class ConfigurationController {
    * Saves configuration to .env file and exports to environment
    */
   @Post()
+  @Roles('admin')
   async saveConfiguration(@Body() config: ConfigurationDto): Promise<{ success: boolean; message: string }> {
     try {
       await this.configurationService.saveConfiguration(config);

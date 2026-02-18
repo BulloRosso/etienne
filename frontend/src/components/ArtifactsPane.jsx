@@ -20,6 +20,7 @@ import A2AAgentsIndicator from './A2AAgentsIndicator';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -51,7 +52,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
   useEffect(() => {
     const checkCheckpointsEnabled = async () => {
       try {
-        const response = await fetch('/api/configuration');
+        const response = await apiFetch('/api/configuration');
         if (response.ok) {
           const config = await response.json();
           setCheckpointsEnabled(!!config.CHECKPOINT_PROVIDER);
@@ -95,7 +96,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
       }
 
       try {
-        const response = await fetch(`/api/guardrails/${projectName}/input`);
+        const response = await apiFetch(`/api/guardrails/${projectName}/input`);
         if (response.ok) {
           const data = await response.json();
           setGuardrailsEnabled(data.config?.enabled?.length > 0);

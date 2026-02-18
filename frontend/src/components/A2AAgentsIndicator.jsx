@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Tooltip, Menu, MenuItem, Typography } from '@mui/material';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function A2AAgentsIndicator({ projectName }) {
@@ -19,7 +19,7 @@ export default function A2AAgentsIndicator({ projectName }) {
 
   const loadAgents = async () => {
     try {
-      const response = await axios.get(`/api/a2a-settings/${encodeURIComponent(projectName)}/enabled`);
+      const response = await apiAxios.get(`/api/a2a-settings/${encodeURIComponent(projectName)}/enabled`);
       setAgents(response.data.agents || []);
     } catch (error) {
       console.error('Failed to load A2A agents:', error);

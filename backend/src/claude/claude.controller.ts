@@ -6,6 +6,7 @@ import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.serv
 import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/claude')
 export class ClaudeController {
@@ -24,6 +25,7 @@ export class ClaudeController {
     return (process.env.CODING_AGENT || 'anthropic') === 'openai';
   }
 
+  @Roles('user')
   @Post('addFile')
   addFile(@Body() dto: AddFileDto) { return this.svc.addFile(dto.project_dir, dto.file_name, dto.file_content); }
 
@@ -45,12 +47,14 @@ export class ClaudeController {
   @Post('strategy')
   getStrategy(@Body() dto: GetStrategyDto) { return this.svc.getStrategy(dto.projectName); }
 
+  @Roles('user')
   @Post('strategy/save')
   saveStrategy(@Body() dto: SaveStrategyDto) { return this.svc.saveStrategy(dto.projectName, dto.content); }
 
   @Post('mission')
   getMission(@Body() dto: GetMissionDto) { return this.svc.getMission(dto.projectName); }
 
+  @Roles('user')
   @Post('mission/save')
   saveMission(@Body() dto: SaveMissionDto) { return this.svc.saveMission(dto.projectName, dto.content); }
 
@@ -60,6 +64,7 @@ export class ClaudeController {
   @Post('permissions')
   getPermissions(@Body() dto: GetPermissionsDto) { return this.svc.getPermissions(dto.projectName); }
 
+  @Roles('user')
   @Post('permissions/save')
   savePermissions(@Body() dto: SavePermissionsDto) { return this.svc.savePermissions(dto.projectName, dto.allowedTools); }
 
@@ -72,9 +77,11 @@ export class ClaudeController {
   @Post('mcp/config')
   getMcpConfig(@Body() dto: GetMcpConfigDto) { return this.svc.getMcpConfig(dto.projectName); }
 
+  @Roles('user')
   @Post('mcp/config/save')
   saveMcpConfig(@Body() dto: SaveMcpConfigDto) { return this.svc.saveMcpConfig(dto.projectName, dto.mcpServers); }
 
+  @Roles('user')
   @Sse('streamPrompt')
   streamPrompt(
     @Query('project_dir') projectDir: string,
@@ -89,6 +96,7 @@ export class ClaudeController {
     return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel, memoryEnabledBool, false, maxTurnsNum);
   }
 
+  @Roles('user')
   @Sse('streamPrompt/sdk')
   streamPromptSdk(
     @Query('project_dir') projectDir: string,
@@ -121,6 +129,7 @@ export class ClaudeController {
     );
   }
 
+  @Roles('user')
   @Post('abort/:processId')
   async abortProcess(@Param('processId') processId: string) {
     console.log(`[ClaudeController] Abort request received for process: ${processId}`);
@@ -148,6 +157,7 @@ export class ClaudeController {
     return legacyResult;
   }
 
+  @Roles('user')
   @Post('clearSession/:projectDir')
   async clearSession(@Param('projectDir') projectDir: string) {
     if (this.isCodexActive) {
@@ -156,6 +166,7 @@ export class ClaudeController {
     return this.svc.clearSession(projectDir);
   }
 
+  @Roles('user')
   @Post('unattended/:project')
   async executeUnattendedOperation(
     @Param('project') project: string,

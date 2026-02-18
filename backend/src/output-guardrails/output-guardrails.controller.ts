@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { IsBoolean, IsString, IsArray, IsOptional } from 'class-validator';
 import { OutputGuardrailsService } from './output-guardrails.service';
+import { Roles } from '../auth/roles.decorator';
 
 class UpdateOutputGuardrailsDto {
   @IsBoolean()
@@ -41,6 +42,7 @@ export class OutputGuardrailsController {
     }
   }
 
+  @Roles('user')
   @Post(':project/output')
   async updateConfig(
     @Param('project') project: string,

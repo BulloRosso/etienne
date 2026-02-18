@@ -9,6 +9,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { Roles } from '../../auth/roles.decorator';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { PromptsStorageService, Prompt } from '../core/prompts-storage.service';
 import { randomUUID } from 'crypto';
@@ -58,6 +59,7 @@ export class PromptsController {
   }
 
   @Post(':project')
+  @Roles('user')
   async createPrompt(
     @Param('project') project: string,
     @Body() body: CreatePromptDto,
@@ -84,6 +86,7 @@ export class PromptsController {
   }
 
   @Put(':project/:promptId')
+  @Roles('user')
   async updatePrompt(
     @Param('project') project: string,
     @Param('promptId') promptId: string,
@@ -99,6 +102,7 @@ export class PromptsController {
   }
 
   @Delete(':project/:promptId')
+  @Roles('user')
   async deletePrompt(
     @Param('project') project: string,
     @Param('promptId') promptId: string,

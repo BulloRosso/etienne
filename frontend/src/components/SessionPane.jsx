@@ -3,6 +3,7 @@ import { Box, Drawer, Typography, IconButton, List, ListItem, ListItemIcon, List
 import { IoClose } from 'react-icons/io5';
 import { PiChatsThin } from 'react-icons/pi';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 export default function SessionPane({ open, onClose, projectName, onSessionSelect }) {
   const { mode: themeMode } = useThemeMode();
@@ -24,7 +25,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
 
-      const response = await fetch(`/api/sessions/${encodeURIComponent(projectName)}`, {
+      const response = await apiFetch(`/api/sessions/${encodeURIComponent(projectName)}`, {
         signal: controller.signal
       });
 

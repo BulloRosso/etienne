@@ -12,6 +12,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ContextsService, Context } from './contexts.service';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('api/workspace/:projectName/contexts')
 export class ContextsController {
@@ -71,6 +72,7 @@ export class ContextsController {
    * POST /api/workspace/:project/contexts
    * Create a new context
    */
+  @Roles('user')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createContext(
@@ -85,6 +87,7 @@ export class ContextsController {
    * PUT /api/workspace/:project/contexts/:id
    * Update an existing context
    */
+  @Roles('user')
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   async updateContext(
@@ -106,6 +109,7 @@ export class ContextsController {
    * DELETE /api/workspace/:project/contexts/:id
    * Delete a context
    */
+  @Roles('user')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteContext(

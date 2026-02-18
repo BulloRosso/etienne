@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Logger } from '@nestjs/common';
 import { CodexPermissionService, CodexPermissionResponse } from './codex-permission.service';
+import { Roles } from '../../auth/roles.decorator';
 
 /**
  * Controller for Codex SDK permission/approval requests.
@@ -19,6 +20,7 @@ export class CodexPermissionController {
   /**
    * Handle permission/approval response from frontend
    */
+  @Roles('user')
   @Post('respond')
   async handlePermissionResponse(
     @Body() response: CodexPermissionResponse,

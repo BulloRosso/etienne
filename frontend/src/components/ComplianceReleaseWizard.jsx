@@ -37,6 +37,7 @@ import { MdClose, MdDescription, MdComment } from 'react-icons/md';
 import { IoShieldCheckmark } from 'react-icons/io5';
 import ComplianceGuidelineViewer from './ComplianceGuidelineViewer';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { apiFetch } from '../services/api';
 
 const INITIAL_STEPS = [
   { label: 'Review Requirements' },
@@ -129,7 +130,7 @@ export default function ComplianceReleaseWizard({ open, onClose, projectName, st
   const loadClaudeMd = async () => {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6060';
-      const response = await fetch(`${API_BASE}/api/claude/mission`, {
+      const response = await apiFetch(`${API_BASE}/api/claude/mission`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectName }),
@@ -146,7 +147,7 @@ export default function ComplianceReleaseWizard({ open, onClose, projectName, st
   const saveClaudeMd = async () => {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6060';
-      await fetch(`${API_BASE}/api/claude/mission/save`, {
+      await apiFetch(`${API_BASE}/api/claude/mission/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectName, content: claudeMdContent }),
@@ -277,7 +278,7 @@ git checkout ${previousVersion}
         body.requirementsChangeDescription = requirementsChangeDescription;
       }
 
-      const response = await fetch(`/api/compliance/${projectName}/release`, {
+      const response = await apiFetch(`/api/compliance/${projectName}/release`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

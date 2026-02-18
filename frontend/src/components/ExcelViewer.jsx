@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, Typography, CircularProgress, Alert, Tabs, Tab } from '@mui/material';
 import * as XLSX from 'xlsx';
 import Table from '@wolf-table/table';
+import { apiFetch } from '../services/api';
 import '@wolf-table/table/dist/table.min.css';
 
 // Add custom CSS to override wolf-table fonts
@@ -49,7 +50,7 @@ export default function ExcelViewer({ filename, projectName }) {
         setError(null);
 
         // Fetch the Excel file
-        const response = await fetch(`/api/workspace/${projectName}/files/${filename}`);
+        const response = await apiFetch(`/api/workspace/${projectName}/files/${filename}`);
         if (!response.ok) {
           throw new Error(`Failed to load Excel file: ${response.statusText}`);
         }

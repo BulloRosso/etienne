@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { Add, Close } from '@mui/icons-material';
 import { IoShieldCheckmark } from 'react-icons/io5';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 
 export default function TagManager({
   open,
@@ -63,7 +63,7 @@ export default function TagManager({
 
     try {
       setLoading(true);
-      await axios.post(`/api/workspace/${projectName}/tags/file`, {
+      await apiAxios.post(`/api/workspace/${projectName}/tags/file`, {
         path: filePath,
         tags: [trimmedTag]
       });
@@ -82,7 +82,7 @@ export default function TagManager({
   const handleRemoveTag = async (tagToRemove) => {
     try {
       setLoading(true);
-      await axios.delete(`/api/workspace/${projectName}/tags/file`, {
+      await apiAxios.delete(`/api/workspace/${projectName}/tags/file`, {
         data: {
           path: filePath,
           tags: [tagToRemove]
@@ -107,7 +107,7 @@ export default function TagManager({
     }
     setCommentSaving(true);
     try {
-      await axios.post(`/api/compliance/${projectName}/release-comments`, {
+      await apiAxios.post(`/api/compliance/${projectName}/release-comments`, {
         path: filePath,
         comment: commentText.trim(),
       });
@@ -122,7 +122,7 @@ export default function TagManager({
   const handleDeleteReleaseComment = async () => {
     setCommentSaving(true);
     try {
-      await axios.delete(`/api/compliance/${projectName}/release-comments`, {
+      await apiAxios.delete(`/api/compliance/${projectName}/release-comments`, {
         data: { path: filePath },
       });
       setCommentText('');

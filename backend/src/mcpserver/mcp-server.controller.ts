@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { McpServerFactoryService } from './mcp-server-factory.service';
 import { McpAuthGuard } from './auth.guard';
+import { Public } from '../auth/public.decorator';
 import { randomUUID } from 'crypto';
 import { ElicitationResponse } from './types';
 
@@ -20,6 +21,7 @@ import { ElicitationResponse } from './types';
  * - Query parameter: project
  */
 @Controller()
+@Public()
 @UseGuards(McpAuthGuard)
 export class McpServerController {
   private readonly logger = new Logger(McpServerController.name);

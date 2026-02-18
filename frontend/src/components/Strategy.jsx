@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, Typography } from '@mui/material';
 import { Save } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
-import axios from 'axios';
+import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
@@ -49,7 +49,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post('/api/claude/strategy', {
+      const response = await apiAxios.post('/api/claude/strategy', {
         projectName
       });
       setContent(response.data.content || '');
@@ -66,7 +66,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
     setError(null);
     setSuccess(false);
     try {
-      await axios.post('/api/claude/strategy/save', {
+      await apiAxios.post('/api/claude/strategy/save', {
         projectName,
         content
       });
