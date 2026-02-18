@@ -10,23 +10,13 @@
 <img src="/docs/images/core-functions.jpg" alt="Core Functions" width="500">
 </div> 
 
-Etienne showcases how to attach typical business requirements to an agent harness - with a business workbench user interface:
+Etienne showcases how to attach typical business requirements to a **coding agent harness** in order to enable a non-technical user to interact with the agent using a refined UI.
 
 <div align="center">
 <img src="/docs/images/ui-example.jpg" alt="UI example" width="900">
 </div> 
 
-## Base Technologies
-
-Demonstrates how to use Anthropic Claude Code 2.0 with the **Claude Agent SDK** to build an agent integration layer for **virtual collaborator use cases**.
-
-<div align="center">
-<img src="/docs/images/raw-architecture.jpg" alt="Etienne Logo" width="500">
-</div> 
-
-This repo contains a node.js/nest.js **API backend** and a React/Vite **frontend** (the "head") . 
-
-In production deployments all components will be packaged together into a Docker Container which mounts a workspace folder for data.
+This setupt addresses the use case **business collaborator agent** working on local data.
 
 ## Main Components
 
@@ -90,7 +80,7 @@ Start your security journey with understanding these services:
 * AWS Bedrock Guardrails
 
 ## IT Budget Situation
-This template is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch".
+This project is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch". You should extend/modify it using Claude Code.
 
 <div align="center">
 <img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="700">
@@ -98,25 +88,12 @@ This template is in the middle between "Buy a complete AI agent solution" and "B
 
 It proposes to focus your development efforts on the business layer instead on the AI layer.
 
-## Components in Scope
-Often home-grown AI systems neglect many of the requirements in regard to **observability and usability**.
-
-<div align="center">
-<img src="/docs/images/agent-components.jpg" alt="Agent Components" width="700">
-</div>
-
-This template demonstrates the seamless integration over many base technologies like MCP, git, cron, http proxies and shell scripting.
-
-## Intended Use
-An example for learning the internals, integrations and configuration details of Claude Code combined with the Agent SDK. Best used by
-forward-deployed engineers to draft a first solution on-site with the customer.
+## Extended Use Case
+As a forward deployed engineer you can bring a complete working AI business solution to the meeting with your customer. The Etienne frontend in combination with Claude Code for live modifications allows you to prototype solutions in real-time.
 
 <div align="center">
 <img src="/docs/images/forward-deployed-engineer.jpg" alt="Forward deployed engineer" width="700">
 </div>
-
-The engineer uses Claude code to modify the seed projects (frontend and backend) during breakout sessions. Claude Code in this case is 
-used to modify a claude-code/agents SDK seed projects.
 
 ## Live Demonstrations
 
