@@ -22,12 +22,12 @@ This setup addresses the use case **business collaborator agent** working on loc
 <img src="/docs/images/rbac.jpg" alt="Role based access control" width="900">
 </div> 
 
-Etienne uses different roles to have clear responsibilities defined - it is usually NOT deployed as a personal AI assistant where the admin and the user role would be the same person.
+Etienne uses different **roles to have clear responsibilities defined** - it is usually NOT deployed as a personal AI assistant where the admin and the user role would be the same person.
 
 The following comparison illustrates the conceptual differences between Etienne and OpenClaw as of early 2026:
 
 <div align="center">
-<img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="900">
+<img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="700">
 </div> 
 
 ## Table of Contents
