@@ -480,7 +480,7 @@ This outputs a hash like `$2b$10$...` which you copy into the `passwordHash` fie
 ## API Endpoints
 
 * [Full API Reference](api.md)
-* [Live API Documentation](http://localhost:6060/api)
+* [Live API Documentation (ReDoc)](http://localhost:6060/docs)
 
 ## Knowledge Base
 
