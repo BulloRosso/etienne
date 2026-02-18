@@ -27,7 +27,7 @@ Etienne uses different **roles to have clear responsibilities defined** - it is 
 The following comparison illustrates the conceptual differences between Etienne and OpenClaw as of early 2026:
 
 <div align="center">
-<img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="700">
+<img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="600">
 </div> 
 
 ## Table of Contents
