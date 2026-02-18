@@ -18,6 +18,12 @@ Etienne showcases how to attach typical business requirements to a **coding agen
 
 This setup addresses the use case **business collaborator agent** working on local data.
 
+<div align="center">
+<img src="/docs/images/rbac.jpg" alt="Role basec access control" width="900">
+</div> 
+
+Etienne uses different roles to have clear responsibilities defined - it is usually NOT deployed as a personal AI assistant where the admin and the user role would be the same person.
+
 ## Table of Contents
 
 - [Main Components](#main-components)
