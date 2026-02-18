@@ -23,18 +23,20 @@ This setup addresses the use case **business collaborator agent** working on loc
 - [Main Components](#main-components)
 - [The Agent and the outside World](#the-agent-and-the-outside-world)
 - [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
-  - [IT Budget Situation](#it-budget-situation)
-  - [Extended Use Case](#extended-use-case)
-  - [Live Demonstrations](#live-demonstrations)
-  - [Etienne Articles](#etienne-articles)
-- [SETUP](#setup)
+- [IT Budget Situation](#it-budget-situation)
+- [Extended Use Case: Prototyping together with your Customer](#extended-use-case-prototyping-together-with-your-customer)
+- [Demo Videos](#demo-videos)
+  - [Brainstorming with Etienne](#brainstorming-with-etienne)
+  - [Creating a new project with Etienne](#creating-a-new-project-with-etienne)
+- [Etienne Articles on LinkedIn](#etienne-articles-on-linkedin)
+- [Setup](#setup)
   - [API Keys](#api-keys)
   - [Checkpoints](#checkpoints)
   - [OAuth Server (Authentication)](#oauth-server-authentication)
   - [Starting up the services](#starting-up-the-services)
-- [User Authentication](#user-authentication)
+- [User Authentication in the Frontend UI](#user-authentication-in-the-frontend-ui)
 - [API Endpoints](#api-endpoints)
-- [Knowledge Base](#knowledge-base)
+- [Knowledge Base Feature](#knowledge-base-feature)
   - [Architecture](#architecture)
   - [Entity Extraction & Storage Flow](#entity-extraction--storage-flow)
   - [Customizable Schema & Prompts](#customizable-schema--prompts)
@@ -42,20 +44,8 @@ This setup addresses the use case **business collaborator agent** working on loc
   - [Data Visualization](#data-visualization)
   - [Storage Requirements & Setup](#storage-requirements--setup)
   - [Use Cases](#use-cases)
-- [Dynamic Python MCP Tools](#dynamic-python-mcp-tools)
-  - [Overview](#overview)
-  - [Directory Structure](#directory-structure)
-  - [Python Tool Format](#python-tool-format)
-  - [Tool Naming Convention](#tool-naming-convention)
-  - [Docstring Metadata Format](#docstring-metadata-format)
-  - [Dependency Management](#dependency-management)
-  - [Discovery & Execution Flow](#discovery--execution-flow)
-  - [Hot-Reload Behavior](#hot-reload-behavior)
-  - [Environment Variables](#environment-variables)
-  - [Example: Creating a Tool](#example-creating-a-tool)
-  - [Security Considerations](#security-considerations)
-  - [Agent Skill: create-mcp-tool](#agent-skill-create-mcp-tool)
 - [Context Management / Metadata Layer](#context-management--metadata-layer)
+  - [Why Use Context Management?](#why-use-context-management)
   - [Filesystem Context](#filesystem-context)
   - [Vector Store Context](#vector-store-context)
   - [Knowledge Graph Context](#knowledge-graph-context)
@@ -70,7 +60,12 @@ This setup addresses the use case **business collaborator agent** working on loc
   - [Complementary Features (to the agentic cycle)](#complementary-features-to-the-agentic-cycle)
   - [Other](#other)
 - [File Type Previewers](#file-type-previewers)
+  - [Supported File Types](#supported-file-types)
+  - [How It Works](#how-it-works)
 - [Messenger Integration](#messenger-integration)
+  - [Architecture](#architecture-1)
+  - [Configuration](#configuration-1)
+  - [Usage Guide](#usage-guide)
 - [Maintainer](#maintainer)
 
 ## Main Components
@@ -134,7 +129,7 @@ Start your security journey with understanding these services:
 * Google ModelArmorAPI
 * AWS Bedrock Guardrails
 
-## IT Budget Situation
+# IT Budget Situation
 This project is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch". You should extend/modify it using Claude Code.
 
 <div align="center">
@@ -143,16 +138,16 @@ This project is in the middle between "Buy a complete AI agent solution" and "Bu
 
 It proposes to focus your development efforts on the business layer instead on the AI layer.
 
-## Extended Use Case
+# Extended Use Case: Prototyping together with your Customer
 As a forward deployed engineer you can bring a complete working AI business solution to the meeting with your customer. The Etienne frontend in combination with Claude Code for live modifications allows you to prototype solutions in real-time.
 
 <div align="center">
 <img src="/docs/images/forward-deployed-engineer.jpg" alt="Forward deployed engineer" width="700">
 </div>
 
-## Live Demonstrations
+# Demo Videos
 
-### Brainstorming with Etienne
+## Brainstorming with Etienne
 
 <div align="center">
 <img src="/docs/images/video2-snapshot.jpg" alt="UI Screenshot" width="900">
@@ -160,7 +155,7 @@ As a forward deployed engineer you can bring a complete working AI business solu
 
 [Watch Etienne walking the user through a mindmap creation process](https://youtu.be/cT1jMUM_vtk)
 
-### Creating a new project with Etienne
+## Creating a new project with Etienne
 
 <div align="center">
 <img src="/docs/images/video1-snapshot.jpg" alt="UI Screentho" width="900">
@@ -169,7 +164,7 @@ As a forward deployed engineer you can bring a complete working AI business solu
 [See the basic project settings and how a live website is created from specifications](https://youtu.be/I9aNyB07AaA)
 
 
-## Etienne Articles
+# Etienne Articles on LinkedIn
 <table>
 <tr>
   <td width="220">
@@ -343,9 +338,9 @@ As a forward deployed engineer you can bring a complete working AI business solu
 </tr>
 </table>
 
-## SETUP
+# Setup
 
-### API Keys
+## API Keys
 We use **Anthropic Sonnet 4.5** via console account (default). To use OpenAI models (GPT-5-Codex, GPT-5-mini), configure the LiteLLM proxy.
 
 You need to create an .env file inside the backend directory:
@@ -376,7 +371,7 @@ GITEA_PASSWORD=****
 GITEA_REPO=workspace-checkpoints
 ```
 
-### Checkpoints
+## Checkpoints
 
 The checkpoint feature requires **Gitea** to be installed and running on `localhost:3000`. Checkpoints create versioned backups of your project workspace and store them in a Gitea repository.
 
@@ -416,7 +411,7 @@ The checkpoint system uses environment variables in `.env`:
 
 To switch to the Git provider, set `CHECKPOINT_PROVIDER=git` in your `.env` file.
 
-### OAuth Server (Authentication)
+## OAuth Server (Authentication)
 
 The frontend requires authentication via a lightweight OAuth/JWT server running on port 5950.
 
@@ -449,7 +444,7 @@ Copy the output hash into the `passwordHash` field in `users.json`.
 - Refresh tokens expire after 7 days
 - "Remember me" stores tokens in localStorage; otherwise sessionStorage
 
-### Starting up the services
+## Starting up the services
 
 Start the OAuth server on :5950
 ```
@@ -471,7 +466,7 @@ npm run dev
 ```
 Then **open your browser** with http://localhost:5000
 
-## User Authentication
+# User Authentication in the Frontend UI
 
 The frontend requires authentication before use. You must start the OAuth server manually before accessing the application.
 
@@ -512,16 +507,16 @@ This outputs a hash like `$2b$10$...` which you copy into the `passwordHash` fie
 }
 ```
 
-## API Endpoints
+# API Endpoints 
 
 * [Full API Reference](api.md)
 * [Live API Documentation (ReDoc)](http://localhost:6060/docs)
 
-## Knowledge Base
+# Knowledge Base Feature
 
 The Knowledge Base feature provides a hybrid semantic search system combining **RDF knowledge graphs** and **vector stores** for intelligent information retrieval. It enables storing, querying, and visualizing structured knowledge extracted from documents.
 
-### Architecture
+## Architecture
 
 The system consists of three microservices:
 
@@ -545,7 +540,7 @@ The system consists of three microservices:
    - Persistent storage: `workspace/<project>/knowledge-graph/` (LevelDB files)
    - RESTful API with SPARQL endpoint
 
-### Entity Extraction & Storage Flow
+## Entity Extraction & Storage Flow
 
 Documents uploaded to the Knowledge Base are automatically processed:
 
@@ -558,7 +553,7 @@ Documents uploaded to the Knowledge Base are automatically processed:
 5. **RDF Storage** → Entities and relationships stored as triples via Quadstore HTTP API
 6. **Deduplication** → Entities deduplicated by type and ID before RDF insertion
 
-### Customizable Schema & Prompts
+## Customizable Schema & Prompts
 
 Each project can customize entity extraction behavior:
 
@@ -581,7 +576,7 @@ workspace/<project>/knowledge-graph/
 └── .etienne-extraction-prompt.md    # Entity extraction prompt
 ```
 
-### Query Capabilities
+## Query Capabilities
 
 The Knowledge Base supports multiple query interfaces:
 
@@ -607,7 +602,7 @@ The Knowledge Base supports multiple query interfaces:
    - Provides comprehensive results from both systems
    - Merged and ranked by relevance score
 
-### Data Visualization
+## Data Visualization
 
 The frontend provides an interactive graph visualization:
 
@@ -616,7 +611,7 @@ The frontend provides an interactive graph visualization:
 - **Statistics Dashboard**: Shows entity counts, document counts, and RDF triple counts
 - **Monaco Editor**: Inline SPARQL query editor with syntax highlighting
 
-### Storage Requirements & Setup
+## Storage Requirements & Setup
 
 **Services Required**:
 
@@ -655,7 +650,7 @@ workspace/<project>/knowledge-graph/
 └── *.ldb, *.log               # LevelDB SSTable files (RDF triples)
 ```
 
-### Use Cases
+## Use Cases
 
 - **Document Knowledge Extraction**: Upload research documents, extract entities automatically
 - **Relationship Mapping**: Discover connections between people, companies, and technologies
@@ -663,238 +658,18 @@ workspace/<project>/knowledge-graph/
 - **Graph Queries**: Answer complex questions requiring multi-hop reasoning
 - **Custom Ontologies**: Define domain-specific entity types and relationships
 
-## Dynamic Python MCP Tools
-
-The Dynamic Python MCP Tools feature enables hot-reloadable Python tools that can be created by users or AI agents directly in project directories. These tools are automatically discovered and served through the existing MCP server at `localhost:6060/mcp` without requiring a server restart.
-
-### Overview
-
-This feature follows the same dynamic discovery pattern as the A2A tools: tools are generated per-request based on project context rather than being pre-registered at startup. This enables true hot-reload capability where changes are reflected immediately.
-
-### Directory Structure
-
-Python tools are placed in the `.etienne/tools/` directory within each project:
-
-```
-workspace/<project-name>/
-├── .etienne/
-│   └── tools/                    # Python MCP tools directory
-│       ├── calculator.py         # Example tool
-│       ├── hello_world.py        # Another tool
-│       ├── requirements.txt      # Shared dependencies (auto-installed)
-│       └── .packages/            # Auto-installed pip packages
-└── ...
-```
-
-### Python Tool Format
-
-Each Python tool is a self-contained file with metadata defined in the module docstring:
-
-```python
-#!/usr/bin/env python3
-"""
-MCP Tool: calculator
-Description: Performs basic arithmetic operations (add, subtract, multiply, divide)
-Input Schema:
-    operation:
-        type: string
-        enum: [add, subtract, multiply, divide]
-        description: The arithmetic operation to perform
-        required: true
-    a:
-        type: number
-        description: First operand
-        required: true
-    b:
-        type: number
-        description: Second operand
-        required: true
-"""
-
-import json
-import sys
-
-
-def execute(args: dict) -> dict:
-    """Execute the tool with the given arguments."""
-    operation = args.get("operation")
-    a = float(args.get("a", 0))
-    b = float(args.get("b", 0))
-
-    if operation == "add":
-        result = a + b
-    elif operation == "subtract":
-        result = a - b
-    elif operation == "multiply":
-        result = a * b
-    elif operation == "divide":
-        if b == 0:
-            return {"error": "Division by zero"}
-        result = a / b
-    else:
-        return {"error": f"Unknown operation: {operation}"}
-
-    return {"operation": operation, "a": a, "b": b, "result": result}
-
-
-if __name__ == "__main__":
-    # Read JSON input from stdin, execute, output JSON to stdout
-    input_data = json.loads(sys.stdin.read())
-    result = execute(input_data)
-    print(json.dumps(result))
-```
-
-### Tool Naming Convention
-
-Tools are automatically prefixed with `py_` to avoid conflicts with other MCP tools:
-- File: `calculator.py` → MCP Tool: `py_calculator`
-- File: `hello_world.py` → MCP Tool: `py_hello_world`
-
-### Docstring Metadata Format
-
-| Field | Description | Required |
-|-------|-------------|----------|
-| `MCP Tool:` | Tool name (used with `py_` prefix) | Yes |
-| `Description:` | Human-readable description | No (defaults to "Python tool: {name}") |
-| `Input Schema:` | YAML-like parameter definitions | No (defaults to empty object) |
-
-**Input Schema Properties:**
-- `type`: string, number, integer, boolean, array, object
-- `description`: Parameter description
-- `enum`: Allowed values array
-- `default`: Default value
-- `required`: Set to `true` to make parameter required
-
-### Dependency Management
-
-Dependencies are managed via a project-level `requirements.txt` file:
-
-```
-workspace/<project-name>/.etienne/tools/
-├── requirements.txt    # pip requirements file
-└── .packages/          # Auto-installed packages
-```
-
-**Auto-Installation:**
-1. File watcher detects changes to `requirements.txt`
-2. Backend automatically runs: `pip install -r requirements.txt --target .etienne/tools/.packages`
-3. `PYTHONPATH` is set during tool execution to include `.packages` directory
-
-### Discovery & Execution Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  1. TOOL CREATION                                               │
-│  Agent/user writes: .etienne/tools/mytool.py                    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  2. FILE DETECTION                                              │
-│  Chokidar watcher detects .py file → invalidates cache          │
-│  If requirements.txt changed → runs pip install                 │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  3. TOOL DISCOVERY (on MCP tools/list request)                  │
-│  - Glob .etienne/tools/*.py files                               │
-│  - Parse docstring metadata from each file                      │
-│  - Return tools with py_ prefix                                 │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  4. TOOL EXECUTION (on MCP tools/call request)                  │
-│  - Spawn subprocess: python3 mytool.py                          │
-│  - Send args via stdin as JSON                                  │
-│  - Collect stdout as JSON result                                │
-│  - 30s timeout (configurable)                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Hot-Reload Behavior
-
-| Event | Action |
-|-------|--------|
-| `.py` file created | Cache invalidated, tool available on next `tools/list` |
-| `.py` file modified | Cache invalidated, changes reflected on next `tools/list` |
-| `.py` file deleted | Cache invalidated, tool removed from next `tools/list` |
-| `requirements.txt` changed | Auto pip install, then cache invalidated |
-
-### Environment Variables
-
-Tools receive these environment variables during execution:
-
-| Variable | Description |
-|----------|-------------|
-| `PROJECT_ROOT` | Absolute path to the project directory |
-| `PYTHONPATH` | Includes `.etienne/tools/.packages` for imports |
-
-### Example: Creating a Tool
-
-1. **Create the tool file:**
-   ```bash
-   # In workspace/pet-store/.etienne/tools/weather.py
-   ```
-
-2. **Write the tool code** with docstring metadata
-
-3. **Add dependencies** (optional):
-   ```bash
-   echo "requests>=2.28.0" >> .etienne/tools/requirements.txt
-   ```
-
-4. **Test via MCP:**
-   ```bash
-   curl -X POST http://localhost:6060/mcp \
-     -H "Content-Type: application/json" \
-     -H "X-Project-Name: pet-store" \
-     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
-   ```
-
-5. **Call the tool:**
-   ```bash
-   curl -X POST http://localhost:6060/mcp \
-     -H "Content-Type: application/json" \
-     -H "X-Project-Name: pet-store" \
-     -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"py_weather","arguments":{"city":"Berlin"}}}'
-   ```
-
-### Security Considerations
-
-- Tools execute as subprocess on the backend host
-- 30-second default timeout prevents runaway processes
-- Tools can only access files within the project directory via `PROJECT_ROOT`
-- Consider network restrictions for production deployments
-
-### Agent Skill: create-mcp-tool
-
-A skill is available to help Claude Code create MCP tools correctly. The skill is pre-installed in the `onboarding` project and can be copied to any project.
-
-**Skill location**: `.claude/skills/create-mcp-tool/SKILL.md`
-
-The skill provides:
-- Complete Python tool template
-- Docstring metadata format reference
-- Dependency management instructions
-- Error handling patterns
-- Testing guidance
-
-To use the skill, ask Claude Code to "create an MCP tool" and it will follow the conventions defined in the skill.
-
-## Context Management / Metadata Layer
+# Context Management / Metadata Layer
 
 The Context Management system provides fine-grained control over which data sources Claude Code can access during task execution. By applying tags to files, vector documents, and knowledge graph entities, you can create named contexts that scope the agent's view to only relevant information.
 
-### Why Use Context Management?
+## Why Use Context Management?
 
 - **Reduce Token Costs**: Limit Claude's filesystem and knowledge base access to only relevant files/data
 - **Improve Response Quality**: Focus the agent on specific domains or project areas
 - **Multi-tenant Isolation**: Separate customer data, departments, or project phases
 - **Privacy & Security**: Exclude sensitive files or documents from specific sessions
 
-### Filesystem Context
+## Filesystem Context
 
 **a) Why to use?**
 
@@ -919,7 +694,7 @@ When a context is active for a session, the backend filters the filesystem tree 
 - The agent can only read, edit, or reference files within the scoped view
 - API endpoint: `GET /api/workspace/:project/contexts/:contextId/scope` returns filtered file paths
 
-### Vector Store Context
+## Vector Store Context
 
 **a) Why to use?**
 
@@ -942,7 +717,7 @@ When a context with vector tag filters is active:
 - Only matching documents contribute to the agent's knowledge retrieval
 - ChromaDB metadata filter: `where: { "tags": { "$in": ["selected-tag"] } }`
 
-### Knowledge Graph Context
+## Knowledge Graph Context
 
 **a) Why to use?**
 
@@ -975,11 +750,11 @@ Each chat session maintains its own active context independently. This enables:
 
 The active context is stored in session metadata (`GET /api/sessions/:project/:sessionId/context`) and applied automatically to all data access operations during that session.
 
-## Observability
+# Observability
 
 The backend supports OpenTelemetry-based observability for monitoring LLM conversations and tool usage. When enabled, traces are sent to an OTLP-compatible collector like [Arize Phoenix](https://phoenix.arize.com/).
 
-### Configuration
+## Configuration
 
 Set these environment variables in `backend/.env`:
 
@@ -989,7 +764,7 @@ Set these environment variables in `backend/.env`:
 | `PHOENIX_COLLECTOR_ENDPOINT` | Base URL of the OTLP collector | `http://localhost:6006` |
 | `OTEL_SERVICE_NAME` | Service name in traces | `etienne` |
 
-### Starting Phoenix Locally
+## Starting Phoenix Locally
 
 ```bash
 docker run -d --name phoenix -p 6006:6006 -p 4317:4317 arizephoenix/phoenix:latest
@@ -1003,7 +778,7 @@ OTEL_ENABLED=true
 PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 ```
 
-### Traced Information
+## Traced Information
 
 The implementation follows [OpenInference Semantic Conventions](https://github.com/Arize-ai/openinference) for LLM-specific attributes.
 
@@ -1026,11 +801,11 @@ The implementation follows [OpenInference Semantic Conventions](https://github.c
 3. Filter by `project.name` or `session.id` to find specific conversations
 4. Click on a trace to see the conversation span with nested tool spans
 
-## Spec-driven Development
+# Spec-driven Development
 
 This project follows a specification-driven development approach. All features are documented as Product Requirements Documents (PRDs) in the `/requirements-docs` folder. Below is a comprehensive overview of all features, categorized by their role in the system.
 
-### Claude Control (inner agentic cycle)
+## Claude Control (inner agentic cycle)
 
 These features directly control or modify how Claude Code operates internally:
 
@@ -1061,7 +836,7 @@ These features directly control or modify how Claude Code operates internally:
 * **Output Guardrails** ([/requirements-docs/prd-output-guardrails.md](requirements-docs/prd-output-guardrails.md))
   Provides LLM-based post-processing to inspect and redact policy violations from Claude Code's responses. Uses a customizable prompt with GPT-4o-mini to detect violations, replace them with placeholders, and emit violation events to the frontend. When enabled, response streaming is disabled to allow buffering and content modification before delivery.
 
-### Complementary Features (to the agentic cycle)
+## Complementary Features (to the agentic cycle)
 
 These features enhance or support the agentic cycle but don't directly control it:
 
@@ -1083,7 +858,7 @@ These features enhance or support the agentic cycle but don't directly control i
 * **Chat Persistence** ([/requirements-docs/prd-chat-persistence.md](requirements-docs/prd-chat-persistence.md))
   Provides persistent storage of chat history and initial assistant greetings. Chat messages are stored in `chat.history.json` with timestamps, role indicators (user/agent), message content, and cost data. Assistant greetings are configured per-project in `assistant.json` and displayed as the first message when loading a project.
 
-### Other
+## Other
 
 UI/UX features, administrative tools, and system utilities:
 
@@ -1108,11 +883,11 @@ UI/UX features, administrative tools, and system utilities:
 * **Frontend State** ([/requirements-docs/prd-frontend-state.md](requirements-docs/prd-frontend-state.md))
   Manages frontend state persistence using localStorage to remember the currently loaded project. Controls UI element visibility and enabled/disabled states based on whether a project is loaded. Validates that stored projects exist in the workspace on startup and gracefully handles missing projects.
 
-## File Type Previewers
+# File Type Previewers
 
 The frontend includes specialized preview components for various file types through the [FilePreviewHandler](frontend/src/services/FilePreviewHandler.js) service. When files are selected in the filesystem browser, they are automatically opened in the appropriate viewer component within the Artifacts pane.
 
-### Supported File Types
+## Supported File Types
 
 | File Extension | Viewer Component | Description |
 |----------------|------------------|-------------|
@@ -1124,7 +899,7 @@ The frontend includes specialized preview components for various file types thro
 | `.jpg`, `.jpeg`, `.png`, `.gif` | [ImageViewer](frontend/src/components/ImageViewer.jsx) | Displays images at original size with extracted header metadata (dimensions, bit depth, color type, compression) |
 | `.xls`, `.xlsx` | [ExcelViewer](frontend/src/components/ExcelViewer.jsx) | Interactive Excel spreadsheet viewer using SheetJS and wolf-table with multi-sheet support, scrollable/resizable cells, Roboto font, and read-only mode |
 
-### How It Works
+## How It Works
 
 1. **FilePreviewHandler** detects file extensions and publishes `FILE_PREVIEW_REQUEST` events to the event bus
 2. **ArtifactsPane** listens for these events, closes the filesystem drawer, and switches to the "Artifacts" tab
@@ -1133,11 +908,11 @@ The frontend includes specialized preview components for various file types thro
 
 The preview system is integrated with the [Interceptors](requirements-docs/prd-interceptors.md) feature to automatically refresh previews when files are modified by Claude Code.
 
-## Messenger Integration
+# Messenger Integration
 
 Etienne supports external messaging platform integration, allowing users to interact with projects directly from messaging apps like Telegram. The system uses a secure pairing mechanism where all users are blocked by default until explicitly approved by an admin.
 
-### Architecture
+## Architecture
 
 ```
 ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
@@ -1181,7 +956,7 @@ To create a Telegram bot:
 2. Send `/newbot` and follow the prompts
 3. Copy the bot token provided by BotFather
 
-### Usage Guide
+## Usage Guide
 
 **Starting the Provider:**
 ```bash
