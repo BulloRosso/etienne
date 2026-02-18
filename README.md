@@ -97,6 +97,22 @@ As a forward deployed engineer you can bring a complete working AI business solu
 
 ## Live Demonstrations
 
+### Brainstorming with Etienne
+
+<div align="center">
+<img src="/docs/images/video2-snapshot.jpg" alt="UI Screenshot" width="900">
+</div>
+
+[Watch Etienne walking the user through a mindmap creation process](https://youtu.be/cT1jMUM_vtk)
+
+### Creating a new project with Etienne
+
+<div align="center">
+<img src="/docs/images/video1-snapshot.jpg" alt="UI Screentho" width="900">
+</div>
+
+[See the basic project settings and how a live website is created from specifications](https://youtu.be/I9aNyB07AaA)
+
 ### Basic Functionality (Inner Agentic Loop)
 
 [![Youtube Video](https://img.youtube.com/vi/ljInSy96zkY/0.jpg)](https://youtu.be/ljInSy96zkY)
@@ -111,7 +127,7 @@ As a forward deployed engineer you can bring a complete working AI business solu
 
 
 
-## Articles
+## Etienne Articles
 <table>
 <tr>
   <td width="220">
