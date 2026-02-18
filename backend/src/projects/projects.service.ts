@@ -266,6 +266,9 @@ export class ProjectsService {
         if (dto.agentName && existingConfig.appBar) {
           existingConfig.appBar.title = dto.agentName;
         }
+        if (dto.autoFilePreviewExtensions && dto.autoFilePreviewExtensions.length > 0) {
+          existingConfig.autoFilePreviewExtensions = dto.autoFilePreviewExtensions;
+        }
         await fs.writeJson(uiConfigPath, existingConfig, { spaces: 2 });
         return;
       }
@@ -285,6 +288,7 @@ export class ProjectsService {
         showWelcomeMessage: true,
       },
       previewDocuments: [],
+      autoFilePreviewExtensions: dto.autoFilePreviewExtensions || [],
     };
 
     await fs.writeJson(uiConfigPath, uiConfig, { spaces: 2 });

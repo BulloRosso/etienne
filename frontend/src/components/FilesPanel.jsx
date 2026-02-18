@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Tab, Tabs, IconButton, Menu, MenuItem, Divider } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { BsThreeDotsVertical } from 'react-icons/bs';
 import { CiFileOn } from 'react-icons/ci';
-import LiveHTMLPreview from './LiveHTMLPreview';
-import JSONViewer from './JSONViewer';
-import MarkdownViewer from './MarkdownViewer';
-import MermaidViewer from './MermaidViewer';
-import ResearchDocument from './ResearchDocument';
-import ImageViewer from './ImageViewer';
-import ExcelViewer from './ExcelViewer';
-import WorkflowVisualizer from './WorkflowVisualizer';
-import PromptEditor from './PromptEditor';
 import BackgroundInfo from './BackgroundInfo';
+import { VIEWER_COMPONENTS, buildExtensionMap, getViewerForFile } from './viewerRegistry.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
-export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll }) {
+export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll, previewersConfig, autoFilePreviewExtensions }) {
   const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -59,46 +51,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
     }
   }, [activeTab, visibleIndices]);
 
-  const isHtmlFile = (filename) => {
-    return filename && (filename.endsWith('.html') || filename.endsWith('.htm'));
-  };
-
-  const isJsonFile = (filename) => {
-    return filename && filename.endsWith('.json');
-  };
-
-  const isJsonlFile = (filename) => {
-    return filename && filename.endsWith('.jsonl');
-  };
-
-  const isMarkdownFile = (filename) => {
-    return filename && filename.endsWith('.md');
-  };
-
-  const isMermaidFile = (filename) => {
-    return filename && filename.endsWith('.mermaid');
-  };
-
-  const isResearchFile = (filename) => {
-    return filename && filename.endsWith('.research');
-  };
-
-  const isImageFile = (filename) => {
-    return filename && (filename.endsWith('.jpg') || filename.endsWith('.jpeg') ||
-                        filename.endsWith('.png') || filename.endsWith('.gif'));
-  };
-
-  const isExcelFile = (filename) => {
-    return filename && (filename.endsWith('.xls') || filename.endsWith('.xlsx'));
-  };
-
-  const isPromptFile = (filename) => {
-    return filename && filename.endsWith('.prompt');
-  };
-
-  const isWorkflowFile = (filename) => {
-    return filename && filename.endsWith('.workflow.json');
-  };
+  const extensionMap = useMemo(
+    () => buildExtensionMap(previewersConfig || [], autoFilePreviewExtensions || []),
+    [previewersConfig, autoFilePreviewExtensions]
+  );
 
   const getFilename = (path) => {
     if (!path) return '';
@@ -151,170 +107,27 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const overflowFiles = overflowIndices.map(i => ({ file: files[i], index: i })).filter(item => item.file);
   const hasOverflow = overflowFiles.length > 0;
 
+  const HIDDEN_OVERFLOW_VIEWERS = new Set(['workflow', 'excel', 'prompt']);
+
   const renderFileContent = (file) => {
     if (!file) return null;
 
-    if (isHtmlFile(file.path)) {
+    const viewerName = getViewerForFile(file.path, extensionMap);
+    const renderFn = viewerName ? VIEWER_COMPONENTS[viewerName] : null;
+
+    if (renderFn) {
+      const useHiddenOverflow = HIDDEN_OVERFLOW_VIEWERS.has(viewerName);
       return (
         <Box
           sx={{
             width: '100%',
             height: '100%',
-            overflow: 'auto',
-            border: '1px solid',
+            overflow: useHiddenOverflow ? 'hidden' : 'auto',
+            border: viewerName === 'workflow' ? 0 : '1px solid',
             borderColor: 'divider',
           }}
         >
-          <LiveHTMLPreview filename={file.path} projectName={projectName} />
-        </Box>
-      );
-    }
-
-    if (isWorkflowFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'hidden',
-          }}
-        >
-          <WorkflowVisualizer workflowFile={file.path} projectName={projectName} />
-        </Box>
-      );
-    }
-
-    if (isJsonFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <JSONViewer filename={file.path} projectName={projectName} />
-        </Box>
-      );
-    }
-
-    if (isJsonlFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <JSONViewer filename={file.path} projectName={projectName} isJsonl />
-        </Box>
-      );
-    }
-
-    if (isPromptFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'hidden',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <PromptEditor filename={file.path} projectName={projectName} />
-        </Box>
-      );
-    }
-
-    if (isMarkdownFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <MarkdownViewer filename={file.path} projectName={projectName} />
-        </Box>
-      );
-    }
-
-    if (isMermaidFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <MermaidViewer filename={file.path} projectName={projectName} />
-        </Box>
-      );
-    }
-
-    if (isResearchFile(file.path)) {
-      // For research files, we need to extract input and output from the file path
-      // The ResearchDocument component expects input and output parameters
-      // For now, we'll use the file path as the output and assume no input file tracking needed
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <ResearchDocument
-            input=""
-            output={file.path}
-            projectName={projectName}
-          />
-        </Box>
-      );
-    }
-
-    if (isImageFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <ImageViewer filename={file.path} projectName={projectName} />
-        </Box>
-      );
-    }
-
-    if (isExcelFile(file.path)) {
-      return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'hidden',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <ExcelViewer filename={file.path} projectName={projectName} />
+          {renderFn(file, projectName)}
         </Box>
       );
     }

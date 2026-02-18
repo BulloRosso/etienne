@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress, Drawer, Switch } from '@mui/material';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
@@ -21,6 +21,7 @@ import { useProject } from './contexts/ProjectContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
 import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
+import { buildExtensionMap } from './components/viewerRegistry.jsx';
 import Onboarding from './components/Onboarding';
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
   const [pendingPlanApproval, setPendingPlanApproval] = useState(null); // Current ExitPlanMode request
   const [pendingPairing, setPendingPairing] = useState(null); // Current Telegram pairing request
   const [codingAgent, setCodingAgent] = useState('anthropic'); // 'anthropic' or 'openai' — from CODING_AGENT env var
+  const [previewersConfig, setPreviewersConfig] = useState([]);
 
   const esRef = useRef(null);
   const globalInterceptorEsRef = useRef(null); // For global events like pairing requests
@@ -125,6 +127,22 @@ export default function App() {
     };
 
     checkConfiguration();
+  }, []);
+
+  // Fetch registered previewers configuration on startup
+  useEffect(() => {
+    const fetchPreviewers = async () => {
+      try {
+        const response = await fetch('/api/previewers/configuration');
+        if (response.ok) {
+          const data = await response.json();
+          setPreviewersConfig(data.previewers || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch previewers config:', err);
+      }
+    };
+    fetchPreviewers();
   }, []);
 
   // When Codex (OpenAI) is active, force mode to 'work' — plan mode is not supported
@@ -1096,8 +1114,14 @@ export default function App() {
     return absolutePath;
   };
 
-  // Supported file extensions for auto-preview
-  const autoPreviewExtensions = ['.html', '.htm', '.json', '.md', '.mermaid'];
+  // Build dynamic auto-preview extension list from previewers config + project overrides
+  const autoPreviewExtensions = useMemo(() => {
+    const extensionMap = buildExtensionMap(
+      previewersConfig,
+      uiConfig?.autoFilePreviewExtensions || []
+    );
+    return [...extensionMap.keys()];
+  }, [previewersConfig, uiConfig?.autoFilePreviewExtensions]);
 
   // Check if a file path ends with a supported preview extension
   const hasPreviewExtension = (filePath) => {
@@ -1921,7 +1945,7 @@ export default function App() {
         ) : (
           <SplitLayout
             left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} />}
-            right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} />}
+            right={<ArtifactsPane files={files} projectName={currentProject} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} previewersConfig={previewersConfig} autoFilePreviewExtensions={uiConfig?.autoFilePreviewExtensions} />}
           />
         )}
       </Box>

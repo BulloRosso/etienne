@@ -33,7 +33,7 @@ function TabPanel({ children, value, index }) {
   );
 }
 
-export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab }) {
+export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab, previewersConfig, autoFilePreviewExtensions }) {
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
@@ -191,6 +191,8 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           showBackgroundInfo={showBackgroundInfo}
           onCloseTab={onCloseTab}
           onCloseAll={onClearPreview}
+          previewersConfig={previewersConfig}
+          autoFilePreviewExtensions={autoFilePreviewExtensions}
         />
       </TabPanel>
       {projectExists && (

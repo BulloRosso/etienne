@@ -46,6 +46,10 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString()
   agentName?: string;
+
+  @IsOptional()
+  @IsArray()
+  autoFilePreviewExtensions?: Array<{ extension: string; viewer: string }>;
 }
 
 export interface CreateProjectResult {

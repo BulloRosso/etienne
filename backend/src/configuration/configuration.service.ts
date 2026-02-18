@@ -22,6 +22,7 @@ interface ConfigurationDto {
   OTEL_ENABLED?: string;
   PHOENIX_COLLECTOR_ENDPOINT?: string;
   OTEL_SERVICE_NAME?: string;
+  REGISTERED_PREVIEWERS?: string;
   [key: string]: string | undefined;
 }
 
@@ -196,6 +197,14 @@ export class ConfigurationService {
       if (config.OTEL_SERVICE_NAME) {
         lines.push(`OTEL_SERVICE_NAME=${config.OTEL_SERVICE_NAME}`);
       }
+    }
+
+    // Registered File Previewers
+    if (config.REGISTERED_PREVIEWERS) {
+      lines.push('');
+      lines.push('# Registered file previewers available in the frontend');
+      lines.push('# Format: name:ext1,ext2|name2:ext3,ext4');
+      lines.push(`REGISTERED_PREVIEWERS=${config.REGISTERED_PREVIEWERS}`);
     }
 
     return lines.join('\n') + '\n';

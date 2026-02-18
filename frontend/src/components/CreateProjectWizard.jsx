@@ -26,6 +26,7 @@ import axios from 'axios';
 import SkillsSelector from './SkillsSelector';
 import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
+import AutoFilePreviewExtensions from './AutoFilePreviewExtensions';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
@@ -114,6 +115,8 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   const [projectsWithUI, setProjectsWithUI] = useState([]);
   const [agentName, setAgentName] = useState('Etienne');
   const [agentNameLoading, setAgentNameLoading] = useState(false);
+  const [registeredPreviewers, setRegisteredPreviewers] = useState([]);
+  const [autoFilePreviewExtensions, setAutoFilePreviewExtensions] = useState([]);
 
   // Load data when dialog opens
   useEffect(() => {
@@ -124,6 +127,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       fetchMcpRegistry();
       fetchA2ARegistry();
       fetchProjectsWithUI();
+      fetchPreviewers();
     }
   }, [open]);
 
@@ -139,6 +143,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     setSelectedAgents([]);
     setCopyFromProject('');
     setAgentName('Etienne');
+    setAutoFilePreviewExtensions([]);
     setError(null);
   };
 
@@ -191,6 +196,15 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       console.error('Failed to fetch A2A registry:', error);
     } finally {
       setAgentsLoading(false);
+    }
+  };
+
+  const fetchPreviewers = async () => {
+    try {
+      const response = await axios.get('/api/previewers/configuration');
+      setRegisteredPreviewers(response.data.previewers || []);
+    } catch (error) {
+      console.error('Failed to fetch previewers:', error);
     }
   };
 
@@ -267,7 +281,8 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
         mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
         a2aAgents: selectedAgents.length > 0 ? selectedAgents : undefined,
         copyUIFrom: copyFromProject || undefined,
-        agentName: agentName || 'Etienne'
+        agentName: agentName || 'Etienne',
+        autoFilePreviewExtensions: autoFilePreviewExtensions.length > 0 ? autoFilePreviewExtensions : undefined
       };
 
       const response = await axios.post('/api/projects/create', dto);
@@ -483,6 +498,14 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 </FormControl>
               </Box>
             )}
+
+            <Box sx={{ mt: 3 }}>
+              <AutoFilePreviewExtensions
+                value={autoFilePreviewExtensions}
+                onChange={setAutoFilePreviewExtensions}
+                registeredPreviewers={registeredPreviewers}
+              />
+            </Box>
           </Box>
         );
 
