@@ -16,7 +16,7 @@ Etienne showcases how to attach typical business requirements to a **coding agen
 <img src="/docs/images/ui-example.jpg" alt="UI example" width="900">
 </div> 
 
-This setupt addresses the use case **business collaborator agent** working on local data.
+This setup addresses the use case **business collaborator agent** working on local data.
 
 ## Main Components
 
