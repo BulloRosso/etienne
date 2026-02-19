@@ -18,6 +18,8 @@ import {
   Tabs,
   Tab,
   Divider,
+  CircularProgress,
+  Chip,
 } from '@mui/material';
 import { Close, DeleteOutline, Edit, Save, UploadFile, InsertDriveFileOutlined, InfoOutlined } from '@mui/icons-material';
 import { GiAtom } from 'react-icons/gi';
@@ -37,12 +39,23 @@ export default function SkillsSettings({ open, onClose, project }) {
   const [hoveredSkill, setHoveredSkill] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [skillFiles, setSkillFiles] = useState([]);
+  const [repoSkills, setRepoSkills] = useState([]);
+  const [repoLoading, setRepoLoading] = useState(false);
+  const [provisioningSkill, setProvisioningSkill] = useState(null);
 
   useEffect(() => {
     if (open && project) {
       loadSkills();
     }
   }, [open, project]);
+
+  useEffect(() => {
+    if (!open) {
+      setActiveTab(0);
+      setRepoSkills([]);
+      setSelectedSkill(null);
+    }
+  }, [open]);
 
   const loadSkills = async () => {
     try {
@@ -53,6 +66,21 @@ export default function SkillsSettings({ open, onClose, project }) {
       }
     } catch (error) {
       console.error('Failed to load skills:', error);
+    }
+  };
+
+  const loadRepoSkills = async () => {
+    setRepoLoading(true);
+    try {
+      const response = await apiFetch('/api/skills/repository/list?includeOptional=true');
+      if (response.ok) {
+        const data = await response.json();
+        setRepoSkills(data.skills || []);
+      }
+    } catch (error) {
+      console.error('Failed to load repository skills:', error);
+    } finally {
+      setRepoLoading(false);
     }
   };
 
@@ -201,6 +229,39 @@ Show what the expected output should look like.
     }
   };
 
+  const handleProvisionSkill = async (repoSkill) => {
+    setProvisioningSkill(repoSkill.name);
+    try {
+      const response = await apiFetch(`/api/skills/${project}/provision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          skillNames: [repoSkill.name],
+          source: repoSkill.source,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const result = data.results?.[0];
+        if (result && !result.success) {
+          alert(result.error || 'Failed to provision skill');
+        } else {
+          await loadSkills();
+          setSelectedSkill(null);
+        }
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to provision skill');
+      }
+    } catch (error) {
+      console.error('Failed to provision skill:', error);
+      alert('Failed to provision skill');
+    } finally {
+      setProvisioningSkill(null);
+    }
+  };
+
   const handleDeleteSkill = async (skill) => {
     try {
       const response = await apiFetch(`/api/skills/${project}/${skill}`, {
@@ -275,108 +336,251 @@ Show what the expected output should look like.
         </DialogTitle>
         <Tabs
           value={activeTab}
-          onChange={(e, v) => { setActiveTab(v); setSelectedSkill(null); }}
+          onChange={(e, v) => {
+            setActiveTab(v);
+            setSelectedSkill(null);
+            if (v === 2 && repoSkills.length === 0) {
+              loadRepoSkills();
+            }
+          }}
           sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
         >
           <Tab label="This Project" />
           <Tab label="Other Projects" />
+          <Tab label="Repository" />
         </Tabs>
         <DialogContent sx={{ p: 0 }}>
-          {(() => {
-            const filteredSkills = activeTab === 0
-              ? skills.filter(s => s.isFromCurrentProject)
-              : skills.filter(s => !s.isFromCurrentProject);
-            const emptyMessage = activeTab === 0
-              ? 'No skills found. Click "+ Skill" to create one.'
-              : 'No skills found in other projects.';
+          {activeTab === 2 ? (
+            <List sx={{ minHeight: '300px', maxHeight: '400px', overflow: 'auto' }}>
+              {repoLoading ? (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <CircularProgress size={24} />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Loading repository skills...
+                  </Typography>
+                </Box>
+              ) : repoSkills.length === 0 ? (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No skills available in the repository.
+                  </Typography>
+                </Box>
+              ) : (
+                <>
+                  {repoSkills.filter(s => s.source === 'standard').length > 0 && (
+                    <>
+                      <Typography variant="overline" sx={{ px: 2, pt: 1, display: 'block', color: 'text.secondary' }}>
+                        Standard
+                      </Typography>
+                      {repoSkills.filter(s => s.source === 'standard').map((repoSkill) => {
+                        const isAlreadyProvisioned = skills.some(s => s.isFromCurrentProject && s.name === repoSkill.name);
+                        const isSelected = selectedSkill && selectedSkill.name === repoSkill.name && selectedSkill._repoSource === repoSkill.source;
+                        const isProvisioning = provisioningSkill === repoSkill.name;
 
-            return (
-              <List sx={{ minHeight: '300px', maxHeight: '400px', overflow: 'auto' }}>
-                {filteredSkills.length === 0 ? (
-                  <Box sx={{ p: 3, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {emptyMessage}
-                    </Typography>
-                  </Box>
-                ) : (
-                  filteredSkills.map((skill) => {
-                    const isFromOtherProject = !skill.isFromCurrentProject;
-                    const skillKey = `${skill.project}-${skill.name}`;
-                    const isSelected = selectedSkill && selectedSkill.name === skill.name && selectedSkill.project === skill.project;
-
-                    return (
-                      <ListItem
-                        key={skillKey}
-                        disablePadding
-                        secondaryAction={
-                          isSelected && (
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              {isFromOtherProject ? (
+                        return (
+                          <ListItem
+                            key={`repo-${repoSkill.name}`}
+                            disablePadding
+                            secondaryAction={
+                              isSelected && !isAlreadyProvisioned && (
                                 <Button
                                   variant="outlined"
                                   size="small"
-                                  onClick={() => handleCopySkill(skill)}
-                                  disabled={loading}
+                                  onClick={() => handleProvisionSkill(repoSkill)}
+                                  disabled={isProvisioning}
                                 >
-                                  Use in this project
+                                  {isProvisioning ? 'Adding...' : 'Add to project'}
                                 </Button>
-                              ) : (
-                                <>
-                                  <IconButton
-                                    edge="end"
-                                    onClick={() => handleEditSkill(skill)}
+                              )
+                            }
+                          >
+                            <ListItemButton
+                              onClick={() => setSelectedSkill({ name: repoSkill.name, _repoSource: repoSkill.source })}
+                              selected={isSelected}
+                              disabled={isAlreadyProvisioned}
+                            >
+                              <ListItemIcon sx={{ alignSelf: 'flex-start', position: 'relative', left: '12px', mt: '10px' }}>
+                                <GiAtom style={{ fontSize: '20px' }} />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <span>{repoSkill.name}</span>
+                                    {isAlreadyProvisioned && (
+                                      <Chip label="Added" size="small" color="success" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                    )}
+                                  </Box>
+                                }
+                                secondary={repoSkill.description}
+                                secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {repoSkills.filter(s => s.source === 'standard').length > 0 &&
+                   repoSkills.filter(s => s.source === 'optional').length > 0 && (
+                    <Divider sx={{ my: 1 }} />
+                  )}
+
+                  {repoSkills.filter(s => s.source === 'optional').length > 0 && (
+                    <>
+                      <Typography variant="overline" sx={{ px: 2, pt: 1, display: 'block', color: 'text.secondary' }}>
+                        Optional
+                      </Typography>
+                      {repoSkills.filter(s => s.source === 'optional').map((repoSkill) => {
+                        const isAlreadyProvisioned = skills.some(s => s.isFromCurrentProject && s.name === repoSkill.name);
+                        const isSelected = selectedSkill && selectedSkill.name === repoSkill.name && selectedSkill._repoSource === repoSkill.source;
+                        const isProvisioning = provisioningSkill === repoSkill.name;
+
+                        return (
+                          <ListItem
+                            key={`repo-${repoSkill.name}`}
+                            disablePadding
+                            secondaryAction={
+                              isSelected && !isAlreadyProvisioned && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => handleProvisionSkill(repoSkill)}
+                                  disabled={isProvisioning}
+                                >
+                                  {isProvisioning ? 'Adding...' : 'Add to project'}
+                                </Button>
+                              )
+                            }
+                          >
+                            <ListItemButton
+                              onClick={() => setSelectedSkill({ name: repoSkill.name, _repoSource: repoSkill.source })}
+                              selected={isSelected}
+                              disabled={isAlreadyProvisioned}
+                            >
+                              <ListItemIcon sx={{ alignSelf: 'flex-start', position: 'relative', left: '12px', mt: '10px' }}>
+                                <GiAtom style={{ fontSize: '20px', color: '#e65100' }} />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <span>{repoSkill.name}</span>
+                                    {isAlreadyProvisioned && (
+                                      <Chip label="Added" size="small" color="success" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                    )}
+                                  </Box>
+                                }
+                                secondary={repoSkill.description}
+                                secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        );
+                      })}
+                    </>
+                  )}
+                </>
+              )}
+            </List>
+          ) : (
+            (() => {
+              const filteredSkills = activeTab === 0
+                ? skills.filter(s => s.isFromCurrentProject)
+                : skills.filter(s => !s.isFromCurrentProject);
+              const emptyMessage = activeTab === 0
+                ? 'No skills found. Click "+ Skill" to create one.'
+                : 'No skills found in other projects.';
+
+              return (
+                <List sx={{ minHeight: '300px', maxHeight: '400px', overflow: 'auto' }}>
+                  {filteredSkills.length === 0 ? (
+                    <Box sx={{ p: 3, textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {emptyMessage}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    filteredSkills.map((skill) => {
+                      const isFromOtherProject = !skill.isFromCurrentProject;
+                      const skillKey = `${skill.project}-${skill.name}`;
+                      const isSelected = selectedSkill && selectedSkill.name === skill.name && selectedSkill.project === skill.project;
+
+                      return (
+                        <ListItem
+                          key={skillKey}
+                          disablePadding
+                          secondaryAction={
+                            isSelected && (
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                {isFromOtherProject ? (
+                                  <Button
+                                    variant="outlined"
                                     size="small"
+                                    onClick={() => handleCopySkill(skill)}
+                                    disabled={loading}
                                   >
-                                    <Edit fontSize="small" />
-                                  </IconButton>
-                                  <IconButton
-                                    edge="end"
-                                    onClick={() => handleDeleteSkill(skill.name)}
-                                    size="small"
-                                    sx={{ color: '#c62828' }}
-                                  >
-                                    <DeleteOutline fontSize="small" />
-                                  </IconButton>
-                                </>
-                              )}
-                            </Box>
-                          )
-                        }
-                        onMouseEnter={() => setHoveredSkill(skill)}
-                        onMouseLeave={() => setHoveredSkill(null)}
-                      >
-                        <ListItemButton
-                          onClick={() => handleSkillClick(skill)}
-                          selected={isSelected}
-                          sx={isFromOtherProject ? { color: 'text.disabled' } : {}}
+                                    Use in this project
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <IconButton
+                                      edge="end"
+                                      onClick={() => handleEditSkill(skill)}
+                                      size="small"
+                                    >
+                                      <Edit fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      edge="end"
+                                      onClick={() => handleDeleteSkill(skill.name)}
+                                      size="small"
+                                      sx={{ color: '#c62828' }}
+                                    >
+                                      <DeleteOutline fontSize="small" />
+                                    </IconButton>
+                                  </>
+                                )}
+                              </Box>
+                            )
+                          }
                         >
-                          <ListItemIcon sx={isFromOtherProject ? { color: 'text.disabled' } : {}}>
-                            <GiAtom style={{ fontSize: '20px' }} />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={skill.name}
-                            secondary={isFromOtherProject ? `from ${skill.project}` : null}
-                            primaryTypographyProps={isFromOtherProject ? { color: 'text.disabled' } : {}}
-                            secondaryTypographyProps={{ fontSize: '0.75rem' }}
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    );
-                  })
-                )}
-              </List>
-            );
-          })()}
+                          <ListItemButton
+                            onClick={() => handleSkillClick(skill)}
+                            selected={isSelected}
+                          >
+                            <ListItemIcon sx={{ alignSelf: 'flex-start', position: 'relative', left: '12px', mt: '10px' }}>
+                              <GiAtom style={{ fontSize: '20px' }} />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span>{skill.name}</span>
+                                </Box>
+                              }
+                              secondary={skill.description || (isFromOtherProject ? `from ${skill.project}` : null)}
+                              secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })
+                  )}
+                </List>
+              );
+            })()
+          )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'flex-end', p: 2 }}>
-          <Button
-            variant="contained"
-            startIcon={<GiAtom />}
-            onClick={handleNewSkill}
-            size="small"
-          >
-            + Skill
-          </Button>
+          {activeTab === 0 && (
+            <Button
+              variant="contained"
+              startIcon={<GiAtom />}
+              onClick={handleNewSkill}
+              size="small"
+            >
+              + Skill
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

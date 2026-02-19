@@ -92,7 +92,8 @@ const RulesTab = ({
               </TableHead>
               <TableBody>
                 {rules.map((rule, idx) => {
-                  const groupStyle = rule.condition.event?.group ? getGroupStyle(rule.condition.event.group) : null;
+                  const eventGroup = rule.condition.event?.group || (rule.condition.type === 'email-semantic' ? 'Email' : null);
+                  const groupStyle = eventGroup ? getGroupStyle(eventGroup) : null;
                   const GroupIcon = groupStyle?.icon;
                   const actionPrompt = rule.action.type === 'prompt' ? prompts.find(p => p.id === rule.action.promptId) : null;
                   const isWorkflowAction = rule.action.type === 'workflow_event';
@@ -126,7 +127,7 @@ const RulesTab = ({
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                             <GroupIcon sx={{ fontSize: 16, color: groupStyle.color }} />
                             <Typography variant="body2" color="text.secondary">
-                              {rule.condition.event.group}
+                              {eventGroup}
                             </Typography>
                           </Box>
                         ) : (

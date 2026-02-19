@@ -13,6 +13,7 @@ export interface SkillWithProject {
   name: string;
   project: string;
   isFromCurrentProject: boolean;
+  description?: string;
 }
 
 @Injectable()
@@ -238,10 +239,13 @@ export class SkillsService {
     const currentSkills = await this.listSkills(currentProject);
     for (const skillName of currentSkills) {
       currentProjectSkillNames.add(skillName);
+      const skillDir = path.join(this.getSkillsDir(currentProject), skillName);
+      const description = await this.getSkillDescription(skillDir);
       allSkills.push({
         name: skillName,
         project: currentProject,
         isFromCurrentProject: true,
+        description,
       });
     }
 
@@ -253,10 +257,13 @@ export class SkillsService {
       for (const skillName of skills) {
         // Only add if not already in current project
         if (!currentProjectSkillNames.has(skillName)) {
+          const skillDir = path.join(this.getSkillsDir(project), skillName);
+          const description = await this.getSkillDescription(skillDir);
           allSkills.push({
             name: skillName,
             project,
             isFromCurrentProject: false,
+            description,
           });
         }
       }
