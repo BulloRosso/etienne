@@ -44,7 +44,7 @@ const WebHooksTab = ({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 POST any JSON payload directly - it will be automatically wrapped as a Webhook event:
               </Typography>
-              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+              <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}/webhook</Box>
                 {`{
   "command": "remove",
@@ -66,7 +66,7 @@ const WebHooksTab = ({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 POST a structured event with explicit group and name:
               </Typography>
-              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+              <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}</Box>
                 {`{
   "name": "Custom Event",
@@ -89,7 +89,7 @@ const WebHooksTab = ({
               <Typography variant="body2" color="text.secondary">
                 When a Webhook event triggers a rule, the full JSON payload is prepended to your action prompt:
               </Typography>
-              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
+              <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
                 {`The agent received this information via webhook:
 {
   "command": "remove",
@@ -121,7 +121,7 @@ const WebHooksTab = ({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Upload files along with JSON metadata using <code>multipart/form-data</code>:
               </Typography>
-              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+              <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}/webhook</Box>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>Content-Type: multipart/form-data</Box>
                 {`
@@ -144,7 +144,7 @@ Content-Type: image/jpeg
               <Typography variant="body2" fontWeight={600} gutterBottom>
                 cURL Example
               </Typography>
-              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+              <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 {`curl -X POST http://localhost:6060/api/events/${selectedProject}/webhook \\
   -F 'description={"command": "analyze", "priority": "high"}' \\
   -F 'file1=@/path/to/document.pdf' \\
@@ -161,7 +161,7 @@ Content-Type: image/jpeg
               <Typography variant="body2" color="text.secondary">
                 Uploaded files are saved to the project's <code>webhook/</code> directory, overwriting any existing files with the same name:
               </Typography>
-              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.75rem', mt: 1 }}>
+              <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.75rem', mt: 1 }}>
                 {`workspace/${selectedProject}/webhook/
 ├── document.pdf
 ├── image.png
@@ -178,7 +178,7 @@ Content-Type: image/jpeg
               <Typography variant="body2" color="text.secondary">
                 The event payload combines your JSON description with file metadata:
               </Typography>
-              <Paper sx={{ p: 1.5, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
+              <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
                 {`{
   "command": "analyze",
   "priority": "high",

@@ -29,7 +29,7 @@ const ExamplesTab = () => {
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
               Example: Monitor Python file creation
             </Typography>
-            <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+            <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
   "type": "simple",
   "event": {
@@ -59,7 +59,7 @@ const ExamplesTab = () => {
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
               Example: Find authentication-related code changes
             </Typography>
-            <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+            <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
   "type": "semantic",
   "event": {
@@ -93,7 +93,7 @@ const ExamplesTab = () => {
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
               Example: Monitor test file changes AND config changes
             </Typography>
-            <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+            <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
   "type": "compound",
   "operator": "AND",
@@ -130,7 +130,7 @@ const ExamplesTab = () => {
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
               Example: Monitor during business hours only
             </Typography>
-            <Paper sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+            <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
   "type": "temporal",
   "time": {
