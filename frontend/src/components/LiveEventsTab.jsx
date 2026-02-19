@@ -976,8 +976,20 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
           flex: 1,
           display: 'flex',
           gap: 2,
-          overflow: 'hidden',
-          minHeight: 0
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          minHeight: 0,
+          '&::-webkit-scrollbar': {
+            height: 8
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: 4
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.05)',
+            borderRadius: 4
+          }
         }}
       >
         {visibleSources.map(sourceName => {

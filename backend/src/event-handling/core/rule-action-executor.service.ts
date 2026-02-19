@@ -4,11 +4,15 @@ import { PromptsStorageService } from './prompts-storage.service';
 import { SSEPublisherService } from '../publishers/sse-publisher.service';
 import { StatefulWorkflowsService } from '../../stateful-workflows/stateful-workflows.service';
 import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
 @Injectable()
 export class RuleActionExecutorService {
   private readonly logger = new Logger(RuleActionExecutorService.name);
   private readonly backendUrl: string;
+  private serviceToken: string;
 
   constructor(
     private readonly promptsStorage: PromptsStorageService,
@@ -18,6 +22,23 @@ export class RuleActionExecutorService {
     private readonly workflowsService: StatefulWorkflowsService,
   ) {
     this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
+    // Generate a long-lived service token for internal API calls
+    this.serviceToken = this.generateServiceToken();
+  }
+
+  /**
+   * Generate a JWT token for internal service-to-service communication
+   */
+  private generateServiceToken(): string {
+    const payload = {
+      sub: 'rule-action-executor',
+      username: 'system',
+      role: 'admin',
+      displayName: 'Rule Action Executor',
+      type: 'access',
+    };
+    // Token valid for 1 year (internal service token)
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '365d' });
   }
 
   /**
@@ -331,12 +352,21 @@ ${promptTemplate}
           maxTurns: 20,
           source: `Condition Monitor: ${ruleName}`
         },
-        { timeout: 300000 } // 5 minute timeout
+        {
+          timeout: 300000, // 5 minute timeout
+          headers: {
+            'Authorization': `Bearer ${this.serviceToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       return response.data?.response || 'Prompt executed successfully';
     } catch (error: any) {
       this.logger.error(`Failed to execute prompt via unattended endpoint:`, error.message);
+      if (error.response) {
+        this.logger.error(`Response status: ${error.response.status}, data:`, error.response.data);
+      }
       throw error;
     }
   }
