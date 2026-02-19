@@ -6,6 +6,12 @@ import {
   Divider,
   Stack,
   Tooltip,
+  Link,
+  Menu,
+  MenuItem,
+  Checkbox,
+  ListItemIcon,
+  ListItemText,
   useTheme
 } from '@mui/material';
 import {
@@ -900,6 +906,29 @@ const ScriptExecutionsColumn = ({ executions, isDark }) => {
   );
 };
 
+// All column keys: event sources + execution columns
+const ALL_COLUMNS = [
+  ...Object.keys(EVENT_SOURCES),
+  'Prompt Executions',
+  'Workflow Events',
+  'Script Executions'
+];
+
+const STORAGE_KEY = 'liveEvents_hiddenColumns';
+
+const loadHiddenColumns = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveHiddenColumns = (hidden) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(hidden));
+};
+
 const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflowExecutions = [], scriptExecutions = [], serviceStatus = {} }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -907,6 +936,20 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
   // Track active sources (which sources had recent activity)
   const [activeSources, setActiveSources] = useState({});
   const prevEventsRef = useRef([]);
+
+  // Column visibility
+  const [hiddenColumns, setHiddenColumns] = useState(loadHiddenColumns);
+  const [visibilityAnchor, setVisibilityAnchor] = useState(null);
+
+  const toggleColumnVisibility = (columnKey) => {
+    setHiddenColumns(prev => {
+      const next = prev.includes(columnKey)
+        ? prev.filter(k => k !== columnKey)
+        : [...prev, columnKey];
+      saveHiddenColumns(next);
+      return next;
+    });
+  };
 
   // Extract MQTT connection status
   const mqttConnected = serviceStatus.mqtt?.connected || false;
@@ -970,7 +1013,7 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
     prevEventsRef.current = liveEvents;
   }, [liveEvents]);
 
-  // Get sources that have events or are known sources
+  // Get sources that have events or are known sources, filtered by visibility
   const visibleSources = React.useMemo(() => {
     const sources = new Set(Object.keys(EVENT_SOURCES));
 
@@ -981,8 +1024,8 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
       }
     });
 
-    return Array.from(sources);
-  }, [liveEvents]);
+    return Array.from(sources).filter(s => !hiddenColumns.includes(s));
+  }, [liveEvents, hiddenColumns]);
 
   if (!eventStream) {
     return (
@@ -1048,13 +1091,19 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
         })}
 
         {/* Prompt Executions Column */}
-        <PromptExecutionsColumn executions={promptExecutions} isDark={isDark} />
+        {!hiddenColumns.includes('Prompt Executions') && (
+          <PromptExecutionsColumn executions={promptExecutions} isDark={isDark} />
+        )}
 
         {/* Workflow Executions Column */}
-        <WorkflowExecutionsColumn executions={workflowExecutions} isDark={isDark} />
+        {!hiddenColumns.includes('Workflow Events') && (
+          <WorkflowExecutionsColumn executions={workflowExecutions} isDark={isDark} />
+        )}
 
         {/* Script Executions Column */}
-        <ScriptExecutionsColumn executions={scriptExecutions} isDark={isDark} />
+        {!hiddenColumns.includes('Script Executions') && (
+          <ScriptExecutionsColumn executions={scriptExecutions} isDark={isDark} />
+        )}
       </Box>
 
       {/* Connection status bar - at bottom */}
@@ -1090,7 +1139,43 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
           </Typography>
         </Box>
 
-        <Typography variant="caption" color="text.disabled" sx={{ ml: 'auto', fontSize: '0.7rem' }}>
+        {/* Column visibility toggle */}
+        <Box sx={{ flex: 1, textAlign: 'center' }}>
+          <Link
+            component="button"
+            variant="caption"
+            underline="hover"
+            onClick={(e) => setVisibilityAnchor(e.currentTarget)}
+            sx={{ fontSize: '0.7rem', cursor: 'pointer' }}
+          >
+            {hiddenColumns.length > 0 ? `Hide/Show Event Sources (${hiddenColumns.length} hidden)` : 'Hide/Show Event Sources'}
+          </Link>
+          <Menu
+            anchorEl={visibilityAnchor}
+            open={Boolean(visibilityAnchor)}
+            onClose={() => setVisibilityAnchor(null)}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            {ALL_COLUMNS.map(col => (
+              <MenuItem key={col} dense onClick={() => toggleColumnVisibility(col)}>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <Checkbox
+                    size="small"
+                    checked={!hiddenColumns.includes(col)}
+                    disableRipple
+                    sx={{ p: 0 }}
+                  />
+                </ListItemIcon>
+                <ListItemText primaryTypographyProps={{ variant: 'caption', fontSize: '0.8rem' }}>
+                  {col}
+                </ListItemText>
+              </MenuItem>
+            ))}
+          </Menu>
+        </Box>
+
+        <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.7rem' }}>
           {liveEvents.length} total events
         </Typography>
       </Box>
