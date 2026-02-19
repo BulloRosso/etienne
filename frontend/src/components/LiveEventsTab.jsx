@@ -5,7 +5,8 @@ import {
   Typography,
   Divider,
   Stack,
-  Tooltip
+  Tooltip,
+  useTheme
 } from '@mui/material';
 import {
   FolderOpen as FileWatcherIcon,
@@ -22,7 +23,6 @@ import {
   Code as ScriptIcon
 } from '@mui/icons-material';
 import { BiMessageEdit } from 'react-icons/bi';
-import { RiRobot2Line } from 'react-icons/ri';
 
 // Event source configuration
 const EVENT_SOURCES = {
@@ -35,12 +35,6 @@ const EVENT_SOURCES = {
     icon: MqttIcon,
     color: '#2196f3',
     group: 'MQTT'
-  },
-  'Claude Agent SDK': {
-    icon: RiRobot2Line,
-    color: '#9c27b0',
-    group: 'Claude Code',
-    isReactIcon: true
   },
   'Webhook': {
     icon: WebhookIcon,
@@ -100,7 +94,7 @@ const ConnectionIndicator = ({ connected }) => {
 };
 
 // Single event card component
-const EventCard = ({ event }) => {
+const EventCard = ({ event, isDark }) => {
   const timestamp = new Date(event.timestamp);
   const timeStr = timestamp.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -137,9 +131,13 @@ const EventCard = ({ event }) => {
         px: 1.5,
         borderBottom: '1px solid',
         borderColor: 'divider',
-        backgroundColor: hasTriggeredRules ? 'success.50' : 'transparent',
+        backgroundColor: hasTriggeredRules
+          ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9')
+          : 'transparent',
         '&:hover': {
-          backgroundColor: hasTriggeredRules ? 'success.100' : 'action.hover'
+          backgroundColor: hasTriggeredRules
+            ? (isDark ? 'rgba(76, 175, 80, 0.25)' : '#c8e6c9')
+            : 'action.hover'
         }
       }}
     >
@@ -207,7 +205,7 @@ const EventCard = ({ event }) => {
 };
 
 // Event source column component
-const EventSourceColumn = ({ sourceName, sourceConfig, events, isActive, isConnected = true, showConnectionStatus = false }) => {
+const EventSourceColumn = ({ sourceName, sourceConfig, events, isActive, isConnected = true, showConnectionStatus = false, isDark = false }) => {
   const Icon = sourceConfig.icon;
   const isDisabled = showConnectionStatus && !isConnected;
 
@@ -290,7 +288,7 @@ const EventSourceColumn = ({ sourceName, sourceConfig, events, isActive, isConne
           </Box>
         ) : (
           events.map((event, idx) => (
-            <EventCard key={event.id || idx} event={event} />
+            <EventCard key={event.id || idx} event={event} isDark={isDark} />
           ))
         )}
       </Box>
@@ -299,7 +297,7 @@ const EventSourceColumn = ({ sourceName, sourceConfig, events, isActive, isConne
 };
 
 // Prompt execution card component
-const PromptExecutionCard = ({ execution }) => {
+const PromptExecutionCard = ({ execution, isDark }) => {
   const timestamp = new Date(execution.timestamp);
   const timeStr = timestamp.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -322,6 +320,14 @@ const PromptExecutionCard = ({ execution }) => {
   };
 
   const getStatusColor = () => {
+    if (isDark) {
+      switch (execution.status) {
+        case 'started': return 'rgba(33, 150, 243, 0.15)';
+        case 'completed': return 'rgba(76, 175, 80, 0.15)';
+        case 'error': return 'rgba(244, 67, 54, 0.15)';
+        default: return 'transparent';
+      }
+    }
     switch (execution.status) {
       case 'started': return '#e3f2fd';
       case 'completed': return '#e8f5e9';
@@ -410,7 +416,7 @@ const PromptExecutionCard = ({ execution }) => {
 };
 
 // Prompt executions column component
-const PromptExecutionsColumn = ({ executions }) => {
+const PromptExecutionsColumn = ({ executions, isDark }) => {
   const hasActiveExecution = executions.some(e => e.status === 'started');
 
   return (
@@ -476,7 +482,7 @@ const PromptExecutionsColumn = ({ executions }) => {
           </Box>
         ) : (
           executions.map((execution, idx) => (
-            <PromptExecutionCard key={`${execution.ruleId}-${execution.eventId}-${idx}`} execution={execution} />
+            <PromptExecutionCard key={`${execution.ruleId}-${execution.eventId}-${idx}`} execution={execution} isDark={isDark} />
           ))
         )}
       </Box>
@@ -485,7 +491,7 @@ const PromptExecutionsColumn = ({ executions }) => {
 };
 
 // Workflow execution card component
-const WorkflowExecutionCard = ({ execution }) => {
+const WorkflowExecutionCard = ({ execution, isDark }) => {
   const timestamp = new Date(execution.timestamp);
   const timeStr = timestamp.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -510,6 +516,15 @@ const WorkflowExecutionCard = ({ execution }) => {
   };
 
   const getStatusColor = () => {
+    if (isDark) {
+      switch (execution.status) {
+        case 'started': return 'rgba(33, 150, 243, 0.15)';
+        case 'completed': return 'rgba(76, 175, 80, 0.15)';
+        case 'ignored': return 'rgba(255, 152, 0, 0.15)';
+        case 'error': return 'rgba(244, 67, 54, 0.15)';
+        default: return 'transparent';
+      }
+    }
     switch (execution.status) {
       case 'started': return '#e3f2fd';
       case 'completed': return '#e8f5e9';
@@ -608,7 +623,7 @@ const WorkflowExecutionCard = ({ execution }) => {
 };
 
 // Workflow executions column component
-const WorkflowExecutionsColumn = ({ executions }) => {
+const WorkflowExecutionsColumn = ({ executions, isDark }) => {
   const hasActiveExecution = executions.some(e => e.status === 'started');
 
   return (
@@ -674,7 +689,7 @@ const WorkflowExecutionsColumn = ({ executions }) => {
           </Box>
         ) : (
           executions.map((execution, idx) => (
-            <WorkflowExecutionCard key={`${execution.ruleId}-${execution.eventId}-${idx}`} execution={execution} />
+            <WorkflowExecutionCard key={`${execution.ruleId}-${execution.eventId}-${idx}`} execution={execution} isDark={isDark} />
           ))
         )}
       </Box>
@@ -683,7 +698,7 @@ const WorkflowExecutionsColumn = ({ executions }) => {
 };
 
 // Script execution card component
-const ScriptExecutionCard = ({ execution }) => {
+const ScriptExecutionCard = ({ execution, isDark }) => {
   const timestamp = new Date(execution.timestamp);
   const timeStr = timestamp.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -706,6 +721,14 @@ const ScriptExecutionCard = ({ execution }) => {
   };
 
   const getStatusColor = () => {
+    if (isDark) {
+      switch (execution.status) {
+        case 'started': return 'rgba(33, 150, 243, 0.15)';
+        case 'completed': return 'rgba(76, 175, 80, 0.15)';
+        case 'error': return 'rgba(244, 67, 54, 0.15)';
+        default: return 'transparent';
+      }
+    }
     switch (execution.status) {
       case 'started': return '#e3f2fd';
       case 'completed': return '#e8f5e9';
@@ -803,7 +826,7 @@ const ScriptExecutionCard = ({ execution }) => {
 };
 
 // Script executions column component
-const ScriptExecutionsColumn = ({ executions }) => {
+const ScriptExecutionsColumn = ({ executions, isDark }) => {
   const hasActiveExecution = executions.some(e => e.status === 'started');
 
   return (
@@ -869,7 +892,7 @@ const ScriptExecutionsColumn = ({ executions }) => {
           </Box>
         ) : (
           executions.map((execution, idx) => (
-            <ScriptExecutionCard key={`${execution.workflowId}-${execution.scriptFile}-${idx}`} execution={execution} />
+            <ScriptExecutionCard key={`${execution.workflowId}-${execution.scriptFile}-${idx}`} execution={execution} isDark={isDark} />
           ))
         )}
       </Box>
@@ -878,6 +901,9 @@ const ScriptExecutionsColumn = ({ executions }) => {
 };
 
 const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflowExecutions = [], scriptExecutions = [], serviceStatus = {} }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
   // Track active sources (which sources had recent activity)
   const [activeSources, setActiveSources] = useState({});
   const prevEventsRef = useRef([]);
@@ -983,11 +1009,14 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
             height: 8
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            borderRadius: 4
+            backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+            borderRadius: 4,
+            '&:hover': {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.35)'
+            }
           },
           '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0,0,0,0.05)',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
             borderRadius: 4
           }
         }}
@@ -1013,18 +1042,19 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
               isActive={isActive}
               showConnectionStatus={isMqttSource}
               isConnected={isMqttSource ? mqttConnected : true}
+              isDark={isDark}
             />
           );
         })}
 
         {/* Prompt Executions Column */}
-        <PromptExecutionsColumn executions={promptExecutions} />
+        <PromptExecutionsColumn executions={promptExecutions} isDark={isDark} />
 
         {/* Workflow Executions Column */}
-        <WorkflowExecutionsColumn executions={workflowExecutions} />
+        <WorkflowExecutionsColumn executions={workflowExecutions} isDark={isDark} />
 
         {/* Script Executions Column */}
-        <ScriptExecutionsColumn executions={scriptExecutions} />
+        <ScriptExecutionsColumn executions={scriptExecutions} isDark={isDark} />
       </Box>
 
       {/* Connection status bar - at bottom */}

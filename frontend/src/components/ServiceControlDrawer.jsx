@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, Box, Typography, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress } from '@mui/material';
+import { Drawer, Box, Typography, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { Close, PlayArrow, Stop, MoreVert } from '@mui/icons-material';
 import CodingAgentConfigDialog from './CodingAgentConfigDialog.jsx';
 import { VscServerProcess } from 'react-icons/vsc';
@@ -30,6 +30,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
   const [selectedService, setSelectedService] = useState(null);
   const [settingsMenuAnchor, setSettingsMenuAnchor] = useState(null);
   const [codingAgentConfigOpen, setCodingAgentConfigOpen] = useState(false);
+  const [errorToast, setErrorToast] = useState({ open: false, message: '' });
 
   useEffect(() => {
     if (open) {
@@ -80,15 +81,24 @@ export default function ServiceControlDrawer({ open, onClose }) {
   const handleAction = async (action) => {
     if (!selectedService) return;
     const serviceName = selectedService.name;
+    const displayName = selectedService.displayName || serviceName;
     handleMenuClose();
     setActionInProgress(serviceName);
 
     try {
-      await apiFetch(`/api/process-manager/${serviceName}`, {
+      const response = await apiFetch(`/api/process-manager/${serviceName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
       });
+
+      const result = await response.json();
+
+      if (!response.ok || result.success === false) {
+        setErrorToast({ open: true, message: `Failed to ${action} ${displayName}: ${result.message || 'Unknown error'}` });
+        setActionInProgress(null);
+        return;
+      }
 
       // Poll for status update
       const pollStatus = async (attempts = 0) => {
@@ -96,12 +106,17 @@ export default function ServiceControlDrawer({ open, onClose }) {
           const res = await apiFetch(`/api/process-manager/${serviceName}`);
           const statusData = await res.json();
           setStatuses(prev => ({ ...prev, [serviceName]: statusData }));
-          if (attempts < 5 && statusData.status === (action === 'start' ? 'stopped' : 'running')) {
+          const expectedPrevStatus = action === 'start' ? 'stopped' : 'running';
+          if (attempts < 5 && statusData.status === expectedPrevStatus) {
             setTimeout(() => pollStatus(attempts + 1), 2000);
           } else {
+            if (statusData.status === expectedPrevStatus) {
+              setErrorToast({ open: true, message: `${displayName} failed to ${action}. The service did not reach the expected state.` });
+            }
             setActionInProgress(null);
           }
         } catch {
+          setErrorToast({ open: true, message: `Failed to check status of ${displayName} after ${action}.` });
           setActionInProgress(null);
         }
       };
@@ -109,6 +124,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
       setTimeout(() => pollStatus(), 2000);
     } catch (error) {
       console.error(`Failed to ${action} service ${serviceName}:`, error);
+      setErrorToast({ open: true, message: `Failed to ${action} ${displayName}: ${error.message || 'Network error'}` });
       setActionInProgress(null);
     }
   };
@@ -164,7 +180,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
             justifyContent: 'center',
             gap: 2,
             px: 2,
-            backgroundColor: '#efefef',
+            backgroundColor: themeMode === 'dark' ? '#1e1e1e' : '#efefef',
             overflowX: 'auto',
             '&::-webkit-scrollbar': { height: '6px' },
             '&::-webkit-scrollbar-thumb': {
@@ -197,9 +213,9 @@ export default function ServiceControlDrawer({ open, onClose }) {
                       p: 2,
                       borderRadius: '8px',
                       cursor: busy ? 'wait' : 'pointer',
-                      backgroundColor: '#fff',
+                      backgroundColor: themeMode === 'dark' ? '#2d2d2d' : '#fff',
                       boxShadow: 2,
-                      border: running ? '2px solid #000' : '1px solid transparent',
+                      border: running ? `2px solid ${themeMode === 'dark' ? '#4caf50' : '#000'}` : '1px solid transparent',
                       transition: 'all 0.2s',
                       '&:hover': busy ? {} : {
                         transform: 'translateY(-2px)',
@@ -284,6 +300,20 @@ export default function ServiceControlDrawer({ open, onClose }) {
         open={codingAgentConfigOpen}
         onClose={() => setCodingAgentConfigOpen(false)}
       />
+
+      {/* Error Toast */}
+      <Snackbar
+        open={errorToast.open}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity="error"
+          variant="filled"
+          onClose={() => setErrorToast({ open: false, message: '' })}
+        >
+          {errorToast.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

@@ -768,7 +768,8 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         PaperProps={{
           sx: {
             height: '90vh',
-            maxHeight: '90vh'
+            maxHeight: '90vh',
+            ...(themeMode === 'dark' && { border: '1px solid #999' })
           }
         }}
       >

@@ -34,7 +34,7 @@ export class ProcessManagerController {
    * Starts or stops a service based on the action in the request body
    * Body: { action: 'start' | 'stop' }
    */
-  @Roles('admin')
+  @Roles('user')
   @Post(':serviceName')
   async controlService(
     @Param('serviceName') serviceName: string,
