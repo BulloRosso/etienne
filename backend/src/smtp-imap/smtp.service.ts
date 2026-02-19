@@ -112,6 +112,7 @@ export class SmtpService {
    * @param subject - Email subject
    * @param body - Email body (plain text)
    * @param attachments - Array of file paths relative to project directory
+   * @param html - Optional HTML body (sent as alternative to plain text)
    * @returns Result object with success status
    */
   async sendEmail(
@@ -119,7 +120,8 @@ export class SmtpService {
     recipient: string,
     subject: string,
     body: string,
-    attachments: string[] = []
+    attachments: string[] = [],
+    html?: string
   ): Promise<any> {
     try {
       const [client, { Message }] = await Promise.all([
@@ -151,6 +153,11 @@ export class SmtpService {
           this.logger.warn(`Attachment file not found: ${filePath}`);
           throw new Error(`Attachment file not found: ${attachment}`);
         }
+      }
+
+      // Add HTML alternative if provided
+      if (html) {
+        mailAttachments.push({ data: html, alternative: true });
       }
 
       // Get sender from connection string

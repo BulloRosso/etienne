@@ -33,7 +33,11 @@ const tools: McpTool[] = [
         },
         body: {
           type: 'string',
-          description: 'Email body (plain text)',
+          description: 'Email body (plain text). Always provide this as a fallback for email clients that do not render HTML.',
+        },
+        html: {
+          type: 'string',
+          description: 'Optional HTML body. When provided, sent as the rich-text version alongside the plain text body.',
         },
         attachments: {
           type: 'array',
@@ -89,7 +93,8 @@ export function createEmailToolsService(
           args.recipient,
           args.subject,
           args.body,
-          args.attachments || []
+          args.attachments || [],
+          args.html
         );
 
       case 'email_check_inbox':

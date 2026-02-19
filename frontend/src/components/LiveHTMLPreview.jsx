@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { authSSEUrl } from '../services/api';
 
 /**
  * LiveHTMLPreview Component
@@ -55,7 +56,7 @@ export default function LiveHTMLPreview({ filename, projectName, className = '' 
     };
   }, [filename]);
 
-  const iframeSrc = `/api/workspace/${encodeURIComponent(projectName)}/files/${filename}?v=${refreshKey}`;
+  const iframeSrc = authSSEUrl(`/api/workspace/${encodeURIComponent(projectName)}/files/${filename}?v=${refreshKey}`);
 
   return (
     <div style={{ width: '100%', height: '100%' }} className={className}>
