@@ -98,7 +98,12 @@
       "WebFetch(domain:community.openai.com)",
       "WebFetch(domain:cookbook.openai.com)",
       "WebFetch(domain:funnelstory.ai)",
-      "WebFetch(domain:stately.ai)"
+      "WebFetch(domain:stately.ai)",
+      "Bash(git clone:*)",
+      "Bash(npm view:*)",
+      "WebFetch(domain:mcpui.dev)",
+      "WebFetch(domain:modelcontextprotocol.github.io)",
+      "WebFetch(domain:proxy.mcpui.dev)"
     ],
     "deny": [],
     "ask": []

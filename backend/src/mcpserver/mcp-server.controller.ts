@@ -191,6 +191,21 @@ export class McpServerController {
   }
 
   // ============================================
+  // Tool metadata endpoint (for MCP App detection)
+  // ============================================
+
+  @Get('mcp/tool-app-meta')
+  async getToolAppMeta(@Res() res: Response): Promise<void> {
+    try {
+      const meta = this.factory.getToolAppMeta();
+      res.json(meta);
+    } catch (error) {
+      this.logger.error(`Error getting tool app meta: ${error.message}`, error.stack);
+      res.status(500).json({ error: 'Failed to get tool metadata' });
+    }
+  }
+
+  // ============================================
   // Tool group endpoint (parameterized)
   // ============================================
 
@@ -220,28 +235,33 @@ export class McpServerController {
         this.logger.log(`Project context set to: ${projectRoot}`);
       }
 
-      // Get or create transport for this session within this group
+      // Get or create a session (Server + Transport) for this request.
+      // Each session gets its own Server instance because the MCP SDK Server
+      // only supports one transport at a time.
       const sessionId = req.headers['mcp-session-id'] as string | undefined;
       let transport: StreamableHTTPServerTransport;
 
-      if (sessionId && instance.transports.has(sessionId)) {
-        transport = instance.transports.get(sessionId)!;
-        this.logger.log(`[${group}] Reusing transport for session: ${sessionId}`);
+      if (sessionId && instance.sessions.has(sessionId)) {
+        transport = instance.sessions.get(sessionId)!.transport;
+        this.logger.log(`[${group}] Reusing session: ${sessionId}`);
       } else {
+        // Create a new Server instance and transport for this session
+        const server = instance.createServer();
+
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (newSessionId) => {
             this.logger.log(`[${group}] Session initialized: ${newSessionId}`);
-            instance.transports.set(newSessionId, transport);
+            instance.sessions.set(newSessionId, { server, transport });
           },
           onsessionclosed: (closedSessionId) => {
             this.logger.log(`[${group}] Session closed: ${closedSessionId}`);
-            instance.transports.delete(closedSessionId);
+            instance.sessions.delete(closedSessionId);
           },
         });
 
-        await instance.server.connect(transport);
-        this.logger.log(`[${group}] New transport connected to MCP server`);
+        await server.connect(transport);
+        this.logger.log(`[${group}] New server+transport created for session`);
       }
 
       await transport.handleRequest(req as any, res as any, req.body);

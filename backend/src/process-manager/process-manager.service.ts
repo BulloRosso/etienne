@@ -127,9 +127,15 @@ export class ProcessManagerService implements OnModuleDestroy {
     return this.servicesConfig;
   }
 
-  async listServices(): Promise<ServiceConfig[]> {
+  async listServices(): Promise<(ServiceConfig & { status: 'running' | 'stopped' })[]> {
     const config = await this.loadServicesConfig();
-    return config.services;
+    const results = await Promise.all(
+      config.services.map(async (svc) => {
+        const { status } = await this.getServiceStatus(svc.name);
+        return { ...svc, status };
+      }),
+    );
+    return results;
   }
 
   async getServiceConfig(serviceName: string): Promise<ServiceConfig | null> {

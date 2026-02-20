@@ -5,6 +5,8 @@ import DOMPurify from 'dompurify';
 import ToolCallTimeline from './ToolCallTimeline';
 import TextSegmentTimeline from './TextSegmentTimeline';
 import TodoWriteTimeline from './TodoWriteTimeline';
+import McpAppRenderer from './McpAppRenderer';
+import useMcpAppMeta from '../hooks/useMcpAppMeta';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
@@ -16,6 +18,8 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 export default function StreamingTimeline({
   items = []
 }) {
+  const mcpAppMeta = useMcpAppMeta();
+
   // Process items into timeline format
   const timelineItems = useMemo(() => {
     // Separate by type
@@ -160,6 +164,31 @@ export default function StreamingTimeline({
             />
           );
         } else {
+          // Check if this tool has an MCP App UI
+          const appMeta = mcpAppMeta.get(item.content.toolName);
+          if (appMeta && item.content.result) {
+            return (
+              <Box key={item.key} sx={{ mb: 2, position: 'relative' }}>
+                <ToolCallTimeline
+                  toolName={item.content.toolName}
+                  args={item.content.args}
+                  result={item.content.result}
+                  description={item.content.description}
+                  showBullet={showBullet}
+                />
+                <Box sx={{ ml: showBullet ? '28px' : '38px', mt: 1 }}>
+                  <McpAppRenderer
+                    mcpGroup={appMeta.group}
+                    toolName={item.content.toolName}
+                    resourceUri={appMeta.resourceUri}
+                    toolInput={item.content.args}
+                    toolResult={item.content.result}
+                  />
+                </Box>
+              </Box>
+            );
+          }
+
           return (
             <ToolCallTimeline
               key={item.key}

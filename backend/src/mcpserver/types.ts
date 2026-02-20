@@ -137,19 +137,41 @@ export interface ElicitationResponse {
  * Configuration for a tool group within the MCP server factory.
  * Each group becomes its own independent MCP server endpoint.
  */
+/**
+ * A resource that a tool group can serve (for MCP Apps UI).
+ */
+export interface McpResource {
+  uri: string;
+  name: string;
+  description?: string;
+  mimeType: string;
+  loadContent: () => Promise<string | null>;
+}
+
 export interface ToolGroupConfig {
   toolServices: ToolService[];
   dynamicToolsLoader?: (projectRoot: string) => Promise<McpTool[]>;
   dynamicToolExecutor?: (toolName: string, args: Record<string, any>, projectRoot: string) => Promise<any>;
+  resources?: McpResource[];
+}
+
+/**
+ * A live session: one Server + its transport.
+ */
+export interface McpSession {
+  server: import('@modelcontextprotocol/sdk/server/index.js').Server;
+  transport: import('@modelcontextprotocol/sdk/server/streamableHttp.js').StreamableHTTPServerTransport;
 }
 
 /**
  * Runtime instance of a tool group's MCP server.
  * Created lazily by the factory on first access.
+ * Each session gets its own Server instance because the MCP SDK Server
+ * only supports one transport at a time.
  */
 export interface McpGroupInstance {
-  server: import('@modelcontextprotocol/sdk/server/index.js').Server;
+  createServer: () => import('@modelcontextprotocol/sdk/server/index.js').Server;
   toolMap: Map<string, ToolService>;
-  transports: Map<string, import('@modelcontextprotocol/sdk/server/streamableHttp.js').StreamableHTTPServerTransport>;
+  sessions: Map<string, McpSession>;
   config: ToolGroupConfig;
 }

@@ -12,9 +12,11 @@ import { InterceptorsModule } from '../interceptors/interceptors.module';
 import { ProjectToolsModule } from './project-tools/project-tools.module';
 import { StatefulWorkflowsModule } from '../stateful-workflows/stateful-workflows.module';
 import { EventHandlingModule } from '../event-handling/event-handling.module';
+import { ProcessManagerModule } from '../process-manager/process-manager.module';
+import { ConfigurationModule } from '../configuration/configuration.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule],
   controllers: [McpServerController],
   providers: [McpServerFactoryService, McpAuthGuard],
   exports: [McpServerFactoryService],

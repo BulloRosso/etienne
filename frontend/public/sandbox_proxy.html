@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+* { box-sizing: border-box; }
+iframe { background-color: transparent; border: none; padding: 0; overflow: hidden; flex-grow: 1; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<script>
+/**
+ * MCP-UI Sandbox Proxy
+ *
+ * Sits between the host (AppFrame) and the MCP App HTML.
+ * Protocol uses JSON-RPC style messages via postMessage:
+ *
+ * 1. Proxy -> Parent:  { method: "ui/notifications/sandbox-proxy-ready", params: {} }
+ * 2. Parent -> Proxy:  { method: "ui/notifications/sandbox-resource-ready", params: { html, sandbox?, csp? } }
+ * 3. Parent <-> Inner: All other JSON-RPC messages forwarded bidirectionally
+ */
+
+let inner = null;
+
+// Create the inner iframe that will hold the MCP App
+function createInnerIframe(sandboxAttr) {
+  inner = document.createElement('iframe');
+  inner.style.cssText = 'width:100%; height:100%; border:none;';
+  inner.setAttribute('sandbox', sandboxAttr || 'allow-scripts');
+  document.body.appendChild(inner);
+  return inner;
+}
+
+// Forward messages between parent and inner iframe
+window.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || typeof data !== 'object') return;
+
+  if (event.source === window.parent) {
+    // Message from host -> proxy
+    if (data.method === 'ui/notifications/sandbox-resource-ready') {
+      // Host is sending the HTML content to load
+      const params = data.params || {};
+      const html = params.html;
+      const sandbox = params.sandbox;
+
+      if (!inner) {
+        createInnerIframe(sandbox || 'allow-scripts');
+      } else if (typeof sandbox === 'string') {
+        inner.setAttribute('sandbox', sandbox);
+      }
+
+      if (typeof html === 'string') {
+        inner.srcdoc = html;
+      }
+      return;
+    }
+
+    // Forward all other messages from host to inner iframe
+    if (inner && inner.contentWindow) {
+      inner.contentWindow.postMessage(data, '*');
+    }
+  } else if (inner && event.source === inner.contentWindow) {
+    // Message from inner iframe -> forward to host
+    window.parent.postMessage(data, '*');
+  }
+});
+
+// Create the inner iframe immediately (it will get content via sandbox-resource-ready)
+createInnerIframe('allow-scripts');
+
+// Signal to the host that this proxy is ready
+window.parent.postMessage({ method: 'ui/notifications/sandbox-proxy-ready', params: {} }, '*');
+</script>
+</body>
+</html>

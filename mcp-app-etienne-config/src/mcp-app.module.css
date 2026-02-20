@@ -1,0 +1,276 @@
+/* ─── Layout ──────────────────────────────────────────────────────────────── */
+
+.main {
+  width: 100%;
+  padding: var(--spacing-md);
+}
+
+.main > * + * {
+  margin-top: var(--spacing-lg);
+}
+
+/* ─── Section headings ────────────────────────────────────────────────────── */
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--spacing-sm);
+  border-bottom: var(--border-width-regular) solid var(--color-border-primary);
+}
+
+.sectionTitle {
+  font-size: var(--font-heading-lg-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--font-heading-lg-line-height);
+}
+
+/* ─── Tabs ────────────────────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  border-bottom: var(--border-width-regular) solid var(--color-border-primary);
+}
+
+.tab {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-text-sm-size);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tabActive {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* ─── Service cards ───────────────────────────────────────────────────────── */
+
+.serviceList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.serviceCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: var(--border-width-regular) solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-secondary);
+}
+
+.serviceInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.serviceName {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-text-sm-size);
+}
+
+.serviceDescription {
+  font-size: var(--font-text-xs-size);
+  color: var(--color-text-secondary);
+  line-height: var(--font-text-xs-line-height);
+}
+
+.servicePort {
+  font-size: var(--font-text-xs-size);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.serviceActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* ─── Status badge ────────────────────────────────────────────────────────── */
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 2px var(--spacing-sm);
+  border-radius: 9999px;
+  font-size: var(--font-text-xs-size);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.statusRunning {
+  background: var(--color-background-success);
+  color: var(--color-text-success);
+}
+
+.statusRunning .statusDot {
+  background: var(--color-text-success);
+}
+
+.statusStopped {
+  background: var(--color-background-danger);
+  color: var(--color-text-danger);
+}
+
+.statusStopped .statusDot {
+  background: var(--color-text-danger);
+}
+
+.statusLoading {
+  background: var(--color-background-info);
+  color: var(--color-text-info);
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: var(--border-width-regular) solid var(--color-border-primary);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-text-xs-size);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--color-background-secondary);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-color: var(--color-accent);
+}
+
+.btnPrimary:hover {
+  background: color-mix(in srgb, var(--color-accent) 85%, var(--color-background-inverse));
+}
+
+.btnDanger {
+  color: var(--color-text-danger);
+  border-color: var(--color-text-danger);
+}
+
+.btnDanger:hover {
+  background: var(--color-background-danger);
+}
+
+/* ─── Config table ────────────────────────────────────────────────────────── */
+
+.configTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-text-sm-size);
+}
+
+.configTable th {
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-bottom: var(--border-width-regular) solid var(--color-border-primary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-text-xs-size);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.configTable td {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-bottom: var(--border-width-regular) solid var(--color-border-primary);
+  vertical-align: top;
+}
+
+.configKey {
+  font-family: var(--font-mono);
+  font-size: var(--font-text-xs-size);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  color: var(--color-text-info);
+}
+
+.configValue {
+  font-family: var(--font-mono);
+  font-size: var(--font-text-xs-size);
+  word-break: break-all;
+}
+
+.configInput {
+  width: 100%;
+  padding: 2px var(--spacing-xs);
+  border: var(--border-width-regular) solid var(--color-border-secondary);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-text-xs-size);
+}
+
+.configInput:focus {
+  outline: 2px solid var(--color-ring-primary);
+  outline-offset: -1px;
+}
+
+/* ─── Feedback / toast ────────────────────────────────────────────────────── */
+
+.toast {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-text-sm-size);
+  font-weight: var(--font-weight-medium);
+}
+
+.toastSuccess {
+  background: var(--color-background-success);
+  color: var(--color-text-success);
+}
+
+.toastError {
+  background: var(--color-background-danger);
+  color: var(--color-text-danger);
+}
+
+/* ─── Loading spinner ─────────────────────────────────────────────────────── */
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border-secondary);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

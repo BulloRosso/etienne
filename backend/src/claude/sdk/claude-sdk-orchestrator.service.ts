@@ -1,6 +1,7 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 import { ClaudeSdkService } from './claude-sdk.service';
 import { SdkSessionManagerService } from './sdk-session-manager.service';
 import { SdkMessageTransformer } from './sdk-message-transformer';
@@ -26,6 +27,15 @@ import { TelemetryService } from '../../observability/telemetry.service';
 export class ClaudeSdkOrchestratorService {
   private readonly logger = new Logger(ClaudeSdkOrchestratorService.name);
   private readonly config = new ClaudeConfig();
+  private readonly JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
+
+  private generateServiceToken(): string {
+    return jwt.sign(
+      { sub: 'claude-sdk-orchestrator', username: 'system', role: 'admin', displayName: 'SDK Orchestrator', type: 'access' },
+      this.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+  }
 
   constructor(
     private readonly claudeSdkService: ClaudeSdkService,
@@ -161,13 +171,16 @@ export class ClaudeSdkOrchestratorService {
             this.logger.log('Memory disabled in project settings, skipping');
           } else {
             const searchLimit = memorySettings.searchLimit ?? 5;
+            const serviceToken = this.generateServiceToken();
+            const authHeaders = { headers: { Authorization: `Bearer ${serviceToken}` } };
             const searchResponse = await axios.post(
               `${memoryBaseUrl}/search?project=${encodeURIComponent(projectDir)}`,
               {
                 query: sanitizedPrompt,
                 user_id: userId,
                 limit: searchLimit > 0 ? searchLimit : 100
-              }
+              },
+              authHeaders
             );
 
             const memories = searchResponse.data.results || [];
@@ -821,6 +834,7 @@ export class ClaudeSdkOrchestratorService {
       // Store memories if enabled (fire-and-forget)
       if (memoryEnabled && assistantText) {
         const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
+        const serviceToken = this.generateServiceToken();
         axios.post(
           `${memoryBaseUrl}?project=${encodeURIComponent(projectDir)}`,
           {
@@ -834,7 +848,8 @@ export class ClaudeSdkOrchestratorService {
               source: 'chat',
               timestamp: new Date().toISOString()
             }
-          }
+          },
+          { headers: { Authorization: `Bearer ${serviceToken}` } }
         ).catch((error: any) => {
           this.logger.error('Failed to store memories:', error.message);
         });

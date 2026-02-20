@@ -76,6 +76,13 @@
       "url": "http://localhost:6060/mcp/workflows",
       "headers": { "Authorization": "test123" },
       "description": "Stateful workflow management tools (XState v5)"
+    },
+    {
+      "name": "etienne-configuration",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/etienne-configuration",
+      "headers": { "Authorization": "test123" },
+      "description": "Process manager and backend configuration tools"
     }
   ]
 }

@@ -3,12 +3,15 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'crypto';
 import {
   ToolService,
   ToolGroupConfig,
   McpGroupInstance,
+  McpSession,
   ElicitationCallback,
   ElicitationResult,
   ElicitationSchema,
@@ -38,6 +41,14 @@ import { ProjectToolsService } from './project-tools/project-tools.service';
 import { StatefulWorkflowsService } from '../stateful-workflows/stateful-workflows.service';
 import { createWorkflowToolsService } from '../stateful-workflows/workflow-tools';
 import { RuleEngineService } from '../event-handling/core/rule-engine.service';
+import {
+  createEtienneConfigurationToolsService,
+  loadEtienneConfigResourceHtml,
+  ETIENNE_CONFIG_RESOURCE_URI,
+  ETIENNE_CONFIG_RESOURCE_MIME,
+} from './etienne-configuration-tools';
+import { ProcessManagerService } from '../process-manager/process-manager.service';
+import { ConfigurationService } from '../configuration/configuration.service';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -66,6 +77,8 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly projectToolsService: ProjectToolsService,
     private readonly workflowsService: StatefulWorkflowsService,
     private readonly ruleEngineService: RuleEngineService,
+    private readonly processManagerService: ProcessManagerService,
+    private readonly configurationService: ConfigurationService,
   ) {
     this.groupConfigs = {
       'demo': {
@@ -114,6 +127,18 @@ export class McpServerFactoryService implements OnModuleInit {
       'workflows': {
         toolServices: [createWorkflowToolsService(workflowsService, ruleEngineService)],
       },
+      'etienne-configuration': {
+        toolServices: [createEtienneConfigurationToolsService(processManagerService, configurationService)],
+        resources: [
+          {
+            uri: ETIENNE_CONFIG_RESOURCE_URI,
+            name: 'Etienne Configuration Dashboard',
+            description: 'Interactive dashboard for managing platform services and backend configuration',
+            mimeType: ETIENNE_CONFIG_RESOURCE_MIME,
+            loadContent: loadEtienneConfigResourceHtml,
+          },
+        ],
+      },
     };
   }
 
@@ -130,6 +155,32 @@ export class McpServerFactoryService implements OnModuleInit {
   }
 
   /**
+   * Get tool metadata for all groups — returns tools that have _meta.ui.resourceUri
+   * Used by the frontend to know which tool calls should render as MCP Apps.
+   * Returns both the raw tool name and the MCP-prefixed name (mcp__<group>__<tool>)
+   * since Claude SDK uses the prefixed form in tool events.
+   */
+  getToolAppMeta(): Array<{ toolName: string; mcpToolName: string; group: string; resourceUri: string }> {
+    const result: Array<{ toolName: string; mcpToolName: string; group: string; resourceUri: string }> = [];
+    for (const [groupName, config] of Object.entries(this.groupConfigs)) {
+      for (const service of config.toolServices) {
+        for (const tool of service.tools) {
+          const meta = (tool as any)._meta;
+          if (meta?.ui?.resourceUri) {
+            result.push({
+              toolName: tool.name,
+              mcpToolName: `mcp__${groupName}__${tool.name}`,
+              group: groupName,
+              resourceUri: meta.ui.resourceUri,
+            });
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
    * Get or lazily create the MCP server instance for a tool group
    */
   getGroupInstance(groupName: string): McpGroupInstance | null {
@@ -138,9 +189,9 @@ export class McpServerFactoryService implements OnModuleInit {
     }
 
     if (!this.groups.has(groupName)) {
-      const instance = this.createGroupServer(groupName, this.groupConfigs[groupName]);
+      const instance = this.createGroupInstance(groupName, this.groupConfigs[groupName]);
       this.groups.set(groupName, instance);
-      this.logger.log(`Created MCP server for group: ${groupName}`);
+      this.logger.log(`Created MCP group instance for: ${groupName}`);
     }
 
     return this.groups.get(groupName)!;
@@ -245,13 +296,10 @@ export class McpServerFactoryService implements OnModuleInit {
   // Private: Server creation per group
   // ============================================
 
-  private createGroupServer(groupName: string, config: ToolGroupConfig): McpGroupInstance {
-    const server = new Server(
-      { name: `mcp-${groupName}`, version: '1.0.0' },
-      { capabilities: { tools: {}, elicitation: {} } },
-    );
+  private createGroupInstance(groupName: string, config: ToolGroupConfig): McpGroupInstance {
+    const hasResources = config.resources && config.resources.length > 0;
 
-    // Build static tool map
+    // Build static tool map (shared across all sessions)
     const toolMap = new Map<string, ToolService>();
     for (const service of config.toolServices) {
       for (const tool of service.tools) {
@@ -263,76 +311,118 @@ export class McpServerFactoryService implements OnModuleInit {
       }
     }
 
-    // ListTools handler
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
-      this.logger.log(`[${groupName}] tools/list called, projectRoot = ${this.currentProjectRoot || 'NULL'}`);
-      const allTools = [];
+    // Factory: create a fresh Server instance with all handlers registered.
+    // The MCP SDK Server only supports one transport at a time, so each
+    // concurrent session (Claude SDK, AppRenderer, etc.) needs its own Server.
+    const createServer = (): Server => {
+      const server = new Server(
+        { name: `mcp-${groupName}`, version: '1.0.0' },
+        { capabilities: { tools: {}, elicitation: {}, ...(hasResources ? { resources: {} } : {}) } },
+      );
 
-      for (const service of config.toolServices) {
-        allTools.push(...service.tools);
-      }
+      // ListTools handler
+      server.setRequestHandler(ListToolsRequestSchema, async () => {
+        this.logger.log(`[${groupName}] tools/list called, projectRoot = ${this.currentProjectRoot || 'NULL'}`);
+        const allTools = [];
 
-      // Load dynamic tools if configured and project context exists
-      if (config.dynamicToolsLoader && this.currentProjectRoot) {
-        try {
-          const dynamicTools = await config.dynamicToolsLoader(this.currentProjectRoot);
-          allTools.push(...dynamicTools);
-          if (dynamicTools.length > 0) {
-            this.logger.log(`[${groupName}] Added ${dynamicTools.length} dynamic tools`);
-          }
-        } catch (error) {
-          this.logger.warn(`[${groupName}] Failed to load dynamic tools: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        for (const service of config.toolServices) {
+          allTools.push(...service.tools);
         }
+
+        // Load dynamic tools if configured and project context exists
+        if (config.dynamicToolsLoader && this.currentProjectRoot) {
+          try {
+            const dynamicTools = await config.dynamicToolsLoader(this.currentProjectRoot);
+            allTools.push(...dynamicTools);
+            if (dynamicTools.length > 0) {
+              this.logger.log(`[${groupName}] Added ${dynamicTools.length} dynamic tools`);
+            }
+          } catch (error) {
+            this.logger.warn(`[${groupName}] Failed to load dynamic tools: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+
+        return { tools: allTools };
+      });
+
+      // CallTool handler
+      server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        const { name, arguments: args } = request.params;
+
+        if (!name) {
+          throw new Error('Invalid params: missing tool name');
+        }
+
+        // Try dynamic tool executor first (for tools not in static map)
+        if (!toolMap.has(name) && config.dynamicToolExecutor && this.currentProjectRoot) {
+          return config.dynamicToolExecutor(name, args || {}, this.currentProjectRoot);
+        }
+
+        // Find the static tool service
+        const service = toolMap.get(name);
+        if (!service) {
+          throw new Error(`Unknown tool: ${name}`);
+        }
+
+        try {
+          this.logger.log(`[${groupName}] Executing tool: ${name} with args: ${JSON.stringify(args || {}).substring(0, 200)}`);
+          const elicitCallback = this.createElicitationCallback(name);
+          const result = await service.execute(name, args || {}, elicitCallback);
+          this.logger.log(`[${groupName}] Tool ${name} executed successfully`);
+
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          };
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          this.logger.error(`[${groupName}] Error executing tool ${name}: ${err.message}`, err.stack);
+
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify({
+              error: true,
+              tool: name,
+              message: err.message,
+              details: err.stack || 'No stack trace available',
+            }, null, 2) }],
+            isError: true,
+          };
+        }
+      });
+
+      // Resource handlers (for MCP App HTML serving)
+      if (hasResources) {
+        server.setRequestHandler(ListResourcesRequestSchema, async () => {
+          const resources = (config.resources || []).map((r) => ({
+            uri: r.uri,
+            name: r.name,
+            description: r.description,
+            mimeType: r.mimeType,
+          }));
+          this.logger.log(`[${groupName}] resources/list: returning ${resources.length} resources`);
+          return { resources };
+        });
+
+        server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+          const { uri } = request.params;
+          const resource = (config.resources || []).find((r) => r.uri === uri);
+          if (!resource) {
+            throw new Error(`Resource not found: ${uri}`);
+          }
+          const content = await resource.loadContent();
+          if (content === null) {
+            throw new Error(`Failed to load resource content: ${uri}`);
+          }
+          this.logger.log(`[${groupName}] resources/read: serving ${uri} (${content.length} bytes)`);
+          return {
+            contents: [{ uri, mimeType: resource.mimeType, text: content }],
+          };
+        });
       }
 
-      return { tools: allTools };
-    });
+      return server;
+    };
 
-    // CallTool handler
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
-
-      if (!name) {
-        throw new Error('Invalid params: missing tool name');
-      }
-
-      // Try dynamic tool executor first (for tools not in static map)
-      if (!toolMap.has(name) && config.dynamicToolExecutor && this.currentProjectRoot) {
-        return config.dynamicToolExecutor(name, args || {}, this.currentProjectRoot);
-      }
-
-      // Find the static tool service
-      const service = toolMap.get(name);
-      if (!service) {
-        throw new Error(`Unknown tool: ${name}`);
-      }
-
-      try {
-        this.logger.log(`[${groupName}] Executing tool: ${name} with args: ${JSON.stringify(args || {}).substring(0, 200)}`);
-        const elicitCallback = this.createElicitationCallback(name);
-        const result = await service.execute(name, args || {}, elicitCallback);
-        this.logger.log(`[${groupName}] Tool ${name} executed successfully`);
-
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        this.logger.error(`[${groupName}] Error executing tool ${name}: ${err.message}`, err.stack);
-
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify({
-            error: true,
-            tool: name,
-            message: err.message,
-            details: err.stack || 'No stack trace available',
-          }, null, 2) }],
-          isError: true,
-        };
-      }
-    });
-
-    return { server, toolMap, transports: new Map(), config };
+    return { createServer, toolMap, sessions: new Map(), config };
   }
 
   // ============================================

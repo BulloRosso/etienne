@@ -5,6 +5,7 @@ import chokidar from 'chokidar';
 import { join } from 'path';
 import { Observable } from 'rxjs';
 import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 import { posixProjectPath } from '../common/path.util';
 import { Usage, MessageEvent, ClaudeEvent } from './types';
 import { norm, safeRoot } from './utils/path.utils';
@@ -23,8 +24,17 @@ import { LlmService } from '../llm/llm.service';
 @Injectable()
 export class ClaudeService {
   private readonly config = new ClaudeConfig();
+  private readonly JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
   private queues = new Map<string, Promise<unknown>>();
   private processes = new Map<string, any>(); // Store process references by processId
+
+  private generateServiceToken(): string {
+    return jwt.sign(
+      { sub: 'claude-service', username: 'system', role: 'admin', displayName: 'Claude Service', type: 'access' },
+      this.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+  }
 
   constructor(
     private readonly budgetMonitoringService: BudgetMonitoringService,
@@ -420,13 +430,16 @@ project using the [Scrapbook](#scrapbook)
               console.log('Memory disabled in project settings, skipping');
             } else {
               const searchLimit = memorySettings.searchLimit ?? 5;
+              const serviceToken = this.generateServiceToken();
+              const authHeaders = { headers: { Authorization: `Bearer ${serviceToken}` } };
               const searchResponse = await axios.post(
                 `${memoryBaseUrl}/search?project=${encodeURIComponent(projectDir)}`,
                 {
                   query: sanitizedPrompt,
                   user_id: userId,
                   limit: searchLimit > 0 ? searchLimit : 100
-                }
+                },
+                authHeaders
               );
 
               const memories = searchResponse.data.results || [];
@@ -682,6 +695,7 @@ project using the [Scrapbook](#scrapbook)
           // Extract and store memories if enabled (fire-and-forget)
           if (memoryEnabled && assistantText) {
             const memoryBaseUrl = process.env.MEMORY_MANAGEMENT_URL || 'http://localhost:6060/api/memories';
+            const serviceToken = this.generateServiceToken();
 
             // Fire-and-forget: don't await, let it run in background
             axios.post(
@@ -697,7 +711,8 @@ project using the [Scrapbook](#scrapbook)
                   source: 'chat',
                   timestamp: new Date().toISOString()
                 }
-              }
+              },
+              { headers: { Authorization: `Bearer ${serviceToken}` } }
             ).catch((error: any) => {
               console.error('Failed to store memories:', error.message);
               // Don't fail the request if memory storage fails
