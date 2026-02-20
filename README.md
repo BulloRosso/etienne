@@ -931,24 +931,30 @@ Etienne supports external messaging platform integration, allowing users to inte
 
 ## Architecture
 
-```
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│  Telegram User  │     │  Telegram Provider   │     │    Backend      │
-│                 │     │    (port 6350)       │     │  (port 6060)    │
-└────────┬────────┘     └──────────┬───────────┘     └────────┬────────┘
-         │                         │                          │
-         │  1. Send message        │                          │
-         │ ───────────────────────>│                          │
-         │                         │  2. Check session        │
-         │                         │ ────────────────────────>│
-         │                         │                          │
-         │                         │  3. Forward to Etienne   │
-         │                         │ ────────────────────────>│
-         │                         │                          │
-         │                         │  4. Etienne response     │
-         │                         │ <────────────────────────│
-         │  5. Reply to user       │                          │
-         │ <───────────────────────│                          │
+```mermaid
+sequenceDiagram
+    actor TelegramUser as Telegram User
+    participant Provider as Telegram Provider<br/>(:6350)
+    participant Backend as Backend<br/>(:6060)
+    participant Admin as Admin<br/>(Frontend)
+
+    rect rgb(240, 240, 255)
+        Note over TelegramUser,Admin: Pairing Flow (first time only)
+        TelegramUser->>Provider: /start
+        Provider->>Backend: POST /remote-sessions/pairing/request
+        Backend-->>Admin: Pairing request appears in UI
+        Admin->>Backend: Approve pairing
+        Backend-->>Provider: Session created
+        Provider-->>TelegramUser: ✓ Paired — select a project
+    end
+
+    TelegramUser->>Provider: Send message
+    Provider->>Backend: Check session mapping
+    Backend-->>Provider: Session valid
+
+    Provider->>Backend: Forward prompt to Etienne
+    Backend-->>Provider: Etienne response (streamed)
+    Provider-->>TelegramUser: Reply to user
 ```
 
 **Components:**
