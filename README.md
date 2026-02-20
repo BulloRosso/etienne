@@ -1017,6 +1017,12 @@ Users can send photos, documents, videos, and audio files which are automaticall
 
 MCP tools can serve interactive UIs directly inside the chat timeline. When a tool carries a `_meta.ui.resourceUri`, its result is rendered as a full MCP App (sandboxed iframe) instead of plain JSON, giving the user buttons, forms and live data right where the conversation happens.
 
+One use case it the configuration of Etienne which can be optionally managed using the etienne configuration MCP tool:
+
+<div align="center">
+<img src="/docs/images/mcp-ui.jpg" style="marginTop: 24px;marginBottom: 24px" alt="Etienne Chat Pane" width="600">
+</div> 
+
 The integration uses [`@mcp-ui/client`](https://github.com/idosal/mcp-ui) on the host side (React frontend) and [`@modelcontextprotocol/ext-apps`](https://github.com/modelcontextprotocol/ext-apps) inside the iframe (guest app).
 
 ## Architecture Flow
