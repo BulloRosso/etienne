@@ -134,7 +134,7 @@ const getFirstLines = (text, numLines = 3) => {
 /**
  * Tool call displayed in timeline format with IN/OUT sections
  */
-export default function ToolCallTimeline({ toolName, args, result, description, showBullet = true }) {
+export default function ToolCallTimeline({ toolName, args, result, description, showBullet = true, hideConnectorLine = false }) {
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [inExpanded, setInExpanded] = useState(false);
   const [outExpanded, setOutExpanded] = useState(false);
@@ -197,17 +197,19 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
 
   return (
     <Box sx={{ mb: 2, position: 'relative' }}>
-      {/* Timeline connector line - always show */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: '0px',
-          top: showBullet ? '24px' : '0px',
-          bottom: '-16px',
-          width: '1px',
-          backgroundColor: themeMode === 'dark' ? '#ccc' : '#e0e0e0'
-        }}
-      />
+      {/* Timeline connector line - hidden when parent provides its own */}
+      {!hideConnectorLine && (
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '0px',
+            top: showBullet ? '24px' : '0px',
+            bottom: '-16px',
+            width: '1px',
+            backgroundColor: themeMode === 'dark' ? '#ccc' : '#e0e0e0'
+          }}
+        />
+      )}
 
       {/* Tool header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, ml: showBullet ? 0 : '10px' }}>

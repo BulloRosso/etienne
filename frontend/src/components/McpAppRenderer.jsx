@@ -152,7 +152,7 @@ export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolIn
       minHeight: '200px',
       maxHeight: '800px',
       border: '1px solid',
-      borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+      borderColor: themeMode === 'dark' ? '#555' : '#fff',
       borderRadius: '8px',
       overflow: 'hidden',
     }}>

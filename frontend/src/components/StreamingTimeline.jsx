@@ -19,6 +19,7 @@ export default function StreamingTimeline({
   items = []
 }) {
   const mcpAppMeta = useMcpAppMeta();
+  const { mode: themeMode } = useThemeMode();
 
   // Process items into timeline format
   const timelineItems = useMemo(() => {
@@ -169,14 +170,26 @@ export default function StreamingTimeline({
           if (appMeta && item.content.result) {
             return (
               <Box key={item.key} sx={{ mb: 2, position: 'relative' }}>
+                {/* Timeline connector line spanning tool + MCP App */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: '0px',
+                    top: showBullet ? '24px' : '0px',
+                    bottom: '-16px',
+                    width: '1px',
+                    backgroundColor: themeMode === 'dark' ? '#ccc' : '#e0e0e0'
+                  }}
+                />
                 <ToolCallTimeline
                   toolName={item.content.toolName}
                   args={item.content.args}
                   result={item.content.result}
                   description={item.content.description}
                   showBullet={showBullet}
+                  hideConnectorLine
                 />
-                <Box sx={{ ml: showBullet ? '28px' : '38px', mt: 1 }}>
+                <Box sx={{ ml: showBullet ? '28px' : '38px', mt: 1, overflow: 'hidden' }}>
                   <McpAppRenderer
                     mcpGroup={appMeta.group}
                     toolName={item.content.toolName}
