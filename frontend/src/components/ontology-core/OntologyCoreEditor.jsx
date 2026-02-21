@@ -1650,17 +1650,12 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                 <Background variant="dots" gap={24} size={1} color={C.panelBorder} />
                 <Controls
                   position="bottom-right"
+                  className="themed-controls"
                   style={{
                     background: C.panel,
                     border: `1px solid ${C.panelBorder}`,
                     borderRadius: 8,
                     boxShadow: 'none',
-                  }}
-                  buttonStyle={{
-                    background: C.panel,
-                    color: C.text,
-                    border: `1px solid ${C.panelBorder}`,
-                    borderRadius: 4,
                   }}
                 />
                 <MiniMap

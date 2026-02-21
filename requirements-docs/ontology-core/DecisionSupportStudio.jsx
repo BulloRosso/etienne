@@ -533,9 +533,18 @@ export default function DecisionSupportStudio() {
         @keyframes pulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .react-flow__background { background: ${C.bg} !important; }
-        .react-flow__controls { background: ${C.panel} !important; border: 1px solid ${C.panelBorder} !important; border-radius: 10px !important; }
-        .react-flow__controls button { background: ${C.panel} !important; border-color: ${C.panelBorder} !important; color: ${C.textMuted} !important; }
-        .react-flow__minimap { background: ${C.panel} !important; border: 1px solid ${C.panelBorder} !important; border-radius: 10px !important; }
+        .themed-controls .react-flow__controls-button {
+          background: ${C.panel};
+          color: ${C.text};
+          border: none;
+          border-bottom: 1px solid ${C.panelBorder};
+        }
+        .themed-controls .react-flow__controls-button:hover {
+          background: ${C.surfaceHover};
+        }
+        .themed-controls .react-flow__controls-button svg {
+          fill: ${C.text};
+        }
         .react-flow__edge-label { pointer-events: none; }
       `}</style>
 
@@ -581,8 +590,17 @@ export default function DecisionSupportStudio() {
             markerEnd: { type: MarkerType.ArrowClosed, color: C.accentDim },
           }}
         >
-          <Background variant="dots" gap={24} size={1} color="#1e2230" />
-          <Controls position="bottom-right" />
+          <Background variant="dots" gap={24} size={1} color={C.panelBorder} />
+          <Controls
+            position="bottom-right"
+            className="themed-controls"
+            style={{
+              background: C.panel,
+              border: `1px solid ${C.panelBorder}`,
+              borderRadius: 8,
+              boxShadow: 'none',
+            }}
+          />
           <MiniMap
             position="bottom-left"
             nodeColor={n => {
@@ -590,6 +608,7 @@ export default function DecisionSupportStudio() {
               return colorMap[n.type] || C.accentDim;
             }}
             maskColor={C.bg + "cc"}
+            style={{ background: C.panel, border: `1px solid ${C.panelBorder}`, borderRadius: 8 }}
           />
 
           {/* Canvas header */}
