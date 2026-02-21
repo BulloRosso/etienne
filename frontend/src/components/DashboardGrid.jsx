@@ -81,7 +81,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
     // 7th row
     {
       id: 'ontologycore',
-      image: '/conditionmonitoring.jpg',
+      image: '/decision-support.jpg',
       label: 'Decision Support',
       disabled: !currentProject
     }

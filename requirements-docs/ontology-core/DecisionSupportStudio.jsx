@@ -552,7 +552,7 @@ export default function DecisionSupportStudio() {
               borderBottom: `2px solid ${activePanel === tab ? C.accent : "transparent"}`,
               transition: "all 0.15s",
             }}>
-              {tab === "chat" ? "Chat" : "Graph Details"}
+              {tab === "chat" ? "Chat" : "Analysis"}
             </button>
           ))}
         </div>

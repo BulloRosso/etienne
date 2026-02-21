@@ -11,13 +11,28 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  Tooltip,
+  Divider,
+  Badge,
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  Send as SendIcon,
   Save as SaveIcon,
   Download as DownloadIcon,
   RocketLaunch as DeployIcon,
+  Add as AddIcon,
+  Refresh as RefreshIcon,
+  Delete as DeleteIcon,
+  AccountTree as OntologyIcon,
+  Sensors as SensorIcon,
+  PrecisionManufacturing as CompressorIcon,
+  LinearScale as PipelineIcon,
+  Warning as AlertIcon,
+  Build as WorkOrderIcon,
+  Person as PersonIcon,
+  Business as CompanyIcon,
+  Inventory as ProductIcon,
+  Category as DefaultEntityIcon,
 } from '@mui/icons-material';
 import {
   ReactFlow,
@@ -33,6 +48,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { GoArrowUp } from 'react-icons/go';
 import { apiAxios } from '../../services/api';
 import { useThemeMode } from '../../contexts/ThemeContext.jsx';
 
@@ -204,6 +220,97 @@ const nodeTypes = {
   outcome: OutcomeNode,
 };
 
+// ── Ontology Graph Custom Nodes ─────────────────
+
+function EntityTypeNode({ data, selected }) {
+  const C = data._palette || darkPalette;
+  const Icon = entityTypeIcons[data.entityType] || DefaultEntityIcon;
+  const color = entityTypeColors[data.entityType] || C.accent;
+  return (
+    <div style={{
+      borderRadius: 14, border: '2px solid', padding: '14px 18px',
+      minWidth: 160, cursor: 'pointer', transition: 'all 0.15s',
+      background: C.panel, borderColor: selected ? color : color + '88',
+      boxShadow: selected ? `0 0 0 2px ${color}44` : '0 2px 10px rgba(0,0,0,0.15)',
+    }}>
+      <Handle type="target" position={Position.Top} style={{ background: color }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: color }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <Icon style={{ fontSize: 18, color }} />
+        <span style={{ color, fontWeight: 800, fontSize: 13, letterSpacing: '0.04em' }}>{data.entityType}</span>
+      </div>
+      <div style={{ color: C.textMuted, fontSize: 11 }}>{data.count} instance{data.count !== 1 ? 's' : ''}</div>
+      {data.count > 0 && (
+        <div
+          onClick={(e) => { e.stopPropagation(); data.onExpand?.(); }}
+          style={{
+            marginTop: 8, fontSize: 10, color: C.accent, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 8px', borderRadius: 6,
+            background: C.accent + '11', border: `1px solid ${C.accent}33`,
+          }}
+        >
+          {data.expanded ? '▾ Collapse' : '▸ Show instances'}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EntityInstanceNode({ data }) {
+  const C = data._palette || darkPalette;
+  const color = entityTypeColors[data.entityType] || C.accent;
+  return (
+    <div style={{
+      borderRadius: 10, border: `1.5px solid ${color}55`, padding: '8px 12px',
+      minWidth: 140, maxWidth: 200, cursor: 'pointer', transition: 'all 0.15s',
+      background: C.surface, boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+    }}>
+      <Handle type="target" position={Position.Top} style={{ background: color, width: 6, height: 6 }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: color, width: 6, height: 6 }} />
+      <div style={{ color: C.text, fontWeight: 600, fontSize: 11, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {data.label}
+      </div>
+      {data.properties && Object.keys(data.properties).length > 0 && (
+        <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          {Object.entries(data.properties).slice(0, 2).map(([k, v]) => (
+            <span key={k} style={{
+              color: C.textMuted, fontSize: 9, fontFamily: 'monospace',
+              background: C.bg, padding: '1px 4px', borderRadius: 3, border: `1px solid ${C.panelBorder}`,
+            }}>
+              {k}={String(v).length > 15 ? String(v).slice(0, 15) + '…' : v}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DecisionGraphNode({ data }) {
+  const C = data._palette || darkPalette;
+  return (
+    <div style={{
+      borderRadius: 10, border: `1.5px dashed ${C.accent}88`, padding: '8px 14px',
+      minWidth: 120, maxWidth: 180, cursor: 'pointer', transition: 'all 0.15s',
+      background: C.accent + '0a', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+    }}>
+      <Handle type="target" position={Position.Top} style={{ background: C.accent, width: 6, height: 6 }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: C.accent, width: 6, height: 6 }} />
+      <div style={{ color: C.accent, fontFamily: 'monospace', fontSize: 9, opacity: 0.7, marginBottom: 2 }}>DECISION GRAPH</div>
+      <div style={{ color: C.text, fontWeight: 600, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {data.label}
+      </div>
+    </div>
+  );
+}
+
+const ontologyNodeTypes = {
+  entityType: EntityTypeNode,
+  entityInstance: EntityInstanceNode,
+  decisionGraph: DecisionGraphNode,
+};
+
 // ── Suggestion → ReactFlow Nodes/Edges ─────────
 
 function suggestionToRF(suggestion, palette) {
@@ -334,6 +441,35 @@ function generateMockSuggestion(userMessage) {
 
 // ── Inner Component ─────────────────────────────
 
+// ── Entity type icon mapping ────────────────────
+
+const entityTypeIcons = {
+  Sensor: SensorIcon,
+  Compressor: CompressorIcon,
+  Pipeline: PipelineIcon,
+  Alert: AlertIcon,
+  WorkOrder: WorkOrderIcon,
+  Person: PersonIcon,
+  Company: CompanyIcon,
+  Product: ProductIcon,
+};
+
+function getEntityIcon(type) {
+  const Icon = entityTypeIcons[type] || DefaultEntityIcon;
+  return Icon;
+}
+
+const entityTypeColors = {
+  Sensor: '#059669',
+  Compressor: '#7c3aed',
+  Pipeline: '#0ea5e9',
+  Alert: '#f59e0b',
+  WorkOrder: '#dc2626',
+  Person: '#3b82f6',
+  Company: '#8b5cf6',
+  Product: '#14b8a6',
+};
+
 function OntologyCoreEditorInner({ selectedProject, onClose }) {
   const { mode: themeMode } = useThemeMode();
   const C = themeMode === 'dark' ? darkPalette : lightPalette;
@@ -343,27 +479,288 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [suggestion, setSuggestion] = useState(null);
   const [isThinking, setIsThinking] = useState(false);
-  const [activeTab, setActiveTab] = useState(0); // 0=chat, 1=details
+  const [activeTab, setActiveTab] = useState(0); // 0=chat, 1=details, 2=ontology
   const [toast, setToast] = useState(null);
   const [savedGraphs, setSavedGraphs] = useState([]);
   const [input, setInput] = useState('');
   const [lastSavedId, setLastSavedId] = useState(null);
+  const [ontologyData, setOntologyData] = useState(null);
+  const [ontologyLoading, setOntologyLoading] = useState(false);
+  const [showEntityForm, setShowEntityForm] = useState(false);
+  const [entityForm, setEntityForm] = useState({ id: '', type: 'Sensor', properties: '' });
+  const [entityCreating, setEntityCreating] = useState(false);
+  const [centerTab, setCenterTab] = useState(0); // 0=scenario graph, 1=ontology graph
+  const [ontGraphNodes, setOntGraphNodes, onOntGraphNodesChange] = useNodesState([]);
+  const [ontGraphEdges, setOntGraphEdges, onOntGraphEdgesChange] = useEdgesState([]);
+  const [ontGraphLoading, setOntGraphLoading] = useState(false);
+  const [expandedTypes, setExpandedTypes] = useState(new Set());
+  const ontGraphDataRef = useRef(null);
   const chatHistoryRef = useRef([]);
   const bottomRef = useRef(null);
 
+  // Load saved graphs from backend
+  const loadSavedGraphs = useCallback(() => {
+    if (!selectedProject) return;
+    apiAxios.get(`/api/decision-support/graphs/${selectedProject}`)
+      .then(res => {
+        const data = res.data;
+        if (data.success && data.graphs) {
+          setSavedGraphs(data.graphs);
+        }
+      })
+      .catch(() => { /* no saved graphs yet */ });
+  }, [selectedProject]);
+
   // Load saved graphs on mount
   useEffect(() => {
-    if (selectedProject) {
-      apiAxios.get(`/api/decision-support/graphs/${selectedProject}`)
-        .then(res => {
-          const data = res.data;
-          if (data.success && data.graphs) {
-            setSavedGraphs(data.graphs);
-          }
-        })
-        .catch(() => { /* no saved graphs yet */ });
-    }
+    loadSavedGraphs();
+  }, [loadSavedGraphs]);
+
+  // Load ontology entities with graph links
+  const loadOntologyEntities = useCallback(() => {
+    if (!selectedProject) return;
+    setOntologyLoading(true);
+    apiAxios.get(`/api/decision-support/ontology-entities/${selectedProject}`)
+      .then(res => {
+        const data = res.data;
+        if (data.success) {
+          setOntologyData({
+            entities: data.entities || [],
+            missingEntities: data.missingEntities || [],
+            graphs: data.graphs || [],
+          });
+        }
+      })
+      .catch(() => { setOntologyData(null); })
+      .finally(() => setOntologyLoading(false));
   }, [selectedProject]);
+
+  // Load ontology when switching to ontology tab
+  useEffect(() => {
+    if (activeTab === 2) {
+      loadOntologyEntities();
+    }
+  }, [activeTab, loadOntologyEntities]);
+
+  // Create ontology entity
+  const handleCreateEntity = useCallback(async (id, type, propertiesStr) => {
+    if (!selectedProject || !id || !type) return;
+    setEntityCreating(true);
+    try {
+      // Parse properties from "key=value" lines
+      const properties = {};
+      if (propertiesStr) {
+        propertiesStr.split('\n').forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx > 0) {
+            properties[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
+          }
+        });
+      }
+      await apiAxios.post(`/api/decision-support/ontology-entities/${selectedProject}`, { id, type, properties });
+      setToast({ severity: 'success', message: `Entity "${id}" created` });
+      setShowEntityForm(false);
+      setEntityForm({ id: '', type: 'Sensor', properties: '' });
+      loadOntologyEntities();
+    } catch (err) {
+      setToast({ severity: 'error', message: `Failed to create entity: ${err.message}` });
+    } finally {
+      setEntityCreating(false);
+    }
+  }, [selectedProject, loadOntologyEntities]);
+
+  // Pre-fill entity form from a missing entity reference
+  const handleCreateMissing = useCallback((missingEnt) => {
+    setEntityForm({ id: missingEnt.id, type: missingEnt.type, properties: '' });
+    setShowEntityForm(true);
+  }, []);
+
+  // ── Ontology Graph: data loading & layout ─────
+
+  const buildOntologyGraphLayout = useCallback((data, expanded) => {
+    const C2 = themeMode === 'dark' ? darkPalette : lightPalette;
+    const rfNodes = [];
+    const rfEdges = [];
+
+    // Layout: type nodes in a horizontal row at top
+    const typeCount = data.typeNodes.length;
+    const typeSpacing = 220;
+    const startX = -(typeCount - 1) * typeSpacing / 2 + 400;
+
+    data.typeNodes.forEach((tn, idx) => {
+      const typeId = `type-${tn.type}`;
+      const isExpanded = expanded.has(tn.type);
+      rfNodes.push({
+        id: typeId,
+        type: 'entityType',
+        position: { x: startX + idx * typeSpacing, y: 60 },
+        data: {
+          entityType: tn.type,
+          count: tn.count,
+          expanded: isExpanded,
+          _palette: C2,
+          onExpand: () => {
+            setExpandedTypes(prev => {
+              const next = new Set(prev);
+              if (next.has(tn.type)) next.delete(tn.type); else next.add(tn.type);
+              return next;
+            });
+          },
+        },
+      });
+
+      // If expanded, add instance nodes below
+      if (isExpanded) {
+        const instSpacing = 170;
+        const instStartX = startX + idx * typeSpacing - (tn.instances.length - 1) * instSpacing / 2;
+        tn.instances.forEach((inst, iIdx) => {
+          const instId = `inst-${inst.id}`;
+          rfNodes.push({
+            id: instId,
+            type: 'entityInstance',
+            position: { x: instStartX + iIdx * instSpacing, y: 220 },
+            data: {
+              label: inst.id,
+              entityType: tn.type,
+              properties: inst.properties,
+              _palette: C2,
+            },
+          });
+          rfEdges.push({
+            id: `e-${typeId}-${instId}`,
+            source: typeId,
+            target: instId,
+            style: { stroke: (entityTypeColors[tn.type] || C2.accent) + '66', strokeWidth: 1.5, strokeDasharray: '4 3' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: (entityTypeColors[tn.type] || C2.accent) + '66' },
+          });
+        });
+      }
+    });
+
+    // Decision graph nodes at the bottom
+    if (data.graphs.length > 0) {
+      const gSpacing = 200;
+      const gStartX = -(data.graphs.length - 1) * gSpacing / 2 + 400;
+      const gY = expanded.size > 0 ? 420 : 240;
+
+      data.graphs.forEach((g, gIdx) => {
+        const gNodeId = `graph-${g.id}`;
+        rfNodes.push({
+          id: gNodeId,
+          type: 'decisionGraph',
+          position: { x: gStartX + gIdx * gSpacing, y: gY },
+          data: { label: g.title, _palette: C2 },
+        });
+      });
+
+      // Edges from decision graphs to entity types/instances
+      for (const link of data.graphLinks) {
+        const gNodeId = `graph-${link.graphId}`;
+        // Connect to instance if expanded, else to type
+        const typeExpanded = expanded.has(link.entityType);
+        const targetId = typeExpanded ? `inst-${link.entityId}` : `type-${link.entityType}`;
+        const edgeColor = link.role === 'condition' ? C2.condition.border : C2.action.border;
+        const edgeId = `e-${gNodeId}-${targetId}-${link.role}-${link.entityId}`;
+
+        // Avoid duplicate edges
+        if (!rfEdges.find(e => e.id === edgeId)) {
+          rfEdges.push({
+            id: edgeId,
+            source: gNodeId,
+            target: targetId,
+            label: link.role,
+            style: { stroke: edgeColor + '88', strokeWidth: 1.5 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor + '88' },
+            labelStyle: { fontSize: 9, fill: edgeColor },
+            labelBgStyle: { fill: C2.panel, fillOpacity: 0.9 },
+          });
+        }
+      }
+    }
+
+    // Inter-entity relationships
+    for (const rel of data.relationships) {
+      const sourceExpanded = expanded.size > 0; // simplified: if any are expanded
+      const sourceId = sourceExpanded && rfNodes.find(n => n.id === `inst-${rel.source}`) ? `inst-${rel.source}` : null;
+      const targetId = sourceExpanded && rfNodes.find(n => n.id === `inst-${rel.target}`) ? `inst-${rel.target}` : null;
+      if (sourceId && targetId) {
+        rfEdges.push({
+          id: `e-rel-${rel.source}-${rel.predicate}-${rel.target}`,
+          source: sourceId,
+          target: targetId,
+          label: rel.predicate,
+          style: { stroke: C2.textMuted + '66', strokeWidth: 1, strokeDasharray: '6 3' },
+          labelStyle: { fontSize: 8, fill: C2.textMuted },
+          labelBgStyle: { fill: C2.panel, fillOpacity: 0.9 },
+        });
+      }
+    }
+
+    return { nodes: rfNodes, edges: rfEdges };
+  }, [themeMode]);
+
+  const loadOntologyGraph = useCallback(() => {
+    if (!selectedProject) return;
+    setOntGraphLoading(true);
+    apiAxios.get(`/api/decision-support/ontology-graph/${selectedProject}`)
+      .then(res => {
+        if (res.data.success) {
+          ontGraphDataRef.current = res.data;
+          const { nodes: n, edges: e } = buildOntologyGraphLayout(res.data, expandedTypes);
+          setOntGraphNodes(n);
+          setOntGraphEdges(e);
+        }
+      })
+      .catch(() => { setToast({ severity: 'error', message: 'Failed to load ontology graph' }); })
+      .finally(() => setOntGraphLoading(false));
+  }, [selectedProject, expandedTypes, buildOntologyGraphLayout, setOntGraphNodes, setOntGraphEdges]);
+
+  // Re-layout when expandedTypes changes
+  useEffect(() => {
+    if (ontGraphDataRef.current && centerTab === 1) {
+      const { nodes: n, edges: e } = buildOntologyGraphLayout(ontGraphDataRef.current, expandedTypes);
+      setOntGraphNodes(n);
+      setOntGraphEdges(e);
+    }
+  }, [expandedTypes, centerTab, buildOntologyGraphLayout, setOntGraphNodes, setOntGraphEdges]);
+
+  // Load ontology graph when switching to ontology graph tab
+  useEffect(() => {
+    if (centerTab === 1) {
+      loadOntologyGraph();
+    }
+  }, [centerTab, loadOntologyGraph]);
+
+  // New scenario: reset chat and canvas but keep saved graphs
+  const handleNewScenario = useCallback(() => {
+    setChatMessages([]);
+    setSuggestion(null);
+    setNodes([]);
+    setEdges([]);
+    setInput('');
+    setLastSavedId(null);
+    chatHistoryRef.current = [];
+    setActiveTab(0);
+  }, [setNodes, setEdges]);
+
+  // Delete a saved graph
+  const handleDeleteGraph = useCallback(async (graphId, e) => {
+    e.stopPropagation();
+    try {
+      await apiAxios.delete(`/api/decision-support/graphs/${selectedProject}/${graphId}`);
+      setSavedGraphs(prev => prev.filter(g => g.id !== graphId));
+      if (lastSavedId === graphId) {
+        setLastSavedId(null);
+      }
+      setToast({ message: 'Graph deleted', severity: 'info' });
+    } catch {
+      // Fallback: remove from local state anyway
+      setSavedGraphs(prev => prev.filter(g => g.id !== graphId));
+      setToast({ message: 'Graph removed', severity: 'info' });
+    }
+  }, [selectedProject, lastSavedId]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -447,16 +844,17 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
       const data = response.data;
       if (data.success) {
         setLastSavedId(data.id);
-        setSavedGraphs(prev => [...prev, { id: data.id, title: suggestion.title }]);
         setToast({ message: `"${suggestion.title}" saved to ontology`, severity: 'success' });
+        // Reload graphs from backend to ensure persistence
+        loadSavedGraphs();
       }
     } catch {
       const graphId = `graph-${Date.now()}`;
       setLastSavedId(graphId);
       setSavedGraphs(prev => [...prev, { id: graphId, title: suggestion.title }]);
-      setToast({ message: `"${suggestion.title}" saved (local)`, severity: 'success' });
+      setToast({ message: `"${suggestion.title}" saved (local only - backend unreachable)`, severity: 'warning' });
     }
-  }, [suggestion, selectedProject, chatMessages]);
+  }, [suggestion, selectedProject, chatMessages, loadSavedGraphs]);
 
   const handleExportZmq = useCallback(() => {
     if (!suggestion) return;
@@ -533,9 +931,19 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
         <Typography variant="h6" sx={{ fontWeight: 600, color: C.text }}>
           Decision Support Studio
         </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ color: C.textMuted }}>
-          <CloseIcon />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            onClick={handleNewScenario}
+            startIcon={<AddIcon />}
+            size="small"
+            sx={{ textTransform: 'none', fontSize: 12, color: C.textMuted }}
+          >
+            New Scenario
+          </Button>
+          <IconButton onClick={onClose} size="small" sx={{ color: C.textMuted }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </Box>
 
       {/* Main Content */}
@@ -558,7 +966,8 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
             }}
           >
             <Tab label="Chat" />
-            <Tab label="Graph Details" />
+            <Tab label="Analysis" />
+            <Tab label="Ontology" />
           </Tabs>
 
           {/* Chat Tab */}
@@ -595,7 +1004,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
               </Box>
 
               {/* Input */}
-              <Box sx={{ p: 1.5, borderTop: `1px solid ${C.panelBorder}`, display: 'flex', gap: 1 }}>
+              <Box sx={{ p: 1.5, borderTop: `1px solid ${C.panelBorder}`, display: 'flex', alignItems: 'flex-end', gap: 1 }}>
                 <TextField
                   value={input}
                   onChange={e => setInput(e.target.value)}
@@ -618,14 +1027,11 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                 <IconButton
                   onClick={handleSend}
                   disabled={!input.trim() || isThinking}
-                  sx={{
-                    backgroundColor: input.trim() && !isThinking ? C.accent : C.accentDim,
-                    color: 'white', '&:hover': { backgroundColor: C.accent },
-                    '&.Mui-disabled': { backgroundColor: C.accentDim, color: 'rgba(255,255,255,0.4)' },
-                    borderRadius: 2, width: 40, height: 40,
-                  }}
+                  color="primary"
+                  size="small"
+                  sx={{ backgroundColor: '#DEEBF7', flexShrink: 0 }}
                 >
-                  <SendIcon fontSize="small" />
+                  <GoArrowUp />
                 </IconButton>
               </Box>
             </Box>
@@ -736,98 +1142,582 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
               )}
             </Box>
           )}
+
+          {/* Ontology Tab */}
+          {activeTab === 2 && (
+            <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <OntologyIcon sx={{ fontSize: 16, color: C.accent }} />
+                  <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 13 }}>Ontology Entities</Typography>
+                </Box>
+                <IconButton onClick={loadOntologyEntities} size="small" sx={{ color: C.textMuted, p: 0.25 }}>
+                  <RefreshIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Box>
+
+              <Typography sx={{ color: C.textMuted, fontSize: 11, lineHeight: 1.5, mb: 0.5 }}>
+                Global entities in your project and which decision graphs reference them.
+              </Typography>
+
+              {/* Add Entity button */}
+              {!showEntityForm && (
+                <Button
+                  size="small"
+                  startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                  onClick={() => setShowEntityForm(true)}
+                  sx={{
+                    textTransform: 'none', fontSize: 11, color: C.accent,
+                    border: `1px dashed ${C.accent}55`, borderRadius: 1.5,
+                    py: 0.5, mb: 0.5,
+                    '&:hover': { background: C.accent + '11', borderColor: C.accent },
+                  }}
+                >
+                  Add Entity
+                </Button>
+              )}
+
+              {/* Entity creation form */}
+              {showEntityForm && (
+                <Box sx={{
+                  background: C.surface, border: `1px solid ${C.accent}44`,
+                  borderRadius: 1.5, p: 1.5, mb: 1,
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ color: C.text, fontSize: 11, fontWeight: 700 }}>New Entity</Typography>
+                    <IconButton size="small" onClick={() => setShowEntityForm(false)} sx={{ color: C.textMuted, p: 0.25 }}>
+                      <CloseIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Box>
+                  <TextField
+                    select
+                    label="Type"
+                    value={entityForm.type}
+                    onChange={e => setEntityForm(f => ({ ...f, type: e.target.value }))}
+                    size="small"
+                    fullWidth
+                    SelectProps={{ native: true }}
+                    sx={{ mb: 1, '& .MuiInputBase-input': { fontSize: 11, color: C.text }, '& .MuiInputLabel-root': { fontSize: 11 } }}
+                  >
+                    {Object.keys(entityTypeIcons).map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label="Entity ID"
+                    placeholder="e.g. sensor-unit4-pressure"
+                    value={entityForm.id}
+                    onChange={e => setEntityForm(f => ({ ...f, id: e.target.value }))}
+                    size="small"
+                    fullWidth
+                    sx={{ mb: 1, '& .MuiInputBase-input': { fontSize: 11, color: C.text, fontFamily: 'monospace' }, '& .MuiInputLabel-root': { fontSize: 11 } }}
+                  />
+                  <TextField
+                    label="Properties (optional)"
+                    placeholder={'key=value\nlocation=Unit 4\nunit=PSI'}
+                    value={entityForm.properties}
+                    onChange={e => setEntityForm(f => ({ ...f, properties: e.target.value }))}
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    maxRows={4}
+                    sx={{ mb: 1, '& .MuiInputBase-input': { fontSize: 10, color: C.text, fontFamily: 'monospace' }, '& .MuiInputLabel-root': { fontSize: 11 } }}
+                  />
+                  <Button
+                    size="small"
+                    variant="contained"
+                    disabled={!entityForm.id || entityCreating}
+                    onClick={() => handleCreateEntity(entityForm.id, entityForm.type, entityForm.properties)}
+                    sx={{
+                      textTransform: 'none', fontSize: 11, py: 0.5,
+                      background: C.accent, '&:hover': { background: C.accent + 'dd' },
+                    }}
+                  >
+                    {entityCreating ? 'Creating...' : 'Create Entity'}
+                  </Button>
+                </Box>
+              )}
+
+              {/* Missing entities section */}
+              {!ontologyLoading && ontologyData && ontologyData.missingEntities && ontologyData.missingEntities.length > 0 && (
+                <Box sx={{ mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                    <AlertIcon sx={{ fontSize: 14, color: '#f59e0b' }} />
+                    <Typography sx={{ color: '#f59e0b', fontSize: 11, fontWeight: 700 }}>
+                      MISSING ENTITIES ({ontologyData.missingEntities.length})
+                    </Typography>
+                  </Box>
+                  <Typography sx={{ color: C.textMuted, fontSize: 10, mb: 0.75, lineHeight: 1.5 }}>
+                    These entities are referenced by decision graphs but don't exist in the knowledge graph yet.
+                  </Typography>
+                  {ontologyData.missingEntities.map(me => {
+                    const MeIcon = getEntityIcon(me.type);
+                    const meColor = entityTypeColors[me.type] || C.accent;
+                    return (
+                      <Box key={me.id} sx={{
+                        background: themeMode === 'dark' ? '#f59e0b11' : '#f59e0b08',
+                        border: '1px dashed #f59e0b55',
+                        borderRadius: 1.5, p: 1.25, mb: 0.5,
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
+                            <MeIcon sx={{ fontSize: 13, color: meColor, flexShrink: 0 }} />
+                            <Typography sx={{
+                              color: C.text, fontSize: 11, fontWeight: 600, fontFamily: 'monospace',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              {me.id}
+                            </Typography>
+                            <Chip label={me.type} size="small" sx={{
+                              height: 16, fontSize: 9, ml: 0.5, flexShrink: 0,
+                              background: meColor + '22', color: meColor, border: `1px solid ${meColor}44`,
+                            }} />
+                          </Box>
+                          <Button
+                            size="small"
+                            onClick={() => handleCreateMissing(me)}
+                            sx={{
+                              textTransform: 'none', fontSize: 10, py: 0.25, px: 1, ml: 0.5,
+                              color: C.accent, border: `1px solid ${C.accent}44`,
+                              minWidth: 'auto', flexShrink: 0,
+                              '&:hover': { background: C.accent + '11' },
+                            }}
+                          >
+                            Create
+                          </Button>
+                        </Box>
+                        {/* Show which graphs reference this missing entity */}
+                        {me.referencedBy && me.referencedBy.length > 0 && (
+                          <Box sx={{ mt: 0.5 }}>
+                            {me.referencedBy.map((ref, idx) => (
+                              <Typography key={idx} sx={{ color: C.textMuted, fontSize: 9, lineHeight: 1.4 }}>
+                                <span style={{ fontWeight: 600, color: ref.role === 'condition' ? C.condition.text : C.action.text }}>
+                                  {ref.role}
+                                </span>
+                                {' in '}
+                                <span
+                                  style={{ cursor: 'pointer', textDecoration: 'underline', color: C.accent }}
+                                  onClick={() => handleLoadGraph(ref.graphId)}
+                                >
+                                  {ref.graphTitle}
+                                </span>
+                              </Typography>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    );
+                  })}
+                  <Divider sx={{ borderColor: C.panelBorder, my: 1 }} />
+                </Box>
+              )}
+
+              {ontologyLoading && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 3, justifyContent: 'center' }}>
+                  <CircularProgress size={16} sx={{ color: C.accent }} />
+                  <Typography sx={{ color: C.textMuted, fontSize: 12 }}>Loading ontology...</Typography>
+                </Box>
+              )}
+
+              {!ontologyLoading && !ontologyData && (
+                <Typography sx={{ color: C.textDim, fontSize: 11, mt: 2, textAlign: 'center', lineHeight: 1.6 }}>
+                  Could not load ontology data. Make sure the backend and quadstore are running.
+                </Typography>
+              )}
+
+              {!ontologyLoading && ontologyData && ontologyData.entities.length === 0 && (!ontologyData.missingEntities || ontologyData.missingEntities.length === 0) && (
+                <Typography sx={{ color: C.textDim, fontSize: 11, mt: 2, textAlign: 'center', lineHeight: 1.6 }}>
+                  No ontology entities found in this project yet. Use the "Add Entity" button above or save a decision graph that references entities to get started.
+                </Typography>
+              )}
+
+              {!ontologyLoading && ontologyData && ontologyData.entities.length > 0 && (() => {
+                // Group entities by type
+                const grouped = {};
+                for (const ent of ontologyData.entities) {
+                  if (!grouped[ent.type]) grouped[ent.type] = [];
+                  grouped[ent.type].push(ent);
+                }
+                return Object.entries(grouped).map(([type, entities]) => {
+                  const TypeIcon = getEntityIcon(type);
+                  const typeColor = entityTypeColors[type] || C.accent;
+                  return (
+                    <Box key={type} sx={{ mb: 1 }}>
+                      {/* Type header */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                        <TypeIcon sx={{ fontSize: 14, color: typeColor }} />
+                        <Typography sx={{ color: typeColor, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em' }}>
+                          {type.toUpperCase()}
+                        </Typography>
+                        <Typography sx={{ color: C.textDim, fontSize: 10 }}>
+                          ({entities.length})
+                        </Typography>
+                      </Box>
+
+                      {/* Entities of this type */}
+                      {entities.map(ent => {
+                        const hasRefs = ent.referencedBy && ent.referencedBy.length > 0;
+                        // Pick key properties to show (skip internal ones)
+                        const displayProps = Object.entries(ent.properties || {})
+                          .filter(([k]) => !['graphType', 'type', 'nodesJson', 'edgesJson', 'parametersJson', 'preconditionsJson'].includes(k))
+                          .slice(0, 3);
+
+                        return (
+                          <Box key={ent.id} sx={{
+                            background: hasRefs ? (themeMode === 'dark' ? `${typeColor}11` : `${typeColor}08`) : C.surface,
+                            border: `1px solid ${hasRefs ? typeColor + '33' : C.panelBorder}`,
+                            borderRadius: 1.5, p: 1.25, mb: 0.5,
+                            transition: 'border-color 0.15s',
+                            '&:hover': { borderColor: typeColor + '66' },
+                          }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Typography sx={{
+                                color: C.text, fontSize: 11, fontWeight: 600, fontFamily: 'monospace',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                              }}>
+                                {ent.id}
+                              </Typography>
+                              {hasRefs && (
+                                <Tooltip title={`Referenced by ${ent.referencedBy.length} graph element(s)`} arrow placement="top">
+                                  <Badge
+                                    badgeContent={ent.referencedBy.length}
+                                    color="primary"
+                                    sx={{
+                                      ml: 1,
+                                      '& .MuiBadge-badge': { fontSize: 9, height: 16, minWidth: 16, background: typeColor },
+                                    }}
+                                  >
+                                    <OntologyIcon sx={{ fontSize: 13, color: typeColor }} />
+                                  </Badge>
+                                </Tooltip>
+                              )}
+                            </Box>
+
+                            {/* Key properties */}
+                            {displayProps.length > 0 && (
+                              <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                {displayProps.map(([k, v]) => (
+                                  <Typography key={k} sx={{
+                                    color: C.textMuted, fontSize: 9, fontFamily: 'monospace',
+                                    background: C.surface, border: `1px solid ${C.panelBorder}`,
+                                    borderRadius: 0.5, px: 0.5, py: 0.1,
+                                  }}>
+                                    {k}={String(v).length > 20 ? String(v).slice(0, 20) + '...' : String(v)}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            )}
+
+                            {/* Graph references */}
+                            {hasRefs && (
+                              <Box sx={{ mt: 0.75 }}>
+                                {ent.referencedBy.map((ref, idx) => (
+                                  <Box key={idx} sx={{
+                                    display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25,
+                                  }}>
+                                    <Box sx={{
+                                      width: 6, height: 6, borderRadius: '50%',
+                                      background: ref.role === 'condition' ? C.condition.border : C.action.border,
+                                      flexShrink: 0,
+                                    }} />
+                                    <Typography sx={{
+                                      color: C.textMuted, fontSize: 9, lineHeight: 1.3,
+                                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                    }}>
+                                      <span style={{ fontWeight: 600, color: ref.role === 'condition' ? C.condition.text : C.action.text }}>
+                                        {ref.role}
+                                      </span>
+                                      {' in '}
+                                      <span
+                                        style={{ cursor: 'pointer', textDecoration: 'underline', color: C.accent }}
+                                        onClick={() => handleLoadGraph(ref.graphId)}
+                                      >
+                                        {ref.graphTitle}
+                                      </span>
+                                    </Typography>
+                                  </Box>
+                                ))}
+                              </Box>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  );
+                });
+              })()}
+
+              {/* Summary: graphs referencing entities */}
+              {!ontologyLoading && ontologyData && ontologyData.graphs.length > 0 && (
+                <>
+                  <Divider sx={{ borderColor: C.panelBorder, my: 1 }} />
+                  <Box>
+                    <Typography sx={{ color: C.textMuted, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', mb: 0.75 }}>
+                      DECISION GRAPHS ({ontologyData.graphs.length})
+                    </Typography>
+                    {ontologyData.graphs.map(g => {
+                      // Count how many entities reference this graph
+                      const refCount = ontologyData.entities.reduce(
+                        (sum, ent) => sum + (ent.referencedBy || []).filter(r => r.graphId === g.id).length,
+                        0
+                      );
+                      return (
+                        <Box
+                          key={g.id}
+                          onClick={() => handleLoadGraph(g.id)}
+                          sx={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            p: 0.75, borderRadius: 1, mb: 0.5, cursor: 'pointer',
+                            background: lastSavedId === g.id ? C.accentDim + '33' : C.surface,
+                            border: `1px solid ${lastSavedId === g.id ? C.accent + '55' : C.panelBorder}`,
+                            '&:hover': { borderColor: C.accent + '55' },
+                            transition: 'border-color 0.15s',
+                          }}
+                        >
+                          <Typography sx={{
+                            color: C.text, fontSize: 11, overflow: 'hidden',
+                            textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                          }}>
+                            {g.title}
+                          </Typography>
+                          {refCount > 0 && (
+                            <Chip
+                              label={`${refCount} link${refCount > 1 ? 's' : ''}`}
+                              size="small"
+                              sx={{
+                                height: 16, fontSize: 9, ml: 0.5,
+                                background: C.accent + '22', color: C.accent,
+                                border: `1px solid ${C.accent}44`,
+                              }}
+                            />
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </>
+              )}
+            </Box>
+          )}
         </Box>
 
-        {/* Center: ReactFlow Canvas */}
-        <Box sx={{ flex: 1, position: 'relative' }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.3 }}
-            defaultEdgeOptions={{
-              style: { stroke: C.accentDim, strokeWidth: 1.5 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: C.accentDim },
-            }}
-            style={{ background: C.bg }}
-          >
-            <Background variant="dots" gap={24} size={1} color={C.panelBorder} />
-            <Controls position="bottom-right" />
-            <MiniMap
-              position="bottom-left"
-              nodeColor={n => {
-                const colorMap = { trigger: C.trigger.border, condition: C.condition.border, action: C.action.border, outcome: C.outcome.border };
-                return colorMap[n.type] || C.accentDim;
+        {/* Center: Tab Strip + Canvas */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          {/* Center tab strip */}
+          <Box sx={{
+            display: 'flex', alignItems: 'center',
+            borderBottom: `1px solid ${C.panelBorder}`, background: C.panel,
+          }}>
+            <Tabs
+              value={centerTab}
+              onChange={(_, v) => setCenterTab(v)}
+              sx={{
+                minHeight: 40, flex: 1,
+                '& .MuiTab-root': { minHeight: 40, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.textMuted },
+                '& .Mui-selected': { color: C.accent },
+                '& .MuiTabs-indicator': { backgroundColor: C.accent },
               }}
-              maskColor={C.bg + 'cc'}
-              style={{ background: C.panel, border: `1px solid ${C.panelBorder}`, borderRadius: 8 }}
-            />
-
-            {/* Canvas legend */}
-            <div style={{
-              position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-              display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'none',
-              background: C.panel + 'dd', border: `1px solid ${C.panelBorder}`,
-              borderRadius: 20, padding: '6px 16px',
-            }}>
-              {[
-                { color: C.trigger.border, label: 'Trigger' },
-                { color: C.condition.border, label: 'Condition' },
-                { color: C.action.border, label: 'Action' },
-                { color: C.outcome.border, label: 'Outcome' },
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
-                  <span style={{ color: C.textMuted, fontSize: 10 }}>{item.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {nodes.length === 0 && (
-              <div style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none',
-              }}>
-                <div style={{ color: C.textDim, fontSize: 28, marginBottom: 12 }}>&#x2B21;</div>
-                <div style={{ color: C.textDim, fontSize: 13, fontWeight: 600 }}>Decision Graph Canvas</div>
-                <div style={{ color: C.textDim, fontSize: 11, marginTop: 6, opacity: 0.6 }}>
-                  Describe a situation in the chat panel<br />to generate a graph
-                </div>
-              </div>
+            >
+              <Tab label="Scenario Graph" />
+              <Tab label="Ontology Graph" />
+            </Tabs>
+            {centerTab === 1 && (
+              <IconButton onClick={loadOntologyGraph} size="small" sx={{ color: C.textMuted, mr: 1, p: 0.25 }}>
+                <RefreshIcon sx={{ fontSize: 14 }} />
+              </IconButton>
             )}
-          </ReactFlow>
+          </Box>
+
+          {/* Scenario Graph Canvas */}
+          <Box sx={{ flex: 1, position: 'relative', display: centerTab === 0 ? 'block' : 'none' }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={nodeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.3 }}
+              defaultEdgeOptions={{
+                style: { stroke: C.accentDim, strokeWidth: 1.5 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: C.accentDim },
+              }}
+              style={{ background: C.bg }}
+            >
+              <Background variant="dots" gap={24} size={1} color={C.panelBorder} />
+              <Controls position="bottom-right" />
+              <MiniMap
+                position="bottom-left"
+                nodeColor={n => {
+                  const colorMap = { trigger: C.trigger.border, condition: C.condition.border, action: C.action.border, outcome: C.outcome.border };
+                  return colorMap[n.type] || C.accentDim;
+                }}
+                maskColor={C.bg + 'cc'}
+                style={{ background: C.panel, border: `1px solid ${C.panelBorder}`, borderRadius: 8 }}
+              />
+
+              {/* Canvas legend */}
+              <div style={{
+                position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+                display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'none',
+                background: C.panel + 'dd', border: `1px solid ${C.panelBorder}`,
+                borderRadius: 20, padding: '6px 16px',
+              }}>
+                {[
+                  { color: C.trigger.border, label: 'Trigger' },
+                  { color: C.condition.border, label: 'Condition' },
+                  { color: C.action.border, label: 'Action' },
+                  { color: C.outcome.border, label: 'Outcome' },
+                ].map(item => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
+                    <span style={{ color: C.textMuted, fontSize: 10 }}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {nodes.length === 0 && (
+                <div style={{
+                  position: 'absolute', top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none',
+                }}>
+                  <div style={{ color: C.textDim, fontSize: 28, marginBottom: 12 }}>&#x2B21;</div>
+                  <div style={{ color: C.textDim, fontSize: 13, fontWeight: 600 }}>Decision Graph Canvas</div>
+                  <div style={{ color: C.textDim, fontSize: 11, marginTop: 6, opacity: 0.6 }}>
+                    Describe a situation in the chat panel<br />to generate a graph
+                  </div>
+                </div>
+              )}
+            </ReactFlow>
+          </Box>
+
+          {/* Ontology Graph Canvas */}
+          <Box sx={{ flex: 1, position: 'relative', display: centerTab === 1 ? 'block' : 'none' }}>
+            {ontGraphLoading && (
+              <Box sx={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                zIndex: 10, display: 'flex', alignItems: 'center', gap: 1,
+              }}>
+                <CircularProgress size={16} sx={{ color: C.accent }} />
+                <Typography sx={{ color: C.textMuted, fontSize: 12 }}>Loading ontology graph...</Typography>
+              </Box>
+            )}
+            <ReactFlowProvider>
+              <ReactFlow
+                nodes={ontGraphNodes}
+                edges={ontGraphEdges}
+                onNodesChange={onOntGraphNodesChange}
+                onEdgesChange={onOntGraphEdgesChange}
+                nodeTypes={ontologyNodeTypes}
+                fitView
+                fitViewOptions={{ padding: 0.4 }}
+                defaultEdgeOptions={{
+                  style: { stroke: C.accentDim + '88', strokeWidth: 1.5 },
+                  markerEnd: { type: MarkerType.ArrowClosed, color: C.accentDim + '88' },
+                }}
+                style={{ background: C.bg }}
+              >
+                <Background variant="dots" gap={24} size={1} color={C.panelBorder} />
+                <Controls position="bottom-right" />
+                <MiniMap
+                  position="bottom-left"
+                  nodeColor={n => {
+                    if (n.type === 'entityType') return entityTypeColors[n.data?.entityType] || C.accent;
+                    if (n.type === 'decisionGraph') return C.accent;
+                    return entityTypeColors[n.data?.entityType] || C.accentDim;
+                  }}
+                  maskColor={C.bg + 'cc'}
+                  style={{ background: C.panel, border: `1px solid ${C.panelBorder}`, borderRadius: 8 }}
+                />
+
+                {/* Ontology legend */}
+                <div style={{
+                  position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+                  display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'none',
+                  background: C.panel + 'dd', border: `1px solid ${C.panelBorder}`,
+                  borderRadius: 20, padding: '6px 16px',
+                }}>
+                  {[
+                    { color: C.accent, label: 'Entity Type', style: 'solid' },
+                    { color: C.textMuted, label: 'Instance', style: 'solid' },
+                    { color: C.accent, label: 'Decision Graph', style: 'dashed' },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{
+                        width: 8, height: 8, borderRadius: item.style === 'dashed' ? 2 : '50%',
+                        background: item.style === 'dashed' ? 'transparent' : item.color,
+                        border: item.style === 'dashed' ? `1.5px dashed ${item.color}` : 'none',
+                      }} />
+                      <span style={{ color: C.textMuted, fontSize: 10 }}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {ontGraphNodes.length === 0 && !ontGraphLoading && (
+                  <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none',
+                  }}>
+                    <OntologyIcon style={{ color: C.textDim, fontSize: 28, marginBottom: 12 }} />
+                    <div style={{ color: C.textDim, fontSize: 13, fontWeight: 600 }}>Ontology Graph</div>
+                    <div style={{ color: C.textDim, fontSize: 11, marginTop: 6, opacity: 0.6 }}>
+                      No ontology entities found yet.<br />Create entities in the Ontology tab to see them here.
+                    </div>
+                  </div>
+                )}
+              </ReactFlow>
+            </ReactFlowProvider>
+          </Box>
         </Box>
 
         {/* Right: Saved Graphs Sidebar */}
-        {savedGraphs.length > 0 && (
-          <Box sx={{
-            width: 200, borderLeft: `1px solid ${C.panelBorder}`,
-            background: C.panel, p: 2, overflowY: 'auto',
-          }}>
-            <Typography sx={{ color: C.textMuted, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', mb: 1.5 }}>
-              SAVED GRAPHS
+        <Box sx={{
+          width: 220, borderLeft: `1px solid ${C.panelBorder}`,
+          background: C.panel, p: 2, overflowY: 'auto', display: 'flex', flexDirection: 'column',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+            <Typography sx={{ color: C.textMuted, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em' }}>
+              SAVED SCENARIOS
             </Typography>
-            {savedGraphs.map(g => (
+            <IconButton onClick={loadSavedGraphs} size="small" sx={{ color: C.textMuted, p: 0.25 }}>
+              <RefreshIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Box>
+          {savedGraphs.length === 0 ? (
+            <Typography sx={{ color: C.textDim, fontSize: 11, lineHeight: 1.6, mt: 1 }}>
+              No saved scenarios yet. Describe a situation in the chat, then click "Save to Ontology" to persist it here.
+            </Typography>
+          ) : (
+            savedGraphs.map(g => (
               <Box
                 key={g.id}
                 onClick={() => handleLoadGraph(g.id)}
                 sx={{
                   p: 1, borderRadius: 1, mb: 0.75, cursor: 'pointer',
-                  background: C.surface, border: `1px solid ${C.panelBorder}`,
+                  background: lastSavedId === g.id ? C.accentDim + '33' : C.surface,
+                  border: `1px solid ${lastSavedId === g.id ? C.accent + '55' : C.panelBorder}`,
                   color: C.text, fontSize: 11,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   '&:hover': { borderColor: C.accent + '55' },
                   transition: 'border-color 0.15s',
                 }}
               >
-                {g.title}
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {g.title}
+                </span>
+                <IconButton
+                  onClick={(e) => handleDeleteGraph(g.id, e)}
+                  size="small"
+                  sx={{ color: C.textDim, p: 0.25, ml: 0.5, '&:hover': { color: C.action.border } }}
+                >
+                  <DeleteIcon sx={{ fontSize: 12 }} />
+                </IconButton>
               </Box>
-            ))}
-          </Box>
-        )}
+            ))
+          )}
+        </Box>
       </Box>
 
       {/* Toast */}

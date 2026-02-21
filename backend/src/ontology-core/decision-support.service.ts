@@ -228,6 +228,15 @@ Valid action statuses: pending, approved, rejected, executing, done`;
         predicate: 'hasCondition',
         object: `${CONDITION_PREFIX}/${cond.id}`,
       });
+
+      // Link condition to its target ontology entity (cross-graph linking)
+      if (cond.targetEntityId) {
+        await this.kg.addRelationship(project, {
+          subject: `${CONDITION_PREFIX}/${cond.id}`,
+          predicate: 'targetsEntity',
+          object: cond.targetEntityId,
+        });
+      }
     }
 
     // Persist actions
@@ -261,6 +270,15 @@ Valid action statuses: pending, approved, rejected, executing, done`;
           subject: `${ACTION_PREFIX}/${action.id}`,
           predicate: 'requiresCondition',
           object: `${CONDITION_PREFIX}/${condId}`,
+        });
+      }
+
+      // Link action to its target ontology entity (cross-graph linking)
+      if (action.targetEntityId) {
+        await this.kg.addRelationship(project, {
+          subject: `${ACTION_PREFIX}/${action.id}`,
+          predicate: 'targetsEntity',
+          object: action.targetEntityId,
         });
       }
     }
@@ -341,6 +359,37 @@ Valid action statuses: pending, approved, rejected, executing, done`;
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
       }));
+  }
+
+  // ── Delete Decision Graph ──────────────────────
+
+  async deleteDecisionGraph(project: string, graphId: string): Promise<void> {
+    const graph = await this.loadDecisionGraph(project, graphId);
+    if (!graph) {
+      this.logger.warn(`Decision graph ${graphId} not found for deletion`);
+      return;
+    }
+
+    // Delete condition entities
+    for (const cond of graph.conditions) {
+      try {
+        await this.kg.deleteEntity(project, `${CONDITION_PREFIX}/${cond.id}`);
+      } catch { /* may already be deleted */ }
+    }
+
+    // Delete action entities
+    for (const action of graph.actions) {
+      try {
+        await this.kg.deleteEntity(project, `${ACTION_PREFIX}/${action.id}`);
+      } catch { /* may already be deleted */ }
+    }
+
+    // Delete the root graph entity
+    try {
+      await this.kg.deleteEntity(project, `${DECISION_PREFIX}/${graphId}`);
+    } catch { /* may already be deleted */ }
+
+    this.logger.log(`Deleted decision graph: ${graphId}`);
   }
 
   // ── Update Action Status ──────────────────────
@@ -465,6 +514,216 @@ Valid action statuses: pending, approved, rejected, executing, done`;
     this.logger.log(`Deployed ${ruleIds.length} rules from decision graph ${graphId} to project ${project}`);
 
     return { ruleCount: ruleIds.length, ruleIds };
+  }
+
+  // ── Ontology Entity Map (with graph links) ───
+
+  async getOntologyEntitiesWithGraphLinks(project: string): Promise<{
+    entities: Array<{
+      id: string;
+      type: string;
+      properties: Record<string, string>;
+      referencedBy: Array<{ graphId: string; graphTitle: string; role: string; elementId: string }>;
+    }>;
+    missingEntities: Array<{
+      id: string;
+      type: string;
+      referencedBy: Array<{ graphId: string; graphTitle: string; role: string; elementId: string }>;
+    }>;
+    graphs: Array<{ id: string; title: string }>;
+  }> {
+    const entityTypes = ['Sensor', 'Compressor', 'Pipeline', 'Alert', 'WorkOrder', 'Person', 'Company', 'Product'];
+    const entities: Array<{
+      id: string;
+      type: string;
+      properties: Record<string, string>;
+      referencedBy: Array<{ graphId: string; graphTitle: string; role: string; elementId: string }>;
+    }> = [];
+
+    // Gather all ontology entities (non-decision-graph entities)
+    for (const type of entityTypes) {
+      try {
+        const found = await this.kg.findEntitiesByType(project, type);
+        for (const e of found) {
+          const { id, type: eType, ...props } = e;
+          entities.push({ id, type: eType || type, properties: props, referencedBy: [] });
+        }
+      } catch { /* type not present */ }
+    }
+
+    // Track missing entities referenced by decision graphs
+    const missingMap = new Map<string, {
+      id: string;
+      type: string;
+      referencedBy: Array<{ graphId: string; graphTitle: string; role: string; elementId: string }>;
+    }>();
+
+    // Load all decision graphs with their conditions/actions
+    const graphs = await this.listDecisionGraphs(project);
+    const graphSummaries = graphs.map(g => ({ id: g.id!, title: g.title || 'Untitled' }));
+
+    for (const gSummary of graphSummaries) {
+      const graph = await this.loadDecisionGraph(project, gSummary.id);
+      if (!graph) continue;
+
+      // Check which ontology entities are targeted by conditions
+      for (const cond of graph.conditions) {
+        if (cond.targetEntityId) {
+          const ref = { graphId: gSummary.id, graphTitle: gSummary.title, role: 'condition', elementId: cond.id };
+          const ent = entities.find(e => e.id === cond.targetEntityId);
+          if (ent) {
+            ent.referencedBy.push(ref);
+          } else {
+            // Entity referenced but doesn't exist
+            const existing = missingMap.get(cond.targetEntityId);
+            if (existing) {
+              existing.referencedBy.push(ref);
+            } else {
+              missingMap.set(cond.targetEntityId, {
+                id: cond.targetEntityId,
+                type: cond.targetEntityType,
+                referencedBy: [ref],
+              });
+            }
+          }
+        }
+      }
+
+      // Check which ontology entities are targeted by actions
+      for (const action of graph.actions) {
+        if (action.targetEntityId) {
+          const ref = { graphId: gSummary.id, graphTitle: gSummary.title, role: 'action', elementId: action.id };
+          const ent = entities.find(e => e.id === action.targetEntityId);
+          if (ent) {
+            ent.referencedBy.push(ref);
+          } else {
+            const existing = missingMap.get(action.targetEntityId);
+            if (existing) {
+              existing.referencedBy.push(ref);
+            } else {
+              missingMap.set(action.targetEntityId, {
+                id: action.targetEntityId,
+                type: action.targetEntityType,
+                referencedBy: [ref],
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return { entities, missingEntities: Array.from(missingMap.values()), graphs: graphSummaries };
+  }
+
+  // ── Create Ontology Entity ──────────────────────
+
+  async createOntologyEntity(
+    project: string,
+    id: string,
+    type: string,
+    properties: Record<string, string>,
+  ): Promise<void> {
+    await this.kg.addEntity(project, {
+      id,
+      type: type as any, // Quadstore accepts any type string via RDF triples
+      properties,
+    });
+    this.logger.log(`Created ontology entity: ${id} (type=${type}) in project ${project}`);
+  }
+
+  // ── Ontology Graph (for visualization) ─────────
+
+  async getOntologyGraph(project: string): Promise<{
+    typeNodes: Array<{ type: string; count: number; instances: Array<{ id: string; properties: Record<string, string> }> }>;
+    relationships: Array<{ source: string; target: string; predicate: string; sourceKind: string; targetKind: string }>;
+    graphLinks: Array<{ entityId: string; entityType: string; graphId: string; graphTitle: string; role: string }>;
+    graphs: Array<{ id: string; title: string }>;
+  }> {
+    const entityTypes = ['Sensor', 'Compressor', 'Pipeline', 'Alert', 'WorkOrder', 'Person', 'Company', 'Product'];
+    const typeNodes: Array<{ type: string; count: number; instances: Array<{ id: string; properties: Record<string, string> }> }> = [];
+    const allEntityIds: string[] = [];
+
+    // 1. Gather entity types and their instances
+    for (const type of entityTypes) {
+      try {
+        const found = await this.kg.findEntitiesByType(project, type);
+        const instances = found.map(e => {
+          const { id, type: _t, ...props } = e;
+          allEntityIds.push(id);
+          return { id, properties: props };
+        });
+        if (instances.length > 0) {
+          typeNodes.push({ type, count: instances.length, instances });
+        }
+      } catch { /* type not present */ }
+    }
+
+    // 2. Gather inter-entity relationships
+    const relationships: Array<{ source: string; target: string; predicate: string; sourceKind: string; targetKind: string }> = [];
+    const seenRels = new Set<string>();
+
+    for (const entityId of allEntityIds) {
+      try {
+        const rels = await this.kg.findRelationshipsByEntity(project, entityId);
+        for (const rel of rels) {
+          // Skip internal decision-graph predicates
+          if (['hasCondition', 'hasAction', 'requiresCondition'].includes(rel.predicate)) continue;
+          // Skip if the other end is a Decision/Condition/Action entity
+          if (rel.predicate.startsWith('rel/')) continue;
+
+          const key = `${rel.subject}|${rel.predicate}|${rel.object}`;
+          if (seenRels.has(key)) continue;
+          seenRels.add(key);
+
+          const sourceIsInstance = allEntityIds.includes(rel.subject);
+          const targetIsInstance = allEntityIds.includes(rel.object);
+
+          relationships.push({
+            source: rel.subject,
+            target: rel.object,
+            predicate: rel.predicate,
+            sourceKind: sourceIsInstance ? 'instance' : 'other',
+            targetKind: targetIsInstance ? 'instance' : 'other',
+          });
+        }
+      } catch { /* skip */ }
+    }
+
+    // 3. Decision graph → entity links
+    const graphLinks: Array<{ entityId: string; entityType: string; graphId: string; graphTitle: string; role: string }> = [];
+    const graphs = await this.listDecisionGraphs(project);
+    const graphSummaries = graphs.map(g => ({ id: g.id!, title: g.title || 'Untitled' }));
+
+    for (const gSummary of graphSummaries) {
+      const graph = await this.loadDecisionGraph(project, gSummary.id);
+      if (!graph) continue;
+
+      for (const cond of graph.conditions) {
+        if (cond.targetEntityId) {
+          graphLinks.push({
+            entityId: cond.targetEntityId,
+            entityType: cond.targetEntityType,
+            graphId: gSummary.id,
+            graphTitle: gSummary.title,
+            role: 'condition',
+          });
+        }
+      }
+
+      for (const action of graph.actions) {
+        if (action.targetEntityId) {
+          graphLinks.push({
+            entityId: action.targetEntityId,
+            entityType: action.targetEntityType,
+            graphId: gSummary.id,
+            graphTitle: gSummary.title,
+            role: 'action',
+          });
+        }
+      }
+    }
+
+    return { typeNodes, relationships, graphLinks, graphs: graphSummaries };
   }
 
   // ── Helpers ───────────────────────────────────

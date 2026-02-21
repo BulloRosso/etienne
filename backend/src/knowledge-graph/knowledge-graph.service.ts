@@ -44,14 +44,21 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
     return path.join(this.workspaceDir, project, 'knowledge-graph');
   }
 
-  private ensureQuadstoreAvailable() {
+  private async ensureQuadstoreAvailable() {
     if (!this.quadstoreAvailable) {
-      throw new Error('Quadstore service is not available. Please start the vector-store service on port 7000.');
+      // Re-check in case the service came online after startup
+      try {
+        await axios.get(`${QUADSTORE_URL}/health`, { timeout: 2000 });
+        this.quadstoreAvailable = true;
+        console.log('✅ Quadstore service is now available');
+      } catch {
+        throw new Error('Quadstore service is not available. Please start the vector-store service on port 7000.');
+      }
     }
   }
 
   async addEntity(project: string, entity: Entity): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const entityUri = `${this.baseUri}${entity.id}`;
     const typeUri = `${this.baseUri}${entity.type}`;
@@ -78,7 +85,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   }
 
   async addRelationship(project: string, relationship: Relationship): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const subject = `${this.baseUri}${relationship.subject}`;
     const predicate = `${this.baseUri}${relationship.predicate}`;
@@ -109,7 +116,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   }
 
   async executeSparqlQuery(project: string, query: string): Promise<any[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     try {
       // For now, just return all triples
@@ -130,7 +137,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   }
 
   async findEntityById(project: string, id: string): Promise<any> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const entityUri = `${this.baseUri}${id}`;
 
@@ -161,7 +168,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   }
 
   async findEntitiesByType(project: string, type: string): Promise<any[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const rdfType = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
     const typeUri = `${this.baseUri}${type}`;
@@ -189,7 +196,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   }
 
   async findRelationshipsByEntity(project: string, entityId: string): Promise<any[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const entityUri = `${this.baseUri}${entityId}`;
     const relationships = [];
@@ -239,7 +246,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   }
 
   async deleteEntity(project: string, id: string): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const entityUri = `${this.baseUri}${id}`;
 
@@ -250,7 +257,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Add a tag to an entity
    */
   async addEntityTag(project: string, entityId: string, tag: string): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const entityUri = `${this.baseUri}${entityId}`;
     const tagPredicate = `${this.baseUri}hasTag`;
@@ -267,7 +274,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Remove a tag from an entity
    */
   async removeEntityTag(project: string, entityId: string, tag: string): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const entityUri = `${this.baseUri}${entityId}`;
     const tagPredicate = `${this.baseUri}hasTag`;
@@ -285,7 +292,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Get all tags for an entity
    */
   async getEntityTags(project: string, entityId: string): Promise<string[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const entityUri = `${this.baseUri}${entityId}`;
     const tagPredicate = `${this.baseUri}hasTag`;
@@ -307,7 +314,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Find entities by tag
    */
   async findEntitiesByTag(project: string, tag: string): Promise<string[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const tagPredicate = `${this.baseUri}hasTag`;
 
@@ -330,7 +337,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Find entities by multiple tags (OR logic)
    */
   async findEntitiesByTags(project: string, tags: string[]): Promise<string[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     if (tags.length === 0) return [];
 
@@ -348,7 +355,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Find entities by type and tags
    */
   async findEntitiesByTypeAndTags(project: string, type: string, tags: string[]): Promise<any[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     if (tags.length === 0) {
       return this.findEntitiesByType(project, type);
@@ -363,7 +370,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getStats(project: string): Promise<any> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     try {
       const response = await axios.get(`${QUADSTORE_URL}/${project}/stats`);
@@ -389,7 +396,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Creates a "isChunkOf" relationship between chunk and document
    */
   async addDocumentChunk(project: string, chunkId: string, documentId: string, metadata: any): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     // Create the chunk entity
     const chunkEntity: Entity = {
@@ -421,7 +428,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * More efficient than adding chunks one by one
    */
   async addDocumentChunks(project: string, chunks: Array<{ chunkId: string, documentId: string, metadata: any }>): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     for (const chunk of chunks) {
       await this.addDocumentChunk(project, chunk.chunkId, chunk.documentId, chunk.metadata);
@@ -432,7 +439,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Find all chunks for a given document
    */
   async findChunksByDocumentId(project: string, documentId: string): Promise<any[]> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const documentUri = `${this.baseUri}${documentId}`;
     const isChunkOfPredicate = `${this.baseUri}isChunkOf`;
@@ -471,7 +478,7 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
    * Delete all chunks for a document
    */
   async deleteDocumentChunks(project: string, documentId: string): Promise<void> {
-    this.ensureQuadstoreAvailable();
+    await this.ensureQuadstoreAvailable();
 
     const chunks = await this.findChunksByDocumentId(project, documentId);
 

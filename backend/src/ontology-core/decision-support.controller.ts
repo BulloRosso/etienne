@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, Logger, HttpException, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
 import { Roles } from '../auth/roles.decorator';
 import { DecisionSupportService } from './decision-support.service';
 import { DeriveDecisionDto, SaveGraphDto, UpdateActionStatusDto } from './dto/derive-decision.dto';
@@ -37,6 +37,7 @@ export class DecisionSupportController {
    */
   @Post('graphs')
   @Roles('user')
+  @UsePipes(new ValidationPipe({ whitelist: false, transform: true }))
   async saveGraph(@Body() dto: SaveGraphDto) {
     try {
       const id = this.svc.generateId();
@@ -159,6 +160,89 @@ export class DecisionSupportController {
       return { success: true };
     } catch (error: any) {
       this.logger.error('Failed to update action status', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Delete a saved decision graph
+   */
+  @Delete('graphs/:project/:graphId')
+  @Roles('user')
+  async deleteGraph(
+    @Param('project') project: string,
+    @Param('graphId') graphId: string,
+  ) {
+    try {
+      await this.svc.deleteDecisionGraph(project, graphId);
+      return { success: true };
+    } catch (error: any) {
+      this.logger.error('Failed to delete decision graph', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get ontology entities with their decision graph connections
+   */
+  @Get('ontology-entities/:project')
+  async getOntologyEntities(@Param('project') project: string) {
+    try {
+      const result = await this.svc.getOntologyEntitiesWithGraphLinks(project);
+      return { success: true, ...result };
+    } catch (error: any) {
+      this.logger.error('Failed to get ontology entities', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Create a new ontology entity
+   */
+  @Post('ontology-entities/:project')
+  @Roles('user')
+  async createOntologyEntity(
+    @Param('project') project: string,
+    @Body() body: { id: string; type: string; properties?: Record<string, string> },
+  ) {
+    try {
+      if (!body.id || !body.type) {
+        throw new HttpException(
+          { success: false, message: 'id and type are required' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      await this.svc.createOntologyEntity(project, body.id, body.type, body.properties || {});
+      return { success: true, id: body.id };
+    } catch (error: any) {
+      if (error instanceof HttpException) throw error;
+      this.logger.error('Failed to create ontology entity', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get ontology graph data for visualization (types, instances, relationships)
+   */
+  @Get('ontology-graph/:project')
+  async getOntologyGraph(@Param('project') project: string) {
+    try {
+      const result = await this.svc.getOntologyGraph(project);
+      return { success: true, ...result };
+    } catch (error: any) {
+      this.logger.error('Failed to get ontology graph', error);
       throw new HttpException(
         { success: false, message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR,
