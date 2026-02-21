@@ -584,10 +584,32 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
     const rfNodes = [];
     const rfEdges = [];
 
-    // Layout: type nodes in a horizontal row at top
+    // Layer Y positions: Decision Graphs (top) → Entity Types (middle) → Instances (bottom)
+    const hasGraphs = data.graphs.length > 0;
+    const graphY = 60;
+    const typeY = hasGraphs ? 240 : 60;
+    const instanceY = typeY + 180;
+
+    // ── Top layer: Decision Graph nodes ──
+    if (hasGraphs) {
+      const gSpacing = 200;
+      const gStartX = -(data.graphs.length - 1) * gSpacing / 2 + 400;
+
+      data.graphs.forEach((g, gIdx) => {
+        const gNodeId = `graph-${g.id}`;
+        rfNodes.push({
+          id: gNodeId,
+          type: 'decisionGraph',
+          position: { x: gStartX + gIdx * gSpacing, y: graphY },
+          data: { label: g.title, _palette: C2 },
+        });
+      });
+    }
+
+    // ── Middle layer: Entity Type nodes ──
     const typeCount = data.typeNodes.length;
     const typeSpacing = 220;
-    const startX = -(typeCount - 1) * typeSpacing / 2 + 400;
+    const typeStartX = -(typeCount - 1) * typeSpacing / 2 + 400;
 
     data.typeNodes.forEach((tn, idx) => {
       const typeId = `type-${tn.type}`;
@@ -595,7 +617,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
       rfNodes.push({
         id: typeId,
         type: 'entityType',
-        position: { x: startX + idx * typeSpacing, y: 60 },
+        position: { x: typeStartX + idx * typeSpacing, y: typeY },
         data: {
           entityType: tn.type,
           count: tn.count,
@@ -611,16 +633,16 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
         },
       });
 
-      // If expanded, add instance nodes below
+      // ── Bottom layer: Instance nodes in a column with 30px left indent ──
       if (isExpanded) {
-        const instSpacing = 170;
-        const instStartX = startX + idx * typeSpacing - (tn.instances.length - 1) * instSpacing / 2;
+        const instRowHeight = 60;
+        const instX = typeStartX + idx * typeSpacing + 30;
         tn.instances.forEach((inst, iIdx) => {
           const instId = `inst-${inst.id}`;
           rfNodes.push({
             id: instId,
             type: 'entityInstance',
-            position: { x: instStartX + iIdx * instSpacing, y: 220 },
+            position: { x: instX, y: instanceY + iIdx * instRowHeight },
             data: {
               label: inst.id,
               entityType: tn.type,
@@ -639,52 +661,33 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
       }
     });
 
-    // Decision graph nodes at the bottom
-    if (data.graphs.length > 0) {
-      const gSpacing = 200;
-      const gStartX = -(data.graphs.length - 1) * gSpacing / 2 + 400;
-      const gY = expanded.size > 0 ? 420 : 240;
+    // ── Edges: Decision Graphs → Entity Types / Instances ──
+    for (const link of data.graphLinks) {
+      const gNodeId = `graph-${link.graphId}`;
+      // Connect to instance if that type is expanded, else to the type node
+      const typeExpanded = expanded.has(link.entityType);
+      const targetId = typeExpanded ? `inst-${link.entityId}` : `type-${link.entityType}`;
+      const edgeColor = link.role === 'condition' ? C2.condition.border : C2.action.border;
+      const edgeId = `e-${gNodeId}-${targetId}-${link.role}-${link.entityId}`;
 
-      data.graphs.forEach((g, gIdx) => {
-        const gNodeId = `graph-${g.id}`;
-        rfNodes.push({
-          id: gNodeId,
-          type: 'decisionGraph',
-          position: { x: gStartX + gIdx * gSpacing, y: gY },
-          data: { label: g.title, _palette: C2 },
+      if (!rfEdges.find(e => e.id === edgeId)) {
+        rfEdges.push({
+          id: edgeId,
+          source: gNodeId,
+          target: targetId,
+          label: link.role,
+          style: { stroke: edgeColor + '88', strokeWidth: 1.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor + '88' },
+          labelStyle: { fontSize: 9, fill: edgeColor },
+          labelBgStyle: { fill: C2.panel, fillOpacity: 0.9 },
         });
-      });
-
-      // Edges from decision graphs to entity types/instances
-      for (const link of data.graphLinks) {
-        const gNodeId = `graph-${link.graphId}`;
-        // Connect to instance if expanded, else to type
-        const typeExpanded = expanded.has(link.entityType);
-        const targetId = typeExpanded ? `inst-${link.entityId}` : `type-${link.entityType}`;
-        const edgeColor = link.role === 'condition' ? C2.condition.border : C2.action.border;
-        const edgeId = `e-${gNodeId}-${targetId}-${link.role}-${link.entityId}`;
-
-        // Avoid duplicate edges
-        if (!rfEdges.find(e => e.id === edgeId)) {
-          rfEdges.push({
-            id: edgeId,
-            source: gNodeId,
-            target: targetId,
-            label: link.role,
-            style: { stroke: edgeColor + '88', strokeWidth: 1.5 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor + '88' },
-            labelStyle: { fontSize: 9, fill: edgeColor },
-            labelBgStyle: { fill: C2.panel, fillOpacity: 0.9 },
-          });
-        }
       }
     }
 
-    // Inter-entity relationships
+    // ── Edges: Inter-instance relationships ──
     for (const rel of data.relationships) {
-      const sourceExpanded = expanded.size > 0; // simplified: if any are expanded
-      const sourceId = sourceExpanded && rfNodes.find(n => n.id === `inst-${rel.source}`) ? `inst-${rel.source}` : null;
-      const targetId = sourceExpanded && rfNodes.find(n => n.id === `inst-${rel.target}`) ? `inst-${rel.target}` : null;
+      const sourceId = rfNodes.find(n => n.id === `inst-${rel.source}`) ? `inst-${rel.source}` : null;
+      const targetId = rfNodes.find(n => n.id === `inst-${rel.target}`) ? `inst-${rel.target}` : null;
       if (sourceId && targetId) {
         rfEdges.push({
           id: `e-rel-${rel.source}-${rel.predicate}-${rel.target}`,
@@ -1529,6 +1532,22 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
             )}
           </Box>
 
+          {/* Controls theme override */}
+          <style>{`
+            .themed-controls .react-flow__controls-button {
+              background: ${C.panel};
+              color: ${C.text};
+              border: none;
+              border-bottom: 1px solid ${C.panelBorder};
+            }
+            .themed-controls .react-flow__controls-button:hover {
+              background: ${C.surfaceHover};
+            }
+            .themed-controls .react-flow__controls-button svg {
+              fill: ${C.text};
+            }
+          `}</style>
+
           {/* Scenario Graph Canvas */}
           <Box sx={{ flex: 1, position: 'relative', display: centerTab === 0 ? 'block' : 'none' }}>
             <ReactFlow
@@ -1547,7 +1566,16 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
               style={{ background: C.bg }}
             >
               <Background variant="dots" gap={24} size={1} color={C.panelBorder} />
-              <Controls position="bottom-right" />
+              <Controls
+                position="bottom-right"
+                className="themed-controls"
+                style={{
+                  background: C.panel,
+                  border: `1px solid ${C.panelBorder}`,
+                  borderRadius: 8,
+                  boxShadow: 'none',
+                }}
+              />
               <MiniMap
                 position="bottom-left"
                 nodeColor={n => {
@@ -1620,7 +1648,21 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                 style={{ background: C.bg }}
               >
                 <Background variant="dots" gap={24} size={1} color={C.panelBorder} />
-                <Controls position="bottom-right" />
+                <Controls
+                  position="bottom-right"
+                  style={{
+                    background: C.panel,
+                    border: `1px solid ${C.panelBorder}`,
+                    borderRadius: 8,
+                    boxShadow: 'none',
+                  }}
+                  buttonStyle={{
+                    background: C.panel,
+                    color: C.text,
+                    border: `1px solid ${C.panelBorder}`,
+                    borderRadius: 4,
+                  }}
+                />
                 <MiniMap
                   position="bottom-left"
                   nodeColor={n => {
