@@ -175,14 +175,59 @@ As a forward deployed engineer you can bring a complete working AI business solu
 ## Creating a new project with Etienne
 
 <div align="center">
-<img src="/docs/images/video1-snapshot.jpg" alt="UI Screentho" width="900">
+<img src="/docs/images/video1-snapshot.jpg" alt="UI Screenshot" width="900">
 </div>
 
 [See the basic project settings and how a live website is created from specifications](https://youtu.be/I9aNyB07AaA)
 
+# Experimental features
+
+## Decision Support Studio
+
+<div align="center">
+<img src="/docs/images/decision-support.jpg" alt="How decision support works" width="900">
+</div>
+
+Decision support is one of the most advanced features of Etienne. You must start the rdf-store server before you will be able to use it:
+
+<div align="center">
+<img src="/docs/images/service-control.jpg" alt="Service control drawer" width="900">
+</div>
+
+Additionally the decision-support skill needs to be activated on your project:
+
+<div align="center">
+<img src="/docs/images/decision-support-skill.jpg" alt="Decision Support Skill" width="700">
+</div>
+
+Then open the decision support studio window from the project menu:
+
+<div align="center">
+<img src="/docs/images/decision-support-studio-1.jpg" alt="Decision Support Studio" width="700">
+</div>
+
+Currently you have to add entity instances manually using "+ Add Entity":
+
+<div align="center">
+<img src="/docs/images/decision-support-studio-2.jpg" alt="Decision Support Studio" width="700">
+</div>
+
 
 # Etienne Articles on LinkedIn
 <table>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article19.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/ontologies-agents-art-knowing-what-do-ralph-navasardyan-qqr8f/" target="_blank">Ontologies, Agents, and the Art of Knowing What to Do</a></b>
+    <p style="color:#999"><small>
+There's a concept buried inside Palantir Foundry that most people never talk about. They talk about the data integration. The pipelines. The price tag. But the genuinely interesting idea — the one that separates Foundry from a very expensive data warehouse — is something called the Ontology core.
+
+And once you understand it, you'll never look at AI agents the same way.</small>
+    </p>
+  </td>
+</tr>
 <tr>
   <td width="220">
     <img src="/docs/images/article16.jpg" width="220"/>

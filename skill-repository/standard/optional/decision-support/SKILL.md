@@ -1,11 +1,6 @@
 ---
 name: decision-support
-description: >
-  Orchestrates ontology-grounded decision support for Node.js applications using
-  quadstore (RDF), ZeroMQ event-based condition monitoring, and an LLM reasoning
-  layer. Use when the user wants to derive actionable decisions from a chat
-  context, define conditions and actions on ontology entities, build or refine
-  decision graphs, or export rule sets for the ZMQ execution layer.
+description: Orchestrates ontology-grounded decision support for Node.js applications using quadstore (RDF), ZeroMQ event-based condition monitoring, and an LLM reasoning layer. Use when the user wants to derive actionable decisions from a chat context, define conditions and actions on ontology entities, build or refine decision graphs, or export rule sets for the ZMQ execution layer.
 ---
 
 # Decision Support Skill
