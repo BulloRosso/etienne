@@ -77,6 +77,13 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
       image: '/scrapbook.jpg',
       label: 'Scrapbook',
       disabled: !currentProject
+    },
+    // 7th row
+    {
+      id: 'ontologycore',
+      image: '/conditionmonitoring.jpg',
+      label: 'Decision Support',
+      disabled: !currentProject
     }
   ];
 

@@ -37,6 +37,7 @@ import SkillsSettings from './SkillsSettings';
 import DashboardGrid from './DashboardGrid';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
+import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
 import Scrapbook from './Scrapbook';
 import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
@@ -63,6 +64,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
+  const [ontologyCoreOpen, setOntologyCoreOpen] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [serviceControlOpen, setServiceControlOpen] = useState(false);
@@ -161,6 +163,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'conditionmonitoring':
         handleConditionMonitoringOpen();
+        break;
+      case 'ontologycore':
+        handleOntologyCoreOpen();
         break;
       case 'scrapbook':
         handleScrapbookOpen();
@@ -347,6 +352,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleConditionMonitoringClose = () => {
     setConditionMonitoringOpen(false);
+  };
+
+  const handleOntologyCoreOpen = () => {
+    setOntologyCoreOpen(true);
+    handleMenuClose();
+  };
+
+  const handleOntologyCoreClose = () => {
+    setOntologyCoreOpen(false);
   };
 
   const handleScrapbookOpen = () => {
@@ -776,6 +790,25 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         <EventHandling
           selectedProject={currentProject}
           onClose={handleConditionMonitoringClose}
+        />
+      </Dialog>
+
+      <Dialog
+        open={ontologyCoreOpen}
+        onClose={handleOntologyCoreClose}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '90vh',
+            maxHeight: '90vh',
+            ...(themeMode === 'dark' && { border: '1px solid #999' })
+          }
+        }}
+      >
+        <OntologyCoreEditor
+          selectedProject={currentProject}
+          onClose={handleOntologyCoreClose}
         />
       </Dialog>
 

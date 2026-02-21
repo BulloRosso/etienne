@@ -98,8 +98,10 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Check if configuration exists on startup
+  // Check if configuration exists once authenticated
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const checkConfiguration = async () => {
       try {
         const response = await apiFetch('/api/configuration');
@@ -128,7 +130,7 @@ export default function App() {
     };
 
     checkConfiguration();
-  }, []);
+  }, [isAuthenticated]);
 
   // Fetch registered previewers configuration on startup
   useEffect(() => {
