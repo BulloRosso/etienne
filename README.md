@@ -188,13 +188,13 @@ As a forward deployed engineer you can bring a complete working AI business solu
 <img src="/docs/images/decision-support.jpg" alt="How decision support works" width="900">
 </div>
 
-Decision support is one of the most advanced features of Etienne. You must start the rdf-store server before you will be able to use it:
+Decision support is one of the most advanced features of Etienne. You must start the **Knowledge Graph and the Vector Store services** before you will be able to use it:
 
 <div align="center">
 <img src="/docs/images/service-control.jpg" alt="Service control drawer" width="900">
 </div>
 
-Additionally the decision-support skill needs to be activated on your project:
+Additionally the **decision-support skill** needs to be activated on your project:
 
 <div align="center">
 <img src="/docs/images/decision-support-skill.jpg" alt="Decision Support Skill" width="700">
