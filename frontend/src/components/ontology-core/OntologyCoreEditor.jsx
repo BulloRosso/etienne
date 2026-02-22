@@ -620,6 +620,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [suggestion, setSuggestion] = useState(null);
+  const suggestionRef = useRef(null);
   const [isThinking, setIsThinking] = useState(false);
   const [activeTab, setActiveTab] = useState(0); // 0=chat, 1=details, 2=ontology
   const [toast, setToast] = useState(null);
@@ -639,6 +640,9 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
   const ontGraphDataRef = useRef(null);
   const chatHistoryRef = useRef([]);
   const bottomRef = useRef(null);
+
+  // Keep suggestionRef in sync with suggestion state
+  useEffect(() => { suggestionRef.current = suggestion; }, [suggestion]);
 
   // Test scenario modal state
   const [testModalOpen, setTestModalOpen] = useState(false);
@@ -958,13 +962,15 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
   }, [selectedProject, entityDetailData, loadOntologyEntities, loadOntologyGraph]);
 
   // Handle action config click from ActionNode
+  // Uses suggestionRef to avoid stale closure when nodes are created before setSuggestion re-renders
   const handleActionConfigClick = useCallback((nodeData) => {
-    const action = suggestion?.actions?.find(a => a.id === nodeData.actionId);
+    const currentSuggestion = suggestionRef.current;
+    const action = currentSuggestion?.actions?.find(a => a.id === nodeData.actionId);
     if (action) {
       setActionConfigData(action);
       setActionConfigOpen(true);
     }
-  }, [suggestion]);
+  }, []);
 
   // Handle action config save
   const handleActionConfigSave = useCallback((updates) => {
