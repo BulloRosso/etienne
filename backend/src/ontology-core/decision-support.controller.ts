@@ -1,14 +1,22 @@
-import { Controller, Post, Get, Delete, Body, Param, Logger, HttpException, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Res, Logger, HttpException, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Response } from 'express';
 import { Roles } from '../auth/roles.decorator';
 import { DecisionSupportService } from './decision-support.service';
+import { ScenarioHydratorService } from './scenario-hydrator.service';
+import { ScenarioEvaluatorService } from './scenario-evaluator.service';
 import { DeriveDecisionDto, SaveGraphDto, UpdateActionStatusDto } from './dto/derive-decision.dto';
+import { TestScenarioDto } from './dto/test-scenario.dto';
 import { DecisionGraph } from './interfaces/decision-graph.interface';
 
 @Controller('api/decision-support')
 export class DecisionSupportController {
   private readonly logger = new Logger(DecisionSupportController.name);
 
-  constructor(private readonly svc: DecisionSupportService) {}
+  constructor(
+    private readonly svc: DecisionSupportService,
+    private readonly hydrator: ScenarioHydratorService,
+    private readonly evaluator: ScenarioEvaluatorService,
+  ) {}
 
   /**
    * Core endpoint: derive a decision suggestion from chat context
@@ -234,6 +242,57 @@ export class DecisionSupportController {
   }
 
   /**
+   * Update an existing ontology entity
+   */
+  @Put('ontology-entities/:project/:entityId')
+  @Roles('user')
+  async updateOntologyEntity(
+    @Param('project') project: string,
+    @Param('entityId') entityId: string,
+    @Body() body: { id?: string; type: string; properties?: Record<string, string> },
+  ) {
+    try {
+      if (!body.type) {
+        throw new HttpException(
+          { success: false, message: 'type is required' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const newId = body.id || entityId;
+      await this.svc.updateOntologyEntity(project, entityId, newId, body.type, body.properties || {});
+      return { success: true, id: newId };
+    } catch (error: any) {
+      if (error instanceof HttpException) throw error;
+      this.logger.error('Failed to update ontology entity', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Delete an ontology entity
+   */
+  @Delete('ontology-entities/:project/:entityId')
+  @Roles('user')
+  async deleteOntologyEntity(
+    @Param('project') project: string,
+    @Param('entityId') entityId: string,
+  ) {
+    try {
+      await this.svc.deleteOntologyEntity(project, entityId);
+      return { success: true };
+    } catch (error: any) {
+      this.logger.error('Failed to delete ontology entity', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Get ontology graph data for visualization (types, instances, relationships)
    */
   @Get('ontology-graph/:project')
@@ -264,6 +323,74 @@ export class DecisionSupportController {
         { success: false, message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Hydrate a decision graph: fetch entity properties for the test scenario modal
+   */
+  @Get('graphs/:project/:graphId/hydrate')
+  async hydrateScenario(
+    @Param('project') project: string,
+    @Param('graphId') graphId: string,
+  ) {
+    try {
+      const graph = await this.svc.loadDecisionGraph(project, graphId);
+      if (!graph) {
+        throw new HttpException(
+          { success: false, message: 'Graph not found' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      const result = await this.hydrator.hydrate(project, graph);
+      return { success: true, entities: result.entities };
+    } catch (error: any) {
+      if (error instanceof HttpException) throw error;
+      this.logger.error('Failed to hydrate scenario', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Run a test scenario: stream SSE events for step-by-step condition/action evaluation
+   */
+  @Post('graphs/:project/:graphId/test-scenario')
+  @Roles('user')
+  async runTestScenario(
+    @Param('project') project: string,
+    @Param('graphId') graphId: string,
+    @Body() dto: TestScenarioDto,
+    @Res() res: Response,
+  ) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    try {
+      const graph = await this.svc.loadDecisionGraph(project, graphId);
+      if (!graph) {
+        res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', detail: 'Graph not found' })}\n\n`);
+        res.end();
+        return;
+      }
+      await this.evaluator.runTestScenario(
+        project,
+        graph,
+        dto.editedProperties || {},
+        res,
+      );
+    } catch (error: any) {
+      this.logger.error('Test scenario failed', error);
+      try {
+        res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', detail: error.message })}\n\n`);
+        res.end();
+      } catch {
+        // response may already be closed
+      }
     }
   }
 }

@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, Optional } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import { createMachine, createActor } from 'xstate';
+import { EventBusService } from '../agent-bus/event-bus.service';
+import { WorkflowTriggerMessage } from '../agent-bus/interfaces/bus-messages';
 
 // ============================================
 // Types
@@ -34,6 +37,7 @@ export interface WorkflowTransitionInfo {
   event: string;
   data?: any;
   newStateMeta: WorkflowStateMeta;
+  isFinal?: boolean;
 }
 
 export interface WorkflowStateConfig {
@@ -108,10 +112,32 @@ export interface WorkflowStatus {
 // ============================================
 
 @Injectable()
-export class StatefulWorkflowsService {
+export class StatefulWorkflowsService implements OnModuleInit {
   private readonly logger = new Logger(StatefulWorkflowsService.name);
   private readonly workspaceDir = path.resolve(process.cwd(), process.env.WORKSPACE_ROOT || '../workspace');
   private transitionCallbacks: Array<(info: WorkflowTransitionInfo) => void> = [];
+
+  constructor(
+    @Optional()
+    private readonly eventBus?: EventBusService,
+  ) {}
+
+  async onModuleInit() {
+    // Subscribe to workflow/trigger topic on the agent bus
+    if (this.eventBus) {
+      this.eventBus.subscribe('workflow/trigger', async (topic, msg: WorkflowTriggerMessage) => {
+        try {
+          this.logger.log(`Received workflow trigger from bus: ${msg.workflowId} / ${msg.event}`);
+          await this.sendEvent(msg.projectName, msg.workflowId, msg.event, msg.data, {
+            ignoreInvalidTransitions: true,
+          });
+        } catch (err: any) {
+          this.logger.error(`Failed to process bus workflow trigger: ${err.message}`);
+        }
+      });
+      this.logger.log('StatefulWorkflowsService subscribed to workflow/trigger on agent bus');
+    }
+  }
 
   /**
    * Register a callback that fires after every successful state transition.
@@ -127,6 +153,20 @@ export class StatefulWorkflowsService {
       } catch (err: any) {
         this.logger.error(`Transition callback error: ${err.message}`);
       }
+    }
+
+    // Publish workflow status to agent bus
+    if (this.eventBus) {
+      this.eventBus.publish('workflow/status/transitioned', {
+        correlationId: info.data?.correlationId || randomUUID(),
+        projectName: info.project,
+        workflowId: info.workflowId,
+        workflowName: info.workflowName,
+        previousState: info.previousState,
+        newState: info.newState,
+        event: info.event,
+        isFinal: info.isFinal || false,
+      }).catch(err => this.logger.error('Failed to publish workflow status to bus', err));
     }
   }
 
@@ -275,6 +315,7 @@ export class StatefulWorkflowsService {
         newState: machineConfig.initial,
         event: 'INIT',
         newStateMeta: initialMeta,
+        isFinal: this.isStateFinal(configWithId, machineConfig.initial),
       });
     }
 
@@ -380,6 +421,7 @@ export class StatefulWorkflowsService {
       event: resolvedEvent,
       data,
       newStateMeta,
+      isFinal: this.isStateFinal(workflow.machineConfig, newState),
     });
 
     return { previousState, currentState: newState, transitioned: true, workflow };

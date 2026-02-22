@@ -1,8 +1,11 @@
 import { Injectable, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
-import { InternalEvent, EventRule, RuleExecutionResult, WorkflowEventAction } from '../interfaces/event.interface';
+import { InternalEvent, EventRule, RuleExecutionResult, WorkflowEventAction, IntentAction } from '../interfaces/event.interface';
 import { PromptsStorageService } from './prompts-storage.service';
 import { SSEPublisherService } from '../publishers/sse-publisher.service';
 import { StatefulWorkflowsService } from '../../stateful-workflows/stateful-workflows.service';
+import { EventBusService } from '../../agent-bus/event-bus.service';
+import { ContextInjectorService } from '../../agent-bus/context-injector.service';
+import { AgentIntentMessage } from '../../agent-bus/interfaces/bus-messages';
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 
@@ -20,6 +23,10 @@ export class RuleActionExecutorService {
     private readonly ssePublisher: SSEPublisherService,
     @Optional()
     private readonly workflowsService: StatefulWorkflowsService,
+    @Optional()
+    private readonly eventBus: EventBusService,
+    @Optional()
+    private readonly contextInjector: ContextInjectorService,
   ) {
     this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
     // Generate a long-lived service token for internal API calls
@@ -57,6 +64,9 @@ export class RuleActionExecutorService {
 
       case 'workflow_event':
         return this.executeWorkflowEventAction(projectName, rule, event);
+
+      case 'intent':
+        return this.executeIntentAction(projectName, rule, event);
 
       default:
         this.logger.warn(`Unsupported action type: ${(rule.action as any).type}`);
@@ -248,6 +258,90 @@ export class RuleActionExecutorService {
 
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Execute an intent action: classify intent and publish to the agent bus
+   */
+  private async executeIntentAction(
+    projectName: string,
+    rule: EventRule,
+    event: InternalEvent,
+  ): Promise<{ success: boolean; error?: string; response?: string }> {
+    if (!this.eventBus) {
+      this.logger.error('EventBusService not available for intent action');
+      return { success: false, error: 'Event bus service not available' };
+    }
+
+    const action = rule.action as IntentAction;
+
+    try {
+      this.logger.log(
+        `Publishing intent "${action.intentType}" for project ${projectName} (triggered by ${event.name})`,
+      );
+
+      // Extract entity ID from event payload using dot-path if specified
+      let entityId: string | undefined;
+      if (action.entityIdField) {
+        entityId = this.getNestedValue(event.payload, action.entityIdField);
+      }
+
+      // Optionally enrich with DSS context
+      let context: Record<string, any> = {};
+      if (action.enrichWithDss && entityId && this.contextInjector) {
+        const entityContext = await this.contextInjector.getEntityContext(
+          projectName,
+          entityId,
+          event.correlationId,
+        );
+        if (entityContext) {
+          context = { entityContext };
+        }
+      }
+
+      // Build and publish the intent message
+      const intentMessage: AgentIntentMessage = {
+        correlationId: event.correlationId || '',
+        projectName,
+        intentType: action.intentType,
+        entityId,
+        urgency: action.urgency,
+        context,
+        sourceEvent: event,
+      };
+
+      await this.eventBus.publish('agent/intent', intentMessage);
+
+      // Notify frontend via SSE
+      this.ssePublisher.publishPromptExecution(projectName, {
+        status: 'completed',
+        ruleId: rule.id,
+        ruleName: rule.name,
+        eventId: event.id,
+        response: `Intent "${action.intentType}" published to agent bus`,
+        timestamp: new Date().toISOString(),
+      });
+
+      const response = `Intent "${action.intentType}" published (urgency: ${action.urgency || 'none'}, entity: ${entityId || 'none'})`;
+      this.logger.log(response);
+      return { success: true, response };
+    } catch (error: any) {
+      this.logger.error(`Failed to execute intent action: ${error.message}`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get a nested value from an object using a dot-path (e.g., "sender.email")
+   */
+  private getNestedValue(obj: any, path: string): string | undefined {
+    const parts = path.split('.');
+    let current = obj;
+    for (const part of parts) {
+      if (current == null) return undefined;
+      current = current[part];
+    }
+    return typeof current === 'string' ? current : current?.toString();
   }
 
   /**

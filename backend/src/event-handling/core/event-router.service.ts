@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
 import * as zmq from 'zeromq';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs-extra';
@@ -8,6 +8,7 @@ import { RuleEngineService } from './rule-engine.service';
 import { EventStoreService } from './event-store.service';
 import { SSEPublisherService } from '../publishers/sse-publisher.service';
 import { RuleActionExecutorService } from './rule-action-executor.service';
+import { EventBusService } from '../../agent-bus/event-bus.service';
 
 @Injectable()
 export class EventRouterService implements OnModuleInit, OnModuleDestroy {
@@ -26,6 +27,8 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
     private readonly ssePublisher: SSEPublisherService,
     @Inject(forwardRef(() => RuleActionExecutorService))
     private readonly actionExecutor: RuleActionExecutorService,
+    @Optional()
+    private readonly eventBus: EventBusService,
   ) {}
 
   async onModuleInit() {
@@ -65,7 +68,20 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
 
       try {
         const event: InternalEvent = JSON.parse(msg.toString());
+        // Ensure correlationId exists for tracing across services
+        if (!event.correlationId) {
+          event.correlationId = randomUUID();
+        }
         this.logger.debug(`Received event: ${event.name} (${event.id})`);
+
+        // Publish raw event to agent bus
+        if (this.eventBus) {
+          this.eventBus.publish(`events/raw/${event.group.toLowerCase()}`, {
+            correlationId: event.correlationId,
+            projectName: event.projectName || 'default',
+            event,
+          }).catch(err => this.logger.error('Failed to publish raw event to bus', err));
+        }
 
         // Email events without projectName are evaluated against ALL projects
         if (event.group === 'Email' && !event.projectName) {
@@ -100,6 +116,16 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
     if (triggeredResults.length > 0) {
       await this.eventStore.storeTriggeredEvent(projectName, event, executionResults);
       this.ssePublisher.publishRuleExecution(projectName, event, triggeredResults);
+
+      // Publish processed event to agent bus
+      if (this.eventBus) {
+        this.eventBus.publish('events/processed/rule-fired', {
+          correlationId: event.correlationId || randomUUID(),
+          projectName,
+          event,
+          matchedRules: triggeredResults.map(r => r.ruleId),
+        }).catch(err => this.logger.error('Failed to publish processed event to bus', err));
+      }
 
       for (const result of triggeredResults) {
         this.logger.log(`Looking up rule ${result.ruleId} for project ${projectName}`);
@@ -140,6 +166,7 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
     const fullEvent: InternalEvent = {
       id: randomUUID(),
       timestamp: new Date().toISOString(),
+      correlationId: event.correlationId || randomUUID(),
       ...event,
     };
 

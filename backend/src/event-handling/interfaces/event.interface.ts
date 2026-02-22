@@ -7,6 +7,7 @@ export interface InternalEvent {
   source: string;       // e.g., "Claude Agent SDK", "CMS Watcher"
   payload: any;         // JSON data specific to event type
   projectName?: string; // Project this event belongs to (set by API endpoints)
+  correlationId?: string; // Traces the full causal chain across services (agent bus)
 }
 
 export interface SimpleCondition {
@@ -83,7 +84,15 @@ export interface WorkflowEventAction {
   mapPayload?: boolean;  // If true, pass the triggering event's payload as event data
 }
 
-export type RuleAction = PromptAction | WorkflowEventAction;
+export interface IntentAction {
+  type: 'intent';
+  intentType: string;         // e.g., "support_request", "sensor_alert"
+  urgency?: 'low' | 'medium' | 'high' | 'critical';
+  enrichWithDss?: boolean;    // If true, fetch entity context before publishing
+  entityIdField?: string;     // Dot-path into event payload to extract entity ID
+}
+
+export type RuleAction = PromptAction | WorkflowEventAction | IntentAction;
 
 export interface EventRule {
   id: string;

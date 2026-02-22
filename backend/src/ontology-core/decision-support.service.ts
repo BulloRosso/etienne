@@ -1,10 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
 import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.service';
 import { GraphBuilderService } from '../knowledge-graph/graph-builder.service';
 import { LlmService } from '../llm/llm.service';
 import { RuleEngineService } from '../event-handling/core/rule-engine.service';
 import { EventRouterService } from '../event-handling/core/event-router.service';
 import { EventRule } from '../event-handling/interfaces/event.interface';
+import { EventBusService } from '../agent-bus/event-bus.service';
+import { BusLoggerService } from '../agent-bus/bus-logger.service';
+import { DssUpdateMessage, DssQueryMessage } from '../agent-bus/interfaces/bus-messages';
 import { randomUUID } from 'crypto';
 import {
   ActionStatus,
@@ -23,16 +26,109 @@ const ACTION_PREFIX = 'Action';
 const CONDITION_PREFIX = 'Condition';
 
 @Injectable()
-export class DecisionSupportService {
+export class DecisionSupportService implements OnModuleInit {
   private readonly logger = new Logger(DecisionSupportService.name);
 
   constructor(
     private readonly kg: KnowledgeGraphService,
     private readonly graphBuilder: GraphBuilderService,
     private readonly llm: LlmService,
+    @Inject(forwardRef(() => RuleEngineService))
     private readonly ruleEngine: RuleEngineService,
+    @Inject(forwardRef(() => EventRouterService))
     private readonly eventRouter: EventRouterService,
+    @Optional() @Inject(forwardRef(() => EventBusService))
+    private readonly eventBus?: EventBusService,
+    @Optional() @Inject(forwardRef(() => BusLoggerService))
+    private readonly busLogger?: BusLoggerService,
   ) {}
+
+  async onModuleInit() {
+    if (!this.eventBus) return;
+
+    // Subscribe to dss/update topic
+    this.eventBus.subscribe('dss/update', async (topic, msg: DssUpdateMessage) => {
+      try {
+        this.logger.log(`Received DSS update from bus: ${msg.updateType}`);
+        await this.handleBusUpdate(msg);
+      } catch (err: any) {
+        this.logger.error(`Failed to process DSS bus update: ${err.message}`);
+      }
+    });
+
+    // Subscribe to dss/query for observability logging
+    this.eventBus.subscribe('dss/query', async (topic, msg: DssQueryMessage) => {
+      if (this.busLogger) {
+        await this.busLogger.log({
+          correlationId: msg.correlationId,
+          service: 'dss',
+          topic: 'dss/query',
+          action: 'query_received',
+          projectName: msg.projectName,
+          data: { queryType: msg.queryType, entityId: msg.entityId },
+        });
+      }
+    });
+
+    this.logger.log('DecisionSupportService subscribed to dss/update and dss/query on agent bus');
+  }
+
+  /**
+   * Handle DSS updates received via the agent bus
+   */
+  private async handleBusUpdate(msg: DssUpdateMessage): Promise<void> {
+    switch (msg.updateType) {
+      case 'add-entity':
+        if (msg.entity) {
+          await this.createOntologyEntity(
+            msg.projectName,
+            msg.entity.id,
+            msg.entity.type,
+            msg.entity.properties,
+          );
+        }
+        break;
+
+      case 'add-relationship':
+        if (msg.relationship) {
+          await this.kg.addRelationship(msg.projectName, {
+            subject: msg.relationship.subject,
+            predicate: msg.relationship.predicate,
+            object: msg.relationship.object,
+          });
+        }
+        break;
+
+      case 'update-action-status':
+        if (msg.actionUpdate) {
+          await this.updateActionStatus(
+            msg.projectName,
+            msg.actionUpdate.graphId,
+            msg.actionUpdate.actionId,
+            msg.actionUpdate.status as ActionStatus,
+          );
+        }
+        break;
+
+      default:
+        this.logger.warn(`Unknown DSS update type: ${msg.updateType}`);
+    }
+
+    // Log the update
+    if (this.busLogger) {
+      await this.busLogger.log({
+        correlationId: msg.correlationId,
+        service: 'dss',
+        topic: 'dss/update',
+        action: 'entity_updated',
+        projectName: msg.projectName,
+        data: {
+          updateType: msg.updateType,
+          entityId: msg.entity?.id || msg.actionUpdate?.actionId,
+        },
+      });
+    }
+  }
 
   // ── Ontology Context Loader ──────────────────
 
@@ -256,6 +352,7 @@ Valid action statuses: pending, approved, rejected, executing, done`;
           status: action.status,
           zeromqEmit: action.zeromqEmit || '',
           llmPromptTemplate: action.llmPromptTemplate || '',
+          httpConfigJson: JSON.stringify(action.httpConfig || null),
         },
       });
 
@@ -327,6 +424,9 @@ Valid action statuses: pending, approved, rejected, executing, done`;
           status: actEntity.status as ActionStatus,
           zeromqEmit: actEntity.zeromqEmit || undefined,
           llmPromptTemplate: actEntity.llmPromptTemplate || undefined,
+          httpConfig: actEntity.httpConfigJson && actEntity.httpConfigJson !== 'null'
+            ? JSON.parse(actEntity.httpConfigJson)
+            : undefined,
         });
       }
     }
@@ -425,6 +525,18 @@ Valid action statuses: pending, approved, rejected, executing, done`;
       projectName: project,
       payload: { graphId, actionId, status },
     });
+
+    // Also log to agent bus for cross-service tracing
+    if (this.busLogger) {
+      await this.busLogger.log({
+        correlationId: randomUUID(),
+        service: 'dss',
+        topic: 'dss/update',
+        action: 'action_status_changed',
+        projectName: project,
+        data: { graphId, actionId, status },
+      });
+    }
 
     this.logger.log(`Updated action ${actionId} status to ${status} in graph ${graphId}`);
   }
@@ -629,6 +741,32 @@ Valid action statuses: pending, approved, rejected, executing, done`;
       properties,
     });
     this.logger.log(`Created ontology entity: ${id} (type=${type}) in project ${project}`);
+  }
+
+  // ── Update Ontology Entity ────────────────────
+
+  async updateOntologyEntity(
+    project: string,
+    oldId: string,
+    newId: string,
+    type: string,
+    properties: Record<string, string>,
+  ): Promise<void> {
+    // Delete old entity (removes all RDF triples) then recreate with new data
+    await this.kg.deleteEntity(project, oldId);
+    await this.kg.addEntity(project, {
+      id: newId,
+      type: type as any,
+      properties,
+    });
+    this.logger.log(`Updated ontology entity: ${oldId} -> ${newId} (type=${type}) in project ${project}`);
+  }
+
+  // ── Delete Ontology Entity ────────────────────
+
+  async deleteOntologyEntity(project: string, id: string): Promise<void> {
+    await this.kg.deleteEntity(project, id);
+    this.logger.log(`Deleted ontology entity: ${id} in project ${project}`);
   }
 
   // ── Ontology Graph (for visualization) ─────────

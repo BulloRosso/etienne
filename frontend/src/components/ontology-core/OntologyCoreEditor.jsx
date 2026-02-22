@@ -14,6 +14,10 @@ import {
   Tooltip,
   Divider,
   Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -51,6 +55,7 @@ import '@xyflow/react/dist/style.css';
 import { GoArrowUp } from 'react-icons/go';
 import { apiAxios } from '../../services/api';
 import { useThemeMode } from '../../contexts/ThemeContext.jsx';
+import TestScenarioModal from './TestScenarioModal.jsx';
 
 // ── Color Palettes ──────────────────────────────
 
@@ -105,7 +110,9 @@ function TriggerNode({ data, selected }) {
       transition: 'all 0.15s',
       background: C.trigger.bg,
       borderColor: selected ? '#a78bfa' : C.trigger.border,
-      boxShadow: selected ? `0 0 0 2px ${C.trigger.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
+      boxShadow: data._testHighlight
+        ? `0 0 0 3px ${data._testHighlight}, 0 0 12px ${data._testHighlight}66`
+        : selected ? `0 0 0 2px ${C.trigger.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
     }}>
       <Handle type="source" position={Position.Bottom} style={{ background: C.trigger.border }} />
       <div style={{ color: C.trigger.text, fontFamily: 'monospace', fontSize: 10, opacity: 0.7, marginBottom: 2 }}>TRIGGER</div>
@@ -124,7 +131,9 @@ function ConditionNode({ data, selected }) {
       transition: 'all 0.15s',
       background: C.condition.bg,
       borderColor: selected ? '#34d399' : C.condition.border,
-      boxShadow: selected ? `0 0 0 2px ${C.condition.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
+      boxShadow: data._testHighlight
+        ? `0 0 0 3px ${data._testHighlight}, 0 0 12px ${data._testHighlight}66`
+        : selected ? `0 0 0 2px ${C.condition.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
     }}>
       <Handle type="target" position={Position.Top} style={{ background: C.condition.border }} />
       <Handle type="source" position={Position.Bottom} id="true" style={{ background: C.condition.border, left: '35%' }} />
@@ -152,6 +161,7 @@ function ActionNode({ data, selected }) {
   const statusColors = {
     pending: '#94a3b8', approved: '#22c55e', rejected: '#ef4444',
     executing: '#f59e0b', done: '#3b82f6',
+    NOT_ACTIVATED: '#64748b', PENDING: '#f59e0b', DONE: '#22c55e',
   };
   return (
     <div style={{
@@ -160,7 +170,9 @@ function ActionNode({ data, selected }) {
       transition: 'all 0.15s',
       background: C.action.bg,
       borderColor: selected ? '#f87171' : C.action.border,
-      boxShadow: selected ? `0 0 0 2px ${C.action.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
+      boxShadow: data._testHighlight
+        ? `0 0 0 3px ${data._testHighlight}, 0 0 12px ${data._testHighlight}66`
+        : selected ? `0 0 0 2px ${C.action.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
     }}>
       <Handle type="target" position={Position.Top} style={{ background: C.action.border }} />
       <Handle type="source" position={Position.Bottom} style={{ background: C.action.border }} />
@@ -185,9 +197,19 @@ function ActionNode({ data, selected }) {
           <span>ZMQ emit:</span><span style={{ fontFamily: 'monospace' }}>{data.zeromqEmit}</span>
         </div>
       )}
-      {data.llmPromptTemplate && (
-        <div style={{ marginTop: 3, fontSize: 10, color: C.llm, display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span>LLM prompt attached</span>
+      {(data.llmPromptTemplate || data.httpConfig) && (
+        <div
+          onClick={(e) => { e.stopPropagation(); data.onConfigClick?.(data); }}
+          style={{
+            marginTop: 3, fontSize: 10,
+            color: data.httpConfig ? C.zmq : C.llm,
+            display: 'flex', alignItems: 'center', gap: 3,
+            cursor: 'pointer',
+            padding: '2px 4px', borderRadius: 4,
+            background: data.httpConfig ? C.zmq + '11' : C.llm + '11',
+          }}
+        >
+          <span>{data.httpConfig ? `HTTP ${data.httpConfig.method}` : 'LLM prompt attached'}</span>
         </div>
       )}
     </div>
@@ -203,7 +225,9 @@ function OutcomeNode({ data, selected }) {
       transition: 'all 0.15s',
       background: C.outcome.bg,
       borderColor: selected ? '#38bdf8' : C.outcome.border,
-      boxShadow: selected ? `0 0 0 2px ${C.outcome.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
+      boxShadow: data._testHighlight
+        ? `0 0 0 3px ${data._testHighlight}, 0 0 12px ${data._testHighlight}66`
+        : selected ? `0 0 0 2px ${C.outcome.border}44` : '0 2px 8px rgba(0,0,0,0.2)',
     }}>
       <Handle type="target" position={Position.Top} style={{ background: C.outcome.border }} />
       <div style={{ color: C.outcome.text, fontFamily: 'monospace', fontSize: 10, opacity: 0.7, marginBottom: 2 }}>OUTCOME</div>
@@ -313,7 +337,7 @@ const ontologyNodeTypes = {
 
 // ── Suggestion → ReactFlow Nodes/Edges ─────────
 
-function suggestionToRF(suggestion, palette) {
+function suggestionToRF(suggestion, palette, onConfigClick) {
   if (!suggestion?.nodes?.length) return { nodes: [], edges: [] };
 
   const posMap = { trigger: 0, condition: 1, action: 2, outcome: 3 };
@@ -344,9 +368,12 @@ function suggestionToRF(suggestion, palette) {
         value: cond?.value,
         zeromqEvent: cond?.zeromqEvent,
         actionType: act?.actionType,
+        actionId: act?.id,
         status: act?.status,
         zeromqEmit: act?.zeromqEmit,
         llmPromptTemplate: act?.llmPromptTemplate,
+        httpConfig: act?.httpConfig,
+        onConfigClick: onConfigClick,
         _palette: palette,
       },
     };
@@ -470,6 +497,121 @@ const entityTypeColors = {
   Product: '#14b8a6',
 };
 
+// ── Action Config Form (inside dialog) ──────────
+
+function ActionConfigForm({ actionData, palette, onSave, onCancel }) {
+  const C = palette;
+  const [mode, setMode] = useState(actionData?.httpConfig ? 'http' : 'llm');
+  const [llmPrompt, setLlmPrompt] = useState(actionData?.llmPromptTemplate || '');
+  const [httpMethod, setHttpMethod] = useState(actionData?.httpConfig?.method || 'POST');
+  const [httpUrl, setHttpUrl] = useState(actionData?.httpConfig?.url || '');
+
+  useEffect(() => {
+    if (actionData) {
+      setMode(actionData.httpConfig ? 'http' : 'llm');
+      setLlmPrompt(actionData.llmPromptTemplate || '');
+      setHttpMethod(actionData.httpConfig?.method || 'POST');
+      setHttpUrl(actionData.httpConfig?.url || '');
+    }
+  }, [actionData]);
+
+  const handleSave = () => {
+    onSave({
+      llmPromptTemplate: mode === 'llm' ? (llmPrompt || undefined) : undefined,
+      httpConfig: mode === 'http' && httpUrl ? { method: httpMethod, url: httpUrl } : undefined,
+    });
+  };
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+      <Typography sx={{ color: C.textMuted, fontSize: 11, mb: 0.5 }}>
+        Configure how this action is executed during a test scenario.
+      </Typography>
+      <Tabs
+        value={mode === 'llm' ? 0 : 1}
+        onChange={(_, v) => setMode(v === 0 ? 'llm' : 'http')}
+        sx={{
+          minHeight: 36,
+          '& .MuiTab-root': { minHeight: 36, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: C.textMuted },
+          '& .Mui-selected': { color: C.accent },
+          '& .MuiTabs-indicator': { backgroundColor: C.accent },
+        }}
+      >
+        <Tab label="LLM Prompt" />
+        <Tab label="HTTP Endpoint" />
+      </Tabs>
+
+      {mode === 'llm' && (
+        <TextField
+          value={llmPrompt}
+          onChange={e => setLlmPrompt(e.target.value)}
+          multiline
+          minRows={4}
+          maxRows={8}
+          fullWidth
+          placeholder="Enter LLM prompt template... Use {{targetEntityId}} for interpolation."
+          sx={{
+            '& .MuiInputBase-input': { fontSize: 11, color: C.text, fontFamily: 'monospace' },
+            '& .MuiOutlinedInput-root fieldset': { borderColor: C.panelBorder },
+            '& .MuiOutlinedInput-root:hover fieldset': { borderColor: C.accent + '55' },
+            '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: C.accent },
+          }}
+        />
+      )}
+
+      {mode === 'http' && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <TextField
+            select
+            label="Method"
+            value={httpMethod}
+            onChange={e => setHttpMethod(e.target.value)}
+            size="small"
+            SelectProps={{ native: true }}
+            sx={{
+              width: 140,
+              '& .MuiInputBase-input': { fontSize: 11, color: C.text },
+              '& .MuiInputLabel-root': { fontSize: 11 },
+              '& .MuiOutlinedInput-root fieldset': { borderColor: C.panelBorder },
+            }}
+          >
+            {['POST', 'PUT', 'PATCH', 'DELETE', 'GET'].map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </TextField>
+          <TextField
+            value={httpUrl}
+            onChange={e => setHttpUrl(e.target.value)}
+            placeholder="https://api.example.com/action"
+            size="small"
+            fullWidth
+            label="URL"
+            sx={{
+              '& .MuiInputBase-input': { fontSize: 11, color: C.text, fontFamily: 'monospace' },
+              '& .MuiInputLabel-root': { fontSize: 11 },
+              '& .MuiOutlinedInput-root fieldset': { borderColor: C.panelBorder },
+              '& .MuiOutlinedInput-root:hover fieldset': { borderColor: C.accent + '55' },
+              '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: C.accent },
+            }}
+          />
+        </Box>
+      )}
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+        <Button onClick={onCancel} sx={{ textTransform: 'none', fontSize: 12, color: C.textMuted }}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} variant="contained" sx={{
+          textTransform: 'none', fontSize: 12,
+          background: C.accent, '&:hover': { background: C.accent + 'dd' },
+        }}>
+          Save
+        </Button>
+      </Box>
+    </Box>
+  );
+}
+
 function OntologyCoreEditorInner({ selectedProject, onClose }) {
   const { mode: themeMode } = useThemeMode();
   const C = themeMode === 'dark' ? darkPalette : lightPalette;
@@ -497,6 +639,19 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
   const ontGraphDataRef = useRef(null);
   const chatHistoryRef = useRef([]);
   const bottomRef = useRef(null);
+
+  // Test scenario modal state
+  const [testModalOpen, setTestModalOpen] = useState(false);
+
+  // Action config modal state
+  const [actionConfigOpen, setActionConfigOpen] = useState(false);
+  const [actionConfigData, setActionConfigData] = useState(null);
+
+  // Entity detail modal state
+  const [entityDetailOpen, setEntityDetailOpen] = useState(false);
+  const [entityDetailData, setEntityDetailData] = useState(null);
+  const [entityDetailForm, setEntityDetailForm] = useState({ id: '', type: '', properties: '' });
+  const [entityDetailSaving, setEntityDetailSaving] = useState(false);
 
   // Load saved graphs from backend
   const loadSavedGraphs = useCallback(() => {
@@ -736,6 +891,100 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
     }
   }, [centerTab, loadOntologyGraph]);
 
+  // Handle clicking an entity instance node in the ontology graph
+  const handleOntologyNodeClick = useCallback((event, node) => {
+    if (node.type !== 'entityInstance') return;
+    const { label, entityType, properties } = node.data;
+    const propsStr = properties
+      ? Object.entries(properties).map(([k, v]) => `${k}=${v}`).join('\n')
+      : '';
+    setEntityDetailData({ id: label, type: entityType, properties: properties || {} });
+    setEntityDetailForm({ id: label, type: entityType, properties: propsStr });
+    setEntityDetailOpen(true);
+  }, []);
+
+  // Update an existing entity
+  const handleUpdateEntity = useCallback(async () => {
+    if (!selectedProject || !entityDetailData) return;
+    setEntityDetailSaving(true);
+    try {
+      const properties = {};
+      if (entityDetailForm.properties) {
+        entityDetailForm.properties.split('\n').forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx > 0) {
+            properties[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
+          }
+        });
+      }
+      const originalId = entityDetailData.id;
+      await apiAxios.put(
+        `/api/decision-support/ontology-entities/${selectedProject}/${encodeURIComponent(originalId)}`,
+        { id: entityDetailForm.id, type: entityDetailForm.type, properties }
+      );
+      setToast({ severity: 'success', message: `Entity "${entityDetailForm.id}" updated` });
+      setEntityDetailOpen(false);
+      setEntityDetailData(null);
+      loadOntologyEntities();
+      loadOntologyGraph();
+    } catch (err) {
+      setToast({ severity: 'error', message: `Failed to update entity: ${err.message}` });
+    } finally {
+      setEntityDetailSaving(false);
+    }
+  }, [selectedProject, entityDetailData, entityDetailForm, loadOntologyEntities, loadOntologyGraph]);
+
+  // Delete an entity
+  const handleDeleteEntity = useCallback(async () => {
+    if (!selectedProject || !entityDetailData) return;
+    setEntityDetailSaving(true);
+    try {
+      const originalId = entityDetailData.id;
+      await apiAxios.delete(
+        `/api/decision-support/ontology-entities/${selectedProject}/${encodeURIComponent(originalId)}`
+      );
+      setToast({ severity: 'success', message: `Entity "${originalId}" deleted` });
+      setEntityDetailOpen(false);
+      setEntityDetailData(null);
+      loadOntologyEntities();
+      loadOntologyGraph();
+    } catch (err) {
+      setToast({ severity: 'error', message: `Failed to delete entity: ${err.message}` });
+    } finally {
+      setEntityDetailSaving(false);
+    }
+  }, [selectedProject, entityDetailData, loadOntologyEntities, loadOntologyGraph]);
+
+  // Handle action config click from ActionNode
+  const handleActionConfigClick = useCallback((nodeData) => {
+    const action = suggestion?.actions?.find(a => a.id === nodeData.actionId);
+    if (action) {
+      setActionConfigData(action);
+      setActionConfigOpen(true);
+    }
+  }, [suggestion]);
+
+  // Handle action config save
+  const handleActionConfigSave = useCallback((updates) => {
+    setSuggestion(prev => {
+      if (!prev) return prev;
+      const newActions = prev.actions.map(a =>
+        a.id === actionConfigData.id
+          ? { ...a, llmPromptTemplate: updates.llmPromptTemplate, httpConfig: updates.httpConfig }
+          : a
+      );
+      const newSuggestion = { ...prev, actions: newActions };
+      const { nodes: rfNodes, edges: rfEdges } = suggestionToRF(newSuggestion, C, handleActionConfigClick);
+      setNodes(rfNodes);
+      setEdges(rfEdges);
+      return newSuggestion;
+    });
+    setActionConfigOpen(false);
+    setActionConfigData(null);
+  }, [actionConfigData, C, setNodes, setEdges, handleActionConfigClick]);
+
   // New scenario: reset chat and canvas but keep saved graphs
   const handleNewScenario = useCallback(() => {
     setChatMessages([]);
@@ -802,7 +1051,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
       setChatMessages(prev => [...prev, { role: 'assistant', content: assistantReply }]);
       setSuggestion(newSuggestion);
 
-      const { nodes: rfNodes, edges: rfEdges } = suggestionToRF(newSuggestion, C);
+      const { nodes: rfNodes, edges: rfEdges } = suggestionToRF(newSuggestion, C, handleActionConfigClick);
       setNodes(rfNodes);
       setEdges(rfEdges);
       setActiveTab(1);
@@ -820,14 +1069,14 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
       setChatMessages(prev => [...prev, { role: 'assistant', content: reply }]);
       setSuggestion(mockSuggestion);
 
-      const { nodes: rfNodes, edges: rfEdges } = suggestionToRF(mockSuggestion, C);
+      const { nodes: rfNodes, edges: rfEdges } = suggestionToRF(mockSuggestion, C, handleActionConfigClick);
       setNodes(rfNodes);
       setEdges(rfEdges);
       setActiveTab(1);
     } finally {
       setIsThinking(false);
     }
-  }, [input, isThinking, selectedProject, C, setNodes, setEdges]);
+  }, [input, isThinking, selectedProject, C, setNodes, setEdges, handleActionConfigClick]);
 
   const handleSave = useCallback(async () => {
     if (!suggestion) return;
@@ -914,7 +1163,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
         };
         setSuggestion(loadedSuggestion);
         setLastSavedId(graphId);
-        const { nodes: rfNodes, edges: rfEdges } = suggestionToRF(loadedSuggestion, C);
+        const { nodes: rfNodes, edges: rfEdges } = suggestionToRF(loadedSuggestion, C, handleActionConfigClick);
         setNodes(rfNodes);
         setEdges(rfEdges);
         setActiveTab(1);
@@ -922,7 +1171,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
     } catch {
       setToast({ message: 'Failed to load graph', severity: 'error' });
     }
-  }, [selectedProject, C, setNodes, setEdges]);
+  }, [selectedProject, C, setNodes, setEdges, handleActionConfigClick]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', background: C.bg }}>
@@ -1638,6 +1887,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                 edges={ontGraphEdges}
                 onNodesChange={onOntGraphNodesChange}
                 onEdgesChange={onOntGraphEdgesChange}
+                onNodeClick={handleOntologyNodeClick}
                 nodeTypes={ontologyNodeTypes}
                 fitView
                 fitViewOptions={{ padding: 0.4 }}
@@ -1754,8 +2004,185 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
               </Box>
             ))
           )}
+
+          {/* Test Scenario Button */}
+          <Box sx={{ mt: 'auto', pt: 1.5 }}>
+            <Divider sx={{ mb: 1.5, borderColor: C.panelBorder }} />
+            <Button
+              onClick={() => setTestModalOpen(true)}
+              disabled={!suggestion || !lastSavedId}
+              fullWidth
+              variant="outlined"
+              sx={{
+                textTransform: 'none', fontSize: 11, fontWeight: 600,
+                borderColor: C.accent + '55', color: C.accent,
+                '&:hover': { borderColor: C.accent, background: C.accent + '11' },
+                '&.Mui-disabled': { borderColor: C.panelBorder, color: C.textDim },
+              }}
+            >
+              Test Scenario
+            </Button>
+          </Box>
         </Box>
       </Box>
+
+      {/* Test Scenario Modal */}
+      <TestScenarioModal
+        open={testModalOpen}
+        onClose={() => setTestModalOpen(false)}
+        project={selectedProject}
+        graphId={lastSavedId}
+        palette={C}
+        setToast={setToast}
+        setNodes={setNodes}
+        setEdges={setEdges}
+      />
+
+      {/* Action Config Modal */}
+      <Dialog
+        open={actionConfigOpen}
+        onClose={() => { setActionConfigOpen(false); setActionConfigData(null); }}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              background: C.panel, border: `1px solid ${C.panelBorder}`,
+              borderTop: `3px solid ${C.llm}`, borderRadius: 2,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
+          <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Action Configuration</Typography>
+          <IconButton size="small" onClick={() => { setActionConfigOpen(false); setActionConfigData(null); }} sx={{ color: C.textMuted }}>
+            <CloseIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ background: C.surface, borderColor: C.panelBorder }}>
+          {actionConfigData && (
+            <ActionConfigForm
+              actionData={actionConfigData}
+              palette={C}
+              onSave={handleActionConfigSave}
+              onCancel={() => { setActionConfigOpen(false); setActionConfigData(null); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Entity Detail Modal */}
+      <Dialog
+        open={entityDetailOpen}
+        onClose={() => { setEntityDetailOpen(false); setEntityDetailData(null); }}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              background: C.panel,
+              border: `1px solid ${C.panelBorder}`,
+              borderTop: `3px solid ${entityDetailData ? (entityTypeColors[entityDetailData.type] || C.accent) : C.accent}`,
+              borderRadius: 2,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {entityDetailData && (() => {
+              const Icon = getEntityIcon(entityDetailData.type);
+              return <Icon sx={{ fontSize: 20, color: entityTypeColors[entityDetailData.type] || C.accent }} />;
+            })()}
+            <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Entity Details</Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => { setEntityDetailOpen(false); setEntityDetailData(null); }}
+            sx={{ color: C.textMuted }}
+          >
+            <CloseIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ background: C.surface, borderColor: C.panelBorder }}>
+          {entityDetailData && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <TextField
+                label="Type"
+                value={entityDetailForm.type}
+                size="small"
+                fullWidth
+                disabled
+                sx={{
+                  '& .MuiInputBase-input': { fontSize: 12, color: C.text, fontFamily: 'monospace' },
+                  '& .MuiInputLabel-root': { fontSize: 12 },
+                  '& .Mui-disabled': { WebkitTextFillColor: C.textMuted },
+                }}
+              />
+              <TextField
+                label="Entity ID"
+                value={entityDetailForm.id}
+                onChange={e => setEntityDetailForm(f => ({ ...f, id: e.target.value }))}
+                size="small"
+                fullWidth
+                sx={{
+                  '& .MuiInputBase-input': { fontSize: 12, color: C.text, fontFamily: 'monospace' },
+                  '& .MuiInputLabel-root': { fontSize: 12 },
+                }}
+              />
+              <TextField
+                label="Properties"
+                placeholder={'key=value\nlocation=Unit 4\nunit=PSI'}
+                value={entityDetailForm.properties}
+                onChange={e => setEntityDetailForm(f => ({ ...f, properties: e.target.value }))}
+                size="small"
+                fullWidth
+                multiline
+                minRows={4}
+                maxRows={10}
+                sx={{
+                  '& .MuiInputBase-input': { fontSize: 11, color: C.text, fontFamily: 'monospace' },
+                  '& .MuiInputLabel-root': { fontSize: 12 },
+                }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ background: C.panel, borderTop: `1px solid ${C.panelBorder}`, px: 2, py: 1.5, justifyContent: 'space-between' }}>
+          <Button
+            onClick={handleDeleteEntity}
+            disabled={entityDetailSaving}
+            startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              textTransform: 'none', fontSize: 12, color: '#ef4444',
+              '&:hover': { background: '#ef444411' },
+            }}
+          >
+            Delete
+          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              onClick={() => { setEntityDetailOpen(false); setEntityDetailData(null); }}
+              sx={{ textTransform: 'none', fontSize: 12, color: C.textMuted }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateEntity}
+              disabled={entityDetailSaving || !entityDetailForm.id}
+              variant="contained"
+              sx={{
+                textTransform: 'none', fontSize: 12,
+                background: C.accent, '&:hover': { background: C.accent + 'dd' },
+              }}
+            >
+              {entityDetailSaving ? 'Saving...' : 'Update'}
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
 
       {/* Toast */}
       <Snackbar

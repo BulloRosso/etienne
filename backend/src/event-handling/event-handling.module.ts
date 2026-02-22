@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { EventRouterService } from './core/event-router.service';
 import { RuleEngineService } from './core/rule-engine.service';
 import { EventStoreService } from './core/event-store.service';
@@ -14,9 +14,10 @@ import { PromptsController } from './api/prompts.controller';
 import { KnowledgeGraphModule } from '../knowledge-graph/knowledge-graph.module';
 import { ProcessManagerModule } from '../process-manager/process-manager.module';
 import { StatefulWorkflowsModule } from '../stateful-workflows/stateful-workflows.module';
+import { AgentBusModule } from '../agent-bus/agent-bus.module';
 
 @Module({
-  imports: [KnowledgeGraphModule, ProcessManagerModule, StatefulWorkflowsModule],
+  imports: [KnowledgeGraphModule, ProcessManagerModule, forwardRef(() => StatefulWorkflowsModule), forwardRef(() => AgentBusModule)],
   controllers: [EventsController, RulesController, PromptsController],
   providers: [
     EventRouterService,

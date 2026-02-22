@@ -29,6 +29,7 @@ export interface OntologyAction {
   status: ActionStatus;
   zeromqEmit?: string;
   llmPromptTemplate?: string;
+  httpConfig?: { method: string; url: string };
 }
 
 export interface DecisionGraph {
@@ -78,4 +79,29 @@ export interface DecisionSuggestion {
   reasoning: string;
   title: string;
   description: string;
+}
+
+// ── Test Scenario Types ─────────────────────────
+
+export type TestActionStatus = 'NOT_ACTIVATED' | 'PENDING' | 'DONE';
+
+export interface HydratedEntity {
+  entityId: string;
+  entityType: string;
+  properties: Record<string, string>;
+  referencedBy: Array<{ conditionId?: string; actionId?: string }>;
+}
+
+export interface TestScenarioEvent {
+  type: 'condition-result' | 'action-started' | 'action-completed' | 'test-complete' | 'error';
+  timestamp: string;
+  nodeId?: string;
+  edgeIds?: string[];
+  conditionId?: string;
+  actionId?: string;
+  result?: boolean;
+  detail?: string;
+  status?: TestActionStatus;
+  llmResponse?: string;
+  httpResponse?: any;
 }

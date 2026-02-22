@@ -103,7 +103,13 @@
       "Bash(npm view:*)",
       "WebFetch(domain:mcpui.dev)",
       "WebFetch(domain:modelcontextprotocol.github.io)",
-      "WebFetch(domain:proxy.mcpui.dev)"
+      "WebFetch(domain:proxy.mcpui.dev)",
+      "Bash(xxd:*)",
+      "Bash(# Conditions start around offset 0x6580 = 26000. Scan for condition property values # Extract a large section spanning the Condition entities dd if=\"\"C:/Data/GitHub/claude-multitenant/workspace/ontology/knowledge-graph/000005.log\"\" bs=1 skip=26000 count=80000)",
+      "Bash(# Search for the actual property values stored in the Condition entity # These are stored after the property name in binary format # Let''s look for \"\"vibration\"\", \"\"vibration_level\"\", \"\"pressure\"\" in raw binary strings dd if=\"\"C:/Data/GitHub/claude-multitenant/workspace/ontology/knowledge-graph/000005.log\"\" bs=1 skip=26000 count=200000)",
+      "Bash(# Use perl to extract printable strings dd if=\"\"C:/Data/GitHub/claude-multitenant/workspace/ontology/knowledge-graph/000005.log\"\" bs=1 skip=26000 count=200000)",
+      "Bash(perl:*)",
+      "Bash(dd:*)"
     ],
     "deny": [],
     "ask": []
