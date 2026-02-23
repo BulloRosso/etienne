@@ -98,6 +98,13 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Register minimal service worker for desktop notifications
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/notification-sw.js').catch(() => {});
+    }
+  }, []);
+
   // Check if configuration exists once authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1482,7 +1489,6 @@ export default function App() {
     });
 
     let stopped = false;
-    let completedReceived = false;
     const stop = () => {
       if (stopped) return;
       stopped = true;
@@ -1530,19 +1536,6 @@ export default function App() {
           }
           return newMessages;
         });
-      }
-
-      // Desktop notification on successful completion only
-      if (completedReceived) {
-        try {
-          const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
-          if (notifChannels.includes('desktop') && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification('Task Completed', {
-              body: currentMessageRef.current.text?.substring(0, 100) || 'Your request has been processed.',
-              icon: '/favicon.ico'
-            });
-          }
-        } catch { /* ignore */ }
       }
 
       // Refresh sessions list (a new session may have been created)
@@ -1627,8 +1620,27 @@ export default function App() {
       }
     });
 
-    es.addEventListener('completed', () => { completedReceived = true; stop(); });
-    es.addEventListener('error', () => stop());
+    es.addEventListener('completed', () => {
+      // Desktop notification — fires before stop() cleanup
+      try {
+        const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
+        if (notifChannels.includes('desktop') && 'Notification' in window && Notification.permission === 'granted') {
+          const body = currentMessageRef.current.text?.substring(0, 100) || 'Your request has been processed.';
+          // Prefer ServiceWorker showNotification (more reliable in Chrome/Windows)
+          if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready
+              .then(reg => reg.showNotification('Task Completed', { body, icon: '/favicon.ico' }))
+              .catch(() => new Notification('Task Completed', { body }));
+          } else {
+            new Notification('Task Completed', { body });
+          }
+        }
+      } catch { /* ignore */ }
+      stop();
+    });
+    es.addEventListener('error', () => {
+      stop();
+    });
   };
 
   const handleAbort = async () => {
