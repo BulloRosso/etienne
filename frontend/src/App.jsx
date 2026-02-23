@@ -529,6 +529,23 @@ export default function App() {
             }]);
           }
         }
+
+        // Desktop notification when task completes
+        if (eventType === 'Stop' && eventData.reason === 'completed') {
+          try {
+            const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
+            if (notifChannels.includes('desktop') && 'Notification' in window && Notification.permission === 'granted') {
+              const body = currentMessageRef.current.text?.substring(0, 100) || 'Your request has been processed.';
+              if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+                navigator.serviceWorker.ready
+                  .then(reg => reg.showNotification('Task Completed', { body }))
+                  .catch(() => new Notification('Task Completed', { body }));
+              } else {
+                new Notification('Task Completed', { body });
+              }
+            }
+          } catch { /* ignore */ }
+        }
       } else if (event.type === 'elicitation_request') {
         // Handle MCP elicitation request - show modal for user input
         setPendingElicitation(event.data);
@@ -1621,21 +1638,6 @@ export default function App() {
     });
 
     es.addEventListener('completed', () => {
-      // Desktop notification — fires before stop() cleanup
-      try {
-        const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
-        if (notifChannels.includes('desktop') && 'Notification' in window && Notification.permission === 'granted') {
-          const body = currentMessageRef.current.text?.substring(0, 100) || 'Your request has been processed.';
-          // Prefer ServiceWorker showNotification (more reliable in Chrome/Windows)
-          if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-            navigator.serviceWorker.ready
-              .then(reg => reg.showNotification('Task Completed', { body, icon: '/favicon.ico' }))
-              .catch(() => new Notification('Task Completed', { body }));
-          } else {
-            new Notification('Task Completed', { body });
-          }
-        }
-      } catch { /* ignore */ }
       stop();
     });
     es.addEventListener('error', () => {
