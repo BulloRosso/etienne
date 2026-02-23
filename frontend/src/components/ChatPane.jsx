@@ -12,6 +12,7 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
+import NotificationMenu from './NotificationMenu';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -226,6 +227,9 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
 
         {/* Right-aligned buttons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+          {/* Notification Bell */}
+          <NotificationMenu projectName={projectName} />
+
           {/* Resume Session Button - only visible if hasSessions */}
           {hasSessions && (
             <IconButton

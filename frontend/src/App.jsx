@@ -1268,6 +1268,19 @@ export default function App() {
       url.searchParams.set('maxTurns', maxTurns);
     }
 
+    // Add notification channels for server-side notifications
+    try {
+      const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
+      const serverChannels = notifChannels.filter(c => c !== 'desktop');
+      if (serverChannels.length > 0) {
+        url.searchParams.set('notificationChannels', serverChannels.join(','));
+      }
+      const notifEmail = localStorage.getItem('notificationEmail');
+      if (serverChannels.includes('email') && notifEmail) {
+        url.searchParams.set('notificationEmail', notifEmail);
+      }
+    } catch { /* ignore parse errors */ }
+
     const token = localStorage.getItem('auth_accessToken') || sessionStorage.getItem('auth_accessToken');
     if (token) url.searchParams.set('token', token);
     const es = new EventSource(url.toString());
@@ -1469,6 +1482,7 @@ export default function App() {
     });
 
     let stopped = false;
+    let completedReceived = false;
     const stop = () => {
       if (stopped) return;
       stopped = true;
@@ -1516,6 +1530,19 @@ export default function App() {
           }
           return newMessages;
         });
+      }
+
+      // Desktop notification on successful completion only
+      if (completedReceived) {
+        try {
+          const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
+          if (notifChannels.includes('desktop') && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('Task Completed', {
+              body: currentMessageRef.current.text?.substring(0, 100) || 'Your request has been processed.',
+              icon: '/favicon.ico'
+            });
+          }
+        } catch { /* ignore */ }
       }
 
       // Refresh sessions list (a new session may have been created)
@@ -1600,8 +1627,8 @@ export default function App() {
       }
     });
 
-    es.addEventListener('completed', stop);
-    es.addEventListener('error', stop);
+    es.addEventListener('completed', () => { completedReceived = true; stop(); });
+    es.addEventListener('error', () => stop());
   };
 
   const handleAbort = async () => {

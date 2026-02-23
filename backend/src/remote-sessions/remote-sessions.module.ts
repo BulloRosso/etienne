@@ -16,6 +16,6 @@ import { SessionsModule } from '../sessions/sessions.module';
     PairingService,
     SessionEventsService,
   ],
-  exports: [RemoteSessionsService, PairingService, SessionEventsService],
+  exports: [RemoteSessionsService, RemoteSessionsStorageService, PairingService, SessionEventsService],
 })
 export class RemoteSessionsModule {}

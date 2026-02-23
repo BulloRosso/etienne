@@ -18,6 +18,7 @@ import { sanitize_user_message } from '../../input-guardrails/index';
 import { ClaudeConfig } from '../config/claude.config';
 import { safeRoot } from '../utils/path.utils';
 import { TelemetryService } from '../../observability/telemetry.service';
+import { UserNotificationsService } from '../../user-notifications/user-notifications.service';
 
 /**
  * Orchestrator service that integrates SDK, sessions, guardrails, and memory
@@ -47,7 +48,8 @@ export class ClaudeSdkOrchestratorService {
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly sessionsService: SessionsService,
     private readonly contextInterceptor: ContextInterceptorService,
-    private readonly telemetryService: TelemetryService
+    private readonly telemetryService: TelemetryService,
+    private readonly userNotificationsService: UserNotificationsService
   ) {}
 
   /**
@@ -59,7 +61,9 @@ export class ClaudeSdkOrchestratorService {
     agentMode?: string,
     memoryEnabled?: boolean,
     skipChatPersistence?: boolean,
-    maxTurns?: number
+    maxTurns?: number,
+    notificationChannels?: string,
+    notificationEmail?: string
   ): Observable<MessageEvent> {
     // Generate process ID for abort tracking
     const processId = `sdk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -79,7 +83,9 @@ export class ClaudeSdkOrchestratorService {
         memoryEnabled,
         skipChatPersistence,
         maxTurns,
-        processId
+        processId,
+        notificationChannels,
+        notificationEmail
       ).catch((error) => {
         this.logger.error(`Stream prompt failed: ${error.message}`, error.stack);
         observer.error(error);
@@ -102,7 +108,9 @@ export class ClaudeSdkOrchestratorService {
     memoryEnabled?: boolean,
     skipChatPersistence?: boolean,
     maxTurns?: number,
-    processId?: string
+    processId?: string,
+    notificationChannels?: string,
+    notificationEmail?: string
   ): Promise<void> {
     const userId = 'user'; // Default user ID
     let sessionId: string | undefined;
@@ -858,6 +866,16 @@ export class ClaudeSdkOrchestratorService {
       // Update session activity
       if (sessionId) {
         await this.sessionManager.touchSession(sessionId);
+      }
+
+      // Send notifications for attended sessions (fire-and-forget)
+      if (!skipChatPersistence && notificationChannels) {
+        const channels = notificationChannels.split(',').filter(Boolean);
+        if (channels.length > 0) {
+          const summary = assistantText.substring(0, 200) + (assistantText.length > 200 ? '...' : '');
+          this.userNotificationsService.sendNotifications(projectDir, channels, summary, notificationEmail)
+            .catch(err => this.logger.error('Failed to send notifications:', err.message));
+        }
       }
 
       const duration = Date.now() - startTime;

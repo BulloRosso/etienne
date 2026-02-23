@@ -103,7 +103,9 @@ export class ClaudeController {
     @Query('prompt') prompt: string,
     @Query('agentMode') agentMode?: string,
     @Query('memoryEnabled') memoryEnabled?: string,
-    @Query('maxTurns') maxTurns?: string
+    @Query('maxTurns') maxTurns?: string,
+    @Query('notificationChannels') notificationChannels?: string,
+    @Query('notificationEmail') notificationEmail?: string
   ): Observable<MessageEvent> {
     const memoryEnabledBool = memoryEnabled === 'true';
     const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
@@ -125,7 +127,9 @@ export class ClaudeController {
       agentMode,
       memoryEnabledBool,
       false,
-      maxTurnsNum
+      maxTurnsNum,
+      notificationChannels,
+      notificationEmail
     );
   }
 

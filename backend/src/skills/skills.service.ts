@@ -420,7 +420,23 @@ export class SkillsService {
           }
           const match = lines[i].match(/^description:\s*(.+)/);
           if (match) {
-            const desc = match[1].trim();
+            let desc = match[1].trim();
+
+            // Handle YAML multi-line block scalars (> or |)
+            if (desc === '>' || desc === '|' || desc === '>-' || desc === '|-') {
+              const blockLines: string[] = [];
+              for (let j = i + 1; j < lines.length; j++) {
+                if (lines[j].trim() === '---') break;
+                // Continuation lines must be indented
+                if (lines[j].match(/^\s+\S/)) {
+                  blockLines.push(lines[j].trim());
+                } else {
+                  break;
+                }
+              }
+              desc = blockLines.join(' ');
+            }
+
             if (desc.length > 200) {
               return desc.substring(0, 197) + '...';
             }
