@@ -31,11 +31,12 @@ export class BudgetMonitoringController {
   @Post(':project/settings')
   async saveSettings(
     @Param('project') project: string,
-    @Body() body: { enabled: boolean; limit: number; resetCounters?: boolean }
+    @Body() body: { enabled: boolean; limit: number; resetCounters?: boolean; notificationEmail?: string }
   ) {
     await this.service.saveSettings(project, {
       enabled: body.enabled,
-      limit: body.limit
+      limit: body.limit,
+      notificationEmail: body.notificationEmail,
     });
 
     if (body.resetCounters) {

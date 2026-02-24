@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { Subject } from 'rxjs';
 import { safeRoot } from '../claude/utils/path.utils';
+import { SmtpService } from '../smtp-imap/smtp.service';
 
 export interface CostEntry {
   timestamp: string;
@@ -16,6 +17,13 @@ export interface CostEntry {
 export interface BudgetSettings {
   enabled: boolean;
   limit: number;
+  notificationEmail?: string;
+}
+
+interface ThresholdState {
+  notified50: boolean;
+  notified80: boolean;
+  notified100: boolean;
 }
 
 export interface BudgetUpdateEvent {
@@ -28,13 +36,17 @@ export interface BudgetUpdateEvent {
 
 @Injectable()
 export class BudgetMonitoringService {
+  private readonly logger = new Logger(BudgetMonitoringService.name);
   private readonly workspaceRoot = process.env.WORKSPACE_ROOT || 'C:/Data/GitHub/claude-multitenant/workspace';
   private readonly costsCurrencyUnit = process.env.COSTS_CURRENCY_UNIT || 'EUR';
   private readonly costsPerMioInputTokens = parseFloat(process.env.COSTS_PER_MIO_INPUT_TOKENS || '3.0');
   private readonly costsPerMioOutputTokens = parseFloat(process.env.COSTS_PER_MIO_OUTPUT_TOKENS || '15.0');
+  private readonly budgetThresholds = [50, 80, 100] as const;
 
   // SSE subjects per project
   private subjects = new Map<string, Subject<BudgetUpdateEvent>>();
+
+  constructor(private readonly smtpService: SmtpService) {}
 
   /**
    * Ensure .etienne directory exists for the project
@@ -161,6 +173,9 @@ export class BudgetMonitoringService {
       numberOfSessions: this.countSessions(costs),
       currency: this.costsCurrencyUnit
     });
+
+    // Fire-and-forget: check budget thresholds for email notifications
+    this.checkThresholdNotifications(projectDir).catch(() => {});
 
     return newEntry;
   }
@@ -329,6 +344,80 @@ export class BudgetMonitoringService {
     for (const project of projects) {
       await this.writeCosts(project, []);
     }
-    console.log(`[BudgetMonitoring] Reset cost counters for all ${projects.length} projects`);
+    await this.resetThresholdState();
+    this.logger.log(`Reset cost counters for all ${projects.length} projects`);
+  }
+
+  // --- Budget threshold email notifications ---
+
+  private getThresholdStatePath(): string {
+    return join(this.workspaceRoot, '.budget-threshold-state.json');
+  }
+
+  private async readThresholdState(): Promise<ThresholdState> {
+    try {
+      const content = await fs.readFile(this.getThresholdStatePath(), 'utf8');
+      return JSON.parse(content);
+    } catch {
+      return { notified50: false, notified80: false, notified100: false };
+    }
+  }
+
+  private async writeThresholdState(state: ThresholdState): Promise<void> {
+    await fs.writeFile(this.getThresholdStatePath(), JSON.stringify(state, null, 2), 'utf8');
+  }
+
+  private async resetThresholdState(): Promise<void> {
+    await this.writeThresholdState({ notified50: false, notified80: false, notified100: false });
+    this.logger.log('Reset budget threshold notification state');
+  }
+
+  /**
+   * Check budget thresholds and send email notifications when crossed.
+   * Called as fire-and-forget after trackCosts records a new entry.
+   */
+  private async checkThresholdNotifications(projectDir: string): Promise<void> {
+    try {
+      const settings = await this.getSettings(projectDir);
+
+      if (!settings.enabled || !settings.limit || settings.limit <= 0 || !settings.notificationEmail) {
+        return;
+      }
+
+      const global = await this.getGlobalCosts();
+      const percentage = (global.globalCosts / settings.limit) * 100;
+      const state = await this.readThresholdState();
+      let stateChanged = false;
+
+      for (const threshold of this.budgetThresholds) {
+        const stateKey = `notified${threshold}` as keyof ThresholdState;
+        if (percentage >= threshold && !state[stateKey]) {
+          state[stateKey] = true;
+          stateChanged = true;
+
+          const currencySymbol = this.costsCurrencyUnit;
+          try {
+            await this.smtpService.sendEmail(
+              projectDir,
+              settings.notificationEmail,
+              `Budget Alert \u2014 ${threshold}% of limit reached`,
+              `Global AI inference costs have reached ${threshold}% of the configured budget limit.\n\n` +
+              `Current spend: ${global.globalCosts.toFixed(2)} ${currencySymbol}\n` +
+              `Budget limit: ${settings.limit.toFixed(2)} ${currencySymbol}\n\n` +
+              `This is an automated notification from Etienne.`,
+            );
+            this.logger.log(`Budget threshold email sent: ${threshold}% to ${settings.notificationEmail}`);
+          } catch (err: any) {
+            this.logger.error(`Failed to send budget threshold email (${threshold}%): ${err.message}`);
+          }
+        }
+      }
+
+      if (stateChanged) {
+        await this.writeThresholdState(state);
+      }
+    } catch (err: any) {
+      this.logger.error(`Error checking budget thresholds: ${err.message}`);
+    }
   }
 }

@@ -34,6 +34,7 @@ export default function BudgetSettings({
 }) {
   const [limit, setLimit] = useState('0');
   const [resetCounters, setResetCounters] = useState(true);
+  const [notificationEmail, setNotificationEmail] = useState('');
 
   const currencySymbol = getCurrencySymbol(currency);
 
@@ -41,6 +42,7 @@ export default function BudgetSettings({
     if (budgetSettings?.limit !== undefined) {
       setLimit(budgetSettings.limit.toString());
     }
+    setNotificationEmail(budgetSettings?.notificationEmail || '');
     // Reset the checkbox default each time the dialog opens
     setResetCounters(true);
   }, [budgetSettings, open]);
@@ -55,7 +57,8 @@ export default function BudgetSettings({
         body: JSON.stringify({
           enabled: budgetSettings.enabled,
           limit: limitValue,
-          resetCounters
+          resetCounters,
+          notificationEmail: notificationEmail.trim() || undefined
         })
       });
 
@@ -64,6 +67,7 @@ export default function BudgetSettings({
           onSettingsChange({
             ...budgetSettings,
             limit: limitValue,
+            notificationEmail: notificationEmail.trim() || undefined,
             _reset: resetCounters
           });
         }
@@ -110,6 +114,16 @@ export default function BudgetSettings({
             </Typography>
           }
           sx={{ mt: 1 }}
+        />
+        <TextField
+          margin="dense"
+          label="Notification Email"
+          type="email"
+          fullWidth
+          value={notificationEmail}
+          onChange={(e) => setNotificationEmail(e.target.value)}
+          helperText="Email address for budget threshold alerts (50%, 80%, 100%). Leave empty to disable."
+          sx={{ mt: 2 }}
         />
       </DialogContent>
       <DialogActions>
