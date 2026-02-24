@@ -6,17 +6,20 @@ import {
   DialogActions,
   TextField,
   Button,
-  IconButton
+  IconButton,
+  FormControlLabel,
+  Checkbox,
+  Typography
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { apiFetch } from '../services/api';
 
 const getCurrencySymbol = (currency) => {
   const symbols = {
-    'EUR': '€',
+    'EUR': '\u20AC',
     'USD': '$',
-    'GBP': '£',
-    'JPY': '¥'
+    'GBP': '\u00A3',
+    'JPY': '\u00A5'
   };
   return symbols[currency] || currency;
 };
@@ -30,6 +33,7 @@ export default function BudgetSettings({
   onSettingsChange
 }) {
   const [limit, setLimit] = useState('0');
+  const [resetCounters, setResetCounters] = useState(true);
 
   const currencySymbol = getCurrencySymbol(currency);
 
@@ -37,7 +41,9 @@ export default function BudgetSettings({
     if (budgetSettings?.limit !== undefined) {
       setLimit(budgetSettings.limit.toString());
     }
-  }, [budgetSettings]);
+    // Reset the checkbox default each time the dialog opens
+    setResetCounters(true);
+  }, [budgetSettings, open]);
 
   const handleSave = async () => {
     const limitValue = parseFloat(limit) || 0;
@@ -48,16 +54,17 @@ export default function BudgetSettings({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           enabled: budgetSettings.enabled,
-          limit: limitValue
+          limit: limitValue,
+          resetCounters
         })
       });
 
       if (response.ok) {
-        // Notify parent component
         if (onSettingsChange) {
           onSettingsChange({
             ...budgetSettings,
-            limit: limitValue
+            limit: limitValue,
+            _reset: resetCounters
           });
         }
         onClose();
@@ -84,11 +91,25 @@ export default function BudgetSettings({
           fullWidth
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
-          helperText="Set to 0 for no limit"
+          helperText="Set to 0 for no limit. The limit applies globally across all projects."
           inputProps={{
             step: '0.01',
             min: '0'
           }}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={resetCounters}
+              onChange={(e) => setResetCounters(e.target.checked)}
+            />
+          }
+          label={
+            <Typography variant="body2">
+              Reset token counters for all projects
+            </Typography>
+          }
+          sx={{ mt: 1 }}
         />
       </DialogContent>
       <DialogActions>

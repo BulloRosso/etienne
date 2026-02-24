@@ -139,6 +139,24 @@ export class ClaudeSdkOrchestratorService {
         }
       }
 
+      // Budget limit check — reject before any work if limit is exceeded
+      try {
+        const budgetCheck = await this.budgetMonitoringService.checkBudgetLimit(projectDir);
+        if (budgetCheck.exceeded) {
+          this.logger.warn(`Budget limit exceeded for ${projectDir}: ${budgetCheck.currentCosts} / ${budgetCheck.limit} ${budgetCheck.currency}`);
+          observer.next({
+            type: 'error',
+            data: {
+              error: `Budget limit exceeded. Current costs: ${budgetCheck.currentCosts.toFixed(2)} ${budgetCheck.currency}, limit: ${budgetCheck.limit.toFixed(2)} ${budgetCheck.currency}. Please increase the budget limit or disable budget monitoring to continue.`
+            }
+          });
+          observer.complete();
+          return;
+        }
+      } catch (err) {
+        this.logger.error('Failed to check budget limit:', err);
+      }
+
       // Apply input guardrails
       let sanitizedPrompt = prompt;
       let guardrailsTriggered = false;
@@ -831,9 +849,10 @@ export class ClaudeSdkOrchestratorService {
           await this.budgetMonitoringService.trackCosts(
             projectDir,
             usage.input_tokens,
-            usage.output_tokens
+            usage.output_tokens,
+            sessionId
           );
-          this.logger.log(`💰 Tracked costs: ${usage.input_tokens} input, ${usage.output_tokens} output tokens`);
+          this.logger.log(`💰 Tracked costs: ${usage.input_tokens} input, ${usage.output_tokens} output tokens (session: ${sessionId})`);
         } catch (err) {
           this.logger.error('Failed to track budget costs:', err);
         }

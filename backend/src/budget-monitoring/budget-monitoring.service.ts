@@ -6,6 +6,7 @@ import { safeRoot } from '../claude/utils/path.utils';
 
 export interface CostEntry {
   timestamp: string;
+  sessionId?: string;
   inputTokens: number;
   outputTokens: number;
   requestCosts: number;
@@ -21,7 +22,7 @@ export interface BudgetUpdateEvent {
   project: string;
   timestamp: string;
   currentCosts: number;
-  numberOfRequests: number;
+  numberOfSessions: number;
   currency: string;
 }
 
@@ -92,26 +93,44 @@ export class BudgetMonitoringService {
   }
 
   /**
-   * Track costs after Claude Code response
+   * Count distinct sessions from cost entries
    */
-  async trackCosts(projectDir: string, inputTokens: number, outputTokens: number): Promise<CostEntry> {
-    console.log(`[BudgetMonitoring] trackCosts called for ${projectDir} with ${inputTokens} input, ${outputTokens} output tokens`);
-
-    // Check if budget monitoring is enabled
-    const settings = await this.getSettings(projectDir);
-    console.log(`[BudgetMonitoring] Budget monitoring enabled: ${settings.enabled}`);
-
-    if (!settings.enabled) {
-      console.log(`[BudgetMonitoring] Budget monitoring is disabled for ${projectDir}, skipping cost tracking`);
-      return null;
+  private countSessions(costs: CostEntry[]): number {
+    const sessionIds = new Set<string>();
+    for (const entry of costs) {
+      if (entry.sessionId) {
+        sessionIds.add(entry.sessionId);
+      }
     }
+    // If no entries have sessionId (legacy data), fall back to entry count
+    return sessionIds.size > 0 ? sessionIds.size : costs.length;
+  }
+
+  /**
+   * List all project directories in workspace
+   */
+  private async listAllProjects(): Promise<string[]> {
+    try {
+      const entries = await fs.readdir(this.workspaceRoot, { withFileTypes: true });
+      return entries
+        .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+        .map(e => e.name);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Track costs after Claude Code response.
+   * Always records usage regardless of whether budget monitoring is enabled.
+   */
+  async trackCosts(projectDir: string, inputTokens: number, outputTokens: number, sessionId?: string): Promise<CostEntry> {
+    console.log(`[BudgetMonitoring] trackCosts called for ${projectDir} session=${sessionId || 'unknown'} with ${inputTokens} input, ${outputTokens} output tokens`);
 
     const requestCosts = this.calculateCosts(inputTokens, outputTokens);
-    console.log(`[BudgetMonitoring] Calculated request cost: ${requestCosts} ${this.costsCurrencyUnit}`);
 
     // Read existing costs
     const costs = await this.readCosts(projectDir);
-    console.log(`[BudgetMonitoring] Loaded ${costs.length} existing cost entries`);
 
     // Get accumulated costs from the first (most recent) entry
     const previousAccumulated = costs.length > 0 ? costs[0].accumulatedCosts : 0;
@@ -120,6 +139,7 @@ export class BudgetMonitoringService {
     // Create new entry
     const newEntry: CostEntry = {
       timestamp: new Date().toISOString(),
+      sessionId,
       inputTokens,
       outputTokens,
       requestCosts,
@@ -130,10 +150,7 @@ export class BudgetMonitoringService {
     costs.unshift(newEntry);
 
     // Write back to file
-    const costsPath = await this.getCostsPath(projectDir);
-    console.log(`[BudgetMonitoring] Writing costs to: ${costsPath}`);
     await this.writeCosts(projectDir, costs);
-    console.log(`[BudgetMonitoring] Costs written successfully`);
 
     // Emit SSE event
     const subject = this.getSubject(projectDir);
@@ -141,7 +158,7 @@ export class BudgetMonitoringService {
       project: projectDir,
       timestamp: newEntry.timestamp,
       currentCosts: accumulatedCosts,
-      numberOfRequests: costs.length,
+      numberOfSessions: this.countSessions(costs),
       currency: this.costsCurrencyUnit
     });
 
@@ -159,17 +176,72 @@ export class BudgetMonitoringService {
   }
 
   /**
-   * Get current costs summary
+   * Get current costs summary for a single project
    */
   async getCurrentCosts(projectDir: string): Promise<{
     currentCosts: number;
+    numberOfSessions: number;
     numberOfRequests: number;
     currency: string;
+    totalInputTokens: number;
+    totalOutputTokens: number;
   }> {
     const costs = await this.readCosts(projectDir);
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    for (const entry of costs) {
+      totalInputTokens += entry.inputTokens;
+      totalOutputTokens += entry.outputTokens;
+    }
     return {
       currentCosts: costs.length > 0 ? costs[0].accumulatedCosts : 0,
+      numberOfSessions: this.countSessions(costs),
       numberOfRequests: costs.length,
+      currency: this.costsCurrencyUnit,
+      totalInputTokens,
+      totalOutputTokens
+    };
+  }
+
+  /**
+   * Get aggregated costs across ALL projects (for global budget limit).
+   */
+  async getGlobalCosts(): Promise<{
+    globalCosts: number;
+    globalSessions: number;
+    globalRequests: number;
+    globalInputTokens: number;
+    globalOutputTokens: number;
+    currency: string;
+  }> {
+    const projects = await this.listAllProjects();
+    let globalCosts = 0;
+    let globalRequests = 0;
+    let globalInputTokens = 0;
+    let globalOutputTokens = 0;
+    const allSessionIds = new Set<string>();
+
+    for (const project of projects) {
+      const costs = await this.readCosts(project);
+      if (costs.length > 0) {
+        globalCosts += costs[0].accumulatedCosts;
+        globalRequests += costs.length;
+        for (const entry of costs) {
+          globalInputTokens += entry.inputTokens;
+          globalOutputTokens += entry.outputTokens;
+          if (entry.sessionId) {
+            allSessionIds.add(entry.sessionId);
+          }
+        }
+      }
+    }
+
+    return {
+      globalCosts,
+      globalSessions: allSessionIds.size > 0 ? allSessionIds.size : globalRequests,
+      globalRequests,
+      globalInputTokens,
+      globalOutputTokens,
       currency: this.costsCurrencyUnit
     };
   }
@@ -180,18 +252,21 @@ export class BudgetMonitoringService {
   async getAllCosts(projectDir: string): Promise<{
     costs: CostEntry[];
     currency: string;
+    numberOfSessions: number;
     numberOfRequests: number;
   }> {
     const costs = await this.readCosts(projectDir);
     return {
-      costs: costs.slice(0, 10), // Return only last 10 entries
+      costs: costs.slice(0, 10),
       currency: this.costsCurrencyUnit,
-      numberOfRequests: costs.length // Total count of all requests
+      numberOfSessions: this.countSessions(costs),
+      numberOfRequests: costs.length
     };
   }
 
   /**
-   * Get budget settings
+   * Get budget settings.
+   * Default: enabled with 200 limit.
    */
   async getSettings(projectDir: string): Promise<BudgetSettings> {
     const settingsPath = await this.getSettingsPath(projectDir);
@@ -199,8 +274,35 @@ export class BudgetMonitoringService {
       const content = await fs.readFile(settingsPath, 'utf8');
       return JSON.parse(content);
     } catch {
-      return { enabled: false, limit: 0 };
+      return { enabled: true, limit: 200 };
     }
+  }
+
+  /**
+   * Check if the global budget limit has been exceeded.
+   * The limit is configured per-project but applied against the sum of
+   * costs across ALL projects.
+   */
+  async checkBudgetLimit(projectDir: string): Promise<{
+    exceeded: boolean;
+    currentCosts: number;
+    limit: number;
+    currency: string;
+  }> {
+    const settings = await this.getSettings(projectDir);
+
+    if (!settings.enabled || !settings.limit || settings.limit <= 0) {
+      return { exceeded: false, currentCosts: 0, limit: 0, currency: this.costsCurrencyUnit };
+    }
+
+    const global = await this.getGlobalCosts();
+
+    return {
+      exceeded: global.globalCosts >= settings.limit,
+      currentCosts: global.globalCosts,
+      limit: settings.limit,
+      currency: this.costsCurrencyUnit
+    };
   }
 
   /**
@@ -209,5 +311,24 @@ export class BudgetMonitoringService {
   async saveSettings(projectDir: string, settings: BudgetSettings): Promise<void> {
     const settingsPath = await this.getSettingsPath(projectDir);
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+  }
+
+  /**
+   * Reset cost counters for a project (clear the costs.json file)
+   */
+  async resetCosts(projectDir: string): Promise<void> {
+    await this.writeCosts(projectDir, []);
+    console.log(`[BudgetMonitoring] Reset cost counters for ${projectDir}`);
+  }
+
+  /**
+   * Reset cost counters for ALL projects in the workspace
+   */
+  async resetAllCosts(): Promise<void> {
+    const projects = await this.listAllProjects();
+    for (const project of projects) {
+      await this.writeCosts(project, []);
+    }
+    console.log(`[BudgetMonitoring] Reset cost counters for all ${projects.length} projects`);
   }
 }

@@ -131,6 +131,24 @@ export class CodexSdkOrchestratorService {
         }
       }
 
+      // === Budget Limit Check ===
+      try {
+        const budgetCheck = await this.budgetMonitoringService.checkBudgetLimit(projectDir);
+        if (budgetCheck.exceeded) {
+          this.logger.warn(`Budget limit exceeded for ${projectDir}: ${budgetCheck.currentCosts} / ${budgetCheck.limit} ${budgetCheck.currency}`);
+          observer.next({
+            type: 'error',
+            data: {
+              error: `Budget limit exceeded. Current costs: ${budgetCheck.currentCosts.toFixed(2)} ${budgetCheck.currency}, limit: ${budgetCheck.limit.toFixed(2)} ${budgetCheck.currency}. Please increase the budget limit or disable budget monitoring to continue.`
+            }
+          });
+          observer.complete();
+          return;
+        }
+      } catch (err) {
+        this.logger.error('Failed to check budget limit:', err);
+      }
+
       // === Input Guardrails ===
       let sanitizedPrompt = prompt;
       let guardrailsTriggered = false;
@@ -781,7 +799,7 @@ export class CodexSdkOrchestratorService {
       if (!skipChatPersistence && usage.input_tokens && usage.output_tokens) {
         try {
           await this.budgetMonitoringService.trackCosts(
-            projectDir, usage.input_tokens, usage.output_tokens
+            projectDir, usage.input_tokens, usage.output_tokens, threadId
           );
         } catch (err) {
           this.logger.error('Failed to track budget costs:', err);

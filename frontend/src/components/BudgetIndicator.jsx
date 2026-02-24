@@ -18,10 +18,10 @@ import BudgetOverview from './BudgetOverview';
 
 const getCurrencySymbol = (currency) => {
   const symbols = {
-    'EUR': '€',
+    'EUR': '\u20AC',
     'USD': '$',
-    'GBP': '£',
-    'JPY': '¥'
+    'GBP': '\u00A3',
+    'JPY': '\u00A5'
   };
   return symbols[currency] || currency;
 };
@@ -43,28 +43,46 @@ const percentageIcons = [
 export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentCosts, setCurrentCosts] = useState(0);
-  const [numberOfRequests, setNumberOfRequests] = useState(0);
+  const [numberOfSessions, setNumberOfRequests] = useState(0);
   const [currency, setCurrency] = useState('EUR');
+  const [totalInputTokens, setTotalInputTokens] = useState(0);
+  const [totalOutputTokens, setTotalOutputTokens] = useState(0);
+  const [globalCosts, setGlobalCosts] = useState(0);
+  const [globalSessions, setGlobalRequests] = useState(0);
+  const [globalInputTokens, setGlobalInputTokens] = useState(0);
+  const [globalOutputTokens, setGlobalOutputTokens] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Load initial costs
+  // Load initial costs (project + global)
   useEffect(() => {
     if (!project || !budgetSettings?.enabled) return;
 
-    const fetchCurrentCosts = async () => {
+    const fetchCosts = async () => {
       try {
-        const response = await apiFetch(`/api/budget-monitoring/${project}/current`);
-        const data = await response.json();
-        setCurrentCosts(data.currentCosts || 0);
-        setNumberOfRequests(data.numberOfRequests || 0);
-        setCurrency(data.currency || 'EUR');
+        const [projectRes, globalRes] = await Promise.all([
+          apiFetch(`/api/budget-monitoring/${project}/current`),
+          apiFetch('/api/budget-monitoring/global/current')
+        ]);
+        const projectData = await projectRes.json();
+        const globalData = await globalRes.json();
+
+        setCurrentCosts(projectData.currentCosts || 0);
+        setNumberOfRequests(projectData.numberOfSessions || 0);
+        setCurrency(projectData.currency || 'EUR');
+        setTotalInputTokens(projectData.totalInputTokens || 0);
+        setTotalOutputTokens(projectData.totalOutputTokens || 0);
+
+        setGlobalCosts(globalData.globalCosts || 0);
+        setGlobalRequests(globalData.globalSessions || 0);
+        setGlobalInputTokens(globalData.globalInputTokens || 0);
+        setGlobalOutputTokens(globalData.globalOutputTokens || 0);
       } catch (error) {
-        console.error('Failed to fetch current costs:', error);
+        console.error('Failed to fetch costs:', error);
       }
     };
 
-    fetchCurrentCosts();
-  }, [project, budgetSettings?.enabled]);
+    fetchCosts();
+  }, [project, budgetSettings?.enabled, refreshKey]);
 
   // Listen for budget updates via SSE
   useEffect(() => {
@@ -75,8 +93,18 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
     es.addEventListener('budget-update', (e) => {
       const data = JSON.parse(e.data);
       setCurrentCosts(data.currentCosts || 0);
-      setNumberOfRequests(data.numberOfRequests || 0);
+      setNumberOfRequests(data.numberOfSessions || 0);
       setCurrency(data.currency || 'EUR');
+      // Re-fetch global costs on any update
+      apiFetch('/api/budget-monitoring/global/current')
+        .then(res => res.json())
+        .then(globalData => {
+          setGlobalCosts(globalData.globalCosts || 0);
+          setGlobalRequests(globalData.globalSessions || 0);
+          setGlobalInputTokens(globalData.globalInputTokens || 0);
+          setGlobalOutputTokens(globalData.globalOutputTokens || 0);
+        })
+        .catch(() => {});
     });
 
     es.onerror = () => {
@@ -93,9 +121,9 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
     return null;
   }
 
-  // Calculate percentage and determine icon
+  // Calculate percentage based on GLOBAL costs against limit
   const percentage = budgetSettings.limit > 0
-    ? Math.min(100, Math.floor((currentCosts / budgetSettings.limit) * 100))
+    ? Math.min(100, Math.floor((globalCosts / budgetSettings.limit) * 100))
     : 0;
 
   // Determine icon based on percentage (in 10% steps)
@@ -106,17 +134,17 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
   const PercentageIcon = percentageIcons[iconIndex];
 
   // Determine color (yellow if exceeded)
-  const isExceeded = budgetSettings.limit > 0 && currentCosts >= budgetSettings.limit;
+  const isExceeded = budgetSettings.limit > 0 && globalCosts >= budgetSettings.limit;
   const iconColor = isExceeded ? '#ffeb3b' : 'inherit';
 
   // Format tooltip text
   const currencySymbol = getCurrencySymbol(currency);
-  const formattedCosts = currentCosts.toFixed(4);
-  const tooltipText = `${formattedCosts}${currencySymbol} spent (${percentage}%)`;
+  const formattedCosts = globalCosts.toFixed(2);
+  const tooltipText = `${formattedCosts}${currencySymbol} spent globally (${percentage}%)`;
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
-    setRefreshKey(prev => prev + 1); // Trigger refresh in BudgetOverview
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleDrawerClose = () => {
@@ -143,11 +171,23 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
         <BudgetOverview
           project={project}
           currentCosts={currentCosts}
-          numberOfRequests={numberOfRequests}
+          numberOfSessions={numberOfSessions}
           currency={currency}
+          totalInputTokens={totalInputTokens}
+          totalOutputTokens={totalOutputTokens}
+          globalCosts={globalCosts}
+          globalSessions={globalSessions}
+          globalInputTokens={globalInputTokens}
+          globalOutputTokens={globalOutputTokens}
           budgetSettings={budgetSettings}
           onClose={handleDrawerClose}
-          onSettingsChange={onSettingsChange}
+          onSettingsChange={(settings) => {
+            onSettingsChange(settings);
+            // If counters were reset, re-fetch everything
+            if (settings._reset) {
+              setRefreshKey(prev => prev + 1);
+            }
+          }}
           refreshKey={refreshKey}
           showBackgroundInfo={showBackgroundInfo}
         />

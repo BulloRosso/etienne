@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Query, Sse, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Sse, Param, ForbiddenException } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { join } from 'path';
 import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
 import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
+import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
 import { Roles } from '../auth/roles.decorator';
 
@@ -16,7 +17,8 @@ export class ClaudeController {
     private readonly svc: ClaudeService,
     private readonly sdkOrchestrator: ClaudeSdkOrchestratorService,
     private readonly codexOrchestrator: CodexSdkOrchestratorService,
-    private readonly sessionsService: SessionsService
+    private readonly sessionsService: SessionsService,
+    private readonly budgetMonitoringService: BudgetMonitoringService
   ) {
     this.workspaceRoot = process.env.WORKSPACE_ROOT || join(process.cwd(), '..', 'workspace');
   }
@@ -183,6 +185,14 @@ export class ClaudeController {
   ) {
     const { prompt, maxTurns, source, sourceMetadata } = body;
     const projectRoot = join(this.workspaceRoot, project);
+
+    // Budget limit check — reject before any work if limit is exceeded
+    const budgetCheck = await this.budgetMonitoringService.checkBudgetLimit(project);
+    if (budgetCheck.exceeded) {
+      throw new ForbiddenException(
+        `Budget limit exceeded. Current costs: ${budgetCheck.currentCosts.toFixed(2)} ${budgetCheck.currency}, limit: ${budgetCheck.limit.toFixed(2)} ${budgetCheck.currency}. Please increase the budget limit or disable budget monitoring to continue.`
+      );
+    }
 
     // Collect all messages from the stream
     const messages: any[] = [];

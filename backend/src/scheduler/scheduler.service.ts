@@ -159,7 +159,7 @@ export class SchedulerService implements OnModuleInit {
       // Track costs in budget monitoring
       if (inputTokens > 0 || outputTokens > 0) {
         try {
-          await this.budgetMonitoringService.trackCosts(project, inputTokens, outputTokens);
+          await this.budgetMonitoringService.trackCosts(project, inputTokens, outputTokens, `scheduled_${task.name}_${timestamp}`);
           this.logger.log(`Task ${task.name} costs tracked in budget monitoring`);
         } catch (error: any) {
           this.logger.warn(`Failed to track costs for task ${task.name}: ${error.message}`);

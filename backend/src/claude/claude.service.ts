@@ -386,6 +386,24 @@ project using the [Scrapbook](#scrapbook)
         try { sessionId = (await fs.readFile(sessionPath, 'utf8')).trim(); } catch { /* first run */ }
         const isFirstRequest = !sessionId;
 
+        // Budget limit check — reject before any work if limit is exceeded
+        try {
+          const budgetCheck = await this.budgetMonitoringService.checkBudgetLimit(projectDir);
+          if (budgetCheck.exceeded) {
+            console.warn(`Budget limit exceeded for ${projectDir}: ${budgetCheck.currentCosts} / ${budgetCheck.limit} ${budgetCheck.currency}`);
+            observer.next({
+              type: 'error',
+              data: {
+                error: `Budget limit exceeded. Current costs: ${budgetCheck.currentCosts.toFixed(2)} ${budgetCheck.currency}, limit: ${budgetCheck.limit.toFixed(2)} ${budgetCheck.currency}. Please increase the budget limit or disable budget monitoring to continue.`
+              }
+            });
+            observer.complete();
+            return;
+          }
+        } catch (err) {
+          console.error('Failed to check budget limit:', err);
+        }
+
         // Apply input guardrails
         let sanitizedPrompt = prompt;
         let guardrailsTriggered = false;
@@ -681,7 +699,8 @@ project using the [Scrapbook](#scrapbook)
               await this.budgetMonitoringService.trackCosts(
                 projectDir,
                 usage.input_tokens,
-                usage.output_tokens
+                usage.output_tokens,
+                sessionId
               );
               console.log('Budget costs tracked successfully');
             } catch (err) {

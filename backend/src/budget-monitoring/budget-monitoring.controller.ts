@@ -7,6 +7,11 @@ import { Roles } from '../auth/roles.decorator';
 export class BudgetMonitoringController {
   constructor(private readonly service: BudgetMonitoringService) {}
 
+  @Get('global/current')
+  async getGlobalCosts() {
+    return this.service.getGlobalCosts();
+  }
+
   @Get(':project/current')
   async getCurrentCosts(@Param('project') project: string) {
     return this.service.getCurrentCosts(project);
@@ -22,13 +27,21 @@ export class BudgetMonitoringController {
     return this.service.getSettings(project);
   }
 
-  @Roles('admin')
+  @Roles('user')
   @Post(':project/settings')
   async saveSettings(
     @Param('project') project: string,
-    @Body() settings: BudgetSettings
+    @Body() body: { enabled: boolean; limit: number; resetCounters?: boolean }
   ) {
-    await this.service.saveSettings(project, settings);
+    await this.service.saveSettings(project, {
+      enabled: body.enabled,
+      limit: body.limit
+    });
+
+    if (body.resetCounters) {
+      await this.service.resetAllCosts();
+    }
+
     return { success: true };
   }
 
