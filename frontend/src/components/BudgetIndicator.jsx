@@ -43,12 +43,12 @@ const percentageIcons = [
 export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentCosts, setCurrentCosts] = useState(0);
-  const [numberOfSessions, setNumberOfRequests] = useState(0);
+  const [numberOfSessions, setNumberOfSessions] = useState(0);
   const [currency, setCurrency] = useState('EUR');
   const [totalInputTokens, setTotalInputTokens] = useState(0);
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
   const [globalCosts, setGlobalCosts] = useState(0);
-  const [globalSessions, setGlobalRequests] = useState(0);
+  const [globalSessions, setGlobalSessions] = useState(0);
   const [globalInputTokens, setGlobalInputTokens] = useState(0);
   const [globalOutputTokens, setGlobalOutputTokens] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -67,13 +67,13 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
         const globalData = await globalRes.json();
 
         setCurrentCosts(projectData.currentCosts || 0);
-        setNumberOfRequests(projectData.numberOfSessions || 0);
+        setNumberOfSessions(projectData.numberOfSessions || 0);
         setCurrency(projectData.currency || 'EUR');
         setTotalInputTokens(projectData.totalInputTokens || 0);
         setTotalOutputTokens(projectData.totalOutputTokens || 0);
 
         setGlobalCosts(globalData.globalCosts || 0);
-        setGlobalRequests(globalData.globalSessions || 0);
+        setGlobalSessions(globalData.globalSessions || 0);
         setGlobalInputTokens(globalData.globalInputTokens || 0);
         setGlobalOutputTokens(globalData.globalOutputTokens || 0);
       } catch (error) {
@@ -93,14 +93,14 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
     es.addEventListener('budget-update', (e) => {
       const data = JSON.parse(e.data);
       setCurrentCosts(data.currentCosts || 0);
-      setNumberOfRequests(data.numberOfSessions || 0);
+      setNumberOfSessions(data.numberOfSessions || 0);
       setCurrency(data.currency || 'EUR');
       // Re-fetch global costs on any update
       apiFetch('/api/budget-monitoring/global/current')
         .then(res => res.json())
         .then(globalData => {
           setGlobalCosts(globalData.globalCosts || 0);
-          setGlobalRequests(globalData.globalSessions || 0);
+          setGlobalSessions(globalData.globalSessions || 0);
           setGlobalInputTokens(globalData.globalInputTokens || 0);
           setGlobalOutputTokens(globalData.globalOutputTokens || 0);
         })
