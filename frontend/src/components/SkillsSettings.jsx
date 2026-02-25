@@ -20,8 +20,11 @@ import {
   Divider,
   CircularProgress,
   Chip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
-import { Close, DeleteOutline, Edit, Save, UploadFile, InsertDriveFileOutlined, InfoOutlined } from '@mui/icons-material';
+import { Close, DeleteOutline, Edit, Save, UploadFile, InsertDriveFileOutlined, InfoOutlined, MoreVert } from '@mui/icons-material';
+import { Menu, MenuItem } from '@mui/material';
 import { GiAtom } from 'react-icons/gi';
 import Editor from '@monaco-editor/react';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
@@ -42,6 +45,12 @@ export default function SkillsSettings({ open, onClose, project }) {
   const [repoSkills, setRepoSkills] = useState([]);
   const [repoLoading, setRepoLoading] = useState(false);
   const [provisioningSkill, setProvisioningSkill] = useState(null);
+  const [modificationStatus, setModificationStatus] = useState({});
+  const [modMenuAnchor, setModMenuAnchor] = useState(null);
+  const [modMenuSkill, setModMenuSkill] = useState(null);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+
+  const showToast = (message, severity = 'success') => setToast({ open: true, message, severity });
 
   useEffect(() => {
     if (open && project) {
@@ -62,11 +71,64 @@ export default function SkillsSettings({ open, onClose, project }) {
       const response = await apiFetch(`/api/skills/${project}/all-skills`);
       if (response.ok) {
         const data = await response.json();
-        setSkills(data.skills || []);
+        const loadedSkills = data.skills || [];
+        setSkills(loadedSkills);
+        // Check modifications for current project skills
+        checkModifications(loadedSkills.filter(s => s.isFromCurrentProject));
       }
     } catch (error) {
       console.error('Failed to load skills:', error);
     }
+  };
+
+  const checkModifications = async (projectSkills) => {
+    const results = {};
+    for (const skill of projectSkills) {
+      try {
+        const resp = await apiFetch(`/api/skills/${project}/${skill.name}/detect-modifications`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.status && data.status !== 'current') {
+            results[skill.name] = data;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    setModificationStatus(results);
+  };
+
+  const handleUpdateFromRepo = async (skillName) => {
+    try {
+      const resp = await apiFetch(`/api/skills/${project}/${skillName}/update-from-repo`, { method: 'POST' });
+      if (resp.ok) {
+        await loadSkills();
+      } else {
+        const data = await resp.json();
+        showToast(data.message || 'Failed to update', 'error');
+      }
+    } catch (error) {
+      console.error('Failed to update from repo:', error);
+      showToast('Failed to update from repository', 'error');
+    }
+    setModMenuAnchor(null);
+    setModMenuSkill(null);
+  };
+
+  const handleSendForReview = async (skillName) => {
+    try {
+      const resp = await apiFetch(`/api/skills/${project}/${skillName}/submit-for-review`, { method: 'POST' });
+      if (resp.ok) {
+        showToast('Submitted for admin review');
+      } else {
+        const data = await resp.json();
+        showToast(data.message || 'Failed to submit', 'error');
+      }
+    } catch (error) {
+      console.error('Failed to submit for review:', error);
+      showToast('Failed to submit for review', 'error');
+    }
+    setModMenuAnchor(null);
+    setModMenuSkill(null);
   };
 
   const loadRepoSkills = async () => {
@@ -114,11 +176,11 @@ export default function SkillsSettings({ open, onClose, project }) {
         await loadSkillFiles(skillName);
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to upload file');
+        showToast(data.message || 'Failed to upload file', 'error');
       }
     } catch (error) {
       console.error('Failed to upload file:', error);
-      alert('Failed to upload file');
+      showToast('Failed to upload file', 'error');
     }
 
     // Reset file input
@@ -135,11 +197,11 @@ export default function SkillsSettings({ open, onClose, project }) {
         await loadSkillFiles(skillName);
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to delete file');
+        showToast(data.message || 'Failed to delete file', 'error');
       }
     } catch (error) {
       console.error('Failed to delete file:', error);
-      alert('Failed to delete file');
+      showToast('Failed to delete file', 'error');
     }
   };
 
@@ -219,11 +281,11 @@ Show what the expected output should look like.
         setSelectedSkill(null);
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to copy skill');
+        showToast(data.message || 'Failed to copy skill', 'error');
       }
     } catch (error) {
       console.error('Failed to copy skill:', error);
-      alert('Failed to copy skill');
+      showToast('Failed to copy skill', 'error');
     } finally {
       setLoading(false);
     }
@@ -245,18 +307,18 @@ Show what the expected output should look like.
         const data = await response.json();
         const result = data.results?.[0];
         if (result && !result.success) {
-          alert(result.error || 'Failed to provision skill');
+          showToast(result.error || 'Failed to provision skill', 'error');
         } else {
           await loadSkills();
           setSelectedSkill(null);
         }
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to provision skill');
+        showToast(data.message || 'Failed to provision skill', 'error');
       }
     } catch (error) {
       console.error('Failed to provision skill:', error);
-      alert('Failed to provision skill');
+      showToast('Failed to provision skill', 'error');
     } finally {
       setProvisioningSkill(null);
     }
@@ -281,7 +343,7 @@ Show what the expected output should look like.
 
   const handleSaveSkill = async () => {
     if (!skillName.trim()) {
-      alert('Please enter a skill name');
+      showToast('Please enter a skill name', 'warning');
       return;
     }
 
@@ -304,11 +366,11 @@ Show what the expected output should look like.
         setSelectedSkill(null);
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to save skill');
+        showToast(data.message || 'Failed to save skill', 'error');
       }
     } catch (error) {
       console.error('Failed to save skill:', error);
-      alert('Failed to save skill');
+      showToast('Failed to save skill', 'error');
     } finally {
       setLoading(false);
     }
@@ -381,18 +443,6 @@ Show what the expected output should look like.
                           <ListItem
                             key={`repo-${repoSkill.name}`}
                             disablePadding
-                            secondaryAction={
-                              isSelected && !isAlreadyProvisioned && (
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  onClick={() => handleProvisionSkill(repoSkill)}
-                                  disabled={isProvisioning}
-                                >
-                                  {isProvisioning ? 'Adding...' : 'Add to project'}
-                                </Button>
-                              )
-                            }
                           >
                             <ListItemButton
                               onClick={() => setSelectedSkill({ name: repoSkill.name, _repoSource: repoSkill.source })}
@@ -400,7 +450,16 @@ Show what the expected output should look like.
                               disabled={isAlreadyProvisioned}
                             >
                               <ListItemIcon sx={{ alignSelf: 'flex-start', position: 'relative', left: '12px', mt: '10px' }}>
-                                <GiAtom style={{ fontSize: '20px' }} />
+                                {repoSkill.hasThumbnail ? (
+                                  <img
+                                    src={`/api/skills/catalog/${repoSkill.name}/thumbnail?source=${repoSkill.source}`}
+                                    alt={repoSkill.name}
+                                    style={{ width: 24, height: 24, objectFit: 'contain' }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <GiAtom style={{ fontSize: '20px' }} />
+                                )}
                               </ListItemIcon>
                               <ListItemText
                                 primary={
@@ -414,6 +473,17 @@ Show what the expected output should look like.
                                 secondary={repoSkill.description}
                                 secondaryTypographyProps={{ fontSize: '0.75rem' }}
                               />
+                              {isSelected && !isAlreadyProvisioned && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={(e) => { e.stopPropagation(); handleProvisionSkill(repoSkill); }}
+                                  disabled={isProvisioning}
+                                  sx={{ ml: 1, flexShrink: 0 }}
+                                >
+                                  {isProvisioning ? 'Adding...' : 'Add to project'}
+                                </Button>
+                              )}
                             </ListItemButton>
                           </ListItem>
                         );
@@ -440,18 +510,6 @@ Show what the expected output should look like.
                           <ListItem
                             key={`repo-${repoSkill.name}`}
                             disablePadding
-                            secondaryAction={
-                              isSelected && !isAlreadyProvisioned && (
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  onClick={() => handleProvisionSkill(repoSkill)}
-                                  disabled={isProvisioning}
-                                >
-                                  {isProvisioning ? 'Adding...' : 'Add to project'}
-                                </Button>
-                              )
-                            }
                           >
                             <ListItemButton
                               onClick={() => setSelectedSkill({ name: repoSkill.name, _repoSource: repoSkill.source })}
@@ -459,7 +517,16 @@ Show what the expected output should look like.
                               disabled={isAlreadyProvisioned}
                             >
                               <ListItemIcon sx={{ alignSelf: 'flex-start', position: 'relative', left: '12px', mt: '10px' }}>
-                                <GiAtom style={{ fontSize: '20px', color: '#e65100' }} />
+                                {repoSkill.hasThumbnail ? (
+                                  <img
+                                    src={`/api/skills/catalog/${repoSkill.name}/thumbnail?source=${repoSkill.source}`}
+                                    alt={repoSkill.name}
+                                    style={{ width: 24, height: 24, objectFit: 'contain' }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <GiAtom style={{ fontSize: '20px', color: '#e65100' }} />
+                                )}
                               </ListItemIcon>
                               <ListItemText
                                 primary={
@@ -473,6 +540,17 @@ Show what the expected output should look like.
                                 secondary={repoSkill.description}
                                 secondaryTypographyProps={{ fontSize: '0.75rem' }}
                               />
+                              {isSelected && !isAlreadyProvisioned && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={(e) => { e.stopPropagation(); handleProvisionSkill(repoSkill); }}
+                                  disabled={isProvisioning}
+                                  sx={{ ml: 1, flexShrink: 0 }}
+                                >
+                                  {isProvisioning ? 'Adding...' : 'Add to project'}
+                                </Button>
+                              )}
                             </ListItemButton>
                           </ListItem>
                         );
@@ -505,61 +583,88 @@ Show what the expected output should look like.
                       const skillKey = `${skill.project}-${skill.name}`;
                       const isSelected = selectedSkill && selectedSkill.name === skill.name && selectedSkill.project === skill.project;
 
+                      const modStatus = modificationStatus[skill.name];
+
                       return (
                         <ListItem
                           key={skillKey}
                           disablePadding
-                          secondaryAction={
-                            isSelected && (
-                              <Box sx={{ display: 'flex', gap: 1 }}>
-                                {isFromOtherProject ? (
-                                  <Button
-                                    variant="outlined"
-                                    size="small"
-                                    onClick={() => handleCopySkill(skill)}
-                                    disabled={loading}
-                                  >
-                                    Use in this project
-                                  </Button>
-                                ) : (
-                                  <>
-                                    <IconButton
-                                      edge="end"
-                                      onClick={() => handleEditSkill(skill)}
-                                      size="small"
-                                    >
-                                      <Edit fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      edge="end"
-                                      onClick={() => handleDeleteSkill(skill.name)}
-                                      size="small"
-                                      sx={{ color: '#c62828' }}
-                                    >
-                                      <DeleteOutline fontSize="small" />
-                                    </IconButton>
-                                  </>
-                                )}
-                              </Box>
-                            )
-                          }
                         >
                           <ListItemButton
                             onClick={() => handleSkillClick(skill)}
                             selected={isSelected}
                           >
                             <ListItemIcon sx={{ alignSelf: 'flex-start', position: 'relative', left: '12px', mt: '10px' }}>
-                              <GiAtom style={{ fontSize: '20px' }} />
+                              {skill.hasThumbnail ? (
+                                <img
+                                  src={`/api/skills/${skill.project}/${skill.name}/thumbnail`}
+                                  alt={skill.name}
+                                  style={{ width: 24, height: 24, objectFit: 'contain' }}
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : (
+                                <GiAtom style={{ fontSize: '20px' }} />
+                              )}
                             </ListItemIcon>
                             <ListItemText
                               primary={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <span>{skill.name}</span>
+                                  {modStatus?.status === 'updated' && (
+                                    <Chip label="Update available" size="small" sx={{ bgcolor: '#ff9800', color: '#fff', height: 20, fontSize: '0.7rem' }} />
+                                  )}
+                                  {modStatus?.status === 'refined' && (
+                                    <Chip label="Modified" size="small" sx={{ bgcolor: '#ff9800', color: '#fff', height: 20, fontSize: '0.7rem' }} />
+                                  )}
                                 </Box>
                               }
                               secondary={skill.description || (isFromOtherProject ? `from ${skill.project}` : null)}
                               secondaryTypographyProps={{ fontSize: '0.75rem' }}
                             />
+                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-start', flexShrink: 0, ml: 1 }}>
+                              {modStatus && (
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setModMenuAnchor(e.currentTarget);
+                                    setModMenuSkill(skill.name);
+                                  }}
+                                >
+                                  <MoreVert fontSize="small" />
+                                </IconButton>
+                              )}
+                              {isSelected && (
+                                <>
+                                  {isFromOtherProject ? (
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      onClick={(e) => { e.stopPropagation(); handleCopySkill(skill); }}
+                                      disabled={loading}
+                                    >
+                                      Use in this project
+                                    </Button>
+                                  ) : (
+                                    <>
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => { e.stopPropagation(); handleEditSkill(skill); }}
+                                      >
+                                        <Edit fontSize="small" />
+                                      </IconButton>
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteSkill(skill.name); }}
+                                        sx={{ color: '#c62828' }}
+                                      >
+                                        <DeleteOutline fontSize="small" />
+                                      </IconButton>
+                                    </>
+                                  )}
+                                </>
+                              )}
+                            </Box>
                           </ListItemButton>
                         </ListItem>
                       );
@@ -724,6 +829,36 @@ Show what the expected output should look like.
           </Box>
         </Box>
       </Drawer>
+
+      {/* Context menu for updated/modified skills */}
+      <Menu
+        anchorEl={modMenuAnchor}
+        open={Boolean(modMenuAnchor)}
+        onClose={() => { setModMenuAnchor(null); setModMenuSkill(null); }}
+      >
+        <MenuItem onClick={() => modMenuSkill && handleUpdateFromRepo(modMenuSkill)}>
+          Update from repository
+        </MenuItem>
+        <MenuItem onClick={() => modMenuSkill && handleSendForReview(modMenuSkill)}>
+          Send for review
+        </MenuItem>
+      </Menu>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setToast({ ...toast, open: false })}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

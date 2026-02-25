@@ -1,20 +1,265 @@
 import {
-  Controller, Get, Post, Delete, Param, Body, Query,
-  HttpException, HttpStatus, UseInterceptors, UploadedFile,
+  Controller, Get, Post, Delete, Param, Body, Query, Req, Res,
+  HttpException, HttpStatus, UseInterceptors, UploadedFile, StreamableFile,
 } from '@nestjs/common';
+import { createReadStream } from 'fs';
+import { access } from 'fs/promises';
+import { Response, Request } from 'express';
 import { Roles } from '../auth/roles.decorator';
+import { Public } from '../auth/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SkillsService } from './skills.service';
 import { SaveSkillDto } from './dto/skills.dto';
 import { ProvisionSkillsDto } from './dto/repository-skills.dto';
+import { SkillMetadata, SkillDependencies } from './dto/skill-catalog.dto';
 
 @Controller('api/skills')
 export class SkillsController {
   constructor(private readonly skillsService: SkillsService) {}
 
-  /**
-   * List skills from the skill repository
-   */
+  // =========================================================================
+  // Catalog endpoints (MUST be before :project routes)
+  // =========================================================================
+
+  @Get('catalog')
+  @Roles('admin')
+  async listCatalogSkills() {
+    try {
+      const skills = await this.skillsService.listCatalogSkills();
+      return { success: true, skills };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('catalog/review/list')
+  @Roles('admin')
+  async listReviewRequests() {
+    try {
+      const requests = await this.skillsService.listReviewRequests();
+      return { success: true, requests };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('catalog/review/submit')
+  @Roles('user')
+  @UseInterceptors(FileInterceptor('file'))
+  async submitForReview(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    try {
+      if (!file) {
+        throw new Error('No file provided');
+      }
+      const user = (req as any).user;
+      const username = user?.username || 'unknown';
+      const request = await this.skillsService.submitForReview(
+        file.buffer,
+        file.originalname,
+        username,
+      );
+      return { success: true, request };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('catalog/review/:id/accept')
+  @Roles('admin')
+  async acceptReviewRequest(@Param('id') id: string) {
+    try {
+      const result = await this.skillsService.acceptReviewRequest(id);
+      return { success: true, ...result };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('catalog/review/:id/download')
+  @Roles('admin')
+  async downloadReviewZip(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    try {
+      const zipPath = this.skillsService.getReviewZipPath(id);
+      await access(zipPath);
+      res.set({
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${id}.zip"`,
+      });
+      const file = createReadStream(zipPath);
+      return new StreamableFile(file);
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: 'Review zip not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+  }
+
+  @Delete('catalog/review/:id')
+  @Roles('admin')
+  async rejectReviewRequest(@Param('id') id: string) {
+    try {
+      await this.skillsService.rejectReviewRequest(id);
+      return { success: true, message: 'Review request rejected' };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('catalog/upload')
+  @Roles('admin')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadSkillZip(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('source') source: 'standard' | 'optional' = 'standard',
+  ) {
+    try {
+      if (!file) {
+        throw new Error('No file provided');
+      }
+      const result = await this.skillsService.uploadSkillZip(file.buffer, source);
+      return { success: true, ...result };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('catalog/:skillName/metadata')
+  @Roles('admin')
+  async getSkillMetadata(
+    @Param('skillName') skillName: string,
+    @Query('source') source: 'standard' | 'optional' = 'standard',
+  ) {
+    try {
+      const metadata = await this.skillsService.getSkillMetadata(skillName, source);
+      return { success: true, metadata };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('catalog/:skillName/metadata')
+  @Roles('admin')
+  async saveSkillMetadata(
+    @Param('skillName') skillName: string,
+    @Query('source') source: 'standard' | 'optional' = 'standard',
+    @Body() body: { metadata: SkillMetadata },
+  ) {
+    try {
+      await this.skillsService.saveSkillMetadata(skillName, source, body.metadata);
+      return { success: true, message: 'Metadata saved' };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('catalog/:skillName/dependencies')
+  @Roles('admin')
+  async getSkillDependencies(
+    @Param('skillName') skillName: string,
+    @Query('source') source: 'standard' | 'optional' = 'standard',
+  ) {
+    try {
+      const dependencies = await this.skillsService.getSkillDependencies(skillName, source);
+      return { success: true, dependencies };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('catalog/:skillName/dependencies')
+  @Roles('admin')
+  async saveSkillDependencies(
+    @Param('skillName') skillName: string,
+    @Query('source') source: 'standard' | 'optional' = 'standard',
+    @Body() body: { dependencies: SkillDependencies },
+  ) {
+    try {
+      await this.skillsService.saveSkillDependencies(skillName, source, body.dependencies);
+      return { success: true, message: 'Dependencies saved' };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('catalog/:skillName/thumbnail')
+  @Public()
+  async getCatalogThumbnail(
+    @Param('skillName') skillName: string,
+    @Query('source') source: 'standard' | 'optional' = 'standard',
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    try {
+      const { path: thumbPath } = this.skillsService.getSkillThumbnailStream(skillName, source);
+      await access(thumbPath);
+      res.set({ 'Content-Type': 'image/png' });
+      const file = createReadStream(thumbPath);
+      return new StreamableFile(file);
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: 'Thumbnail not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+  }
+
+  @Delete('catalog/:skillName')
+  @Roles('admin')
+  async deleteRepositorySkill(
+    @Param('skillName') skillName: string,
+    @Query('source') source: 'standard' | 'optional' = 'standard',
+  ) {
+    try {
+      await this.skillsService.deleteRepositorySkill(skillName, source);
+      return { success: true, message: 'Skill deleted from repository' };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // =========================================================================
+  // Existing endpoints (repository, provisioning)
+  // =========================================================================
+
   @Get('repository/list')
   async listRepositorySkills(@Query('includeOptional') includeOptional?: string) {
     try {
@@ -37,9 +282,10 @@ export class SkillsController {
     }
   }
 
-  /**
-   * Provision all standard skills to a project
-   */
+  // =========================================================================
+  // Project skill endpoints (parametric :project routes MUST come last)
+  // =========================================================================
+
   @Post(':project/provision-standard')
   @Roles('user')
   async provisionStandardSkills(@Param('project') project: string) {
@@ -63,9 +309,6 @@ export class SkillsController {
     }
   }
 
-  /**
-   * Provision specific skills from the repository to a project
-   */
   @Post(':project/provision')
   @Roles('user')
   async provisionSkills(
@@ -152,6 +395,43 @@ export class SkillsController {
     }
   }
 
+  @Get(':project/:skillName/detect-modifications')
+  async detectModifications(
+    @Param('project') project: string,
+    @Param('skillName') skillName: string,
+  ) {
+    try {
+      const result = await this.skillsService.detectModifications(project, skillName);
+      return { success: true, ...result };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':project/:skillName/thumbnail')
+  @Public()
+  async getProjectSkillThumbnail(
+    @Param('project') project: string,
+    @Param('skillName') skillName: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    try {
+      const thumbPath = this.skillsService.getProjectSkillThumbnailPath(project, skillName);
+      await access(thumbPath);
+      res.set({ 'Content-Type': 'image/png' });
+      const file = createReadStream(thumbPath);
+      return new StreamableFile(file);
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: 'Thumbnail not found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+  }
+
   @Post(':project/:skillName/files/upload')
   @Roles('user')
   @UseInterceptors(FileInterceptor('file'))
@@ -175,6 +455,43 @@ export class SkillsController {
         message: 'File uploaded successfully',
         fileName: file.originalname,
       };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post(':project/:skillName/submit-for-review')
+  @Roles('user')
+  async submitProjectSkillForReview(
+    @Param('project') project: string,
+    @Param('skillName') skillName: string,
+    @Req() req: Request,
+  ) {
+    try {
+      const user = (req as any).user;
+      const username = user?.username || 'unknown';
+      const request = await this.skillsService.submitProjectSkillForReview(project, skillName, username);
+      return { success: true, request };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post(':project/:skillName/update-from-repo')
+  @Roles('user')
+  async updateSkillFromRepository(
+    @Param('project') project: string,
+    @Param('skillName') skillName: string,
+  ) {
+    try {
+      await this.skillsService.updateSkillFromRepository(project, skillName);
+      return { success: true, message: 'Skill updated from repository' };
     } catch (error: any) {
       throw new HttpException(
         { success: false, message: error.message },

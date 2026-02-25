@@ -4,6 +4,7 @@ export interface RepositorySkill {
   name: string;
   source: 'standard' | 'optional';
   description?: string;
+  hasThumbnail?: boolean;
 }
 
 export class ProvisionSkillsDto {

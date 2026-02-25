@@ -1,7 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
+import AdmZip from 'adm-zip';
 import { RepositorySkill, ProvisionResult } from './dto/repository-skills.dto';
+import {
+  CatalogSkill,
+  SkillMetadata,
+  SkillDependencies,
+  ModificationResult,
+  ReviewRequest,
+} from './dto/skill-catalog.dto';
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 
 export interface Skill {
@@ -14,6 +24,7 @@ export interface SkillWithProject {
   project: string;
   isFromCurrentProject: boolean;
   description?: string;
+  hasThumbnail?: boolean;
 }
 
 @Injectable()
@@ -241,11 +252,13 @@ export class SkillsService {
       currentProjectSkillNames.add(skillName);
       const skillDir = path.join(this.getSkillsDir(currentProject), skillName);
       const description = await this.getSkillDescription(skillDir);
+      const hasThumbnail = await this.fileExists(path.join(skillDir, 'thumbnail.png'));
       allSkills.push({
         name: skillName,
         project: currentProject,
         isFromCurrentProject: true,
         description,
+        hasThumbnail,
       });
     }
 
@@ -259,11 +272,13 @@ export class SkillsService {
         if (!currentProjectSkillNames.has(skillName)) {
           const skillDir = path.join(this.getSkillsDir(project), skillName);
           const description = await this.getSkillDescription(skillDir);
+          const hasThumbnail = await this.fileExists(path.join(skillDir, 'thumbnail.png'));
           allSkills.push({
             name: skillName,
             project,
             isFromCurrentProject: false,
             description,
+            hasThumbnail,
           });
         }
       }
@@ -365,13 +380,14 @@ export class SkillsService {
       const entries = await fs.readdir(standardDir, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.isDirectory() && entry.name !== 'optional') {
-          const description = await this.getSkillDescription(
-            path.join(standardDir, entry.name),
-          );
+          const skillDir = path.join(standardDir, entry.name);
+          const description = await this.getSkillDescription(skillDir);
+          const hasThumbnail = await this.fileExists(path.join(skillDir, 'thumbnail.png'));
           skills.push({
             name: entry.name,
             source: 'standard',
             description,
+            hasThumbnail,
           });
         }
       }
@@ -385,13 +401,14 @@ export class SkillsService {
         const entries = await fs.readdir(optionalDir, { withFileTypes: true });
         for (const entry of entries) {
           if (entry.isDirectory()) {
-            const description = await this.getSkillDescription(
-              path.join(optionalDir, entry.name),
-            );
+            const skillDir = path.join(optionalDir, entry.name);
+            const description = await this.getSkillDescription(skillDir);
+            const hasThumbnail = await this.fileExists(path.join(skillDir, 'thumbnail.png'));
             skills.push({
               name: entry.name,
               source: 'optional',
               description,
+              hasThumbnail,
             });
           }
         }
@@ -567,5 +584,530 @@ export class SkillsService {
         error: error.message || `Failed to provision skill '${skillName}'`,
       };
     }
+  }
+
+  // =========================================================================
+  // Skill Catalog (Skill Store) methods
+  // =========================================================================
+
+  private async fileExists(filePath: string): Promise<boolean> {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private getRepoSkillDir(skillName: string, source: 'standard' | 'optional'): string {
+    const baseDir = source === 'optional'
+      ? this.getOptionalSkillsDir()
+      : this.getStandardSkillsDir();
+    return path.join(baseDir, skillName);
+  }
+
+  private getReviewQueueDir(): string {
+    return path.join(this.getSkillRepositoryPath(), '.review-queue');
+  }
+
+  private incrementVersion(currentVersion: string): string {
+    const parts = currentVersion.split('.');
+    if (parts.length === 1) {
+      return `${parts[0]}.1`;
+    }
+    const minor = parseInt(parts[1], 10) || 0;
+    return `${parts[0]}.${minor + 1}`;
+  }
+
+  /**
+   * List all repository skills with full metadata for the catalog
+   */
+  async listCatalogSkills(): Promise<CatalogSkill[]> {
+    const repoSkills = await this.listRepositorySkills(true);
+    const catalogSkills: CatalogSkill[] = [];
+
+    for (const skill of repoSkills) {
+      const skillDir = this.getRepoSkillDir(skill.name, skill.source);
+      const metadata = await this.getSkillMetadata(skill.name, skill.source);
+      const dependencies = await this.getSkillDependencies(skill.name, skill.source);
+      const hasThumbnail = await this.fileExists(path.join(skillDir, 'thumbnail.png'));
+
+      catalogSkills.push({
+        name: skill.name,
+        source: skill.source,
+        description: skill.description,
+        metadata: metadata || undefined,
+        dependencies: dependencies || undefined,
+        hasThumbnail,
+      });
+    }
+
+    return catalogSkills.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Read .metadata.json for a repository skill
+   */
+  async getSkillMetadata(skillName: string, source: 'standard' | 'optional'): Promise<SkillMetadata | null> {
+    const metaPath = path.join(this.getRepoSkillDir(skillName, source), '.metadata.json');
+    try {
+      const content = await fs.readFile(metaPath, 'utf-8');
+      return JSON.parse(content);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Write .metadata.json for a repository skill
+   */
+  async saveSkillMetadata(skillName: string, source: 'standard' | 'optional', metadata: SkillMetadata): Promise<void> {
+    const skillDir = this.getRepoSkillDir(skillName, source);
+    await fs.access(skillDir); // ensure skill exists
+    await fs.writeFile(path.join(skillDir, '.metadata.json'), JSON.stringify(metadata, null, 2), 'utf-8');
+  }
+
+  /**
+   * Read .dependencies.json for a repository skill
+   */
+  async getSkillDependencies(skillName: string, source: 'standard' | 'optional'): Promise<SkillDependencies | null> {
+    const depsPath = path.join(this.getRepoSkillDir(skillName, source), '.dependencies.json');
+    try {
+      const content = await fs.readFile(depsPath, 'utf-8');
+      return JSON.parse(content);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Write .dependencies.json for a repository skill
+   */
+  async saveSkillDependencies(skillName: string, source: 'standard' | 'optional', dependencies: SkillDependencies): Promise<void> {
+    const skillDir = this.getRepoSkillDir(skillName, source);
+    await fs.access(skillDir); // ensure skill exists
+    await fs.writeFile(path.join(skillDir, '.dependencies.json'), JSON.stringify(dependencies, null, 2), 'utf-8');
+  }
+
+  /**
+   * Get a read stream for a skill's thumbnail.png
+   */
+  getSkillThumbnailStream(skillName: string, source: 'standard' | 'optional'): { path: string } {
+    const thumbPath = path.join(this.getRepoSkillDir(skillName, source), 'thumbnail.png');
+    return { path: thumbPath };
+  }
+
+  /**
+   * Get a read stream for a project skill's thumbnail.png
+   */
+  getProjectSkillThumbnailPath(project: string, skillName: string): string {
+    return path.join(this.getSkillsDir(project), skillName, 'thumbnail.png');
+  }
+
+  /**
+   * Upload a zip file as a new skill to the repository
+   */
+  async uploadSkillZip(zipBuffer: Buffer, source: 'standard' | 'optional'): Promise<{ skillName: string }> {
+    const zip = new AdmZip(zipBuffer);
+    const entries = zip.getEntries();
+
+    if (entries.length === 0) {
+      throw new Error('Zip file is empty');
+    }
+
+    // Determine the skill name from the zip structure
+    // Option 1: top-level directory name
+    // Option 2: files at root level — use the zip filename
+    let skillName: string | null = null;
+    let hasSkillMd = false;
+    const topLevelDirs = new Set<string>();
+
+    for (const entry of entries) {
+      const parts = entry.entryName.split('/');
+      if (parts.length > 1 && parts[0]) {
+        topLevelDirs.add(parts[0]);
+      }
+      if (entry.entryName.endsWith('SKILL.md') || entry.name === 'SKILL.md') {
+        hasSkillMd = true;
+      }
+    }
+
+    if (!hasSkillMd) {
+      throw new Error('Zip must contain a SKILL.md file');
+    }
+
+    // If there's exactly one top-level directory, use it as skill name
+    if (topLevelDirs.size === 1) {
+      skillName = Array.from(topLevelDirs)[0];
+    } else {
+      throw new Error('Zip must contain exactly one top-level directory named after the skill');
+    }
+
+    // Validate skill name
+    if (!/^[a-z0-9-]+$/.test(skillName)) {
+      throw new Error('Skill name (top-level directory) can only contain lowercase letters, numbers, and hyphens');
+    }
+
+    const targetDir = this.getRepoSkillDir(skillName, source);
+
+    // Check if skill already exists
+    if (await this.fileExists(targetDir)) {
+      throw new Error(`Skill '${skillName}' already exists in the repository. Use the update flow instead.`);
+    }
+
+    // Extract to target directory
+    await fs.mkdir(targetDir, { recursive: true });
+    for (const entry of entries) {
+      if (entry.isDirectory) continue;
+      // Remove the top-level directory prefix
+      const parts = entry.entryName.split('/');
+      parts.shift(); // remove top-level dir
+      if (parts.length === 0 || !parts.join('/')) continue;
+      const filePath = path.join(targetDir, ...parts);
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, entry.getData());
+    }
+
+    // Create default .metadata.json if not present
+    const metaPath = path.join(targetDir, '.metadata.json');
+    if (!(await this.fileExists(metaPath))) {
+      const defaultMeta: SkillMetadata = { version: '1.0' };
+      await fs.writeFile(metaPath, JSON.stringify(defaultMeta, null, 2), 'utf-8');
+    }
+
+    return { skillName };
+  }
+
+  /**
+   * Delete a skill from the repository
+   */
+  async deleteRepositorySkill(skillName: string, source: 'standard' | 'optional'): Promise<void> {
+    const skillDir = this.getRepoSkillDir(skillName, source);
+    await fs.rm(skillDir, { recursive: true, force: true });
+  }
+
+  /**
+   * Submit a zip file for admin review
+   */
+  async submitForReview(zipBuffer: Buffer, originalFilename: string, username: string): Promise<ReviewRequest> {
+    const zip = new AdmZip(zipBuffer);
+    const entries = zip.getEntries();
+
+    // Determine skill name from zip
+    let skillName = 'unknown';
+    const topLevelDirs = new Set<string>();
+    for (const entry of entries) {
+      const parts = entry.entryName.split('/');
+      if (parts.length > 1 && parts[0]) {
+        topLevelDirs.add(parts[0]);
+      }
+    }
+    if (topLevelDirs.size === 1) {
+      skillName = Array.from(topLevelDirs)[0];
+    }
+
+    // Determine source by checking if skill exists in standard or optional
+    let source: 'standard' | 'optional' | undefined;
+    if (await this.fileExists(path.join(this.getStandardSkillsDir(), skillName))) {
+      source = 'standard';
+    } else if (await this.fileExists(path.join(this.getOptionalSkillsDir(), skillName))) {
+      source = 'optional';
+    }
+
+    const queueDir = this.getReviewQueueDir();
+    await fs.mkdir(queueDir, { recursive: true });
+
+    const id = crypto.randomUUID();
+    const request: ReviewRequest = {
+      id,
+      skillName,
+      submittedBy: username,
+      submittedAt: new Date().toISOString(),
+      fileName: originalFilename,
+      source,
+    };
+
+    await fs.writeFile(path.join(queueDir, `${id}.zip`), zipBuffer);
+    await fs.writeFile(path.join(queueDir, `${id}.json`), JSON.stringify(request, null, 2), 'utf-8');
+
+    return request;
+  }
+
+  /**
+   * Get the file path for a review request's zip
+   */
+  getReviewZipPath(id: string): string {
+    return path.join(this.getReviewQueueDir(), `${id}.zip`);
+  }
+
+  /**
+   * List all pending review requests
+   */
+  async listReviewRequests(): Promise<ReviewRequest[]> {
+    const queueDir = this.getReviewQueueDir();
+    try {
+      const entries = await fs.readdir(queueDir);
+      const jsonFiles = entries.filter(e => e.endsWith('.json'));
+      const requests: ReviewRequest[] = [];
+
+      for (const jsonFile of jsonFiles) {
+        try {
+          const content = await fs.readFile(path.join(queueDir, jsonFile), 'utf-8');
+          requests.push(JSON.parse(content));
+        } catch {
+          // skip malformed files
+        }
+      }
+
+      return requests.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Accept a review request: overwrite skill from zip and auto-increment version
+   */
+  async acceptReviewRequest(id: string): Promise<{ newVersion: string; skillName: string }> {
+    const queueDir = this.getReviewQueueDir();
+    const sidecarPath = path.join(queueDir, `${id}.json`);
+    const zipPath = path.join(queueDir, `${id}.zip`);
+
+    const sidecarContent = await fs.readFile(sidecarPath, 'utf-8');
+    const request: ReviewRequest = JSON.parse(sidecarContent);
+
+    // Determine source and target directory
+    let source: 'standard' | 'optional' = request.source || 'standard';
+    const targetDir = this.getRepoSkillDir(request.skillName, source);
+
+    // Read current version
+    let currentVersion = '1.0';
+    try {
+      const meta = await this.getSkillMetadata(request.skillName, source);
+      if (meta?.version) {
+        currentVersion = meta.version;
+      }
+    } catch {
+      // use default
+    }
+
+    const newVersion = this.incrementVersion(currentVersion);
+
+    // Extract zip to overwrite skill directory
+    const zipBuffer = await fs.readFile(zipPath);
+    const zip = new AdmZip(zipBuffer);
+    const entries = zip.getEntries();
+
+    // Remove existing directory and recreate
+    await fs.rm(targetDir, { recursive: true, force: true });
+    await fs.mkdir(targetDir, { recursive: true });
+
+    for (const entry of entries) {
+      if (entry.isDirectory) continue;
+      const parts = entry.entryName.split('/');
+      // Remove top-level directory if present
+      if (parts.length > 1) {
+        parts.shift();
+      }
+      if (parts.length === 0 || !parts.join('/')) continue;
+      const filePath = path.join(targetDir, ...parts);
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, entry.getData());
+    }
+
+    // Update .metadata.json with new version
+    let metadata: SkillMetadata;
+    try {
+      const metaPath = path.join(targetDir, '.metadata.json');
+      const content = await fs.readFile(metaPath, 'utf-8');
+      metadata = JSON.parse(content);
+    } catch {
+      metadata = { version: currentVersion };
+    }
+    metadata.version = newVersion;
+    await fs.writeFile(path.join(targetDir, '.metadata.json'), JSON.stringify(metadata, null, 2), 'utf-8');
+
+    // Clean up review files
+    await fs.unlink(zipPath);
+    await fs.unlink(sidecarPath);
+
+    return { newVersion, skillName: request.skillName };
+  }
+
+  /**
+   * Reject a review request: delete zip and sidecar
+   */
+  async rejectReviewRequest(id: string): Promise<void> {
+    const queueDir = this.getReviewQueueDir();
+    try { await fs.unlink(path.join(queueDir, `${id}.zip`)); } catch { /* ignore */ }
+    try { await fs.unlink(path.join(queueDir, `${id}.json`)); } catch { /* ignore */ }
+  }
+
+  /**
+   * Detect modifications between a project skill and the repository skill
+   */
+  async detectModifications(project: string, skillName: string): Promise<ModificationResult> {
+    const projectSkillDir = path.join(this.getSkillsDir(project), skillName);
+
+    // Check if project skill exists
+    if (!(await this.fileExists(projectSkillDir))) {
+      return { status: 'not-provisioned' };
+    }
+
+    // Find skill in repository
+    let repoDir: string | null = null;
+    const standardPath = path.join(this.getStandardSkillsDir(), skillName);
+    const optionalPath = path.join(this.getOptionalSkillsDir(), skillName);
+
+    if (await this.fileExists(standardPath)) {
+      repoDir = standardPath;
+    } else if (await this.fileExists(optionalPath)) {
+      repoDir = optionalPath;
+    }
+
+    if (!repoDir) {
+      return { status: 'not-provisioned' };
+    }
+
+    // Compare versions from .metadata.json
+    let repoVersion: string | null = null;
+    let projectVersion: string | null = null;
+
+    try {
+      const repoMeta = JSON.parse(await fs.readFile(path.join(repoDir, '.metadata.json'), 'utf-8'));
+      repoVersion = repoMeta.version || null;
+    } catch { /* no metadata */ }
+
+    try {
+      const projMeta = JSON.parse(await fs.readFile(path.join(projectSkillDir, '.metadata.json'), 'utf-8'));
+      projectVersion = projMeta.version || null;
+    } catch { /* no metadata */ }
+
+    // Compare files by hash
+    const changedFiles = await this.compareDirectoryFiles(projectSkillDir, repoDir);
+
+    if (changedFiles.length === 0) {
+      return { status: 'current' };
+    }
+
+    // If repo has a higher version, it's "updated"
+    if (repoVersion && projectVersion && this.isNewerVersion(repoVersion, projectVersion)) {
+      return { status: 'updated', changedFiles };
+    }
+
+    // Same version but files differ: "refined" (modified in project)
+    return { status: 'refined', changedFiles };
+  }
+
+  private isNewerVersion(a: string, b: string): boolean {
+    const partsA = a.split('.').map(Number);
+    const partsB = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      const va = partsA[i] || 0;
+      const vb = partsB[i] || 0;
+      if (va > vb) return true;
+      if (va < vb) return false;
+    }
+    return false;
+  }
+
+  private async compareDirectoryFiles(dirA: string, dirB: string): Promise<string[]> {
+    const changedFiles: string[] = [];
+
+    const listFiles = async (dir: string, prefix = ''): Promise<Map<string, string>> => {
+      const result = new Map<string, string>();
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+          if (entry.isDirectory()) {
+            const subMap = await listFiles(path.join(dir, entry.name), relPath);
+            for (const [k, v] of subMap) result.set(k, v);
+          } else {
+            const content = await fs.readFile(path.join(dir, entry.name));
+            const hash = crypto.createHash('md5').update(content).digest('hex');
+            result.set(relPath, hash);
+          }
+        }
+      } catch { /* directory doesn't exist */ }
+      return result;
+    };
+
+    const filesA = await listFiles(dirA);
+    const filesB = await listFiles(dirB);
+
+    // Files in A but not in B or with different hash
+    for (const [file, hash] of filesA) {
+      if (!filesB.has(file) || filesB.get(file) !== hash) {
+        changedFiles.push(file);
+      }
+    }
+
+    // Files in B but not in A
+    for (const file of filesB.keys()) {
+      if (!filesA.has(file) && !changedFiles.includes(file)) {
+        changedFiles.push(file);
+      }
+    }
+
+    return changedFiles.sort();
+  }
+
+  /**
+   * Submit a project skill for admin review (creates zip in-memory)
+   */
+  async submitProjectSkillForReview(project: string, skillName: string, username: string): Promise<ReviewRequest> {
+    const skillDir = path.join(this.getSkillsDir(project), skillName);
+
+    if (!(await this.fileExists(skillDir))) {
+      throw new Error(`Skill '${skillName}' not found in project '${project}'`);
+    }
+
+    // Create zip from project skill directory
+    const zip = new AdmZip();
+    const addDirToZip = async (dirPath: string, zipPrefix: string) => {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        const zipPath = `${zipPrefix}/${entry.name}`;
+        if (entry.isDirectory()) {
+          await addDirToZip(fullPath, zipPath);
+        } else {
+          const content = await fs.readFile(fullPath);
+          zip.addFile(zipPath, content);
+        }
+      }
+    };
+
+    await addDirToZip(skillDir, skillName);
+    const zipBuffer = zip.toBuffer();
+
+    return this.submitForReview(zipBuffer, `${skillName}.zip`, username);
+  }
+
+  /**
+   * Update a project skill from the repository version
+   */
+  async updateSkillFromRepository(project: string, skillName: string): Promise<void> {
+    const projectSkillDir = path.join(this.getSkillsDir(project), skillName);
+
+    // Find in repo
+    let repoDir: string | null = null;
+    const standardPath = path.join(this.getStandardSkillsDir(), skillName);
+    const optionalPath = path.join(this.getOptionalSkillsDir(), skillName);
+
+    if (await this.fileExists(standardPath)) {
+      repoDir = standardPath;
+    } else if (await this.fileExists(optionalPath)) {
+      repoDir = optionalPath;
+    }
+
+    if (!repoDir) {
+      throw new Error(`Skill '${skillName}' not found in the repository`);
+    }
+
+    // Remove existing project skill and re-copy from repo
+    await fs.rm(projectSkillDir, { recursive: true, force: true });
+    await this.copyDirectory(repoDir, projectSkillDir);
   }
 }

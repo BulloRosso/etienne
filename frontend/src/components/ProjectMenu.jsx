@@ -34,6 +34,7 @@ import MQTTSettings from './MQTTSettings';
 import CustomUI from './CustomUI';
 import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
 import SkillsSettings from './SkillsSettings';
+import SkillCatalog from './SkillCatalog';
 import DashboardGrid from './DashboardGrid';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
@@ -62,6 +63,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [customUIOpen, setCustomUIOpen] = useState(false);
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [skillCatalogOpen, setSkillCatalogOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
   const [ontologyCoreOpen, setOntologyCoreOpen] = useState(false);
@@ -169,6 +171,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'scrapbook':
         handleScrapbookOpen();
+        break;
+      case 'skillstore':
+        handleSkillCatalogOpen();
         break;
       default:
         break;
@@ -334,6 +339,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleSkillsClose = () => {
     setSkillsOpen(false);
+  };
+
+  const handleSkillCatalogOpen = () => {
+    setSkillCatalogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleSkillCatalogClose = () => {
+    setSkillCatalogOpen(false);
   };
 
   const handleContextsOpen = () => {
@@ -764,6 +778,11 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         open={skillsOpen}
         onClose={handleSkillsClose}
         project={currentProject}
+      />
+
+      <SkillCatalog
+        open={skillCatalogOpen}
+        onClose={handleSkillCatalogClose}
       />
 
       <ContextManager

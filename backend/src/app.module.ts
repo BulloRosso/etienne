@@ -18,7 +18,6 @@ import { ContentManagementModule } from './content-management/content-management
 import { McpServerModule } from './mcpserver/mcp-server.module';
 import { MemoriesModule } from './memories/memories.module';
 import { BudgetMonitoringModule } from './budget-monitoring/budget-monitoring.module';
-import { BudgetMonitoringService } from './budget-monitoring/budget-monitoring.service';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { CheckpointsModule } from './checkpoints/checkpoints.module';
 import { GuardrailsModule } from './input-guardrails/guardrails.module';
@@ -72,7 +71,6 @@ import { UserNotificationsModule } from './user-notifications/user-notifications
     CodexSdkOrchestratorService,
     CodexSessionManagerService,
     CodexPermissionService,
-    BudgetMonitoringService,
     GuardrailsService,
     OutputGuardrailsService,
     SessionsService,

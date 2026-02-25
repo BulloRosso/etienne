@@ -16,6 +16,20 @@ import {
 } from '@mui/material';
 import { GiAtom } from 'react-icons/gi';
 
+const SkillIcon = ({ skill, size = 20 }) => {
+  if (skill?.hasThumbnail) {
+    return (
+      <img
+        src={`/api/skills/catalog/${skill.name}/thumbnail?source=${skill.source}`}
+        alt={skill.name}
+        style={{ width: size, height: size, objectFit: 'contain' }}
+        onError={(e) => { e.target.style.display = 'none'; }}
+      />
+    );
+  }
+  return <GiAtom style={{ fontSize: size }} />;
+};
+
 export default function SkillsSelector({
   standardSkills = [],
   optionalSkills = [],
@@ -52,7 +66,7 @@ export default function SkillsSelector({
                 <Checkbox checked disabled sx={{ color: '#000', '&.Mui-checked': { color: '#000' }, '&.Mui-disabled': { color: '#000' } }} />
               </ListItemIcon>
               <ListItemIcon sx={{ minWidth: 42, mt: '8px', color: '#000' }}>
-                <GiAtom />
+                <SkillIcon skill={skill} />
               </ListItemIcon>
               <ListItemText
                 primary={skill.name}
@@ -87,7 +101,7 @@ export default function SkillsSelector({
                   />
                 </ListItemIcon>
                 <ListItemIcon sx={{ minWidth: 42, mt: '8px' }}>
-                  <GiAtom />
+                  <SkillIcon skill={skill} />
                 </ListItemIcon>
                 <ListItemText
                   primary={skillName}
@@ -141,7 +155,7 @@ export default function SkillsSelector({
                     />
                   </ListItemIcon>
                   <ListItemIcon sx={{ minWidth: 36, mt: '4px' }}>
-                    <GiAtom />
+                    <SkillIcon skill={skill} />
                   </ListItemIcon>
                   <ListItemText
                     primary={skill.name}

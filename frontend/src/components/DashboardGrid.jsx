@@ -84,6 +84,14 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
       image: '/decision-support.jpg',
       label: 'Decision Support',
       disabled: !currentProject
+    },
+    // 8th row
+    {
+      id: 'skillstore',
+      image: '/skills.jpg',
+      label: 'Skill Store',
+      disabled: false,
+      adminOnly: true
     }
   ];
 
