@@ -33,6 +33,7 @@ The following comparison illustrates the conceptual differences between Etienne 
 ## Table of Contents
 
 - [Built around Skills](#built-around-skills)
+- [Managed Etienne](#managed-etienne)
 - [Main Components](#main-components)
 - [The Agent and the outside World](#the-agent-and-the-outside-world)
 - [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
@@ -180,7 +181,17 @@ Etienne also adds practical extensions to the formal standard that business envi
 
 This means IT knows exactly what a skill requires before deployment, and users maintain control over their own credentials and configurations.
 
-## Main Components
+# Managed Etienne
+
+You can install Etienne locally, deploy it using the Docker (after you have built it from Docker file provided) or get it hosted on AWS:
+
+<div align="center">
+<img src="/docs/images/managed-etienne.jpg" alt="Managed Etienne" width="800">
+</div>
+
+[Managed Etienne Landing Page}(https://etienne-agent.replit.app/)
+
+# Main Components
 
 This repo contains 3 mandatory servers, 6 optional servers and many modules.
 
