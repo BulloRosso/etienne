@@ -35,10 +35,10 @@ The following comparison illustrates the conceptual differences between Etienne 
 Here are the guiding principles for Etienne, and why I believe it matters:
 
 <div align="center">
-<img src="/docs/images/etienne-manifesto.jpg" style="marginTop: 24px" alt="Etienne Manifesto" width="600">
+<img src="/docs/images/etienne-manifesto.jpg" style="marginTop: 24px" alt="Etienne Manifesto" width="700">
 </div> 
 
-** Focused on usability and simplicity.** I build it because I like to use it myself. And one day, I might build an entirely different business on top of it. If the builder doesn't enjoy the tool, nobody will.
+**Focused on usability and simplicity.** I build it because I like to use it myself. And one day, I might build an entirely different business on top of it. If the builder doesn't enjoy the tool, nobody will.
 
 **Aware of its place in a bigger world.** Etienne doesn't try to be everything. It's designed to run inside an agentic OS — something like OpenAI Frontier — which handles all the infrastructure burdens I don't want to reinvent: prompt injection detection and prevention, data access policies, audit trails for compliance. Etienne is the agent experience layer. The platform handles the plumbing.
 
