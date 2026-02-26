@@ -1332,6 +1332,10 @@ The frontend subscribes to an SSE stream (`/api/budget-monitoring/:project/strea
 Brought to you by **[e-ntegration GmbH](https://e-ntegration.de)**, Nürnberg, Germany.
 
 <div align="center">
+<img src="/docs/images/ralph-navasardyan.jpg" alt="Ralph" width="900">
+</div>
+
+<div align="center">
 <img src="/docs/images/etienne-in-action.jpg" alt="Etienne in action" width="900">
 </div>
 
