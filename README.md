@@ -24,6 +24,8 @@ This setup addresses the use case **business collaborator agent** working on loc
 
 Etienne uses different **roles to have clear responsibilities defined** - it is usually NOT deployed as a personal AI assistant where the admin and the user role would be the same person.
 
+## Holy Crab! Is it like...???
+
 The following comparison illustrates the conceptual differences between Etienne and OpenClaw as of early 2026:
 
 <div align="center">
