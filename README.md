@@ -32,6 +32,7 @@ The following comparison illustrates the conceptual differences between Etienne 
 
 ## Table of Contents
 
+- [Built around Skills](#built-around-skills)
 - [Main Components](#main-components)
 - [The Agent and the outside World](#the-agent-and-the-outside-world)
 - [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
@@ -103,13 +104,13 @@ This isn't science fiction. This is skill-based AI agent development, and it's a
 ### A Skill Is Simpler Than You Think (And That's the Point)
 
 <div align="center">
-<img src="/docs/images/skills-2.jpg" alt="Business & Tech" width="900">
+<img src="/docs/images/skills-2.jpg" alt="Business & Tech" width="700">
 </div>
 
 At its core, an agent skill is just two things working together:
 
-* A markdown file written by a business expert — describing what to do, when to do it, and why it matters, in plain language anyone can read and understand.
-* Code snippets (Python, JavaScript, or any language) contributed by an IT engineer — providing the technical muscle to execute that expertise.
+* **A markdown file** written by a business expert — describing what to do, when to do it, and why it matters, in plain language anyone can read and understand.
+* **Code snippets** (Python, JavaScript, or any language) contributed by an IT engineer — providing the technical muscle to execute that expertise.
 
 That's it. Business knowledge meets technical capability in a single, portable folder.
 
