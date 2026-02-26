@@ -30,6 +30,30 @@ The following comparison illustrates the conceptual differences between Etienne 
 <img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="600">
 </div> 
 
+## The Etienne Manifesto: It's all about Engineering, not LLM magic!
+
+Here are the guiding principles for Etienne, and why I believe it matters:
+
+<div align="center">
+<img src="/docs/images/etienne-manifesto.jpg" style="marginTop: 24px" alt="Etienne Manifesto" width="600">
+</div> 
+
+** Focused on usability and simplicity.** I build it because I like to use it myself. And one day, I might build an entirely different business on top of it. If the builder doesn't enjoy the tool, nobody will.
+
+**Aware of its place in a bigger world.** Etienne doesn't try to be everything. It's designed to run inside an agentic OS — something like OpenAI Frontier — which handles all the infrastructure burdens I don't want to reinvent: prompt injection detection and prevention, data access policies, audit trails for compliance. Etienne is the agent experience layer. The platform handles the plumbing.
+
+**Deterministic where it counts.** Here's the quiet revolution: Etienne introduces traditional control mechanisms into the agentic world. CRON jobs for scheduling. Finite state machines for workflows. Ontology graphs for knowledge acquisition. Decision graphs built on top of those ontologies. An internal agent event bus combined with external triggers — email, MQTT, webhooks. The drunk at the roulette table is still there, but now he's surrounded by sober engineers who make sure the right bets get placed at the right time.
+
+**Isolated by design.** Every task lives inside a project. Knowledge graphs, decision graphs, workflows, data — all of it is scoped to a defined mission statement. No bleed. No confusion. No agent accidentally applying restaurant marketing logic to your medical practice.
+
+**Composable everywhere.** Use standard agent skills to enhance process knowledge. Use MCP tools to enhance data access. Use file previewers and editors to let users manipulate complex results directly — modifying a CAD object, controlling a robot, reviewing a financial model. The agent doesn't just produce output. It produces editable output.
+
+**Built for continuous improvement.** Project-level knowledge graphs and decision graphs can be promoted to the company level — managed as Microsoft Fabric IQ objects and rules. Agent skills developed in one project can be submitted to an administrator for review, then published to a local skill store, making them available to every other user. The system learns. Not in the fuzzy, hand-wavy way that LLMs "learn." In the structured, auditable, improvable way that actual organizations need.
+
+**Respectful of security.** Etienne provides a role-based access control core around APIs and UI, adaptable to any existing identity management system — EntraID, Okta, whatever your company already runs. It supports Git-controlled versioning, backup and restore, and defined releases aligned to basic compliance rules. Event logs and settings live in defined, inspectable, auditable places. Your IT department won't love it on day one. But they won't block it either.
+
+
+
 ## Table of Contents
 
 - [Built around Skills](#built-around-skills)
@@ -94,7 +118,7 @@ The following comparison illustrates the conceptual differences between Etienne 
   - [Real-time Updates](#real-time-updates)
 - [Maintainer](#maintainer)
 
-## Built around Skills
+# Built around Skills
 
 <div align="center">
 <img src="/docs/images/skills-1.jpg" alt="Skills are cute" width="900">
