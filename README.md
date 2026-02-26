@@ -44,7 +44,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 
 **Aware of its place in a bigger world.** Etienne doesn't try to be everything. It's designed to run inside an agentic OS — something like OpenAI Frontier — which handles all the infrastructure burdens I don't want to reinvent: prompt injection detection and prevention, data access policies, audit trails for compliance. Etienne is the agent experience layer. The platform handles the plumbing.
 
-**Deterministic where it counts.** Here's the quiet revolution: Etienne introduces traditional control mechanisms into the agentic world. CRON jobs for scheduling. Finite state machines for workflows. Ontology graphs for knowledge acquisition. Decision graphs built on top of those ontologies. An internal agent event bus combined with external triggers — email, MQTT, webhooks. The drunk at the roulette table is still there, but now he's surrounded by sober engineers who make sure the right bets get placed at the right time.
+**Deterministic where it counts.** Here's the quiet revolution: Etienne introduces traditional control mechanisms into the agentic world. CRON jobs for scheduling. Finite state machines for workflows. Ontology graphs for knowledge acquisition. Decision graphs built on top of those ontologies. An internal agent event bus combined with external triggers — email, MQTT, webhooks. 
 
 **Isolated by design.** Every task lives inside a project. Knowledge graphs, decision graphs, workflows, data — all of it is scoped to a defined mission statement. No bleed. No confusion. No agent accidentally applying restaurant marketing logic to your medical practice.
 
