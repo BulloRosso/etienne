@@ -50,7 +50,7 @@ export default function LoginDialog({ onSuccess }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: 'background.default',
       }}
     >
       <Paper
