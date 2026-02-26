@@ -183,13 +183,13 @@ This means IT knows exactly what a skill requires before deployment, and users m
 
 # Managed Etienne
 
-You can install Etienne locally, deploy it using the Docker (after you have built it from Docker file provided) or get it hosted on AWS:
+You can install Etienne locally, deploy it using the Docker (after you have built it from Docker the file provided) or get it hosted on AWS:
 
 <div align="center">
 <img src="/docs/images/managed-etienne.jpg" alt="Managed Etienne" width="800">
 </div>
 
-[Managed Etienne Landing Page}(https://etienne-agent.replit.app/)
+[Managed Etienne Landing Page](https://etienne-agent.replit.app/)
 
 # Main Components
 
