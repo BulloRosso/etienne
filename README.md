@@ -104,7 +104,7 @@ This isn't science fiction. This is skill-based AI agent development, and it's a
 ### A Skill Is Simpler Than You Think (And That's the Point)
 
 <div align="center">
-<img src="/docs/images/skills-2.jpg" alt="Business & Tech" width="700">
+<img src="/docs/images/skills-2.jpg" alt="Business & Tech" width="500">
 </div>
 
 At its core, an agent skill is just two things working together:
