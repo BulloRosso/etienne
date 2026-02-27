@@ -59,6 +59,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 ## Table of Contents
 
 - [Built around Skills](#built-around-skills)
+- [Focused on local Data and Services](#focused-on-local-data-and-services)
 - [Managed Etienne](#managed-etienne)
 - [Main Components](#main-components)
 - [The Agent and the outside World](#the-agent-and-the-outside-world)
@@ -206,6 +207,53 @@ Etienne also adds practical extensions to the formal standard that business envi
 * **Environment variables** — explicit declarations of which API keys, tokens, or configuration values the skill needs. After installing a skill, a user can securely provide their personal credentials scoped exclusively to their project.
 
 This means IT knows exactly what a skill requires before deployment, and users maintain control over their own credentials and configurations.
+
+# Focused on Data and Local Services
+
+Etienne's data structures are build around the idea of keeping things local and separated. This might be a strange concept of self-containment if you are a cloud developer and your daily-business is dealing with shared services like databases. 
+
+## Workspace & Projects
+
+Etienne expects all the user data inside a single local **workspace directory** (or in case of Docker deployment a single mount). The subdirectories in the workspace are the **projects**. 
+
+While in advanced use cases the agent can work cross-project the default setting for the **coding agent's root directory** is set at project level.
+
+Inside the workspace the usual . convention applies: The user cannot see any internal files or directories starting with a . character.
+
+<div align="center">
+<img src="/docs/images/file-explorer-1.jpg" alt="Filesystem user perspective" width="700">
+</div>
+
+Only the admin role can see these files via the UI:
+
+<div align="center">
+<img src="/docs/images/file-explorer-2.jpg" alt="Filesystem admin perspective" width="700">
+</div>
+
+All relevant settings and data are kept on project level to ensure two features:
+* **Right to forget** if sensitive data was processed inside one project, it will be purged when the directory is deleted
+* **Portability** users can exchange a complete project by simply copying the directory
+
+## Service Control
+
+The user interface provides access to the process-manager API which is responsible of starting/stopping local servers on different ports.
+
+<div align="center">
+<img src="/docs/images/service-control.jpg" alt="Service Control Pane" width="900">
+</div>
+
+This feature is not so much targeted at human usage, but to give the agent the ability to decide which services to ramp up: There is an MCP server with a MCP App(UI) which enables the user to access service control also in the chat pane.
+
+## Project-aware Services
+
+All of the local **services treat projects like tenants**: they store their data (also temp files) in subdirectories of the project folder and serve them from this location.
+
+<div align="center">
+<img src="/docs/images/files-ystem-3.jpg" alt="Service data" width="700">
+</div>
+
+In the example above we can see the RDF store ("knowledge graph") log and data files inside a project's directory.
+
 
 # Managed Etienne
 
