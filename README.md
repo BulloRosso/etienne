@@ -141,7 +141,7 @@ This main **collaboration feature** sets Etienne apart from other agents like Op
 # Built around Skills
 
 <div align="center">
-<img src="/docs/images/skills-1.jpg" alt="Skills are cute" width="900">
+<img src="/docs/images/skills-1.jpg" alt="Skills are cute" width="700">
 </div>
 
 This isn't science fiction. This is skill-based AI agent development, and it's about to change how your organization works with AI. What's even better: Agent Skills work across vendors. So if you later switch from an OpenAI-based solution to an Anthropic-based one — or any other provider — your investment in skills is preserved. No lock-in. No starting over.
