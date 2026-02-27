@@ -8,6 +8,7 @@ import ImageViewer from './ImageViewer';
 import ExcelViewer from './ExcelViewer';
 import WorkflowVisualizer from './WorkflowVisualizer';
 import PromptEditor from './PromptEditor';
+import ScrapbookViewer from './ScrapbookViewer';
 
 /**
  * Maps viewer names to their component render functions.
@@ -43,6 +44,9 @@ export const VIEWER_COMPONENTS = {
   ),
   workflow: (file, projectName) => (
     <WorkflowVisualizer workflowFile={file.path} projectName={projectName} />
+  ),
+  scrapbook: (file, projectName) => (
+    <ScrapbookViewer filename={file.path} projectName={projectName} />
   ),
 };
 

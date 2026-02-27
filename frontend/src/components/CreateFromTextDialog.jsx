@@ -15,7 +15,7 @@ import Editor from '@monaco-editor/react';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function CreateFromTextDialog({ open, onClose, projectName, onCreated }) {
+export default function CreateFromTextDialog({ open, onClose, projectName, graphName = 'default', onCreated }) {
   const { mode: themeMode } = useThemeMode();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function CreateFromTextDialog({ open, onClose, projectName, onCre
       setLoading(true);
       setError(null);
 
-      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/create-from-text`, {
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/create-from-text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

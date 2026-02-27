@@ -41,7 +41,7 @@ const allIcons = {
 
 const iconNames = Object.keys(allIcons);
 
-export default function ScrapbookNodeEdit({ open, onClose, projectName, node, parentNode, onSaved, onNodeUpdated }) {
+export default function ScrapbookNodeEdit({ open, onClose, projectName, graphName = 'default', node, parentNode, onSaved, onNodeUpdated }) {
   const isEdit = Boolean(node?.id);
 
   const [label, setLabel] = useState('');
@@ -106,14 +106,14 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
       let response;
       if (isEdit) {
         // Update existing node
-        response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+        response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${node.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
         // Create new node
-        response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes`, {
+        response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -149,8 +149,8 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
 
       // Build URL with describe_image query parameter if enabled
       const url = describeImage
-        ? `/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images?describe_image=true`
-        : `/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images`;
+        ? `/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${node.id}/images?describe_image=true`
+        : `/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${node.id}/images`;
 
       const response = await apiFetch(url, {
         method: 'POST',
@@ -181,7 +181,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
     if (!node?.id) return;
 
     try {
-      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}/images/${filename}`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${node.id}/images/${filename}`, {
         method: 'DELETE',
       });
       setImages(images.filter(img => img !== filename));
@@ -293,7 +293,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, node, pa
                     >
                       <Box
                         component="img"
-                        src={`/api/workspace/${projectName}/scrapbook/images/${filename}`}
+                        src={`/api/workspace/${projectName}/scrapbook/${graphName}/images/${filename}`}
                         alt={filename}
                         sx={{
                           width: '100%',

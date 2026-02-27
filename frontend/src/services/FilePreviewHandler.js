@@ -40,6 +40,8 @@ class FilePreviewHandler {
       this.handleImagePreview(filePath, projectName);
     } else if (extension === 'xls' || extension === 'xlsx') {
       this.handleExcelPreview(filePath, projectName);
+    } else if (extension === 'scbk') {
+      this.handleScrapbookPreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -191,6 +193,21 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'excel-preview'
+    });
+  }
+
+  /**
+   * Handle Scrapbook file preview
+   * @param {string} filePath - The path to the .scbk file
+   * @param {string} projectName - The project name
+   */
+  handleScrapbookPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Scrapbook preview for', filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'scrapbook-preview'
     });
   }
 

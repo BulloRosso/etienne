@@ -16,6 +16,8 @@ import {
   Typography,
   CircularProgress,
   Paper,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { MoreVert, DataObject, AccountTree, NoteAdd, Download, TextFields } from '@mui/icons-material';
 import {
@@ -58,7 +60,7 @@ export default function Scrapbook(props) {
   );
 }
 
-function ScrapbookInner({ projectName, onClose }) {
+function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded = false }) {
   const [tabValue, setTabValue] = useState(0);
   const [tree, setTree] = useState(null);
   const [allNodes, setAllNodes] = useState([]);
@@ -71,6 +73,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState(null);
   const [createFromTextOpen, setCreateFromTextOpen] = useState(false);
+  const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: '' });
   const intentionalUnselectRef = useRef(false);
 
   // React Flow state
@@ -93,7 +96,7 @@ function ScrapbookInner({ projectName, onClose }) {
   // Load canvas settings from backend
   const loadCanvasSettings = useCallback(async () => {
     try {
-      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/canvas`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/canvas`);
       if (response.ok) {
         const settings = await response.json();
         if (settings) {
@@ -154,7 +157,7 @@ function ScrapbookInner({ projectName, onClose }) {
         // and customProperties/columnConfig when not loaded into state
         let existingSettings = null;
         try {
-          const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/canvas`);
+          const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/canvas`);
           if (response.ok) {
             existingSettings = await response.json();
           }
@@ -261,7 +264,7 @@ function ScrapbookInner({ projectName, onClose }) {
           columnConfig: columnConfig.length > 0 ? columnConfig : (existingSettings?.columnConfig || []),
         };
 
-        await apiFetch(`/api/workspace/${projectName}/scrapbook/canvas`, {
+        await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/canvas`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(settings),
@@ -276,7 +279,7 @@ function ScrapbookInner({ projectName, onClose }) {
   const fetchTree = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/tree`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/tree`);
       if (response.ok) {
         const data = await response.json();
         setTree(data);
@@ -294,7 +297,7 @@ function ScrapbookInner({ projectName, onClose }) {
   // Fetch all nodes as flat list with group info
   const fetchAllNodes = useCallback(async () => {
     try {
-      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes-with-groups`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes-with-groups`);
       if (response.ok) {
         const data = await response.json();
         setAllNodes(data || []);
@@ -388,7 +391,7 @@ function ScrapbookInner({ projectName, onClose }) {
 
         // Use sendBeacon for reliable save on unmount
         navigator.sendBeacon(
-          `/api/workspace/${projectName}/scrapbook/canvas`,
+          `/api/workspace/${projectName}/scrapbook/${graphName}/canvas`,
           new Blob([JSON.stringify(settings)], { type: 'application/json' })
         );
       }
@@ -402,7 +405,7 @@ function ScrapbookInner({ projectName, onClose }) {
 
     try {
       // Update parent to null (orphan the node)
-      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${childId}/parent`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parentId: null }),
@@ -442,7 +445,7 @@ function ScrapbookInner({ projectName, onClose }) {
     }
 
     try {
-      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${childId}/parent`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${childId}/parent`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parentId: newParentId }),
@@ -935,6 +938,7 @@ function ScrapbookInner({ projectName, onClose }) {
       data: {
         ...node,
         projectName,
+        graphName,
         isExpanded,
         hasChildren,
         borderWidth,
@@ -1026,13 +1030,21 @@ function ScrapbookInner({ projectName, onClose }) {
   const handleInitializeExample = async () => {
     try {
       setLoading(true);
-      await apiFetch(`/api/workspace/${projectName}/scrapbook/example-data`, {
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/example-data`, {
         method: 'POST',
       });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || `Failed to create sample data (${response.status})`;
+        setErrorSnackbar({ open: true, message: errorMessage });
+        console.error('Failed to initialize example data:', errorMessage);
+        return;
+      }
       await fetchTree();
       await fetchAllNodes();
     } catch (error) {
       console.error('Failed to initialize example data:', error);
+      setErrorSnackbar({ open: true, message: error.message || 'Failed to create sample data' });
     } finally {
       setLoading(false);
     }
@@ -1132,7 +1144,7 @@ function ScrapbookInner({ projectName, onClose }) {
     setOptionsAnchor(null);
 
     try {
-      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/describe/${encodeURIComponent(selectedNode.label)}`);
+      const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/describe/${encodeURIComponent(selectedNode.label)}`);
       if (!response.ok) {
         throw new Error('Failed to fetch agentic view');
       }
@@ -1187,7 +1199,7 @@ function ScrapbookInner({ projectName, onClose }) {
     if (!nodeToDelete) return;
 
     try {
-      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${nodeToDelete.id}`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${nodeToDelete.id}`, {
         method: 'DELETE',
       });
       await fetchTree();
@@ -1208,7 +1220,7 @@ function ScrapbookInner({ projectName, onClose }) {
     if (!node || node.type === 'ProjectTheme') return;
 
     try {
-      await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${node.id}`, {
+      await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${node.id}`, {
         method: 'DELETE',
       });
       await fetchTree();
@@ -1274,7 +1286,7 @@ function ScrapbookInner({ projectName, onClose }) {
     if (editNode && selectedNode && editNode.id === selectedNode.id) {
       // Fetch fresh data for the selected node
       try {
-        const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+        const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${selectedNode.id}`);
         if (response.ok) {
           const updatedNode = await response.json();
           setSelectedNode(updatedNode);
@@ -1292,7 +1304,7 @@ function ScrapbookInner({ projectName, onClose }) {
     // Update selectedNode if it was the one being edited
     if (editNode && selectedNode && editNode.id === selectedNode.id) {
       try {
-        const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+        const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${selectedNode.id}`);
         if (response.ok) {
           const updatedNode = await response.json();
           setSelectedNode(updatedNode);
@@ -1521,6 +1533,7 @@ function ScrapbookInner({ projectName, onClose }) {
         {tabValue === 1 && selectedNode && (
           <ScrapbookTopics
             projectName={projectName}
+            graphName={graphName}
             parentNode={selectedNode}
             customProperties={customProperties}
             columnConfig={columnConfig}
@@ -1536,7 +1549,7 @@ function ScrapbookInner({ projectName, onClose }) {
               // Refresh the selected node to get updated data
               if (selectedNode) {
                 try {
-                  const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/nodes/${selectedNode.id}`);
+                  const response = await apiFetch(`/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${selectedNode.id}`);
                   if (response.ok) {
                     const updatedNode = await response.json();
                     setSelectedNode(updatedNode);
@@ -1571,6 +1584,7 @@ function ScrapbookInner({ projectName, onClose }) {
         open={editDialogOpen}
         onClose={() => { setEditDialogOpen(false); setEditNode(null); setEditParentNode(null); }}
         projectName={projectName}
+        graphName={graphName}
         node={editNode}
         parentNode={editParentNode}
         onSaved={handleNodeSaved}
@@ -1603,11 +1617,28 @@ function ScrapbookInner({ projectName, onClose }) {
         open={createFromTextOpen}
         onClose={() => setCreateFromTextOpen(false)}
         projectName={projectName}
+        graphName={graphName}
         onCreated={async () => {
           await fetchTree();
           await fetchAllNodes();
         }}
       />
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={errorSnackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setErrorSnackbar({ open: false, message: '' })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setErrorSnackbar({ open: false, message: '' })}
+          severity="error"
+          sx={{ width: '100%' }}
+        >
+          {errorSnackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

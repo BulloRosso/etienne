@@ -38,6 +38,7 @@ export class PreviewersService {
       { viewer: 'excel', extensions: ['.xls', '.xlsx'] },
       { viewer: 'prompt', extensions: ['.prompt'] },
       { viewer: 'workflow', extensions: ['.workflow.json'] },
+      { viewer: 'scrapbook', extensions: ['.scbk'] },
     ];
   }
 }

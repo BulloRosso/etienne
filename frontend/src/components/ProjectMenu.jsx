@@ -39,7 +39,6 @@ import DashboardGrid from './DashboardGrid';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
 import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
-import Scrapbook from './Scrapbook';
 import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
@@ -47,6 +46,7 @@ import ServiceControlDrawer from './ServiceControlDrawer';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
+import { filePreviewHandler } from '../services/FilePreviewHandler';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
   const { user, logout, hasRole } = useAuth();
@@ -67,7 +67,10 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
   const [ontologyCoreOpen, setOntologyCoreOpen] = useState(false);
-  const [scrapbookOpen, setScrapbookOpen] = useState(false);
+  const [scrapbookListOpen, setScrapbookListOpen] = useState(false);
+  const [scrapbooks, setScrapbooks] = useState([]);
+  const [createScrapbookDialogOpen, setCreateScrapbookDialogOpen] = useState(false);
+  const [newScrapbookName, setNewScrapbookName] = useState('');
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [serviceControlOpen, setServiceControlOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
@@ -377,13 +380,51 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
     setOntologyCoreOpen(false);
   };
 
+  const fetchScrapbooks = async () => {
+    if (!currentProject) return;
+    try {
+      const response = await apiFetch(`/api/workspace/${currentProject}/scrapbooks`);
+      if (response.ok) {
+        const data = await response.json();
+        setScrapbooks(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch scrapbooks:', error);
+    }
+  };
+
   const handleScrapbookOpen = () => {
-    setScrapbookOpen(true);
+    fetchScrapbooks();
+    setScrapbookListOpen(true);
     handleMenuClose();
   };
 
-  const handleScrapbookClose = () => {
-    setScrapbookOpen(false);
+  const handleOpenScrapbookFile = (scrapbook) => {
+    filePreviewHandler.handlePreview(scrapbook.filename, currentProject);
+    setScrapbookListOpen(false);
+  };
+
+  const handleCreateScrapbook = async () => {
+    const name = newScrapbookName.trim();
+    if (!name) return;
+
+    try {
+      const response = await apiFetch(`/api/workspace/${currentProject}/scrapbooks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setCreateScrapbookDialogOpen(false);
+        setNewScrapbookName('');
+        setScrapbookListOpen(false);
+        handleOpenScrapbookFile(result);
+      }
+    } catch (error) {
+      console.error('Failed to create scrapbook:', error);
+    }
   };
 
   const handleChangePasswordOpen = () => {
@@ -406,12 +447,13 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   // Listen for openScrapbook event (triggered by #scrapbook hash route)
   useEffect(() => {
     const handleOpenScrapbook = () => {
-      setScrapbookOpen(true);
+      fetchScrapbooks();
+      setScrapbookListOpen(true);
     };
 
     window.addEventListener('openScrapbook', handleOpenScrapbook);
     return () => window.removeEventListener('openScrapbook', handleOpenScrapbook);
-  }, []);
+  }, [currentProject]);
 
   const handleBudgetToggle = async (event) => {
     const enabled = event.target.checked;
@@ -832,28 +874,66 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
       </Dialog>
 
       <Dialog
-        open={scrapbookOpen}
-        onClose={handleScrapbookClose}
-        maxWidth="xl"
+        open={scrapbookListOpen}
+        onClose={() => setScrapbookListOpen(false)}
+        maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            height: '90vh',
-            maxHeight: '90vh'
-          }
-        }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>Scrapbook</span>
-          </Box>
-          <IconButton onClick={handleScrapbookClose} size="small">
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Scrapbooks</span>
+          <IconButton onClick={() => setScrapbookListOpen(false)} size="small">
             <Close />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ height: 'calc(100% - 64px)', p: 0 }}>
-          <Scrapbook projectName={currentProject} onClose={handleScrapbookClose} />
+        <DialogContent>
+          {scrapbooks.length > 0 ? scrapbooks.map((sb) => (
+            <MenuItem key={sb.graphName} onClick={() => handleOpenScrapbookFile(sb)}>
+              <ListItemText
+                primary={sb.name}
+                secondary={sb.filename}
+              />
+            </MenuItem>
+          )) : (
+            <Typography color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
+              No scrapbooks yet. Create one to get started.
+            </Typography>
+          )}
         </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setCreateScrapbookDialogOpen(true)}
+            startIcon={<AddOutlined />}
+            variant="contained"
+          >
+            Create New
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={createScrapbookDialogOpen}
+        onClose={() => setCreateScrapbookDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>New Scrapbook</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Scrapbook Name"
+            value={newScrapbookName}
+            onChange={(e) => setNewScrapbookName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCreateScrapbook(); }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateScrapbookDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreateScrapbook} variant="contained" disabled={!newScrapbookName.trim()}>
+            Create
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <ChangePasswordDialog

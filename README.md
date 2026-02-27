@@ -121,6 +121,22 @@ Here are the guiding principles for Etienne, and why I believe it matters:
   - [Real-time Updates](#real-time-updates)
 - [Maintainer](#maintainer)
 
+# Built for Artifacts
+
+The most valuable UI features is to work side by side with the agent on complex results (=artifact).
+
+<div align="center">
+<img src="/docs/images/general-assistant-scrapbook.jpg" alt="Artifact editing" width="900">
+</div>
+
+Many configurator or data exploration use cases greatly benefit from this kind of workflow:
+
+1. **Describe** your problem in the chat pane
+2. **AI agent generates first draft** and presents it in the artifacts pane
+3. **User refines draft** either by clicking directly on a detail in the artifacts pane OR by asking the agent to make the change
+
+This main **collaboration feature** sets Etienne apart from other agents like OpenClaw, which is more focused on a command/execution pattern via a simple messenger user interface.
+
 # Built around Skills
 
 <div align="center">
@@ -1354,6 +1370,12 @@ The proxy is served by a Vite middleware plugin at `/sandbox-proxy` on the same 
 # Budget Tracking
 
 Etienne tracks AI inference costs per project and enforces a global budget limit across all projects.
+
+<div align="center">
+<img src="/docs/images/budget-tracking.jpg" alt="Budget tracking pane" width="700">
+</div>
+
+The budget pane can be activated from the app bar.
 
 ## How It Works
 

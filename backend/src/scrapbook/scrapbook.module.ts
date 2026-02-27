@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ScrapbookController } from './scrapbook.controller';
+import { ScrapbookController, ScrapbooksController, ScrapbookGraphController } from './scrapbook.controller';
 import { ScrapbookService } from './scrapbook.service';
 
 @Module({
-  controllers: [ScrapbookController],
+  controllers: [ScrapbookController, ScrapbooksController, ScrapbookGraphController],
   providers: [ScrapbookService],
   exports: [ScrapbookService],
 })

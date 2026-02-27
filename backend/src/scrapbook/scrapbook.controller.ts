@@ -345,3 +345,301 @@ export class ScrapbookController {
     await this.scrapbookService.removeNodeFromGroup(projectName, nodeId);
   }
 }
+
+/**
+ * Scrapbooks Controller (collection-level CRUD)
+ *
+ * Manages multiple scrapbooks per project via .scbk files.
+ */
+@Controller('api/workspace/:projectName/scrapbooks')
+export class ScrapbooksController {
+  constructor(private readonly scrapbookService: ScrapbookService) {}
+
+  @Get()
+  async listScrapbooks(@Param('projectName') projectName: string) {
+    return this.scrapbookService.listScrapbooks(projectName);
+  }
+
+  @Post()
+  @Roles('user')
+  @HttpCode(HttpStatus.CREATED)
+  async createScrapbook(
+    @Param('projectName') projectName: string,
+    @Body() dto: { name: string },
+  ) {
+    return this.scrapbookService.createScrapbook(projectName, dto.name);
+  }
+
+  @Delete(':graphName')
+  @Roles('user')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteScrapbook(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+  ) {
+    return this.scrapbookService.deleteScrapbook(projectName, graphName);
+  }
+}
+
+/**
+ * Scrapbook Graph Controller (graph-scoped operations)
+ *
+ * Mirrors the existing ScrapbookController endpoints but scoped to a specific graph.
+ * Route: api/workspace/:projectName/scrapbook/:graphName/...
+ */
+@Controller('api/workspace/:projectName/scrapbook/:graphName')
+export class ScrapbookGraphController {
+  constructor(private readonly scrapbookService: ScrapbookService) {}
+
+  @Get('tree')
+  async getTree(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+  ): Promise<any> {
+    return this.scrapbookService.getTree(projectName, graphName);
+  }
+
+  @Get('nodes')
+  async getAllNodes(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+  ): Promise<ScrapbookNode[]> {
+    return this.scrapbookService.getAllNodes(projectName, graphName);
+  }
+
+  @Get('nodes/:nodeId')
+  async getNode(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+  ): Promise<ScrapbookNode> {
+    const node = await this.scrapbookService.getNode(projectName, nodeId, graphName);
+    if (!node) {
+      throw new Error(`Node ${nodeId} not found`);
+    }
+    return node;
+  }
+
+  @Get('nodes/:nodeId/children')
+  async getChildren(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+  ): Promise<ScrapbookNode[]> {
+    return this.scrapbookService.getChildren(projectName, nodeId, graphName);
+  }
+
+  @Post('nodes')
+  @Roles('user')
+  @HttpCode(HttpStatus.CREATED)
+  async createNode(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Body() dto: CreateNodeDto,
+  ): Promise<ScrapbookNode> {
+    return this.scrapbookService.createNode(
+      projectName,
+      {
+        type: dto.type as any,
+        label: dto.label,
+        description: dto.description,
+        priority: dto.priority,
+        attentionWeight: dto.attentionWeight,
+        iconName: dto.iconName,
+      },
+      dto.parentId,
+      graphName,
+    );
+  }
+
+  @Put('nodes/:nodeId')
+  @Roles('user')
+  async updateNode(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+    @Body() dto: UpdateNodeDto,
+  ): Promise<ScrapbookNode> {
+    return this.scrapbookService.updateNode(projectName, nodeId, dto, graphName);
+  }
+
+  @Delete('nodes/:nodeId')
+  @Roles('user')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteNode(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+  ): Promise<void> {
+    await this.scrapbookService.deleteNode(projectName, nodeId, graphName);
+  }
+
+  @Get('canvas')
+  async getCanvasSettings(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+  ): Promise<CanvasSettings | null> {
+    return this.scrapbookService.loadCanvasSettings(projectName, graphName);
+  }
+
+  @Post('canvas')
+  @Roles('user')
+  @HttpCode(HttpStatus.OK)
+  async saveCanvasSettings(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Body() settings: CanvasSettings,
+  ): Promise<{ success: boolean }> {
+    await this.scrapbookService.saveCanvasSettings(projectName, settings, graphName);
+    return { success: true };
+  }
+
+  @Post('nodes/:nodeId/images')
+  @Roles('user')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Query('describe_image') describeImage?: string,
+  ): Promise<{ filename: string; description?: string }> {
+    const shouldDescribe = describeImage === 'true';
+    return this.scrapbookService.uploadImage(
+      projectName, nodeId, file.originalname, file.buffer, shouldDescribe, graphName,
+    );
+  }
+
+  @Get('images/:filename')
+  async getImage(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('filename') filename: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const workspaceDir = process.env.WORKSPACE_ROOT || path.join(process.cwd(), '..', 'workspace');
+    const imagesSubdir = graphName === 'default' ? 'images' : path.join(graphName, 'images');
+    const imagePath = path.join(workspaceDir, projectName, 'scrapbook', imagesSubdir, filename);
+
+    if (!await fs.pathExists(imagePath)) {
+      throw new Error('Image not found');
+    }
+
+    const ext = path.extname(filename).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+    };
+
+    res.set({
+      'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+    });
+
+    const file = fs.createReadStream(imagePath);
+    return new StreamableFile(file);
+  }
+
+  @Delete('nodes/:nodeId/images/:filename')
+  @Roles('user')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteImage(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+    @Param('filename') filename: string,
+  ): Promise<void> {
+    await this.scrapbookService.deleteImage(projectName, nodeId, filename, graphName);
+  }
+
+  @Post('example-data')
+  @HttpCode(HttpStatus.CREATED)
+  async initializeExampleData(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+  ): Promise<ScrapbookNode> {
+    return this.scrapbookService.initializeExampleData(projectName, graphName);
+  }
+
+  @Get('describe')
+  async describe(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+  ): Promise<{ markdown: string }> {
+    const markdown = await this.scrapbookService.describeScrapbook(projectName, undefined, graphName);
+    return { markdown };
+  }
+
+  @Get('describe/:categoryName')
+  async describeCategory(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('categoryName') categoryName: string,
+  ): Promise<{ markdown: string }> {
+    const markdown = await this.scrapbookService.describeScrapbook(projectName, categoryName, graphName);
+    return { markdown };
+  }
+
+  @Post('create-from-text')
+  @Roles('user')
+  @HttpCode(HttpStatus.CREATED)
+  async createFromText(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Body() dto: { text: string },
+  ): Promise<ScrapbookNode> {
+    return this.scrapbookService.createFromText(projectName, dto.text, graphName);
+  }
+
+  @Put('nodes/:nodeId/parent')
+  @Roles('user')
+  async updateNodeParent(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+    @Body() dto: { parentId: string | null },
+  ): Promise<ScrapbookNode> {
+    return this.scrapbookService.updateNodeParent(projectName, nodeId, dto.parentId, graphName);
+  }
+
+  @Get('nodes-with-groups')
+  async getAllNodesWithGroups(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+  ): Promise<ScrapbookNode[]> {
+    return this.scrapbookService.getAllNodesWithGroups(projectName, graphName);
+  }
+
+  @Post('groups')
+  @Roles('user')
+  @HttpCode(HttpStatus.CREATED)
+  async assignNodesToGroup(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Body() dto: { nodeIds: string[]; groupName: string },
+  ): Promise<AlternativeGroup> {
+    return this.scrapbookService.assignNodesToGroup(projectName, dto.nodeIds, dto.groupName, graphName);
+  }
+
+  @Get('nodes/:nodeId/groups')
+  async getGroupsForParent(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+  ): Promise<AlternativeGroup[]> {
+    return this.scrapbookService.getGroupsForParent(projectName, nodeId, graphName);
+  }
+
+  @Delete('nodes/:nodeId/group')
+  @Roles('user')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeNodeFromGroup(
+    @Param('projectName') projectName: string,
+    @Param('graphName') graphName: string,
+    @Param('nodeId') nodeId: string,
+  ): Promise<void> {
+    await this.scrapbookService.removeNodeFromGroup(projectName, nodeId, graphName);
+  }
+}

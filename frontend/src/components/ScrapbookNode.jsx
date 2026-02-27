@@ -42,6 +42,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
     onNodeClick,
     onContextMenu,
     projectName,
+    graphName,
   } = data;
 
   // Get the first image if available
@@ -99,7 +100,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
             }}
           >
             <img
-              src={`/api/workspace/${projectName}/scrapbook/images/${firstImage}`}
+              src={`/api/workspace/${projectName}/scrapbook/${graphName || 'default'}/images/${firstImage}`}
               alt=""
               style={{
                 width: '100%',
