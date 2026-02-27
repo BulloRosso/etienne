@@ -124,7 +124,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 
 # Built for Artifacts
 
-The most valuable UI features is to work side by side with the agent on complex results (=artifact).
+Of of the most valuable UI features is to work side by side with the agent on **complex results** (=artifact).
 
 <div align="center">
 <img src="/docs/images/general-assistant-scrapbook.jpg" alt="Artifact editing" width="900">
@@ -136,7 +136,7 @@ Many configurator or data exploration use cases greatly benefit from this kind o
 2. **AI agent generates first draft** and presents it in the artifacts pane
 3. **User refines draft** either by clicking directly on a detail in the artifacts pane OR by asking the agent to make the change
 
-This main **collaboration feature** sets Etienne apart from other agents like OpenClaw, which is more focused on a command/execution pattern via a simple messenger user interface.
+This main **collaboration feature** sets Etienne apart from other agents like OpenClaw, which is focused on a command/execution pattern via a simple messenger user interface.
 
 # Built around Skills
 
