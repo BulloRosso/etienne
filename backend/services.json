@@ -63,6 +63,14 @@
       "directory": "oauth-server",
       "startCommand": "npm run dev",
       "port": 5950
+    },
+    {
+      "name": "web-scraper",
+      "displayName": "Web Scraper",
+      "description": "Web scraping MCP server via Scrapling (get, fetch, stealthy_fetch with CSS selectors)",
+      "directory": "web-scraper",
+      "startCommand": "bash start.sh",
+      "port": 3480
     }
   ]
 }

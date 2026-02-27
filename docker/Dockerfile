@@ -84,6 +84,18 @@ RUN pip3 install --no-cache-dir --break-system-packages flask
 COPY webserver/app.py ./webserver/
 
 # ============================================
+# Build web-scraper (isolated venv to avoid dependency conflicts)
+# ============================================
+WORKDIR /app
+COPY web-scraper/requirements.txt ./web-scraper/
+WORKDIR /app/web-scraper
+RUN python3 -m venv .venv \
+    && .venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && .venv/bin/python -c "from scrapling.cli import main; import sys; sys.argv=['scrapling','install']; main()"
+COPY web-scraper/start.sh ./
+RUN chmod +x start.sh
+
+# ============================================
 # Build telegram (optional service)
 # ============================================
 WORKDIR /app
@@ -127,7 +139,7 @@ VOLUME /users
 ENV NODE_ENV=development
 ENV WORKSPACE_ROOT=/app/workspace
 # Optional: comma-separated list of additional services to start
-# Valid values: vector-store, rdf-store, telegram, ms-teams, webserver
+# Valid values: vector-store, rdf-store, telegram, ms-teams, webserver, web-scraper
 ENV ADDITIONAL_SERVICES=""
 
 # Registry paths (override with mounted files for custom configurations)

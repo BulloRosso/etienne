@@ -83,6 +83,12 @@
       "url": "http://localhost:6060/mcp/etienne-configuration",
       "headers": { "Authorization": "test123" },
       "description": "Process manager and backend configuration tools"
+    },
+    {
+      "name": "web-scraper",
+      "transport": "http",
+      "url": "http://localhost:3480/mcp",
+      "description": "Web scraping tools via Scrapling (get, bulk_get, fetch, bulk_fetch, stealthy_fetch, CSS selectors)"
     }
   ]
 }
