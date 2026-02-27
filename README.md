@@ -58,6 +58,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 
 ## Table of Contents
 
+- [Built for Artifacts](#built-for-artifacts)
 - [Built around Skills](#built-around-skills)
 - [Focused on local Data and Services](#focused-on-local-data-and-services)
 - [Managed Etienne](#managed-etienne)
@@ -1372,7 +1373,7 @@ The proxy is served by a Vite middleware plugin at `/sandbox-proxy` on the same 
 Etienne tracks AI inference costs per project and enforces a global budget limit across all projects.
 
 <div align="center">
-<img src="/docs/images/budget-tracking.jpg" alt="Budget tracking pane" width="700">
+<img src="/docs/images/budget-tracking.jpg" alt="Budget tracking pane" width="500">
 </div>
 
 The budget pane can be activated from the app bar.
