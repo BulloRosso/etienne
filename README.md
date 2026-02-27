@@ -249,7 +249,7 @@ This feature is not so much targeted at human usage, but to give the agent the a
 All of the local **services treat projects like tenants**: they store their data (also temp files) in subdirectories of the project folder and serve them from this location.
 
 <div align="center">
-<img src="/docs/images/files-ystem-3.jpg" alt="Service data" width="700">
+<img src="/docs/images/file-system-3.jpg" alt="Service data" width="700">
 </div>
 
 In the example above we can see the RDF store ("knowledge graph") log and data files inside a project's directory.
