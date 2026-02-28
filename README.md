@@ -80,6 +80,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [Built for Connectivity](#built-for-connectivity)
 - [Focused on local Data and Services](#focused-on-local-data-and-services)
 - [Managed Etienne](#managed-etienne)
+- [Memory](#memory)
 - [Main Components](#main-components)
 - [The Agent and the outside World](#the-agent-and-the-outside-world)
 - [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
@@ -382,6 +383,20 @@ You can install Etienne locally, deploy it using the Docker (after you have buil
 </div>
 
 [Managed Etienne Landing Page](https://etienne-agent.replit.app/)
+
+# Memory
+
+Etienne provides an exchangable endpoint to extract memories from a user prompt and store them inside the project.
+
+Memory extraction is activated per default and can be accessed via the green memory card icon below the app bar.
+
+<div align="center">
+<img src="/docs/images/memories.jpg" alt="Memory pane" width="500">
+</div>
+
+Memories are stored per project and not globally in the default configuration.
+
+The extraction prompt is adjustable to sharpen the focus to certain business domain relevant information.
 
 # Main Components
 
