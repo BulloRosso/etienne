@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { Add, Settings } from '@mui/icons-material';
 import { TiTags } from "react-icons/ti";
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 
 export default function ContextSwitcher({
@@ -22,6 +23,7 @@ export default function ContextSwitcher({
   onManageContexts,
   sx
 }) {
+  const { t } = useTranslation();
   const [contexts, setContexts] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -83,7 +85,7 @@ export default function ContextSwitcher({
 
   return (
     <Box sx={sx}>
-      <Tooltip title="Switch Context" arrow>
+      <Tooltip title={t('contextSwitcher.tooltip')} arrow>
         <Button
           variant="outlined"
           size="small"
@@ -101,7 +103,7 @@ export default function ContextSwitcher({
             }
           }}
         >
-          {activeContext ? activeContext.name : 'Default (All)'}
+          {activeContext ? activeContext.name : t('contextSwitcher.defaultAll')}
         </Button>
       </Tooltip>
 
@@ -119,10 +121,10 @@ export default function ContextSwitcher({
           disabled={loading}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-            <Typography variant="body2">Default (All)</Typography>
+            <Typography variant="body2">{t('contextSwitcher.defaultAll')}</Typography>
             {!activeContextId && (
               <Chip
-                label="Active"
+                label={t('common.active')}
                 size="small"
                 color="primary"
                 sx={{ ml: 'auto', height: '20px', fontSize: '0.7rem' }}
@@ -136,7 +138,7 @@ export default function ContextSwitcher({
         {contexts.length === 0 ? (
           <MenuItem disabled>
             <Typography variant="body2" color="text.secondary">
-              No contexts defined
+              {t('contextSwitcher.noContextsDefined')}
             </Typography>
           </MenuItem>
         ) : (
@@ -152,7 +154,7 @@ export default function ContextSwitcher({
                   <Typography variant="body2">{context.name}</Typography>
                   {context.id === activeContextId && (
                     <Chip
-                      label="Active"
+                      label={t('common.active')}
                       size="small"
                       color="primary"
                       sx={{ ml: 'auto', height: '20px', fontSize: '0.7rem' }}
@@ -177,7 +179,7 @@ export default function ContextSwitcher({
 
         <MenuItem onClick={handleManageContexts}>
           <Settings fontSize="small" sx={{ mr: 1 }} />
-          <Typography variant="body2">Manage Contexts...</Typography>
+          <Typography variant="body2">{t('contextSwitcher.manageContexts')}</Typography>
         </MenuItem>
       </Menu>
     </Box>

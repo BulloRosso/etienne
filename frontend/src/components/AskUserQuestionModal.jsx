@@ -19,6 +19,7 @@ import {
   Divider
 } from '@mui/material';
 import { Close as CloseIcon, HelpOutline as HelpIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 /**
  * AskUserQuestionModal - Multi-choice Question Dialog
@@ -34,6 +35,7 @@ import { Close as CloseIcon, HelpOutline as HelpIcon } from '@mui/icons-material
  * - onClose: () => void - Callback when modal is closed without response
  */
 export default function AskUserQuestionModal({ open, question, onRespond, onClose }) {
+  const { t } = useTranslation();
   const [answers, setAnswers] = useState({});
   const [otherTexts, setOtherTexts] = useState({});
 
@@ -178,10 +180,10 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
               ))}
               {/* Other option for multi-select */}
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 1 }}>
-                <Typography variant="body2" sx={{ mt: 1, minWidth: 60 }}>Other:</Typography>
+                <Typography variant="body2" sx={{ mt: 1, minWidth: 60 }}>{t('askUserQuestion.otherLabel')}</Typography>
                 <TextField
                   size="small"
-                  placeholder="Enter custom option"
+                  placeholder={t('askUserQuestion.otherPlaceholder')}
                   value={otherTexts[idx] || ''}
                   onChange={(e) => handleOtherText(idx, e.target.value)}
                   fullWidth
@@ -218,10 +220,10 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
                 control={<Radio />}
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2">Other:</Typography>
+                    <Typography variant="body2">{t('askUserQuestion.otherLabel')}</Typography>
                     <TextField
                       size="small"
-                      placeholder="Enter custom option"
+                      placeholder={t('askUserQuestion.otherPlaceholder')}
                       value={otherTexts[idx] || ''}
                       onChange={(e) => handleOtherText(idx, e.target.value)}
                       onClick={(e) => e.stopPropagation()}
@@ -254,7 +256,7 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <HelpIcon sx={{ color: '#9c27b0' }} />
-          <Typography variant="h6">Etienne needs your guidance</Typography>
+          <Typography variant="h6">{t('askUserQuestion.title')}</Typography>
         </Box>
         <IconButton onClick={handleCancel} size="small">
           <CloseIcon />
@@ -270,7 +272,7 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
           onClick={handleCancel}
           sx={{ textTransform: 'none' }}
         >
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -279,7 +281,7 @@ export default function AskUserQuestionModal({ open, question, onRespond, onClos
           disabled={!isValid()}
           sx={{ textTransform: 'none' }}
         >
-          Submit
+          {t('common.submit')}
         </Button>
       </DialogActions>
     </Dialog>

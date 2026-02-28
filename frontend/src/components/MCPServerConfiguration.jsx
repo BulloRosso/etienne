@@ -19,10 +19,12 @@ import {
   Tooltip
 } from '@mui/material';
 import { Add, Delete, Edit as EditIcon, Check, Close, Key } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function MCPServerConfiguration({ projectName, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const [servers, setServers] = useState({});
   const [originalServers, setOriginalServers] = useState({});
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       setServers(loadedServers);
       setOriginalServers(loadedServers);
     } catch (err) {
-      setError('Failed to load MCP configuration');
+      setError(t('mcpServer.failedToLoadConfig'));
       console.error('Load MCP config error:', err);
     } finally {
       setLoading(false);
@@ -86,7 +88,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError('Failed to save MCP configuration');
+      setError(t('mcpServer.failedToSaveConfig'));
       console.error('Save MCP config error:', err);
     } finally {
       setSaving(false);
@@ -97,12 +99,12 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     const trimmedName = newServer.name.trim();
 
     if (!trimmedName) {
-      setNameError('Server name is required');
+      setNameError(t('mcpServer.nameRequired'));
       return;
     }
 
     if (!validateServerName(trimmedName)) {
-      setNameError('Server name can only contain lowercase letters, numbers, underscores, and hyphens');
+      setNameError(t('mcpServer.nameValidation'));
       return;
     }
 
@@ -159,7 +161,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     }
 
     if (!validateServerName(trimmedName)) {
-      setError('Server name can only contain lowercase letters, numbers, underscores, and hyphens');
+      setError(t('mcpServer.nameValidation'));
       return;
     }
 
@@ -222,7 +224,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          MCP configuration saved successfully
+          {t('mcpServer.savedSuccessfully')}
         </Alert>
       )}
 
@@ -230,15 +232,15 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell><strong>Name</strong></TableCell>
-              <TableCell><strong>Transport</strong></TableCell>
-              <TableCell><strong>URL/CMD</strong></TableCell>
+              <TableCell><strong>{t('mcpServer.columnName')}</strong></TableCell>
+              <TableCell><strong>{t('mcpServer.columnTransport')}</strong></TableCell>
+              <TableCell><strong>{t('mcpServer.columnUrlCmd')}</strong></TableCell>
               <TableCell>
-                <Tooltip title="Authentication key/credentials">
+                <Tooltip title={t('mcpServer.authTooltip')}>
                   <Key fontSize="small" />
                 </Tooltip>
               </TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell align="right">{t('common.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -267,9 +269,9 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                           onChange={(e) => setEditValue({ ...editValue, transport: e.target.value })}
                           sx={{ backgroundColor: 'white' }}
                         >
-                          <MenuItem value="stdio">STDIO</MenuItem>
-                          <MenuItem value="http">HTTP</MenuItem>
-                          <MenuItem value="sse">SSE</MenuItem>
+                          <MenuItem value="stdio">{t('mcpServer.transportStdio')}</MenuItem>
+                          <MenuItem value="http">{t('mcpServer.transportHttp')}</MenuItem>
+                          <MenuItem value="sse">{t('mcpServer.transportSse')}</MenuItem>
                         </Select>
                       </FormControl>
                     </TableCell>
@@ -278,14 +280,14 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <TextField
                             size="small"
-                            placeholder="Command"
+                            placeholder={t('mcpServer.placeholderCommand')}
                             value={editValue.command}
                             onChange={(e) => setEditValue({ ...editValue, command: e.target.value })}
                             sx={{ backgroundColor: 'white', width: '30%' }}
                           />
                           <TextField
                             size="small"
-                            placeholder="Args"
+                            placeholder={t('mcpServer.placeholderArgs')}
                             value={editValue.args}
                             onChange={(e) => setEditValue({ ...editValue, args: e.target.value })}
                             sx={{ backgroundColor: 'white', flex: 1 }}
@@ -295,7 +297,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                         <TextField
                           fullWidth
                           size="small"
-                          placeholder="URL"
+                          placeholder={t('mcpServer.placeholderUrl')}
                           value={editValue.url}
                           onChange={(e) => setEditValue({ ...editValue, url: e.target.value })}
                           sx={{ backgroundColor: 'white' }}
@@ -306,7 +308,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                       <TextField
                         fullWidth
                         size="small"
-                        placeholder="Bearer token..."
+                        placeholder={t('mcpServer.placeholderBearerToken')}
                         value={editValue.auth}
                         onChange={(e) => setEditValue({ ...editValue, auth: e.target.value })}
                         sx={{ backgroundColor: 'white' }}
@@ -368,7 +370,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Server name..."
+                  placeholder={t('mcpServer.placeholderServerName')}
                   value={newServer.name}
                   onChange={(e) => {
                     setNewServer({ ...newServer, name: e.target.value });
@@ -384,9 +386,9 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                     value={newServer.transport}
                     onChange={(e) => setNewServer({ ...newServer, transport: e.target.value })}
                   >
-                    <MenuItem value="stdio">STDIO</MenuItem>
-                    <MenuItem value="http">HTTP</MenuItem>
-                    <MenuItem value="sse">SSE</MenuItem>
+                    <MenuItem value="stdio">{t('mcpServer.transportStdio')}</MenuItem>
+                    <MenuItem value="http">{t('mcpServer.transportHttp')}</MenuItem>
+                    <MenuItem value="sse">{t('mcpServer.transportSse')}</MenuItem>
                   </Select>
                 </FormControl>
               </TableCell>
@@ -395,14 +397,14 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <TextField
                       size="small"
-                      placeholder="Command"
+                      placeholder={t('mcpServer.placeholderCommand')}
                       value={newServer.command}
                       onChange={(e) => setNewServer({ ...newServer, command: e.target.value })}
                       sx={{ width: '30%' }}
                     />
                     <TextField
                       size="small"
-                      placeholder="Args"
+                      placeholder={t('mcpServer.placeholderArgs')}
                       value={newServer.args}
                       onChange={(e) => setNewServer({ ...newServer, args: e.target.value })}
                       sx={{ flex: 1 }}
@@ -412,7 +414,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                   <TextField
                     fullWidth
                     size="small"
-                    placeholder="https://..."
+                    placeholder={t('mcpServer.placeholderHttps')}
                     value={newServer.url}
                     onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
                   />
@@ -422,7 +424,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Bearer token..."
+                  placeholder={t('mcpServer.placeholderBearerToken')}
                   value={newServer.auth}
                   onChange={(e) => setNewServer({ ...newServer, auth: e.target.value })}
                 />
@@ -443,7 +445,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
           onClick={handleSave}
           disabled={saving || !hasChanges}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? t('common.saving') : t('common.save')}
         </Button>
       </Box>
     </Box>

@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { GoArrowRight } from 'react-icons/go';
 import { marked } from 'marked';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 // Configure marked to convert line breaks to <br>
@@ -19,43 +20,42 @@ marked.setOptions({
   breaks: true
 });
 
-const STEPS = [
+const getSteps = (t) => [
   {
-    name: 'What is Etienne?',
+    name: t('onboarding.step1Name'),
     image: '/etienne-waving-color.png',
-    explanation: `Hello my name is Etienne.
-I am a general AI assistant based on the Anthropic Agent SDK. I can help you when working with files and complex data. You need to copy data into our workspace, so I am able to see them.`,
-    nextStepName: 'Connect to an AI model'
+    explanation: t('onboarding.step1Explanation'),
+    nextStepName: t('onboarding.step1Next')
   },
   {
-    name: 'Connect to an AI model',
+    name: t('onboarding.step2Name'),
     image: '/claude-needs-charging-color.png',
-    explanation: `I am smart but small - I need a capable AI model to carry me on my missions.`,
-    nextStepName: 'Select services'
+    explanation: t('onboarding.step2Explanation'),
+    nextStepName: t('onboarding.step2Next')
   },
   {
-    name: 'Select additional Super Powers!',
+    name: t('onboarding.step3Name'),
     image: '/claude-is-charged-color.png',
-    explanation: `Great, we're connected!
-    I can use several **local services** which store their data in our workspace. So I can remember things and structure complex problems.`,
-    nextStepName: 'Create your first project'
+    explanation: t('onboarding.step3Explanation'),
+    nextStepName: t('onboarding.step3Next')
   },
   {
-    name: 'Ready to rumble!',
+    name: t('onboarding.step4Name'),
     image: '/claude-is-walking-color.png',
-    explanation: `I organize all my work in separate project directories. This allows me to stay focused and optimize my memory to one task at hand. We can have several sessions in one project.`,
-    nextStepName: 'Start'
+    explanation: t('onboarding.step4Explanation'),
+    nextStepName: t('onboarding.step4Next')
   }
 ];
 
-const SERVICE_DEFINITIONS = [
-  { id: 'rdf-store', name: 'Knowledge Graph', port: 7000, description: 'A RDF store to hold semantic relations between data objects' },
-  { id: 'vector-store', name: 'Vector Store', port: 7100, description: 'A fulltext index using embeddings to find similar data' },
-  { id: 'a2a-server', name: 'A2A Registry & Sample Agents', port: 5600, description: 'Contains two external agents and a list for discovery' },
-  { id: 'webserver', name: 'Web Server', port: 4000, description: 'Allows Etienne to create and expose API endpoints. The server is capable of hot-reloading.' }
+const getServiceDefinitions = (t) => [
+  { id: 'rdf-store', name: t('onboarding.serviceKnowledgeGraph'), port: 7000, description: t('onboarding.serviceKnowledgeGraphDesc') },
+  { id: 'vector-store', name: t('onboarding.serviceVectorStore'), port: 7100, description: t('onboarding.serviceVectorStoreDesc') },
+  { id: 'a2a-server', name: t('onboarding.serviceA2ARegistry'), port: 5600, description: t('onboarding.serviceA2ARegistryDesc') },
+  { id: 'webserver', name: t('onboarding.serviceWebServer'), port: 4000, description: t('onboarding.serviceWebServerDesc') }
 ];
 
 export default function Onboarding({ onComplete }) {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [workspacePath, setWorkspacePath] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -71,6 +71,8 @@ export default function Onboarding({ onComplete }) {
   const [serviceErrors, setServiceErrors] = useState({});
   const [serviceStatuses, setServiceStatuses] = useState({});
 
+  const STEPS = getSteps(t);
+  const SERVICE_DEFINITIONS = getServiceDefinitions(t);
   const step = STEPS[currentStep];
 
   const isNextEnabled = () => {
@@ -111,7 +113,7 @@ export default function Onboarding({ onComplete }) {
           });
 
           if (!saveResponse.ok) {
-            throw new Error('Failed to save configuration');
+            throw new Error(t('onboarding.failedToSaveConfig'));
           }
 
           // Validate the API key
@@ -119,7 +121,7 @@ export default function Onboarding({ onComplete }) {
           const healthData = await healthResponse.json();
 
           if (!healthData.healthy) {
-            throw new Error(healthData.reason || 'API key validation failed');
+            throw new Error(healthData.reason || t('onboarding.apiKeyValidationFailed'));
           }
 
           setCurrentStep(2);
@@ -195,7 +197,7 @@ export default function Onboarding({ onComplete }) {
             for (const serviceId of servicesToStart) {
               if (finalStatuses[serviceId] !== 'running') {
                 const service = SERVICE_DEFINITIONS.find(s => s.id === serviceId);
-                finalErrors[serviceId] = `Service failed to start - port ${service?.port} not responding after 120 seconds`;
+                finalErrors[serviceId] = t('onboarding.serviceFailedToStart', { port: service?.port });
               }
             }
           }
@@ -207,7 +209,7 @@ export default function Onboarding({ onComplete }) {
           if (!hasErrors) {
             setCurrentStep(3);
           } else {
-            setError('Some services failed to start. You can continue anyway or try again.');
+            setError(t('onboarding.someServicesFailed'));
           }
           break;
 
@@ -224,7 +226,7 @@ export default function Onboarding({ onComplete }) {
           });
 
           if (!createResponse.ok) {
-            throw new Error('Failed to create project');
+            throw new Error(t('onboarding.failedToCreateProject'));
           }
 
           // Set as current project in localStorage
@@ -263,15 +265,15 @@ export default function Onboarding({ onComplete }) {
           <Box sx={{ width: '100%' }}>
             <TextField
               fullWidth
-              label="Workspace Path"
-              placeholder="c:\data\etienne-workspace"
+              label={t('onboarding.workspacePathLabel')}
+              placeholder={t('onboarding.workspacePathPlaceholder')}
               value={workspacePath}
               onChange={(e) => setWorkspacePath(e.target.value)}
               variant="outlined"
               sx={{ mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary">
-              Etienne has access to this directory only.
+              {t('onboarding.workspacePathHint')}
             </Typography>
           </Box>
         );
@@ -281,8 +283,8 @@ export default function Onboarding({ onComplete }) {
           <Box sx={{ width: '100%' }}>
             <TextField
               fullWidth
-              label="Anthropic API Key"
-              placeholder="sk-ant-.."
+              label={t('onboarding.apiKeyLabel')}
+              placeholder={t('onboarding.apiKeyPlaceholder')}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               variant="outlined"
@@ -290,9 +292,9 @@ export default function Onboarding({ onComplete }) {
               sx={{ mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary">
-              You can create an account on{' '}
+              {t('onboarding.apiKeyHint')}{' '}
               <Link href="https://console.anthropic.com" target="_blank" rel="noopener">
-                https://console.anthropic.com
+                {t('onboarding.apiKeyLinkText')}
               </Link>
             </Typography>
           </Box>
@@ -317,7 +319,7 @@ export default function Onboarding({ onComplete }) {
                         {service.name} <small>(:{service.port})</small>
                         {serviceStatuses[service.id] === 'running' && (
                           <Typography component="span" sx={{ ml: 1, color: 'success.main', fontSize: '0.875rem' }}>
-                            (running)
+                            {t('onboarding.serviceRunning')}
                           </Typography>
                         )}
                       </Typography>
@@ -343,15 +345,15 @@ export default function Onboarding({ onComplete }) {
           <Box sx={{ width: '100%' }}>
             <TextField
               fullWidth
-              label="Project Name"
-              placeholder="sample-project"
+              label={t('onboarding.projectNameLabel')}
+              placeholder={t('onboarding.projectNamePlaceholder')}
               value={projectName}
               onChange={(e) => setProjectName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
               variant="outlined"
               sx={{ mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary">
-              This is a directory inside the workspace folder. Only numbers, lower-case characters and - are allowed.
+              {t('onboarding.projectNameHint')}
             </Typography>
           </Box>
         );
@@ -502,7 +504,7 @@ export default function Onboarding({ onComplete }) {
               onClick={() => setCurrentStep(3)}
               sx={{ mb: 1 }}
             >
-              Skip and continue anyway
+              {t('onboarding.skipAndContinue')}
             </Button>
           )}
 

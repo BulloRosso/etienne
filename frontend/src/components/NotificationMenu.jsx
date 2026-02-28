@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { IconButton, Menu, MenuItem, Checkbox, ListItemText, TextField, Typography, Box, Divider } from '@mui/material';
 import { PiBellRinging, PiBell } from 'react-icons/pi';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function NotificationMenu({ projectName }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [anchorEl, setAnchorEl] = useState(null);
   const [channels, setChannels] = useState([]);
@@ -70,7 +72,7 @@ export default function NotificationMenu({ projectName }) {
     <>
       <IconButton
         onClick={handleClick}
-        title="Notifications"
+        title={t('notificationMenu.title')}
         sx={{ color: iconColor }}
       >
         {hasActiveChannels ? <PiBellRinging size={20} /> : <PiBell size={20} />}
@@ -89,7 +91,7 @@ export default function NotificationMenu({ projectName }) {
       >
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            Notify me when task completes
+            {t('notificationMenu.heading')}
           </Typography>
         </Box>
         <Divider />
@@ -112,7 +114,7 @@ export default function NotificationMenu({ projectName }) {
                 />
                 <ListItemText
                   primary={channel.name}
-                  secondary={!isAvailable ? 'Service not running' : undefined}
+                  secondary={!isAvailable ? t('notificationMenu.serviceNotRunning') : undefined}
                   primaryTypographyProps={{
                     sx: { color: !isAvailable ? 'text.disabled' : 'inherit' }
                   }}
@@ -125,7 +127,7 @@ export default function NotificationMenu({ projectName }) {
                 <Box sx={{ px: 2, pb: 1 }}>
                   <TextField
                     size="small"
-                    placeholder="your@email.com"
+                    placeholder={t('notificationMenu.emailPlaceholder')}
                     value={notificationEmail}
                     onChange={handleEmailChange}
                     onClick={(e) => e.stopPropagation()}

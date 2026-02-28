@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Tooltip } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import SkillsSettings from './SkillsSettings';
 
 export default function SkillIndicator({ projectName }) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [skills, setSkills] = useState([]);
   const [skillsModalOpen, setSkillsModalOpen] = useState(false);
@@ -42,7 +44,7 @@ export default function SkillIndicator({ projectName }) {
 
   return (
     <>
-      <Tooltip title="Skills Active">
+      <Tooltip title={t('skillIndicator.tooltip')}>
         <Box
           onClick={() => setSkillsModalOpen(true)}
           sx={{
@@ -70,7 +72,7 @@ export default function SkillIndicator({ projectName }) {
           }}>
             {skillCount}
           </Box>
-          <Box component="span" sx={{ color: 'text.secondary' }}>skills active</Box>
+          <Box component="span" sx={{ color: 'text.secondary' }}>{t('skillIndicator.label')}</Box>
         </Box>
       </Tooltip>
 

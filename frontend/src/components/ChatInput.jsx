@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, TextField, IconButton, Paper, List, ListItem, ListItemText, Popper, ClickAwayListener, Tooltip } from '@mui/material';
 import { AttachFile, MicOutlined, Send, InsertDriveFile, Close } from '@mui/icons-material';
 import { BsStopCircle } from 'react-icons/bs';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -11,6 +12,7 @@ import { GoPlus } from "react-icons/go";
 import { CiFileOn } from "react-icons/ci";
 
 export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -148,7 +150,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
 
       if (uploadedFiles.length > 0) {
         const fileList = uploadedFiles.join(', ');
-        const appendText = `Please have a look at ${fileList} in the .attachments folder. I want to `;
+        const appendText = t('chatInput.uploadPrompt', { fileList });
         setMessage((prev) => prev ? `${prev}\n\n${appendText}` : appendText);
       }
     } catch (error) {
@@ -161,7 +163,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
 
   const toggleSpeechRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in this browser');
+      alert(t('chatInput.speechNotSupported'));
       return;
     }
 
@@ -264,7 +266,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
               justifyContent: 'space-between',
             }}
           >
-            <span>Files found in this project's filesystem:</span>
+            <span>{t('chatInput.fileSuggestionHeader')}</span>
             <IconButton
               size="small"
               onClick={() => {
@@ -346,7 +348,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
           onChange={handleFileUpload}
         />
         <label htmlFor="file-upload" style={{ marginRight: '5px' }}>
-          <Tooltip title="Add file attachments">
+          <Tooltip title={t('chatInput.addFileAttachments')}>
             <IconButton component="span" disabled={disabled || uploading || streaming}>
               <GoPlus />
             </IconButton>
@@ -382,7 +384,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
               return;
             }
           }}
-          placeholder="Type your message and use @ to mention files..."
+          placeholder={t('chatInput.placeholder')}
           disabled={disabled || streaming}
           variant="outlined"
           size="small"

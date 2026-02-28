@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, CircularProgress } from '@mui/material';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 /**
@@ -14,6 +15,7 @@ import { apiFetch } from '../services/api';
  * - Additional format-specific metadata
  */
 export default function ImageViewer({ filename, projectName }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [imageUrl, setImageUrl] = useState(null);
   const [metadata, setMetadata] = useState(null);
@@ -268,7 +270,7 @@ export default function ImageViewer({ filename, projectName }) {
   if (error) {
     return (
       <Box sx={{ p: 4 }}>
-        <Typography color="error">Error: {error}</Typography>
+        <Typography color="error">{t('common.error')}: {error}</Typography>
       </Box>
     );
   }
@@ -292,54 +294,54 @@ export default function ImageViewer({ filename, projectName }) {
       {metadata && (
         <Paper elevation={2} sx={{ p: 2, backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5' }}>
           <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem', fontWeight: 'bold' }}>
-            Image Information
+            {t('imageViewer.imageInformation')}
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 1, fontSize: '0.875rem' }}>
-            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Format:</Typography>
+            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.format')}:</Typography>
             <Typography>{metadata.format}</Typography>
 
             {metadata.width && metadata.height && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Dimensions:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.dimensions')}:</Typography>
                 <Typography>{metadata.width} × {metadata.height} pixels</Typography>
               </>
             )}
 
-            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>File Size:</Typography>
+            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.fileSize')}:</Typography>
             <Typography>{metadata.fileSize}</Typography>
 
             {metadata.bitDepth && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Bit Depth:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.bitDepth')}:</Typography>
                 <Typography>{metadata.bitDepth}</Typography>
               </>
             )}
 
             {metadata.colorType && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Color Type:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.colorType')}:</Typography>
                 <Typography>{metadata.colorType}</Typography>
               </>
             )}
 
             {metadata.compression && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Compression:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.compression')}:</Typography>
                 <Typography>{metadata.compression}</Typography>
               </>
             )}
 
             {metadata.version && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Version:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.version')}:</Typography>
                 <Typography>{metadata.version}</Typography>
               </>
             )}
 
             {metadata.colorResolution && (
               <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>Color Resolution:</Typography>
+                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer.colorResolution')}:</Typography>
                 <Typography>{metadata.colorResolution}</Typography>
               </>
             )}

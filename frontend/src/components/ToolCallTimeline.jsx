@@ -12,6 +12,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
+import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 // Tool icon mapping
@@ -135,6 +136,7 @@ const getFirstLines = (text, numLines = 3) => {
  * Tool call displayed in timeline format with IN/OUT sections
  */
 export default function ToolCallTimeline({ toolName, args, result, description, showBullet = true, hideConnectorLine = false }) {
+  const { t } = useTranslation();
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [inExpanded, setInExpanded] = useState(false);
   const [outExpanded, setOutExpanded] = useState(false);
@@ -346,7 +348,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                   fontSize: '0.7rem'
                 }}
               >
-                IN
+                {t('toolCallTimeline.in')}
               </Typography>
               {hasMoreInput && (
                 <IconButton
@@ -398,7 +400,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                   fontSize: '0.7rem'
                 }}
               >
-                OUT
+                {t('toolCallTimeline.out')}
               </Typography>
               {hasMoreOutput && (
                 <IconButton

@@ -17,8 +17,10 @@ import {
 import { Save, Add, Delete, Edit as EditIcon, Check, Close } from '@mui/icons-material';
 import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
+import { useTranslation } from 'react-i18next';
 
 export default function PermissionList({ projectName, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const [allowedTools, setAllowedTools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,7 +44,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
       });
       setAllowedTools(response.data.allowedTools || []);
     } catch (err) {
-      setError('Failed to load permissions');
+      setError(t('permissionList.errorLoadFailed'));
       console.error('Load permissions error:', err);
     } finally {
       setLoading(false);
@@ -61,7 +63,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError('Failed to save permissions');
+      setError(t('permissionList.errorSaveFailed'));
       console.error('Save permissions error:', err);
     } finally {
       setSaving(false);
@@ -117,7 +119,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          Permissions saved successfully
+          {t('permissionList.successSaved')}
         </Alert>
       )}
 
@@ -125,8 +127,8 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell><strong>Allowed Tool</strong></TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell><strong>{t('permissionList.columnAllowedTool')}</strong></TableCell>
+              <TableCell align="right">{t('common.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -185,7 +187,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Add new tool..."
+                  placeholder={t('permissionList.addPlaceholder')}
                   value={newTool}
                   onChange={(e) => setNewTool(e.target.value)}
                   onKeyPress={(e) => {
@@ -210,7 +212,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? t('common.saving') : t('common.save')}
         </Button>
       </Box>
     </Box>

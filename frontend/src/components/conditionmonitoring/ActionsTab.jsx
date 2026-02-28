@@ -21,6 +21,7 @@ import {
   MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import { BiMessageEdit } from 'react-icons/bi';
+import { useTranslation } from 'react-i18next';
 
 const ActionsTab = ({
   prompts,
@@ -31,12 +32,13 @@ const ActionsTab = ({
   selectedPromptForMenu,
   setSelectedPromptForMenu
 }) => {
+  const { t } = useTranslation();
   return (
     <Box>
       {prompts.length > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="body2" sx={{ marginLeft: '20px' }} color="text.secondary">
-            Manage reusable action templates for your rule actions
+            {t('actionsTab.manageActions')}
           </Typography>
           <Button
             variant="outlined"
@@ -44,7 +46,7 @@ const ActionsTab = ({
             onClick={() => onOpenPromptDialog()}
             sx={{ textTransform: 'none' }}
           >
-            New Action
+            {t('actionsTab.newAction')}
           </Button>
         </Box>
       )}
@@ -53,10 +55,10 @@ const ActionsTab = ({
         <Box sx={{ py: 6, textAlign: 'center' }}>
           <BiMessageEdit style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            No actions defined
+            {t('actionsTab.noActionsDefined')}
           </Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-            Create reusable action templates to use in your rules
+            {t('actionsTab.createFirstActionHint')}
           </Typography>
           <Button
             variant="outlined"
@@ -65,7 +67,7 @@ const ActionsTab = ({
             onClick={() => onOpenPromptDialog()}
             sx={{ textTransform: 'none' }}
           >
-            Create First Action
+            {t('actionsTab.createFirstAction')}
           </Button>
         </Box>
       ) : (
@@ -75,9 +77,9 @@ const ActionsTab = ({
               <TableHead>
                 <TableRow sx={{ bgcolor: 'background.paper' }}>
                   <TableCell sx={{ width: 50 }}></TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Prompt</TableCell>
-                  <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}>Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('actionsTab.columnTitle')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('actionsTab.columnPrompt')}</TableCell>
+                  <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}>{t('actionsTab.columnActions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -133,7 +135,7 @@ const ActionsTab = ({
               }}
             >
               <EditIcon fontSize="small" sx={{ mr: 1 }} />
-              Edit
+              {t('common.edit')}
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -144,7 +146,7 @@ const ActionsTab = ({
               sx={{ color: 'error.main' }}
             >
               <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-              Delete
+              {t('common.delete')}
             </MenuItem>
           </Menu>
         </>

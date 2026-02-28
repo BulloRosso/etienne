@@ -7,6 +7,7 @@ import TextSegmentTimeline from './TextSegmentTimeline';
 import TodoWriteTimeline from './TodoWriteTimeline';
 import McpAppRenderer from './McpAppRenderer';
 import useMcpAppMeta from '../hooks/useMcpAppMeta';
+import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
@@ -223,6 +224,7 @@ export default function StreamingTimeline({
  * Inline thinking/reasoning display for timeline
  */
 function ThinkingTimeline({ content, showBullet = true }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
 
   return (
@@ -268,7 +270,7 @@ function ThinkingTimeline({ content, showBullet = true }) {
           }}
         >
           <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600, display: 'block', mb: 0.5 }}>
-            Thinking
+            {t('streamingTimeline.thinking')}
           </Typography>
           <Box
             sx={{

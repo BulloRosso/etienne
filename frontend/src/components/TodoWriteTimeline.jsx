@@ -4,12 +4,14 @@ import ContentPasteOutlinedIcon from '@mui/icons-material/ContentPasteOutlined';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LoopIcon from '@mui/icons-material/Loop';
+import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
  * TodoWrite displayed in timeline format - shows the full todo list inline
  */
 export default function TodoWriteTimeline({ args, showBullet = true }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const todos = args?.todos || args?.newTodos || args?.oldTodos || [];
 
@@ -69,7 +71,7 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
             flex: 1
           }}
         >
-          Task list updated
+          {t('todoWriteTimeline.taskListUpdated')}
         </Typography>
       </Box>
 
@@ -78,7 +80,7 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
         {todos.length === 0 ? (
           <Paper sx={{ p: 1.5, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
             <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
-              No tasks
+              {t('todoWriteTimeline.noTasks')}
             </Typography>
           </Paper>
         ) : (

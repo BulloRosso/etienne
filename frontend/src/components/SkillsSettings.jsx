@@ -27,10 +27,12 @@ import { Close, DeleteOutline, Edit, Save, UploadFile, InsertDriveFileOutlined, 
 import { Menu, MenuItem } from '@mui/material';
 import { GiAtom } from 'react-icons/gi';
 import Editor from '@monaco-editor/react';
+import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
 export default function SkillsSettings({ open, onClose, project }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [skills, setSkills] = useState([]);
   const [selectedSkill, setSelectedSkill] = useState(null);
@@ -104,11 +106,11 @@ export default function SkillsSettings({ open, onClose, project }) {
         await loadSkills();
       } else {
         const data = await resp.json();
-        showToast(data.message || 'Failed to update', 'error');
+        showToast(data.message || t('skills.failedToUpdateFromRepo'), 'error');
       }
     } catch (error) {
       console.error('Failed to update from repo:', error);
-      showToast('Failed to update from repository', 'error');
+      showToast(t('skills.failedToUpdateFromRepo'), 'error');
     }
     setModMenuAnchor(null);
     setModMenuSkill(null);
@@ -118,14 +120,14 @@ export default function SkillsSettings({ open, onClose, project }) {
     try {
       const resp = await apiFetch(`/api/skills/${project}/${skillName}/submit-for-review`, { method: 'POST' });
       if (resp.ok) {
-        showToast('Submitted for admin review');
+        showToast(t('skills.submittedForReview'));
       } else {
         const data = await resp.json();
-        showToast(data.message || 'Failed to submit', 'error');
+        showToast(data.message || t('skills.failedToSubmitForReview'), 'error');
       }
     } catch (error) {
       console.error('Failed to submit for review:', error);
-      showToast('Failed to submit for review', 'error');
+      showToast(t('skills.failedToSubmitForReview'), 'error');
     }
     setModMenuAnchor(null);
     setModMenuSkill(null);
@@ -176,11 +178,11 @@ export default function SkillsSettings({ open, onClose, project }) {
         await loadSkillFiles(skillName);
       } else {
         const data = await response.json();
-        showToast(data.message || 'Failed to upload file', 'error');
+        showToast(data.message || t('skills.failedToUploadFile'), 'error');
       }
     } catch (error) {
       console.error('Failed to upload file:', error);
-      showToast('Failed to upload file', 'error');
+      showToast(t('skills.failedToUploadFile'), 'error');
     }
 
     // Reset file input
@@ -197,11 +199,11 @@ export default function SkillsSettings({ open, onClose, project }) {
         await loadSkillFiles(skillName);
       } else {
         const data = await response.json();
-        showToast(data.message || 'Failed to delete file', 'error');
+        showToast(data.message || t('skills.failedToDeleteFile'), 'error');
       }
     } catch (error) {
       console.error('Failed to delete file:', error);
-      showToast('Failed to delete file', 'error');
+      showToast(t('skills.failedToDeleteFile'), 'error');
     }
   };
 
@@ -281,11 +283,11 @@ Show what the expected output should look like.
         setSelectedSkill(null);
       } else {
         const data = await response.json();
-        showToast(data.message || 'Failed to copy skill', 'error');
+        showToast(data.message || t('skills.failedToCopySkill'), 'error');
       }
     } catch (error) {
       console.error('Failed to copy skill:', error);
-      showToast('Failed to copy skill', 'error');
+      showToast(t('skills.failedToCopySkill'), 'error');
     } finally {
       setLoading(false);
     }
@@ -307,18 +309,18 @@ Show what the expected output should look like.
         const data = await response.json();
         const result = data.results?.[0];
         if (result && !result.success) {
-          showToast(result.error || 'Failed to provision skill', 'error');
+          showToast(result.error || t('skills.failedToProvisionSkill'), 'error');
         } else {
           await loadSkills();
           setSelectedSkill(null);
         }
       } else {
         const data = await response.json();
-        showToast(data.message || 'Failed to provision skill', 'error');
+        showToast(data.message || t('skills.failedToProvisionSkill'), 'error');
       }
     } catch (error) {
       console.error('Failed to provision skill:', error);
-      showToast('Failed to provision skill', 'error');
+      showToast(t('skills.failedToProvisionSkill'), 'error');
     } finally {
       setProvisioningSkill(null);
     }
@@ -343,7 +345,7 @@ Show what the expected output should look like.
 
   const handleSaveSkill = async () => {
     if (!skillName.trim()) {
-      showToast('Please enter a skill name', 'warning');
+      showToast(t('skills.pleaseEnterSkillName'), 'warning');
       return;
     }
 
@@ -366,11 +368,11 @@ Show what the expected output should look like.
         setSelectedSkill(null);
       } else {
         const data = await response.json();
-        showToast(data.message || 'Failed to save skill', 'error');
+        showToast(data.message || t('skills.failedToSaveSkill'), 'error');
       }
     } catch (error) {
       console.error('Failed to save skill:', error);
-      showToast('Failed to save skill', 'error');
+      showToast(t('skills.failedToSaveSkill'), 'error');
     } finally {
       setLoading(false);
     }
@@ -390,7 +392,7 @@ Show what the expected output should look like.
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <GiAtom style={{ fontSize: '24px' }} />
-            <span>Skills</span>
+            <span>{t('skills.dialogTitle')}</span>
           </Box>
           <IconButton onClick={onClose} size="small">
             <Close />
@@ -407,9 +409,9 @@ Show what the expected output should look like.
           }}
           sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
         >
-          <Tab label="This Project" />
-          <Tab label="Other Projects" />
-          <Tab label="Repository" />
+          <Tab label={t('skills.tabThisProject')} />
+          <Tab label={t('skills.tabOtherProjects')} />
+          <Tab label={t('skills.tabRepository')} />
         </Tabs>
         <DialogContent sx={{ p: 0 }}>
           {activeTab === 2 ? (
@@ -418,13 +420,13 @@ Show what the expected output should look like.
                 <Box sx={{ p: 3, textAlign: 'center' }}>
                   <CircularProgress size={24} />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Loading repository skills...
+                    {t('skills.loadingRepository')}
                   </Typography>
                 </Box>
               ) : repoSkills.length === 0 ? (
                 <Box sx={{ p: 3, textAlign: 'center' }}>
                   <Typography variant="body2" color="text.secondary">
-                    No skills available in the repository.
+                    {t('skills.noRepoSkills')}
                   </Typography>
                 </Box>
               ) : (
@@ -432,7 +434,7 @@ Show what the expected output should look like.
                   {repoSkills.filter(s => s.source === 'standard').length > 0 && (
                     <>
                       <Typography variant="overline" sx={{ px: 2, pt: 1, display: 'block', color: 'text.secondary' }}>
-                        Standard
+                        {t('skills.sectionStandard')}
                       </Typography>
                       {repoSkills.filter(s => s.source === 'standard').map((repoSkill) => {
                         const isAlreadyProvisioned = skills.some(s => s.isFromCurrentProject && s.name === repoSkill.name);
@@ -466,7 +468,7 @@ Show what the expected output should look like.
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <span>{repoSkill.name}</span>
                                     {isAlreadyProvisioned && (
-                                      <Chip label="Added" size="small" color="success" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                      <Chip label={t('skills.added')} size="small" color="success" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
                                     )}
                                   </Box>
                                 }
@@ -481,7 +483,7 @@ Show what the expected output should look like.
                                   disabled={isProvisioning}
                                   sx={{ ml: 1, flexShrink: 0 }}
                                 >
-                                  {isProvisioning ? 'Adding...' : 'Add to project'}
+                                  {isProvisioning ? t('skills.adding') : t('skills.addToProject')}
                                 </Button>
                               )}
                             </ListItemButton>
@@ -499,7 +501,7 @@ Show what the expected output should look like.
                   {repoSkills.filter(s => s.source === 'optional').length > 0 && (
                     <>
                       <Typography variant="overline" sx={{ px: 2, pt: 1, display: 'block', color: 'text.secondary' }}>
-                        Optional
+                        {t('skills.sectionOptional')}
                       </Typography>
                       {repoSkills.filter(s => s.source === 'optional').map((repoSkill) => {
                         const isAlreadyProvisioned = skills.some(s => s.isFromCurrentProject && s.name === repoSkill.name);
@@ -533,7 +535,7 @@ Show what the expected output should look like.
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <span>{repoSkill.name}</span>
                                     {isAlreadyProvisioned && (
-                                      <Chip label="Added" size="small" color="success" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                      <Chip label={t('skills.added')} size="small" color="success" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
                                     )}
                                   </Box>
                                 }
@@ -548,7 +550,7 @@ Show what the expected output should look like.
                                   disabled={isProvisioning}
                                   sx={{ ml: 1, flexShrink: 0 }}
                                 >
-                                  {isProvisioning ? 'Adding...' : 'Add to project'}
+                                  {isProvisioning ? t('skills.adding') : t('skills.addToProject')}
                                 </Button>
                               )}
                             </ListItemButton>
@@ -566,8 +568,8 @@ Show what the expected output should look like.
                 ? skills.filter(s => s.isFromCurrentProject)
                 : skills.filter(s => !s.isFromCurrentProject);
               const emptyMessage = activeTab === 0
-                ? 'No skills found. Click "+ Skill" to create one.'
-                : 'No skills found in other projects.';
+                ? t('skills.noSkillsCreate')
+                : t('skills.noSkillsOtherProjects');
 
               return (
                 <List sx={{ minHeight: '300px', maxHeight: '400px', overflow: 'auto' }}>
@@ -611,14 +613,14 @@ Show what the expected output should look like.
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <span>{skill.name}</span>
                                   {modStatus?.status === 'updated' && (
-                                    <Chip label="Update available" size="small" sx={{ bgcolor: '#ff9800', color: '#fff', height: 20, fontSize: '0.7rem' }} />
+                                    <Chip label={t('skills.updateAvailable')} size="small" sx={{ bgcolor: '#ff9800', color: '#fff', height: 20, fontSize: '0.7rem' }} />
                                   )}
                                   {modStatus?.status === 'refined' && (
-                                    <Chip label="Modified" size="small" sx={{ bgcolor: '#ff9800', color: '#fff', height: 20, fontSize: '0.7rem' }} />
+                                    <Chip label={t('skills.modified')} size="small" sx={{ bgcolor: '#ff9800', color: '#fff', height: 20, fontSize: '0.7rem' }} />
                                   )}
                                 </Box>
                               }
-                              secondary={skill.description || (isFromOtherProject ? `from ${skill.project}` : null)}
+                              secondary={skill.description || (isFromOtherProject ? t('skills.fromProject', { project: skill.project }) : null)}
                               secondaryTypographyProps={{ fontSize: '0.75rem' }}
                             />
                             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-start', flexShrink: 0, ml: 1 }}>
@@ -643,7 +645,7 @@ Show what the expected output should look like.
                                       onClick={(e) => { e.stopPropagation(); handleCopySkill(skill); }}
                                       disabled={loading}
                                     >
-                                      Use in this project
+                                      {t('skills.useInThisProject')}
                                     </Button>
                                   ) : (
                                     <>
@@ -683,7 +685,7 @@ Show what the expected output should look like.
               onClick={handleNewSkill}
               size="small"
             >
-              + Skill
+              {t('skills.newSkillButton')}
             </Button>
           )}
         </DialogActions>
@@ -710,7 +712,7 @@ Show what the expected output should look like.
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <GiAtom style={{ fontSize: '24px' }} />
-              <Typography variant="h6">Skill definition</Typography>
+              <Typography variant="h6">{t('skills.drawerTitle')}</Typography>
             </Box>
             <IconButton onClick={handleCloseDrawer} size="small">
               <Close />
@@ -720,7 +722,7 @@ Show what the expected output should look like.
           <Box sx={{ p: 2 }}>
             <TextField
               fullWidth
-              label="Skill name"
+              label={t('skills.skillNameLabel')}
               value={skillName}
               onChange={(e) => {
                 const value = e.target.value;
@@ -730,7 +732,7 @@ Show what the expected output should look like.
                 }
               }}
               disabled={isEditing}
-              helperText="Only lowercase letters, numbers, and hyphens"
+              helperText={t('skills.skillNameHelper')}
               size="small"
               sx={{ mb: 2 }}
             />
@@ -756,19 +758,19 @@ Show what the expected output should look like.
           {isEditing && (
             <Box sx={{ borderTop: '1px solid #ddd', p: 2, flexShrink: 0 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="subtitle2">Files</Typography>
+                <Typography variant="subtitle2">{t('skills.filesSection')}</Typography>
                 <Button
                   size="small"
                   startIcon={<UploadFile />}
                   component="label"
                 >
-                  Upload
+                  {t('common.upload')}
                   <input type="file" hidden onChange={handleUploadFile} />
                 </Button>
               </Box>
               {skillFiles.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                  No additional files. Upload files to include them with this skill.
+                  {t('skills.noAdditionalFiles')}
                 </Typography>
               ) : (
                 <List dense disablePadding>
@@ -805,7 +807,7 @@ Show what the expected output should look like.
             <Box sx={{ px: 2, pb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
               <Typography variant="caption" color="text.secondary">
-                Files can be uploaded after the skill has been created.
+                {t('skills.filesUploadHint')}
               </Typography>
             </Box>
           )}
@@ -824,7 +826,7 @@ Show what the expected output should look like.
               onClick={handleSaveSkill}
               disabled={loading}
             >
-              {loading ? 'Saving...' : 'Save'}
+              {loading ? t('common.saving') : t('common.save')}
             </Button>
           </Box>
         </Box>
@@ -837,10 +839,10 @@ Show what the expected output should look like.
         onClose={() => { setModMenuAnchor(null); setModMenuSkill(null); }}
       >
         <MenuItem onClick={() => modMenuSkill && handleUpdateFromRepo(modMenuSkill)}>
-          Update from repository
+          {t('skills.updateFromRepository')}
         </MenuItem>
         <MenuItem onClick={() => modMenuSkill && handleSendForReview(modMenuSkill)}>
-          Send for review
+          {t('skills.sendForReview')}
         </MenuItem>
       </Menu>
 

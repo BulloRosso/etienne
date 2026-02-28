@@ -17,17 +17,19 @@ import { Close } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
-const GUARDRAIL_OPTIONS = [
-  { id: 'creditCard', label: 'Credit Card Numbers', description: 'Detects and redacts credit card numbers' },
-  { id: 'ipAddress', label: 'IP Addresses', description: 'Detects and redacts IPv4 and IPv6 addresses' },
-  { id: 'email', label: 'Email Addresses', description: 'Detects and redacts email addresses' },
-  { id: 'url', label: 'URLs', description: 'Detects and redacts HTTP/HTTPS URLs' },
-  { id: 'iban', label: 'IBAN', description: 'Detects and redacts international bank account numbers' },
+const getGuardrailOptions = (t) => [
+  { id: 'creditCard', label: t('guardrails.creditCardLabel'), description: t('guardrails.creditCardDescription') },
+  { id: 'ipAddress', label: t('guardrails.ipAddressLabel'), description: t('guardrails.ipAddressDescription') },
+  { id: 'email', label: t('guardrails.emailLabel'), description: t('guardrails.emailDescription') },
+  { id: 'url', label: t('guardrails.urlLabel'), description: t('guardrails.urlDescription') },
+  { id: 'iban', label: t('guardrails.ibanLabel'), description: t('guardrails.ibanDescription') },
 ];
 
 export default function GuardrailsSettings({ open, onClose, project, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [enabledGuardrails, setEnabledGuardrails] = useState([]);
@@ -114,7 +116,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Guardrails
+        {t('guardrails.title')}
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
@@ -123,17 +125,17 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
         <BackgroundInfo infoId="input-guardrails" showBackgroundInfo={showBackgroundInfo} />
 
         <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
-          <Tab label="Pre-processing" />
-          <Tab label="Post-processing" />
+          <Tab label={t('guardrails.tabPreProcessing')} />
+          <Tab label={t('guardrails.tabPostProcessing')} />
         </Tabs>
 
         {activeTab === 0 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Select which types of sensitive information should be automatically detected and redacted from user input before being sent to the AI model.
+              {t('guardrails.preProcessingDescription')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {GUARDRAIL_OPTIONS.map((option) => (
+              {getGuardrailOptions(t).map((option) => (
                 <Box key={option.id}>
                   <FormControlLabel
                     control={
@@ -156,7 +158,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
         {activeTab === 1 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Select which types of sensitive information should be automatically detected and redacted from model output after it is returned from the AI model. Using this feature turns off response streaming.
+              {t('guardrails.postProcessingDescription')}
             </Typography>
             <FormControlLabel
               control={
@@ -165,7 +167,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
                   onChange={(e) => setOutputGuardrailsEnabled(e.target.checked)}
                 />
               }
-              label="Enable post-processing"
+              label={t('guardrails.enablePostProcessing')}
               sx={{ mb: 2 }}
             />
             <Box sx={{ border: '1px solid #ddd', borderRadius: 1, overflow: 'hidden', height: '400px' }}>
@@ -188,9 +190,9 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button onClick={handleSave} variant="contained" disabled={loading}>
-          {loading ? 'Saving...' : 'Save'}
+          {loading ? t('common.saving') : t('common.save')}
         </Button>
       </DialogActions>
     </Dialog>

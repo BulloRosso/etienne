@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Box, Paper, Typography, LinearProgress } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   streaming: boolean;
@@ -8,12 +9,13 @@ type Props = {
 };
 
 export default function ResponsePane({ streaming, text, sessionId }: Props) {
+  const { t } = useTranslation();
   return (
     <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'navy', color: 'white', fontFamily: 'Roboto' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ color: 'white', fontFamily: 'Roboto', fontWeight: 'bold' }}>Model Response</Typography>
+        <Typography variant="subtitle2" sx={{ color: 'white', fontFamily: 'Roboto', fontWeight: 'bold' }}>{t('responsePane.modelResponse')}</Typography>
         <Typography variant="caption" sx={{ color: 'gold', fontFamily: 'Roboto' }}>
-          {sessionId ? `session: ${sessionId}` : 'no session'}
+          {sessionId ? t('responsePane.session', { sessionId }) : t('responsePane.noSession')}
         </Typography>
       </Box>
       {streaming && <LinearProgress sx={{ mb: 2 }} />}

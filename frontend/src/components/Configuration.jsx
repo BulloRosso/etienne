@@ -11,6 +11,7 @@ import {
   Alert
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 const defaultValues = {
@@ -35,6 +36,7 @@ const defaultValues = {
 };
 
 export default function Configuration({ onSave }) {
+  const { t } = useTranslation();
   const [config, setConfig] = useState(defaultValues);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,11 +61,11 @@ export default function Configuration({ onSave }) {
         // Merge with defaults to ensure all fields exist
         setConfig({ ...defaultValues, ...data });
       } else {
-        throw new Error('Failed to load configuration');
+        throw new Error(t('configuration.errorLoad'));
       }
     } catch (err) {
       console.error('Failed to load configuration:', err);
-      setError('Failed to load configuration');
+      setError(t('configuration.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -90,7 +92,7 @@ export default function Configuration({ onSave }) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save configuration');
+        throw new Error(t('configuration.errorSave'));
       }
 
       setSuccess(true);
@@ -99,7 +101,7 @@ export default function Configuration({ onSave }) {
       }
     } catch (err) {
       console.error('Failed to save configuration:', err);
-      setError('Failed to save configuration');
+      setError(t('configuration.errorSave'));
     } finally {
       setSaving(false);
     }
@@ -124,50 +126,50 @@ export default function Configuration({ onSave }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          Configuration saved successfully
+          {t('configuration.successSave')}
         </Alert>
       )}
 
       {/* Required Configuration */}
       <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
-        Required Configuration (.env file in backend project)
+        {t('configuration.sectionRequired')}
       </Typography>
 
       <TextField
         fullWidth
-        label="Anthropic API Key"
+        label={t('configuration.anthropicApiKeyLabel')}
         value={config.ANTHROPIC_API_KEY}
         onChange={handleChange('ANTHROPIC_API_KEY')}
         type="password"
         required
         sx={{ mb: 2 }}
-        helperText="Your Anthropic API key (sk-ant-api03-...)"
+        helperText={t('configuration.anthropicApiKeyHelperText')}
       />
 
       <TextField
         fullWidth
-        label="Workspace Root"
+        label={t('configuration.workspaceRootLabel')}
         value={config.WORKSPACE_ROOT}
         onChange={handleChange('WORKSPACE_ROOT')}
         required
         sx={{ mb: 2 }}
-        helperText="Local path to workspace files"
+        helperText={t('configuration.workspaceRootHelperText')}
       />
 
       {/* Optional Features */}
       <Accordion defaultExpanded={false} elevation={0} sx={{ '&:before': { display: 'none' }, backgroundColor: 'transparent' }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0 }}>
-          <Typography sx={{marginLeft: '0px'}}>Optional Features</Typography>
+          <Typography sx={{marginLeft: '0px'}}>{t('configuration.sectionOptional')}</Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ px: 0 }}>
           {/* Checkpointing */}
           <Typography variant="subtitle2" sx={{ mb: '8px', mt: 1, fontWeight: 'bold' }}>
-            1. Checkpointing
+            {t('configuration.sectionCheckpointing')}
           </Typography>
 
           <TextField
             fullWidth
-            label="Checkpoint Provider"
+            label={t('configuration.checkpointProviderLabel')}
             value={config.CHECKPOINT_PROVIDER}
             onChange={handleChange('CHECKPOINT_PROVIDER')}
             size="small"
@@ -176,7 +178,7 @@ export default function Configuration({ onSave }) {
 
           <TextField
             fullWidth
-            label="Gitea URL"
+            label={t('configuration.giteaUrlLabel')}
             value={config.GITEA_URL}
             onChange={handleChange('GITEA_URL')}
             size="small"
@@ -185,7 +187,7 @@ export default function Configuration({ onSave }) {
 
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
             <TextField
-              label="Gitea Username"
+              label={t('configuration.giteaUsernameLabel')}
               value={config.GITEA_USERNAME}
               onChange={handleChange('GITEA_USERNAME')}
               size="small"
@@ -193,7 +195,7 @@ export default function Configuration({ onSave }) {
             />
 
             <TextField
-              label="Gitea Password"
+              label={t('configuration.giteaPasswordLabel')}
               value={config.GITEA_PASSWORD}
               onChange={handleChange('GITEA_PASSWORD')}
               type="password"
@@ -204,7 +206,7 @@ export default function Configuration({ onSave }) {
 
           <TextField
             fullWidth
-            label="Gitea Repository"
+            label={t('configuration.giteaRepositoryLabel')}
             value={config.GITEA_REPO}
             onChange={handleChange('GITEA_REPO')}
             size="small"
@@ -213,47 +215,47 @@ export default function Configuration({ onSave }) {
 
           {/* Email Connectivity */}
           <Typography variant="subtitle2" sx={{ mb: '8px', fontWeight: 'bold' }}>
-            2. Email Connectivity
+            {t('configuration.sectionEmail')}
           </Typography>
 
           <TextField
             fullWidth
-            label="IMAP Connection"
+            label={t('configuration.imapConnectionLabel')}
             value={config.IMAP_CONNECTION}
             onChange={handleChange('IMAP_CONNECTION')}
             size="small"
             sx={{ mb: 2 }}
-            helperText="Format: host|port|secure|user|password (e.g., mail.example.com|993|true|user@example.com|password)"
+            helperText={t('configuration.imapConnectionHelperText')}
           />
 
           <TextField
             fullWidth
-            label="SMTP Connection"
+            label={t('configuration.smtpConnectionLabel')}
             value={config.SMTP_CONNECTION}
             onChange={handleChange('SMTP_CONNECTION')}
             size="small"
             sx={{ mb: 2 }}
-            helperText="Format: host|port|secure|user|password (e.g., mail.example.com|587|false|user@example.com|password)"
+            helperText={t('configuration.smtpConnectionHelperText')}
           />
 
           <TextField
             fullWidth
-            label="SMTP Whitelist"
+            label={t('configuration.smtpWhitelistLabel')}
             value={config.SMTP_WHITELIST}
             onChange={handleChange('SMTP_WHITELIST')}
             size="small"
             sx={{ mb: 3 }}
-            helperText="Comma-separated list of allowed email recipients"
+            helperText={t('configuration.smtpWhitelistHelperText')}
           />
 
           {/* Budget Control */}
           <Typography variant="subtitle2" sx={{ mb: '8px', fontWeight: 'bold' }}>
-            3. Budget Control
+            {t('configuration.sectionBudget')}
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
             <TextField
-              label="Currency Unit"
+              label={t('configuration.currencyUnitLabel')}
               value={config.COSTS_CURRENCY_UNIT}
               onChange={handleChange('COSTS_CURRENCY_UNIT')}
               size="small"
@@ -261,7 +263,7 @@ export default function Configuration({ onSave }) {
             />
 
             <TextField
-              label="Cost per Million Input Tokens"
+              label={t('configuration.costPerMioInputLabel')}
               value={config.COSTS_PER_MIO_INPUT_TOKENS}
               onChange={handleChange('COSTS_PER_MIO_INPUT_TOKENS')}
               size="small"
@@ -270,7 +272,7 @@ export default function Configuration({ onSave }) {
             />
 
             <TextField
-              label="Cost per Million Output Tokens"
+              label={t('configuration.costPerMioOutputLabel')}
               value={config.COSTS_PER_MIO_OUTPUT_TOKENS}
               onChange={handleChange('COSTS_PER_MIO_OUTPUT_TOKENS')}
               size="small"
@@ -281,12 +283,12 @@ export default function Configuration({ onSave }) {
 
           {/* Memory Management */}
           <Typography variant="subtitle2" sx={{ mb: '8px', fontWeight: 'bold' }}>
-            4. Memory Management (User Preferences)
+            {t('configuration.sectionMemory')}
           </Typography>
 
           <TextField
             fullWidth
-            label="Memory Management URL"
+            label={t('configuration.memoryManagementUrlLabel')}
             value={config.MEMORY_MANAGEMENT_URL}
             onChange={handleChange('MEMORY_MANAGEMENT_URL')}
             size="small"
@@ -295,30 +297,30 @@ export default function Configuration({ onSave }) {
 
           <TextField
             fullWidth
-            label="Memory Decay Days"
+            label={t('configuration.memoryDecayDaysLabel')}
             value={config.MEMORY_DECAY_DAYS}
             onChange={handleChange('MEMORY_DECAY_DAYS')}
             size="small"
             type="number"
             sx={{ mb: 3 }}
-            helperText="Number of days before memories are considered stale"
+            helperText={t('configuration.memoryDecayDaysHelperText')}
           />
 
           {/* OpenTelemetry Observability */}
           <Typography variant="subtitle2" sx={{ mb: '8px', fontWeight: 'bold' }}>
-            5. OpenTelemetry Observability
+            {t('configuration.sectionOtel')}
           </Typography>
 
           <TextField
             fullWidth
-            label="OTEL Enabled"
+            label={t('configuration.otelEnabledLabel')}
             value={config.OTEL_ENABLED}
             onChange={handleChange('OTEL_ENABLED')}
             size="small"
             select
             SelectProps={{ native: true }}
             sx={{ mb: 2 }}
-            helperText="Enable OpenTelemetry tracing and metrics"
+            helperText={t('configuration.otelEnabledHelperText')}
           >
             <option value="true">true</option>
             <option value="false">false</option>
@@ -326,22 +328,22 @@ export default function Configuration({ onSave }) {
 
           <TextField
             fullWidth
-            label="Phoenix Collector Endpoint"
+            label={t('configuration.phoenixEndpointLabel')}
             value={config.PHOENIX_COLLECTOR_ENDPOINT}
             onChange={handleChange('PHOENIX_COLLECTOR_ENDPOINT')}
             size="small"
             sx={{ mb: 2 }}
-            helperText="OpenTelemetry collector endpoint (e.g., http://localhost:6006)"
+            helperText={t('configuration.phoenixEndpointHelperText')}
           />
 
           <TextField
             fullWidth
-            label="OTEL Service Name"
+            label={t('configuration.otelServiceNameLabel')}
             value={config.OTEL_SERVICE_NAME}
             onChange={handleChange('OTEL_SERVICE_NAME')}
             size="small"
             sx={{ mb: 2 }}
-            helperText="Service name for OpenTelemetry traces"
+            helperText={t('configuration.otelServiceNameHelperText')}
           />
         </AccordionDetails>
       </Accordion>
@@ -353,7 +355,7 @@ export default function Configuration({ onSave }) {
           onClick={handleSave}
           disabled={!isValid || saving}
         >
-          {saving ? <CircularProgress size={24} /> : 'Save'}
+          {saving ? <CircularProgress size={24} /> : t('common.save')}
         </Button>
       </Box>
     </Box>

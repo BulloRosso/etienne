@@ -36,25 +36,27 @@ import Editor from '@monaco-editor/react';
 import { MdClose, MdDescription, MdComment } from 'react-icons/md';
 import { IoShieldCheckmark } from 'react-icons/io5';
 import ComplianceGuidelineViewer from './ComplianceGuidelineViewer';
+import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
 const INITIAL_STEPS = [
-  { label: 'Review Requirements' },
-  { label: 'Review Deliverables' },
-  { label: 'Release Information' },
-  { label: 'Confirm & Create' },
+  { labelKey: 'complianceWizard.stepReviewRequirements' },
+  { labelKey: 'complianceWizard.stepReviewDeliverables' },
+  { labelKey: 'complianceWizard.stepReleaseInfo' },
+  { labelKey: 'complianceWizard.stepConfirmCreate' },
 ];
 
 const UPDATE_STEPS = [
-  { label: 'Review Requirements' },
-  { label: 'Review Changes' },
-  { label: 'Edit Release Document' },
-  { label: 'Release Information' },
-  { label: 'Confirm & Create' },
+  { labelKey: 'complianceWizard.stepReviewRequirements' },
+  { labelKey: 'complianceWizard.stepReviewChanges' },
+  { labelKey: 'complianceWizard.stepEditDocument' },
+  { labelKey: 'complianceWizard.stepReleaseInfo' },
+  { labelKey: 'complianceWizard.stepConfirmCreate' },
 ];
 
 export default function ComplianceReleaseWizard({ open, onClose, projectName, status, onReleaseCreated }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [activeStep, setActiveStep] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -324,7 +326,7 @@ git checkout ${previousVersion}
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="subtitle1" fontWeight={600}>
-          Project Requirements
+          {t('complianceWizard.projectRequirements')}
         </Typography>
         <Button
           variant="outlined"
@@ -332,11 +334,11 @@ git checkout ${previousVersion}
           startIcon={<IoShieldCheckmark />}
           onClick={() => setGuidelineOpen(true)}
         >
-          View Compliance Guidelines
+          {t('complianceWizard.viewGuidelines')}
         </Button>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Review the project requirements below. Confirm they accurately reflect the project intent, constraints, and acceptance criteria.
+        {t('complianceWizard.reviewRequirementsDesc')}
       </Typography>
       <Box sx={{ flex: 1, minHeight: 0, border: '1px solid #ddd', borderRadius: 1 }}>
         <Editor
@@ -352,14 +354,14 @@ git checkout ${previousVersion}
         <Box sx={{ mt: 2 }}>
           <FormControlLabel
             control={<Switch checked={requirementsChanged} onChange={(e) => setRequirementsChanged(e.target.checked)} />}
-            label="Requirements have changed since last release"
+            label={t('complianceWizard.requirementsChanged')}
           />
           {requirementsChanged && (
             <TextField
               fullWidth
               multiline
               rows={2}
-              label="Describe what changed in the requirements"
+              label={t('complianceWizard.describeChanges')}
               value={requirementsChangeDescription}
               onChange={(e) => setRequirementsChangeDescription(e.target.value)}
               sx={{ mt: 1 }}
@@ -373,31 +375,31 @@ git checkout ${previousVersion}
   const renderReviewDeliverables = () => (
     <Box>
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-        Review Deliverables
+        {t('complianceWizard.reviewDeliverables')}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Confirm you have manually reviewed the project deliverables. This is the core human oversight step.
+        {t('complianceWizard.reviewDeliverablesDesc')}
       </Typography>
 
       <FormGroup sx={{ mb: 2 }}>
         <FormControlLabel
           control={<Checkbox checked={reviewedCode} onChange={(e) => setReviewedCode(e.target.checked)} />}
-          label="I have reviewed all code files (logic, test coverage, security)"
+          label={t('complianceWizard.reviewedCode')}
         />
         <FormControlLabel
           control={<Checkbox checked={reviewedDocs} onChange={(e) => setReviewedDocs(e.target.checked)} />}
-          label="I have reviewed all documents (accuracy, completeness)"
+          label={t('complianceWizard.reviewedDocs')}
         />
         <FormControlLabel
           control={<Checkbox checked={reviewedConfig} onChange={(e) => setReviewedConfig(e.target.checked)} />}
-          label="I have reviewed all configuration (settings, credentials, environment)"
+          label={t('complianceWizard.reviewedConfig')}
         />
       </FormGroup>
 
       <Divider sx={{ my: 2 }} />
 
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        Project Files ({status?.projectFiles?.length || 0})
+        {t('complianceWizard.projectFiles', { count: status?.projectFiles?.length || 0 })}
       </Typography>
       <Box sx={{ maxHeight: 150, overflow: 'auto', border: '1px solid #eee', borderRadius: 1, p: 1 }}>
         {(status?.projectFiles || []).map((file) => (
@@ -410,10 +412,10 @@ git checkout ${previousVersion}
       <Divider sx={{ my: 2 }} />
 
       <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-        Chat Sessions (Audit Trail)
+        {t('complianceWizard.chatSessions')}
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        {sessionCount} session{sessionCount !== 1 ? 's' : ''} archived in .etienne/ ({sessionDateRange})
+        {t('complianceWizard.sessionsArchived', { count: sessionCount, range: sessionDateRange })}
       </Typography>
     </Box>
   );
@@ -425,15 +427,15 @@ git checkout ${previousVersion}
     return (
       <Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-          Review Changes &amp; Release Comments
+          {t('complianceWizard.reviewChangesTitle')}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          The following files have release comments that will be compiled into the diff protocol.
+          {t('complianceWizard.reviewChangesDesc')}
         </Typography>
 
         {commentEntries.length === 0 ? (
           <Alert severity="info" sx={{ mb: 2 }}>
-            No release comments have been added yet. You can still proceed — the release document editor in the next step allows you to add change annotations manually.
+            {t('complianceWizard.noReleaseComments')}
           </Alert>
         ) : (
           <List dense>
@@ -454,10 +456,10 @@ git checkout ${previousVersion}
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-          Chat Sessions (Audit Trail)
+          {t('complianceWizard.chatSessions')}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {sessionCount} session{sessionCount !== 1 ? 's' : ''} archived ({sessionDateRange})
+          {t('complianceWizard.sessionsArchived', { count: sessionCount, range: sessionDateRange })}
         </Typography>
       </Box>
     );
@@ -466,10 +468,10 @@ git checkout ${previousVersion}
   const renderEditDocument = () => (
     <Box>
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-        Edit Release Document (DIFF_PROTOCOL)
+        {t('complianceWizard.editDocumentTitle')}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        This document has been pre-populated from your release comments. Edit as needed — this will become DIFF_PROTOCOL_{nextVersion}.md.
+        {t('complianceWizard.editDocumentDesc', { version: nextVersion })}
       </Typography>
       <Box sx={{ height: 300, border: '1px solid #ddd', borderRadius: 1, mb: 2 }}>
         <Editor
@@ -484,17 +486,17 @@ git checkout ${previousVersion}
 
       <TextField
         fullWidth
-        label="Fallback Plan"
+        label={t('complianceWizard.fallbackPlan')}
         value={fallbackPlan}
         onChange={(e) => setFallbackPlan(e.target.value)}
-        helperText="How to revert if issues are discovered (e.g. git checkout v1.0)"
+        helperText={t('complianceWizard.fallbackPlanHelper')}
         sx={{ mb: 2 }}
       />
 
       <Divider sx={{ my: 2 }} />
 
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        Changelog Entries
+        {t('complianceWizard.changelogEntries')}
       </Typography>
       {changeEntries.map((entry, index) => (
         <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
@@ -512,7 +514,7 @@ git checkout ${previousVersion}
           <TextField
             fullWidth
             size="small"
-            placeholder="Description of change"
+            placeholder={t('complianceWizard.descriptionOfChange')}
             value={entry.description}
             onChange={(e) => updateChangeEntry(index, 'description', e.target.value)}
           />
@@ -523,88 +525,88 @@ git checkout ${previousVersion}
           )}
         </Box>
       ))}
-      <Button size="small" onClick={addChangeEntry}>+ Add entry</Button>
+      <Button size="small" onClick={addChangeEntry}>+ {t('complianceWizard.addEntry')}</Button>
     </Box>
   );
 
   const renderReleaseInfo = () => (
     <Box>
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-        Release Information
+        {t('complianceWizard.releaseInformation')}
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField
             fullWidth
-            label="Reviewer Name *"
+            label={t('complianceWizard.reviewerName')}
             value={reviewerName}
             onChange={(e) => setReviewerName(e.target.value)}
           />
           <TextField
             fullWidth
-            label="Reviewer Role *"
+            label={t('complianceWizard.reviewerRole')}
             value={reviewerRole}
             onChange={(e) => setReviewerRole(e.target.value)}
-            placeholder="e.g. Lead Developer, Project Manager"
+            placeholder={t('complianceWizard.reviewerRolePlaceholder')}
           />
         </Box>
         <TextField
           fullWidth
-          label="Summary *"
+          label={t('complianceWizard.summaryLabel')}
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
-          placeholder="1-2 sentence description of what was built/changed"
+          placeholder={t('complianceWizard.summaryPlaceholder')}
         />
         <TextField
           fullWidth
-          label="AI System Used"
+          label={t('complianceWizard.aiSystemUsed')}
           value={aiSystemUsed}
           onChange={(e) => setAiSystemUsed(e.target.value)}
         />
         <TextField
           fullWidth
-          label="Review Scope"
+          label={t('complianceWizard.reviewScope')}
           value={reviewScope}
           onChange={(e) => setReviewScope(e.target.value)}
-          placeholder="e.g. code, documentation, configuration"
+          placeholder={t('complianceWizard.reviewScopePlaceholder')}
         />
         <FormControl>
-          <FormLabel>Review Outcome</FormLabel>
+          <FormLabel>{t('complianceWizard.reviewOutcome')}</FormLabel>
           <RadioGroup
             row
             value={reviewOutcome}
             onChange={(e) => setReviewOutcome(e.target.value)}
           >
-            <FormControlLabel value="APPROVED" control={<Radio />} label="Approved" />
-            <FormControlLabel value="APPROVED WITH NOTES" control={<Radio />} label="Approved with Notes" />
+            <FormControlLabel value="APPROVED" control={<Radio />} label={t('complianceWizard.approved')} />
+            <FormControlLabel value="APPROVED WITH NOTES" control={<Radio />} label={t('complianceWizard.approvedWithNotes')} />
           </RadioGroup>
         </FormControl>
         <TextField
           fullWidth
           multiline
           rows={2}
-          label="Known Limitations"
+          label={t('complianceWizard.knownLimitations')}
           value={knownLimitations}
           onChange={(e) => setKnownLimitations(e.target.value)}
-          placeholder="Any caveats, known issues, or areas where AI output required correction"
+          placeholder={t('complianceWizard.knownLimitationsPlaceholder')}
         />
         <TextField
           fullWidth
           multiline
           rows={2}
-          label="Risk Assessment"
+          label={t('complianceWizard.riskAssessment')}
           value={riskAssessment}
           onChange={(e) => setRiskAssessment(e.target.value)}
-          placeholder="Brief assessment of risks"
+          placeholder={t('complianceWizard.riskAssessmentPlaceholder')}
         />
         <TextField
           fullWidth
           multiline
           rows={2}
-          label="Notes"
+          label={t('complianceWizard.notes')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Any additional observations"
+          placeholder={t('complianceWizard.notesPlaceholder')}
         />
       </Box>
     </Box>
@@ -613,7 +615,7 @@ git checkout ${previousVersion}
   const renderConfirm = () => (
     <Box>
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-        Confirm Release {nextVersion}
+        {t('complianceWizard.confirmRelease', { version: nextVersion })}
       </Typography>
 
       {error && (
@@ -621,56 +623,56 @@ git checkout ${previousVersion}
       )}
 
       <Box sx={{ backgroundColor: '#f5f5f5', borderRadius: 1, p: 2, mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>Release Summary</Typography>
-        <Typography variant="body2"><strong>Version:</strong> {nextVersion}</Typography>
-        <Typography variant="body2"><strong>Reviewer:</strong> {reviewerName} ({reviewerRole})</Typography>
-        <Typography variant="body2"><strong>Summary:</strong> {summary}</Typography>
-        <Typography variant="body2"><strong>Outcome:</strong> {reviewOutcome}</Typography>
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('complianceWizard.releaseSummary')}</Typography>
+        <Typography variant="body2"><strong>{t('complianceWizard.version')}:</strong> {nextVersion}</Typography>
+        <Typography variant="body2"><strong>{t('complianceWizard.reviewer')}:</strong> {reviewerName} ({reviewerRole})</Typography>
+        <Typography variant="body2"><strong>{t('researchDocument.summary')}:</strong> {summary}</Typography>
+        <Typography variant="body2"><strong>{t('complianceWizard.outcome')}:</strong> {reviewOutcome}</Typography>
       </Box>
 
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>The following artifacts will be created:</Typography>
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('complianceWizard.artifactsToCreate')}</Typography>
       <List dense>
         {isInitial ? (
           <>
             <ListItem>
               <ListItemIcon sx={{ minWidth: 36 }}><MdDescription size={20} /></ListItemIcon>
-              <ListItemText primary="RELEASE_NOTES.md" secondary="Initial release sign-off document" />
+              <ListItemText primary="RELEASE_NOTES.md" secondary={t('complianceWizard.initialReleaseSignoff')} />
             </ListItem>
             <ListItem>
               <ListItemIcon sx={{ minWidth: 36 }}><MdDescription size={20} /></ListItemIcon>
-              <ListItemText primary="Mission file update" secondary="Requirements baseline v1.0 header added" />
+              <ListItemText primary={t('complianceWizard.missionFileUpdate')} secondary={t('complianceWizard.requirementsBaseline')} />
             </ListItem>
           </>
         ) : (
           <>
             <ListItem>
               <ListItemIcon sx={{ minWidth: 36 }}><MdDescription size={20} /></ListItemIcon>
-              <ListItemText primary={`DIFF_PROTOCOL_${nextVersion}.md`} secondary="Annotated change record" />
+              <ListItemText primary={`DIFF_PROTOCOL_${nextVersion}.md`} secondary={t('complianceWizard.annotatedChangeRecord')} />
             </ListItem>
             <ListItem>
               <ListItemIcon sx={{ minWidth: 36 }}><MdDescription size={20} /></ListItemIcon>
-              <ListItemText primary="CHANGELOG.md" secondary="Cumulative change log (created/updated)" />
+              <ListItemText primary="CHANGELOG.md" secondary={t('complianceWizard.cumulativeChangeLog')} />
             </ListItem>
             {requirementsChanged && (
               <ListItem>
                 <ListItemIcon sx={{ minWidth: 36 }}><MdDescription size={20} /></ListItemIcon>
-                <ListItemText primary="Mission file update" secondary={`Requirements update ${nextVersion} header added`} />
+                <ListItemText primary={t('complianceWizard.missionFileUpdate')} secondary={t('complianceWizard.requirementsUpdate', { version: nextVersion })} />
               </ListItem>
             )}
           </>
         )}
         <ListItem>
           <ListItemIcon sx={{ minWidth: 36 }}><IoShieldCheckmark size={20} /></ListItemIcon>
-          <ListItemText primary="Checkpoint" secondary={`Release ${nextVersion} — ${summary}`} />
+          <ListItemText primary={t('complianceWizard.checkpoint')} secondary={`${t('complianceWizard.release')} ${nextVersion} — ${summary}`} />
         </ListItem>
       </List>
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-        {sessionCount} chat session{sessionCount !== 1 ? 's' : ''} archived in .etienne/ ({sessionDateRange})
+        {t('complianceWizard.sessionsArchived', { count: sessionCount, range: sessionDateRange })}
       </Typography>
       {!isInitial && releaseCommentCount > 0 && (
         <Typography variant="body2" color="text.secondary">
-          {releaseCommentCount} release comment{releaseCommentCount !== 1 ? 's' : ''} will be cleared after release.
+          {t('complianceWizard.releaseCommentsCleared', { count: releaseCommentCount })}
         </Typography>
       )}
     </Box>
@@ -712,7 +714,7 @@ git checkout ${previousVersion}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IoShieldCheckmark size={24} color="#1976d2" />
             <Typography variant="h6">
-              {isInitial ? 'Create Initial Release (v1.0)' : `Create Update Release (${nextVersion})`}
+              {isInitial ? t('complianceWizard.createInitialRelease') : t('complianceWizard.createUpdateRelease', { version: nextVersion })}
             </Typography>
           </Box>
           <IconButton onClick={onClose} size="small" disabled={creating}>
@@ -723,8 +725,8 @@ git checkout ${previousVersion}
         <Box sx={{ px: 3, pb: 1 }}>
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((step) => (
-              <Step key={step.label}>
-                <StepLabel>{step.label}</StepLabel>
+              <Step key={step.labelKey}>
+                <StepLabel>{t(step.labelKey)}</StepLabel>
               </Step>
             ))}
           </Stepper>
@@ -736,7 +738,7 @@ git checkout ${previousVersion}
 
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleBack} disabled={activeStep === 0 || creating}>
-            Back
+            {t('common.back')}
           </Button>
           <Box sx={{ flex: 1 }} />
           {isLastStep ? (
@@ -746,7 +748,7 @@ git checkout ${previousVersion}
               disabled={creating || !canProceed()}
               startIcon={creating ? <CircularProgress size={20} /> : <IoShieldCheckmark />}
             >
-              {creating ? 'Creating...' : `Create Release ${nextVersion}`}
+              {creating ? t('complianceWizard.creating') : t('complianceWizard.createReleaseVersion', { version: nextVersion })}
             </Button>
           ) : (
             <Button
@@ -754,7 +756,7 @@ git checkout ${previousVersion}
               onClick={handleNext}
               disabled={!canProceed()}
             >
-              Next
+              {t('common.next')}
             </Button>
           )}
         </DialogActions>

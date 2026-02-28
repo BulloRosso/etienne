@@ -12,6 +12,7 @@ import {
   Typography
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 const getCurrencySymbol = (currency) => {
@@ -32,6 +33,7 @@ export default function BudgetSettings({
   currency,
   onSettingsChange
 }) {
+  const { t } = useTranslation();
   const [limit, setLimit] = useState('0');
   const [resetCounters, setResetCounters] = useState(true);
   const [notificationEmail, setNotificationEmail] = useState('');
@@ -81,7 +83,7 @@ export default function BudgetSettings({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Budget Settings
+        {t('budgetSettings.title')}
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
@@ -90,12 +92,12 @@ export default function BudgetSettings({
         <TextField
           autoFocus
           margin="dense"
-          label={`Budget Limit (${currencySymbol})`}
+          label={t('budgetSettings.budgetLimitLabel', { currencySymbol })}
           type="number"
           fullWidth
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
-          helperText="Set to 0 for no limit. The limit applies globally across all projects."
+          helperText={t('budgetSettings.budgetLimitHelperText')}
           inputProps={{
             step: '0.01',
             min: '0'
@@ -110,25 +112,25 @@ export default function BudgetSettings({
           }
           label={
             <Typography variant="body2">
-              Reset token counters for all projects
+              {t('budgetSettings.resetCounters')}
             </Typography>
           }
           sx={{ mt: 1 }}
         />
         <TextField
           margin="dense"
-          label="Notification Email"
+          label={t('budgetSettings.notificationEmailLabel')}
           type="email"
           fullWidth
           value={notificationEmail}
           onChange={(e) => setNotificationEmail(e.target.value)}
-          helperText="Email address for budget threshold alerts (50%, 80%, 100%). Leave empty to disable."
+          helperText={t('budgetSettings.notificationEmailHelperText')}
           sx={{ mt: 2 }}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained">Save</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <Button onClick={handleSave} variant="contained">{t('common.save')}</Button>
       </DialogActions>
     </Dialog>
   );

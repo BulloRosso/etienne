@@ -16,33 +16,35 @@ import {
   ExpandMore as ExpandMoreIcon,
   ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 const WebHooksTab = ({
   selectedProject,
   copySuccess,
   onCopyWebhookUrl
 }) => {
+  const { t } = useTranslation();
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, ml: '20px', display: 'block' }}>
-        POST data/files to this project from external systems. In the base version the endpoint is open, adding header authentication is recommended.
+        {t('webHooksTab.description')}
       </Typography>
 
       {/* Webhook JSON Format Documentation */}
       <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="subtitle2" fontWeight={600}>
-            Webhook JSON Format
+            {t('webHooksTab.jsonFormatTitle')}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                Dedicated Webhook Endpoint (Recommended)
+                {t('webHooksTab.dedicatedEndpoint')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                POST any JSON payload directly - it will be automatically wrapped as a Webhook event:
+                {t('webHooksTab.dedicatedEndpointDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}/webhook</Box>
@@ -53,7 +55,7 @@ const WebHooksTab = ({
 }`}
               </Paper>
               <Alert severity="info" sx={{ mt: 1, py: 0.5, '& .MuiAlert-message': { fontSize: '0.75rem' } }}>
-                Match fields using <code>payload.command:remove</code> or <code>payload.priority:high</code>
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.matchFieldsAlert') }} />
               </Alert>
             </Box>
 
@@ -61,10 +63,10 @@ const WebHooksTab = ({
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                General Event Endpoint
+                {t('webHooksTab.generalEndpoint')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                POST a structured event with explicit group and name:
+                {t('webHooksTab.generalEndpointDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}</Box>
@@ -84,10 +86,10 @@ const WebHooksTab = ({
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                Prompt Context Injection
+                {t('webHooksTab.promptContextInjection')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                When a Webhook event triggers a rule, the full JSON payload is prepended to your action prompt:
+                {t('webHooksTab.promptContextDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
                 {`The agent received this information via webhook:
@@ -109,17 +111,17 @@ const WebHooksTab = ({
       <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="subtitle2" fontWeight={600}>
-            Webhook File Upload Format
+            {t('webHooksTab.fileUploadTitle')}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                Multipart Form Data with Files
+                {t('webHooksTab.multipartFormData')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Upload files along with JSON metadata using <code>multipart/form-data</code>:
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.multipartFormDataDesc') }} />
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}/webhook</Box>
@@ -142,7 +144,7 @@ Content-Type: image/jpeg
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                cURL Example
+                {t('webHooksTab.curlExample')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 {`curl -X POST http://localhost:6060/api/events/${selectedProject}/webhook \\
@@ -156,10 +158,10 @@ Content-Type: image/jpeg
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                File Storage Location
+                {t('webHooksTab.fileStorageLocation')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Uploaded files are saved to the project's <code>webhook/</code> directory, overwriting any existing files with the same name:
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.fileStorageDesc') }} />
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.75rem', mt: 1 }}>
                 {`workspace/${selectedProject}/webhook/
@@ -173,10 +175,10 @@ Content-Type: image/jpeg
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                Resulting Event Payload
+                {t('webHooksTab.resultingPayload')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                The event payload combines your JSON description with file metadata:
+                {t('webHooksTab.resultingPayloadDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
                 {`{
@@ -188,7 +190,7 @@ Content-Type: image/jpeg
 }`}
               </Paper>
               <Alert severity="info" sx={{ mt: 1, py: 0.5, '& .MuiAlert-message': { fontSize: '0.75rem' } }}>
-                Match files using <code>payload.fileCount:2</code> or check for specific files in your prompt
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.matchFilesAlert') }} />
               </Alert>
             </Box>
           </Stack>
@@ -198,7 +200,7 @@ Content-Type: image/jpeg
       {/* Webhook URL Display */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-          Webhook URL
+          {t('webHooksTab.webhookUrl')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <TextField
@@ -217,7 +219,7 @@ Content-Type: image/jpeg
             onClick={onCopyWebhookUrl}
             sx={{ textTransform: 'none', minWidth: 80, fontSize: '0.75rem' }}
           >
-            {copySuccess ? 'Copied!' : 'Copy'}
+            {copySuccess ? t('common.copied') : t('common.copy')}
           </Button>
         </Box>
       </Box>

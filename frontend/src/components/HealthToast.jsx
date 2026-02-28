@@ -4,9 +4,11 @@ import { TbCloudDataConnection } from 'react-icons/tb';
 import { IoClose } from 'react-icons/io5';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function HealthToast() {
+  const { t } = useTranslation();
   const [error, setError] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -33,7 +35,7 @@ export default function HealthToast() {
         }
       }
     } catch (err) {
-      setError('**Backend does not respond**\n\nThe backend is not responding. Please ensure the backend is running on port 6060.');
+      setError(t('healthToast.backendNotResponding'));
     }
   };
 
@@ -56,7 +58,7 @@ export default function HealthToast() {
   // If toast is not open, show just the icon button
   if (!isOpen) {
     return (
-      <Tooltip title="System Health Error - Click to view details">
+      <Tooltip title={t('healthToast.clickToViewDetails')}>
         <IconButton
           onClick={() => setIsOpen(true)}
           sx={{

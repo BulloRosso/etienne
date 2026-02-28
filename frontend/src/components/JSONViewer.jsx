@@ -3,9 +3,11 @@ import Editor from '@monaco-editor/react';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function JSONViewer({ filename, projectName, className = '', isJsonl = false }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [jsonContent, setJsonContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -129,14 +131,14 @@ export default function JSONViewer({ filename, projectName, className = '', isJs
         p={2}
         color="error.main"
       >
-        Error loading JSON file: {error}
+        {t('jsonViewer.errorLoading')} {error}
       </Box>
     );
   }
 
   return (
     <Box className={className} height="100%" width="100%" position="relative">
-      <Tooltip title="Reload file">
+      <Tooltip title={t('jsonViewer.reloadFile')}>
         <IconButton
           onClick={handleReload}
           disabled={loading}

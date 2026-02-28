@@ -16,6 +16,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { Close, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 import BudgetSettings from './BudgetSettings';
 import BackgroundInfo from './BackgroundInfo';
@@ -47,6 +48,7 @@ const formatTokenCount = (tokens) => {
  * Both segments are measured against the same limit (denominator).
  */
 function StackedBudgetBar({ globalCosts, projectCosts, limit, currency, isExceeded }) {
+  const { t } = useTranslation();
   const currencySymbol = getCurrencySymbol(currency);
   const globalPct = limit > 0 ? Math.min(100, (globalCosts / limit) * 100) : 0;
   const projectPct = limit > 0 ? Math.min(globalPct, (projectCosts / limit) * 100) : 0;
@@ -56,7 +58,7 @@ function StackedBudgetBar({ globalCosts, projectCosts, limit, currency, isExceed
     <Paper sx={{ p: 2.5, mb: 3, borderRadius: 3 }} variant="outlined">
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
         <Typography variant="body2" color="text.secondary">
-          Global Token Budget
+          {t('budgetOverview.globalTokenBudget')}
         </Typography>
         <Typography variant="body1" fontWeight="bold" color={isExceeded ? 'error.main' : 'text.primary'}>
           {globalCosts.toFixed(2)} {currencySymbol} / {limit.toFixed(2)} {currencySymbol}
@@ -65,7 +67,7 @@ function StackedBudgetBar({ globalCosts, projectCosts, limit, currency, isExceed
 
       {/* Stacked bar */}
       <Tooltip
-        title={`Current project: ${projectCosts.toFixed(2)} ${currencySymbol} | Other projects: ${(globalCosts - projectCosts).toFixed(2)} ${currencySymbol}`}
+        title={t('budgetOverview.barTooltip', { projectCosts: projectCosts.toFixed(2), currencySymbol, otherCosts: (globalCosts - projectCosts).toFixed(2) })}
         arrow
       >
         <Box sx={{
@@ -101,11 +103,11 @@ function StackedBudgetBar({ globalCosts, projectCosts, limit, currency, isExceed
       <Box sx={{ display: 'flex', gap: 3, mt: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#1976d2' }} />
-          <Typography variant="caption" color="text.secondary">All projects</Typography>
+          <Typography variant="caption" color="text.secondary">{t('budgetOverview.legendAllProjects')}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e57373' }} />
-          <Typography variant="caption" color="text.secondary">Current project</Typography>
+          <Typography variant="caption" color="text.secondary">{t('budgetOverview.legendCurrentProject')}</Typography>
         </Box>
       </Box>
     </Paper>
@@ -129,6 +131,7 @@ export default function BudgetOverview({
   refreshKey,
   showBackgroundInfo
 }) {
+  const { t } = useTranslation();
   const [recentCosts, setRecentCosts] = useState([]);
   const [totalSessions, setTotalSessions] = useState(numberOfSessions);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -192,7 +195,7 @@ export default function BudgetOverview({
   return (
     <Box sx={{ width: 500, p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">Budget Overview</Typography>
+        <Typography variant="h5">{t('budgetOverview.title')}</Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
@@ -218,7 +221,7 @@ export default function BudgetOverview({
             {formatTokenCount(totalTokens)}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Tokens used
+            {t('budgetOverview.tokensUsed')}
           </Typography>
         </Paper>
 
@@ -228,7 +231,7 @@ export default function BudgetOverview({
               {formatTokenCount(estimatedRemainingTokens)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Tokens remaining (est.)
+              {t('budgetOverview.tokensRemaining')}
             </Typography>
           </Paper>
         ) : (
@@ -237,7 +240,7 @@ export default function BudgetOverview({
               {currencySymbol}{formatCurrency(currentCosts)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Total costs
+              {t('budgetOverview.totalCosts')}
             </Typography>
           </Paper>
         )}
@@ -249,7 +252,7 @@ export default function BudgetOverview({
             {totalSessions}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Sessions completed
+            {t('budgetOverview.sessionsCompleted')}
           </Typography>
         </Paper>
 
@@ -258,7 +261,7 @@ export default function BudgetOverview({
             {currencySymbol}{formatCurrency(avgCostPerSession)}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Avg. cost per session
+            {t('budgetOverview.avgCostPerSession')}
           </Typography>
         </Paper>
       </Box>
@@ -271,7 +274,7 @@ export default function BudgetOverview({
         sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', mb: 1 }}
       >
         <Typography variant="h6">
-          Recent Activity
+          {t('budgetOverview.recentActivity')}
         </Typography>
         <IconButton size="small">
           {activityOpen ? <ExpandLess /> : <ExpandMore />}
@@ -281,17 +284,17 @@ export default function BudgetOverview({
       <Collapse in={activityOpen}>
         {recentCosts.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-            No cost data available yet
+            {t('budgetOverview.noCostData')}
           </Typography>
         ) : (
           <TableContainer component={Paper} sx={{ maxHeight: 400, mb: 3 }}>
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell align="right">Input Tokens</TableCell>
-                  <TableCell align="right">Output Tokens</TableCell>
-                  <TableCell align="right">Cost</TableCell>
+                  <TableCell>{t('budgetOverview.columnDate')}</TableCell>
+                  <TableCell align="right">{t('budgetOverview.columnInputTokens')}</TableCell>
+                  <TableCell align="right">{t('budgetOverview.columnOutputTokens')}</TableCell>
+                  <TableCell align="right">{t('budgetOverview.columnCost')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -317,7 +320,7 @@ export default function BudgetOverview({
           variant="outlined"
           onClick={() => setSettingsOpen(true)}
         >
-          Budget Settings
+          {t('budgetOverview.settingsButton')}
         </Button>
       </Box>
 

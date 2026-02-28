@@ -8,6 +8,7 @@ import { AiOutlineMail } from 'react-icons/ai';
 import { RiRobot2Line } from 'react-icons/ri';
 import { MdSecurity } from 'react-icons/md';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 const serviceIcons = {
@@ -21,6 +22,7 @@ const serviceIcons = {
 };
 
 export default function ServiceControlDrawer({ open, onClose }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [services, setServices] = useState([]);
   const [statuses, setStatuses] = useState({});
@@ -158,7 +160,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
             borderColor: 'divider',
             flexShrink: 0
           }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Service Control</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('serviceControl.title')}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <IconButton
                 onClick={(e) => setSettingsMenuAnchor(e.currentTarget)}
@@ -269,14 +271,14 @@ export default function ServiceControlDrawer({ open, onClose }) {
             <ListItemIcon>
               <Stop sx={{ color: '#d32f2f' }} />
             </ListItemIcon>
-            <ListItemText>Stop</ListItemText>
+            <ListItemText>{t('serviceControl.stop')}</ListItemText>
           </MenuItem>
         ) : (
           <MenuItem onClick={() => handleAction('start')}>
             <ListItemIcon>
               <PlayArrow sx={{ color: '#4caf50' }} />
             </ListItemIcon>
-            <ListItemText>Start</ListItemText>
+            <ListItemText>{t('serviceControl.start')}</ListItemText>
           </MenuItem>
         )}
       </Menu>
@@ -291,7 +293,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
           setSettingsMenuAnchor(null);
           setCodingAgentConfigOpen(true);
         }}>
-          <ListItemText>Coding Agent Config</ListItemText>
+          <ListItemText>{t('serviceControl.codingAgentConfig')}</ListItemText>
         </MenuItem>
       </Menu>
 

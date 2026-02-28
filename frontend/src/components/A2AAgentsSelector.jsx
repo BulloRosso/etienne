@@ -10,12 +10,14 @@ import {
   Chip
 } from '@mui/material';
 import { RiRobot2Line } from 'react-icons/ri';
+import { useTranslation } from 'react-i18next';
 
 export default function A2AAgentsSelector({
   registryAgents = [],
   selectedAgents = [],
   onSelectionChange
 }) {
+  const { t } = useTranslation();
   const isSelected = (agentUrl) =>
     selectedAgents.some(a => a.url === agentUrl);
 
@@ -31,7 +33,7 @@ export default function A2AAgentsSelector({
     return (
       <Box>
         <Typography variant="body2" color="text.secondary">
-          No external agents available in the registry.
+          {t('a2aAgentsSelector.noAgentsAvailable')}
         </Typography>
       </Box>
     );
@@ -40,7 +42,7 @@ export default function A2AAgentsSelector({
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Select external A2A agents to be available in this project.
+        {t('a2aAgentsSelector.description')}
       </Typography>
 
       <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, color: '#000' }}>
@@ -89,7 +91,7 @@ export default function A2AAgentsSelector({
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={`+${agent.skills.length - 3} more`}
+                          label={t('a2aAgentsSelector.moreSkills', { count: agent.skills.length - 3 })}
                           sx={{ fontSize: '0.65rem', height: 20, color: '#000', borderColor: '#000' }}
                         />
                       )}
@@ -104,7 +106,7 @@ export default function A2AAgentsSelector({
 
       {selectedAgents.length > 0 && (
         <Typography variant="body2" sx={{ mt: 2 }}>
-          {selectedAgents.length} agent{selectedAgents.length > 1 ? 's' : ''} selected
+          {t('a2aAgentsSelector.agentsSelected', { count: selectedAgents.length })}
         </Typography>
       )}
     </Box>

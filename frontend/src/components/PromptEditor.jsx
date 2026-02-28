@@ -5,8 +5,10 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function PromptEditor({ filename, projectName, className = '' }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [savedContent, setSavedContent] = useState('');
@@ -27,7 +29,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to load file: ${response.statusText}`);
+        throw new Error(t('promptEditor.errorLoadFile'));
       }
 
       const text = await response.text();
@@ -62,7 +64,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to save file: ${response.statusText}`);
+        throw new Error(t('promptEditor.errorSaveFile'));
       }
 
       setSavedContent(content);
@@ -106,7 +108,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
   if (error) {
     return (
       <Box className={className} p={2} color="error.main">
-        Error loading prompt file: {error}
+        {t('promptEditor.errorLoading', { error })}
       </Box>
     );
   }
@@ -114,7 +116,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
   return (
     <Box className={className} height="100%" width="100%" display="flex" flexDirection="column" position="relative">
       {/* Reload button */}
-      <Tooltip title="Reload file">
+      <Tooltip title={t('promptEditor.reloadFile')}>
         <IconButton
           onClick={handleReload}
           disabled={loading}
@@ -173,7 +175,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
           onClick={handleSave}
           disabled={!isDirty || saving}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? t('common.saving') : t('common.save')}
         </Button>
       </Box>
     </Box>

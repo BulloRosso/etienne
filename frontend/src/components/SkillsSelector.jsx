@@ -15,6 +15,7 @@ import {
   DialogActions
 } from '@mui/material';
 import { GiAtom } from 'react-icons/gi';
+import { useTranslation } from 'react-i18next';
 
 const SkillIcon = ({ skill, size = 20 }) => {
   if (skill?.hasThumbnail) {
@@ -36,6 +37,7 @@ export default function SkillsSelector({
   selectedOptionalSkills = [],
   onSelectionChange
 }) {
+  const { t } = useTranslation();
   const [optionalDialogOpen, setOptionalDialogOpen] = useState(false);
 
   const isSelected = (skillName) => selectedOptionalSkills.includes(skillName);
@@ -56,7 +58,7 @@ export default function SkillsSelector({
     <Box>
       {/* Standard Skills Section */}
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        Standard Skills (automatically included)
+        {t('skillsSelector.standardSkillsTitle')}
       </Typography>
       {standardSkills.length > 0 ? (
         <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2, color: '#000' }}>
@@ -78,7 +80,7 @@ export default function SkillsSelector({
         </List>
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          No standard skills available in the repository.
+          {t('skillsSelector.noStandardSkills')}
         </Typography>
       )}
 
@@ -86,7 +88,7 @@ export default function SkillsSelector({
 
       {/* Selected Optional Skills Section */}
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        Optional Skills
+        {t('skillsSelector.optionalSkillsTitle')}
       </Typography>
       {selectedOptionalSkills.length > 0 && (
         <List dense sx={{ bgcolor: '#fff3e0', borderRadius: 1, mb: 2 }}>
@@ -119,13 +121,13 @@ export default function SkillsSelector({
           size="small"
           onClick={() => setOptionalDialogOpen(true)}
         >
-          + Choose additional skill
+          {t('skillsSelector.chooseAdditionalSkill')}
         </Button>
       )}
 
       {optionalSkills.length === 0 && selectedOptionalSkills.length === 0 && (
         <Typography variant="body2" color="text.secondary">
-          No optional skills available in the repository.
+          {t('skillsSelector.noOptionalSkills')}
         </Typography>
       )}
 
@@ -136,7 +138,7 @@ export default function SkillsSelector({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Choose Optional Skills</DialogTitle>
+        <DialogTitle>{t('skillsSelector.chooseDialogTitle')}</DialogTitle>
         <DialogContent>
           {optionalSkills.length > 0 ? (
             <List dense>
@@ -166,12 +168,12 @@ export default function SkillsSelector({
             </List>
           ) : (
             <Typography variant="body2" color="text.secondary">
-              No optional skills available.
+              {t('skillsSelector.noOptionalSkillsDialog')}
             </Typography>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOptionalDialogOpen(false)}>Done</Button>
+          <Button onClick={() => setOptionalDialogOpen(false)}>{t('common.done')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

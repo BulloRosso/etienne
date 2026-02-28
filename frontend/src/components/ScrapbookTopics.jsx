@@ -32,6 +32,7 @@ import * as AiIcons from 'react-icons/ai';
 import * as XLSX from 'xlsx';
 import ScrapbookNodeEdit from './ScrapbookNodeEdit';
 import ColumnSettingsDialog from './ColumnSettingsDialog';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 // Icon resolver - tries to find icon from various react-icons libraries
@@ -69,6 +70,7 @@ export default function ScrapbookTopics({
   columnConfig = [],
   onSettingsChange,
 }) {
+  const { t } = useTranslation();
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState('label');
@@ -523,7 +525,7 @@ export default function ScrapbookTopics({
                   />
                 ))}
                 {hasMoreImages && (
-                  <Tooltip title={`${images.length - 3} more images`}>
+                  <Tooltip title={t('scrapbookTopics.moreImages', { count: images.length - 3 })}>
                     <Box
                       onClick={() => openLightbox(images, 3)}
                       sx={{
@@ -538,7 +540,7 @@ export default function ScrapbookTopics({
                 )}
               </>
             ) : (
-              <Tooltip title="Drag & drop images here">
+              <Tooltip title={t('scrapbookTopics.dragDropImages')}>
                 <Box
                   sx={{
                     width: 36, height: 36,
@@ -611,7 +613,7 @@ export default function ScrapbookTopics({
       case 'actions':
         return (
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Tooltip title="Actions">
+            <Tooltip title={t('common.actions')}>
               <IconButton size="small" onClick={(e) => handleContextMenuOpen(e, node)}>
                 <MoreVert fontSize="small" />
               </IconButton>
@@ -677,15 +679,15 @@ export default function ScrapbookTopics({
   // Get column header label
   const getColumnLabel = (colId) => {
     const labels = {
-      icon: 'Icon',
-      label: 'Title',
-      group: 'Group',
-      images: 'Images',
-      priority: 'Priority',
-      attention: 'Attention',
-      description: 'Description',
-      created: 'Created',
-      actions: 'Actions',
+      icon: t('scrapbookTopics.columnIcon'),
+      label: t('scrapbookTopics.columnTitle'),
+      group: t('scrapbookTopics.columnGroup'),
+      images: t('scrapbookTopics.columnImages'),
+      priority: t('scrapbookTopics.columnPriority'),
+      attention: t('scrapbookTopics.columnAttention'),
+      description: t('scrapbookTopics.columnDescription'),
+      created: t('scrapbookTopics.columnCreated'),
+      actions: t('common.actions'),
     };
     if (labels[colId]) return labels[colId];
 
@@ -732,9 +734,9 @@ export default function ScrapbookTopics({
           <ArrowBack />
         </IconButton>
         <Typography variant="h6" sx={{ flex: 1 }}>
-          {parentNode?.label} - Topics
+          {t('scrapbookTopics.headerTopics', { label: parentNode?.label })}
         </Typography>
-        <Tooltip title="Column Settings">
+        <Tooltip title={t('scrapbookTopics.columnSettings')}>
           <IconButton onClick={() => setColumnSettingsOpen(true)} sx={{ mr: 1 }}>
             <Settings />
           </IconButton>
@@ -746,7 +748,7 @@ export default function ScrapbookTopics({
           onClick={handleAddNew}
           sx={{ mr: 1 }}
         >
-          Add
+          {t('common.add')}
         </Button>
         <Button
           startIcon={<FileDownload />}
@@ -755,7 +757,7 @@ export default function ScrapbookTopics({
           onClick={handleExport}
           disabled={children.length === 0}
         >
-          Export
+          {t('scrapbookTopics.export')}
         </Button>
       </Box>
 
@@ -770,11 +772,11 @@ export default function ScrapbookTopics({
       {selectedNodeIds.size >= 2 && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, p: 1.5, backgroundColor: '#fff3e0', borderRadius: 1 }}>
           <Typography variant="body2" sx={{ color: '#e65100', fontWeight: 500 }}>
-            {selectedNodeIds.size} items selected
+            {t('scrapbookTopics.itemsSelected', { count: selectedNodeIds.size })}
           </Typography>
           <TextField
             size="small"
-            label="Group of alternatives"
+            label={t('scrapbookTopics.groupLabel')}
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             sx={{ width: 200 }}
@@ -785,14 +787,14 @@ export default function ScrapbookTopics({
             onClick={handleAssignGroup}
             sx={{ backgroundColor: '#ff9800', '&:hover': { backgroundColor: '#f57c00' } }}
           >
-            Set
+            {t('scrapbookTopics.set')}
           </Button>
           <Button
             variant="outlined"
             size="small"
             onClick={() => setSelectedNodeIds(new Set())}
           >
-            Clear
+            {t('common.clear')}
           </Button>
         </Box>
       )}
@@ -830,7 +832,7 @@ export default function ScrapbookTopics({
               <TableRow>
                 <TableCell colSpan={visibleColumns.length + 1} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
-                    No topics yet. Click "Add" to create one.
+                    {t('scrapbookTopics.emptyState')}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -961,11 +963,11 @@ export default function ScrapbookTopics({
       >
         <MenuItem onClick={() => { handleEdit(contextMenuNode); handleContextMenuClose(); }}>
           <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
-          <ListItemText>Edit</ListItemText>
+          <ListItemText>{t('scrapbookTopics.contextEdit')}</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => { handleDelete(contextMenuNode); handleContextMenuClose(); }}>
           <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>
-          <ListItemText>Delete</ListItemText>
+          <ListItemText>{t('scrapbookTopics.contextDelete')}</ListItemText>
         </MenuItem>
         <MenuItem
           onClick={handleRemoveFromGroup}
@@ -973,7 +975,7 @@ export default function ScrapbookTopics({
         >
           <ListItemIcon><RemoveCircleOutline fontSize="small" /></ListItemIcon>
           <ListItemText sx={{ color: !contextMenuNode?.groupName ? 'text.disabled' : undefined }}>
-            Remove from group
+            {t('scrapbookTopics.contextRemoveFromGroup')}
           </ListItemText>
         </MenuItem>
       </Menu>

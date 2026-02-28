@@ -5,11 +5,13 @@ import Editor from '@monaco-editor/react';
 import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 
 // Import role templates
 const roleTemplates = import.meta.glob('../role-templates/*.md', { as: 'raw', eager: true });
 
 export default function Strategy({ projectName, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
       });
       setContent(response.data.content || '');
     } catch (err) {
-      setError('Failed to load strategy');
+      setError(t('strategy.errorLoadFailed'));
       console.error('Load strategy error:', err);
     } finally {
       setLoading(false);
@@ -73,7 +75,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError('Failed to save strategy');
+      setError(t('strategy.errorSaveFailed'));
       console.error('Save strategy error:', err);
     } finally {
       setSaving(false);
@@ -98,18 +100,18 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          Strategy saved successfully
+          {t('strategy.successSaved')}
         </Alert>
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <img
           src="/project-wizard-step-3.png"
-          alt="Agent Role"
+          alt={t('strategy.altImage')}
           style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain', borderRadius: 4 }}
         />
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Select a predefined role that matches your project's needs, or create a custom role definition. The agent role determines the assistant's personality, knowledge focus, and working style.
+          {t('strategy.description')}
         </Typography>
       </Box>
 
@@ -133,16 +135,16 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
         <FormControl sx={{ minWidth: 200 }} size="small">
-          <InputLabel id="predefined-role-label">Predefined Role</InputLabel>
+          <InputLabel id="predefined-role-label">{t('strategy.predefinedRole')}</InputLabel>
           <Select
             labelId="predefined-role-label"
             id="predefined-role-select"
             value={selectedRole}
-            label="Predefined Role"
+            label={t('strategy.predefinedRole')}
             onChange={handleRoleChange}
           >
             <MenuItem value="">
-              <em>None</em>
+              <em>{t('strategy.predefinedRoleNone')}</em>
             </MenuItem>
             {getRoleOptions().map(role => (
               <MenuItem key={role.value} value={role.value}>
@@ -159,7 +161,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </Box>
       </Box>

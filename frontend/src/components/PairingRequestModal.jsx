@@ -18,6 +18,7 @@ import {
   Person as PersonIcon,
   Tag as TagIcon,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 /**
  * PairingRequestModal - Telegram Pairing Approval Dialog
@@ -32,6 +33,7 @@ import {
  * - onClose: () => void - Callback when modal is closed without response
  */
 export default function PairingRequestModal({ open, pairing, onRespond, onClose }) {
+  const { t } = useTranslation();
   if (!pairing) return null;
 
   const { id, code, provider, remoteSession, expires_at } = pairing;
@@ -95,7 +97,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {getProviderIcon()}
-          <Typography variant="h6">New Pairing Request</Typography>
+          <Typography variant="h6">{t('pairingRequest.title')}</Typography>
         </Box>
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
@@ -115,7 +117,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
             />
             {timeLeft > 0 && (
               <Typography variant="caption" color="text.secondary">
-                Expires in {timeLeft} min
+                {t('pairingRequest.expiresIn', { minutes: timeLeft })}
               </Typography>
             )}
           </Box>
@@ -140,24 +142,24 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
           {/* Details */}
           <Box sx={{ bgcolor: 'grey.50', borderRadius: 1, p: 2 }}>
             <Typography variant="subtitle2" gutterBottom sx={{ color: 'text.secondary' }}>
-              Session Details
+              {t('pairingRequest.sessionDetails')}
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">Chat ID:</Typography>
+                <Typography variant="body2" color="text.secondary">{t('pairingRequest.chatId')}</Typography>
                 <Typography variant="body2" fontFamily="monospace">{chatId}</Typography>
               </Box>
 
               {userId && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">User ID:</Typography>
+                  <Typography variant="body2" color="text.secondary">{t('pairingRequest.userId')}</Typography>
                   <Typography variant="body2" fontFamily="monospace">{userId}</Typography>
                 </Box>
               )}
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">Pairing Code:</Typography>
+                <Typography variant="body2" color="text.secondary">{t('pairingRequest.pairingCode')}</Typography>
                 <Chip
                   label={code}
                   size="small"
@@ -169,7 +171,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
 
           {/* Warning */}
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            Approving this request will allow this user to interact with your Claude Code projects via {provider}.
+            {t('pairingRequest.approvalWarning', { provider })}
           </Typography>
         </Box>
       </DialogContent>
@@ -181,7 +183,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
           variant="outlined"
           sx={{ textTransform: 'none' }}
         >
-          Deny
+          {t('common.deny')}
         </Button>
         <Button
           onClick={handleApprove}
@@ -189,7 +191,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
           color="primary"
           sx={{ textTransform: 'none' }}
         >
-          Approve
+          {t('common.approve')}
         </Button>
       </DialogActions>
     </Dialog>

@@ -2,8 +2,10 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Box, Typography, Chip } from '@mui/material';
 import { HourglassEmpty, CheckCircle, PlayArrow, RadioButtonChecked, Email, OpenInNew } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 const WorkflowStateNode = memo(({ data }) => {
+  const { t } = useTranslation();
   const { label, description, nodeType, isCurrent, waitingFor } = data;
 
   const borderColor = isCurrent ? '#1976d2'
@@ -50,7 +52,7 @@ const WorkflowStateNode = memo(({ data }) => {
           {isCurrent && (
             <Chip
               icon={<RadioButtonChecked sx={{ fontSize: 14 }} />}
-              label="Current"
+              label={t('workflowStateNode.current')}
               size="small"
               color="primary"
               sx={{ height: 20, '& .MuiChip-label': { fontSize: 10, px: 0.5 } }}
@@ -59,7 +61,7 @@ const WorkflowStateNode = memo(({ data }) => {
           {waitingFor && (
             <Chip
               icon={waitingIcon}
-              label={waitingFor === 'human_chat' ? 'Chat' : waitingFor === 'human_email' ? 'Email' : 'External'}
+              label={waitingFor === 'human_chat' ? t('workflowStateNode.chat') : waitingFor === 'human_email' ? t('workflowStateNode.email') : t('workflowStateNode.external')}
               size="small"
               color="warning"
               sx={{ height: 20, '& .MuiChip-label': { fontSize: 10, px: 0.5 } }}
@@ -68,7 +70,7 @@ const WorkflowStateNode = memo(({ data }) => {
           {nodeType === 'final' && (
             <Chip
               icon={<CheckCircle sx={{ fontSize: 14 }} />}
-              label="Final"
+              label={t('workflowStateNode.final')}
               size="small"
               color="success"
               sx={{ height: 20, '& .MuiChip-label': { fontSize: 10, px: 0.5 } }}

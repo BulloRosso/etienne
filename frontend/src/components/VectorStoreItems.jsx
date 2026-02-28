@@ -16,9 +16,11 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { IoDocumentOutline } from "react-icons/io5";
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function VectorStoreItems({ project }) {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState(null);
@@ -52,7 +54,7 @@ export default function VectorStoreItems({ project }) {
   };
 
   const handleDelete = async (docId) => {
-    if (!window.confirm('Are you sure you want to delete this document?')) {
+    if (!window.confirm(t('vectorStore.confirmDelete'))) {
       return;
     }
 
@@ -68,11 +70,11 @@ export default function VectorStoreItems({ project }) {
         setSelectedRow(null);
       } else {
         console.error('Failed to delete document:', await response.text());
-        alert('Failed to delete document');
+        alert(t('vectorStore.deleteFailed'));
       }
     } catch (error) {
       console.error('Error deleting document:', error);
-      alert('Error deleting document');
+      alert(t('vectorStore.deleteError'));
     } finally {
       setDeleting(false);
     }
@@ -100,7 +102,7 @@ export default function VectorStoreItems({ project }) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography variant="body1" color="text.secondary">
-          No documents found in vector store
+          {t('vectorStore.noDocuments')}
         </Typography>
       </Box>
     );
@@ -111,11 +113,11 @@ export default function VectorStoreItems({ project }) {
       <Table stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 'bold' }}>DocID</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Content Preview</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Uploaded At</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Graph Layer</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold', width: '80px' }}>Actions</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>{t('vectorStore.docId')}</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>{t('vectorStore.contentPreview')}</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>{t('vectorStore.uploadedAt')}</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>{t('vectorStore.graphLayer')}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 'bold', width: '80px' }}>{t('vectorStore.actions')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

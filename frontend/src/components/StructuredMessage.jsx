@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Paper, Typography, Button, Chip, CircularProgress } from '@mui/material';
 import ContentPasteOutlinedIcon from '@mui/icons-material/ContentPasteOutlined';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
@@ -23,12 +24,13 @@ const TOOL_ICONS = {
 
 // TodoList Display Component - shows full todo list with icons
 export const TodoListDisplay = ({ todos }) => {
+  const { t } = useTranslation();
   if (!todos || !Array.isArray(todos) || todos.length === 0) {
     return (
       <Box sx={{ mb: 1 }}>
         <Paper sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
           <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
-            No tasks
+            {t('structuredMessage.noTasks')}
           </Typography>
         </Paper>
       </Box>
@@ -105,6 +107,7 @@ export const TodoListDisplay = ({ todos }) => {
 
 // Tool call component - compact version
 export const ToolCallMessage = ({ toolName, args, status, result, projectName }) => {
+  const { t } = useTranslation();
   // Special handling for TodoWrite
   const formatTodoWriteArgs = (args) => {
     if (!args) return '';
@@ -120,21 +123,21 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
     }
 
     // Find last completed todo
-    const completedTodos = todos.filter(t => t.status === 'completed');
+    const completedTodos = todos.filter(td => td.status === 'completed');
     const lastCompleted = completedTodos.length > 0 ? completedTodos[completedTodos.length - 1] : null;
 
     // Find active (in_progress) todos
-    const activeTodos = todos.filter(t => t.status === 'in_progress');
+    const activeTodos = todos.filter(td => td.status === 'in_progress');
 
     const displayTodos = [];
     if (lastCompleted) displayTodos.push({ ...lastCompleted, isLast: true });
     displayTodos.push(...activeTodos);
 
-    if (displayTodos.length === 0) return 'No active tasks';
+    if (displayTodos.length === 0) return t('structuredMessage.noActiveTasks');
 
-    return displayTodos.map(t => {
-      const icon = t.status === 'completed' ? '✓' : '⋯';
-      return `${icon} ${t.activeForm || t.content}`;
+    return displayTodos.map(td => {
+      const icon = td.status === 'completed' ? '✓' : '⋯';
+      return `${icon} ${td.activeForm || td.content}`;
     }).join(' | ');
   };
 
@@ -263,6 +266,7 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
 
 // Permission request component with callback
 export const PermissionRequestMessage = ({ id, message, onResponse }) => {
+  const { t } = useTranslation();
   const [responding, setResponding] = useState(false);
   const [responded, setResponded] = useState(false);
 
@@ -277,7 +281,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#e8f5e9', borderLeft: '4px solid #4caf50' }}>
         <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
-          ✓ Permission Granted
+          {t('structuredMessage.permissionGranted')}
         </Typography>
         <Typography variant="body2" sx={{ color: '#555', mt: 1 }}>
           {message}
@@ -289,7 +293,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
   return (
     <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#fff3e0', borderLeft: '4px solid #ff9800' }}>
       <Typography variant="subtitle2" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
-        ⚠️ Permission Required
+        {t('structuredMessage.permissionRequired')}
       </Typography>
       <Typography variant="body2" sx={{ color: '#555', mb: 2 }}>
         {message}
@@ -302,7 +306,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
           color="success"
           size="small"
         >
-          Approve
+          {t('structuredMessage.approve')}
         </Button>
         <Button
           onClick={() => handleResponse(false)}
@@ -311,7 +315,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
           color="error"
           size="small"
         >
-          Deny
+          {t('structuredMessage.deny')}
         </Button>
       </Box>
     </Paper>
@@ -319,10 +323,12 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
 };
 
 // Error message component
-export const ErrorMessageComponent = ({ message, details }) => (
+export const ErrorMessageComponent = ({ message, details }) => {
+  const { t } = useTranslation();
+  return (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#ffebee', borderLeft: '4px solid #f44336' }}>
     <Typography variant="subtitle2" sx={{ color: '#c62828', fontWeight: 'bold', mb: 1 }}>
-      ❌ Error
+      {t('structuredMessage.error')}
     </Typography>
     <Typography variant="body2" sx={{ color: '#555', mb: details ? 1 : 0 }}>
       {message}
@@ -334,12 +340,15 @@ export const ErrorMessageComponent = ({ message, details }) => (
     )}
   </Paper>
 );
+};
 
 // API Error message component (for rate limits, API errors, etc.)
-export const ApiErrorMessageComponent = ({ message, fullError }) => (
+export const ApiErrorMessageComponent = ({ message, fullError }) => {
+  const { t } = useTranslation();
+  return (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#fff3e0', borderLeft: '4px solid #ff9800' }}>
     <Typography variant="subtitle2" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
-      ⚠️ API Error
+      {t('structuredMessage.apiError')}
     </Typography>
     <Typography variant="body2" sx={{ color: '#555', mb: fullError ? 1 : 0 }}>
       {message}
@@ -351,6 +360,7 @@ export const ApiErrorMessageComponent = ({ message, fullError }) => (
     )}
   </Paper>
 );
+};
 
 // Subagent activity component
 export const SubagentActivityMessage = ({ name, status, content }) => (
@@ -375,28 +385,32 @@ export const SubagentActivityMessage = ({ name, status, content }) => (
 );
 
 // Thinking block component
-export const ThinkingMessage = ({ content }) => (
+export const ThinkingMessage = ({ content }) => {
+  const { t } = useTranslation();
+  return (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#fce4ec', borderLeft: '4px solid #e91e63' }}>
     <Typography variant="subtitle2" sx={{ color: '#880e4f', fontWeight: 'bold', mb: 1 }}>
-      💭 Thinking
+      {t('structuredMessage.thinking')}
     </Typography>
     <Typography variant="body2" sx={{ color: '#555', fontStyle: 'italic' }}>
       {content}
     </Typography>
   </Paper>
 );
+};
 
 // Guardrails warning component (supports both input and output)
 export const GuardrailsWarningMessage = ({ plugins, count, detections, violations, type = 'input' }) => {
+  const { t } = useTranslation();
   const isOutputGuardrail = type === 'output';
   const itemsList = isOutputGuardrail
     ? (violations || []).join(', ')
     : (plugins || []).join(', ');
 
-  const title = isOutputGuardrail ? 'Output Guardrails Triggered' : 'Input Guardrails Triggered';
+  const title = isOutputGuardrail ? t('structuredMessage.outputGuardrailsTriggered') : t('structuredMessage.inputGuardrailsTriggered');
   const message = isOutputGuardrail
-    ? 'Sensitive information was detected and redacted from the model output before being displayed to you.'
-    : 'Sensitive information was detected and redacted from your message before being sent to the AI model.';
+    ? t('structuredMessage.outputGuardrailsMessage')
+    : t('structuredMessage.inputGuardrailsMessage');
 
   const bgColor = isOutputGuardrail ? '#fff3e0' : '#ffebee';
   const borderColor = isOutputGuardrail ? '#f57c00' : '#c62828';
@@ -423,10 +437,10 @@ export const GuardrailsWarningMessage = ({ plugins, count, detections, violation
       </Typography>
       <Box sx={{ mt: 1.5 }}>
         <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>
-          Detected: {itemsList}
+          {t('structuredMessage.detected')} {itemsList}
         </Typography>
         <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-          {count} {count === 1 ? 'item' : 'items'} redacted
+          {t('structuredMessage.itemsRedacted', { count })}
         </Typography>
       </Box>
     </Paper>
@@ -435,6 +449,7 @@ export const GuardrailsWarningMessage = ({ plugins, count, detections, violation
 
 // Memory extracted component
 export const MemoryExtractedMessage = ({ facts, count }) => {
+  const { t } = useTranslation();
   const displayFacts = facts && facts.length > 0 ? facts.slice(0, 3) : [];
   const hasMore = facts && facts.length > 3;
 
@@ -451,11 +466,11 @@ export const MemoryExtractedMessage = ({ facts, count }) => {
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
         <Typography variant="subtitle2" sx={{ color: '#1565c0', fontWeight: 'bold' }}>
-          💡 Memory Extracted
+          {t('structuredMessage.memoryExtracted')}
         </Typography>
       </Box>
       <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-        Extracted {count} {count === 1 ? 'fact' : 'facts'} from the conversation for future reference.
+        {t('structuredMessage.extractedFacts', { count })}
       </Typography>
       {displayFacts.length > 0 && (
         <Box sx={{ mt: 1.5 }}>
@@ -466,7 +481,7 @@ export const MemoryExtractedMessage = ({ facts, count }) => {
           ))}
           {hasMore && (
             <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5, fontStyle: 'italic' }}>
-              ... and {facts.length - 3} more
+              {t('structuredMessage.andMore', { count: facts.length - 3 })}
             </Typography>
           )}
         </Box>
@@ -476,7 +491,9 @@ export const MemoryExtractedMessage = ({ facts, count }) => {
 };
 
 // Research started component
-export const ResearchStartedMessage = ({ inputFile, outputFile, sessionId }) => (
+export const ResearchStartedMessage = ({ inputFile, outputFile, sessionId }) => {
+  const { t } = useTranslation();
+  return (
   <Paper
     variant="outlined"
     sx={{
@@ -489,25 +506,28 @@ export const ResearchStartedMessage = ({ inputFile, outputFile, sessionId }) => 
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
       <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
-        🔬 Deep Research Started
+        {t('structuredMessage.deepResearchStarted')}
       </Typography>
     </Box>
     <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-      Starting comprehensive research analysis...
+      {t('structuredMessage.startingResearch')}
     </Typography>
     <Box sx={{ mt: 1.5 }}>
       <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
-        Input: {inputFile}
+        {t('structuredMessage.input')}: {inputFile}
       </Typography>
       <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-        Output: {outputFile}
+        {t('structuredMessage.output')}: {outputFile}
       </Typography>
     </Box>
   </Paper>
 );
+};
 
 // Research completed component
-export const ResearchCompletedMessage = ({ outputFile, citations }) => (
+export const ResearchCompletedMessage = ({ outputFile, citations }) => {
+  const { t } = useTranslation();
+  return (
   <Paper
     variant="outlined"
     sx={{
@@ -520,27 +540,30 @@ export const ResearchCompletedMessage = ({ outputFile, citations }) => (
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
       <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
-        ✅ Research Completed
+        {t('structuredMessage.researchCompleted')}
       </Typography>
     </Box>
     <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-      Deep research analysis finished successfully.
+      {t('structuredMessage.researchFinished')}
     </Typography>
     <Box sx={{ mt: 1.5 }}>
       <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
-        Results: {outputFile}
+        {t('structuredMessage.results')}: {outputFile}
       </Typography>
       {citations && citations.length > 0 && (
         <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-          {citations.length} citation{citations.length !== 1 ? 's' : ''} included
+          {t('structuredMessage.citationsIncluded', { count: citations.length })}
         </Typography>
       )}
     </Box>
   </Paper>
 );
+};
 
 // Research error component
-export const ResearchErrorMessage = ({ outputFile, error }) => (
+export const ResearchErrorMessage = ({ outputFile, error }) => {
+  const { t } = useTranslation();
+  return (
   <Paper
     variant="outlined"
     sx={{
@@ -553,19 +576,20 @@ export const ResearchErrorMessage = ({ outputFile, error }) => (
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
       <Typography variant="subtitle2" sx={{ color: '#c62828', fontWeight: 'bold' }}>
-        ❌ Research Failed
+        {t('structuredMessage.researchFailed')}
       </Typography>
     </Box>
     <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-      {error || 'An error occurred during research.'}
+      {error || t('structuredMessage.researchError')}
     </Typography>
     <Box sx={{ mt: 1.5 }}>
       <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
-        Output file: {outputFile}
+        {t('structuredMessage.outputFile')}: {outputFile}
       </Typography>
     </Box>
   </Paper>
 );
+};
 
 // Structured message router
 export const StructuredMessage = ({ message, onPermissionResponse, projectName }) => {

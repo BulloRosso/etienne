@@ -30,8 +30,10 @@ import { RiRobot2Line } from 'react-icons/ri';
 import Editor from '@monaco-editor/react';
 import { apiAxios } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 
 export default function SubagentConfiguration({ project }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [subagents, setSubagents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export default function SubagentConfiguration({ project }) {
       const response = await apiAxios.get(`/api/subagents/${project}`);
       setSubagents(response.data.subagents || []);
     } catch (err) {
-      setError('Failed to load subagents');
+      setError(t('subagent.errorLoadFailed'));
       console.error('Load subagents error:', err);
     } finally {
       setLoading(false);
@@ -138,18 +140,18 @@ export default function SubagentConfiguration({ project }) {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError('Name is required');
+      setError(t('subagent.errorNameRequired'));
       return;
     }
 
     if (!description.trim()) {
-      setError('Description is required');
+      setError(t('subagent.errorDescriptionRequired'));
       return;
     }
 
     // Validate name format
     if (!/^[a-z0-9-]+$/.test(name)) {
-      setError('Name must contain only lowercase letters, numbers, and hyphens');
+      setError(t('subagent.errorNameFormat'));
       return;
     }
 
@@ -181,7 +183,7 @@ export default function SubagentConfiguration({ project }) {
 
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError('Failed to save subagent');
+      setError(t('subagent.errorSaveFailed'));
       console.error('Save subagent error:', err);
     } finally {
       setSaving(false);
@@ -208,7 +210,7 @@ export default function SubagentConfiguration({ project }) {
 
       await loadSubagents();
     } catch (err) {
-      setError('Failed to delete subagent');
+      setError(t('subagent.errorDeleteFailed'));
       console.error('Delete subagent error:', err);
     }
   };
@@ -219,7 +221,7 @@ export default function SubagentConfiguration({ project }) {
   };
 
   const handleToolToggle = (tool) => {
-    const currentTools = tools ? tools.split(',').map(t => t.trim()) : [];
+    const currentTools = tools ? tools.split(',').map(item => item.trim()) : [];
     const index = currentTools.indexOf(tool);
 
     if (index > -1) {
@@ -248,7 +250,7 @@ export default function SubagentConfiguration({ project }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          Subagent saved successfully
+          {t('subagent.savedSuccess')}
         </Alert>
       )}
 
@@ -263,14 +265,14 @@ export default function SubagentConfiguration({ project }) {
               startIcon={<Add />}
               onClick={handleNewSubagent}
             >
-              New Subagent
+              {t('subagent.newSubagent')}
             </Button>
           </Box>
 
           {subagents.length === 0 ? (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                No subagents configured. Click "New Subagent" to create one.
+                {t('subagent.emptyState')}
               </Typography>
             </Paper>
           ) : (
@@ -311,34 +313,34 @@ export default function SubagentConfiguration({ project }) {
                 <ArrowBack />
               </IconButton>
               <Typography variant="h6">
-                {originalName === '' ? 'New Subagent' : name}
+                {originalName === '' ? t('subagent.newSubagent') : name}
               </Typography>
             </Box>
             <Box>
               {!editMode ? (
                 <>
                   <Button variant="outlined" onClick={handleEdit} sx={{ mr: 1 }}>
-                    Edit
+                    {t('common.edit')}
                   </Button>
                   <Button
                     variant="outlined"
                     color="error"
                     onClick={(e) => handleDeleteClick(selectedSubagent, e)}
                   >
-                    Delete
+                    {t('common.delete')}
                   </Button>
                 </>
               ) : (
                 <>
                   <Button variant="outlined" onClick={handleCancel} sx={{ mr: 1 }}>
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     variant="contained"
                     onClick={handleSave}
                     disabled={saving}
                   >
-                    {saving ? 'Saving...' : 'Save'}
+                    {saving ? t('common.saving') : t('common.save')}
                   </Button>
                 </>
               )}
@@ -348,48 +350,48 @@ export default function SubagentConfiguration({ project }) {
           <Paper sx={{ flex: 1, p: 2, overflow: 'auto' }}>
             <Stack spacing={2}>
               <TextField
-                label="Name"
+                label={t('subagent.formName')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={!editMode}
                 fullWidth
-                helperText="Lowercase letters, numbers, and hyphens only"
+                helperText={t('subagent.formNameHelper')}
               />
 
               <TextField
-                label="Description"
+                label={t('subagent.formDescription')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={!editMode}
                 fullWidth
                 multiline
                 rows={2}
-                helperText="Describe when this agent should be invoked"
+                helperText={t('subagent.formDescriptionHelper')}
               />
 
               <FormControl fullWidth>
-                <InputLabel>Model</InputLabel>
+                <InputLabel>{t('subagent.formModel')}</InputLabel>
                 <Select
                   value={model}
-                  label="Model"
+                  label={t('subagent.formModel')}
                   onChange={(e) => setModel(e.target.value)}
                   disabled={!editMode}
                 >
-                  <MenuItem value="">Default (inherit)</MenuItem>
-                  <MenuItem value="haiku">Haiku</MenuItem>
-                  <MenuItem value="sonnet">Sonnet</MenuItem>
-                  <MenuItem value="opus">Opus</MenuItem>
-                  <MenuItem value="inherit">Inherit</MenuItem>
+                  <MenuItem value="">{t('subagent.formModelDefault')}</MenuItem>
+                  <MenuItem value="haiku">{t('subagent.formModelHaiku')}</MenuItem>
+                  <MenuItem value="sonnet">{t('subagent.formModelSonnet')}</MenuItem>
+                  <MenuItem value="opus">{t('subagent.formModelOpus')}</MenuItem>
+                  <MenuItem value="inherit">{t('subagent.formModelInherit')}</MenuItem>
                 </Select>
               </FormControl>
 
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Tools (leave empty to inherit all tools)
+                  {t('subagent.formToolsHelp')}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {availableTools.map((tool) => {
-                    const currentTools = tools ? tools.split(',').map(t => t.trim()) : [];
+                    const currentTools = tools ? tools.split(',').map(item => item.trim()) : [];
                     const isSelected = currentTools.includes(tool);
 
                     return (
@@ -409,7 +411,7 @@ export default function SubagentConfiguration({ project }) {
 
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  System Prompt
+                  {t('subagent.formSystemPrompt')}
                 </Typography>
                 <Box sx={{ border: '1px solid #ddd', borderRadius: 1, height: '300px' }}>
                   <Editor
@@ -437,16 +439,16 @@ export default function SubagentConfiguration({ project }) {
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>Delete Subagent</DialogTitle>
+        <DialogTitle>{t('subagent.deleteTitle')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the subagent "{subagentToDelete?.name}"? This action cannot be undone.
+            {t('subagent.deleteMessage', { name: subagentToDelete?.name })}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
+            {t('common.delete')}
           </Button>
         </DialogActions>
       </Dialog>

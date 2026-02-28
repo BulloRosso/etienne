@@ -22,6 +22,7 @@ import {
   Divider
 } from '@mui/material';
 import { Add, Edit, Delete, Close, Visibility } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 
 function TabPanel({ children, value, index }) {
@@ -33,6 +34,7 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function ContextManager({ open, onClose, projectName, allTags, onContextChange }) {
+  const { t } = useTranslation();
   const [contexts, setContexts] = useState([]);
   const [selectedTab, setSelectedTab] = useState(0);
   const [editingContext, setEditingContext] = useState(null);
@@ -64,7 +66,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
       setContexts(response.data || []);
       setError(null);
     } catch (err) {
-      setError(`Failed to load contexts: ${err.response?.data?.message || err.message}`);
+      setError(t('contextManager.errorLoadFailed', { message: err.response?.data?.message || err.message }));
       console.error('Load contexts error:', err);
     } finally {
       setLoading(false);
@@ -90,7 +92,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
   };
 
   const handleDelete = async (contextId) => {
-    if (!window.confirm('Are you sure you want to delete this context?')) {
+    if (!window.confirm(t('contextManager.deleteConfirm'))) {
       return;
     }
 
@@ -100,7 +102,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
       await loadContexts();
       setError(null);
     } catch (err) {
-      setError(`Failed to delete context: ${err.response?.data?.message || err.message}`);
+      setError(t('contextManager.errorDeleteFailed', { message: err.response?.data?.message || err.message }));
       console.error('Delete context error:', err);
     } finally {
       setLoading(false);
@@ -114,7 +116,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
       setPreviewScope(response.data);
       setError(null);
     } catch (err) {
-      setError(`Failed to load preview: ${err.response?.data?.message || err.message}`);
+      setError(t('contextManager.errorPreviewFailed', { message: err.response?.data?.message || err.message }));
       console.error('Preview context error:', err);
     } finally {
       setLoading(false);
@@ -134,7 +136,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
 
   const handleSave = async () => {
     if (!formName.trim()) {
-      setError('Context name is required');
+      setError(t('contextManager.errorNameRequired'));
       return;
     }
 
@@ -163,7 +165,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
       setSelectedTab(0); // Switch back to list tab
       setError(null);
     } catch (err) {
-      setError(`Failed to save context: ${err.response?.data?.message || err.message}`);
+      setError(t('contextManager.errorSaveFailed', { message: err.response?.data?.message || err.message }));
       console.error('Save context error:', err);
     } finally {
       setLoading(false);
@@ -190,12 +192,12 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const allTagNames = allTags.map(t => t.tag);
+  const allTagNames = allTags.map(tag => tag.tag);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Context Manager
+        {t('contextManager.title')}
         <IconButton
           onClick={handleClose}
           sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -212,15 +214,15 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
         )}
 
         <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)}>
-          <Tab label="Contexts" />
-          <Tab label={editingContext ? 'Edit Context' : 'New Context'} />
+          <Tab label={t('contextManager.tabContexts')} />
+          <Tab label={editingContext ? t('contextManager.tabEditContext') : t('contextManager.tabNewContext')} />
         </Tabs>
 
         {/* Contexts List Tab */}
         <TabPanel value={selectedTab} index={0}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              {contexts.length} context{contexts.length !== 1 ? 's' : ''}
+              {t('contextManager.contextCount', { count: contexts.length })}
             </Typography>
             <Button
               variant="contained"
@@ -228,14 +230,14 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
               onClick={handleCreateNew}
               disabled={loading}
             >
-              Create Context
+              {t('contextManager.createContext')}
             </Button>
           </Box>
 
           {contexts.length === 0 ? (
             <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
               <Typography variant="body2" color="text.secondary">
-                No contexts defined. Create your first context to scope files and data by tags.
+                {t('contextManager.emptyState')}
               </Typography>
             </Paper>
           ) : (
@@ -255,7 +257,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
                   <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between' }}>
                     <ListItemText
                       primary={context.name}
-                      secondary={context.description || 'No description'}
+                      secondary={context.description || t('contextManager.noDescription')}
                     />
                     <ListItemSecondaryAction>
                       <IconButton edge="end" onClick={() => handlePreview(context.id)} disabled={loading}>
@@ -274,7 +276,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
                   <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                     {context.fileTagsInclude?.length > 0 && (
                       <Typography variant="caption" color="text.secondary">
-                        Files: {context.fileTagsInclude.map(tag => (
+                        {t('contextManager.scopeFiles')} {context.fileTagsInclude.map(tag => (
                           <Chip
                             key={tag}
                             label={tag}
@@ -292,12 +294,12 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
                     )}
                     {context.vectorTagsInclude?.length > 0 && (
                       <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                        Vectors: {context.vectorTagsInclude.join(', ')}
+                        {t('contextManager.scopeVectorTags')} {context.vectorTagsInclude.join(', ')}
                       </Typography>
                     )}
                     {context.kgEntityTypes?.length > 0 && (
                       <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                        KG: {context.kgEntityTypes.join(', ')}
+                        {t('contextManager.scopeKgEntityTypes')} {context.kgEntityTypes.join(', ')}
                       </Typography>
                     )}
                   </Box>
@@ -310,23 +312,23 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
           {previewScope && (
             <Paper sx={{ mt: 2, p: 2, bgcolor: 'grey.50' }}>
               <Typography variant="subtitle2" gutterBottom>
-                Scope Preview
+                {t('contextManager.scopePreview')}
                 <IconButton size="small" onClick={() => setPreviewScope(null)} sx={{ ml: 1 }}>
                   <Close fontSize="small" />
                 </IconButton>
               </Typography>
               <Divider sx={{ my: 1 }} />
               <Typography variant="body2">
-                <strong>Files:</strong> {previewScope.files?.length || 0} file(s)
+                <strong>{t('contextManager.scopeFiles')}</strong> {t('contextManager.scopeFilesCount', { count: previewScope.files?.length || 0 })}
               </Typography>
               <Typography variant="body2">
-                <strong>Vector Tags:</strong> {previewScope.vectorTags?.join(', ') || 'None'}
+                <strong>{t('contextManager.scopeVectorTags')}</strong> {previewScope.vectorTags?.join(', ') || t('common.none')}
               </Typography>
               <Typography variant="body2">
-                <strong>KG Tags:</strong> {previewScope.kgTags?.join(', ') || 'None'}
+                <strong>{t('contextManager.scopeKgTags')}</strong> {previewScope.kgTags?.join(', ') || t('common.none')}
               </Typography>
               <Typography variant="body2">
-                <strong>KG Entity Types:</strong> {previewScope.kgEntityTypes?.join(', ') || 'None'}
+                <strong>{t('contextManager.scopeKgEntityTypes')}</strong> {previewScope.kgEntityTypes?.join(', ') || t('common.none')}
               </Typography>
             </Paper>
           )}
@@ -336,7 +338,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
         <TabPanel value={selectedTab} index={1}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              label="Context Name"
+              label={t('contextManager.contextName')}
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               fullWidth
@@ -345,7 +347,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
             />
 
             <TextField
-              label="Description"
+              label={t('common.description')}
               value={formDescription}
               onChange={(e) => setFormDescription(e.target.value)}
               fullWidth
@@ -356,7 +358,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
 
             <Divider />
 
-            <Typography variant="subtitle2">File Scope</Typography>
+            <Typography variant="subtitle2">{t('contextManager.fileScope')}</Typography>
 
             <Autocomplete
               multiple
@@ -365,7 +367,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
               onChange={(e, newValue) => setFormFileTagsInclude(newValue)}
               disabled={loading}
               renderInput={(params) => (
-                <TextField {...params} label="Include files with tags" placeholder="Select tags" />
+                <TextField {...params} label={t('contextManager.includeFilesByTags')} placeholder={t('contextManager.selectTags')} />
               )}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
@@ -387,7 +389,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
               onChange={(e, newValue) => setFormFileTagsExclude(newValue)}
               disabled={loading}
               renderInput={(params) => (
-                <TextField {...params} label="Exclude files with tags" placeholder="Select tags" />
+                <TextField {...params} label={t('contextManager.excludeFilesByTags')} placeholder={t('contextManager.selectTags')} />
               )}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
@@ -404,7 +406,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
 
             <Divider />
 
-            <Typography variant="subtitle2">Vector Store Scope</Typography>
+            <Typography variant="subtitle2">{t('contextManager.vectorStoreScope')}</Typography>
 
             <Autocomplete
               multiple
@@ -413,13 +415,13 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
               onChange={(e, newValue) => setFormVectorTags(newValue)}
               disabled={loading}
               renderInput={(params) => (
-                <TextField {...params} label="Vector document tags" placeholder="Select tags" />
+                <TextField {...params} label={t('contextManager.vectorDocumentTags')} placeholder={t('contextManager.selectTags')} />
               )}
             />
 
             <Divider />
 
-            <Typography variant="subtitle2">Knowledge Graph Scope</Typography>
+            <Typography variant="subtitle2">{t('contextManager.knowledgeGraphScope')}</Typography>
 
             <Autocomplete
               multiple
@@ -428,7 +430,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
               onChange={(e, newValue) => setFormKgTags(newValue)}
               disabled={loading}
               renderInput={(params) => (
-                <TextField {...params} label="Entity tags" placeholder="Select tags" />
+                <TextField {...params} label={t('contextManager.entityTags')} placeholder={t('contextManager.selectTags')} />
               )}
             />
 
@@ -439,7 +441,7 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
               onChange={(e, newValue) => setFormKgEntityTypes(newValue)}
               disabled={loading}
               renderInput={(params) => (
-                <TextField {...params} label="Entity types" placeholder="Select types" />
+                <TextField {...params} label={t('contextManager.entityTypes')} placeholder={t('contextManager.selectTypes')} />
               )}
             />
           </Box>
@@ -450,15 +452,15 @@ export default function ContextManager({ open, onClose, projectName, allTags, on
         {selectedTab === 1 ? (
           <>
             <Button onClick={handleCancel} disabled={loading}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSave} variant="contained" disabled={loading}>
-              {editingContext ? 'Update' : 'Create'}
+              {editingContext ? t('common.update') : t('common.create')}
             </Button>
           </>
         ) : (
           <Button onClick={handleClose} disabled={loading}>
-            Close
+            {t('common.close')}
           </Button>
         )}
       </DialogActions>

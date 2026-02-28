@@ -43,12 +43,14 @@ import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
 import ServiceControlDrawer from './ServiceControlDrawer';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 
 export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
+  const { t } = useTranslation();
   const { user, logout, hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -554,7 +556,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             flexDirection: 'column'
           }}>
             <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px', flexShrink: 0 }}>
-              <ListItemText>Choose project:</ListItemText>
+              <ListItemText>{t('projectMenu.chooseProject')}</ListItemText>
             </MenuItem>
             <Box sx={{
               flex: 1,
@@ -588,7 +590,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
                 <ListItemIcon sx={{ color: themeMode === 'dark' ? 'gold' : 'inherit' }}>
                   <AddOutlined fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primaryTypographyProps={{ fontWeight: 'bold', color: themeMode === 'dark' ? 'gold' : 'inherit' }}>New Project</ListItemText>
+                <ListItemText primaryTypographyProps={{ fontWeight: 'bold', color: themeMode === 'dark' ? 'gold' : 'inherit' }}>{t('projectMenu.newProject')}</ListItemText>
               </MenuItem>
             </Box>
           </Box>
@@ -608,16 +610,16 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
       <Dialog open={aboutOpen} onClose={handleAboutClose} maxWidth="md"  fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          About Etienne
+          {t('projectMenu.aboutTitle')}
           <IconButton onClick={handleAboutClose} size="small">
             <Close />
           </IconButton>
         </DialogTitle>
         <Tabs value={currentTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
-          <Tab label="Intention" />
-          <Tab label="How it works" />
-          <Tab label="How to create your own solution" />
-          {hasRole('admin') && <Tab label="Configuration" />}
+          <Tab label={t('projectMenu.tabIntention')} />
+          <Tab label={t('projectMenu.tabHowItWorks')} />
+          <Tab label={t('projectMenu.tabHowToCreate')} />
+          {hasRole('admin') && <Tab label={t('projectMenu.tabConfiguration')} />}
         </Tabs>
         <DialogContent>
           {currentTab === 0 && (
@@ -631,18 +633,18 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
               </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography>
-                  <strong>Coding Agent Harness</strong>
+                  <strong>{t('projectMenu.codingAgentHarness')}</strong>
                   <br />
-                  Etienne integrates traditional IT backend services (like CRON jobs) with coding agents like Anthropic Claude Code or OpenAI Codex. It can be run on the local machine for development and inside a docker container for production.
+                  {t('projectMenu.intentionDescription')}
                 </Typography>
                 <Box component="ul" sx={{ color: 'text.secondary', mt: 2, pl: 2 }}>
-                  <li>works on private/local storage ("workspace")</li>
-                  <li>adds a event bus (ZeroMQ) and a condition monitoring system</li>
-                  <li>can create public websites exposed under /web</li>
-                  <li>adds RBAC security layer</li>
-                  <li>showcases service management for additional local services (e.g. vector store, RDF store)</li>
-                  <li>demonstrates how to seamlessly integrate agent skills and MCP tools into business processes</li>
-                  <li>provides a file system explorer and file type dependent previewers (e.g. mindmaps)</li>
+                  <li>{t('projectMenu.intentionBullet1')}</li>
+                  <li>{t('projectMenu.intentionBullet2')}</li>
+                  <li>{t('projectMenu.intentionBullet3')}</li>
+                  <li>{t('projectMenu.intentionBullet4')}</li>
+                  <li>{t('projectMenu.intentionBullet5')}</li>
+                  <li>{t('projectMenu.intentionBullet6')}</li>
+                  <li>{t('projectMenu.intentionBullet7')}</li>
                 </Box>
               </Box>
             </Box>
@@ -660,24 +662,16 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
           {currentTab === 2 && (
             <Box sx={{ p: 2, minHeight: '400px' }}>
-              <Typography paragraph>
-                Etienne was built with Claude Code 2.0 and the Anthropic 4.5 Sonnet model following a <b>spec-driven approach</b>.
-              </Typography>
-              <Typography paragraph>
-                If you want to build your own solution, this is the <b>suggested workflow</b>:
-              </Typography>
+              <Typography paragraph dangerouslySetInnerHTML={{ __html: t('projectMenu.howToCreateParagraph1') }} />
+              <Typography paragraph dangerouslySetInnerHTML={{ __html: t('projectMenu.howToCreateParagraph2') }} />
               <Box component="ol" sx={{ pl: 3 }}>
-                <li>place a new requirements specification in the root as markdown file</li>
-                <li>ask Claude code to implement it</li>
-                <li>review and refine the results presented by Claude</li>
-                <li>move the specification to the directory 'requirement-docs'</li>
+                <li>{t('projectMenu.howToCreateStep1')}</li>
+                <li>{t('projectMenu.howToCreateStep2')}</li>
+                <li>{t('projectMenu.howToCreateStep3')}</li>
+                <li>{t('projectMenu.howToCreateStep4')}</li>
               </Box>
               <Box component="ul" sx={{ color: 'text.secondary', mt: 2, pl: 2 }}>
-
-                With spec-driven coding the specification is the most important artifact. You can recreate a
-                more sophisticated implementations later on using more capable AI models.<br/><br/> In modern
-                DevOps environments IaC is a common approach - with application development the specifications will
-                have the same importance as Terraform scripts nowadays for IaC.
+                {t('projectMenu.howToCreateNote')}
               </Box>
             </Box>
           )}
@@ -697,7 +691,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
       <Dialog open={budgetSettingsOpen} onClose={handleBudgetSettingsClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Budget Monitoring
+          {t('projectMenu.budgetMonitoringTitle')}
           <IconButton onClick={handleBudgetSettingsClose} size="small">
             <Close />
           </IconButton>
@@ -711,15 +705,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
                   onChange={handleBudgetToggle}
                 />
               }
-              label="Enable Budget Monitoring"
+              label={t('projectMenu.enableBudgetMonitoring')}
             />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              Track AI inference costs for this project
+              {t('projectMenu.trackAICosts')}
             </Typography>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleBudgetSettingsClose}>Close</Button>
+          <Button onClick={handleBudgetSettingsClose}>{t('common.close')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -752,7 +746,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
       <Dialog open={subagentsOpen} onClose={handleSubagentsClose} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Subagents Configuration
+          {t('projectMenu.subagentsConfigTitle')}
           <IconButton onClick={handleSubagentsClose} size="small">
             <Close />
           </IconButton>
@@ -770,7 +764,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
       <Dialog open={customUIOpen} onClose={handleCustomUIClose} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Customize UI
+          {t('projectMenu.customizeUITitle')}
           <IconButton onClick={handleCustomUIClose} size="small">
             <Close />
           </IconButton>
@@ -792,7 +786,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <PiGraphLight style={{ fontSize: '24px' }} />
-            <span>Knowledge Base</span>
+            <span>{t('projectMenu.knowledgeBase')}</span>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <FormControlLabel
@@ -803,7 +797,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
                   size="small"
                 />
               }
-              label="Use Graph Layer"
+              label={t('projectMenu.useGraphLayer')}
               sx={{ m: 0 }}
             />
             <IconButton onClick={handleKnowledgeGraphClose} size="small">
@@ -880,7 +874,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Scrapbooks</span>
+          <span>{t('projectMenu.scrapbooksTitle')}</span>
           <IconButton onClick={() => setScrapbookListOpen(false)} size="small">
             <Close />
           </IconButton>
@@ -895,7 +889,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             </MenuItem>
           )) : (
             <Typography color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
-              No scrapbooks yet. Create one to get started.
+              {t('projectMenu.noScrapbooks')}
             </Typography>
           )}
         </DialogContent>
@@ -905,7 +899,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             startIcon={<AddOutlined />}
             variant="contained"
           >
-            Create New
+            {t('projectMenu.createNew')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -916,12 +910,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>New Scrapbook</DialogTitle>
+        <DialogTitle>{t('projectMenu.newScrapbookTitle')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             fullWidth
-            label="Scrapbook Name"
+            label={t('projectMenu.scrapbookNameLabel')}
             value={newScrapbookName}
             onChange={(e) => setNewScrapbookName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateScrapbook(); }}
@@ -929,9 +923,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateScrapbookDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setCreateScrapbookDialogOpen(false)}>{t('common.cancel')}</Button>
           <Button onClick={handleCreateScrapbook} variant="contained" disabled={!newScrapbookName.trim()}>
-            Create
+            {t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>

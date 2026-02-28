@@ -19,6 +19,7 @@ import {
   Chip
 } from '@mui/material';
 import { Close as CloseIcon, Warning as WarningIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 /**
  * ElicitationModal - MCP Elicitation Dialog Component
@@ -33,6 +34,7 @@ import { Close as CloseIcon, Warning as WarningIcon } from '@mui/icons-material'
  * - onClose: () => void - Callback when modal is closed without response
  */
 export default function ElicitationModal({ open, elicitation, onRespond, onClose }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
 
@@ -72,7 +74,7 @@ export default function ElicitationModal({ open, elicitation, onRespond, onClose
 
       // Check required fields
       if (isRequired && (value === undefined || value === null || value === '')) {
-        newErrors[key] = 'This field is required';
+        newErrors[key] = t('elicitation.validationRequired');
         return;
       }
 
@@ -84,29 +86,29 @@ export default function ElicitationModal({ open, elicitation, onRespond, onClose
       // Type-specific validation
       if (prop.type === 'string') {
         if (prop.minLength && value.length < prop.minLength) {
-          newErrors[key] = `Minimum ${prop.minLength} characters required`;
+          newErrors[key] = t('elicitation.validationMinLength', { minLength: prop.minLength });
         }
         if (prop.maxLength && value.length > prop.maxLength) {
-          newErrors[key] = `Maximum ${prop.maxLength} characters allowed`;
+          newErrors[key] = t('elicitation.validationMaxLength', { maxLength: prop.maxLength });
         }
         if (prop.format === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          newErrors[key] = 'Invalid email format';
+          newErrors[key] = t('elicitation.validationInvalidEmail');
         }
         if (prop.format === 'uri' && !/^https?:\/\/.+/.test(value)) {
-          newErrors[key] = 'Invalid URL format';
+          newErrors[key] = t('elicitation.validationInvalidUrl');
         }
       }
 
       if (prop.type === 'number' || prop.type === 'integer') {
         const numValue = Number(value);
         if (isNaN(numValue)) {
-          newErrors[key] = 'Must be a number';
+          newErrors[key] = t('elicitation.validationMustBeNumber');
         } else {
           if (prop.minimum !== undefined && numValue < prop.minimum) {
-            newErrors[key] = `Minimum value is ${prop.minimum}`;
+            newErrors[key] = t('elicitation.validationMinimumValue', { minimum: prop.minimum });
           }
           if (prop.maximum !== undefined && numValue > prop.maximum) {
-            newErrors[key] = `Maximum value is ${prop.maximum}`;
+            newErrors[key] = t('elicitation.validationMaximumValue', { maximum: prop.maximum });
           }
         }
       }
@@ -291,7 +293,7 @@ export default function ElicitationModal({ open, elicitation, onRespond, onClose
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <WarningIcon sx={{ color: '#ff9800' }} />
-          <Typography variant="h6">Input Required</Typography>
+          <Typography variant="h6">{t('elicitation.title')}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip
@@ -322,7 +324,7 @@ export default function ElicitationModal({ open, elicitation, onRespond, onClose
 
         {Object.keys(properties).length === 0 && (
           <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-            No input fields required. Click Accept to proceed or Decline to cancel.
+            {t('elicitation.noFieldsMessage')}
           </Typography>
         )}
       </DialogContent>
@@ -334,14 +336,14 @@ export default function ElicitationModal({ open, elicitation, onRespond, onClose
           variant="outlined"
           sx={{ textTransform: 'none' }}
         >
-          Decline
+          {t('common.decline')}
         </Button>
         <Box sx={{ flex: 1 }} />
         <Button
           onClick={handleCancel}
           sx={{ textTransform: 'none' }}
         >
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           onClick={handleAccept}
@@ -349,7 +351,7 @@ export default function ElicitationModal({ open, elicitation, onRespond, onClose
           color="primary"
           sx={{ textTransform: 'none' }}
         >
-          Accept
+          {t('common.accept')}
         </Button>
       </DialogActions>
     </Dialog>

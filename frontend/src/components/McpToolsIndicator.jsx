@@ -5,10 +5,12 @@ import {
   CircularProgress, Button
 } from '@mui/material';
 import { Build } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function McpToolsIndicator({ projectName }) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [mcpServers, setMcpServers] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
@@ -79,7 +81,7 @@ export default function McpToolsIndicator({ projectName }) {
 
   return (
     <>
-      <Tooltip title="MCP Tools Available">
+      <Tooltip title={t('mcpToolsIndicator.tooltip')}>
         <Box
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
@@ -107,7 +109,7 @@ export default function McpToolsIndicator({ projectName }) {
           }}>
             {serverCount}
           </Box>
-          <Box component="span" sx={{ color: 'text.secondary' }}>tools available</Box>
+          <Box component="span" sx={{ color: 'text.secondary' }}>{t('mcpToolsIndicator.label')}</Box>
         </Box>
       </Tooltip>
 
@@ -131,7 +133,7 @@ export default function McpToolsIndicator({ projectName }) {
       >
         <Box sx={{ width: 420, p: 3 }}>
           <Typography variant="h6" sx={{ mb: 0.5 }}>
-            Provided Tools
+            {t('mcpToolsIndicator.drawerTitle')}
           </Typography>
           {toolsDrawerServer && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -153,14 +155,14 @@ export default function McpToolsIndicator({ projectName }) {
 
           {!toolsLoading && !toolsError && toolsList.length === 0 && (
             <Typography variant="body2" color="text.secondary">
-              No tools available from this server.
+              {t('mcpToolsIndicator.noToolsAvailable')}
             </Typography>
           )}
 
           {!toolsLoading && toolsList.length > 0 && (
             <>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {toolsList.length} tool{toolsList.length !== 1 ? 's' : ''} available
+                {t('mcpToolsIndicator.toolsAvailableCount', { count: toolsList.length })}
               </Typography>
               <List dense>
                 {toolsList.map((tool, index) => (
@@ -174,7 +176,7 @@ export default function McpToolsIndicator({ projectName }) {
                           {tool.name}
                         </Typography>
                       }
-                      secondary={tool.description || 'No description available'}
+                      secondary={tool.description || t('skillCatalog.noDescription')}
                       secondaryTypographyProps={{ sx: { fontSize: '0.75rem' } }}
                     />
                   </ListItem>
@@ -189,7 +191,7 @@ export default function McpToolsIndicator({ projectName }) {
               onClick={() => setToolsDrawerOpen(false)}
               fullWidth
             >
-              Close
+              {t('common.close')}
             </Button>
           </Box>
         </Box>

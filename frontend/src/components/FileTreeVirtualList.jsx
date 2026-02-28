@@ -23,6 +23,7 @@ import {
   isValidDropTarget,
   isExternalFileDrag,
 } from './fileTreeDragDrop';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // FileTreeRow — a single absolutely-positioned row
@@ -45,6 +46,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   onDropRow,
   onDragLeaveRow,
 }) {
+  const { t } = useTranslation();
   const nodeTags = fileTags[row.path] || [];
   const hasReleaseComment = releaseComments && !!releaseComments[row.path];
 
@@ -185,7 +187,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
             borderRadius: '50%',
             backgroundColor: '#1976d2',
           }}
-          title="Has release comment"
+          title={t('fileTreeVirtualList.releaseComment')}
         />
       )}
 
@@ -222,6 +224,7 @@ export default function FileTreeVirtualList({
   onDropExternal,
   onDropToRoot,
 }) {
+  const { t } = useTranslation();
   const containerRef = useRef(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);

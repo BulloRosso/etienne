@@ -3,9 +3,11 @@ import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function MarkdownViewer({ filename, projectName, className = '' }) {
+  const { t } = useTranslation();
   const [htmlContent, setHtmlContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -113,14 +115,14 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
         p={2}
         color="error.main"
       >
-        Error loading markdown file: {error}
+        {t('markdownViewer.errorLoading')} {error}
       </Box>
     );
   }
 
   return (
     <Box className={className} height="100%" width="100%" position="relative">
-      <Tooltip title="Reload file">
+      <Tooltip title={t('markdownViewer.reloadFile')}>
         <IconButton
           onClick={handleReload}
           disabled={loading}

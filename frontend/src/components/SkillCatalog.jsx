@@ -10,9 +10,11 @@ import {
   Close, DeleteOutline, Save, UploadFile, MoreVert, Add, Remove, Download,
 } from '@mui/icons-material';
 import { GiAtom } from 'react-icons/gi';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function SkillCatalog({ open, onClose }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(0);
   const [catalogSkills, setCatalogSkills] = useState([]);
   const [selectedSkill, setSelectedSkill] = useState(null);
@@ -123,14 +125,14 @@ export default function SkillCatalog({ open, onClose }) {
       await loadCatalog();
     } catch (error) {
       console.error('Failed to save:', error);
-      alert('Failed to save');
+      alert(t('skillCatalog.failedToSave'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteSkill = async () => {
-    if (!selectedSkill || !confirm(`Delete skill "${selectedSkill.name}" from the repository?`)) return;
+    if (!selectedSkill || !confirm(t('skillCatalog.confirmDelete', { name: selectedSkill.name }))) return;
     try {
       await apiFetch(`/api/skills/catalog/${selectedSkill.name}?source=${selectedSkill.source}`, { method: 'DELETE' });
       setSelectedSkill(null);
@@ -138,7 +140,7 @@ export default function SkillCatalog({ open, onClose }) {
       await loadCatalog();
     } catch (error) {
       console.error('Failed to delete:', error);
-      alert('Failed to delete skill');
+      alert(t('skillCatalog.failedToDeleteSkill'));
     }
   };
 
@@ -160,11 +162,11 @@ export default function SkillCatalog({ open, onClose }) {
         setSelectedSkill(null);
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to upload skill');
+        alert(data.message || t('skillCatalog.failedToUploadSkill'));
       }
     } catch (error) {
       console.error('Failed to upload:', error);
-      alert('Failed to upload skill zip');
+      alert(t('skillCatalog.failedToUploadSkillZip'));
     }
     e.target.value = '';
   };
@@ -174,12 +176,12 @@ export default function SkillCatalog({ open, onClose }) {
       const response = await apiFetch(`/api/skills/catalog/review/${id}/accept`, { method: 'POST' });
       if (response.ok) {
         const data = await response.json();
-        alert(`Accepted. New version: ${data.newVersion}`);
+        alert(t('skillCatalog.acceptedNewVersion', { version: data.newVersion }));
         await loadReviewRequests();
         await loadCatalog();
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to accept');
+        alert(data.message || t('skillCatalog.failedToAccept'));
       }
     } catch (error) {
       console.error('Failed to accept review:', error);
@@ -189,7 +191,7 @@ export default function SkillCatalog({ open, onClose }) {
   };
 
   const handleRejectReview = async (id) => {
-    if (!confirm('Reject and delete this review request?')) return;
+    if (!confirm(t('skillCatalog.confirmRejectReview'))) return;
     try {
       await apiFetch(`/api/skills/catalog/review/${id}`, { method: 'DELETE' });
       await loadReviewRequests();
@@ -323,7 +325,7 @@ export default function SkillCatalog({ open, onClose }) {
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <GiAtom style={{ fontSize: '24px' }} />
-          <span>Skill Store</span>
+          <span>{t('skillCatalog.dialogTitle')}</span>
         </Box>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -339,9 +341,9 @@ export default function SkillCatalog({ open, onClose }) {
         }}
         sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
       >
-        <Tab label="Catalog" />
-        <Tab label="Skill" disabled={!selectedSkill} />
-        <Tab label="Requests for Review" />
+        <Tab label={t('skillCatalog.tabCatalog')} />
+        <Tab label={t('skillCatalog.tabSkill')} disabled={!selectedSkill} />
+        <Tab label={t('skillCatalog.tabReview')} />
       </Tabs>
 
       <DialogContent sx={{ p: 0, overflow: 'auto' }}>
@@ -351,7 +353,7 @@ export default function SkillCatalog({ open, onClose }) {
             <TextField
               fullWidth
               size="small"
-              placeholder="Filter skills..."
+              placeholder={t('skillCatalog.filterPlaceholder')}
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
               sx={{ mb: 2 }}
@@ -362,7 +364,7 @@ export default function SkillCatalog({ open, onClose }) {
               </Box>
             ) : filteredSkills.length === 0 ? (
               <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                No skills found.
+                {t('skillCatalog.noSkillsFound')}
               </Typography>
             ) : (
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 2 }}>
@@ -385,7 +387,7 @@ export default function SkillCatalog({ open, onClose }) {
                       {skill.name}
                     </Typography>
                     {skill.source === 'optional' && (
-                      <Chip label="optional" size="small" sx={{ mt: 0.5, height: 16, fontSize: '0.6rem' }} />
+                      <Chip label={t('skillCatalog.optional')} size="small" sx={{ mt: 0.5, height: 16, fontSize: '0.6rem' }} />
                     )}
                   </Paper>
                 ))}
@@ -400,7 +402,7 @@ export default function SkillCatalog({ open, onClose }) {
             {/* Title & description */}
             <Typography variant="h6" sx={{ mb: 0.5 }}>{selectedSkill.name}</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {skillDescription || 'No description available.'}
+              {skillDescription || t('skillCatalog.noDescription')}
             </Typography>
             <Chip label={selectedSkill.source} size="small" sx={{ mb: 2 }} />
 
@@ -409,28 +411,28 @@ export default function SkillCatalog({ open, onClose }) {
             {/* Metadata */}
             {metadata && (
               <>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Metadata</Typography>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('skillCatalog.metadataTitle')}</Typography>
 
                 <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                   <TextField
-                    label="Creator Name" size="small" sx={{ flex: 1 }}
+                    label={t('skillCatalog.creatorNameLabel')} size="small" sx={{ flex: 1 }}
                     value={metadata.creator?.name || ''}
                     onChange={(e) => setMetadata({ ...metadata, creator: { ...metadata.creator, name: e.target.value } })}
                   />
                   <TextField
-                    label="Creator Email" size="small" sx={{ flex: 1 }}
+                    label={t('skillCatalog.creatorEmailLabel')} size="small" sx={{ flex: 1 }}
                     value={metadata.creator?.email || ''}
                     onChange={(e) => setMetadata({ ...metadata, creator: { ...metadata.creator, email: e.target.value } })}
                   />
                 </Box>
 
                 <TextField
-                  label="Version" size="small" value={metadata.version || '1.0'}
+                  label={t('skillCatalog.versionLabel')} size="small" value={metadata.version || '1.0'}
                   disabled fullWidth sx={{ mb: 2 }}
                 />
 
                 {/* Categories */}
-                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>Categories</Typography>
+                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>{t('skillCatalog.categoriesLabel')}</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
                   {(metadata.categories || []).map((cat, idx) => (
                     <Chip key={idx} label={cat} size="small" onDelete={() => removeCategory(idx)} />
@@ -438,32 +440,32 @@ export default function SkillCatalog({ open, onClose }) {
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                   <TextField
-                    size="small" placeholder="Add category" value={newCategory}
+                    size="small" placeholder={t('skillCatalog.addCategoryPlaceholder')} value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } }}
                   />
-                  <Button size="small" onClick={addCategory} variant="outlined">Add</Button>
+                  <Button size="small" onClick={addCategory} variant="outlined">{t('common.add')}</Button>
                 </Box>
 
                 {/* Comments */}
                 <TextField
-                  label="Comments" size="small" fullWidth multiline rows={2}
+                  label={t('skillCatalog.commentsLabel')} size="small" fullWidth multiline rows={2}
                   value={metadata.comments || ''}
                   onChange={(e) => setMetadata({ ...metadata, comments: e.target.value })}
                   sx={{ mb: 2 }}
                 />
 
                 {/* Known Issues */}
-                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>Known Issues</Typography>
+                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>{t('skillCatalog.knownIssuesLabel')}</Typography>
                 {(metadata.knownIssues || []).map((issue, idx) => (
                   <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
                     <TextField
-                      size="small" placeholder="Description" sx={{ flex: 2 }}
+                      size="small" placeholder={t('skillCatalog.descriptionPlaceholder')} sx={{ flex: 2 }}
                       value={issue.description}
                       onChange={(e) => updateKnownIssue(idx, 'description', e.target.value)}
                     />
                     <TextField
-                      size="small" placeholder="Ticket ID" sx={{ flex: 1 }}
+                      size="small" placeholder={t('skillCatalog.ticketIdPlaceholder')} sx={{ flex: 1 }}
                       value={issue.ticketId || ''}
                       onChange={(e) => updateKnownIssue(idx, 'ticketId', e.target.value)}
                     />
@@ -473,7 +475,7 @@ export default function SkillCatalog({ open, onClose }) {
                   </Box>
                 ))}
                 <Button size="small" startIcon={<Add />} onClick={addKnownIssue} sx={{ mb: 2 }}>
-                  Add Issue
+                  {t('skillCatalog.addIssue')}
                 </Button>
               </>
             )}
@@ -483,14 +485,14 @@ export default function SkillCatalog({ open, onClose }) {
             {/* Dependencies */}
             {dependencies && (
               <>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Dependencies</Typography>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('skillCatalog.dependenciesTitle')}</Typography>
 
                 {/* Binaries */}
-                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>Required Packages</Typography>
+                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>{t('skillCatalog.requiredPackages')}</Typography>
                 {(dependencies.binaries || []).map((bin, idx) => (
                   <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
                     <TextField
-                      size="small" placeholder="Package name" sx={{ flex: 2 }}
+                      size="small" placeholder={t('skillCatalog.packageNamePlaceholder')} sx={{ flex: 2 }}
                       value={bin.name}
                       onChange={(e) => updateBinary(idx, 'name', e.target.value)}
                     />
@@ -509,25 +511,25 @@ export default function SkillCatalog({ open, onClose }) {
                   </Box>
                 ))}
                 <Button size="small" startIcon={<Add />} onClick={addBinary} sx={{ mb: 2 }}>
-                  Add Package
+                  {t('skillCatalog.addPackage')}
                 </Button>
 
                 {/* Env vars */}
-                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>Required Environment Variables</Typography>
+                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>{t('skillCatalog.requiredEnvVars')}</Typography>
                 {(dependencies.envVars || []).map((ev, idx) => (
                   <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
                     <TextField
-                      size="small" placeholder="VAR_NAME" sx={{ flex: 1 }}
+                      size="small" placeholder={t('skillCatalog.varNamePlaceholder')} sx={{ flex: 1 }}
                       value={ev.name}
                       onChange={(e) => updateEnvVar(idx, 'name', e.target.value)}
                     />
                     <TextField
-                      size="small" placeholder="Description" sx={{ flex: 1.5 }}
+                      size="small" placeholder={t('skillCatalog.descriptionPlaceholder')} sx={{ flex: 1.5 }}
                       value={ev.description}
                       onChange={(e) => updateEnvVar(idx, 'description', e.target.value)}
                     />
                     <TextField
-                      size="small" placeholder="Example" sx={{ flex: 1 }}
+                      size="small" placeholder={t('skillCatalog.examplePlaceholder')} sx={{ flex: 1 }}
                       value={ev.exampleFormat || ''}
                       onChange={(e) => updateEnvVar(idx, 'exampleFormat', e.target.value)}
                     />
@@ -537,7 +539,7 @@ export default function SkillCatalog({ open, onClose }) {
                   </Box>
                 ))}
                 <Button size="small" startIcon={<Add />} onClick={addEnvVar}>
-                  Add Env Var
+                  {t('skillCatalog.addEnvVar')}
                 </Button>
               </>
             )}
@@ -553,7 +555,7 @@ export default function SkillCatalog({ open, onClose }) {
               </Box>
             ) : reviewRequests.length === 0 ? (
               <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                No pending review requests.
+                {t('skillCatalog.noPendingReviews')}
               </Typography>
             ) : (
               <List>
@@ -572,7 +574,7 @@ export default function SkillCatalog({ open, onClose }) {
                           <Chip label={req.fileName} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
                         </Box>
                       }
-                      secondary={`Submitted by ${req.submittedBy} on ${new Date(req.submittedAt).toLocaleDateString()} ${new Date(req.submittedAt).toLocaleTimeString()}`}
+                      secondary={t('skillCatalog.submittedBy', { submittedBy: req.submittedBy, date: new Date(req.submittedAt).toLocaleDateString(), time: new Date(req.submittedAt).toLocaleTimeString() })}
                     />
                     <ListItemSecondaryAction>
                       <IconButton
@@ -598,10 +600,10 @@ export default function SkillCatalog({ open, onClose }) {
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
               <MenuItem onClick={() => reviewMenuTarget && handleRejectReview(reviewMenuTarget.id)}>
-                Reject / Delete
+                {t('skillCatalog.rejectDelete')}
               </MenuItem>
               <MenuItem onClick={() => reviewMenuTarget && handleAcceptReview(reviewMenuTarget.id)}>
-                Accept as new version
+                {t('skillCatalog.acceptNewVersion')}
               </MenuItem>
             </Menu>
           </Box>
@@ -618,7 +620,7 @@ export default function SkillCatalog({ open, onClose }) {
             onClick={handleDeleteSkill}
             size="small"
           >
-            Delete Skill
+            {t('skillCatalog.deleteSkill')}
           </Button>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
@@ -627,7 +629,7 @@ export default function SkillCatalog({ open, onClose }) {
               component="label"
               size="small"
             >
-              Upload .zip
+              {t('skillCatalog.uploadZip')}
               <input type="file" hidden accept=".zip" onChange={handleUploadZip} />
             </Button>
             <Button
@@ -637,7 +639,7 @@ export default function SkillCatalog({ open, onClose }) {
               disabled={saving}
               size="small"
             >
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           </Box>
         </DialogActions>
@@ -651,7 +653,7 @@ export default function SkillCatalog({ open, onClose }) {
             component="label"
             size="small"
           >
-            Upload new skill (.zip)
+            {t('skillCatalog.uploadNewSkillZip')}
             <input type="file" hidden accept=".zip" onChange={handleUploadZip} />
           </Button>
         </DialogActions>

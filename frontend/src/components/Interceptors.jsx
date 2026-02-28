@@ -15,9 +15,11 @@ import {
   Typography
 } from '@mui/material';
 import { apiAxios, authSSEUrl } from '../services/api';
+import { useTranslation } from 'react-i18next';
 import BackgroundInfo from './BackgroundInfo';
 
 export default function Interceptors({ projectName, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState('events'); // 'events' or 'hooks'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,15 +156,15 @@ export default function Interceptors({ projectName, showBackgroundInfo }) {
           onChange={handleModeChange}
           color="primary"
         >
-          <ToggleButton value="events">Events</ToggleButton>
-          <ToggleButton value="hooks">Hooks</ToggleButton>
+          <ToggleButton value="events">{t('interceptors.events')}</ToggleButton>
+          <ToggleButton value="hooks">{t('interceptors.hooks')}</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {items.length === 0 ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            No {mode} yet. Waiting for Claude Code activity...
+            {t('interceptors.noItemsYet', { mode })} {t('interceptors.waitingForActivity')}
           </Typography>
         </Box>
       ) : (
@@ -174,7 +176,7 @@ export default function Interceptors({ projectName, showBackgroundInfo }) {
                   <TableCell key={field} sx={{ verticalAlign: 'top' }}>
                     <TextField
                       size="small"
-                      placeholder="Filter"
+                      placeholder={t('interceptors.filter')}
                       value={filters[field] || ''}
                       onChange={(e) => handleFilterChange(field, e.target.value)}
                       sx={{ width: '100%', mb: 1 }}

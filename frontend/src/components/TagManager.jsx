@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Add, Close } from '@mui/icons-material';
 import { IoShieldCheckmark } from 'react-icons/io5';
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 
 export default function TagManager({
@@ -29,6 +30,7 @@ export default function TagManager({
   releaseComment = '',
   onReleaseCommentSaved,
 }) {
+  const { t } = useTranslation();
   const [tags, setTags] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState(null);
@@ -57,7 +59,7 @@ export default function TagManager({
 
     // Check if tag already exists
     if (tags.includes(trimmedTag)) {
-      setError('Tag already added');
+      setError(t('tagManager.tagAlreadyAdded'));
       return;
     }
 
@@ -72,7 +74,7 @@ export default function TagManager({
       setInputValue('');
       setError(null);
     } catch (err) {
-      setError(`Failed to add tag: ${err.response?.data?.message || err.message}`);
+      setError(t('tagManager.failedToAddTag', { message: err.response?.data?.message || err.message }));
       console.error('Add tag error:', err);
     } finally {
       setLoading(false);
@@ -92,7 +94,7 @@ export default function TagManager({
       setTags(tags.filter(tag => tag !== tagToRemove));
       setError(null);
     } catch (err) {
-      setError(`Failed to remove tag: ${err.response?.data?.message || err.message}`);
+      setError(t('tagManager.failedToRemoveTag', { message: err.response?.data?.message || err.message }));
       console.error('Remove tag error:', err);
     } finally {
       setLoading(false);
@@ -113,7 +115,7 @@ export default function TagManager({
       });
       if (onReleaseCommentSaved) onReleaseCommentSaved();
     } catch (err) {
-      setError(`Failed to save release comment: ${err.response?.data?.message || err.message}`);
+      setError(t('tagManager.failedToSaveReleaseComment', { message: err.response?.data?.message || err.message }));
     } finally {
       setCommentSaving(false);
     }
@@ -128,7 +130,7 @@ export default function TagManager({
       setCommentText('');
       if (onReleaseCommentSaved) onReleaseCommentSaved();
     } catch (err) {
-      setError(`Failed to delete release comment: ${err.response?.data?.message || err.message}`);
+      setError(t('tagManager.failedToDeleteReleaseComment', { message: err.response?.data?.message || err.message }));
     } finally {
       setCommentSaving(false);
     }
@@ -151,7 +153,7 @@ export default function TagManager({
       fullWidth
     >
       <DialogTitle>
-        Manage Tags
+        {t('tagManager.dialogTitle')}
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           {fileName}
         </Typography>
@@ -167,12 +169,12 @@ export default function TagManager({
         {/* Current Tags */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Current Tags ({tags.length})
+            {t('tagManager.currentTags', { count: tags.length })}
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {tags.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                No tags assigned
+                {t('tagManager.noTagsAssigned')}
               </Typography>
             ) : (
               tags.map(tag => (
@@ -200,7 +202,7 @@ export default function TagManager({
         {/* Add New Tag */}
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Add Tags
+            {t('tagManager.addTags')}
           </Typography>
           <Autocomplete
             freeSolo
@@ -219,7 +221,7 @@ export default function TagManager({
             renderInput={(params) => (
               <TextField
                 {...params}
-                placeholder="Type to create new tag or select existing"
+                placeholder={t('tagManager.inputPlaceholder')}
                 variant="outlined"
                 size="small"
                 onKeyDown={(e) => {
@@ -232,7 +234,7 @@ export default function TagManager({
             )}
           />
           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-            Press Enter or select from dropdown to add tag
+            {t('tagManager.inputHelper')}
           </Typography>
         </Box>
 
@@ -240,7 +242,7 @@ export default function TagManager({
         {allTags.length > 0 && (
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Available Tags
+              {t('tagManager.availableTags')}
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {allTags
@@ -248,7 +250,7 @@ export default function TagManager({
                 .map(tagInfo => (
                   <Chip
                     key={tagInfo.tag}
-                    label={`${tagInfo.tag} (${tagInfo.count})`}
+                    label={t('tagManager.tagWithCount', { tag: tagInfo.tag, count: tagInfo.count })}
                     onClick={() => handleAddTag(tagInfo.tag)}
                     disabled={loading}
                     size="small"
@@ -271,7 +273,7 @@ export default function TagManager({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <IoShieldCheckmark size={18} color="#1976d2" />
               <Typography variant="subtitle2">
-                Release Comment
+                {t('tagManager.releaseCommentTitle')}
               </Typography>
             </Box>
             <TextField
@@ -279,7 +281,7 @@ export default function TagManager({
               multiline
               rows={2}
               size="small"
-              placeholder="Describe what changed in this file for the next release"
+              placeholder={t('tagManager.releaseCommentPlaceholder')}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               disabled={commentSaving}
@@ -292,7 +294,7 @@ export default function TagManager({
                   onClick={handleDeleteReleaseComment}
                   disabled={commentSaving}
                 >
-                  Clear
+                  {t('common.clear')}
                 </Button>
               )}
               <Button
@@ -301,11 +303,11 @@ export default function TagManager({
                 onClick={handleSaveReleaseComment}
                 disabled={commentSaving || !commentText.trim()}
               >
-                {commentSaving ? 'Saving...' : 'Save Comment'}
+                {commentSaving ? t('common.saving') : t('tagManager.saveComment')}
               </Button>
             </Box>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-              Release comments are compiled into the diff protocol on the next update release.
+              {t('tagManager.releaseCommentHelper')}
             </Typography>
           </Box>
         )}
@@ -313,7 +315,7 @@ export default function TagManager({
 
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          Close
+          {t('common.close')}
         </Button>
       </DialogActions>
     </Dialog>

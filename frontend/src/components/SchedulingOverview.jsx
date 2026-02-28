@@ -38,6 +38,7 @@ import { IoClose } from 'react-icons/io5';
 import { AiOutlineDelete } from 'react-icons/ai';
 import Editor from '@monaco-editor/react';
 import BackgroundInfo from './BackgroundInfo';
+import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
@@ -53,14 +54,14 @@ const timezones = [
   'Australia/Sydney'
 ];
 
-const weekdays = [
-  { label: 'Mon', value: 1 },
-  { label: 'Tue', value: 2 },
-  { label: 'Wed', value: 3 },
-  { label: 'Thu', value: 4 },
-  { label: 'Fri', value: 5 },
-  { label: 'Sat', value: 6 },
-  { label: 'Sun', value: 0 }
+const getWeekdays = (t) => [
+  { label: t('scheduling.weekdayMon'), value: 1 },
+  { label: t('scheduling.weekdayTue'), value: 2 },
+  { label: t('scheduling.weekdayWed'), value: 3 },
+  { label: t('scheduling.weekdayThu'), value: 4 },
+  { label: t('scheduling.weekdayFri'), value: 5 },
+  { label: t('scheduling.weekdaySat'), value: 6 },
+  { label: t('scheduling.weekdaySun'), value: 0 }
 ];
 
 // Helper functions to convert between cron and user-friendly format
@@ -150,30 +151,33 @@ const buildCronExpression = (hour, minute, selectedDays) => {
   return `${minute} ${hour} * * ${dayOfWeek}`;
 };
 
-const formatScheduleDisplay = (cronExpression, taskType) => {
+const formatScheduleDisplay = (cronExpression, taskType, t) => {
   const parsed = parseCronExpression(cronExpression, taskType);
 
   if (parsed.isOneTime && parsed.scheduledDate) {
-    return `Once on ${parsed.scheduledDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at ${parsed.hour}:${parsed.minute}`;
+    const dateStr = parsed.scheduledDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return t('scheduling.displayOnceOn', { date: dateStr, time: `${parsed.hour}:${parsed.minute}` });
   }
 
   const { hour, minute, selectedDays } = parsed;
-  let daysText = 'Every day';
+  const weekdays = getWeekdays(t);
+  let daysText = t('scheduling.displayEveryDay');
   if (selectedDays.length < 7) {
     if (selectedDays.length === 5 && selectedDays.every(d => d >= 1 && d <= 5)) {
-      daysText = 'Weekdays';
+      daysText = t('scheduling.displayWeekdays');
     } else if (selectedDays.length === 2 && selectedDays.includes(0) && selectedDays.includes(6)) {
-      daysText = 'Weekends';
+      daysText = t('scheduling.displayWeekends');
     } else {
       const dayNames = selectedDays.map(d => weekdays.find(w => w.value === d)?.label).join(', ');
       daysText = dayNames;
     }
   }
 
-  return `${daysText} at ${hour}:${minute}`;
+  return t('scheduling.displayAtTime', { days: daysText, time: `${hour}:${minute}` });
 };
 
 export default function SchedulingOverview({ open, onClose, project, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [tasks, setTasks] = useState([]);
@@ -359,7 +363,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: '14px' }}>
             <TbCalendarTime size={22} color={themeMode === 'dark' ? '#fff' : '#000'} />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Scheduled Tasks
+              {t('scheduling.title')}
             </Typography>
           </Box>
           <IconButton onClick={onClose} size="small">
@@ -374,8 +378,8 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
           sx={{ borderBottom: '1px solid', borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0', px: 1, minHeight: 40 }}
           TabIndicatorProps={{ sx: { height: 2 } }}
         >
-          <Tab label="Tasks" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
-          <Tab label="History" sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+          <Tab label={t('scheduling.tabTasks')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+          <Tab label={t('scheduling.tabHistory')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
         </Tabs>
 
         {/* Tab 0: Task List */}
@@ -409,10 +413,10 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
               {tasks.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                   <Typography variant="body1">
-                    No scheduled tasks yet.
+                    {t('scheduling.emptyTitle')}
                   </Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Click "Add" to create a scheduled task.
+                    {t('scheduling.emptySubtitle')}
                   </Typography>
                 </Box>
               ) : (
@@ -451,7 +455,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                           primary={task.name}
                           secondary={
                             <Typography variant="caption" sx={{ color: themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>
-                              {formatScheduleDisplay(task.cronExpression, task.type)}
+                              {formatScheduleDisplay(task.cronExpression, task.type, t)}
                             </Typography>
                           }
                           primaryTypographyProps={{
@@ -509,10 +513,10 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                 <Add />
               </Fab>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} scheduled
+                {t('scheduling.taskCount', { count: tasks.length })}
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                .etienne/scheduled-tasks.json
+                {t('scheduling.configFile')}
               </Typography>
             </Box>
           </>
@@ -523,16 +527,16 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
           <>
             <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
               {history.length === 0 ? (
-                <Alert severity="info">No execution history yet.</Alert>
+                <Alert severity="info">{t('scheduling.historyNoHistory')}</Alert>
               ) : (
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Timestamp</TableCell>
-                        <TableCell>Task</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Response</TableCell>
+                        <TableCell>{t('scheduling.historyColumnTimestamp')}</TableCell>
+                        <TableCell>{t('scheduling.historyColumnTask')}</TableCell>
+                        <TableCell>{t('scheduling.historyColumnStatus')}</TableCell>
+                        <TableCell>{t('scheduling.historyColumnResponse')}</TableCell>
                         <TableCell></TableCell>
                       </TableRow>
                     </TableHead>
@@ -544,7 +548,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                             <TableCell sx={{ fontSize: '0.75rem' }}>{entry.name}</TableCell>
                             <TableCell>
                               <Chip
-                                label={entry.isError ? 'Error' : 'OK'}
+                                label={entry.isError ? t('scheduling.historyStatusError') : t('scheduling.historyStatusOk')}
                                 color={entry.isError ? 'error' : 'success'}
                                 size="small"
                               />
@@ -563,9 +567,9 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                           {entry.duration !== undefined && (
                             <TableRow>
                               <TableCell colSpan={5} sx={{ py: 0, fontSize: '0.7rem', color: 'text.secondary' }}>
-                                Duration: {entry.duration}ms
-                                {entry.inputTokens && ` | In: ${entry.inputTokens}`}
-                                {entry.outputTokens && ` | Out: ${entry.outputTokens}`}
+                                {t('scheduling.historyDuration', { duration: entry.duration })}
+                                {entry.inputTokens && ` | ${t('scheduling.historyInputTokens', { tokens: entry.inputTokens })}`}
+                                {entry.outputTokens && ` | ${t('scheduling.historyOutputTokens', { tokens: entry.outputTokens })}`}
                               </TableCell>
                             </TableRow>
                           )}
@@ -588,10 +592,10 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                 justifyContent: 'space-between'
               }}>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {history.length} {history.length === 1 ? 'entry' : 'entries'}
+                  {t('scheduling.historyEntryCount', { count: history.length })}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  .etienne/task-history.json
+                  {t('scheduling.historyConfigFile')}
                 </Typography>
               </Box>
             )}
@@ -602,7 +606,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
       {/* Edit/Add Task Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-          {editingTask ? 'Edit Task' : 'New Task'}
+          {editingTask ? t('scheduling.editTitleEdit') : t('scheduling.editTitleNew')}
           <IconButton onClick={() => setEditDialogOpen(false)} size="small">
             <Close />
           </IconButton>
@@ -610,7 +614,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             <TextField
-              label="Task Name"
+              label={t('scheduling.editTaskName')}
               fullWidth
               required
               value={formData.name}
@@ -618,7 +622,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
             />
 
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Prompt</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('scheduling.editPrompt')}</Typography>
               <Box sx={{ border: '1px solid #ddd', borderRadius: 1, overflow: 'hidden' }}>
                 <Editor
                   height="200px"
@@ -637,7 +641,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
             </Box>
 
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Schedule</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('scheduling.editSchedule')}</Typography>
 
               {/* Task type toggle */}
               <Box sx={{ mb: 2 }}>
@@ -647,15 +651,15 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                   onChange={(e, newType) => { if (newType) setTaskType(newType); }}
                   size="small"
                 >
-                  <ToggleButton value="recurring">Recurring</ToggleButton>
-                  <ToggleButton value="one-time">One-time</ToggleButton>
+                  <ToggleButton value="recurring">{t('scheduling.editRecurring')}</ToggleButton>
+                  <ToggleButton value="one-time">{t('scheduling.editOneTime')}</ToggleButton>
                 </ToggleButtonGroup>
               </Box>
 
               {/* Time input */}
               <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                 <TextField
-                  label="Hour"
+                  label={t('scheduling.editHour')}
                   type="number"
                   value={scheduleHour}
                   onChange={(e) => {
@@ -666,7 +670,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                   sx={{ width: 100 }}
                 />
                 <TextField
-                  label="Minute"
+                  label={t('scheduling.editMinute')}
                   type="number"
                   value={scheduleMinute}
                   onChange={(e) => {
@@ -678,7 +682,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                 />
                 <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Time: {scheduleHour}:{scheduleMinute}
+                    {t('scheduling.editTime', { hour: scheduleHour, minute: scheduleMinute })}
                   </Typography>
                 </Box>
               </Box>
@@ -687,13 +691,13 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                 <>
                   {/* Weekday selector */}
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1 }}>Days of the week:</Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>{t('scheduling.editDaysOfWeek')}</Typography>
                     <ToggleButtonGroup
                       value={selectedDays}
                       onChange={handleDayToggle}
                       aria-label="weekdays"
                     >
-                      {weekdays.map((day) => (
+                      {getWeekdays(t).map((day) => (
                         <ToggleButton
                           key={day.value}
                           value={day.value}
@@ -713,27 +717,27 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                       variant="outlined"
                       onClick={() => setSelectedDays([1, 2, 3, 4, 5])}
                     >
-                      Weekdays
+                      {t('scheduling.editWeekdays')}
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setSelectedDays([0, 6])}
                     >
-                      Weekends
+                      {t('scheduling.editWeekends')}
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setSelectedDays([0, 1, 2, 3, 4, 5, 6])}
                     >
-                      Every Day
+                      {t('scheduling.editEveryDay')}
                     </Button>
                   </Box>
                 </>
               ) : (
                 <Box>
-                  <Typography variant="body2" sx={{ mb: 1 }}>Date:</Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>{t('scheduling.editDate')}</Typography>
                   <TextField
                     type="date"
                     value={scheduledDate}
@@ -748,19 +752,19 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
               {/* Preview */}
               <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
                 <Typography variant="caption" color="text.secondary">
-                  Preview: {taskType === 'one-time' && scheduledDate
-                    ? formatScheduleDisplay(buildOneTimeCronExpression(scheduleHour, scheduleMinute, new Date(scheduledDate)), 'one-time')
-                    : formatScheduleDisplay(buildCronExpression(scheduleHour, scheduleMinute, selectedDays), 'recurring')
-                  }
+                  {t('scheduling.editPreview', { schedule: taskType === 'one-time' && scheduledDate
+                    ? formatScheduleDisplay(buildOneTimeCronExpression(scheduleHour, scheduleMinute, new Date(scheduledDate)), 'one-time', t)
+                    : formatScheduleDisplay(buildCronExpression(scheduleHour, scheduleMinute, selectedDays), 'recurring', t)
+                  })}
                 </Typography>
               </Box>
             </Box>
 
             <FormControl fullWidth>
-              <InputLabel>Timezone</InputLabel>
+              <InputLabel>{t('scheduling.editTimezone')}</InputLabel>
               <Select
                 value={formData.timeZone}
-                label="Timezone"
+                label={t('scheduling.editTimezone')}
                 onChange={(e) => setFormData({ ...formData, timeZone: e.target.value })}
               >
                 {timezones.map((tz) => (
@@ -770,7 +774,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
             </FormControl>
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-              <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={() => setEditDialogOpen(false)}>{t('common.cancel')}</Button>
               <Button
                 variant="contained"
                 onClick={handleSaveTask}
@@ -780,7 +784,7 @@ export default function SchedulingOverview({ open, onClose, project, showBackgro
                   (taskType === 'one-time' && !scheduledDate)
                 }
               >
-                Save
+                {t('common.save')}
               </Button>
             </Box>
           </Box>

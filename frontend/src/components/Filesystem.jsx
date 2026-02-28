@@ -35,8 +35,10 @@ import TagManager from './TagManager';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import FileTreeVirtualList from './FileTreeVirtualList';
 import { flattenTree, getTagColor } from './fileTreeModel';
+import { useTranslation } from 'react-i18next';
 
 export default function Filesystem({ projectName, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
   const isGuest = hasRole('guest');
@@ -91,7 +93,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       const response = await apiAxios.post('/api/claude/filesystem', { projectName });
       setTree(response.data.tree || []);
     } catch (err) {
-      setError('Failed to load filesystem');
+      setError(t('filesystem.errorLoadFailed'));
       console.error('Load filesystem error:', err);
     } finally {
       setLoading(false);
@@ -194,7 +196,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       await loadFilesystem();
       setRenameDialog({ open: false, row: null, newName: '' });
     } catch (err) {
-      setError(`Failed to rename: ${err.response?.data?.message || err.message}`);
+      setError(t('filesystem.errorRenameFailed', { message: err.response?.data?.message || err.message }));
       setRenameDialog({ open: false, row: null, newName: '' });
     }
   };
@@ -214,7 +216,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       await loadFilesystem();
       setDeleteDialog({ open: false, row: null });
     } catch (err) {
-      setError(`Failed to delete: ${err.response?.data?.message || err.message}`);
+      setError(t('filesystem.errorDeleteFailed', { message: err.response?.data?.message || err.message }));
       setDeleteDialog({ open: false, row: null });
     }
   };
@@ -253,7 +255,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       await loadFilesystem();
       setNewFolderDialog({ open: false, folderName: '' });
     } catch (err) {
-      setError(`Failed to create folder: ${err.response?.data?.message || err.message}`);
+      setError(t('filesystem.errorCreateFolderFailed', { message: err.response?.data?.message || err.message }));
       setNewFolderDialog({ open: false, folderName: '' });
     }
   };
@@ -286,7 +288,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       }
       await loadFilesystem();
     } catch (err) {
-      setError(`Failed to upload: ${err.response?.data?.message || err.message}`);
+      setError(t('filesystem.errorUploadFailed', { message: err.response?.data?.message || err.message }));
     }
     event.target.value = '';
   };
@@ -308,7 +310,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       });
       await loadFilesystem();
     } catch (err) {
-      setError(`Failed to move: ${err.response?.data?.message || err.message}`);
+      setError(t('filesystem.errorMoveFailed', { message: err.response?.data?.message || err.message }));
     }
   };
 
@@ -381,7 +383,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
       }
       await loadFilesystem();
     } catch (err) {
-      setError(`Failed to upload: ${err.response?.data?.message || err.message}`);
+      setError(t('filesystem.errorUploadFailed', { message: err.response?.data?.message || err.message }));
     }
   };
 
@@ -412,11 +414,11 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           <Autocomplete
             multiple
             size="small"
-            options={allTags.map((t) => t.tag)}
+            options={allTags.map((tagInfo) => tagInfo.tag)}
             value={selectedTags}
             onChange={(event, newValue) => setSelectedTags(newValue)}
             renderInput={(params) => (
-              <TextField {...params} label="Filter by tags" placeholder="Select tags" />
+              <TextField {...params} label={t('filesystem.filterByTags')} placeholder={t('filesystem.filterByTags')} />
             )}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
@@ -457,13 +459,13 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
                 onChange={(e) => setShowSystemFiles(e.target.checked)}
               />
             }
-            label="Show System Files"
+            label={t('filesystem.showSystemFiles')}
             sx={{ ml: 2 }}
           />
         )}
         {!isAdmin && <Box />}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title={isGuest ? 'Upload (Not available for guests)' : 'Upload'}>
+          <Tooltip title={isGuest ? t('filesystem.uploadGuestTooltip') : t('common.upload')}>
             <span>
               <IconButton
                 onClick={() => {
@@ -477,14 +479,14 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title={isGuest ? 'New Folder (Not available for guests)' : 'New Folder'}>
+          <Tooltip title={isGuest ? t('filesystem.newFolderGuestTooltip') : t('filesystem.newFolder')}>
             <span>
               <IconButton onClick={handleNewFolderClick} disabled={isGuest}>
                 <i className="codicon codicon-new-folder" style={{ fontSize: 20 }} />
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Refresh">
+          <Tooltip title={t('common.refresh')}>
             <IconButton onClick={loadFilesystem}>
               <i className="codicon codicon-refresh" style={{ fontSize: 20 }} />
             </IconButton>
@@ -515,41 +517,41 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         {contextMenu?.row?.type !== 'folder' && (
           <MenuItem onClick={handlePreviewClick}>
             <i className="codicon codicon-eye" style={{ fontSize: 16, marginRight: 8 }} />
-            Open for preview
+            {t('filesystem.openPreview')}
           </MenuItem>
         )}
         {!isGuest && (
           <MenuItem onClick={handleRenameClick}>
             <i className="codicon codicon-edit" style={{ fontSize: 16, marginRight: 8 }} />
-            Rename
+            {t('common.rename')}
           </MenuItem>
         )}
         {contextMenu?.row?.type === 'folder' && !isGuest && (
           <MenuItem onClick={() => handleUploadClick(contextMenu.row)}>
             <i className="codicon codicon-cloud-upload" style={{ fontSize: 16, marginRight: 8 }} />
-            Upload to folder
+            {t('filesystem.uploadToFolder')}
           </MenuItem>
         )}
         {!isGuest && (
           <MenuItem onClick={handleDeleteClick}>
             <i className="codicon codicon-trash" style={{ fontSize: 16, marginRight: 8 }} />
-            Delete
+            {t('common.delete')}
           </MenuItem>
         )}
         <MenuItem onClick={handleManageTagsClick}>
           <i className="codicon codicon-tag" style={{ fontSize: 16, marginRight: 8 }} />
-          Manage Tags
+          {t('filesystem.manageTags')}
         </MenuItem>
       </Menu>
 
       {/* ── Rename Dialog ── */}
       <Dialog open={renameDialog.open} onClose={handleRenameCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>Rename</DialogTitle>
+        <DialogTitle>{t('filesystem.renameTitle')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="New name"
+            label={t('filesystem.renameLabel')}
             fullWidth
             value={renameDialog.newName}
             onChange={(e) => setRenameDialog({ ...renameDialog, newName: e.target.value })}
@@ -560,21 +562,21 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleRenameCancel}>Cancel</Button>
+          <Button onClick={handleRenameCancel}>{t('common.cancel')}</Button>
           <Button onClick={handleRenameSubmit} variant="contained">
-            Rename
+            {t('common.rename')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ── New Folder Dialog ── */}
       <Dialog open={newFolderDialog.open} onClose={handleNewFolderCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>New Folder</DialogTitle>
+        <DialogTitle>{t('filesystem.newFolderTitle')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Folder name"
+            label={t('filesystem.newFolderLabel')}
             fullWidth
             value={newFolderDialog.folderName}
             onChange={(e) => setNewFolderDialog({ ...newFolderDialog, folderName: e.target.value })}
@@ -585,30 +587,30 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleNewFolderCancel}>Cancel</Button>
+          <Button onClick={handleNewFolderCancel}>{t('common.cancel')}</Button>
           <Button onClick={handleNewFolderSubmit} variant="contained">
-            Create
+            {t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ── Delete Confirmation Dialog ── */}
       <Dialog open={deleteDialog.open} onClose={handleDeleteCancel}>
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>{t('filesystem.deleteTitle')}</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete &quot;{deleteDialog.row?.label}&quot;?
+            {t('filesystem.deleteMessage', { label: deleteDialog.row?.label })}
             {deleteDialog.row?.type === 'folder' && (
               <Box component="span" sx={{ display: 'block', mt: 1, color: 'error.main' }}>
-                This will delete the folder and all its contents.
+                {t('filesystem.deleteFolderWarning')}
               </Box>
             )}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button onClick={handleDeleteCancel}>{t('common.cancel')}</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
+            {t('common.delete')}
           </Button>
         </DialogActions>
       </Dialog>

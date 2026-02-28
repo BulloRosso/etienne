@@ -21,9 +21,11 @@ import {
 import { Close, Delete } from '@mui/icons-material';
 import { FcElectricalSensor } from 'react-icons/fc';
 import { FaAssistiveListeningSystems } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function MQTTSettings({ open, onClose, project }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -62,7 +64,7 @@ export default function MQTTSettings({ open, onClose, project }) {
       }
     } catch (error) {
       console.error('Failed to load broker setup:', error);
-      setError('Failed to load MQTT settings');
+      setError(t('mqttSettings.failedToLoadSettings'));
     }
   };
 
@@ -96,15 +98,15 @@ export default function MQTTSettings({ open, onClose, project }) {
       });
 
       if (response.ok) {
-        setSuccess('MQTT broker settings saved successfully');
+        setSuccess(t('mqttSettings.brokerSavedSuccessfully'));
         await loadStatus();
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to save MQTT broker settings');
+        setError(errorData.message || t('mqttSettings.failedToSaveBroker'));
       }
     } catch (error) {
       console.error('Failed to save broker setup:', error);
-      setError('Failed to save MQTT broker settings');
+      setError(t('mqttSettings.failedToSaveBroker'));
     } finally {
       setLoading(false);
     }
@@ -112,7 +114,7 @@ export default function MQTTSettings({ open, onClose, project }) {
 
   const handleSubscribe = async () => {
     if (!topic.trim()) {
-      setError('Please enter a topic name');
+      setError(t('mqttSettings.pleaseEnterTopic'));
       return;
     }
 
@@ -128,17 +130,17 @@ export default function MQTTSettings({ open, onClose, project }) {
       });
 
       if (response.ok) {
-        setSuccess(`Subscribed to topic: ${topic}`);
+        setSuccess(t('mqttSettings.subscribedToTopic', { topic }));
         setTopic('');
         await loadBrokerSetup();
         await loadStatus();
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to subscribe to topic');
+        setError(errorData.message || t('mqttSettings.failedToSubscribe'));
       }
     } catch (error) {
       console.error('Failed to subscribe:', error);
-      setError('Failed to subscribe to topic');
+      setError(t('mqttSettings.failedToSubscribe'));
     } finally {
       setLoading(false);
     }
@@ -159,16 +161,16 @@ export default function MQTTSettings({ open, onClose, project }) {
       );
 
       if (response.ok) {
-        setSuccess(`Unsubscribed from topic: ${topicToUnsubscribe}`);
+        setSuccess(t('mqttSettings.unsubscribedFromTopic', { topic: topicToUnsubscribe }));
         await loadBrokerSetup();
         await loadStatus();
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to unsubscribe from topic');
+        setError(errorData.message || t('mqttSettings.failedToUnsubscribe'));
       }
     } catch (error) {
       console.error('Failed to unsubscribe:', error);
-      setError('Failed to unsubscribe from topic');
+      setError(t('mqttSettings.failedToUnsubscribe'));
     } finally {
       setLoading(false);
     }
@@ -185,15 +187,15 @@ export default function MQTTSettings({ open, onClose, project }) {
       });
 
       if (response.ok) {
-        setSuccess('Connected to MQTT broker');
+        setSuccess(t('mqttSettings.connectedToBroker'));
         await loadStatus();
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to connect to MQTT broker');
+        setError(errorData.message || t('mqttSettings.failedToConnect'));
       }
     } catch (error) {
       console.error('Failed to connect:', error);
-      setError('Failed to connect to MQTT broker');
+      setError(t('mqttSettings.failedToConnect'));
     } finally {
       setLoading(false);
     }
@@ -206,7 +208,7 @@ export default function MQTTSettings({ open, onClose, project }) {
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <FcElectricalSensor size={24} />
-          MQTT Settings
+          {t('mqttSettings.dialogTitle')}
         </Box>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -215,8 +217,8 @@ export default function MQTTSettings({ open, onClose, project }) {
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
         <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
-          <Tab label="Server" />
-          <Tab label="Subscribe" />
+          <Tab label={t('mqttSettings.tabServer')} />
+          <Tab label={t('mqttSettings.tabSubscribe')} />
         </Tabs>
       </Box>
 
@@ -235,10 +237,10 @@ export default function MQTTSettings({ open, onClose, project }) {
 
         <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            Status:
+            {t('mqttSettings.statusLabel')}
           </Typography>
           <Chip
-            label={status.connected ? 'Connected' : 'Disconnected'}
+            label={status.connected ? t('mqttSettings.statusConnected') : t('mqttSettings.statusDisconnected')}
             color={status.connected ? 'success' : 'default'}
             size="small"
           />
@@ -247,50 +249,50 @@ export default function MQTTSettings({ open, onClose, project }) {
         {activeTab === 0 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Configure your MQTT broker connection. Default is HiveMQ public broker.
+              {t('mqttSettings.brokerDescription')}
             </Typography>
 
             <TextField
-              label="Host"
+              label={t('mqttSettings.hostLabel')}
               fullWidth
               value={host}
               onChange={(e) => setHost(e.target.value)}
-              helperText="MQTT broker hostname or IP address"
+              helperText={t('mqttSettings.hostHelper')}
             />
 
             <TextField
-              label="Port"
+              label={t('mqttSettings.portLabel')}
               type="number"
               fullWidth
               value={port}
               onChange={(e) => setPort(e.target.value)}
-              helperText="MQTT broker port (default: 1883)"
+              helperText={t('mqttSettings.portHelper')}
             />
 
             <TextField
-              label="Username"
+              label={t('mqttSettings.usernameLabel')}
               fullWidth
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              helperText="Optional: Username for authentication"
+              helperText={t('mqttSettings.usernameHelper')}
             />
 
             <TextField
-              label="Password"
+              label={t('mqttSettings.passwordLabel')}
               type="password"
               fullWidth
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              helperText="Optional: Password for authentication"
+              helperText={t('mqttSettings.passwordHelper')}
             />
 
             <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
               <Button variant="contained" onClick={handleSaveBroker} disabled={loading}>
-                {loading ? 'Saving...' : 'Save Settings'}
+                {loading ? t('common.saving') : t('mqttSettings.saveSettings')}
               </Button>
               {!status.connected && (
                 <Button variant="outlined" onClick={handleConnect} disabled={loading}>
-                  Connect
+                  {t('common.connect')}
                 </Button>
               )}
             </Box>
@@ -300,17 +302,16 @@ export default function MQTTSettings({ open, onClose, project }) {
         {activeTab === 1 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Subscribe to MQTT topics to receive events. Use wildcards: + (single level) or #
-              (multi-level).
+              {t('mqttSettings.subscribeDescription')}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <TextField
-                label="Topic"
+                label={t('mqttSettings.topicLabel')}
                 fullWidth
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                helperText="e.g., sensors/temperature or devices/+/status"
+                helperText={t('mqttSettings.topicHelper')}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !isSubscribed) {
                     handleSubscribe();
@@ -334,14 +335,14 @@ export default function MQTTSettings({ open, onClose, project }) {
             {subscriptions.length > 0 && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                  Active Subscriptions
+                  {t('mqttSettings.activeSubscriptions')}
                 </Typography>
                 <List sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
                   {subscriptions.map((sub, index) => (
                     <ListItem key={index} divider={index < subscriptions.length - 1}>
                       <ListItemText
                         primary={sub}
-                        secondary={`Recording events to: external-events/mqtt-${sub.replace(/\//g, '-')}.json`}
+                        secondary={t('mqttSettings.recordingEvents', { topic: sub.replace(/\//g, '-') })}
                       />
                       <ListItemSecondaryAction>
                         <IconButton
@@ -371,7 +372,7 @@ export default function MQTTSettings({ open, onClose, project }) {
                 }}
               >
                 <Typography variant="body2" color="text.secondary">
-                  No active subscriptions. Enter a topic above to start listening.
+                  {t('mqttSettings.noActiveSubscriptions')}
                 </Typography>
               </Box>
             )}
@@ -380,7 +381,7 @@ export default function MQTTSettings({ open, onClose, project }) {
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('common.close')}</Button>
       </DialogActions>
     </Dialog>
   );

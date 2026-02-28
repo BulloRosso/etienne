@@ -3,6 +3,7 @@ import { Box, CircularProgress, Typography, Paper, Dialog, DialogTitle, DialogCo
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { ToolCallMessage } from './StructuredMessage';
+import { useTranslation } from 'react-i18next';
 import { apiFetch, authSSEUrl } from '../services/api';
 
 /**
@@ -17,6 +18,7 @@ import { apiFetch, authSSEUrl } from '../services/api';
  * @param {string} projectName - Current project name
  */
 export default function ResearchDocument({ input, output, projectName }) {
+  const { t } = useTranslation();
   const [fileExists, setFileExists] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -516,20 +518,20 @@ export default function ResearchDocument({ input, output, projectName }) {
         >
           <CircularProgress size={48} sx={{ mb: 2 }} />
           <Typography variant="h5" gutterBottom>
-            Research for {inputFilename} in Progress
+            {t('researchDocument.inProgress', { filename: inputFilename })}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Analyzing sources and generating comprehensive report...
+            {t('researchDocument.analyzingSources')}
           </Typography>
         </Paper>
 
         {/* Event Stream */}
         <Box>
           <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Research Progress
+            {t('researchDocument.researchProgress')}
             {startTime && (
               <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 2, fontWeight: 'normal' }}>
-                (running for {formatElapsedTime(elapsedTime)})
+                ({t('researchDocument.runningFor', { time: formatElapsedTime(elapsedTime) })})
               </Typography>
             )}
           </Typography>
@@ -537,7 +539,7 @@ export default function ResearchDocument({ input, output, projectName }) {
           {events.length === 0 && (
             <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                Waiting for research to begin...
+                {t('researchDocument.waitingToBegin')}
               </Typography>
             </Paper>
           )}
@@ -555,10 +557,10 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.created' && (
                 <Box>
                   <Typography variant="subtitle2" color="primary" gutterBottom>
-                    🔬 Research Initialized
+                    {t('researchDocument.initialized')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Session: {event.sessionId}
+                    {t('researchDocument.session')}: {event.sessionId}
                   </Typography>
                 </Box>
               )}
@@ -566,13 +568,13 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.started' && (
                 <Box>
                   <Typography variant="subtitle2" color="primary" gutterBottom>
-                    ▶️ Research Started
+                    {t('researchDocument.started')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Session: {event.sessionId}
+                    {t('researchDocument.session')}: {event.sessionId}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Output: {event.outputFile}
+                    {t('researchDocument.output')}: {event.outputFile}
                   </Typography>
                 </Box>
               )}
@@ -580,7 +582,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.in_progress' && (
                 <Box>
                   <Typography variant="subtitle2" color="info.main" gutterBottom>
-                    ⚡ Research In Progress
+                    {t('researchDocument.researchInProgress')}
                   </Typography>
                 </Box>
               )}
@@ -588,16 +590,16 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.web_search.in_progress' && (
                 <Box>
                   <Typography variant="subtitle2" color="primary" gutterBottom>
-                    🔍 Initiating Web Search...
+                    {t('researchDocument.initiatingWebSearch')}
                   </Typography>
                   {event.query && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                      <strong>Query:</strong> {event.query}
+                      <strong>{t('researchDocument.query')}:</strong> {event.query}
                     </Typography>
                   )}
                   {event.search_type && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                      <strong>Type:</strong> {event.search_type}
+                      <strong>{t('researchDocument.type')}:</strong> {event.search_type}
                     </Typography>
                   )}
                 </Box>
@@ -606,16 +608,16 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.web_search.searching' && (
                 <Box>
                   <Typography variant="subtitle2" color="primary" gutterBottom>
-                    🌐 Searching the Web...
+                    {t('researchDocument.searchingWeb')}
                   </Typography>
                   {event.query && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                      <strong>Query:</strong> {event.query}
+                      <strong>{t('researchDocument.query')}:</strong> {event.query}
                     </Typography>
                   )}
                   {event.status && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                      <strong>Status:</strong> {event.status}
+                      <strong>{t('researchDocument.status')}:</strong> {event.status}
                     </Typography>
                   )}
                 </Box>
@@ -624,22 +626,22 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.web_search.completed' && (
                 <Box>
                   <Typography variant="subtitle2" color="success.main" gutterBottom>
-                    ✓ Web Search Completed
+                    {t('researchDocument.webSearchCompleted')}
                   </Typography>
                   {event.query && (
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic', mb: 0.5 }}>
-                      <strong>Query:</strong> {event.query}
+                      <strong>{t('researchDocument.query')}:</strong> {event.query}
                     </Typography>
                   )}
                   {event.result_count !== undefined && (
                     <Typography variant="body2" color="success.main" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
-                      <strong>Results Found:</strong> {event.result_count}
+                      <strong>{t('researchDocument.resultsFound')}:</strong> {event.result_count}
                     </Typography>
                   )}
                   {event.results && event.results.length > 0 && (
                     <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
                       <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold', mb: 0.5 }}>
-                        Top Results:
+                        {t('researchDocument.topResults')}:
                       </Typography>
                       {event.results.slice(0, 3).map((result, idx) => (
                         <Box key={idx} sx={{ mb: 1 }}>
@@ -666,18 +668,18 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.output_item.added' && (
                 <Box>
                   <Typography variant="subtitle2" color="info.main" gutterBottom>
-                    {event.item_type === 'reasoning' ? '🤔' : '🧠'} Processing Output Item ({event.item_type || 'unknown'})
+                    {event.item_type === 'reasoning' ? '🤔' : '🧠'} {t('researchDocument.processingOutputItem', { type: event.item_type || 'unknown' })}
                   </Typography>
                   {event.reasoning && (
                     <Box sx={{ mt: 1, p: 1.5, backgroundColor: '#fff3e0', borderRadius: 1, borderLeft: '3px solid #ff9800' }}>
                       {event.reasoning.question && (
                         <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 'bold', mb: 0.5 }}>
-                          <strong>Question:</strong> {event.reasoning.question}
+                          <strong>{t('researchDocument.question')}:</strong> {event.reasoning.question}
                         </Typography>
                       )}
                       {event.reasoning.summary && (
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                          <strong>Summary:</strong> {event.reasoning.summary}
+                          <strong>{t('researchDocument.summary')}:</strong> {event.reasoning.summary}
                         </Typography>
                       )}
                     </Box>
@@ -693,7 +695,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.output_item.done' && (
                 <Box>
                   <Typography variant="subtitle2" color="success.main" gutterBottom>
-                    ✓ Output Item Completed ({event.item_type || 'unknown'})
+                    {t('researchDocument.outputItemCompleted', { type: event.item_type || 'unknown' })}
                   </Typography>
 
                   {/* Web search information */}
@@ -701,12 +703,12 @@ export default function ResearchDocument({ input, output, projectName }) {
                     <Box sx={{ mt: 1, p: 1.5, backgroundColor: '#e3f2fd', borderRadius: 1, borderLeft: '3px solid #2196f3' }}>
                       {event.web_search.query && (
                         <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 'bold', mb: 0.5 }}>
-                          <strong>Search Query:</strong> {event.web_search.query}
+                          <strong>{t('researchDocument.searchQuery')}:</strong> {event.web_search.query}
                         </Typography>
                       )}
                       {event.web_search.action_type && (
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                          <strong>Action:</strong> {event.web_search.action_type}
+                          <strong>{t('researchDocument.action')}:</strong> {event.web_search.action_type}
                         </Typography>
                       )}
                       {event.web_search.url && (
@@ -716,7 +718,7 @@ export default function ResearchDocument({ input, output, projectName }) {
                       )}
                       {event.web_search.results && event.web_search.results.length > 0 && (
                         <Typography variant="body2" color="success.main" sx={{ fontSize: '0.8rem', mt: 0.5 }}>
-                          <strong>Results:</strong> {event.web_search.results.length}
+                          <strong>{t('researchDocument.results')}:</strong> {event.web_search.results.length}
                         </Typography>
                       )}
                     </Box>
@@ -727,12 +729,12 @@ export default function ResearchDocument({ input, output, projectName }) {
                     <Box sx={{ mt: 1, p: 1.5, backgroundColor: '#e8f5e9', borderRadius: 1, borderLeft: '3px solid #4caf50' }}>
                       {event.reasoning.question && (
                         <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 'bold', mb: 0.5 }}>
-                          <strong>Question:</strong> {event.reasoning.question}
+                          <strong>{t('researchDocument.question')}:</strong> {event.reasoning.question}
                         </Typography>
                       )}
                       {event.reasoning.summary && (
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                          <strong>Summary:</strong> {event.reasoning.summary}
+                          <strong>{t('researchDocument.summary')}:</strong> {event.reasoning.summary}
                         </Typography>
                       )}
                     </Box>
@@ -756,7 +758,7 @@ export default function ResearchDocument({ input, output, projectName }) {
                       }}
                     >
                       <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 'bold', mb: 0.5 }}>
-                        {event.item_type === 'reasoning' ? 'Reasoning Content:' : 'Content:'}
+                        {event.item_type === 'reasoning' ? t('researchDocument.reasoningContent') : t('researchDocument.content')}
                       </Typography>
                       {event.full_content}
                     </Box>
@@ -774,7 +776,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.content_part.added' && (
                 <Box>
                   <Typography variant="subtitle2" color="info.main" gutterBottom>
-                    📝 Generating Content Part...
+                    {t('researchDocument.generatingContentPart')}
                   </Typography>
                 </Box>
               )}
@@ -782,7 +784,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.content_part.done' && (
                 <Box>
                   <Typography variant="subtitle2" color="success.main" gutterBottom>
-                    ✓ Content Part Completed
+                    {t('researchDocument.contentPartCompleted')}
                   </Typography>
                 </Box>
               )}
@@ -790,7 +792,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.output_text.delta' && (
                 <Box>
                   <Typography variant="subtitle2" color="primary" gutterBottom>
-                    📝 Generating Content
+                    {t('researchDocument.generatingContent')}
                   </Typography>
                   <Box
                     sx={{
@@ -815,7 +817,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.reasoning.delta' && (
                 <Box>
                   <Typography variant="subtitle2" color="warning.main" gutterBottom>
-                    🤔 Reasoning in Progress
+                    {t('researchDocument.reasoningInProgress')}
                   </Typography>
                   <Box
                     sx={{
@@ -840,7 +842,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.output_text.done' && (
                 <Box>
                   <Typography variant="subtitle2" color="success.main">
-                    ✓ Content Section Completed
+                    {t('researchDocument.contentSectionCompleted')}
                   </Typography>
                 </Box>
               )}
@@ -848,11 +850,11 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.completed' && (
                 <Box>
                   <Typography variant="subtitle2" color="success.main" gutterBottom>
-                    ✓ Research Completed
+                    {t('researchDocument.researchCompleted')}
                   </Typography>
                   {event.citations && event.citations.length > 0 && (
                     <Typography variant="body2" color="text.secondary">
-                      {event.citations.length} citation(s) found
+                      {t('researchDocument.citationsFound', { count: event.citations.length })}
                     </Typography>
                   )}
                 </Box>
@@ -861,7 +863,7 @@ export default function ResearchDocument({ input, output, projectName }) {
               {event.type === 'Research.error' && (
                 <Box>
                   <Typography variant="subtitle2" color="error" gutterBottom>
-                    Error
+                    {t('common.error')}
                   </Typography>
                   <Typography variant="body2" color="error">
                     {event.error}
@@ -874,7 +876,7 @@ export default function ResearchDocument({ input, output, projectName }) {
           {error && (
             <Paper elevation={2} sx={{ p: 2, backgroundColor: '#ffebee', mt: 2 }}>
               <Typography color="error" variant="subtitle2" gutterBottom>
-                Research Failed
+                {t('researchDocument.researchFailed')}
               </Typography>
               <Typography variant="body2" color="error">
                 {error}
@@ -903,7 +905,7 @@ export default function ResearchDocument({ input, output, projectName }) {
   if (error) {
     return (
       <Box p={2} color="error.main">
-        Error loading research results: {error}
+        {t('researchDocument.errorLoadingResults')}: {error}
       </Box>
     );
   }
@@ -1007,7 +1009,7 @@ export default function ResearchDocument({ input, output, projectName }) {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Validate or show content?</DialogTitle>
+        <DialogTitle>{t('researchDocument.validateOrShow')}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
             {clickedLink ? decodeURIComponent(clickedLink) : ''}
@@ -1015,10 +1017,10 @@ export default function ResearchDocument({ input, output, projectName }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleValidate} variant="contained" color="primary">
-            Validate
+            {t('researchDocument.validate')}
           </Button>
           <Button onClick={handleShowInTab} variant="outlined">
-            Show in new browser tab
+            {t('researchDocument.showInNewTab')}
           </Button>
         </DialogActions>
       </Dialog>

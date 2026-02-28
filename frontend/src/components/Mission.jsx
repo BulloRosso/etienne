@@ -4,8 +4,10 @@ import { Save } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import { apiAxios } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 
 export default function Mission({ projectName }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,7 @@ export default function Mission({ projectName }) {
       });
       setContent(response.data.content || '');
     } catch (err) {
-      setError('Failed to load mission');
+      setError(t('mission.errorLoadFailed'));
       console.error('Load mission error:', err);
     } finally {
       setLoading(false);
@@ -45,7 +47,7 @@ export default function Mission({ projectName }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError('Failed to save mission');
+      setError(t('mission.errorSaveFailed'));
       console.error('Save mission error:', err);
     } finally {
       setSaving(false);
@@ -69,18 +71,18 @@ export default function Mission({ projectName }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          Mission saved successfully
+          {t('mission.successSaved')}
         </Alert>
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <img
           src="/project-wizard-step-2.png"
-          alt="Mission Brief"
+          alt={t('mission.altImage')}
           style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain', borderRadius: 4 }}
         />
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          The mission brief guides your AI assistant's behavior. A detailed description ensures better, more focused results aligned with your objectives.
+          {t('mission.description')}
         </Typography>
       </Box>
 
@@ -109,7 +111,7 @@ export default function Mission({ projectName }) {
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? t('common.saving') : t('common.save')}
         </Button>
       </Box>
     </Box>

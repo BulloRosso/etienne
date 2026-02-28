@@ -13,9 +13,11 @@ import {
 import { Close } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function CreateFromTextDialog({ open, onClose, projectName, graphName = 'default', onCreated }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,15 +76,14 @@ export default function CreateFromTextDialog({ open, onClose, projectName, graph
       }}
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Create Scrapbook from Text
+        {t('createFromText.title')}
         <IconButton onClick={handleClose} size="small" disabled={loading}>
           <Close />
         </IconButton>
       </DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          Paste or type text below. The content will be analyzed to extract topics, categories, and items
-          which will be organized into a mindmap structure.
+          {t('createFromText.description')}
         </Typography>
 
         <Box sx={{ height: 350, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
@@ -115,7 +116,7 @@ export default function CreateFromTextDialog({ open, onClose, projectName, graph
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={handleClose} disabled={loading}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           onClick={handleCreate}
@@ -123,7 +124,7 @@ export default function CreateFromTextDialog({ open, onClose, projectName, graph
           disabled={loading || !text.trim()}
           startIcon={loading && <CircularProgress size={16} color="inherit" />}
         >
-          {loading ? 'Creating...' : 'Create'}
+          {loading ? t('createFromText.creating') : t('common.create')}
         </Button>
       </DialogActions>
     </Dialog>

@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { BiMessageEdit } from 'react-icons/bi';
 import { IoMdNotificationsOutline, IoMdNotificationsOff } from 'react-icons/io';
+import { useTranslation } from 'react-i18next';
 
 const RulesTab = ({
   rules,
@@ -39,12 +40,13 @@ const RulesTab = ({
   selectedRuleForMenu,
   setSelectedRuleForMenu
 }) => {
+  const { t } = useTranslation();
   return (
     <Box>
       {rules.length > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="body2" sx={{ marginLeft: '20px' }} color="text.secondary">
-            Manage condition monitoring rules
+            {t('rulesTab.manageRules')}
           </Typography>
           <Button
             variant="outlined"
@@ -52,7 +54,7 @@ const RulesTab = ({
             onClick={() => onOpenRuleDialog()}
             sx={{ textTransform: 'none' }}
           >
-            New Rule
+            {t('rulesTab.newRule')}
           </Button>
         </Box>
       )}
@@ -61,10 +63,10 @@ const RulesTab = ({
         <Box sx={{ py: 6, textAlign: 'center' }}>
           <IoMdNotificationsOff style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            No rules configured
+            {t('rulesTab.noRulesConfigured')}
           </Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-            Create your first rule to start monitoring conditions
+            {t('rulesTab.createFirstRuleHint')}
           </Typography>
           <Button
             variant="outlined"
@@ -73,7 +75,7 @@ const RulesTab = ({
             onClick={() => onOpenRuleDialog()}
             sx={{ textTransform: 'none' }}
           >
-            Create First Rule
+            {t('rulesTab.createFirstRule')}
           </Button>
         </Box>
       ) : (
@@ -83,10 +85,10 @@ const RulesTab = ({
               <TableHead>
                 <TableRow sx={{ bgcolor: 'background.paper' }}>
                   <TableCell sx={{ width: 50 }}></TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Event Group</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnName')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnType')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnEventGroup')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnAction')}</TableCell>
                   <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}></TableCell>
                 </TableRow>
               </TableHead>
@@ -186,7 +188,7 @@ const RulesTab = ({
               }}
             >
               {selectedRuleForMenu?.enabled ? <PauseIcon fontSize="small" sx={{ mr: 1 }} /> : <PlayIcon fontSize="small" sx={{ mr: 1 }} />}
-              {selectedRuleForMenu?.enabled ? 'Disable' : 'Enable'}
+              {selectedRuleForMenu?.enabled ? t('common.disable') : t('common.enable')}
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -196,7 +198,7 @@ const RulesTab = ({
               }}
             >
               <EditIcon fontSize="small" sx={{ mr: 1 }} />
-              Edit
+              {t('common.edit')}
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -207,7 +209,7 @@ const RulesTab = ({
               sx={{ color: 'error.main' }}
             >
               <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-              Delete
+              {t('common.delete')}
             </MenuItem>
           </Menu>
         </>

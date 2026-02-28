@@ -10,8 +10,10 @@ import {
   Stack,
   Alert
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 const ExamplesTab = () => {
+  const { t } = useTranslation();
   return (
     <Box>
       <Stack spacing={3}>
@@ -19,15 +21,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label="Simple" color="primary" size="small" />
-              Simple Condition
+              <Chip label={t('examplesTab.simpleChip')} color="primary" size="small" />
+              {t('examplesTab.simpleCondition')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Use simple conditions for exact matching of event properties. Perfect for straightforward triggers like "when a Python file is created" or "when a specific MQTT topic receives a message".
+              {t('examplesTab.simpleDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              Example: Monitor Python file creation
+              {t('examplesTab.simpleExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -40,7 +42,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              Simple conditions support wildcard matching with * in string values
+              {t('examplesTab.simpleAlert')}
             </Alert>
           </CardContent>
         </Card>
@@ -49,15 +51,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label="Semantic" color="secondary" size="small" />
-              Semantic Condition
+              <Chip label={t('examplesTab.semanticChip')} color="secondary" size="small" />
+              {t('examplesTab.semanticCondition')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Use semantic conditions for AI-powered similarity matching. Great for finding related content or detecting semantically similar events even when exact wording differs.
+              {t('examplesTab.semanticDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              Example: Find authentication-related code changes
+              {t('examplesTab.semanticExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -74,7 +76,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              Semantic matching uses vector embeddings with a default threshold of 0.86
+              {t('examplesTab.semanticAlert')}
             </Alert>
           </CardContent>
         </Card>
@@ -83,15 +85,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label="Compound" color="warning" size="small" />
-              Compound Condition
+              <Chip label={t('examplesTab.compoundChip')} color="warning" size="small" />
+              {t('examplesTab.compoundCondition')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Use compound conditions to combine multiple conditions with logical operators (AND, OR, NOT). Ideal for complex scenarios requiring multiple criteria.
+              {t('examplesTab.compoundDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              Example: Monitor test file changes AND config changes
+              {t('examplesTab.compoundExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -111,7 +113,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              Compound conditions support AND, OR, and NOT operators with optional time windows (in milliseconds)
+              {t('examplesTab.compoundAlert')}
             </Alert>
           </CardContent>
         </Card>
@@ -120,15 +122,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label="Temporal" color="success" size="small" />
-              Temporal Constraint
+              <Chip label={t('examplesTab.temporalChip')} color="success" size="small" />
+              {t('examplesTab.temporalConstraint')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Use temporal constraints to filter events by time of day or day of week. Perfect for business hours monitoring or scheduled maintenance windows.
+              {t('examplesTab.temporalDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              Example: Monitor during business hours only
+              {t('examplesTab.temporalExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -141,7 +143,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              Day of week: 0=Sunday, 1=Monday, ..., 6=Saturday. Times use 24-hour format (HH:MM)
+              {t('examplesTab.temporalAlert')}
             </Alert>
           </CardContent>
         </Card>

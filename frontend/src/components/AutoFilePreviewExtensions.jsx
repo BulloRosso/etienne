@@ -12,6 +12,7 @@ import {
   Paper,
 } from '@mui/material';
 import { TbPlus } from 'react-icons/tb';
+import { useTranslation } from 'react-i18next';
 
 const DISABLED_VIEWER = 'none';
 
@@ -20,6 +21,7 @@ export default function AutoFilePreviewExtensions({
   onChange,
   registeredPreviewers = [],
 }) {
+  const { t } = useTranslation();
   const [newExtension, setNewExtension] = useState('');
   const [newViewer, setNewViewer] = useState('');
 
@@ -148,11 +150,10 @@ export default function AutoFilePreviewExtensions({
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        Auto-Preview File Extensions
+        {t('autoFilePreview.title')}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Map file extensions to preview viewers. System defaults are shown below.
-        Click a chip to edit it, or delete it to disable that extension for this project.
+        {t('autoFilePreview.description')}
       </Typography>
 
       {/* Current mappings */}
@@ -183,7 +184,7 @@ export default function AutoFilePreviewExtensions({
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <TextField
             size="small"
-            label="Extension"
+            label={t('autoFilePreview.extension')}
             value={newExtension}
             onChange={(e) => setNewExtension(e.target.value.toLowerCase())}
             onKeyDown={handleKeyDown}
@@ -191,7 +192,7 @@ export default function AutoFilePreviewExtensions({
             sx={{ width: 150 }}
           />
           <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Viewer</InputLabel>
+            <InputLabel>{t('autoFilePreview.viewer')}</InputLabel>
             <Select
               value={newViewer}
               onChange={(e) => setNewViewer(e.target.value)}
@@ -209,7 +210,7 @@ export default function AutoFilePreviewExtensions({
             onClick={handleAdd}
             disabled={!newExtension || !newViewer}
           >
-            Add
+            {t('common.add')}
           </Button>
         </Box>
       </Paper>

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Box, Drawer, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { PiChatsThin } from 'react-icons/pi';
+import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
 export default function SessionPane({ open, onClose, projectName, onSessionSelect }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,13 +38,13 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
       if (data.success) {
         setSessions(data.sessions || []);
       } else {
-        setError(data.error || 'Failed to load sessions');
+        setError(data.error || t('sessionPane.errorLoadFailed'));
       }
     } catch (err) {
       if (err.name === 'AbortError') {
-        setError('Request timed out. Session loading took too long.');
+        setError(t('sessionPane.errorTimeout'));
       } else {
-        setError(err.message || 'Failed to load sessions');
+        setError(err.message || t('sessionPane.errorLoadFailed'));
       }
     } finally {
       setLoading(false);
@@ -63,10 +65,10 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
 
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      if (diffMins < 1) return t('sessionPane.justNow');
+      if (diffMins < 60) return t('sessionPane.minutesAgo', { count: diffMins });
+      if (diffHours < 24) return t('sessionPane.hoursAgo', { count: diffHours });
+      if (diffDays < 7) return t('sessionPane.daysAgo', { count: diffDays });
 
       return date.toLocaleDateString();
     } catch {
@@ -95,7 +97,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
           p: 2,
           borderBottom: '1px solid #e0e0e0'
         }}>
-          <Typography variant="h6">Recent Sessions</Typography>
+          <Typography variant="h6">{t('sessionPane.title')}</Typography>
           <IconButton onClick={onClose} size="small">
             <IoClose size={20} />
           </IconButton>
@@ -118,7 +120,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
           {!loading && !error && sessions.length === 0 && (
             <Box sx={{ p: 2 }}>
               <Typography variant="body2" color="text.secondary">
-                No previous sessions found.
+                {t('sessionPane.emptyState')}
               </Typography>
             </Box>
           )}
@@ -144,7 +146,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                   <ListItemText
                     primary={
                       <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                        {session.summary || 'No summary available'}
+                        {session.summary || t('sessionPane.noSummary')}
                       </Typography>
                     }
                     secondary={

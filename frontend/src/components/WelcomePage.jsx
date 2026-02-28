@@ -6,8 +6,10 @@ import { apiFetch } from '../services/api';
 import { SlMicrophone } from 'react-icons/sl';
 import { GoArrowUp, GoPlus, GoX } from 'react-icons/go';
 import { PiChats, PiFile, PiFileText, PiFilePdf, PiImage } from 'react-icons/pi';
+import { useTranslation } from 'react-i18next';
 
 const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -58,7 +60,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
 
           if (uploadedFiles.length > 0) {
             const fileList = uploadedFiles.join(', ');
-            const appendText = `Please have a look at ${fileList} in the .attachments folder. I want to `;
+            const appendText = t('welcome.fileUploadAppend', { fileList });
             finalMessage = finalMessage ? `${finalMessage}\n\n${appendText}` : appendText;
           }
         } catch (error) {
@@ -131,7 +133,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
 
   const toggleSpeechRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in this browser');
+      alert(t('welcome.speechNotSupported'));
       return;
     }
 
@@ -223,7 +225,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
             <PiChats size={20} />
           </IconButton>
           <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-            Previous Conversations / Settings
+            {t('welcome.previousConversations')}
           </Typography>
         </Box>
       )}
@@ -235,7 +237,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
           align="center"
           sx={{ mb: 2, fontWeight: 500 }}
         >
-          Good {getTimeOfDay()}, User
+          {getTimeOfDay() === 'morning' ? t('welcome.greetingMorning') : getTimeOfDay() === 'afternoon' ? t('welcome.greetingAfternoon') : t('welcome.greetingEvening')}
         </Typography>
 
         {/* Welcome Message */}
@@ -278,7 +280,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
                 handleSend();
               }
             }}
-            placeholder="Please describe as precise as possible what we want to achieve in our session. This is essential for me to give high-quality responses!"
+            placeholder={t('welcome.inputPlaceholder')}
             variant="outlined"
             size="small"
           />
@@ -304,7 +306,7 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
         {selectedFiles.length > 0 && (
           <Box sx={{ mb: 2 }}>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected
+              {t('welcome.filesSelected', { count: selectedFiles.length })}
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {selectedFiles.map((file, index) => (

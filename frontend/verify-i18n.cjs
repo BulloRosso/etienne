@@ -1,0 +1,11 @@
+const en = require('./public/i18n/en.json');
+const zh = require('./public/i18n/zh.json');
+const enKeys = Object.keys(en);
+const zhKeys = Object.keys(zh);
+console.log('English keys:', enKeys.length);
+console.log('Chinese keys:', zhKeys.length);
+const missing = enKeys.filter(k => !(k in zh));
+const extra = zhKeys.filter(k => !(k in en));
+if (missing.length) console.log('Missing in zh:', missing);
+if (extra.length) console.log('Extra in zh:', extra);
+if (missing.length === 0 && extra.length === 0) console.log('All keys match!');

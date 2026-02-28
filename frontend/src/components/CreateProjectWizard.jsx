@@ -27,55 +27,57 @@ import SkillsSelector from './SkillsSelector';
 import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
 import AutoFilePreviewExtensions from './AutoFilePreviewExtensions';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
-const WIZARD_STEPS = [
+const getWizardSteps = (t) => [
   {
-    label: 'Project Name',
+    label: t('wizard.stepProjectName'),
     image: '/project-wizard-step-1.png',
-    benefitTitle: 'Give your project a unique identity',
-    benefitDescription: 'A clear project name helps you organize your work and quickly find what you need. Choose a name that reflects the project\'s purpose.'
+    benefitTitle: t('wizard.benefitTitleStep1'),
+    benefitDescription: t('wizard.benefitDescStep1')
   },
   {
-    label: 'Mission Brief',
+    label: t('wizard.stepMissionBrief'),
     image: '/project-wizard-step-2.png',
-    benefitTitle: 'Define your project\'s goals',
-    benefitDescription: 'The mission brief guides your AI assistant\'s behavior. A detailed description ensures better, more focused results aligned with your objectives.'
+    benefitTitle: t('wizard.benefitTitleStep2'),
+    benefitDescription: t('wizard.benefitDescStep2')
   },
   {
-    label: 'Agent Role',
+    label: t('wizard.stepAgentRole'),
     image: '/project-wizard-step-3.png',
-    benefitTitle: 'Choose your AI assistant\'s expertise',
-    benefitDescription: 'Select a predefined role that matches your project\'s needs, or create a custom role definition. The agent role determines the assistant\'s personality, knowledge focus, and working style.'
+    benefitTitle: t('wizard.benefitTitleStep3'),
+    benefitDescription: t('wizard.benefitDescStep3')
   },
   {
-    label: 'Skills',
+    label: t('wizard.stepSkills'),
     image: '/project-wizard-step-4.png',
-    benefitTitle: 'Equip your project with capabilities',
-    benefitDescription: 'Skills are pre-built behaviors that enhance your AI assistant. Standard skills are included automatically. Add optional skills to extend functionality.'
+    benefitTitle: t('wizard.benefitTitleStep4'),
+    benefitDescription: t('wizard.benefitDescStep4')
   },
   {
-    label: 'Tools',
+    label: t('wizard.stepTools'),
     image: '/project-wizard-step-5.png',
-    benefitTitle: 'Connect to external services',
-    benefitDescription: 'MCP tools let your AI assistant interact with external systems and APIs. Add pre-approved tools from the registry or connect to custom servers.'
+    benefitTitle: t('wizard.benefitTitleStep5'),
+    benefitDescription: t('wizard.benefitDescStep5')
   },
   {
-    label: 'External Agents',
+    label: t('wizard.stepExternalAgents'),
     image: '/project-wizard-step-6.png',
-    benefitTitle: 'Collaborate with specialized agents',
-    benefitDescription: 'External A2A agents bring specialized expertise to your project. Select agents that complement your project\'s goals for enhanced capabilities.'
+    benefitTitle: t('wizard.benefitTitleStep6'),
+    benefitDescription: t('wizard.benefitDescStep6')
   },
   {
-    label: 'Customize UI',
+    label: t('wizard.stepCustomizeUI'),
     image: '/project-wizard-step-7.png',
-    benefitTitle: 'Personalize your workspace',
-    benefitDescription: 'Start with a familiar look by copying UI settings from an existing project, or begin fresh with the default configuration.'
+    benefitTitle: t('wizard.benefitTitleStep7'),
+    benefitDescription: t('wizard.benefitDescStep7')
   }
 ];
 
 export default function CreateProjectWizard({ open, onClose, onProjectCreated, existingProjects = [] }) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const [activeStep, setActiveStep] = useState(0);
@@ -218,11 +220,13 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     }
   };
 
+  const WIZARD_STEPS = getWizardSteps(t);
+
   const validateProjectName = (name) => {
-    if (!name) return 'Project name is required';
-    if (!/^[a-z0-9-]+$/.test(name)) return 'Only lowercase letters, numbers, and hyphens allowed';
-    if (name.length > 30) return 'Maximum 30 characters';
-    if (existingProjects.includes(name)) return 'Project already exists';
+    if (!name) return t('wizard.validationRequired');
+    if (!/^[a-z0-9-]+$/.test(name)) return t('wizard.validationFormat');
+    if (name.length > 30) return t('wizard.validationMaxLength');
+    if (existingProjects.includes(name)) return t('wizard.validationDuplicate');
     return null;
   };
 
@@ -290,10 +294,10 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       if (response.data.success) {
         onProjectCreated(projectName, response.data.guidanceDocuments);
       } else {
-        setError(response.data.errors?.[0] || 'Failed to create project');
+        setError(response.data.errors?.[0] || t('wizard.errorCreateDefault'));
       }
     } catch (error) {
-      setError(error.response?.data?.message || error.message || 'Failed to create project');
+      setError(error.response?.data?.message || error.message || t('wizard.errorCreateDefault'));
     } finally {
       setCreating(false);
     }
@@ -308,7 +312,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
             <TextField
               autoFocus
               fullWidth
-              label="Project Name"
+              label={t('wizard.projectNameLabel')}
               value={projectName}
               onChange={(e) => {
                 const value = e.target.value.toLowerCase();
@@ -317,7 +321,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 }
               }}
               error={!!nameError}
-              helperText={nameError || 'Only lowercase letters, numbers, and hyphens (max 30 characters)'}
+              helperText={nameError || t('wizard.projectNameHelperText')}
             />
           </Box>
         );
@@ -353,8 +357,8 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 value={roleType}
                 onChange={(e) => setRoleType(e.target.value)}
               >
-                <FormControlLabel value="registry" control={<Radio />} label="Select from registry" />
-                <FormControlLabel value="custom" control={<Radio />} label="Define custom role" />
+                <FormControlLabel value="registry" control={<Radio />} label={t('wizard.roleSelectFromRegistry')} />
+                <FormControlLabel value="custom" control={<Radio />} label={t('wizard.roleDefineCustom')} />
               </RadioGroup>
             </FormControl>
 
@@ -365,14 +369,14 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 ) : (
                   <>
                     <FormControl fullWidth sx={{ mb: 2 }}>
-                      <InputLabel>Agent Role</InputLabel>
+                      <InputLabel>{t('wizard.roleLabel')}</InputLabel>
                       <Select
                         value={selectedRoleId}
                         onChange={(e) => setSelectedRoleId(e.target.value)}
-                        label="Agent Role"
+                        label={t('wizard.roleLabel')}
                       >
                         <MenuItem value="">
-                          <em>None (skip role selection)</em>
+                          <em>{t('wizard.roleNoneOption')}</em>
                         </MenuItem>
                         {availableRoles.map(role => (
                           <MenuItem key={role.id} value={role.id}>
@@ -460,13 +464,13 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           <Box sx={{ mt: 2 }}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                Agent Name (displayed in the app bar):
+                {t('wizard.agentNameDescription')}
               </Typography>
               <TextField
                 fullWidth
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
-                placeholder="Enter agent name..."
+                placeholder={t('wizard.agentNamePlaceholder')}
                 disabled={agentNameLoading}
                 InputProps={{
                   endAdornment: agentNameLoading ? <CircularProgress size={20} /> : null
@@ -477,17 +481,17 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
             {projectsWithUI.length > 0 && (
               <Box>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  Copy additional UI settings from existing project (optional):
+                  {t('wizard.copyUIDescription')}
                 </Typography>
                 <FormControl fullWidth>
-                  <InputLabel>Copy from</InputLabel>
+                  <InputLabel>{t('wizard.copyFromLabel')}</InputLabel>
                   <Select
                     value={copyFromProject}
                     onChange={(e) => setCopyFromProject(e.target.value)}
-                    label="Copy from"
+                    label={t('wizard.copyFromLabel')}
                   >
                     <MenuItem value="">
-                      <em>None (use default)</em>
+                      <em>{t('wizard.copyFromNoneOption')}</em>
                     </MenuItem>
                     {projectsWithUI.map(proj => (
                       <MenuItem key={proj} value={proj}>
@@ -517,9 +521,9 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Create New Project
+        {t('wizard.dialogTitle')}
         <Typography variant="body2" color="text.secondary">
-          Step {activeStep + 1} of {WIZARD_STEPS.length}
+          {t('wizard.stepIndicator', { current: activeStep + 1, total: WIZARD_STEPS.length })}
         </Typography>
       </DialogTitle>
 
@@ -572,7 +576,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
 
       <DialogActions sx={{ justifyContent: 'space-between' }}>
         <Button onClick={onClose} disabled={creating}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Box>
           <Button
@@ -580,7 +584,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
             onClick={() => setActiveStep(s => s - 1)}
             sx={{ mr: 1 }}
           >
-            Back
+            {t('common.back')}
           </Button>
           <Button
             variant="contained"
@@ -601,9 +605,9 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
             {creating ? (
               <CircularProgress size={20} color="inherit" />
             ) : isLastStep ? (
-              'Create'
+              t('common.create')
             ) : (
-              'Next'
+              t('common.next')
             )}
           </Button>
         </Box>

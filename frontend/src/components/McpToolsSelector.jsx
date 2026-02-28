@@ -22,6 +22,7 @@ import {
   AccordionDetails
 } from '@mui/material';
 import { DeleteOutlined, Add, Build, ExpandMore, Close } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
@@ -31,6 +32,7 @@ export default function McpToolsSelector({
   onServersChange,
   isAdmin = false
 }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [newServer, setNewServer] = useState({
     name: '',
@@ -69,7 +71,7 @@ export default function McpToolsSelector({
 
     // Validate server name
     if (!/^[a-z0-9_-]+$/.test(newServer.name)) {
-      alert('Server name can only contain lowercase letters, numbers, underscores, and hyphens');
+      alert(t('mcpToolsSelector.nameValidation'));
       return;
     }
 
@@ -132,7 +134,7 @@ export default function McpToolsSelector({
     <Box>
       {/* Configured Servers Section */}
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        Configured MCP Servers
+        {t('mcpToolsSelector.configuredServers')}
       </Typography>
       {Object.keys(configuredServers).length > 0 ? (
         <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2, color: '#000' }}>
@@ -154,7 +156,7 @@ export default function McpToolsSelector({
                       })}
                       sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'navy', borderColor: 'navy' }}
                     >
-                      Provided Tools
+                      {t('mcpToolsSelector.providedTools')}
                     </Button>
                   )}
                   <IconButton edge="end" onClick={() => handleRemoveServer(name)} sx={{ color: themeMode === 'dark' ? 'navy' : 'darkred' }}>
@@ -176,7 +178,7 @@ export default function McpToolsSelector({
                     {isInRegistry(name) && (
                       <Chip
                         size="small"
-                        label="Registry"
+                        label={t('mcpToolsSelector.registry')}
                         color="primary"
                         sx={{ fontSize: '0.7rem' }}
                       />
@@ -191,7 +193,7 @@ export default function McpToolsSelector({
         </List>
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          No MCP servers configured yet.
+          {t('mcpToolsSelector.noServersConfigured')}
         </Typography>
       )}
 
@@ -200,7 +202,7 @@ export default function McpToolsSelector({
         <>
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Available from Registry
+            {t('mcpToolsSelector.availableFromRegistry')}
           </Typography>
           <List dense sx={{ bgcolor: '#e3f2fd', borderRadius: 1, mb: 2, color: '#000' }}>
             {availableRegistryServers.map(server => (
@@ -215,7 +217,7 @@ export default function McpToolsSelector({
                       onClick={() => handleShowTools(server)}
                       sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'navy', borderColor: 'navy' }}
                     >
-                      Provided Tools
+                      {t('mcpToolsSelector.providedTools')}
                     </Button>
                     <IconButton
                       edge="end"
@@ -255,7 +257,7 @@ export default function McpToolsSelector({
           <Accordion defaultExpanded={false} sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}>
             <AccordionSummary expandIcon={<ExpandMore />} sx={{ px: 0, minHeight: 'auto' }}>
               <Typography variant="subtitle2">
-                Add Custom MCP Server
+                {t('mcpToolsSelector.addCustomServer')}
               </Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ px: 0 }}>
@@ -263,18 +265,18 @@ export default function McpToolsSelector({
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <TextField
                     size="small"
-                    label="Name"
+                    label={t('mcpToolsSelector.nameLabel')}
                     value={newServer.name}
                     onChange={(e) => setNewServer({ ...newServer, name: e.target.value.toLowerCase() })}
-                    placeholder="my-server"
+                    placeholder={t('mcpToolsSelector.namePlaceholder')}
                     sx={{ width: 150 }}
                   />
                   <FormControl size="small" sx={{ width: 100 }}>
-                    <InputLabel>Transport</InputLabel>
+                    <InputLabel>{t('mcpToolsSelector.transportLabel')}</InputLabel>
                     <Select
                       value={newServer.transport}
                       onChange={(e) => setNewServer({ ...newServer, transport: e.target.value })}
-                      label="Transport"
+                      label={t('mcpToolsSelector.transportLabel')}
                     >
                       <MenuItem value="http">HTTP</MenuItem>
                       <MenuItem value="sse">SSE</MenuItem>
@@ -282,20 +284,20 @@ export default function McpToolsSelector({
                   </FormControl>
                   <TextField
                     size="small"
-                    label="URL"
+                    label={t('mcpToolsSelector.urlLabel')}
                     value={newServer.url}
                     onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
-                    placeholder="https://mcp.example.com"
+                    placeholder={t('mcpToolsSelector.urlPlaceholder')}
                     sx={{ flex: 1 }}
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <TextField
                     size="small"
-                    label="Auth Header (optional)"
+                    label={t('mcpToolsSelector.authHeaderLabel')}
                     value={newServer.headers}
                     onChange={(e) => setNewServer({ ...newServer, headers: e.target.value })}
-                    placeholder="Bearer token..."
+                    placeholder={t('mcpToolsSelector.authPlaceholder')}
                     sx={{ flex: 1 }}
                   />
                   <Button
@@ -303,7 +305,7 @@ export default function McpToolsSelector({
                     onClick={handleAddCustomServer}
                     disabled={!newServer.name || !newServer.url}
                   >
-                    Add
+                    {t('common.add')}
                   </Button>
                 </Box>
               </Box>
@@ -322,7 +324,7 @@ export default function McpToolsSelector({
         <Box sx={{ width: 420, p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
             <Typography variant="h6">
-              Provided Tools
+              {t('mcpToolsSelector.providedTools')}
             </Typography>
             <IconButton onClick={() => setToolsDrawerOpen(false)} size="small">
               <Close />
@@ -349,14 +351,14 @@ export default function McpToolsSelector({
 
           {!toolsLoading && !toolsError && toolsList.length === 0 && (
             <Typography variant="body2" color="text.secondary">
-              No tools available from this server.
+              {t('mcpToolsSelector.noToolsAvailable')}
             </Typography>
           )}
 
           {!toolsLoading && toolsList.length > 0 && (
             <>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {toolsList.length} tool{toolsList.length !== 1 ? 's' : ''} available
+                {t('mcpToolsSelector.toolsAvailableCount', { count: toolsList.length })}
               </Typography>
               <List dense>
                 {toolsList.map((tool, index) => (
@@ -370,7 +372,7 @@ export default function McpToolsSelector({
                           {tool.name}
                         </Typography>
                       }
-                      secondary={tool.description || 'No description available'}
+                      secondary={tool.description || t('skillCatalog.noDescription')}
                       secondaryTypographyProps={{ sx: { fontSize: '0.75rem' } }}
                     />
                   </ListItem>

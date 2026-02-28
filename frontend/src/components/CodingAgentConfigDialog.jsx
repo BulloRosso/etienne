@@ -6,9 +6,11 @@ import {
 import { Close, Settings } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function CodingAgentConfigDialog({ open, onClose }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [claudeContent, setClaudeContent] = useState('');
@@ -40,7 +42,7 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
       setCodexContent(codexData.content || '');
       setCodexIsCustom(codexData.isCustom || false);
     } catch (err) {
-      setError('Failed to load configurations');
+      setError(t('codingAgentConfig.failedToLoadConfigs'));
     }
   };
 
@@ -59,14 +61,14 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
       if (res.ok) {
         if (activeTab === 0) setClaudeIsCustom(true);
         else setCodexIsCustom(true);
-        setSuccess('Configuration saved');
+        setSuccess(t('codingAgentConfig.configSaved'));
         setTimeout(() => setSuccess(''), 3000);
       } else {
         const data = await res.json();
-        setError(data.message || 'Failed to save');
+        setError(data.message || t('codingAgentConfig.failedToSaveConfig'));
       }
     } catch {
-      setError('Failed to save configuration');
+      setError(t('codingAgentConfig.failedToSaveConfig'));
     } finally {
       setLoading(false);
     }
@@ -88,10 +90,10 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
         setCodexContent(data.content || '');
         setCodexIsCustom(false);
       }
-      setSuccess('Defaults restored');
+      setSuccess(t('codingAgentConfig.defaultsRestored'));
       setTimeout(() => setSuccess(''), 3000);
     } catch {
-      setError('Failed to load defaults');
+      setError(t('codingAgentConfig.failedToLoadDefaults'));
     } finally {
       setLoading(false);
     }
@@ -104,7 +106,7 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Settings sx={{ color: '#1976d2' }} />
-          <Typography variant="h6">Coding Agent Configuration</Typography>
+          <Typography variant="h6">{t('codingAgentConfig.dialogTitle')}</Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -116,8 +118,8 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
         onChange={(e, v) => { setActiveTab(v); setError(''); setSuccess(''); }}
         sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
       >
-        <Tab label="Claude" />
-        <Tab label="Codex" />
+        <Tab label={t('codingAgentConfig.tabClaude')} />
+        <Tab label={t('codingAgentConfig.tabCodex')} />
       </Tabs>
 
       <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column' }}>
@@ -126,7 +128,7 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
 
         <Box sx={{ px: 2, pt: 1 }}>
           <Typography variant="caption" color="text.secondary">
-            {isCustom ? 'Custom override active' : 'Using default template'}
+            {isCustom ? t('codingAgentConfig.customOverrideActive') : t('codingAgentConfig.usingDefaultTemplate')}
           </Typography>
         </Box>
 
@@ -157,14 +159,14 @@ export default function CodingAgentConfigDialog({ open, onClose }) {
           disabled={loading}
           color="warning"
         >
-          Load Defaults
+          {t('codingAgentConfig.loadDefaults')}
         </Button>
         <Button
           onClick={handleSave}
           variant="contained"
           disabled={loading}
         >
-          {loading ? 'Saving...' : 'Save'}
+          {loading ? t('common.saving') : t('common.save')}
         </Button>
       </DialogActions>
     </Dialog>

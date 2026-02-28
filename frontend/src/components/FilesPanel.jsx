@@ -6,8 +6,10 @@ import { CiFileOn } from 'react-icons/ci';
 import BackgroundInfo from './BackgroundInfo';
 import { VIEWER_COMPONENTS, buildExtensionMap, getViewerForFile } from './viewerRegistry.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useTranslation } from 'react-i18next';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll, previewersConfig, autoFilePreviewExtensions }) {
+  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -159,7 +161,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
         >
           <img
             src={themeMode === 'dark' ? '/etienne-intro.png' : '/etienne-intro.jpg'}
-            alt="Introduction"
+            alt={t('filesPanel.introductionAlt')}
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
@@ -256,7 +258,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
               ))}
               <Divider />
               <MenuItem onClick={handleCloseAll} sx={{ fontSize: '0.875rem', color: 'error.main' }}>
-                Close All
+                {t('filesPanel.closeAll')}
               </MenuItem>
             </Menu>
           </>

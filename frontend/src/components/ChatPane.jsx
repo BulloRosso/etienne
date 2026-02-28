@@ -7,6 +7,7 @@ import { IoClose } from "react-icons/io5";
 import { RiChatNewLine } from "react-icons/ri";
 import { PiCaretCircleDownLight } from "react-icons/pi";
 import { MdInfo } from "react-icons/md";
+import { useTranslation } from 'react-i18next';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
@@ -18,6 +19,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic' }) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
@@ -180,7 +182,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         {/* Left: New Conversation Button */}
         <IconButton
           onClick={handleNewSession}
-          title="Start New Session"
+          title={t('chatPane.startNewSession')}
           sx={{ color: themeMode === 'dark' ? 'gold' : '#1976d2' }}
         >
           <RiChatNewLine size={19} />
@@ -212,15 +214,15 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               }
             }}
           >
-            <ToggleButton value="plan" title={isGuest ? "Planning Mode (Guest users are restricted to planning mode)" : "Planning Mode"}>
+            <ToggleButton value="plan" title={isGuest ? t('chatPane.planningModeGuestTooltip') : t('chatPane.planningMode')}>
               <LuBrain size={16} />
             </ToggleButton>
-            <ToggleButton value="work" title={isGuest ? "Work Mode (Not available for guests)" : "Work Mode"} disabled={isGuest}>
+            <ToggleButton value="work" title={isGuest ? t('chatPane.workModeGuestTooltip') : t('chatPane.workMode')} disabled={isGuest}>
               <HiOutlineWrench size={20} />
             </ToggleButton>
           </ToggleButtonGroup>
           <Typography variant="body2" sx={{ color: '#666', fontSize: '0.875rem' }}>
-            {mode === 'work' ? 'Work Mode' : 'Planning Mode'}
+            {mode === 'work' ? t('chatPane.workMode') : t('chatPane.planningMode')}
           </Typography>
         </Box>
         )}
@@ -234,7 +236,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           {hasSessions && (
             <IconButton
               onClick={handleResumeSession}
-              title="Resume Session"
+              title={t('chatPane.resumeSession')}
               sx={{ color: themeMode === 'dark' ? '#fff' : '#333' }}
             >
               <PiCaretCircleDownLight size={24} />
@@ -245,7 +247,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           {isAdmin && (
             <IconButton
               onClick={() => setSettingsOpen(true)}
-              title="Settings"
+              title={t('chatPane.settings')}
               sx={{ color: '#333' }}
             >
               <GiSettingsKnobs size={24} />
@@ -337,7 +339,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             p: 2,
             borderBottom: '1px solid #e0e0e0'
           }}>
-            <Typography variant="h6">AI Core Settings</Typography>
+            <Typography variant="h6">{t('chatPane.settingsTitle')}</Typography>
             <IconButton onClick={() => setSettingsOpen(false)} size="small">
               <IoClose size={20} />
             </IconButton>
@@ -346,7 +348,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           {/* Modal Content */}
           <Box sx={{ p: 3 }}>
             <Typography variant="body1" sx={{ mb: 1 }}>
-              AI Model
+              {t('chatPane.aiModel')}
             </Typography>
             <ToggleButtonGroup
               value={aiModel}
@@ -368,10 +370,10 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               }}
             >
               <ToggleButton value="anthropic">
-                Anthropic Claude 4.5
+                {t('chatPane.anthropicClaude')}
               </ToggleButton>
               <ToggleButton value="alternative">
-                Other AI model
+                {t('chatPane.otherAiModel')}
               </ToggleButton>
             </ToggleButtonGroup>
 
@@ -379,34 +381,34 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             {aiModel === 'alternative' && (
               <Box sx={{ mb: 0, p: 0, borderRadius: 1 }}>
                 <TextField
-                  label="Model Name"
+                  label={t('chatPane.modelName')}
                   value={altModelName}
                   onChange={(e) => setAltModelName(e.target.value)}
                   fullWidth
                   size="small"
                   sx={{ mb: 2 }}
-                  placeholder="e.g., kimi-k2-instruct"
+                  placeholder={t('chatPane.modelNamePlaceholder')}
                   InputLabelProps={{ shrink: true }}
                 />
                 <TextField
-                  label="API Base URL"
+                  label={t('chatPane.apiBaseUrl')}
                   value={altModelBaseUrl}
                   onChange={(e) => setAltModelBaseUrl(e.target.value)}
                   fullWidth
                   size="small"
                   sx={{ mb: 2 }}
-                  placeholder="e.g., https://api.moonshot.ai/anthropic"
+                  placeholder={t('chatPane.apiBaseUrlPlaceholder')}
                   InputLabelProps={{ shrink: true }}
                 />
                 <TextField
-                  label="Token/API Key"
+                  label={t('chatPane.tokenApiKey')}
                   value={altModelToken}
                   onChange={(e) => setAltModelToken(e.target.value)}
                   fullWidth
                   size="small"
                   type="password"
                   sx={{ mb: 2 }}
-                  placeholder="Enter your API key"
+                  placeholder={t('chatPane.tokenApiKeyPlaceholder')}
                   InputLabelProps={{ shrink: true }}
                 />
                 <Alert
@@ -418,13 +420,13 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                     '& .MuiAlert-icon': { color: '#856404' }
                   }}
                 >
-                  Model must be compatible with Anthropic messages API.
+                  {t('chatPane.modelCompatibility')}
                 </Alert>
               </Box>
             )}
 
             <Typography variant="body1" sx={{ mt:2, mb: 1 }}>
-              Features
+              {t('chatPane.features')}
             </Typography>
             <FormControlLabel
               control={
@@ -440,13 +442,13 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                   }}
                 />
               }
-              label="Long Term Memory"
+              label={t('chatPane.longTermMemory')}
               sx={{ mb: 1 }}
             />
 
             <Box sx={{ mb: 2, mt: 2 }}>
               <Typography variant="body1" sx={{ mb: 1 }}>
-                Maximum Agentic Loops
+                {t('chatPane.maxAgenticLoops')}
               </Typography>
               <TextField
                 type="number"
@@ -459,12 +461,12 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                 size="small"
                 sx={{ width: "180px" }}
                 inputProps={{ min: 0, step: 1 }}
-                helperText="0 = unlimited cycles"
+                helperText={t('chatPane.maxTurnsHelper')}
               />
             </Box>
 
             <Typography variant="body1" sx={{ mb: 1, mt: 2 }}>
-              Display Options
+              {t('chatPane.displayOptions')}
             </Typography>
             <FormControlLabel
               control={
@@ -477,7 +479,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                   }}
                 />
               }
-              label="Show background info"
+              label={t('chatPane.showBackgroundInfo')}
             />
           </Box>
 
@@ -489,7 +491,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             borderTop: '1px solid #e0e0e0'
           }}>
             <Button variant="contained" onClick={handleSettingsSave}>
-              Save
+              {t('common.save')}
             </Button>
           </Box>
         </Box>

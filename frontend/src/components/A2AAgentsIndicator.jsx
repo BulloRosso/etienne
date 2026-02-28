@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Tooltip, Menu, MenuItem, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function A2AAgentsIndicator({ projectName }) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [agents, setAgents] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -43,7 +45,7 @@ export default function A2AAgentsIndicator({ projectName }) {
 
   return (
     <>
-      <Tooltip title="External Agents Available">
+      <Tooltip title={t('a2aAgentsIndicator.tooltip')}>
         <Box
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
@@ -71,7 +73,7 @@ export default function A2AAgentsIndicator({ projectName }) {
           }}>
             {agentCount}
           </Box>
-          <Box component="span" sx={{ color: 'text.secondary' }}>agents available</Box>
+          <Box component="span" sx={{ color: 'text.secondary' }}>{t('a2aAgentsIndicator.label')}</Box>
         </Box>
       </Tooltip>
 

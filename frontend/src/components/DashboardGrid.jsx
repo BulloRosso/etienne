@@ -2,46 +2,48 @@ import React from 'react';
 import { Box, Paper, Typography, IconButton, Tooltip } from '@mui/material';
 import { InfoOutlined, Logout, Settings } from '@mui/icons-material';
 import { VscServerProcess } from 'react-icons/vsc';
+import { useTranslation } from 'react-i18next';
 
 const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick }) => {
+  const { t } = useTranslation();
   const dashboardItems = [
     // 1st row
     {
       id: 'subagents',
       image: '/subagents.jpg',
-      label: 'Subagents',
+      label: t('dashboard.itemSubagents'),
       disabled: !currentProject
     },
     {
       id: 'skills',
       image: '/skills.jpg',
-      label: 'Skills',
+      label: t('dashboard.itemSkills'),
       disabled: !currentProject
     },
     // 2nd row
     {
       id: 'knowledge',
       image: '/knowledge.jpg',
-      label: 'Knowledge Base',
+      label: t('dashboard.itemKnowledgeBase'),
       disabled: !currentProject
     },
     {
       id: 'externalevents',
       image: '/externalevents.jpg',
-      label: 'External Events',
+      label: t('dashboard.itemExternalEvents'),
       disabled: !currentProject
     },
     // 3rd row
     {
       id: 'scheduling',
       image: '/scheduling.jpg',
-      label: 'Scheduling',
+      label: t('dashboard.itemScheduling'),
       disabled: !currentProject
     },
     {
       id: 'guardrails',
       image: '/guardrails.jpg',
-      label: 'Guardrails',
+      label: t('dashboard.itemGuardrails'),
       disabled: !currentProject,
       adminOnly: true
     },
@@ -49,47 +51,47 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
     {
       id: 'budget',
       image: '/budget.jpg',
-      label: 'Budget Settings',
+      label: t('dashboard.itemBudgetSettings'),
       disabled: !currentProject
     },
     // 5th row
     {
       id: 'customui',
       image: '/customui.jpg',
-      label: 'Customize UI',
+      label: t('dashboard.itemCustomizeUI'),
       disabled: !currentProject
     },
     {
       id: 'contexts',
       image: '/contextmanager.jpg',
-      label: 'Context/Tagging',
+      label: t('dashboard.itemContextTagging'),
       disabled: !currentProject
     },
     // 6th row
     {
       id: 'conditionmonitoring',
       image: '/conditionmonitoring.jpg',
-      label: 'Condition Monitoring',
+      label: t('dashboard.itemConditionMonitoring'),
       disabled: !currentProject
     },
     {
       id: 'scrapbook',
       image: '/scrapbook.jpg',
-      label: 'Scrapbook',
+      label: t('dashboard.itemScrapbook'),
       disabled: !currentProject
     },
     // 7th row
     {
       id: 'ontologycore',
       image: '/decision-support.jpg',
-      label: 'Decision Support',
+      label: t('dashboard.itemDecisionSupport'),
       disabled: !currentProject
     },
     // 8th row
     {
       id: 'skillstore',
       image: '/skills.jpg',
-      label: 'Skill Store',
+      label: t('dashboard.itemSkillStore'),
       disabled: false,
       adminOnly: true
     }
@@ -120,7 +122,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
             color: 'primary.main'
           }}
         >
-          Etienne
+          {t('dashboard.headerTitle')}
         </Typography>
         <IconButton
           size="small"
@@ -167,7 +169,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Tooltip title="Change Password">
+              <Tooltip title={t('dashboard.changePasswordTooltip')}>
                 <IconButton
                   size="small"
                   onClick={(e) => {
@@ -290,7 +292,7 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
         >
           <VscServerProcess size={16} />
           <Typography variant="caption" sx={{ fontWeight: 500 }}>
-            Service Control
+            {t('dashboard.serviceControl')}
           </Typography>
         </Box>
       )}

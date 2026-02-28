@@ -7,6 +7,7 @@ import * as MdIcons from 'react-icons/md';
 import * as IoIcons from 'react-icons/io5';
 import * as BiIcons from 'react-icons/bi';
 import * as AiIcons from 'react-icons/ai';
+import { useTranslation } from 'react-i18next';
 
 // Icon resolver - tries to find icon from various react-icons libraries
 const getIcon = (iconName) => {
@@ -23,6 +24,7 @@ const getIcon = (iconName) => {
 };
 
 const ScrapbookNode = memo(({ data, selected, id }) => {
+  const { t } = useTranslation();
   const {
     label,
     description,
@@ -232,7 +234,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
 
         {/* Row 3: Icon Badge (overlapping bottom border) */}
         {IconComponent && (
-          <Tooltip title={iconName || 'Click to set icon'}>
+          <Tooltip title={iconName || t('scrapbookNode.clickToSetIcon')}>
             <Box
               sx={{
                 position: 'absolute',

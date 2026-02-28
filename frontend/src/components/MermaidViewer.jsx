@@ -5,9 +5,11 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import mermaid from 'mermaid';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function MermaidViewer({ filename, projectName, className = '' }) {
+  const { t } = useTranslation();
   const [mermaidContent, setMermaidContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -159,7 +161,7 @@ export default function MermaidViewer({ filename, projectName, className = '' })
         p={2}
         color="error.main"
       >
-        Error loading mermaid file: {error}
+        {t('mermaidViewer.errorLoading')} {error}
       </Box>
     );
   }
@@ -181,7 +183,7 @@ export default function MermaidViewer({ filename, projectName, className = '' })
           p: 0.5
         }}
       >
-        <Tooltip title="Zoom out">
+        <Tooltip title={t('mermaidViewer.zoomOut')}>
           <IconButton
             onClick={handleZoomOut}
             disabled={loading || zoom <= 0.25}
@@ -191,7 +193,7 @@ export default function MermaidViewer({ filename, projectName, className = '' })
             <ZoomOutIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title={`Reset zoom (${Math.round(zoom * 100)}%)`}>
+        <Tooltip title={t('mermaidViewer.resetZoom', { percent: Math.round(zoom * 100) })}>
           <IconButton
             onClick={handleZoomReset}
             disabled={loading || zoom === 1}
@@ -201,7 +203,7 @@ export default function MermaidViewer({ filename, projectName, className = '' })
             <RestartAltIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Zoom in">
+        <Tooltip title={t('mermaidViewer.zoomIn')}>
           <IconButton
             onClick={handleZoomIn}
             disabled={loading || zoom >= 3}
@@ -211,7 +213,7 @@ export default function MermaidViewer({ filename, projectName, className = '' })
             <ZoomInIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Reload file">
+        <Tooltip title={t('mermaidViewer.reloadFile')}>
           <IconButton
             onClick={handleReload}
             disabled={loading}

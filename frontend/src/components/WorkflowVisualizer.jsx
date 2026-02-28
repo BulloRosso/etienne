@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { AccountTree, Refresh } from '@mui/icons-material';
 import WorkflowStateNode from './WorkflowStateNode';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 const nodeTypes = { workflowState: WorkflowStateNode };
@@ -45,6 +46,7 @@ export default function WorkflowVisualizer({ projectName, workflowFile }) {
 }
 
 function WorkflowVisualizerInner({ projectName, workflowFile }) {
+  const { t } = useTranslation();
   const [workflows, setWorkflows] = useState([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
   const [graphData, setGraphData] = useState(null);
@@ -186,7 +188,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1 }}>
         <CircularProgress size={24} />
-        <Typography variant="body2">Loading workflows...</Typography>
+        <Typography variant="body2">{t('workflowVisualizer.loading')}</Typography>
       </Box>
     );
   }
@@ -203,7 +205,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 1 }}>
         <AccountTree sx={{ fontSize: 48, color: 'text.secondary' }} />
-        <Typography variant="body2" color="text.secondary">No workflows found for this project</Typography>
+        <Typography variant="body2" color="text.secondary">{t('workflowVisualizer.noWorkflows')}</Typography>
       </Box>
     );
   }
@@ -253,7 +255,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
                 />
                 {statusData.isWaiting && (
                   <Typography variant="caption" color="warning.main">
-                    Waiting for {statusData.waitingFor}
+                    {t('workflowVisualizer.waitingFor', { target: statusData.waitingFor })}
                   </Typography>
                 )}
                 <Typography variant="caption" color="text.secondary">

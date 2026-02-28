@@ -4,6 +4,7 @@ import { Box, IconButton, Dialog, DialogTitle, DialogContent } from '@mui/materi
 import { Close, Settings, Check, Clear } from '@mui/icons-material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { useTranslation } from 'react-i18next';
 
 // Light color options for sticky notes
 const STICKY_COLORS = {
@@ -15,6 +16,7 @@ const STICKY_COLORS = {
 };
 
 const StickyNoteNode = ({ data, selected }) => {
+  const { t } = useTranslation();
   const {
     content,
     onContentChange,
@@ -229,7 +231,7 @@ const StickyNoteNode = ({ data, selected }) => {
                 margin: 0,
                 cursor: 'text',
               }}
-              placeholder="Type your note here..."
+              placeholder={t('stickyNote.placeholder')}
             />
           ) : (
             <Box
@@ -270,7 +272,7 @@ const StickyNoteNode = ({ data, selected }) => {
                 <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
               ) : (
                 <Box sx={{ color: '#999', fontStyle: 'italic' }}>
-                  Click to edit...
+                  {t('stickyNote.clickToEdit')}
                 </Box>
               )}
             </Box>
@@ -303,7 +305,7 @@ const StickyNoteNode = ({ data, selected }) => {
               }}
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              title="Cancel (Esc)"
+              title={t('stickyNote.cancelEsc')}
               sx={{
                 padding: '4px',
                 opacity: 0.7,
@@ -325,7 +327,7 @@ const StickyNoteNode = ({ data, selected }) => {
               }}
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              title="Save"
+              title={t('common.save')}
               sx={{
                 padding: '4px',
                 opacity: 0.7,
@@ -349,7 +351,7 @@ const StickyNoteNode = ({ data, selected }) => {
           sx: { borderRadius: 2 }
         }}
       >
-        <DialogTitle sx={{ pb: 1, fontSize: '14px' }}>Sticky Note Color</DialogTitle>
+        <DialogTitle sx={{ pb: 1, fontSize: '14px' }}>{t('stickyNote.colorTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', gap: 1.5, p: 1 }}>
             {Object.entries(STICKY_COLORS).map(([key, colorValue]) => (

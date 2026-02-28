@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress, Drawer, Switch } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
 import SplitLayout from './components/SplitLayout';
@@ -26,6 +27,7 @@ import Onboarding from './components/Onboarding';
 import { apiFetch, authSSEUrl } from './services/api';
 
 export default function App() {
+  const { t } = useTranslation();
   const { currentProject, projectExists, setProject } = useProject();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { mode: themeMode, toggleMode } = useThemeMode();
@@ -535,13 +537,13 @@ export default function App() {
           try {
             const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
             if (notifChannels.includes('desktop') && 'Notification' in window && Notification.permission === 'granted') {
-              const body = currentMessageRef.current.text?.substring(0, 100) || 'Your request has been processed.';
+              const body = currentMessageRef.current.text?.substring(0, 100) || t('app.taskCompletedBody');
               if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
                 navigator.serviceWorker.ready
-                  .then(reg => reg.showNotification('Task Completed', { body }))
-                  .catch(() => new Notification('Task Completed', { body }));
+                  .then(reg => reg.showNotification(t('app.taskCompleted'), { body }))
+                  .catch(() => new Notification(t('app.taskCompleted'), { body }));
               } else {
-                new Notification('Task Completed', { body });
+                new Notification(t('app.taskCompleted'), { body });
               }
             }
           } catch { /* ignore */ }
@@ -1877,7 +1879,7 @@ export default function App() {
       >
         <Toolbar>
           <Typography variant="h6">
-            {uiConfig?.appBar?.title || 'Etienne: a Coding Agent Harness'}
+            {uiConfig?.appBar?.title || t('app.title')}
           </Typography>
           {currentProject && (
             <BudgetIndicator
@@ -1892,13 +1894,13 @@ export default function App() {
               color="inherit"
               onClick={() => setSchedulingOpen(true)}
               sx={{ ml: 3 }}
-              title="Scheduled Tasks"
+              title={t('app.scheduledTasks')}
             >
               <TbCalendarTime size={24} />
             </IconButton>
           )}
           {hasPublicWebsite && currentProject && (
-            <Tooltip title="Public Website" arrow>
+            <Tooltip title={t('app.publicWebsite')} arrow>
               <IconButton
                 color="inherit"
                 onClick={() => {
@@ -1916,7 +1918,7 @@ export default function App() {
             color="inherit"
             onClick={() => setPresentationOpen(true)}
             sx={{ opacity: 0, '&:hover': { opacity: 0.5 } }}
-            title="Presentation"
+            title={t('app.presentation')}
           >
             <TbPresentation size={24} />
           </IconButton>
@@ -1936,10 +1938,10 @@ export default function App() {
             <IoMoonOutline size={18} style={{ opacity: themeMode === 'dark' ? 1 : 0.4 }} />
           </Box>
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
-            [{currentProject || 'Select/Create a Project'}]
+            [{currentProject || t('app.selectProject')}]
           </Typography>
           {sessionId && (
-            <Tooltip title={`Claude Session ID: ${sessionId}`} arrow>
+            <Tooltip title={t('app.sessionIdTooltip', { sessionId })} arrow>
               <IconButton
                 color="inherit"
                 sx={{ mr: 1, opacity: 0.8 }}
@@ -2087,7 +2089,7 @@ export default function App() {
         open={snackbarOpen}
         autoHideDuration={2000}
         onClose={() => setSnackbarOpen(false)}
-        message="Claude Session ID copied"
+        message={t('app.sessionIdCopied')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       />
 

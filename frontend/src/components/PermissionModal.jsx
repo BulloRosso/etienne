@@ -12,6 +12,7 @@ import {
   Chip
 } from '@mui/material';
 import { Close as CloseIcon, Security as SecurityIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 /**
  * PermissionModal - Tool Permission Request Dialog
@@ -26,6 +27,7 @@ import { Close as CloseIcon, Security as SecurityIcon } from '@mui/icons-materia
  * - onClose: () => void - Callback when modal is closed without response
  */
 export default function PermissionModal({ open, permission, onRespond, onClose }) {
+  const { t } = useTranslation();
   if (!permission) return null;
 
   const { id, toolName, toolInput } = permission;
@@ -34,23 +36,23 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
   const getToolDescription = () => {
     switch (toolName) {
       case 'Write':
-        return `Write to file: ${toolInput?.file_path || 'unknown'}`;
+        return t('permission.toolWrite', { filePath: toolInput?.file_path || 'unknown' });
       case 'Edit':
-        return `Edit file: ${toolInput?.file_path || 'unknown'}`;
+        return t('permission.toolEdit', { filePath: toolInput?.file_path || 'unknown' });
       case 'MultiEdit':
-        return `Edit multiple sections in: ${toolInput?.file_path || 'unknown'}`;
+        return t('permission.toolMultiEdit', { filePath: toolInput?.file_path || 'unknown' });
       case 'Bash':
         const cmd = toolInput?.command || '';
         const truncatedCmd = cmd.length > 100 ? cmd.substring(0, 100) + '...' : cmd;
-        return `Execute command: ${truncatedCmd}`;
+        return t('permission.toolBash', { command: truncatedCmd });
       case 'Read':
-        return `Read file: ${toolInput?.file_path || 'unknown'}`;
+        return t('permission.toolRead', { filePath: toolInput?.file_path || 'unknown' });
       case 'Glob':
-        return `Search files: ${toolInput?.pattern || 'unknown'}`;
+        return t('permission.toolGlob', { pattern: toolInput?.pattern || 'unknown' });
       case 'Grep':
-        return `Search content: ${toolInput?.pattern || 'unknown'}`;
+        return t('permission.toolGrep', { pattern: toolInput?.pattern || 'unknown' });
       default:
-        return `Use tool: ${toolName}`;
+        return t('permission.toolDefault', { toolName });
     }
   };
 
@@ -94,7 +96,7 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SecurityIcon sx={{ color: '#2196f3' }} />
-          <Typography variant="h6">Permission Required</Typography>
+          <Typography variant="h6">{t('permission.title')}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip
@@ -112,7 +114,7 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
 
       <DialogContent dividers>
         <Alert severity="info" sx={{ mb: 2 }}>
-          Claude wants to perform the following action:
+          {t('permission.actionAlert')}
         </Alert>
 
         <Box sx={{
@@ -135,14 +137,14 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
           variant="outlined"
           sx={{ textTransform: 'none' }}
         >
-          Deny
+          {t('common.deny')}
         </Button>
         <Box sx={{ flex: 1 }} />
         <Button
           onClick={handleCancel}
           sx={{ textTransform: 'none' }}
         >
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           onClick={handleAllow}
@@ -150,7 +152,7 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
           color="primary"
           sx={{ textTransform: 'none' }}
         >
-          Allow
+          {t('common.allow')}
         </Button>
       </DialogActions>
     </Dialog>

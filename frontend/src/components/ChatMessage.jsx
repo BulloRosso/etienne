@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Box, Typography, Paper, IconButton, Collapse, Chip } from '@mui/material';
 import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -11,6 +12,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
 export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, source = null, sourceMetadata = null }) {
+  const { t } = useTranslation();
   const isUser = role === 'user';
   const { mode: themeMode } = useThemeMode();
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
@@ -93,7 +95,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         teams: <Groups sx={{ fontSize: '14px' }} />,
       };
       const icon = sourceMetadata?.provider ? providerIcons[sourceMetadata.provider] : <Cloud sx={{ fontSize: '14px' }} />;
-      const label = sourceMetadata?.username || 'Remote';
+      const label = sourceMetadata?.username || t('chatMessage.remote');
 
       return (
         <Chip
@@ -115,7 +117,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
       return (
         <Chip
           icon={<Schedule sx={{ fontSize: '14px' }} />}
-          label="Scheduled"
+          label={t('chatMessage.scheduled')}
           size="small"
           sx={{
             height: '20px',
@@ -427,7 +429,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               {/* Left side: Costs label + expand button */}
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Typography variant="caption" sx={{ color: '#999', fontSize: '11px', mr: 0.5 }}>
-                  Costs
+                  {t('chatMessage.costs')}
                 </Typography>
                 <IconButton
                   size="small"
@@ -450,7 +452,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                       color: feedback === 'up' ? '#4caf50' : '#999',
                       '&:hover': { color: feedback === 'up' ? '#4caf50' : '#666' }
                     }}
-                    title="Good response"
+                    title={t('chatMessage.goodResponse')}
                   >
                     <ThumbUp sx={{ fontSize: '16px' }} />
                   </IconButton>
@@ -463,7 +465,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                       color: feedback === 'down' ? '#f44336' : '#999',
                       '&:hover': { color: feedback === 'down' ? '#f44336' : '#666' }
                     }}
-                    title="Poor response"
+                    title={t('chatMessage.poorResponse')}
                   >
                     <ThumbDown sx={{ fontSize: '16px' }} />
                   </IconButton>
@@ -487,7 +489,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               fontWeight: isStreaming ? 500 : 400
             }}
           >
-            {isStreaming ? `Elapsed: ${formatElapsedTime(elapsedSeconds)}` : timestamp}
+            {isStreaming ? t('chatMessage.elapsed', { time: formatElapsedTime(elapsedSeconds) }) : timestamp}
           </Typography>
         </Box>
       </Box>

@@ -10,9 +10,11 @@ import {
   CircularProgress,
   Paper,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function LoginDialog({ onSuccess }) {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +33,7 @@ export default function LoginDialog({ onSuccess }) {
         onSuccess();
       }
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || t('login.errorDefault'));
     } finally {
       setLoading(false);
     }
@@ -65,11 +67,11 @@ export default function LoginDialog({ onSuccess }) {
         }}
       >
         <Typography variant="h5" component="h1" sx={{ textAlign: 'center', mb: 2 }}>
-          Sign In
+          {t('login.title')}
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 2 }}>
-          Enter your credentials to access the application
+          {t('login.subtitle')}
         </Typography>
 
         {error && (
@@ -81,7 +83,7 @@ export default function LoginDialog({ onSuccess }) {
         <form onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Username"
+            label={t('login.username')}
             variant="outlined"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -93,7 +95,7 @@ export default function LoginDialog({ onSuccess }) {
 
           <TextField
             fullWidth
-            label="Password"
+            label={t('login.password')}
             type="password"
             variant="outlined"
             value={password}
@@ -111,7 +113,7 @@ export default function LoginDialog({ onSuccess }) {
                 disabled={loading}
               />
             }
-            label="Remember me on this computer"
+            label={t('login.rememberMe')}
             sx={{ mb: 2 }}
           />
 
@@ -122,7 +124,7 @@ export default function LoginDialog({ onSuccess }) {
             disabled={loading || !username || !password}
             sx={{ py: 1.5 }}
           >
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
+            {loading ? <CircularProgress size={24} color="inherit" /> : t('common.signIn')}
           </Button>
         </form>
       </Paper>

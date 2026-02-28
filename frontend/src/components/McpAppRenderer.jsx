@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { AppRenderer } from '@mcp-ui/client';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -22,6 +23,7 @@ const SANDBOX_PROXY_URL = new URL('/sandbox-proxy', window.location.origin);
  * @param {object} toolResult - Tool execution result (MCP CallToolResult format)
  */
 export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolInput, toolResult }) {
+  const { t } = useTranslation();
   const [client, setClient] = useState(null);
   const [error, setError] = useState(null);
   const [connecting, setConnecting] = useState(true);
@@ -124,7 +126,7 @@ export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolIn
         bgcolor: themeMode === 'dark' ? '#2c1a1a' : '#fff5f5',
       }}>
         <Typography variant="body2" color="error">
-          MCP App Error: {error.message}
+          {t('mcpAppRenderer.error')} {error.message}
         </Typography>
       </Box>
     );
@@ -135,7 +137,7 @@ export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolIn
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
         <CircularProgress size={16} />
         <Typography variant="body2" color="text.secondary">
-          Connecting to MCP server...
+          {t('mcpAppRenderer.connecting')}
         </Typography>
       </Box>
     );

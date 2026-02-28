@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Tabs, Tab } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import MCPServerConfiguration from './MCPServerConfiguration';
 import A2ASettings from './A2ASettings';
 
@@ -16,6 +17,7 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function ConnectivitySettings({ projectName, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const [tabValue, setTabValue] = useState(0);
 
   return (
@@ -27,11 +29,11 @@ export default function ConnectivitySettings({ projectName, showBackgroundInfo }
         TabIndicatorProps={{ sx: { height: 3 } }}
       >
         <Tab
-          label="MCP Protocol"
+          label={t('connectivity.tabMcp')}
           sx={{ minHeight: 42, textTransform: 'none' }}
         />
         <Tab
-          label="A2A Protocol"
+          label={t('connectivity.tabA2a')}
           sx={{ minHeight: 42, textTransform: 'none' }}
         />
       </Tabs>

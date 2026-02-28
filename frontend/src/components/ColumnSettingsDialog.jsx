@@ -30,6 +30,7 @@ import {
   ArrowUpward,
   ArrowDownward,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 // Default columns that are always available
 const DEFAULT_COLUMNS = [
@@ -51,6 +52,7 @@ export default function ColumnSettingsDialog({
   columnConfig = [],
   onSave,
 }) {
+  const { t } = useTranslation();
   // Local state for editing
   const [properties, setProperties] = useState([]);
   const [columns, setColumns] = useState([]);
@@ -168,23 +170,23 @@ export default function ColumnSettingsDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Column Settings</DialogTitle>
+      <DialogTitle>{t('columnSettings.title')}</DialogTitle>
       <DialogContent>
         {/* Add New Custom Property Section */}
         <Paper sx={{ p: 2, mb: 3, backgroundColor: '#f5f5f5' }}>
           <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-            Add Custom Property
+            {t('columnSettings.addCustomProperty')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <TextField
-              label="Property Name"
+              label={t('columnSettings.propertyName')}
               size="small"
               value={newPropertyName}
               onChange={(e) => setNewPropertyName(e.target.value)}
               sx={{ flex: 1, minWidth: 120 }}
             />
             <FormControl size="small" sx={{ minWidth: 100 }}>
-              <InputLabel>Type</InputLabel>
+              <InputLabel>{t('columnSettings.type')}</InputLabel>
               <Select
                 value={newPropertyType}
                 label="Type"
@@ -196,7 +198,7 @@ export default function ColumnSettingsDialog({
               </Select>
             </FormControl>
             <TextField
-              label="Unit/Symbol"
+              label={t('columnSettings.unitSymbol')}
               size="small"
               value={newPropertyUnit}
               onChange={(e) => setNewPropertyUnit(e.target.value)}
@@ -210,7 +212,7 @@ export default function ColumnSettingsDialog({
               onClick={handleAddProperty}
               disabled={!newPropertyName.trim()}
             >
-              Add
+              {t('common.add')}
             </Button>
           </Box>
         </Paper>
@@ -219,7 +221,7 @@ export default function ColumnSettingsDialog({
         {properties.length > 0 && (
           <>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              Custom Properties
+              {t('columnSettings.customProperties')}
             </Typography>
             <List dense sx={{ mb: 2 }}>
               {properties.map((prop) => (
@@ -247,10 +249,10 @@ export default function ColumnSettingsDialog({
 
         {/* Column Order & Visibility */}
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-          Column Order & Visibility
+          {t('columnSettings.columnOrderVisibility')}
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-          Use arrows to reorder columns, toggle visibility to show/hide.
+          {t('columnSettings.columnOrderHelp')}
         </Typography>
         <List dense>
           {columns.map((col, index) => (
@@ -269,7 +271,7 @@ export default function ColumnSettingsDialog({
                 sx={{ flex: 1 }}
               />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Tooltip title="Move Up">
+                <Tooltip title={t('columnSettings.moveUp')}>
                   <span>
                     <IconButton
                       size="small"
@@ -280,7 +282,7 @@ export default function ColumnSettingsDialog({
                     </IconButton>
                   </span>
                 </Tooltip>
-                <Tooltip title="Move Down">
+                <Tooltip title={t('columnSettings.moveDown')}>
                   <span>
                     <IconButton
                       size="small"
@@ -291,7 +293,7 @@ export default function ColumnSettingsDialog({
                     </IconButton>
                   </span>
                 </Tooltip>
-                <Tooltip title={col.visible ? 'Hide Column' : 'Show Column'}>
+                <Tooltip title={col.visible ? t('columnSettings.hideColumn') : t('columnSettings.showColumn')}>
                   <IconButton
                     size="small"
                     onClick={() => handleToggleVisibility(col.id)}
@@ -305,9 +307,9 @@ export default function ColumnSettingsDialog({
         </List>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button onClick={handleSave} variant="contained">
-          Save
+          {t('common.save')}
         </Button>
       </DialogActions>
     </Dialog>

@@ -13,6 +13,7 @@ import {
   TbPercentage90,
   TbPercentage100
 } from 'react-icons/tb';
+import { useTranslation } from 'react-i18next';
 import { apiFetch, authSSEUrl } from '../services/api';
 import BudgetOverview from './BudgetOverview';
 
@@ -41,6 +42,7 @@ const percentageIcons = [
 ];
 
 export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo }) {
+  const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentCosts, setCurrentCosts] = useState(0);
   const [numberOfSessions, setNumberOfSessions] = useState(0);
@@ -140,7 +142,7 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
   // Format tooltip text
   const currencySymbol = getCurrencySymbol(currency);
   const formattedCosts = globalCosts.toFixed(2);
-  const tooltipText = `${formattedCosts}${currencySymbol} spent globally (${percentage}%)`;
+  const tooltipText = t('budgetIndicator.tooltipSpent', { formattedCosts, currencySymbol, percentage });
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);

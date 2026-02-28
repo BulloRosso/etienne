@@ -14,9 +14,11 @@ import {
 import { MdClose } from 'react-icons/md';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function ComplianceGuidelineViewer({ open, onClose }) {
+  const { t } = useTranslation();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,7 +57,7 @@ export default function ComplianceGuidelineViewer({ open, onClose }) {
       PaperProps={{ sx: { height: '80vh' } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-        <Typography variant="h6">Compliance Release Guideline</Typography>
+        <Typography variant="h6">{t('complianceGuidelineViewer.title')}</Typography>
         <IconButton onClick={onClose} size="small">
           <MdClose />
         </IconButton>
@@ -89,7 +91,7 @@ export default function ComplianceGuidelineViewer({ open, onClose }) {
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('common.close')}</Button>
       </DialogActions>
     </Dialog>
   );

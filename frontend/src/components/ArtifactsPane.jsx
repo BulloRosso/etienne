@@ -18,6 +18,7 @@ import McpToolsIndicator from './McpToolsIndicator';
 import SkillIndicator from './SkillIndicator';
 import A2AAgentsIndicator from './A2AAgentsIndicator';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -35,6 +36,7 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab, previewersConfig, autoFilePreviewExtensions }) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
@@ -140,15 +142,15 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined }}>
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider', backgroundColor: themeMode === 'dark' ? '#383838' : undefined }}>
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
-          <Tab label="Artifacts" />
-          {projectExists && <Tab label="Role" />}
-          {projectExists && isUser && <Tab label="Mission" />}
-          {projectExists && isAdmin && <Tab label="Permissions" />}
-          {projectExists && isAdmin && <Tab label="Connectivity" />}
-          {projectExists && isAdmin && <Tab label="Observability" />}
+          <Tab label={t('artifacts.tabArtifacts')} />
+          {projectExists && <Tab label={t('artifacts.tabRole')} />}
+          {projectExists && isUser && <Tab label={t('artifacts.tabMission')} />}
+          {projectExists && isAdmin && <Tab label={t('artifacts.tabPermissions')} />}
+          {projectExists && isAdmin && <Tab label={t('artifacts.tabConnectivity')} />}
+          {projectExists && isAdmin && <Tab label={t('artifacts.tabObservability')} />}
         </Tabs>
         {guardrailsEnabled && projectExists && (
-          <Tooltip title="Input Guardrails Active">
+          <Tooltip title={t('artifacts.tooltipGuardrails')}>
             <IconButton
               onClick={() => setGuardrailsModalOpen(true)}
               sx={{ mr: 1, color: '#c62828' }}
@@ -158,7 +160,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           </Tooltip>
         )}
         {memoryEnabled && projectExists && (
-          <Tooltip title="Agent Memory Enabled">
+          <Tooltip title={t('artifacts.tooltipMemory')}>
             <IconButton
               onClick={() => setMemoryDrawerOpen(true)}
               sx={{ mr: 1, color: '#4caf50' }}
@@ -175,7 +177,7 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
           </>
         )}
         {projectExists && (
-          <Tooltip title="Filesystem Browser">
+          <Tooltip title={t('artifacts.tooltipFilesystem')}>
             <IconButton
               onClick={() => setFilesystemDrawerOpen(true)}
               sx={{ mr: '12px' }}
@@ -239,8 +241,8 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
             onChange={(e, newValue) => setFilesystemTabValue(newValue)}
             sx={{ borderBottom: 1, borderColor: 'divider' }}
           >
-            <Tab label="Files" />
-            {checkpointsEnabled && <Tab label="Checkpoints" />}
+            <Tab label={t('artifacts.tabFiles')} />
+            {checkpointsEnabled && <Tab label={t('artifacts.tabCheckpoints')} />}
           </Tabs>
           <Box sx={{ flex: 1, overflow: 'auto' }}>
             {filesystemTabValue === 0 && (
