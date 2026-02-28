@@ -81,6 +81,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [Focused on local Data and Services](#focused-on-local-data-and-services)
 - [Managed Etienne](#managed-etienne)
 - [Memory](#memory)
+- [The Web: searching, scraping and browsing](#the-web-searching-scraping-and-browsing)
 - [Main Components](#main-components)
 - [The Agent and the outside World](#the-agent-and-the-outside-world)
 - [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
@@ -391,12 +392,28 @@ Etienne provides an exchangable endpoint to extract memories from a user prompt 
 Memory extraction is activated per default and can be accessed via the green memory card icon below the app bar.
 
 <div align="center">
-<img src="/docs/images/memory.jpg" alt="Memory pane" width="500">
+<img src="/docs/images/memory.jpg" alt="Memory pane" width="400">
 </div>
 
 Memories are stored per project and not globally in the default configuration.
 
 The extraction prompt is adjustable to sharpen the focus to certain business domain relevant information.
+
+# The Web: Searching, Scraping and Browsing
+
+Use the web-access tool to enable the agent to interact with websites on the internet.
+
+<div align="center">
+<img src="/docs/images/web-access.jpg" alt="Interacting with websites" width="800">
+</div>
+
+It uses these technologies by default:
+
+* **Web search**: The default tool included in Claude Code or Codex. Uses the search index of Anthropic or OpenAI.
+
+* **Web scraping**: Uses the Scrapling GitHub project which is fast and can process Javascript sites. It is a common choice for red-teaming tasks.
+
+* **Web browsing**: Uses Vercel's agent browser which is good for cooperative sites and a token saver (compared to pure Playwright implementations). Keep in mind that it is not suited to interact with websites which deploy anti-bot/anti-agent techniques like captchas or fingerprinting!
 
 # Main Components
 
