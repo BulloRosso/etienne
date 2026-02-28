@@ -18,6 +18,13 @@ Etienne showcases how to attach typical business requirements to a **coding agen
 
 This setup addresses the use case **business collaborator agent** working on local data.
 
+The user interface is available for these languages:
+* English (US)
+* German (DE)
+* Chinese (mandarin)
+
+Etienne's UI is build around **role based access control** with these basic roles (can be enhanced):
+
 <div align="center">
 <img src="/docs/images/rbac.jpg" alt="Role based access control" width="900">
 </div> 
