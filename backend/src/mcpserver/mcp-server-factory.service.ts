@@ -49,6 +49,7 @@ import {
 } from './etienne-configuration-tools';
 import { ProcessManagerService } from '../process-manager/process-manager.service';
 import { ConfigurationService } from '../configuration/configuration.service';
+import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -79,6 +80,7 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly ruleEngineService: RuleEngineService,
     private readonly processManagerService: ProcessManagerService,
     private readonly configurationService: ConfigurationService,
+    private readonly ssePublisherService: SSEPublisherService,
   ) {
     this.groupConfigs = {
       'demo': {
@@ -97,7 +99,7 @@ export class McpServerFactoryService implements OnModuleInit {
         toolServices: [createEmailToolsService(smtpService, imapService)],
       },
       'scrapbook': {
-        toolServices: [createScrapbookToolsService(scrapbookService)],
+        toolServices: [createScrapbookToolsService(scrapbookService, ssePublisherService)],
       },
       'a2a': {
         toolServices: [createA2AToolsService(a2aClientService, a2aSettingsService, () => this.currentProjectRoot)],

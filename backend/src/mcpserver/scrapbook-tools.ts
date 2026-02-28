@@ -1,5 +1,6 @@
 import { ToolService, McpTool } from './types';
 import { ScrapbookService } from '../scrapbook/scrapbook.service';
+import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
@@ -165,6 +166,7 @@ const tools: McpTool[] = [
  */
 export function createScrapbookToolsService(
   scrapbookService: ScrapbookService,
+  ssePublisher?: SSEPublisherService,
 ): ToolService {
 
   /**
@@ -221,6 +223,13 @@ export function createScrapbookToolsService(
         };
         await fs.ensureDir(projectDir);
         await fs.writeJson(filePath, scbkContent, { spaces: 2 });
+
+        // Notify the frontend so the preview tab auto-opens
+        if (ssePublisher) {
+          ssePublisher.broadcastToProject(project, 'file_added', {
+            path: filename,
+          });
+        }
       }
 
       return {
