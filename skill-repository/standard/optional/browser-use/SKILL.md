@@ -5,6 +5,57 @@ description: "Browser automation CLI for AI agents. Use when the user needs to i
 
 # Browser Automation with agent-browser
 
+## Output Directory
+
+All files produced by agent-browser (screenshots, videos, PDFs, downloads) **must** be saved to the project's `out/` directory using an **absolute path**. Derive the output directory from your current working directory:
+
+```bash
+OUT_DIR="$(pwd)/out"
+mkdir -p "$OUT_DIR"
+```
+
+Always use `$OUT_DIR` (or the expanded absolute path) in every agent-browser command that produces a file. Never use relative paths like `out/` — always use the full absolute path to ensure files land in the correct project directory regardless of where agent-browser resolves its working directory.
+
+Use these paths consistently:
+
+- **Screenshots**: `$OUT_DIR/screenshot-<descriptive-name>.png`
+- **Full-page screenshots**: `$OUT_DIR/screenshot-<descriptive-name>-full.png`
+- **Annotated screenshots**: `$OUT_DIR/screenshot-<descriptive-name>-annotated.png`
+- **Videos/recordings**: `$OUT_DIR/recording-<descriptive-name>.webm`
+- **PDFs**: `$OUT_DIR/<descriptive-name>.pdf`
+- **Downloads**: use `--download-path "$OUT_DIR"` or save directly to `$OUT_DIR`
+- **Diff images**: `$OUT_DIR/diff-<descriptive-name>.png`
+- **Profiler traces**: `$OUT_DIR/trace-<descriptive-name>.json`
+
+Examples:
+
+```bash
+OUT_DIR="$(pwd)/out"
+mkdir -p "$OUT_DIR"
+
+# Screenshots
+agent-browser screenshot "$OUT_DIR/screenshot-homepage.png"
+agent-browser screenshot --full "$OUT_DIR/screenshot-homepage-full.png"
+agent-browser screenshot --annotate "$OUT_DIR/screenshot-form-annotated.png"
+
+# Video recording
+agent-browser record start "$OUT_DIR/recording-login-flow.webm"
+
+# PDF export
+agent-browser pdf "$OUT_DIR/report.pdf"
+
+# Downloads
+agent-browser --download-path "$OUT_DIR" open https://example.com
+
+# Diff
+agent-browser diff screenshot --baseline "$OUT_DIR/screenshot-before.png" "$OUT_DIR/diff-changes.png"
+
+# Profiler
+agent-browser profiler stop "$OUT_DIR/trace-performance.json"
+```
+
+Never save agent-browser output files to the project root, temp directories, or other locations. Always use the absolute `$OUT_DIR` path.
+
 ## Core Workflow
 
 Every browser automation follows this pattern:
@@ -38,7 +89,7 @@ agent-browser open https://example.com && agent-browser wait --load networkidle 
 agent-browser fill @e1 "user@example.com" && agent-browser fill @e2 "password123" && agent-browser click @e3
 
 # Navigate and capture
-agent-browser open https://example.com && agent-browser wait --load networkidle && agent-browser screenshot page.png
+agent-browser open https://example.com && agent-browser wait --load networkidle && agent-browser screenshot out/screenshot-example.png
 ```
 
 **When to chain:** Use `&&` when you don't need to read the output of an intermediate command before proceeding (e.g., open + wait + screenshot). Run commands separately when you need to parse the output first (e.g., snapshot to discover refs, then interact using those refs).
@@ -80,15 +131,15 @@ agent-browser wait --url "**/page"    # Wait for URL pattern
 agent-browser wait 2000               # Wait milliseconds
 
 # Downloads
-agent-browser download @e1 ./file.pdf          # Click element to trigger download
-agent-browser wait --download ./output.zip     # Wait for any download to complete
-agent-browser --download-path ./downloads open <url>  # Set default download directory
+agent-browser download @e1 out/file.pdf          # Click element to trigger download
+agent-browser wait --download out/output.zip     # Wait for any download to complete
+agent-browser --download-path out/ open <url>  # Set default download directory
 
-# Capture
-agent-browser screenshot              # Screenshot to temp dir
-agent-browser screenshot --full       # Full page screenshot
-agent-browser screenshot --annotate   # Annotated screenshot with numbered element labels
-agent-browser pdf output.pdf          # Save as PDF
+# Capture (always save to out/)
+agent-browser screenshot out/screenshot.png              # Screenshot
+agent-browser screenshot --full out/screenshot-full.png  # Full page screenshot
+agent-browser screenshot --annotate out/screenshot-annotated.png  # Annotated with element labels
+agent-browser pdf out/output.pdf          # Save as PDF
 
 # Diff (compare page states)
 agent-browser diff snapshot                          # Compare current vs last snapshot
@@ -175,7 +226,7 @@ agent-browser state clean --older-than 7
 agent-browser open https://example.com/products
 agent-browser snapshot -i
 agent-browser get text @e5           # Get specific element text
-agent-browser get text body > page.txt  # Get all page text
+agent-browser get text body > out/page.txt  # Get all page text
 
 # JSON output for parsing
 agent-browser snapshot -i --json
@@ -223,9 +274,9 @@ agent-browser set media dark
 ```bash
 agent-browser --headed open https://example.com
 agent-browser highlight @e1          # Highlight element
-agent-browser record start demo.webm # Record session
+agent-browser record start out/recording-demo.webm # Record session
 agent-browser profiler start         # Start Chrome DevTools profiling
-agent-browser profiler stop trace.json # Stop and save profile (path optional)
+agent-browser profiler stop out/trace.json # Stop and save profile (path optional)
 ```
 
 ### Local Files (PDFs, HTML)
@@ -234,7 +285,7 @@ agent-browser profiler stop trace.json # Stop and save profile (path optional)
 # Open local files with file:// URLs
 agent-browser --allow-file-access open file:///path/to/document.pdf
 agent-browser --allow-file-access open file:///path/to/page.html
-agent-browser screenshot output.png
+agent-browser screenshot out/screenshot-document.png
 ```
 
 ### iOS Simulator (Mobile Safari)
@@ -253,7 +304,7 @@ agent-browser -p ios fill @e2 "text"
 agent-browser -p ios swipe up         # Mobile-specific gesture
 
 # Take screenshot
-agent-browser -p ios screenshot mobile.png
+agent-browser -p ios screenshot out/screenshot-mobile.png
 
 # Close session (shuts down simulator)
 agent-browser -p ios close
@@ -328,9 +379,9 @@ For visual regression testing or monitoring:
 
 ```bash
 # Save a baseline screenshot, then compare later
-agent-browser screenshot baseline.png
+agent-browser screenshot out/screenshot-baseline.png
 # ... time passes or changes are made ...
-agent-browser diff screenshot --baseline baseline.png
+agent-browser diff screenshot --baseline out/screenshot-baseline.png
 
 # Compare staging vs production
 agent-browser diff url https://staging.example.com https://prod.example.com --screenshot
@@ -403,7 +454,7 @@ agent-browser click @e1              # Use new refs
 Use `--annotate` to take a screenshot with numbered labels overlaid on interactive elements. Each label `[N]` maps to ref `@eN`. This also caches refs, so you can interact with elements immediately without a separate snapshot.
 
 ```bash
-agent-browser screenshot --annotate
+agent-browser screenshot --annotate out/screenshot-annotated.png
 # Output includes the image path and a legend:
 #   [1] @e1 button "Submit"
 #   [2] @e2 link "Home"
