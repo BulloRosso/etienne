@@ -391,7 +391,7 @@ Etienne provides an exchangable endpoint to extract memories from a user prompt 
 Memory extraction is activated per default and can be accessed via the green memory card icon below the app bar.
 
 <div align="center">
-<img src="/docs/images/memories.jpg" alt="Memory pane" width="500">
+<img src="/docs/images/memory.jpg" alt="Memory pane" width="500">
 </div>
 
 Memories are stored per project and not globally in the default configuration.
