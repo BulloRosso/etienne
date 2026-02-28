@@ -1,5 +1,7 @@
 import { ToolService, McpTool } from './types';
 import { ScrapbookService } from '../scrapbook/scrapbook.service';
+import * as path from 'path';
+import * as fs from 'fs-extra';
 
 /**
  * Scrapbook Tools Service
@@ -12,6 +14,32 @@ import { ScrapbookService } from '../scrapbook/scrapbook.service';
  * Tool definitions for scrapbook management
  */
 const tools: McpTool[] = [
+  {
+    name: 'scrapbook_create_root_node',
+    description: 'Creates the root node (ProjectTheme) for a new scrapbook. This must be called before any other nodes can be added. Only one root node can exist per scrapbook. Returns an error if a root node already exists.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: {
+          type: 'string',
+          description: 'The project name (directory name in workspace). Extract this from the current working directory.',
+        },
+        label: {
+          type: 'string',
+          description: 'The label/name for the root node — typically the project or main topic name.',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional description for the root node.',
+        },
+        icon_name: {
+          type: 'string',
+          description: 'Optional icon name from react-icons (e.g., "FaHome", "FaBook").',
+        },
+      },
+      required: ['project', 'label'],
+    },
+  },
   {
     name: 'scrapbook_describe_node',
     description: 'Describes the content of the scrapbook/mindmap. If a category name is provided, returns the description of that category and its children. If no category is provided, returns the full scrapbook content. The description is formatted as markdown with priorities and attention weights translated to human-readable sentences.',
@@ -138,6 +166,81 @@ const tools: McpTool[] = [
 export function createScrapbookToolsService(
   scrapbookService: ScrapbookService,
 ): ToolService {
+
+  /**
+   * Create the root node (ProjectTheme) for a new scrapbook
+   */
+  async function createRootNode(
+    project: string,
+    label: string,
+    description?: string,
+    iconName?: string,
+  ): Promise<any> {
+    if (!project) {
+      throw new Error('Project name is required. Extract it from the workspace path.');
+    }
+
+    if (!label) {
+      throw new Error('Label is required for the root node.');
+    }
+
+    // Check if a root node already exists
+    const existingRoot = await scrapbookService.getRootNode(project);
+    if (existingRoot) {
+      return {
+        success: false,
+        error: `A root node already exists: "${existingRoot.label}". Each scrapbook can only have one root node.`,
+      };
+    }
+
+    try {
+      const newNode = await scrapbookService.createNode(
+        project,
+        {
+          type: 'ProjectTheme',
+          label,
+          description: description || '',
+          priority: 5,
+          attentionWeight: 0.5,
+          iconName,
+        },
+      );
+
+      // Write the .scbk meta file so the UI auto-detects the scrapbook
+      const workspaceDir = process.env.WORKSPACE_ROOT || path.join(process.cwd(), '..', 'workspace');
+      const projectDir = path.join(workspaceDir, project);
+      const filename = 'scrapbook.default.scbk';
+      const filePath = path.join(projectDir, filename);
+
+      if (!(await fs.pathExists(filePath))) {
+        const scbkContent = {
+          name: label,
+          graphName: 'default',
+          createdAt: new Date().toISOString(),
+          version: 1,
+        };
+        await fs.ensureDir(projectDir);
+        await fs.writeJson(filePath, scbkContent, { spaces: 2 });
+      }
+
+      return {
+        success: true,
+        message: `Successfully created scrapbook with root node "${label}"`,
+        node: {
+          id: newNode.id,
+          label: newNode.label,
+          type: newNode.type,
+          priority: newNode.priority,
+          attentionWeight: newNode.attentionWeight,
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: `Root node could not be created because: * ${error.message}`,
+      };
+    }
+  }
 
   /**
    * Describe a node or the full scrapbook
@@ -362,6 +465,14 @@ export function createScrapbookToolsService(
    */
   async function execute(toolName: string, args: any): Promise<any> {
     switch (toolName) {
+      case 'scrapbook_create_root_node':
+        return createRootNode(
+          args.project,
+          args.label,
+          args.description,
+          args.icon_name,
+        );
+
       case 'scrapbook_describe_node':
         return describeNode(args.project, args.category_node_name);
 

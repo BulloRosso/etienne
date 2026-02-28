@@ -50,12 +50,10 @@ For example, if the working directory is `/workspace/kitchen-renovation`, the pr
 ### If the scrapbook is empty:
 The tool will return: `Scrapbook is empty. No root node found.`
 
-In this case, warmly inform the user and offer two paths:
+In this case, warmly inform the user and offer to create the scrapbook:
 
-1. **Quick start via the dashboard**: Open the Scrapbook view in the project dashboard. Click the menu and choose **Create from Text** — paste in meeting notes, a brainstorm, or any text and the system will auto-organize it into a structured mindmap.
-2. **Manual start via the dashboard**: Use the Graph or Table view to create the first node (the main topic), then come back to chat and the assistant can help add items underneath.
-
-> **Note**: The root node (ProjectTheme) cannot be created via the chat tools — it must be set up through the dashboard first. Once the root exists, all further additions can happen through conversation.
+1. **Quick start via chat**: Ask the user what their project or main topic is, then call `scrapbook_create_root_node` to create the root node. Once the root exists, add categories and items underneath using `scrapbook_add_node`.
+2. **Quick start via the dashboard**: Alternatively, the user can open the Scrapbook view in the project dashboard, click the menu and choose **Create from Text** — paste in meeting notes, a brainstorm, or any text and the system will auto-organize it into a structured mindmap.
 
 ---
 
@@ -105,6 +103,19 @@ When talking to users, use plain language: "top priority", "on your radar", "par
 ---
 
 ## MCP Tools Reference
+
+### scrapbook_create_root_node
+
+Creates the root node (ProjectTheme) for a new scrapbook. Must be called before any other nodes can be added. Only one root node can exist per scrapbook.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `project` | Yes | Project directory name |
+| `label` | Yes | Name for the root node — typically the project or main topic name |
+| `description` | No | Longer description or notes about the project |
+| `icon_name` | No | Icon from react-icons (e.g., "FaHome", "FaBook", "FaCar") |
+
+**Returns**: The created root node on success, or an error if a root node already exists.
 
 ### scrapbook_describe_node
 
@@ -212,12 +223,10 @@ When the scrapbook is empty (`Scrapbook is empty. No root node found.`):
 
 1. Explain warmly that the scrapbook is a blank canvas.
 2. Ask what their project or main topic is.
-3. **If they have existing content** (meeting notes, documents, a brain dump):
-   - Recommend the **Create from Text** feature: "In the Scrapbook view on your dashboard, click the menu and select 'Create from Text'. Paste your notes and the system will automatically organize them into a structured mindmap."
-4. **If they want to start from scratch**:
-   - Guide them to create the first node (ProjectTheme) via the dashboard Graph or Table view.
-   - Once the root exists, offer to help build out categories and items through conversation.
-5. **Important**: The MCP tools cannot create the root node — they always add nodes *under* an existing parent. The root must be created through the dashboard.
+3. Call `scrapbook_create_root_node` with the project name and the user's chosen label to create the root node.
+4. Once the root is created, offer to help build out categories and items through conversation using `scrapbook_add_node`.
+5. **If they have existing content** (meeting notes, documents, a brain dump):
+   - Recommend the **Create from Text** feature as an alternative: "You can also use the Scrapbook view on your dashboard — click the menu and select 'Create from Text' to auto-organize your notes into a structured mindmap."
 
 ---
 

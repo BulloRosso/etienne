@@ -401,7 +401,7 @@ The extraction prompt is adjustable to sharpen the focus to certain business dom
 
 # The Web: Searching, Scraping and Browsing
 
-Use the web-access tool to enable the agent to interact with websites on the internet.
+Use the **web-scraping skill** to enable the agent to interact with websites on the internet.
 
 <div align="center">
 <img src="/docs/images/web-access.jpg" alt="Interacting with websites" width="800">
