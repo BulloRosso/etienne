@@ -6,13 +6,19 @@
 
 ## What it does in one sentence
 
+Etienne is an **integration harness** around a **coding harness** to build user friendly agent interactions:
+
 <div align="center">
 <img src="/docs/images/core-functions.jpg" alt="Core Functions" style="marginBottom: 24px" width="500">
 </div> 
 
+---
+
 > Etienne showcases how to attach typical business requirements to a 
 > **coding agent harness** in order to enable a non-technical user 
 > to interact with the agent using a refined UI.
+
+---
 
 <div align="center">
 <img src="/docs/images/ui-example.jpg" style="marginTop: 24px;marginBottom: 24px" alt="UI example" width="900">
