@@ -12,17 +12,19 @@ Etienne is an **integration harness** around a **coding harness** to build user 
 <img src="/docs/images/core-functions.jpg" alt="Core Functions" style="marginBottom: 24px" width="500">
 </div> 
 
-<br><br><br>
+<br>
 
 > Etienne showcases how to attach typical business requirements to a 
 > **coding agent harness** in order to enable a non-technical user 
 > to interact with the agent using a refined UI.
 
-<br><br><br>
+<br>
 
 <div align="center">
 <img src="/docs/images/ui-example.jpg" style="marginTop: 24px;marginBottom: 24px" alt="UI example" width="900">
 </div> 
+
+<br>
 
 This setup addresses the use case **business collaborator agent** working on local data.
 
