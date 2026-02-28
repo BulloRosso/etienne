@@ -22,6 +22,8 @@ import {
   Chip,
   Snackbar,
   Alert,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { Close, DeleteOutline, Edit, Save, UploadFile, InsertDriveFileOutlined, InfoOutlined, MoreVert } from '@mui/icons-material';
 import { Menu, MenuItem } from '@mui/material';
@@ -30,10 +32,13 @@ import Editor from '@monaco-editor/react';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
+import PowerUpSection from './PowerUpSection';
 
 export default function SkillsSettings({ open, onClose, project }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
+  const muiTheme = useTheme();
+  const isLargeScreen = useMediaQuery(muiTheme.breakpoints.up('lg'));
   const [skills, setSkills] = useState([]);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -57,6 +62,9 @@ export default function SkillsSettings({ open, onClose, project }) {
   useEffect(() => {
     if (open && project) {
       loadSkills();
+      if (isLargeScreen && repoSkills.length === 0) {
+        loadRepoSkills();
+      }
     }
   }, [open, project]);
 
@@ -388,7 +396,7 @@ Show what the expected output should look like.
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={onClose} maxWidth={isLargeScreen ? 'md' : 'sm'} fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <GiAtom style={{ fontSize: '24px' }} />
@@ -403,18 +411,31 @@ Show what the expected output should look like.
           onChange={(e, v) => {
             setActiveTab(v);
             setSelectedSkill(null);
-            if (v === 2 && repoSkills.length === 0) {
+            const repoTabIndex = isLargeScreen ? 3 : 2;
+            const powerUpTabIndex = isLargeScreen ? 0 : -1;
+            if (v === repoTabIndex && repoSkills.length === 0) {
+              loadRepoSkills();
+            }
+            if (v === powerUpTabIndex && repoSkills.length === 0) {
               loadRepoSkills();
             }
           }}
           sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
         >
+          {isLargeScreen && <Tab label={t('skills.tabPowerUp')} />}
           <Tab label={t('skills.tabThisProject')} />
           <Tab label={t('skills.tabOtherProjects')} />
           <Tab label={t('skills.tabRepository')} />
         </Tabs>
         <DialogContent sx={{ p: 0 }}>
-          {activeTab === 2 ? (
+          {isLargeScreen && activeTab === 0 ? (
+            <PowerUpSection
+              skills={skills}
+              repoSkills={repoSkills}
+              onProvisionSkill={handleProvisionSkill}
+              onDeleteSkill={handleDeleteSkill}
+            />
+          ) : (isLargeScreen ? activeTab === 3 : activeTab === 2) ? (
             <List sx={{ minHeight: '300px', maxHeight: '400px', overflow: 'auto' }}>
               {repoLoading ? (
                 <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -564,10 +585,11 @@ Show what the expected output should look like.
             </List>
           ) : (
             (() => {
-              const filteredSkills = activeTab === 0
+              const thisProjectTab = isLargeScreen ? 1 : 0;
+              const filteredSkills = activeTab === thisProjectTab
                 ? skills.filter(s => s.isFromCurrentProject)
                 : skills.filter(s => !s.isFromCurrentProject);
-              const emptyMessage = activeTab === 0
+              const emptyMessage = activeTab === thisProjectTab
                 ? t('skills.noSkillsCreate')
                 : t('skills.noSkillsOtherProjects');
 
@@ -678,7 +700,7 @@ Show what the expected output should look like.
           )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'flex-end', p: 2 }}>
-          {activeTab === 0 && (
+          {activeTab === (isLargeScreen ? 1 : 0) && (
             <Button
               variant="contained"
               startIcon={<GiAtom />}

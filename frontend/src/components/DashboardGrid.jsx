@@ -235,7 +235,9 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
                 transform: 'translateY(-2px)',
                 boxShadow: 6
               },
-              minHeight: '100px'
+              minHeight: '100px',
+              minWidth: 0,
+              overflow: 'hidden'
             }}
             onClick={() => !item.disabled && handleClick(item.id)}
           >
@@ -257,8 +259,13 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
               sx={{
                 color: item.disabled ? 'rgba(0,0,0,0.38)' : '#000',
                 fontWeight: 500,
-                fontSize: '0.75rem'
+                fontSize: '0.75rem',
+                width: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
               }}
+              title={item.label}
             >
               {item.label}
             </Typography>
