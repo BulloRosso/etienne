@@ -114,7 +114,9 @@
       "WebFetch(domain:deepwiki.com)",
       "Bash(/c/Data/GitHub/claude-multitenant/web-scraper/.venv/Scripts/python.exe -c \"import scrapling; print\\(scrapling.__file__\\)\")",
       "Bash(/c/Data/GitHub/claude-multitenant/web-scraper/.venv/Scripts/pip.exe list)",
-      "Bash(.venv/Scripts/python.exe -c \":*)"
+      "Bash(.venv/Scripts/python.exe -c \":*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(agent-browser install)"
     ],
     "deny": [],
     "ask": []

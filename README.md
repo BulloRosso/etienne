@@ -413,7 +413,7 @@ It uses these technologies by default:
 
 * **Web scraping**: Uses the Scrapling GitHub project which is fast and can process Javascript sites. It is a common choice for red-teaming tasks.
 
-* **Web browsing**: Uses Vercel's agent browser which is good for cooperative sites and a token saver (compared to pure Playwright implementations). Keep in mind that it is not suited to interact with websites which deploy anti-bot/anti-agent techniques like captchas or fingerprinting!
+* **Web browsing**: Uses Vercel's [agent-browser](https://github.com/vercel-labs/agent-browser) package, a headless browser automation CLI designed for AI agents. Pre-installed in the Docker image via `npm install -g agent-browser` with Chromium pre-downloaded. It is a good choice for cooperative sites and a token saver (compared to pure Playwright implementations). The browser daemon can be managed from the service console. Keep in mind that it is not suited to interact with websites which deploy anti-bot/anti-agent techniques like captchas or fingerprinting!
 
 # Main Components
 

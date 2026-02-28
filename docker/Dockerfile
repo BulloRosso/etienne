@@ -118,6 +118,12 @@ COPY ms-teams/src ./src/
 COPY ms-teams/tsconfig.json ./
 
 # ============================================
+# Install agent-browser (global CLI tool for browser automation)
+# ============================================
+WORKDIR /app
+RUN npm install -g agent-browser && agent-browser install
+
+# ============================================
 # Setup startup script
 # ============================================
 WORKDIR /app
