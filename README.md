@@ -469,7 +469,7 @@ sequenceDiagram
     end
 ```
 
-The immune system our agent never had — with a human hand on the switch.
+The immune system most other agents lack — with a human hand on the switch.
 
 To enable self-healing on a project, activate the **self-healing** skill from the skill store. It guides users through creating structured issue reports with title, description, reproduction steps, and expected vs. actual behavior — all submitted to an admin for review before any automated repair is triggered.
 
