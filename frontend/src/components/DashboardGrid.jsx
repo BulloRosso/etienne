@@ -82,6 +82,13 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
     },
     // 7th row
     {
+      id: 'issues',
+      image: '/issues.jpg',
+      label: t('dashboard.itemIssues'),
+      disabled: !currentProject,
+      minRole: 'user'
+    },
+    {
       id: 'ontologycore',
       image: '/decision-support.jpg',
       label: t('dashboard.itemDecisionSupport'),
@@ -217,7 +224,11 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
           pt: 1
         }}
       >
-        {dashboardItems.filter((item) => !item.adminOnly || (user && user.role === 'admin')).map((item) => (
+        {dashboardItems.filter((item) => {
+          if (item.adminOnly && (!user || user.role !== 'admin')) return false;
+          if (item.minRole === 'user' && (!user || user.role === 'guest')) return false;
+          return true;
+        }).map((item) => (
           <Paper
             key={item.id}
             elevation={3}

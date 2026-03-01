@@ -79,6 +79,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [Built around Skills](#built-around-skills)
 - [Built for Connectivity](#built-for-connectivity)
 - [Focused on local Data and Services](#focused-on-local-data-and-services)
+- [Self-Healing Capabilities](#self-healing-capabilities)
 - [Managed Etienne](#managed-etienne)
 - [Memory](#memory)
 - [The Web: searching, scraping and browsing](#the-web-searching-scraping-and-browsing)
@@ -373,6 +374,25 @@ All of the local **services treat projects like tenants**: they store their data
 </div>
 
 In the example above we can see the RDF store ("knowledge graph") log and data files inside a project's directory.
+
+
+# Self-Healing Capabilities
+
+Etienne gives your application the ability to patch its own source code when users report problems — with full human oversight at every critical step.
+
+**Here's the workflow:** A user files an issue describing what's broken. An admin reviews it, sets priority, and authorizes the AI agent to investigate. The agent — Claude Opus 4.5 via the Claude Agent SDK — analyzes source code, logs, and configuration across your NestJS and Python services, identifies the root cause, and produces a minimal code patch. Depending on the risk level, the patch is either applied automatically or presented to the admin for review. After patching, the affected service restarts and the system verifies the fix worked. If it didn't, automatic rollback kicks in.
+
+This is not a copilot suggesting changes for you to implement. This is an embedded repair system that lives inside your application, understands your code at the deepest level, and acts on explicit human authorization.
+
+**Four safety layers** ensure you're always in control:
+1. **Admin approval gates** — no agent action starts without explicit authorization
+2. **Agent-level guardrails** — dangerous commands blocked, file edits restricted to the application directory
+3. **Pre-patch snapshots** with automatic rollback on verification failure
+4. **Immutable audit trail** — every agent action is logged (who approved, what changed, what happened)
+
+**Graduated autonomy** lets admins build trust incrementally across four levels: from observe-only (Level 0) where the agent only diagnoses and suggests fixes, to fully automatic patching with rollback guarantees (Level 3). New deployments always start at Level 0.
+
+The immune system your application never had — with a human hand on the switch.
 
 
 # Managed Etienne

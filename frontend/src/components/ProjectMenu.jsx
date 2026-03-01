@@ -43,6 +43,7 @@ import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
 import ServiceControlDrawer from './ServiceControlDrawer';
+import IssueManager from './IssueManager';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
@@ -69,6 +70,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
   const [ontologyCoreOpen, setOntologyCoreOpen] = useState(false);
+  const [issuesOpen, setIssuesOpen] = useState(false);
   const [scrapbookListOpen, setScrapbookListOpen] = useState(false);
   const [scrapbooks, setScrapbooks] = useState([]);
   const [createScrapbookDialogOpen, setCreateScrapbookDialogOpen] = useState(false);
@@ -170,6 +172,9 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
         break;
       case 'conditionmonitoring':
         handleConditionMonitoringOpen();
+        break;
+      case 'issues':
+        handleIssuesOpen();
         break;
       case 'ontologycore':
         handleOntologyCoreOpen();
@@ -380,6 +385,15 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
 
   const handleOntologyCoreClose = () => {
     setOntologyCoreOpen(false);
+  };
+
+  const handleIssuesOpen = () => {
+    setIssuesOpen(true);
+    handleMenuClose();
+  };
+
+  const handleIssuesClose = () => {
+    setIssuesOpen(false);
   };
 
   const fetchScrapbooks = async () => {
@@ -866,6 +880,12 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           onClose={handleOntologyCoreClose}
         />
       </Dialog>
+
+      <IssueManager
+        open={issuesOpen}
+        onClose={handleIssuesClose}
+        currentProject={currentProject}
+      />
 
       <Dialog
         open={scrapbookListOpen}
