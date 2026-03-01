@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Box, Tooltip, Menu, MenuItem, Typography, Divider } from '@mui/material';
+import { GiAtom } from 'react-icons/gi';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import SkillsSettings from './SkillsSettings';
+import DonClippoModal from './DonClippoModal';
 
-export default function SkillIndicator({ projectName }) {
+export default function SkillIndicator({ projectName, sessionId }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [skills, setSkills] = useState([]);
   const [skillsModalOpen, setSkillsModalOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [donClippoOpen, setDonClippoOpen] = useState(false);
 
   // Hide for admin role
   const isAdmin = hasRole('admin');
@@ -46,7 +50,7 @@ export default function SkillIndicator({ projectName }) {
     <>
       <Tooltip title={t('skillIndicator.tooltip')}>
         <Box
-          onClick={() => setSkillsModalOpen(true)}
+          onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -76,13 +80,38 @@ export default function SkillIndicator({ projectName }) {
         </Box>
       </Tooltip>
 
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+      >
+        {skills.map(skill => (
+          <MenuItem key={skill} onClick={() => { setAnchorEl(null); setSkillsModalOpen(true); }}>
+            <GiAtom style={{ fontSize: 16, marginRight: 8, color: '#ff9800' }} />
+            <Typography variant="body2">{skill}</Typography>
+          </MenuItem>
+        ))}
+        <Divider />
+        <MenuItem onClick={() => { setAnchorEl(null); setDonClippoOpen(true); }}>
+          <img src="/don-clippo.png" alt="" style={{ width: 20, height: 20, marginRight: 8, borderRadius: 4, objectFit: 'contain' }} />
+          <Typography variant="body2">{t('donClippo.visitMenuItem')}</Typography>
+        </MenuItem>
+      </Menu>
+
       <SkillsSettings
         open={skillsModalOpen}
         onClose={() => {
           setSkillsModalOpen(false);
-          loadSkills(); // Refresh skills when modal closes
+          loadSkills();
         }}
         project={projectName}
+      />
+
+      <DonClippoModal
+        open={donClippoOpen}
+        onClose={() => { setDonClippoOpen(false); loadSkills(); }}
+        projectName={projectName}
+        sessionId={sessionId}
       />
     </>
   );

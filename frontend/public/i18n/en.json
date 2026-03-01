@@ -652,6 +652,17 @@
   "mcpToolsIndicator.noToolsAvailable": "No tools available from this server.",
   "mcpToolsIndicator.toolsAvailableCount": "{{count}} tool(s) available",
 
+  "donClippo.visitMenuItem": "Visit Don Clippo",
+  "donClippo.title": "Don Clippo's Office",
+  "donClippo.waitingMessage": "Please, sit down and relax. Don Clippo will hear you out soon...",
+  "donClippo.suggestedServers": "Recommended MCP Servers",
+  "donClippo.suggestedSkills": "Recommended Skills",
+  "donClippo.noSuggestions": "Don Clippo says you're all set, capisce? No further arrangements necessary.",
+  "donClippo.accept": "Accept the Offer",
+  "donClippo.applying": "Applying...",
+  "donClippo.error": "Don Clippo encountered a problem: {{message}}",
+  "skillIndicator.skillsSettings": "Skills Settings",
+
   "a2aSettings.failedToLoad": "Failed to load A2A settings",
   "a2aSettings.failedToFetchRegistry": "Failed to fetch registry: {{message}}",
   "a2aSettings.failedToSave": "Failed to save A2A settings",

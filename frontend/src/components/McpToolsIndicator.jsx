@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Tooltip, Menu, MenuItem, Typography,
+  Box, Tooltip, Menu, MenuItem, Typography, Divider,
   Drawer, List, ListItem, ListItemIcon, ListItemText,
   CircularProgress, Button
 } from '@mui/material';
@@ -8,8 +8,9 @@ import { Build } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import DonClippoModal from './DonClippoModal';
 
-export default function McpToolsIndicator({ projectName }) {
+export default function McpToolsIndicator({ projectName, sessionId }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [mcpServers, setMcpServers] = useState({});
@@ -19,6 +20,7 @@ export default function McpToolsIndicator({ projectName }) {
   const [toolsList, setToolsList] = useState([]);
   const [toolsLoading, setToolsLoading] = useState(false);
   const [toolsError, setToolsError] = useState(null);
+  const [donClippoOpen, setDonClippoOpen] = useState(false);
 
   // Hide for admin role
   const isAdmin = hasRole('admin');
@@ -124,6 +126,11 @@ export default function McpToolsIndicator({ projectName }) {
             <Typography variant="body2">{name}</Typography>
           </MenuItem>
         ))}
+        <Divider />
+        <MenuItem onClick={() => { setAnchorEl(null); setDonClippoOpen(true); }}>
+          <img src="/don-clippo.png" alt="" style={{ width: 20, height: 20, marginRight: 8, borderRadius: 4, objectFit: 'contain' }} />
+          <Typography variant="body2">{t('donClippo.visitMenuItem')}</Typography>
+        </MenuItem>
       </Menu>
 
       <Drawer
@@ -196,6 +203,13 @@ export default function McpToolsIndicator({ projectName }) {
           </Box>
         </Box>
       </Drawer>
+
+      <DonClippoModal
+        open={donClippoOpen}
+        onClose={() => { setDonClippoOpen(false); loadMcpConfig(); }}
+        projectName={projectName}
+        sessionId={sessionId}
+      />
     </>
   );
 }

@@ -652,6 +652,17 @@
   "mcpToolsIndicator.noToolsAvailable": "此服务器暂无可用工具。",
   "mcpToolsIndicator.toolsAvailableCount": "{{count}} 个可用工具",
 
+  "donClippo.visitMenuItem": "拜访 Don Clippo",
+  "donClippo.title": "Don Clippo 的办公室",
+  "donClippo.waitingMessage": "请坐下放松。Don Clippo 很快就会接见您...",
+  "donClippo.suggestedServers": "推荐的 MCP 服务器",
+  "donClippo.suggestedSkills": "推荐的技能",
+  "donClippo.noSuggestions": "Don Clippo 说您已经准备就绪了，明白吗？无需更多安排。",
+  "donClippo.accept": "接受这个提议",
+  "donClippo.applying": "正在应用...",
+  "donClippo.error": "Don Clippo 遇到了一个问题：{{message}}",
+  "skillIndicator.skillsSettings": "技能设置",
+
   "a2aSettings.failedToLoad": "加载 A2A 设置失败",
   "a2aSettings.failedToFetchRegistry": "获取注册表失败：{{message}}",
   "a2aSettings.failedToSave": "保存 A2A 设置失败",

@@ -616,6 +616,18 @@
   "mcpToolsIndicator.drawerTitle": "Bereitgestellte Tools",
   "mcpToolsIndicator.noToolsAvailable": "Keine Tools von diesem Server verfügbar.",
   "mcpToolsIndicator.toolsAvailableCount": "{{count}} Tool(s) verfügbar",
+
+  "donClippo.visitMenuItem": "Don Clippo besuchen",
+  "donClippo.title": "Don Clippos Büro",
+  "donClippo.waitingMessage": "Bitte, setzen Sie sich und entspannen Sie sich. Don Clippo wird Sie gleich empfangen...",
+  "donClippo.suggestedServers": "Empfohlene MCP-Server",
+  "donClippo.suggestedSkills": "Empfohlene Skills",
+  "donClippo.noSuggestions": "Don Clippo sagt, Sie sind bestens ausgestattet, capisce? Keine weiteren Arrangements nötig.",
+  "donClippo.accept": "Das Angebot annehmen",
+  "donClippo.applying": "Wird angewendet...",
+  "donClippo.error": "Don Clippo hat ein Problem festgestellt: {{message}}",
+  "skillIndicator.skillsSettings": "Skills-Einstellungen",
+
   "a2aSettings.failedToLoad": "A2A-Einstellungen konnten nicht geladen werden",
   "a2aSettings.failedToFetchRegistry": "Registry konnte nicht abgerufen werden: {{message}}",
   "a2aSettings.failedToSave": "A2A-Einstellungen konnten nicht gespeichert werden",

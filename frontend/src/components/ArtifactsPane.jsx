@@ -35,7 +35,7 @@ function TabPanel({ children, value, index }) {
   );
 }
 
-export default function ArtifactsPane({ files, projectName, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab, previewersConfig, autoFilePreviewExtensions }) {
+export default function ArtifactsPane({ files, projectName, sessionId, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab, previewersConfig, autoFilePreviewExtensions }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -171,8 +171,8 @@ export default function ArtifactsPane({ files, projectName, showBackgroundInfo, 
         )}
         {projectExists && (
           <>
-            <McpToolsIndicator projectName={projectName} />
-            <SkillIndicator projectName={projectName} />
+            <McpToolsIndicator projectName={projectName} sessionId={sessionId} />
+            <SkillIndicator projectName={projectName} sessionId={sessionId} />
             <A2AAgentsIndicator projectName={projectName} />
           </>
         )}
