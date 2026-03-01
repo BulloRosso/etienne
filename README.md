@@ -378,7 +378,11 @@ In the example above we can see the RDF store ("knowledge graph") log and data f
 
 # Self-Healing Capabilities
 
-Etienne gives our agent the ability to patch its own source code when you report problems — with full human oversight at every critical step.
+Etienne gives our agent the ability to patch its own source code when you report problems — with full human oversight at every critical step. You can open the issue tracker from the project menu:
+
+<div align="center">
+<img src="/frontend/public/issues.jpg" alt="Issue Tracker" width="700">
+</div>
 
 **Here's the workflow:** A user files an issue describing what's broken. An admin reviews it, sets priority, and authorizes the AI agent to investigate. The agent — Claude Opus 4.5 via the Claude Agent SDK — analyzes source code, logs, and configuration across our NestJS and Python services, identifies the root cause, and produces a minimal code patch. Depending on the risk level, the patch is either applied automatically or presented to the admin for review. After patching, the affected service restarts and the system verifies the fix worked. If it didn't, automatic rollback kicks in.
 
@@ -459,6 +463,8 @@ sequenceDiagram
 ```
 
 The immune system our agent never had — with a human hand on the switch.
+
+To enable self-healing on a project, activate the **self-healing** skill from the skill store. It guides users through creating structured issue reports with title, description, reproduction steps, and expected vs. actual behavior — all submitted to an admin for review before any automated repair is triggered.
 
 
 # Managed Etienne
