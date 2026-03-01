@@ -378,7 +378,14 @@ In the example above we can see the RDF store ("knowledge graph") log and data f
 
 # Self-Healing Capabilities
 
-Etienne gives our agent the ability to patch its own source code when you report problems — with full human oversight at every critical step. You can open the issue tracker from the project menu:
+As this project is built around the most sophisticated coding harness, one feature comes to your mind quite immediatelly: "Can't the agent fix its own code when there's some kind of error?"
+
+> Not every error is an error though - this is why
+> we should add a proper safeguard by using the human
+> 4 eyes principle: No code part of the vital agent functionalities
+> should be fixed automatically!
+
+Etienne gives our agent the ability to patch its own source code when you report problems — with full human oversight at every critical step. You can open the **issue tracker** from the project menu:
 
 <div align="center">
 <img src="/frontend/public/issues.jpg" alt="Issue Tracker" width="200">
