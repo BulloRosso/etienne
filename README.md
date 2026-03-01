@@ -381,7 +381,7 @@ In the example above we can see the RDF store ("knowledge graph") log and data f
 Etienne gives our agent the ability to patch its own source code when you report problems — with full human oversight at every critical step. You can open the issue tracker from the project menu:
 
 <div align="center">
-<img src="/frontend/public/issues.jpg" alt="Issue Tracker" width="700">
+<img src="/frontend/public/issues.jpg" alt="Issue Tracker" width="200">
 </div>
 
 **Here's the workflow:** A user files an issue describing what's broken. An admin reviews it, sets priority, and authorizes the AI agent to investigate. The agent — Claude Opus 4.5 via the Claude Agent SDK — analyzes source code, logs, and configuration across our NestJS and Python services, identifies the root cause, and produces a minimal code patch. Depending on the risk level, the patch is either applied automatically or presented to the admin for review. After patching, the affected service restarts and the system verifies the fix worked. If it didn't, automatic rollback kicks in.
