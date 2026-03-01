@@ -181,9 +181,10 @@ export class ClaudeController {
       maxTurns?: number;
       source?: string;
       sourceMetadata?: { provider?: string; username?: string; firstName?: string };
+      sessionName?: string;
     }
   ) {
-    const { prompt, maxTurns, source, sourceMetadata } = body;
+    const { prompt, maxTurns, source, sourceMetadata, sessionName } = body;
     const projectRoot = join(this.workspaceRoot, project);
 
     // Budget limit check — reject before any work if limit is exceeded
@@ -246,16 +247,22 @@ export class ClaudeController {
 
       // Persist to chat history
       try {
-        const mostRecentSessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
+        // Named sessions route to a fixed session; otherwise fall back to most recent
+        let targetSessionId: string | null;
+        if (sessionName) {
+          targetSessionId = await this.sessionsService.getOrCreateNamedSession(projectRoot, sessionName);
+        } else {
+          targetSessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
+        }
 
-        if (mostRecentSessionId) {
+        if (targetSessionId) {
           const sourceLabel = source || 'Automated';
           const costs = tokenUsage.input_tokens > 0 || tokenUsage.output_tokens > 0 ? {
             input_tokens: tokenUsage.input_tokens,
             output_tokens: tokenUsage.output_tokens
           } : undefined;
 
-          await this.sessionsService.appendMessages(projectRoot, mostRecentSessionId, [
+          await this.sessionsService.appendMessages(projectRoot, targetSessionId, [
             {
               timestamp,
               isAgent: false,
@@ -274,7 +281,7 @@ export class ClaudeController {
             }
           ]);
 
-          console.log(`[Unattended] Persisted chat history for project ${project}, session ${mostRecentSessionId}`);
+          console.log(`[Unattended] Persisted chat history for project ${project}, session ${targetSessionId}${sessionName ? ` (named: ${sessionName})` : ''}`);
         } else {
           console.log(`[Unattended] No session found for project ${project}, skipping chat persistence`);
         }

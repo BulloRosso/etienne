@@ -25,6 +25,9 @@ export interface SessionMetadata {
   sessionId: string;
   summary?: string;
   activeContextId?: string | null;
+  sessionName?: string;    // Fixed name for named sessions (e.g. "Scheduled Tasks")
+  pinned?: boolean;        // Pins session to top of session list
+  sessionType?: string;    // 'scheduler' | 'condition-monitor' | 'workflow'
 }
 
 export interface SessionsData {
@@ -214,9 +217,9 @@ export class SessionsService {
     return this.withLock(projectRoot, async () => {
       const data = await this.loadSessions(projectRoot);
 
-      // Generate missing summaries
+      // Generate missing summaries (skip pinned/named sessions — they use sessionName as summary)
       for (const session of data.sessions) {
-        if (!session.summary) {
+        if (!session.summary && !session.pinned) {
           console.log(`[SessionsService] Generating summary for session ${session.sessionId}`);
           session.summary = await this.generateSummary(projectRoot, session.sessionId);
         }
@@ -247,6 +250,48 @@ export class SessionsService {
       console.log(`[SessionsService] Could not get most recent session: ${error.message}`);
       return null;
     }
+  }
+
+  /** Mapping from named session name to its deterministic ID and type */
+  private static readonly NAMED_SESSION_MAP: Record<string, { sessionId: string; sessionType: string }> = {
+    'Scheduled Tasks': { sessionId: 'named--scheduled-tasks', sessionType: 'scheduler' },
+    'Condition Monitoring': { sessionId: 'named--condition-monitoring', sessionType: 'condition-monitor' },
+    'Workflow Actions': { sessionId: 'named--workflow-actions', sessionType: 'workflow' },
+  };
+
+  /**
+   * Get an existing named session or create one if it doesn't exist.
+   * Named sessions use deterministic IDs and are pinned to the top of the session list.
+   */
+  async getOrCreateNamedSession(projectRoot: string, sessionName: string): Promise<string> {
+    const mapping = SessionsService.NAMED_SESSION_MAP[sessionName];
+    if (!mapping) {
+      throw new Error(`Unknown named session: "${sessionName}". Valid names: ${Object.keys(SessionsService.NAMED_SESSION_MAP).join(', ')}`);
+    }
+
+    return this.withLock(projectRoot, async () => {
+      const data = await this.loadSessions(projectRoot);
+      const existing = data.sessions.find(s => s.sessionId === mapping.sessionId);
+
+      if (existing) {
+        return mapping.sessionId;
+      }
+
+      // Create the named session
+      data.sessions.push({
+        timestamp: new Date().toISOString(),
+        sessionId: mapping.sessionId,
+        summary: sessionName,
+        sessionName,
+        pinned: true,
+        sessionType: mapping.sessionType,
+      });
+
+      await this.saveSessions(projectRoot, data);
+      console.log(`[SessionsService] Created named session "${sessionName}" with ID ${mapping.sessionId}`);
+
+      return mapping.sessionId;
+    });
   }
 
   /**

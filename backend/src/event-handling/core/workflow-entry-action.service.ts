@@ -121,6 +121,7 @@ export class WorkflowEntryActionService implements OnModuleInit {
           prompt: finalPrompt,
           maxTurns,
           source: `Workflow Entry: ${info.workflowName} → ${info.newState}`,
+          sessionName: 'Workflow Actions',
         },
         { timeout: 300000 },
       );

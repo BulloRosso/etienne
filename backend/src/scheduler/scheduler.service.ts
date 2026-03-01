@@ -131,7 +131,8 @@ export class SchedulerService implements OnModuleInit {
         {
           prompt: task.prompt,
           maxTurns: 20,
-          source: `Scheduled: ${task.name}`
+          source: `Scheduled: ${task.name}`,
+          sessionName: 'Scheduled Tasks'
         },
         { timeout: 300000 } // 5 minute timeout
       );

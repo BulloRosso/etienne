@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Drawer, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
-import { PiChatsThin } from 'react-icons/pi';
+import { PiChatsThin, PiRobotThin } from 'react-icons/pi';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -127,41 +127,57 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
 
           {!loading && !error && sessions.length > 0 && (
             <List sx={{ p: 0 }}>
-              {sessions.map((session, index) => (
-                <ListItem
-                  key={session.sessionId}
-                  button
-                  onClick={() => handleSessionClick(session)}
-                  sx={{
-                    borderBottom: index < sessions.length - 1 ? '1px solid #e0e0e0' : 'none',
-                    '&:hover': {
-                      backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5'
-                    },
-                    alignItems: 'flex-start'
-                  }}
-                >
-                  <ListItemIcon sx={{ mt: 0.5 }}>
-                    <PiChatsThin size={24} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                        {session.summary || t('sessionPane.noSummary')}
-                      </Typography>
-                    }
-                    secondary={
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          {formatTimestamp(session.timestamp)}
+              {sessions.map((session, index) => {
+                const isPinned = !!session.pinned;
+
+                return (
+                  <ListItem
+                    key={session.sessionId}
+                    button
+                    onClick={() => handleSessionClick(session)}
+                    sx={{
+                      borderBottom: index < sessions.length - 1 ? '1px solid #e0e0e0' : 'none',
+                      borderLeft: isPinned ? '3px solid #1976d2' : 'none',
+                      '&:hover': {
+                        backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5'
+                      },
+                      alignItems: 'flex-start',
+                      ...(isPinned && {
+                        backgroundColor: themeMode === 'dark' ? '#1a2332' : '#f0f6ff',
+                      })
+                    }}
+                  >
+                    <ListItemIcon sx={{ mt: 0.5 }}>
+                      {isPinned
+                        ? <PiRobotThin size={24} color="#1976d2" />
+                        : <PiChatsThin size={24} />
+                      }
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" sx={{ fontWeight: isPinned ? 600 : 500, mb: 0.5 }}>
+                          {isPinned
+                            ? (session.sessionName || session.summary || t('sessionPane.noSummary'))
+                            : (session.summary || t('sessionPane.noSummary'))
+                          }
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', fontFamily: 'monospace' }}>
-                          {session.sessionId}
-                        </Typography>
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              ))}
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            {formatTimestamp(session.timestamp)}
+                          </Typography>
+                          {!isPinned && (
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                              {session.sessionId}
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                );
+              })}
             </List>
           )}
         </Box>

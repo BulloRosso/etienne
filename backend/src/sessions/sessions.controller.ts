@@ -15,11 +15,19 @@ export class SessionsController {
       const projectRoot = safeRoot(this.hostRoot, projectname);
       const sessionsData = await this.sessionsService.getSessionsWithSummaries(projectRoot);
 
+      // Pinned sessions first (alphabetically by name), then by timestamp desc
+      const sorted = sessionsData.sessions.sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        if (a.pinned && b.pinned) {
+          return (a.sessionName || '').localeCompare(b.sessionName || '');
+        }
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+
       return {
         success: true,
-        sessions: sessionsData.sessions.sort((a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
+        sessions: sorted
       };
     } catch (error: any) {
       return {

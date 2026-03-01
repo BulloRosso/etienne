@@ -444,7 +444,8 @@ ${promptTemplate}
         {
           prompt,
           maxTurns: 20,
-          source: `Condition Monitor: ${ruleName}`
+          source: `Condition Monitor: ${ruleName}`,
+          sessionName: 'Condition Monitoring'
         },
         {
           timeout: 300000, // 5 minute timeout
