@@ -378,11 +378,45 @@ In the example above we can see the RDF store ("knowledge graph") log and data f
 
 # Self-Healing Capabilities
 
-Etienne gives your application the ability to patch its own source code when users report problems — with full human oversight at every critical step.
+Etienne gives our agent the ability to patch its own source code when you report problems — with full human oversight at every critical step.
 
-**Here's the workflow:** A user files an issue describing what's broken. An admin reviews it, sets priority, and authorizes the AI agent to investigate. The agent — Claude Opus 4.5 via the Claude Agent SDK — analyzes source code, logs, and configuration across your NestJS and Python services, identifies the root cause, and produces a minimal code patch. Depending on the risk level, the patch is either applied automatically or presented to the admin for review. After patching, the affected service restarts and the system verifies the fix worked. If it didn't, automatic rollback kicks in.
+**Here's the workflow:** A user files an issue describing what's broken. An admin reviews it, sets priority, and authorizes the AI agent to investigate. The agent — Claude Opus 4.5 via the Claude Agent SDK — analyzes source code, logs, and configuration across our NestJS and Python services, identifies the root cause, and produces a minimal code patch. Depending on the risk level, the patch is either applied automatically or presented to the admin for review. After patching, the affected service restarts and the system verifies the fix worked. If it didn't, automatic rollback kicks in.
 
-This is not a copilot suggesting changes for you to implement. This is an embedded repair system that lives inside your application, understands your code at the deepest level, and acts on explicit human authorization.
+```mermaid
+sequenceDiagram
+    actor User
+    actor Admin
+    participant Agent as AI Agent<br/>(Claude Opus 4.5)
+    participant System as Application
+
+    User->>Admin: File issue (bug report)
+    Admin->>Admin: Review & set priority
+    Admin->>Agent: Authorize investigation
+
+    Agent->>System: Analyze source code, logs & config
+    Agent->>Agent: Identify root cause
+    Agent->>Agent: Generate minimal patch
+
+    alt Low risk
+        Agent->>System: Apply patch automatically
+    else High risk
+        Agent->>Admin: Present patch for review
+        Admin->>Agent: Approve / reject
+        Agent->>System: Apply approved patch
+    end
+
+    System->>System: Restart affected service
+    System->>System: Run verification checks
+
+    alt Verification passed
+        System-->>Admin: Fix confirmed
+    else Verification failed
+        System->>System: Automatic rollback
+        System-->>Admin: Rollback notification
+    end
+```
+
+This is not a copilot suggesting changes for you to implement. This is an embedded repair system that lives inside our agent, understands our code at the deepest level, and acts on explicit human authorization.
 
 **Four safety layers** ensure you're always in control:
 1. **Admin approval gates** — no agent action starts without explicit authorization
@@ -392,7 +426,39 @@ This is not a copilot suggesting changes for you to implement. This is an embedd
 
 **Graduated autonomy** lets admins build trust incrementally across four levels: from observe-only (Level 0) where the agent only diagnoses and suggests fixes, to fully automatic patching with rollback guarantees (Level 3). New deployments always start at Level 0.
 
-The immune system your application never had — with a human hand on the switch.
+```mermaid
+sequenceDiagram
+    participant Agent as AI Agent
+    participant FS as Filesystem
+    participant Snapshot as Snapshot Store
+    participant Service as Affected Service
+    participant Verify as Verification
+
+    Agent->>FS: Identify files to patch
+    Agent->>Snapshot: Create pre-patch snapshot
+    Snapshot-->>Agent: Snapshot ID saved
+
+    Agent->>FS: Apply code patch
+
+    Agent->>Service: Restart service
+    Service-->>Verify: Service running
+
+    Verify->>Verify: Run health checks & tests
+
+    alt All checks pass
+        Verify-->>Agent: Verification OK
+        Agent->>Agent: Log success to audit trail
+    else Checks fail
+        Verify-->>Agent: Verification FAILED
+        Agent->>Snapshot: Retrieve snapshot
+        Snapshot-->>Agent: Original files
+        Agent->>FS: Restore from snapshot
+        Agent->>Service: Restart service (rollback)
+        Agent->>Agent: Log rollback to audit trail
+    end
+```
+
+The immune system our agent never had — with a human hand on the switch.
 
 
 # Managed Etienne
