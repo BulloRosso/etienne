@@ -1235,6 +1235,8 @@ These features enhance or support the agentic cycle but don't directly control i
 * **Session Management** ([/requirements-docs/prd-session-management.md](requirements-docs/prd-session-management.md))
   Implements multi-session conversation management with automatic summarization and persistence. Sessions are stored in separate JSONL files (`.etienne/chat.history-<sessionId>.jsonl`) with a session index in `chat.sessions.json`. Users can start new sessions, resume previous conversations, and view AI-generated summaries of past sessions.
 
+  **Named Session Routing:** Automated callers (Scheduler, Condition Monitor, Workflow Entry Actions) route their output to fixed named sessions instead of appending to whichever user session happens to be the most recent. This prevents automated output from polluting interactive conversations. Each named session (`Scheduled Tasks`, `Condition Monitoring`, `Workflow Actions`) is created on first use with a deterministic ID and pinned to the top of the session drawer with a distinct icon and colored border. Remote Sessions (Telegram/Teams) retain the original most-recent-session behavior since they represent interactive conversations from external providers.
+
 * **Scheduling Subsystem** ([/requirements-docs/prd-scheduling-subsystem.md](requirements-docs/prd-scheduling-subsystem.md))
   Provides cron-based task scheduling using NestJS Schedule to automatically invoke Claude Code with predefined prompts. Task definitions include name, prompt, cron expression, and timezone. Execution history tracks timestamp, response, errors, duration, and token usage. Supports daily, weekly, or custom scheduling patterns.
 
