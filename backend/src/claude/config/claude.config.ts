@@ -18,6 +18,7 @@ export class ClaudeConfig {
       'WebFetch',
       'WebSearch',
       'Bash(curl:*)',
+      'Bash(agent-browser:*)',
       'Read(${containerCwd}/**)',
       'Bash(python3:*)',
       'Bash(pytest:*)',
