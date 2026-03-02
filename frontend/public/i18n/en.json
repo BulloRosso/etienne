@@ -531,6 +531,7 @@
 
   "subagent.newSubagent": "New Subagent",
   "subagent.emptyState": "No subagents configured. Click \"New Subagent\" to create one.",
+  "subagent.infoHint": "Use subagents only for complex work which is substantially larger than an agent skill!",
   "subagent.savedSuccess": "Subagent saved successfully",
   "subagent.errorLoadFailed": "Failed to load subagents",
   "subagent.errorSaveFailed": "Failed to save subagent",

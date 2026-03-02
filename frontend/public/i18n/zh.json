@@ -531,6 +531,7 @@
 
   "subagent.newSubagent": "新建子智能体",
   "subagent.emptyState": "暂无配置的子智能体。点击\"新建子智能体\"来创建一个。",
+  "subagent.infoHint": "仅将子智能体用于比智能体技能复杂得多的工作！",
   "subagent.savedSuccess": "子智能体保存成功",
   "subagent.errorLoadFailed": "加载子智能体失败",
   "subagent.errorSaveFailed": "保存子智能体失败",

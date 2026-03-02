@@ -8,12 +8,12 @@ import {
   ListItem,
   ListItemText,
   ListItemButton,
+  ListItemIcon,
   IconButton,
   TextField,
   Paper,
   Typography,
   Chip,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,7 +25,7 @@ import {
   MenuItem,
   Stack,
 } from '@mui/material';
-import { Add, Delete, ArrowBack } from '@mui/icons-material';
+import { Add, DeleteOutlined, ArrowBack } from '@mui/icons-material';
 import { RiRobot2Line } from 'react-icons/ri';
 import Editor from '@monaco-editor/react';
 import { apiAxios } from '../services/api';
@@ -255,56 +255,71 @@ export default function SubagentConfiguration({ project }) {
       )}
 
       {!selectedSubagent ? (
-        <>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, gap: 1 }}>
-              <RiRobot2Line style={{ fontSize: '28px' }} />
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={handleNewSubagent}
-            >
-              {t('subagent.newSubagent')}
-            </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'row', flex: 1, gap: 2, overflow: 'hidden' }}>
+          {/* Left column: image + info text */}
+          <Box sx={{ width: 300, minWidth: 300, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <Box
+              component="img"
+              src="/puppet-master.png"
+              alt="Puppet Master"
+              sx={{ width: '100%', height: 'auto', borderRadius: 2 }}
+            />
+            <Box sx={{ flex: 1 }} />
+            <Typography variant="body2" sx={{ color: 'text.disabled', mt: 2, px: 1 }}>
+              {t('subagent.infoHint')}
+            </Typography>
           </Box>
 
-          {subagents.length === 0 ? (
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography color="text.secondary">
-                {t('subagent.emptyState')}
-              </Typography>
-            </Paper>
-          ) : (
-            <Paper>
-              <List>
-                {subagents.map((subagent, index) => (
-                  <React.Fragment key={subagent.name}>
-                    {index > 0 && <Divider />}
-                    <ListItem
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          color="error"
-                          onClick={(e) => handleDeleteClick(subagent, e)}
-                        >
-                          <Delete />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemButton onClick={() => handleSelectSubagent(subagent)}>
-                        <ListItemText
-                          primary={<Typography variant="subtitle1" fontWeight="bold">{subagent.name}</Typography>}
-                          secondary={subagent.description}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  </React.Fragment>
+          {/* Right column: list + new button */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+            {subagents.length === 0 ? (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography color="text.secondary">
+                  {t('subagent.emptyState')}
+                </Typography>
+              </Paper>
+            ) : (
+              <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {subagents.map((subagent) => (
+                  <ListItem
+                    key={subagent.name}
+                    secondaryAction={
+                      <IconButton
+                        edge="end"
+                        color="error"
+                        onClick={(e) => handleDeleteClick(subagent, e)}
+                      >
+                        <DeleteOutlined />
+                      </IconButton>
+                    }
+                    sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '5px', p: 0 }}
+                  >
+                    <ListItemButton onClick={() => handleSelectSubagent(subagent)} sx={{ borderRadius: '5px' }}>
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        <RiRobot2Line style={{ fontSize: '24px' }} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={<Typography variant="subtitle1" fontWeight="bold">{subagent.name}</Typography>}
+                        secondary={subagent.description}
+                      />
+                    </ListItemButton>
+                  </ListItem>
                 ))}
               </List>
-            </Paper>
-          )}
-        </>
+            )}
+
+            <Box sx={{ flex: 1 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={handleNewSubagent}
+              >
+                {t('subagent.newSubagent')}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

@@ -503,6 +503,7 @@
   "guardrails.ibanDescription": "Erkennt und entfernt internationale Bankkontonummern",
   "subagent.newSubagent": "Neuer Subagent",
   "subagent.emptyState": "Keine Subagenten konfiguriert. Klicken Sie auf \"Neuer Subagent\", um einen zu erstellen.",
+  "subagent.infoHint": "Verwende Subagenten nur für komplexe Aufgaben, die wesentlich umfangreicher sind als ein Agent Skill!",
   "subagent.savedSuccess": "Subagent erfolgreich gespeichert",
   "subagent.errorLoadFailed": "Subagenten konnten nicht geladen werden",
   "subagent.errorSaveFailed": "Subagent konnte nicht gespeichert werden",

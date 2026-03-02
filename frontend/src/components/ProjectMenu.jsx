@@ -765,7 +765,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
             <Close />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ height: '70vh', p: 0 }}>
+        <DialogContent sx={{ p: 0 }}>
           <SubagentConfiguration project={currentProject} />
         </DialogContent>
       </Dialog>
