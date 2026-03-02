@@ -90,9 +90,6 @@ export default function PowerUpSection({ skills = [], repoSkills = [], onProvisi
       pb: 0,
       px: `${PADDING}px`,
       overflow: 'auto',
-      backgroundImage:
-        'radial-gradient(circle, rgba(0, 0, 128, 0.18) 1px, transparent 1px)',
-      backgroundSize: '20px 20px',
     }}>
       <Box
         sx={{
@@ -186,6 +183,18 @@ export default function PowerUpSection({ skills = [], repoSkills = [], onProvisi
                   bgcolor: color,
                   zIndex: 3,
                   pointerEvents: 'none',
+                  ...(hasSkill && {
+                    boxShadow: '0 0 6px 2px rgba(218, 165, 32, 0.7)',
+                    animation: 'connectorGlow 2s ease-in-out infinite',
+                    '@keyframes connectorGlow': {
+                      '0%, 100%': {
+                        boxShadow: '0 0 4px 1px rgba(218, 165, 32, 0.4)',
+                      },
+                      '50%': {
+                        boxShadow: '0 0 10px 4px rgba(218, 165, 32, 0.9)',
+                      },
+                    },
+                  }),
                 }}
               />
 
@@ -264,23 +273,47 @@ export default function PowerUpSection({ skills = [], repoSkills = [], onProvisi
                       },
                 }}
               >
-                {/* Skill icon disc */}
+                {/* Skill icon disc with radar border */}
                 {hasSkill && (
                   <Box
                     sx={{
                       position: 'absolute',
                       top: '50%',
+                      ...(isLeft ? { right: -22 } : { left: -22 }),
                       transform: 'translateY(-50%)',
-                      ...(isLeft ? { right: -20 } : { left: -20 }),
-                      width: 40,
-                      height: 40,
+                      width: 44,
+                      height: 44,
                       borderRadius: '50%',
-                      bgcolor: '#fff',
-                      border: '2px solid navy',
+                      zIndex: 5,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      zIndex: 5,
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        inset: 0,
+                        borderRadius: '50%',
+                        background: 'conic-gradient(from 0deg, navy 0deg, navy 270deg, rgba(218, 165, 32, 0.9) 330deg, navy 360deg)',
+                        animation: 'radarSweep 2.5s linear infinite',
+                        pointerEvents: 'none',
+                      },
+                      '@keyframes radarSweep': {
+                        '0%': { transform: 'rotate(0deg)' },
+                        '100%': { transform: 'rotate(360deg)' },
+                      },
+                    }}
+                  >
+                  <Box
+                    sx={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: '50%',
+                      bgcolor: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1,
+                      position: 'relative',
                     }}
                   >
                     {skill.hasThumbnail ? (
@@ -293,6 +326,7 @@ export default function PowerUpSection({ skills = [], repoSkills = [], onProvisi
                     ) : (
                       <GiAtom style={{ fontSize: '20px', color: 'navy' }} />
                     )}
+                  </Box>
                   </Box>
                 )}
                 {hasSkill ? (
