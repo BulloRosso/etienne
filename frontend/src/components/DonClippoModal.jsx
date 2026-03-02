@@ -8,6 +8,7 @@ import {
 import { Close } from '@mui/icons-material';
 import { GiTwoCoins } from 'react-icons/gi';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { apiAxios } from '../services/api';
 
 export default function DonClippoModal({ open, onClose, projectName, sessionId }) {
@@ -36,6 +37,7 @@ export default function DonClippoModal({ open, onClose, projectName, sessionId }
       const response = await apiAxios.post('/api/auto-configuration/suggest', {
         projectName,
         sessionId: sessionId || 'default',
+        language: i18n.language,
       });
       const data = response.data;
       setSuggestions(data);

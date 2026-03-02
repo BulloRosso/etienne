@@ -28,6 +28,7 @@ import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
 import AutoFilePreviewExtensions from './AutoFilePreviewExtensions';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
@@ -286,7 +287,8 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
         a2aAgents: selectedAgents.length > 0 ? selectedAgents : undefined,
         copyUIFrom: copyFromProject || undefined,
         agentName: agentName || 'Etienne',
-        autoFilePreviewExtensions: autoFilePreviewExtensions.length > 0 ? autoFilePreviewExtensions : undefined
+        autoFilePreviewExtensions: autoFilePreviewExtensions.length > 0 ? autoFilePreviewExtensions : undefined,
+        language: i18n.language,
       };
 
       const response = await apiAxios.post('/api/projects/create', dto);

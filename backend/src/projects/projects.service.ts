@@ -15,6 +15,12 @@ export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
   private readonly workspaceDir = process.env.WORKSPACE_ROOT || '/workspace';
 
+  private static readonly LANGUAGE_NAMES: Record<string, string> = {
+    en: 'English',
+    de: 'German',
+    zh: 'Chinese',
+  };
+
   constructor(
     private readonly skillsService: SkillsService,
     private readonly agentRoleRegistryService: AgentRoleRegistryService,
@@ -484,6 +490,11 @@ ${dto.missionBrief.substring(0, 3000)}
     }
 
     prompt += `\nWrite ONLY the welcome message text. No headings, labels, or markdown formatting. Maximum 3 sentences. Be specific about first steps based on the mission and available capabilities. Mention any information or files the user should provide to get started.`;
+
+    if (dto.language && dto.language !== 'en') {
+      const languageName = ProjectsService.LANGUAGE_NAMES[dto.language] || dto.language;
+      prompt += `\n\nIMPORTANT: Write the welcome message in ${languageName} language.`;
+    }
 
     const text = await this.llmService.generateText({
       tier: 'regular',

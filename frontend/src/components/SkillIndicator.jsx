@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import SkillsSettings from './SkillsSettings';
+import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import DonClippoModal from './DonClippoModal';
 
 export default function SkillIndicator({ projectName, sessionId }) {
@@ -93,7 +94,7 @@ export default function SkillIndicator({ projectName, sessionId }) {
         ))}
         <Divider />
         <MenuItem onClick={() => { setAnchorEl(null); setDonClippoOpen(true); }}>
-          <img src="/don-clippo.png" alt="" style={{ width: 20, height: 20, marginRight: 8, borderRadius: 4, objectFit: 'contain' }} />
+          <LiaHatCowboySideSolid style={{ fontSize: 20, marginRight: 8 }} />
           <Typography variant="body2">{t('donClippo.visitMenuItem')}</Typography>
         </MenuItem>
       </Menu>

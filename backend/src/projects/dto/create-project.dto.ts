@@ -50,6 +50,10 @@ export class CreateProjectDto {
   @IsOptional()
   @IsArray()
   autoFilePreviewExtensions?: Array<{ extension: string; viewer: string }>;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
 }
 
 export interface CreateProjectResult {

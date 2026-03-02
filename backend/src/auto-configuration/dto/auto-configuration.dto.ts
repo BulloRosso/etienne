@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 // --- Suggest ---
@@ -11,6 +11,10 @@ export class AutoConfigSuggestDto {
   @IsString()
   @IsNotEmpty()
   sessionId: string;
+
+  @IsString()
+  @IsOptional()
+  language?: string;
 }
 
 export interface SuggestedMcpServer {

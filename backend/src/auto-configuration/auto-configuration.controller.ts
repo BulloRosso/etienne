@@ -16,7 +16,7 @@ export class AutoConfigurationController {
   @Roles('user')
   async suggest(@Body() dto: AutoConfigSuggestDto): Promise<AutoConfigSuggestResponse> {
     try {
-      return await this.autoConfigService.suggest(dto.projectName, dto.sessionId);
+      return await this.autoConfigService.suggest(dto.projectName, dto.sessionId, dto.language);
     } catch (error: any) {
       throw new HttpException(
         { success: false, message: error.message },

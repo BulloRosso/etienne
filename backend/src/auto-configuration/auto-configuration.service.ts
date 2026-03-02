@@ -27,7 +27,7 @@ export class AutoConfigurationService {
     private readonly mcpServerConfigService: McpServerConfigService,
   ) {}
 
-  async suggest(projectName: string, sessionId: string): Promise<AutoConfigSuggestResponse> {
+  async suggest(projectName: string, sessionId: string, language?: string): Promise<AutoConfigSuggestResponse> {
     try {
       const projectRoot = safeRoot(this.config.hostRoot, projectName);
 
@@ -74,6 +74,7 @@ export class AutoConfigurationService {
         availableServers,
         availableSkills,
         sessionHistory,
+        language,
       );
 
       // Call LLM
@@ -198,12 +199,19 @@ export class AutoConfigurationService {
     };
   }
 
+  private static readonly LANGUAGE_NAMES: Record<string, string> = {
+    en: 'English',
+    de: 'German',
+    zh: 'Chinese',
+  };
+
   private buildSuggestPrompt(
     configuredServerNames: string[],
     currentSkills: string[],
     availableServers: any[],
     availableSkills: any[],
     sessionHistory: any[],
+    language?: string,
   ): string {
     const serversSection = availableServers
       .map((s) => `- ${s.name}: ${s.description || 'No description'}`)
@@ -259,7 +267,7 @@ Respond with ONLY a JSON object in this exact format:
   ]
 }
 
-If nothing additional is needed, return empty arrays.`;
+If nothing additional is needed, return empty arrays.${language && language !== 'en' ? `\n\nIMPORTANT: Write the "reasoning" and all "reason" values in ${AutoConfigurationService.LANGUAGE_NAMES[language] || language} language.` : ''}`;
   }
 
   private parseLlmResponse(response: string): any {
