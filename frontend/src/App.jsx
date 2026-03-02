@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, CircularProgress, Drawer, Switch } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, Alert, CircularProgress, Drawer, Switch } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
@@ -27,7 +27,7 @@ import Onboarding from './components/Onboarding';
 import { apiFetch, authSSEUrl } from './services/api';
 
 export default function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentProject, projectExists, setProject } = useProject();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { mode: themeMode, toggleMode } = useThemeMode();
@@ -54,6 +54,7 @@ export default function App() {
   const [uiConfig, setUiConfig] = useState(null);
   const [showWelcomePage, setShowWelcomePage] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [langToast, setLangToast] = useState({ open: false, language: '' });
   const [activeContextId, setActiveContextId] = useState(null);
   const [contexts, setContexts] = useState([]);
   const [contextManagerOpen, setContextManagerOpen] = useState(false);
@@ -99,6 +100,25 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Ctrl+L: cycle UI language
+  useEffect(() => {
+    const SUPPORTED_LANGS = ['en', 'de', 'zh'];
+    const LANG_LABELS = { en: 'English', de: 'Deutsch', zh: '中文' };
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key === 'l') {
+        e.preventDefault();
+        const currentIdx = SUPPORTED_LANGS.indexOf(i18n.language);
+        const nextIdx = (currentIdx + 1) % SUPPORTED_LANGS.length;
+        const nextLang = SUPPORTED_LANGS[nextIdx];
+        localStorage.setItem('i18nLanguageOverride', nextLang);
+        i18n.changeLanguage(nextLang);
+        setLangToast({ open: true, language: LANG_LABELS[nextLang] || nextLang });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [i18n]);
 
   // Register minimal service worker for desktop notifications
   useEffect(() => {
@@ -2092,6 +2112,23 @@ export default function App() {
         message={t('app.sessionIdCopied')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       />
+
+      {/* Language switch toast */}
+      <Snackbar
+        open={langToast.open}
+        autoHideDuration={2000}
+        onClose={() => setLangToast(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setLangToast(prev => ({ ...prev, open: false }))}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {langToast.language}
+        </Alert>
+      </Snackbar>
 
       {/* Context Manager Dialog */}
       <ContextManager

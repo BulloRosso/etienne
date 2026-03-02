@@ -16,7 +16,8 @@ i18n
       loadPath: '/i18n/{{lng}}.json',
     },
     detection: {
-      order: ['navigator'],
+      order: ['localStorage', 'navigator'],
+      lookupLocalStorage: 'i18nLanguageOverride',
       caches: [],
     },
     interpolation: {
