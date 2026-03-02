@@ -63,6 +63,10 @@ Etienne guides the business user to do proper context engineering. In the backgr
 
 One of the most important strategies is to think in **isolated and scoped projects** - this allows to adjust for example the selected skills to the current user problem and makes it easy to "forget" (just delete the folder).
 
+### World Model
+
+An agent is more "intelligent" if it has a notion of its own environment. For this reason there's a **world model skill** which is required for scenarios like self-healing or coding projects. In the first scenario this skill prevents the agent from endless codebase analysis and guides it directly to the closest location, in the second scenario this skill prevents the agent from recreating already existing infrastructure like the RDF store.
+
 ## The Etienne Manifesto: It's all about Engineering, not LLM magic!
 
 Here are the guiding principles for Etienne, and why I believe it matters:
