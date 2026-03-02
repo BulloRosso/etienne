@@ -49,6 +49,20 @@ The following comparison illustrates the conceptual differences between Etienne 
 <img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="600">
 </div> 
 
+## Context Engineering
+
+Etienne guides the business user to do proper context engineering. In the background it carefully balances the main context components to avoid context window overflow:
+
+<br>
+
+<div align="center">
+<img src="/docs/images/context-engineering.jpg" style="marginTop: 24px" alt="Context Engineering" width="900">
+</div> 
+
+<br>
+
+One of the most important strategies is to think in **isolated and scoped projects** - this allows to adjust for example the selected skills to the current user problem and makes it easy to "forget" (just delete the folder).
+
 ## The Etienne Manifesto: It's all about Engineering, not LLM magic!
 
 Here are the guiding principles for Etienne, and why I believe it matters:
