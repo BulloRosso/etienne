@@ -50,7 +50,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 
-export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved }) {
+export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved, codingAgent = 'anthropic' }) {
   const { t } = useTranslation();
   const { user, logout, hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -766,7 +766,7 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
-          <SubagentConfiguration project={currentProject} />
+          <SubagentConfiguration project={currentProject} codingAgent={codingAgent} />
         </DialogContent>
       </Dialog>
 

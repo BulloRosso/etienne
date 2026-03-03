@@ -32,7 +32,7 @@ import { apiAxios } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useTranslation } from 'react-i18next';
 
-export default function SubagentConfiguration({ project }) {
+export default function SubagentConfiguration({ project, codingAgent = 'anthropic' }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [subagents, setSubagents] = useState([]);
@@ -400,6 +400,7 @@ export default function SubagentConfiguration({ project }) {
                 </Select>
               </FormControl>
 
+              {codingAgent !== 'openai' && (
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   {t('subagent.formToolsHelp')}
@@ -423,6 +424,7 @@ export default function SubagentConfiguration({ project }) {
                   })}
                 </Box>
               </Box>
+              )}
 
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>

@@ -1996,6 +1996,7 @@ export default function App() {
             }}
             showConfigurationRequired={showConfigurationRequired}
             onConfigurationSaved={() => setShowConfigurationRequired(false)}
+            codingAgent={codingAgent}
           />
         </Toolbar>
       </AppBar>
