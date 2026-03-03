@@ -5,9 +5,12 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function MarkdownViewer({ filename, projectName, className = '' }) {
   const { t } = useTranslation();
+  const { mode: themeMode } = useThemeMode();
+  const isDark = themeMode === 'dark';
   const [htmlContent, setHtmlContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -147,12 +150,13 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
           height: '100%',
           overflow: 'auto',
           p: 3,
+          color: isDark ? '#c9d1d9' : 'inherit',
           '& h1': {
             fontSize: '2em',
             fontWeight: 'bold',
             marginTop: '0.67em',
             marginBottom: '0.67em',
-            borderBottom: '1px solid #eaecef',
+            borderBottom: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
             paddingBottom: '0.3em'
           },
           '& h2': {
@@ -160,7 +164,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
             fontWeight: 'bold',
             marginTop: '0.83em',
             marginBottom: '0.83em',
-            borderBottom: '1px solid #eaecef',
+            borderBottom: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
             paddingBottom: '0.3em'
           },
           '& h3': {
@@ -202,14 +206,15 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
             marginBottom: '0.25em'
           },
           '& code': {
-            backgroundColor: '#f6f8fa',
+            backgroundColor: isDark ? '#161b22' : '#f6f8fa',
             borderRadius: '3px',
             padding: '0.2em 0.4em',
             fontFamily: 'monospace',
-            fontSize: '0.9em'
+            fontSize: '0.9em',
+            color: isDark ? '#c9d1d9' : 'inherit'
           },
           '& pre': {
-            backgroundColor: '#f6f8fa',
+            backgroundColor: isDark ? '#161b22' : '#f6f8fa',
             borderRadius: '6px',
             padding: '16px',
             overflow: 'auto',
@@ -223,10 +228,10 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
             lineHeight: '1.45'
           },
           '& blockquote': {
-            borderLeft: '4px solid #dfe2e5',
+            borderLeft: `4px solid ${isDark ? '#3b434b' : '#dfe2e5'}`,
             paddingLeft: '1em',
             marginLeft: 0,
-            color: '#6a737d',
+            color: isDark ? '#8b949e' : '#6a737d',
             marginTop: '1em',
             marginBottom: '1em'
           },
@@ -237,15 +242,15 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
             marginBottom: '1em'
           },
           '& table th, & table td': {
-            border: '1px solid #dfe2e5',
+            border: `1px solid ${isDark ? '#30363d' : '#dfe2e5'}`,
             padding: '6px 13px'
           },
           '& table th': {
             fontWeight: 'bold',
-            backgroundColor: '#f6f8fa'
+            backgroundColor: isDark ? '#161b22' : '#f6f8fa'
           },
           '& a': {
-            color: '#0366d6',
+            color: isDark ? '#58a6ff' : '#0366d6',
             textDecoration: 'none',
             '&:hover': {
               textDecoration: 'underline'
@@ -257,7 +262,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
           },
           '& hr': {
             border: 'none',
-            borderTop: '1px solid #eaecef',
+            borderTop: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
             marginTop: '1.5em',
             marginBottom: '1.5em'
           }
