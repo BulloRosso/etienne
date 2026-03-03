@@ -1286,7 +1286,20 @@ export default function App() {
     currentMessageRef.current = { role: 'assistant', text: '', timestamp: formatTime() };
     currentUsageRef.current = null;
     activeToolCallsRef.current.clear(); // Clear any pending tool calls
-    setStructuredMessages([]); // Clear previous structured messages
+    // Persist current structured messages to the last assistant message, then clear
+    setStructuredMessages(prev => {
+      if (prev.length > 0) {
+        setMessages(msgPrev => {
+          const newMessages = [...msgPrev];
+          const lastIdx = newMessages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
+          if (lastIdx >= 0 && !newMessages[lastIdx].reasoningSteps) {
+            newMessages[lastIdx] = { ...newMessages[lastIdx], reasoningSteps: prev };
+          }
+          return newMessages;
+        });
+      }
+      return []; // Clear structured messages for the new streaming session
+    });
 
     // Ensure project file exists
     await apiFetch(`/api/claude/addFile`, {
