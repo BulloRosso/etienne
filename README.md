@@ -98,7 +98,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [Built for Connectivity](#built-for-connectivity)
 - [Focused on local Data and Services](#focused-on-local-data-and-services)
 - [Self-Healing Capabilities](#self-healing-capabilities)
-- [Multi-agent Orchstration](#multi-agent-orchestration)
+- [Multi-agent Orchestration](#multi-agent-orchestration)
 - [Managed Etienne](#managed-etienne)
 - [Memory](#memory)
 - [The Web: searching, scraping and browsing](#the-web-searching-scraping-and-browsing)
@@ -500,9 +500,9 @@ Multi-agent orchestration is currently only supported if CODING_AGENT=anthropic 
 <img src="/docs/images/multi-agent-orchestration.jpg" alt="Managed Etienne" width="700">
 </div>
 
-The Claude Agent SDK will pick up those agents and run them in parallel or in sequence whenever it detects tasks might benefit from doing so.
+The Claude Agent SDK will pick up those agents and run them in parallel or in sequence whenever it detects tasks might benefit from doing so. Your subagents will be used additionally to the built-in Claude agents.
 
-** Codex AppServer** does not support orchestration though it can use and understand a subagent definition. As of early 2026 the MacOS Codex App is responsible for orchestration of several AppServer instances.
+**Codex AppServer** does not support orchestration though it can use and understand a subagent definition. As of early 2026 the MacOS Codex App is responsible for orchestration of several AppServer instances.
 
 # Managed Etienne
 
