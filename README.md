@@ -98,6 +98,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [Built for Connectivity](#built-for-connectivity)
 - [Focused on local Data and Services](#focused-on-local-data-and-services)
 - [Self-Healing Capabilities](#self-healing-capabilities)
+- [Multi-agent Orchstration](#multi-agent-orchestration)
 - [Managed Etienne](#managed-etienne)
 - [Memory](#memory)
 - [The Web: searching, scraping and browsing](#the-web-searching-scraping-and-browsing)
@@ -491,6 +492,17 @@ The immune system most other agents lack — with a human hand on the switch.
 
 To enable self-healing on a project, activate the **self-healing** skill from the skill store. It guides users through creating structured issue reports with title, description, reproduction steps, and expected vs. actual behavior — all submitted to an admin for review before any automated repair is triggered.
 
+# Multi-agent Orchestration
+
+Multi-agent orchestration is currently only supported if CODING_AGENT=anthropic is set for the backend. In this case you can define subagents in the project menu:
+
+<div align="center">
+<img src="/docs/images/multi-agent-orchestration.jpg" alt="Managed Etienne" width="700">
+</div>
+
+The Claude Agent SDK will pick up those agents and run them in parallel or in sequence whenever it detects tasks might benefit from doing so.
+
+** Codex AppServer** does not support orchestration though it can use and understand a subagent definition. As of early 2026 the MacOS Codex App is responsible for orchestration of several AppServer instances.
 
 # Managed Etienne
 
