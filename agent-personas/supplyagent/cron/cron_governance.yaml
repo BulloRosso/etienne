@@ -1,0 +1,54 @@
+# =============================================================================
+# SupplyAgent Cron Governance — Immutable Bounds
+# =============================================================================
+# This file defines the hard limits for cron job self-adjustment.
+# The agent (Autonomy Level 1) may adjust cron intervals within these bounds.
+# The agent may NOT modify this file.
+# =============================================================================
+
+governance:
+  min_interval_minutes: 15
+  max_interval_days: 7
+
+  allowed_parameter_ranges:
+    confidence_threshold:
+      min: 0.5
+      max: 0.95
+      description: "Threshold below which data points are flagged for review"
+    reliability_score_recalc_window_days:
+      min: 7
+      max: 365
+      description: "History window for reliability score calculation"
+    deadline_scan_horizon_days:
+      min: 3
+      max: 30
+      description: "How many days ahead the deadline scan looks"
+    urgentFlag_deadline_days:
+      min: 3
+      max: 14
+      description: "Deadline proximity threshold for urgent flag derivation"
+
+  autonomy_levels:
+    level_1:
+      description: "Fully autonomous adjustments"
+      allowed:
+        - "Adjust cron intervals within min/max bounds"
+        - "Recalibrate reliability thresholds based on historical rejection rate"
+      trigger: "Automatic when urgentFlag rate changes by >20% over 2 weeks"
+
+    level_2:
+      description: "Proposals requiring human approval"
+      allowed:
+        - "Propose new escalation rules"
+        - "Propose new sc:preferredAlternative relations"
+        - "Suggest new cron jobs"
+      requires: "Click-confirmation in approval queue"
+
+    level_3:
+      description: "Never autonomous — hard prohibitions"
+      prohibited:
+        - "Place orders"
+        - "Permanently deactivate suppliers"
+        - "Expand own access permissions"
+        - "Modify governance rules (this file)"
+        - "Send external communications without approval"

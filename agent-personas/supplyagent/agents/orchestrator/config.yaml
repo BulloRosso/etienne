@@ -1,0 +1,19 @@
+name: supplyagent-orchestrator
+description: "Main orchestrator for SupplyAgent — routes supply chain events to specialized skills and manages the end-to-end processing pipeline"
+model: sonnet
+temperature: 0.3
+max_tokens: 4096
+timeout_seconds:
+  email_parser: 10
+  graph_query: 15
+  escalation: 20
+  graph_maintenance: 15
+  report_generator: 30
+  onboarding: 60
+retry:
+  max_attempts: 2
+  backoff_seconds: 5
+autonomy_levels:
+  level_1: "Cron interval adjustments, threshold recalibration"
+  level_2: "New escalation rules, new preferred-alternative relations (requires approval)"
+  level_3: "Order placement, supplier deactivation, permission changes (never autonomous)"

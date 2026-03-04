@@ -1,0 +1,76 @@
+[
+  {
+    "name": "preferences_load",
+    "description": "Load user escalation preferences and supplier rules from the preferences memory",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "preference_type": {
+          "type": "string",
+          "enum": ["escalation_rules", "supplier_preferences", "communication_style", "all"],
+          "description": "Type of preferences to load"
+        },
+        "supplier": {
+          "type": "string",
+          "description": "Optional: load preferences specific to a supplier"
+        }
+      }
+    }
+  },
+  {
+    "name": "draft_email",
+    "description": "Generate a draft email from a template and parameters",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "string",
+          "enum": ["customer_delay_notification", "internal_escalation", "supplier_alternative_inquiry"],
+          "description": "Email template to use"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Template parameters (customer_name, order_id, etc.)"
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["concise", "friendly-direct", "formal"],
+          "description": "Communication tone"
+        }
+      },
+      "required": ["template", "parameters"]
+    }
+  },
+  {
+    "name": "approval_queue_push",
+    "description": "Push an escalation plan to the dashboard approval queue for human review",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "escalation_plan": {
+          "type": "object",
+          "description": "The complete EscalationPlan JSON"
+        }
+      },
+      "required": ["escalation_plan"]
+    }
+  },
+  {
+    "name": "severity_classify",
+    "description": "Rule-based severity classification as a cross-check for LLM assessment",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "type": "object",
+          "description": "The parsed event data"
+        },
+        "affected_orders": {
+          "type": "array",
+          "description": "List of affected orders with deadlines"
+        }
+      },
+      "required": ["event"]
+    }
+  }
+]

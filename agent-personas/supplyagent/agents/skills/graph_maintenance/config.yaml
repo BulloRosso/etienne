@@ -1,0 +1,17 @@
+name: supplyagent-graph-maintenance
+description: "Maintains the supply chain knowledge graph — node upserts, score recalculation, OWL inference, conflict detection"
+model: haiku
+temperature: 0.1
+max_tokens: 2048
+score_calculation:
+  on_time_weight: 0.4
+  quality_weight: 0.3
+  communication_weight: 0.2
+  price_stability_weight: 0.1
+  history_window_months: 12
+confidence_threshold: 0.7
+risk_level_bands:
+  low: [0.85, 1.0]
+  medium: [0.70, 0.85]
+  high: [0.50, 0.70]
+  critical: [0.0, 0.50]

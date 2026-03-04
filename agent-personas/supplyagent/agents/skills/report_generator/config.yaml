@@ -1,0 +1,21 @@
+name: supplyagent-report-generator
+description: "Generates structured reports from knowledge graph data for all cron-triggered report jobs"
+model: sonnet
+temperature: 0.5
+max_tokens: 8192
+report_types:
+  weekly_briefing:
+    max_length_words: 500
+    include_sections: ["urgent_flags", "single_source", "score_trends", "pending_approvals"]
+  deadline_scan:
+    max_length_words: 300
+    horizon_days: 7
+  supplier_radar:
+    max_length_words: 400
+    lookback_weeks: 8
+  single_source_check:
+    max_length_words: 600
+    include_recommendations: true
+delivery:
+  channel: "dashboard_notification"
+  email_draft: true

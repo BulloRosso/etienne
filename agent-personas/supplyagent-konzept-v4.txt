@@ -1,0 +1,1095 @@
+
+PRODUKTKONZEPT · VERSION 2.0 · MÄRZ 2026
+SupplyAgent
+Der Einkaufsassistent, der quäkt.
+
+
+Zielgruppe
+Produzierende Mittelstandsbetriebe, 50–500 MA
+Basis
+Anthropic Agent SDK · RDF Knowledge Graph · spezialisierte Sub-Agenten
+Dokument
+Basis-Idee · Marketing-Narrativ · Technische Architektur
+
+
+TEIL 0 · DIE BASIS-IDEE
+
+Kernthese
+Der produzierende Mittelstand verliert täglich Geld an Lieferkettenproblemen, die er zu spät sieht — nicht weil die Informationen fehlen, sondern weil sie in E-Mail-Postfächern, Excel-Tabellen und Köpfen verteilt liegen. Ein autonomer Agent, der diese Quellen kontinuierlich liest, ein vernetztes Wissensmodell daraus baut und proaktiv warnt, löst genau dieses Problem — ohne ERP-Projekt, ohne IT-Abteilung.
+
+Das Produkt in einem Satz
+SupplyAgent liest Ihre Lieferanten-E-Mails, baut daraus ein lebendiges Wissensmodell Ihrer Lieferkette, und warnt Sie bevor ein Problem teuer wird — mit einem konkreten Handlungsvorschlag, den Sie per Klick freigeben oder ablehnen.
+
+Was dieses Produkt von allem anderen unterscheidet
+Kein Reporting-Tool: Der Agent handelt proaktiv, nicht reaktiv auf Dashboard-Klicks.
+Kein ERP-Modul: Startet mit E-Mail und Excel — keine Schnittstellen, kein Rollout-Projekt.
+Kein Black Box: Jede Agenten-Aktion ist im Log nachvollziehbar, jede Entscheidung begründet.
+Kein Autopilot: Der Mensch entscheidet — der Agent bereitet vor und warnt. Immer.
+
+Die drei Säulen
+Säule
+Was sie leistet
+Lebendes Wissen
+RDF Knowledge Graph wächst mit jeder E-Mail, jeder Bestellung, jedem Feedback — und veraltet nie still
+Proaktives Quäken
+Agent schläft nicht: Cron-Jobs, IMAP-Listener und Reasoning-Jobs sorgen dafür, dass Probleme früh genug kommuniziert werden
+Menschliche Kontrolle
+Freigabe-Queue im Dashboard: der Agent bereitet vor, der Einkäufer entscheidet — keine autonomen Bestellungen
+
+
+TEIL 1 · MARKETING-KONZEPT
+
+Das Narrativ: 'Das Quäken'
+Alle Marketing-Kommunikation — Website, Pitch, Verkaufsgespräch — folgt derselben Geschichte. Sie wird hier in voller Länge festgehalten, damit Headlines, Feature-Beschreibungen und technische Sprache konsistent bleiben.
+
+
+
+Erinnern Sie sich an das Tamagotchi?
+Dieses kleine Plastikding aus den Neunzigern, das Sie aus dem Unterricht gerissen hat, weil es quäkte. Weil es Hunger hatte. Weil es — und das war das Verrückte — tatsächlich starb, wenn man es ignorierte.
+Keine andere Technologie hat je so konsequent kommuniziert: Ich brauche etwas von dir. Jetzt.
+
+Ihre Excel-Tabelle quäkt nicht.
+Sie liegt da. Jeden Tag. Geduldig. Während Müller GmbH eine Lieferverzögerung einschickt. Während Auftrag 187 still in Richtung Deadline treibt. Während Ihr bester Kunde langsam ungeduldig wird.
+Excel beschwert sich nicht. Excel stirbt nicht.
+Excel verliert jeden Tag, an dem Sie sie nicht öffnen, ein kleines bisschen mehr an Bedeutung — so leise, dass Sie es erst merken, wenn der Kunde anruft.
+
+Wir haben etwas anderes gebaut.
+Etwas das lebt. Etwas das schläft, während Sie schlafen — aber wacht, wenn Müller GmbH um 3:47 Uhr eine E-Mail schickt. Etwas das Ihren Lieferketten-Wissensgraphen im Kopf trägt: wer liefert was, für welchen Auftrag, mit welcher Zuverlässigkeit, und was passiert wenn er ausfällt.
+Und wenn etwas nicht stimmt — quäkt es.
+Nicht laut. Nicht hysterisch. Aber unmissverständlich:
+
+PO-187. Mueller GmbH. 8 Tage Verzoegerung. Voith AG-Deadline in 9 Tagen. Schmidt AG kann liefern. Soll ich?
+
+Das ist kein Alarm. Das ist eine Frage. Von einem System das die Antwort schon halb kennt — und trotzdem fragt, weil Sie derjenige sind, der entscheidet.
+
+Aber ein Tamagotchi muss auch gefüttert werden.
+Nicht taeglich. Nicht mit Zahlen in Feldern. Mit Korrekturen. Mit Widerspruch. Mit dem Satz: Schmidt AG nehmen wir fuer M8-Teile nicht mehr - die hatten letztes Jahr Qualitaetsprobleme. Ein Satz. Einmal. Und der Agent vergisst es nie wieder.
+Je mehr Sie ihm sagen, desto seltener quäkt er falsch. Je länger Sie ihn ignorieren — desto öfter fragt er nach. Weil er merkt, dass sein Wissen veraltet. Weil er ehrlich genug ist, das zuzugeben.
+Er wird nicht besser wenn Sie ihn nicht füttern. Aber er sagt es Ihnen. Das kann Ihre Excel-Tabelle nicht.
+
+Nach sechs Monaten passiert etwas Merkwürdiges.
+Der Agent quäkt weniger. Nicht weil er schläft — sondern weil er gelernt hat. Er kennt Ihre Präferenzen. Er kennt Ihre Lieferanten. Er kennt die Aufträge, die Sie nicht verpassen dürfen.
+Nur das gelegentliche Quäken erinnert Sie noch daran, dass da jemand ist. Jemand der nie krank wird. Nie Urlaub macht. Nie vergisst, dass Auftrag 203 in fünf Tagen ausgeliefert werden muss.
+Und wenn er quäkt — hören Sie hin. Weil Sie gelernt haben: Wenn er quäkt, hat er einen Grund.
+
+
+
+Was im Narrativ wie kommuniziert wird — und was technisch dahinter steckt
+Diese Tabelle stellt sicher, dass kein Marketing-Versprechen ohne technisches Fundament bleibt:
+
+Marketing-Aussage
+Technische Entsprechung
+wacht, wenn Mueller GmbH um 3:47 Uhr eine E-Mail schickt
+IMAP IDLE Listener → EmailParserSkill → Orchestrator-Pipeline (< 25 Sek. Ende-zu-Ende)
+Wissensgraphen im Kopf traegt
+RDF Knowledge Graph (Apache Jena / Oxigraph) mit sc:-Ontologie, SPARQL-Endpunkt
+quaekt - unmisstverstaendlich
+Push-Notification via SSE + E-Mail-Draft in Approval-Queue mit Begruendungskette
+Schmidt AG kann liefern. Soll ich?
+EscalationSkill: GraphQuerySkill liefert Alternativlieferant, Bestellentwurf vorbereitet
+mit Korrekturen fuettern
+User-Preferences-Memory: jede Ablehnung / Korrektur schreibt strukturiertes Feedback zurueck
+vergisst es nie wieder
+sc:preferredAlternative / sc:blockedSupplier Relation im Graph — dauerhaft gespeichert
+weiss wann sein Wissen veraltet
+GraphMaintenanceSkill: confidence-Score < 0.7 → Node als needs_review markiert
+quaekt weniger nach 6 Monaten
+EscalationSkill kalibriert Schwellen auf Basis historischer Ablehnungsquote — Autonomiestufe 1
+nie krank, nie Urlaub
+Cron-Jobs: 5 planmaessige Jobs taegl./woechentl./monatlich, unabhaengig von Nutzer-Aktivitaet
+
+
+Das Markt-Umfeld
+Was existiert bereits — und wo ist die Lücke:
+
+Anbieter
+Fokus
+Tacto (München)
+Preisanalyse, Spend-Transparenz
+Matchory
+Lieferantensuche, Sourcing
+Mandel (YC)
+E-Mail-basierte Lieferantenabfragen
+SAP Business AI
+ERP-integrierte KI
+SupplyAgent
+Vollständige Agenten-Pipeline
+
+75 % der befragten KMU berichten von erheblichen Mehrkosten durch gestörte Lieferketten (Einkaufsbarometer Mittelstand 2025, n=350). Nur 25 % nutzen eine digitale Plattform zur Lieferantenzusammenarbeit. Das ist der Markt.
+
+
+Zielkundenprofil
+Merkmal
+Konkrete Ausprägung
+Größe
+50–500 Mitarbeiter, produzierendes Gewerbe
+Lieferanten
+40–200 aktiv, E-Mail-basierte Kommunikation
+Einkaufsteam
+1–4 Personen — der Einkäufer ist oft allein
+IT-Setup
+Kein oder altes ERP, kein dediziertes Supply-Chain-Tool
+Schmerzpunkt
+Verzögerungen werden zu spät erkannt, Wissen klebt an einer Person
+Branchen
+Maschinenbau · Metallverarbeitung · Elektrotechnik · Kunststoff
+Entscheider
+Einkaufsleiter, COO, Geschäftsführer
+
+
+Was der Agent konkret tut — und was nicht
+Die fünf Kernfunktionen beim ersten Produktiveinsatz:
+
+Funktion
+Konkreter Nutzen
+Lieferverzögerungs-Radar
+< 4 Minuten von E-Mail-Eingang bis strukturierter Lageeinschätzung mit Handlungsvorschlag (statt 2 h Eigenrecherche)
+Alternativbestellungs-Entwurf
+Bestellentwurf beim Zweitlieferanten inkl. historischem Preis — Einkäufer klickt Freigeben oder Ablehnen
+Proaktive Kundenbenachrichtigung
+Vertriebsmitarbeiter erhält E-Mail-Entwurf mit realistisch neuem Liefertermin — kein Auftrag fällt unbemerkt durch das Raster
+Selbstlernende Lieferantenbewertung
+Reliabilitätsscore wächst mit jeder Lieferung, Meldung, Korrektur — nach 6 Monaten kennt das System saisonale Muster
+Wöchentliches Risiko-Briefing
+Jeden Montag 7:30 Uhr: urgentFlags, Single-Source-Risiken, Lieferanten mit sinkenden Scores — einseitig, direkt per E-Mail
+
+Was der Agent nicht tut — diese Klarheit schützt vor falschen Erwartungen:
+
+Nicht enthalten
+Warum nicht — und wann
+Eigenständige Bestellauslösung
+Jede Bestellung braucht menschliche Freigabe — immer, ohne Ausnahme
+Echtzeit-Marktpreisabfragen
+Erfordert EDI-Anbindungen — geplant für Phase 2
+ERP-Direktintegration
+Phase 1 läuft auf E-Mail-Basis; SAP B1 / proALPHA-Konnektoren optional in Phase 2
+Vertragsverhandlung
+Der Agent schlägt vor — Verhandlungen bleiben beim Menschen
+
+
+Preismodell
+Paket
+Preis
+Start (bis 60 Lieferanten)
+490 €/Monat
+Wachstum (bis 150)
+890 €/Monat
+Komplett (unbegrenzt)
+1.490 €/Monat
+Onboarding (einmalig)
+1.500 €
+
+Amortisation: 12 gesparte Stunden/Woche bei 80.000 € Jahresgehalt = ca. 23.000 € Gegenwert/Jahr. Start-Paket amortisiert sich in unter 4 Wochen.
+
+
+TEIL 2 · TECHNISCHE ARCHITEKTUR
+
+Übersicht: Vier Schichten
+Der Agent basiert auf dem Anthropic Agent SDK. Alle vier Schichten kommunizieren über definierte Schnittstellen — keine enge Kopplung, jede Schicht austauschbar:
+
+Schicht 4 · Aktionsebene
+E-Mail-Drafts · Approval-Queue · Cron-Berichte · Dashboard-Push
+Schicht 3 · Reasoning
+Orchestrator · 5 spezialisierte Skills (Sub-Agenten) · Tool-Calling
+Schicht 2 · Memory
+RDF Knowledge Graph · RAG Vector Store · User-Preferences-Memory
+Schicht 1 · Datenquellen
+IMAP-Inbox · Bestellhistorie CSV/ERP · Lieferantenstamm
+
+
+Die fünf Skills — spezialisierte Sub-Agenten
+Statt eines monolithischen Agenten setzt SupplyAgent auf fünf spezialisierte Sub-Agenten (Skills) die der Orchestrator je nach Ereignis aufruft. Jeder Skill hat seinen eigenen System-Prompt, sein eigenes Tool-Set und sein eigenes Kontext-Fenster.
+
+EmailParserSkill
+Liest eingehende Lieferanten-E-Mails und extrahiert strukturierte Ereignisse. Antwortet ausschließlich in validem JSON — kein Freitext, der den Orchestrator destabilisieren könnte.
+Input
+Roher E-Mail-Text (Subject + Body)
+Output
+{ supplier_name, order_id, part_id, event_type, delay_days, new_date, confidence }
+Tools
+imap_fetch · entity_extract · fuzzy_match_graph_node
+Fallback
+confidence < 0.7 → Flag 'needs_human_review', kein automatischer Folgeschritt
+
+GraphQuerySkill
+Übersetzt natürlichsprachige Anfragen des Orchestrators in SPARQL und führt sie gegen den Knowledge Graph aus. Kennt das vollständige RDF-Schema und cached häufige Queries als parametrisierte Templates.
+Input
+Natürlichsprachige Frage + optionale Parameter
+Output
+Strukturierte Ergebnisliste als JSON (nie Rohdaten)
+Tools
+sparql_execute · kg_schema_lookup · result_formatter
+Caching
+Deadline-Scan, Single-Source-Check, Reliabilitäts-Query als Template gecacht
+
+EscalationSkill
+Das Gehirn der Reaktion: bewertet eine erkannte Störung, bestimmt Severity und erstellt den EscalationPlan mit vorbereiteten Handlungsvorschlägen. Regeln werden aus dem User-Preferences-Memory geladen — nicht hardgecoded. Jede Einkäufer-Korrektur wird als Präferenz-Update zurückgeschrieben.
+Input
+Ereignis-JSON (EmailParser) + Auftragslage (GraphQuery) + User-Preferences
+Output
+EscalationPlan: { severity, affected_orders, draft_emails[], approval_required }
+Lernen
+Jede Ablehnung → sc:preferredAlternative / sc:blockedSupplier im Graph aktualisiert
+Grenze
+Erstellt immer Entwürfe — sendet niemals eigenständig
+
+GraphMaintenanceSkill
+Pflegt den Knowledge Graph: neue Nodes, Score-Updates, OWL-Inferenz. Wird sowohl ereignisgesteuert (nach jedem E-Mail-Event) als auch durch Cron-Jobs (nächtlich) aufgerufen.
+Node-Upsert
+Nach jedem verarbeiteten Event: Supplier, Bauteil, DeliveryEvent aktualisieren
+Score-Recalc
+Nächtlich 2:00 Uhr: Reliabilitätsscore aller Lieferanten neu berechnen
+OWL-Inferenz
+Nächtlich 2:30 Uhr: singleSourceRisk, urgentFlag, riskLevel ableiten
+Konflikte
+Widersprüchliche Daten → confidence-Flag, Einkäufer-Alert im Dashboard
+Self-Rewrite
+Cron-Intervalle anpassen bei steigender urgentFlag-Rate (Autonomiestufe 1)
+
+ReportGeneratorSkill
+Erzeugt strukturierte Berichte aus Graph-Daten für alle Cron-Jobs. Berücksichtigt User-Präferenzen bezüglich Format und Detailtiefe (gelernt aus Feedback).
+Wochen-Briefing (Mo 7:30)
+urgentFlag=true · Single-Source-Bauteile · Score-Trends
+Deadline-Alert (tägl. 6:00)
+Aufträge < 7 Tage ohne bestätigte Lieferung
+Lieferanten-Radar (Di/Do 14:00)
+Lieferanten mit verschlechtertem Score letzte 8 Wochen
+Single-Source-Report (1. d. M.)
+Alle Bauteile ohne Alternativlieferant im Graph
+
+
+Orchestrator — Ablauf bei einer Verzögerungs-E-Mail
+Gesamtzeit von E-Mail-Eingang bis Dashboard-Notification: unter 25 Sekunden.
+
+Schritt + Dauer
+Skill
+Input → Output
+1 · < 3 Sek.
+EmailParserSkill
+E-Mail-Text → { supplier, order_id, delay_days, confidence }
+2 · < 5 Sek.
+GraphQuerySkill
+Supplier-Name → betroffene Aufträge + Deadlines + Alternativlieferanten
+3 · < 8 Sek.
+EscalationSkill
+Ereignis + Graph-Daten → EscalationPlan mit Draft-E-Mails
+4+5 · < 4 Sek.
+GraphMaintenance + Push
+Node anlegen, Score aktualisieren + EscalationPlan → Approval-Queue (parallel)
+
+# Orchestrator-Kern (vereinfacht)
+async def handle_email_event(raw_email: str):
+    parsed = await email_parser_skill.run(input=raw_email)
+    if parsed.confidence < 0.7:
+        return await dashboard_api.flag_for_review(parsed)  # quäkt anders
+
+    # Schritt 2 & 3 parallel — spart ~5 Sekunden
+    graph_data, escalation = await asyncio.gather(
+        graph_query_skill.run(supplier=parsed.supplier_name),
+        escalation_skill.run(event=parsed, prefs=user_preferences.load())
+    )
+
+    # Schritt 4 & 5 parallel
+    await asyncio.gather(
+        graph_maintenance_skill.upsert_event(parsed),
+        dashboard_api.push_approval(escalation)   # das ist das Quäken
+    )
+
+
+Der Knowledge Graph — Datenmodell
+RDF/OWL-Ontologie mit Präfix sc: <https://supply.agent/ontology#>. Kern-Triples:
+
+Klasse
+Relation
+Beispiel-Triple
+Supplier
+sc:suppliesBauteil
+:MuellerGmbH sc:suppliesBauteil :Zahnrad_M8
+Bauteil
+sc:requiredBy
+:Zahnrad_M8 sc:requiredBy :Auftrag_2026_187
+Auftrag
+sc:hasDeadline
+:Auftrag_2026_187 sc:hasDeadline '2026-04-12'^^xsd:date
+Supplier
+sc:hasReliabilityScore
+:MuellerGmbH sc:hasReliabilityScore '0.84'^^xsd:decimal
+Supplier
+sc:hasAlternative
+:MuellerGmbH sc:hasAlternative :SchmidtAG
+Bauteil
+sc:singleSourceRisk
+:Flansch_F12 sc:singleSourceRisk true
+Auftrag
+sc:urgentFlag
+:Auftrag_2026_203 sc:urgentFlag true
+Supplier
+sc:preferredAlternative
+:MuellerGmbH sc:preferredAlternative :SchmidtAG  ← aus Feedback
+Supplier
+sc:blockedForPart
+:SchmidtAG sc:blockedForPart :Zahnrad_M8  ← aus Feedback
+
+Technologie: Apache Jena Fuseki als SPARQL-Endpunkt (Produktiv); Oxigraph als leichtgewichtige Einzel-Prozess-Variante (kleinere Deployments). Graph-Befüllung aus vier Quellen:
+
+Quelle
+Wann
+E-Mail-Parsing (IMAP IDLE)
+Kontinuierlich — jede eingehende Lieferanten-E-Mail
+Historische Bestelldaten
+Onboarding einmalig + monatlicher CSV/ERP-Nachlade-Job
+Nutzer-Feedback
+Ereignisgesteuert — jede Korrektur/Ablehnung in der Approval-Queue
+OWL-Reasoning-Job
+Nächtlich 2:00 — abgeleitetes Wissen, neue Risiko-Relationen
+
+
+Proaktive Abfragen — Cron-Architektur
+Der Agent agiert auf zwei Arten: reaktiv bei Ereignissen (IMAP, Nutzer-Interaktion) und proaktiv über Cron-Jobs. Beide Pfade führen zu SPARQL-Queries gegen den Knowledge Graph — das ist das technische Fundament des Quaekens.
+
+Zeitplan
+Job-Name
+Mo 7:30
+Wochen-Briefing
+Tägl. 6:00
+Deadline-Scan
+Di/Do 14:00
+Lieferanten-Radar
+1. d. Monats
+Single-Source-Check
+Nächtl. 2:00
+Reasoning-Job
+Nächtl. 2:30
+Score-Recalc
+
+
+Self-Reprogramming — drei Autonomiestufen
+Der Agent kann seine eigenen Cron-Parameter und Eskalationsschwellen anpassen — aber nur innerhalb eines strikt definierten Governance-Rahmens. Das ist die technische Basis fuer: er quaekt weniger nach 6 Monaten:
+
+Stufe
+Was der Agent darf
+1 — Vollautonome Anpassung
+Cron-Intervalle anpassen (nicht < 15 Min., nicht > 7 Tage) · Reliabilitätsschwellen neu kalibrieren wenn historische Ablehnungsquote sinkt
+2 — Vorschlag mit Freigabe
+Neue Eskalationsregeln vorschlagen · Neue sc:preferredAlternative-Relationen anlegen (brauchen Klick-Bestätigung)
+3 — Niemals autonom
+Bestellungen auslösen · Lieferanten dauerhaft deaktivieren · Eigene Zugriffsberechtigung erweitern · Governance-Regeln ändern
+
+Implementierung: Cron-Konfiguration in YAML-Datei, die der Agent via Tool-Call lesen und schreiben darf — Parameterbereiche sind hart codiert und nicht durch den Agenten änderbar.
+
+
+Dashboard — Kontrollzentrale
+Das Dashboard ist kein Reporting-Tool. Es ist die Schnittstelle zwischen Mensch und Agent — mit drei Kernbereichen:
+
+Bereich
+Inhalt + Datenquelle
+Lieferanten-Risikostatus
+Reliabilitätsscore aller Lieferanten (live aus KG) · Single-Source-Warnungen · Score-Verlauf 6 Monate · Graph-Relationen clickbar
+Auftrags-Deadline-Übersicht
+Alle Aufträge nach Dringlichkeit · urgentFlag-Markierung · Pufferzeit · Drill-Down zu Lieferant + Bauteil
+Agent Activity Log
+Jede Agenten-Aktion: Zeitstempel · Skill · Trigger · Begründung · Konfidenz-Score · Status (AUTONOM / WARTET_FREIGABE / …)
+Approval-Queue
+Alle Stufe-2-Aktionen zur Freigabe: Vorschlag + vollständige Begründungskette + Freigeben/Ablehnen — Feedback fließt in KG zurück
+
+Stack-Komponente
+Technologie + Begründung
+Frontend
+React + TypeScript
+Echtzeit-Updates
+Server-Sent Events (SSE) — Agent pusht Events sofort an Dashboard
+Graph-Visualisierung
+D3.js (Node-Link) oder Sigma.js für größere Graphen
+Backend-API
+FastAPI (Python) — natürliche Brücke zwischen Agent SDK und Frontend
+SPARQL-Bridge
+FastAPI-Endpunkt /api/graph/query — nimmt SPARQL, gibt JSON
+Deployment
+Docker Compose: Agent + Oxigraph + FastAPI + React — on-premise oder Cloud
+
+
+
+TEIL 3 · ONBOARDING — DER AGENT ERWACHT
+
+Was in den ersten 48 Stunden passiert
+Onboarding ist nicht Einrichtung. Es ist der Moment, in dem der Agent sein Gedaechtnis bekommt. Ohne diesen Schritt ist er ein Werkzeug. Mit ihm wird er zum Kollegen, der den Betrieb kennt.
+Der Onboarding-Prozess laeuft in fuenf Phasen ab — gesteuert vom OnboardingOrchestrator, einem temporaeren Skill, der nach erfolgreichem Abschluss deaktiviert wird.
+
+Phase
+Was passiert
+1 · Persoenlichkeit (Tag 1)
+Agent erhaelt Name, Rolle, Fokusthemen — Basis-System-Prompt wird konfiguriert
+2 · Materialsammlung (Tag 1)
+Agent fordert aktiv Dokumente und Daten an — strukturiertes Interview
+3 · Graph-Aufbau (Tag 1-2)
+Hochgeladene Materialien werden geparst, Knowledge Graph befuellt
+4 · Cron-Konfiguration (Tag 2)
+Agent schlaegt Job-Plan vor, Einkaeuferin stimmt ab
+5 · Expertenwissen (Tag 2)
+Freitext-Briefing: was der Agent ueber den Betrieb wissen soll bevor er startet
+
+
+Phase 1 — Persoenlichkeit & Basis-Konfiguration
+Bevor der Agent eine einzige E-Mail liest, erhaelt er seine Identitaet. Das ist kein Komfort-Feature — es bestimmt, wie der Agent kommuniziert, was er priorisiert und wie er eskaliert.
+
+Der initiale System-Prompt
+Der folgende System-Prompt bildet den unveraenderlichen Kern des Agenten. Nutzer-Eingaben aus Phase 1 werden in die Platzhalter injiziert. Der Prompt ist in drei Schichten aufgebaut: Identitaet, Verhaltensregeln, Grenzen.
+
+# SupplyAgent — Basis System-Prompt v1.0
+# Schicht 1: Identitaet (aus Nutzer-Konfiguration befuellt)
+
+Du bist {AGENT_NAME}, der Lieferketten-Assistent von {COMPANY_NAME}.
+Deine Ansprechperson ist {USER_NAME} ({USER_ROLE}).
+
+Dein Fokus: {FOCUS_DESCRIPTION}
+# Beispiel: 'Metallzukauf fuer die Produktion von Hydraulikkomponenten.'
+# Beispiel: 'Elektronikeinkauf fuer Steuerungseinheiten, Hauptlieferanten EU-basiert.'
+
+Dein Ton: {TONE}
+# Optionen: sachlich-knapp | freundlich-direkt | formal
+
+# Schicht 2: Unveraenderliche Verhaltensregeln
+
+IMMER:
+- Begruende jede Warnung in einem Satz: Was ist passiert, warum ist es relevant,
+  welcher Auftrag ist betroffen.
+- Nenne den Konfidenz-Score wenn du unsicher bist (unter 0.8).
+- Frage nach bevor du handelst wenn du einen Widerspruch zum bekannten
+  Nutzerverhalten erkennst.
+- Lerne aus jeder Korrektur. Schweige nicht wenn dein Wissen veraltet sein koennte.
+
+NIE:
+- Bestellungen eigenstaendig ausloesen.
+- Lieferanten dauerhaft deaktivieren ohne explizite Bestaetigung.
+- Interne Kommunikation (Eskalations-Mails, Kundenbenachrichtigungen) versenden
+  ohne Freigabe.
+- Deine eigene Zugriffsberechtigung erweitern.
+
+# Schicht 3: Betriebsspezifisches Wissen (aus Onboarding befuellt)
+
+Kritische Lieferanten: {CRITICAL_SUPPLIERS}
+Saisonale Besonderheiten: {SEASONAL_NOTES}
+Unternehmensspezifische Eskalationsregeln: {ESCALATION_RULES}
+Bekannte Ausnahmen und Sonderregelungen: {EXCEPTIONS}
+
+# Diese Schicht wird durch Onboarding-Phase 4+5 befuellt und
+# durch laufendes Nutzer-Feedback aktualisiert.
+
+Die Platzhalter {CRITICAL_SUPPLIERS}, {SEASONAL_NOTES}, {ESCALATION_RULES} und {EXCEPTIONS} werden nicht durch ein Formular befuellt — sie entstehen aus dem Onboarding-Interview (Phase 5) und wachsen mit jeder Nutzer-Korrektur.
+
+
+Phase 2 — Materialsammlung: Der Agent fragt aktiv
+Der Agent fuehrt nach der Konfiguration ein strukturiertes Interview. Kein Formular, kein Upload-Screen. Der Agent stellt Fragen, erlaeutert warum er die Information braucht, und gibt an was passiert wenn sie fehlt.
+
+Materialien nach Prioritaet
+Der Agent unterscheidet drei Dringlichkeitsstufen. Er startet mit Pflicht-Material und wird ohne es nicht in den Live-Betrieb uebergehen:
+
+Prioritaet
+Material
+Wofuer der Agent es braucht
+MUSS haben
+Lieferantenliste (Excel / CSV)
+Basis-Nodes im Knowledge Graph: Name, Kontakt, Lieferspektrum — ohne diese Liste kennt der Agent niemanden
+MUSS haben
+Letzte 12 Monate Bestellhistorie (CSV oder ERP-Export)
+Reliabilitaetsscore-Berechnung, Saisonalitaet, Mengengewohnheiten — ohne History kein Vertrauen in Scores
+MUSS haben
+Aktuelle offene Auftraege (CSV / ERP-Export)
+urgentFlag-Berechnung, Deadline-Scan — ohne Auftraege keine proaktiven Warnungen
+SOLLTE haben
+Vergangene Lieferanten-E-Mails (Outlook .msg Export, letztes Jahr)
+Sprach- und Schreibmuster der Lieferanten lernen, historische Ereignisse in KG einbauen
+SOLLTE haben
+Laufende Lieferantenvertraege (PDF)
+Preisbasis, Lieferkonditionen, Zahlungsziele — erkennt Abweichungen zwischen Vertrag und Rechnung
+SOLLTE haben
+Kundenauftraege / Verhandlungen (PDF)
+Versteht Prioritaet der Endkunden, kann Eskalationsdringlichkeit besser einschaetzen
+GUT zu haben
+Qualitaetsprotokolle / Reklamationen (Excel / PDF)
+Ergaenzt Reliabilitaetsscore um Qualitaetsdimension — nicht nur Puenktlichkeit
+GUT zu haben
+Preisverhandlungen der letzten 2 Jahre (E-Mail-Export oder PDF)
+Versteht historische Preisentwicklung und verhandelte Konditionen pro Lieferant
+GUT zu haben
+Organigramm Einkauf / Produktion (PDF oder Freitext)
+Weiss wer bei welchem Problem eskaliert werden soll — richtige Person, nicht nur richtiger Kanal
+
+Wie der Agent fragt — Beispiel-Dialog
+Der Agent stellt keine Liste von Upload-Feldern hin. Er fuehrt ein Gespraech:
+
+Agent: Guten Morgen. Ich bin MAX, Ihr neuer Lieferketten-Assistent.
+       Ich brauche ein paar Dinge von Ihnen bevor ich anfangen kann,
+       nuetzlich zu sein. Fangen wir mit dem Wichtigsten an.
+
+       Haben Sie eine aktuelle Lieferantenliste — am besten als Excel
+       oder CSV? Name, Kontaktdaten, was die liefern reicht vorerst.
+
+Nutzer: Ja, ich schick die gleich.
+
+Agent: Perfekt. Und Bestellhistorie der letzten 12 Monate? Ich brauche
+       das um einschaetzen zu koennen, welchen Lieferanten ich wie viel
+       vertrauen soll. Ohne das starte ich mit Durchschnittswerten —
+       das bedeutet, ich quaeke in den ersten Wochen oefters falsch.
+
+Nutzer: ERP-Export geht, aber der hat komische Spaltennamen.
+
+Agent: Kein Problem — schick ihn trotzdem. Ich sage Ihnen welche
+       Spalten ich brauche und welche ich ignoriere.
+
+Agent: Eine letzte Frage fuer heute: Gibt es Lieferanten, die ich
+       besonders im Auge behalten soll? Jemand der oefter auf den
+       letzten Druecker liefert, oder wo Sie ein schlechtes Gefuehl
+       haben?
+
+Der Dialog-Stil ist konfigurierbar (sachlich-knapp vs. freundlich-direkt). Der Agent dokumentiert intern, welche Materialien fehlen und markiert Scores und Warnungen als 'niedrige Konfidenz' bis die Luecken gefuellt sind.
+
+
+Phase 3 — Knowledge-Graph-Aufbau aus den Materialien
+Sobald die ersten Dokumente hochgeladen sind, startet der OnboardingOrchestrator automatisch den Import-Pipeline. Jeder Schritt ist im Dashboard sichtbar.
+
+Dokument-Typ
+Parsing-Skill + was entsteht im Graph
+Lieferantenliste (Excel/CSV)
+GraphMaintenanceSkill: Supplier-Nodes mit Name, Kontakt, Lieferspektrum-Tags
+Bestellhistorie (CSV/ERP)
+GraphMaintenanceSkill: DeliveryEvent-Nodes, Reliabilitaetsscore-Erstberechnung, Saisonalitaet
+Offene Auftraege (CSV/ERP)
+GraphMaintenanceSkill: Auftrag-Nodes mit Deadline, Bauteil-Relationen, urgentFlag-Erstbewertung
+Lieferanten-E-Mails (.msg/.eml)
+EmailParserSkill: historische Events, Kommunikationsmuster, bekannte Verzoegerungsgruende
+Vertraege (PDF)
+DocumentParserSkill (neu): Preis-Nodes, Konditions-Nodes, Vertragslaufzeiten
+Kundenauftraege (PDF)
+DocumentParserSkill: Kunden-Prioritaets-Tags auf Auftrag-Nodes
+Qualitaetsprotokolle (Excel/PDF)
+GraphMaintenanceSkill: QualityIncident-Nodes, Qualitaets-Score-Komponente
+Organigramm / Freitext
+SystemPromptSkill: Eskalationspfade in Schicht 3 des System-Prompts einbauen
+
+Konfidenz-Kommunikation waehrend des Aufbaus
+Der Agent kommuniziert transparent, wie vollstaendig sein Wissen ist. Im Dashboard erscheint ein Graph-Gesundheits-Indikator:
+
+Indikator
+Bedeutung
+Gesundheit: 30-50%
+Nur Basisdaten vorhanden — Warnungen mit niedrigem Konfidenz-Score, viele need_review-Flags
+Gesundheit: 60-75%
+Bestellhistorie + Auftraege geladen — Reliabilitaetsscores belastbar, urgentFlags aktiv
+Gesundheit: 80-90%
+Vertraege + E-Mail-Historie eingebaut — Preisabweichungen und Kommunikationsmuster erkennbar
+Gesundheit: 90%+
+Vollstaendiger Graph inkl. Qualitaetsdaten — alle Warnungen mit hohem Konfidenz-Score
+
+
+Phase 4 — Cron-Konfiguration: der Agent schlaegt seinen eigenen Rhythmus vor
+Der Agent analysiert die hochgeladenen Daten und schlaegt einen individuellen Job-Plan vor — kein generischer Standard, sondern auf Basis der tatsaechlichen Lieferanten- und Auftragsstruktur des Betriebs.
+
+Logik hinter dem Vorschlag
+Viele Auftraege mit engen Deadlines → Deadline-Scan taeglich statt woechentlich
+Lieferant mit historisch hoher Verzoegerungsrate → Lieferanten-Radar haeufiger
+Kleines Einkaufsteam (1 Person) → Wochen-Briefing kuerzer, nur Top-3-Risiken
+Viele Single-Source-Bauteile erkannt → Single-Source-Check monatlich prominent
+
+Cron-Vorschlag — Beispiel fuer einen Maschinenbaubetrieb
+Job
+Vorgeschlagener Rhythmus
+Begruendung des Agenten
+Wochen-Briefing
+Mo 7:15 Uhr
+3 Lieferanten mit Score unter 0.75 erkannt — frueh genug fuer Montagsbesprechung
+Deadline-Scan
+Taeglich 6:00 Uhr
+18 Auftraege mit Deadline unter 14 Tagen im System — taeglich sinnvoll
+Lieferanten-Radar
+Mi + Fr 14:00 Uhr
+Fischer Metall + Bauer KG historisch auffaellig — engmaschigere Beobachtung
+Single-Source-Check
+1. + 15. des Monats
+7 Bauteile ohne Alternativlieferant erkannt — halbmonatlich bis Alternativen gefunden
+Reasoning-Job
+Naechtlich 2:00 Uhr
+Standard — laeuft wenn niemand arbeitet
+Score-Recalc
+Naechtlich 2:30 Uhr
+Standard
+Vertrags-Check
+1. des Monats
+4 Vertraege laufen in 6 Monaten aus — monatliche Erinnerung
+
+Der Einkaeuferin wird der Vorschlag im Dashboard zur Bestaetigung vorgelegt — ein Klick pro Job. Einzelne Jobs koennen verschoben, deaktiviert oder in der Frequenz angepasst werden.
+
+
+Phase 5 — Expertenwissen: was kein Dokument enthaelt
+Daten erklaeren was passiert ist. Menschen erklaeren warum. Diese Phase ist ein offenes Briefing — der Einkaeuferin erzaehlt dem Agenten, was sie in Jahren gelernt hat.
+
+Strukturierte Briefing-Fragen des Agenten
+Der Agent stellt nach dem Daten-Import gezielt Fragen zu Dingen, die in keiner Tabelle stehen:
+
+Kategorie
+Agent fragt konkret:
+Risikolieferanten
+Gibt es Lieferanten, die ich besonders beobachten soll? Wer liefert oft spaet, macht Qualitaetsprobleme oder kommuniziert schlecht?
+Saisonalitaet
+Gibt es Monate in denen der Einkauf besonders stressig wird? Wann sind Ihre wichtigsten Kunden besonders ungeduldig?
+Interne Eskalationspfade
+Wer soll bei welcher Art von Problem als erstes informiert werden — und wer auf keinen Fall per E-Mail kontaktiert werden?
+Ausnahmen und Sonderregeln
+Gibt es Lieferanten, mit denen wir trotz schlechtem Score arbeiten muessen (z.B. Alleinstellung)? Oder Lieferanten die ich grundsaetzlich bevorzugen soll?
+Ungenutztes Potenzial
+Gibt es etwas in Ihrer Lieferkette das Sie schon lange analysieren wollten, aber nie Zeit hatten?
+Wunsch-Persoenlichkeit
+Wie soll ich mit Ihnen kommunizieren? Kurz und direkt? Oder lieber mit Erklaerung?
+
+Freiform-Briefing
+Nach den strukturierten Fragen oeffnet der Agent einen freien Eingaberaum:
+
+Agent: Eine letzte Frage, ohne vorgegebene Antwortoptionen:
+
+       Was soll ich ueber Ihren Betrieb wissen, das in keiner
+       der hochgeladenen Dateien steht?
+
+       Schreiben Sie einfach drauf los. Alles was Sie sagen,
+       fliesst in meinen Systemkontext ein — ich merke es mir
+       dauerhaft.
+
+Nutzer: Firma Kern Technik ist unser bester Lieferant fuer Lager.
+        Nie ein Problem. Aber sie machen immer Urlaub im August,
+        dann sind sie zwei Wochen nicht erreichbar. Das vergisst
+        immer jeder. Und Fischer Metall — die liefern zwar haeufig
+        zu spaet, aber Herr Fischer persoenlich loest das meistens
+        in einem Anruf. Also nicht direkt eskalieren, erstmal ich.
+
+Agent: Verstanden. Ich merke mir:
+       - Kern Technik: August-Urlaub, 2 Wochen — ich erinnere Sie
+         im Juli an Puffer-Bestellungen.
+       - Fischer Metall: Erst Sie kontaktieren, dann ich eskaliere.
+       Ist das so richtig?
+
+Diese Informationen werden als semantische Annotationen auf den jeweiligen Supplier-Nodes im Knowledge Graph gespeichert (sc:seasonalNote, sc:escalationOverride, sc:humanContactPreference) und fliessen in Schicht 3 des System-Prompts ein.
+
+
+Onboarding-Abschluss: Bereit-Checkliste
+Der OnboardingOrchestrator schliesst die Phase ab sobald alle MUSS-Kriterien erfuellt sind. Er zeigt eine Abschlusskarte:
+
+Pruefpunkt
+Status-Logik
+Lieferantenliste importiert
+Mindestens 5 Supplier-Nodes im Graph
+Bestellhistorie geladen
+Mindestens 50 DeliveryEvents, Score-Berechnung moeglich
+Offene Auftraege bekannt
+Mindestens 1 Auftrag-Node mit Deadline
+Cron-Jobs bestaetigt
+Alle vorgeschlagenen Jobs haben Status AKTIV oder DEAKTIVIERT (explizit)
+System-Prompt vollstaendig
+Schicht 1 + 2 gefuellt; Schicht 3 mindestens teilweise
+Graph-Gesundheit ausreichend
+Konfidenz-Index >= 60%
+Mindestens 1 Expertenwissen-Eingabe
+Freitext-Briefing oder mind. 2 strukturierte Antworten
+
+Wenn ein MUSS-Kriterium nicht erfuellt ist, geht der Agent nicht in den Live-Betrieb. Er bleibt im Onboarding-Modus und erinnert taeglich daran, was noch fehlt — freundlich, aber beharrlich.
+
+Rollout — von 0 auf produktiv in 6 Wochen
+Phase
+Inhalt
+Woche 1–2: Onboarding
+E-Mail-Zugang einrichten · CSV/Excel-Import der Bestellhistorie · Knowledge-Graph-Aufbau · Lieferantenstamm validieren
+Woche 3: Kalibrierung
+Erste Graph-Befüllung aus Live-E-Mails · Einkäufer gibt Feedback auf erste 50 Extraktionen · Schwellen abstimmen
+Woche 4: Probebetrieb
+Agent läuft parallel, alle Vorschläge sichtbar aber nicht versendet · Einkäufer validiert Qualität · Korrekturen in KG
+Woche 5–6: Live
+E-Mail-Drafts aktiviert · Cron-Berichte live · Freischaltung Autonomiestufe 1 · wöchentliches Graph-Qualitäts-Review
+
+Kein ERP-Projekt. Keine Schnittstellen-Entwicklung in Phase 1. Der Agent startet mit dem, was jedes produzierende Unternehmen hat: einer E-Mail-Inbox und einer Excel-Tabelle.
+
+
+Deployment-Paket: Das supplyagent.zip
+Der SupplyAgent wird als einzelnes ZIP-Archiv ausgeliefert. Etienne, der allgemeine Deployment-Agent, entpackt dieses Archiv und platziert alle Artefakte an den vorgesehenen Stellen, aktiviert Skills, registriert Cron-Jobs und startet die Dienste. Wie Etienne das im Detail macht, ist nicht Gegenstand dieses Dokuments.
+Das folgende Bill of Materials (BOM) beschreibt vollstaendig, was das ZIP enthaelt, warum jedes Artefakt benoetigt wird und welche Komponente es konsumiert.
+
+Konvention: Alle Pfade sind relativ zum Entpackziel. Das ZIP enthaelt exakt eine Verzeichnisstruktur: supplyagent/. Etienne erwartet diese Struktur unveraendert.
+
+Verzeichnisstruktur
+supplyagent/
+  agents/
+    orchestrator/
+      system_prompt.md
+      config.yaml
+      tools.json
+    skills/
+      email_parser/
+        system_prompt.md
+        config.yaml
+        tools.json
+      graph_query/
+        system_prompt.md
+        config.yaml
+        tools.json
+      escalation/
+        system_prompt.md
+        config.yaml
+        tools.json
+      graph_maintenance/
+        system_prompt.md
+        config.yaml
+        tools.json
+      report_generator/
+        system_prompt.md
+        config.yaml
+        tools.json
+      onboarding_orchestrator/
+        system_prompt.md
+        config.yaml
+        tools.json
+  knowledge_graph/
+    ontology.ttl
+    owl_rules.ttl
+    seed_data/
+      example_supplier_template.csv
+      example_order_template.csv
+  cron/
+    jobs.yaml
+    cron_governance.yaml
+  backend/
+    main.py
+    requirements.txt
+    Dockerfile
+    api/
+      routes_graph.py
+      routes_dashboard.py
+      routes_approval.py
+      sse_events.py
+    graph/
+      sparql_client.py
+      maintenance.py
+      reasoner.py
+    memory/
+      user_preferences.py
+      rag_store.py
+  frontend/
+    Dockerfile
+    package.json
+    src/
+      App.tsx
+      components/
+        SupplierRisk.tsx
+        OrderDeadlines.tsx
+        ApprovalQueue.tsx
+        ActivityLog.tsx
+        OnboardingWizard.tsx
+  triplestore/
+    Dockerfile
+    oxigraph.toml
+  docker-compose.yml
+  .env.template
+  install.md
+  MANIFEST.json
+
+Bill of Materials
+
+agents/ — Agenten-Konfigurationen
+Pfad
+Typ
+Konsumiert von
+Zweck / Inhalt
+agents/orchestrator/system_prompt.md
+Markdown
+Orchestrator-Agent
+Haupt-System-Prompt des Orchestrators inkl. Routing-Logik: welcher Skill bei welchem Event aufgerufen wird
+agents/orchestrator/config.yaml
+YAML
+Orchestrator-Agent
+Modell-Parameter (Temperatur, max_tokens), Timeout-Werte pro Skill-Aufruf, Retry-Logik, Autonomiestufen-Grenzen
+agents/orchestrator/tools.json
+JSON
+Anthropic SDK
+Tool-Definitionen fuer den Orchestrator: skill_dispatch, dashboard_push, cron_read, cron_write (mit Parameterbereich-Constraints)
+agents/skills/email_parser/system_prompt.md
+Markdown
+EmailParserSkill
+System-Prompt: Extraktionsregeln, JSON-Output-Schema, Konfidenz-Berechnung, Fallback-Verhalten bei Mehrdeutigkeit
+agents/skills/email_parser/config.yaml
+YAML
+EmailParserSkill
+IMAP-Parameter (Host, Port, Mailbox-Ordner), Polling-Intervall, Sprach-Hints fuer NER
+agents/skills/email_parser/tools.json
+JSON
+Anthropic SDK
+Tools: imap_fetch, entity_extract, fuzzy_match_graph_node, flag_for_review
+agents/skills/graph_query/system_prompt.md
+Markdown
+GraphQuerySkill
+System-Prompt mit vollstaendigem RDF-Schema, SPARQL-Konstruktionsregeln, Ausgabeformat-Vorgaben
+agents/skills/graph_query/tools.json
+JSON
+Anthropic SDK
+Tools: sparql_execute, kg_schema_lookup, result_formatter, query_cache_read
+agents/skills/escalation/system_prompt.md
+Markdown
+EscalationSkill
+Entscheidungslogik fuer Severity-Bewertung, Eskalationspfade, Draft-E-Mail-Vorlagen (werden durch User-Preferences ueberschrieben)
+agents/skills/escalation/tools.json
+JSON
+Anthropic SDK
+Tools: preferences_load, draft_email, approval_queue_push, severity_classify
+agents/skills/graph_maintenance/system_prompt.md
+Markdown
+GraphMaintenanceSkill
+Regeln fuer Node-Upserts, Konflikt-Erkennung, Score-Berechnung, Konfidenz-Flagging
+agents/skills/graph_maintenance/tools.json
+JSON
+Anthropic SDK
+Tools: sparql_update, node_upsert, score_recalc, owl_infer, flag_conflict
+agents/skills/report_generator/system_prompt.md
+Markdown
+ReportGeneratorSkill
+Berichts-Templates je Report-Typ (Wochen-Briefing, Deadline-Alert usw.), Formatregeln, Laengenvorgaben
+agents/skills/report_generator/tools.json
+JSON
+Anthropic SDK
+Tools: sparql_execute, preferences_load, email_draft, pdf_export
+agents/skills/onboarding_orchestrator/system_prompt.md
+Markdown
+OnboardingOrchestrator
+Vollstaendiger Onboarding-Ablauf als Prompt: Phasenstruktur, Interview-Fragen, Bereit-Checkliste, Selbst-Deaktivierungs-Logik nach Abschluss
+agents/skills/onboarding_orchestrator/config.yaml
+YAML
+OnboardingOrchestrator
+Pflicht-Kriterien fuer Onboarding-Abschluss (min. Supplier-Nodes, min. DeliveryEvents, Konfidenz-Schwelle)
+agents/skills/onboarding_orchestrator/tools.json
+JSON
+Anthropic SDK
+Tools: file_ingest, document_parse, graph_seed, system_prompt_update, cron_propose, onboarding_complete
+
+knowledge_graph/ — Ontologie & Seed-Daten
+Pfad
+Typ
+Konsumiert von
+Zweck / Inhalt
+knowledge_graph/ontology.ttl
+Turtle/RDF
+GraphMaintenanceSkill, Triplestore
+Vollstaendige sc:-Ontologie: alle Klassen (Supplier, Bauteil, Auftrag, DeliveryEvent ...), Relationen, Datentypen, Kardinalitaeten
+knowledge_graph/owl_rules.ttl
+OWL/Turtle
+GraphMaintenanceSkill (Reasoner)
+Inferenz-Regeln: singleSourceRisk-Ableitung, urgentFlag-Berechnung, riskLevel-Klassifikation aus Score-Schwellen
+knowledge_graph/seed_data/example_supplier_template.csv
+CSV
+OnboardingOrchestrator
+Vorlage-Datei die dem Nutzer gezeigt wird damit er seine Lieferantendaten im richtigen Format liefert
+knowledge_graph/seed_data/example_order_template.csv
+CSV
+OnboardingOrchestrator
+Vorlage fuer Bestellhistorie-Export: Pflichtfelder, Datumsformat, Artikelnummer-Konvention
+
+cron/ — Job-Konfiguration
+Pfad
+Typ
+Konsumiert von
+Zweck / Inhalt
+cron/jobs.yaml
+YAML
+Orchestrator, GraphMaintenanceSkill
+Alle Cron-Job-Definitionen: Name, Schedule (cron-Syntax), aufrufender Skill, Parameter. Dies ist die Datei die der Agent via Autonomiestufe 1 modifizieren darf.
+cron/cron_governance.yaml
+YAML
+Orchestrator (read-only fuer Agent)
+Unveraenderliche Grenzen: minimales Intervall pro Job-Typ, maximales Intervall, erlaubte Parameterbereiche. Etienne schreibt diese Datei, der Agent darf sie nur lesen.
+
+backend/ — FastAPI-Dienst
+Pfad
+Typ
+Konsumiert von
+Zweck / Inhalt
+backend/main.py
+Python
+Docker
+FastAPI-Applikation: Einstiegspunkt, Middleware, CORS, SSE-Endpoint-Registrierung
+backend/requirements.txt
+Text
+Docker
+Python-Abhaengigkeiten: fastapi, anthropic, rdflib, httpx, python-dotenv, sentence-transformers (fuer RAG)
+backend/Dockerfile
+Dockerfile
+Etienne / Docker Compose
+Container-Definition fuer den Backend-Dienst
+backend/api/routes_graph.py
+Python
+FastAPI
+REST-Endpunkte: /api/graph/query (SPARQL-Bridge), /api/graph/node/{id}, /api/suppliers, /api/orders
+backend/api/routes_dashboard.py
+Python
+FastAPI
+Endpunkte fuer Dashboard-Daten: Risikostatus, Deadline-Uebersicht, Agent-Log (paginiert)
+backend/api/routes_approval.py
+Python
+FastAPI
+Approval-Queue: GET /api/approvals, POST /api/approvals/{id}/approve, POST /api/approvals/{id}/reject. Reject-Payload fliesst als Feedback in User-Preferences.
+backend/api/sse_events.py
+Python
+FastAPI, Frontend
+Server-Sent Events: Echtzeit-Push wenn Agent neue Approval-Eintraege erstellt oder urgentFlag gesetzt wird
+backend/graph/sparql_client.py
+Python
+GraphQuerySkill, GraphMaintenanceSkill
+SPARQL-Client: Query-Execution gegen Oxigraph-Endpunkt, Connection-Pooling, Timeout-Handling
+backend/graph/maintenance.py
+Python
+GraphMaintenanceSkill
+Node-Upsert-Logik, Score-Recalculation, Konflikt-Erkennung, Konfidenz-Flagging
+backend/graph/reasoner.py
+Python
+GraphMaintenanceSkill (Cron)
+OWL-Reasoning-Runner: laedt owl_rules.ttl, fuehrt Inferenz aus, schreibt neue Triples zurueck
+backend/memory/user_preferences.py
+Python
+EscalationSkill, ReportGeneratorSkill
+Lese/Schreib-Interface fuer User-Preferences-Memory: gespeicherte Eskalationsregeln, Lieferanten-Praeferenzen, Ton-Einstellungen
+backend/memory/rag_store.py
+Python
+OnboardingOrchestrator, EscalationSkill
+RAG-Vektorspeicher: Indexierung hochgeladener Dokumente (Vertraege, Protokolle), Similarity-Search fuer kontextuelle Abfragen
+
+frontend/ — React Dashboard
+Pfad
+Typ
+Konsumiert von
+Zweck / Inhalt
+frontend/Dockerfile
+Dockerfile
+Etienne / Docker Compose
+Container-Definition: Node-Build-Stage + Nginx-Serve-Stage
+frontend/package.json
+JSON
+Docker
+Abhaengigkeiten: react, typescript, recharts, d3, axios, eventsource (fuer SSE)
+frontend/src/App.tsx
+TypeScript/React
+Browser
+Root-Komponente: Routing, Auth-Guard, SSE-Verbindungsaufbau, globaler State
+frontend/src/components/SupplierRisk.tsx
+TypeScript/React
+Dashboard
+Lieferanten-Risikostatus: Score-Bars, Trend-Indikatoren, Single-Source-Warnungen, Graph-Relationen clickbar
+frontend/src/components/OrderDeadlines.tsx
+TypeScript/React
+Dashboard
+Auftrags-Deadline-Uebersicht: Timeline, urgentFlag-Markierungen, Pufferzeit-Anzeige
+frontend/src/components/ApprovalQueue.tsx
+TypeScript/React
+Dashboard
+Approval-Queue: Karten mit Begruendungskette, Konfidenz-Score, Freigabe/Ablehnen-Buttons. Ablehnung oeffnet optionales Feedback-Feld.
+frontend/src/components/ActivityLog.tsx
+TypeScript/React
+Dashboard
+Agent-Aktivitaetslog: filterbar nach Skill und Status, Echtzeit-Updates via SSE
+frontend/src/components/OnboardingWizard.tsx
+TypeScript/React
+Dashboard
+Onboarding-Assistent: Chat-Interface fuer Phase 1-5, Datei-Upload, Graph-Gesundheits-Indikator, Cron-Bestaetigungskarten
+
+triplestore/ — Oxigraph SPARQL-Endpunkt
+Pfad
+Typ
+Konsumiert von
+Zweck / Inhalt
+triplestore/Dockerfile
+Dockerfile
+Etienne / Docker Compose
+Oxigraph-Container mit vorgeladenem Data-Volume-Mount
+triplestore/oxigraph.toml
+TOML
+Oxigraph
+Konfiguration: SPARQL-Endpunkt-Adresse, Persistenz-Pfad, CORS-Einstellungen fuer Backend-Zugriff
+
+/ — Wurzelverzeichnis
+Pfad
+Typ
+Konsumiert von
+Zweck / Inhalt
+docker-compose.yml
+YAML
+Etienne
+Orchestriert alle vier Dienste (Backend, Frontend, Triplestore, Agent-Runtime) mit Netzwerk-Definitionen, Volume-Mounts und Umgebungsvariablen-Referenzen
+.env.template
+Text
+Etienne
+Vorlage fuer Umgebungsvariablen: ANTHROPIC_API_KEY, IMAP_HOST, IMAP_USER, IMAP_PASSWORD, SPARQL_ENDPOINT, JWT_SECRET. Etienne befuellt .env aus sicherem Secret-Store.
+install.md
+Markdown
+Etienne (Referenz)
+Installationsanleitung mit Schritt-fuer-Schritt-Pruefpunkten: was Etienne nach jedem Schritt validieren soll (Health-Check-URLs, erwartete Log-Outputs)
+MANIFEST.json
+JSON
+Etienne
+Maschinenlesbare Paket-Beschreibung: Version, Artefakt-Liste mit SHA256-Hashes, Abhaengigkeiten, Mindest-Anforderungen (RAM, CPU, Python-Version). Etienne prueft Integritaet vor der Installation.
+
+MANIFEST.json — Maschinenlesbare Steuerdatei fuer Etienne
+Das MANIFEST.json ist der Einstiegspunkt fuer Etienne. Es beschreibt nicht nur was im ZIP ist, sondern auch in welcher Reihenfolge Artefakte installiert werden muessen und was nach jedem Schritt validiert werden soll:
+
+{
+  "name": "supplyagent",
+  "version": "1.0.0",
+  "description": "Autonomer Lieferketten-Assistent fuer produzierende Mittelstandsbetriebe",
+  "install_order": [
+    "triplestore",
+    "knowledge_graph/ontology.ttl",
+    "knowledge_graph/owl_rules.ttl",
+    "backend",
+    "frontend",
+    "agents",
+    "cron/jobs.yaml",
+    "cron/cron_governance.yaml"
+  ],
+  "health_checks": {
+    "triplestore": "GET http://localhost:7878/health",
+    "backend":     "GET http://localhost:8000/health",
+    "frontend":    "GET http://localhost:3000"
+  },
+  "required_env": ["ANTHROPIC_API_KEY", "IMAP_HOST", "IMAP_USER", "IMAP_PASSWORD"],
+  "min_requirements": { "ram_gb": 4, "cpu_cores": 2, "python": "3.11" },
+  "artifacts": [
+    # ... vollstaendige Liste mit Pfad, SHA256, Typ fuer jeden Eintrag
+  ]
+}
+
+Etienne prueft SHA256-Hashes aller Artefakte gegen MANIFEST.json bevor er mit der Installation beginnt. Bei Abweichung bricht er ab und meldet welche Datei korrumpiert oder veraltet ist.
+
+Zusammenfassung
+Kategorie
+Anzahl Artefakte
+Agenten-Konfigurationen
+18 Dateien (6 Skills x 3 + Orchestrator x 3)
+Knowledge Graph (Ontologie)
+2 Dateien + 2 Seed-Templates
+Cron-Konfiguration
+2 Dateien
+Backend (FastAPI + Python)
+12 Dateien
+Frontend (React + TypeScript)
+8 Dateien
+Triplestore (Oxigraph)
+2 Dateien
+Wurzelverzeichnis
+4 Dateien (docker-compose, .env.template, install.md, MANIFEST.json)
+GESAMT
+48 Artefakte in supplyagent.zip
+
+
+Erweiterbarkeit — Phase 2 Skills
+Das Skill-Modell ist offen. Ein neuer Skill braucht: System-Prompt, Tool-Set, Input/Output-Spec, eine Zeile Registrierung im Orchestrator. Kein Umbau des Kerns.
+
+Skill (Phase 2)
+Funktion
+PriceWatchSkill
+Rohstoffpreis-Monitoring · triggert Nachverhandlungsvorschlag wenn Marktpreis > Vertragspreis um X%
+ComplianceSkill
+Prüft neue Lieferanten automatisch gegen LkSG-Anforderungen
+DemandForecastSkill
+Analysiert Auftragseingang, schlägt proaktive Bestellmengen vor
+ERPSyncSkill
+Bidirektionale Synchronisation SAP Business One / proALPHA

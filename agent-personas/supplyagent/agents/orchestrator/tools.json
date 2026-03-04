@@ -1,0 +1,80 @@
+[
+  {
+    "name": "skill_dispatch",
+    "description": "Dispatch an event to a specialized skill for processing",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "skill": {
+          "type": "string",
+          "enum": ["email_parser", "graph_query", "escalation", "graph_maintenance", "report_generator", "onboarding_orchestrator"],
+          "description": "The skill to dispatch to"
+        },
+        "input": {
+          "type": "object",
+          "description": "Input payload for the skill"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["immediate", "high", "medium", "low"],
+          "description": "Processing priority"
+        }
+      },
+      "required": ["skill", "input"]
+    }
+  },
+  {
+    "name": "dashboard_push",
+    "description": "Push a notification or approval request to the dashboard",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["approval", "notification", "alert", "flag_for_review"],
+          "description": "Type of dashboard push"
+        },
+        "payload": {
+          "type": "object",
+          "description": "Content to push to the dashboard"
+        }
+      },
+      "required": ["type", "payload"]
+    }
+  },
+  {
+    "name": "cron_read",
+    "description": "Read current cron job configuration",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "description": "Specific job ID to read, or omit for all jobs"
+        }
+      }
+    }
+  },
+  {
+    "name": "cron_write",
+    "description": "Update cron job parameters within governance bounds (Autonomy Level 1 only)",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "description": "Job ID to update"
+        },
+        "updates": {
+          "type": "object",
+          "properties": {
+            "cronExpression": { "type": "string" },
+            "enabled": { "type": "boolean" }
+          },
+          "description": "Fields to update (must be within governance bounds)"
+        }
+      },
+      "required": ["job_id", "updates"]
+    }
+  }
+]

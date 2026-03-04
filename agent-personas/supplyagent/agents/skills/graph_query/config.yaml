@@ -1,0 +1,14 @@
+name: supplyagent-graph-query
+description: "Translates natural-language questions into SPARQL queries against the supply chain knowledge graph"
+model: haiku
+temperature: 0.1
+max_tokens: 2048
+sparql_endpoint: "${SPARQL_ENDPOINT:-http://localhost:7000}"
+query_timeout_seconds: 10
+cache:
+  enabled: true
+  ttl_seconds: 300
+  cached_queries:
+    - deadline_scan
+    - single_source_check
+    - reliability_trend

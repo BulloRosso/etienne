@@ -1,0 +1,7 @@
+order_id,customer,part_id,quantity,deadline,status
+PO-2026-187,Voith AG,Gear M8,500,2026-04-12,open
+PO-2026-188,Siemens AG,Bearing B20,200,2026-03-28,in-progress
+PO-2026-189,Bosch GmbH,Flange F12,150,2026-04-05,open
+PO-2026-190,ZF Group,Shaft S15,300,2026-05-01,open
+PO-2026-191,Voith AG,Housing H10,100,2026-03-20,delayed
+PO-2026-192,Continental AG,Seal D5,1000,2026-04-30,open

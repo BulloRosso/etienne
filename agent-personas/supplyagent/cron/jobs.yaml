@@ -1,0 +1,80 @@
+jobs:
+  - id: weekly-briefing
+    name: "Weekly Risk Briefing"
+    description: "Monday morning briefing covering urgent flags, single-source parts, and reliability score trends"
+    cronExpression: "30 7 * * 1"
+    timeZone: "Europe/Berlin"
+    type: recurring
+    skill: report_generator
+    prompt: >
+      Generate the weekly risk briefing. Include: all suppliers with urgentFlag=true,
+      all single-source parts (singleSourceRisk=true), reliability score trends over
+      the past 8 weeks. Format as a concise executive summary suitable for a Monday
+      morning meeting. Highlight the top 3 most critical items.
+
+  - id: daily-deadline-scan
+    name: "Daily Deadline Scan"
+    description: "Daily check for orders approaching deadline without confirmed delivery"
+    cronExpression: "0 6 * * *"
+    timeZone: "Europe/Berlin"
+    type: recurring
+    skill: report_generator
+    prompt: >
+      Scan all orders with deadlines within the next 7 days that do not have a
+      confirmed delivery event. For each, identify the supplier, current status,
+      buffer days remaining, and suggested action. Sort by urgency (fewest buffer
+      days first). Highlight orders with zero or negative buffer.
+
+  - id: supplier-radar-tue
+    name: "Supplier Radar (Tuesday)"
+    description: "Bi-weekly check on suppliers with declining reliability scores"
+    cronExpression: "0 14 * * 2"
+    timeZone: "Europe/Berlin"
+    type: recurring
+    skill: report_generator
+    prompt: >
+      Identify suppliers whose reliability score has declined over the past 8 weeks.
+      For each, show: current score, score 8 weeks ago, trend direction, affected
+      orders, and recent delivery events that contributed to the decline.
+
+  - id: supplier-radar-thu
+    name: "Supplier Radar (Thursday)"
+    description: "Bi-weekly check on suppliers with declining reliability scores"
+    cronExpression: "0 14 * * 4"
+    timeZone: "Europe/Berlin"
+    type: recurring
+    skill: report_generator
+    prompt: >
+      Identify suppliers whose reliability score has declined over the past 8 weeks.
+      For each, show: current score, score 8 weeks ago, trend direction, affected
+      orders, and recent delivery events that contributed to the decline.
+
+  - id: single-source-check
+    name: "Single Source Risk Report"
+    description: "Monthly report on parts with no alternative supplier"
+    cronExpression: "0 9 1 * *"
+    timeZone: "Europe/Berlin"
+    type: recurring
+    skill: report_generator
+    prompt: >
+      List all parts in the knowledge graph that have only one supplier
+      (singleSourceRisk=true). For each, show: the sole supplier and their
+      reliability score, affected orders, and suggest potential alternative
+      suppliers if any are known. Highlight new single-source risks since the
+      last report.
+
+  - id: nightly-reasoning
+    name: "Nightly OWL Reasoning + Score Recalculation"
+    description: "Nightly maintenance: run OWL inference rules and recalculate all supplier reliability scores"
+    cronExpression: "0 2 * * *"
+    timeZone: "Europe/Berlin"
+    type: recurring
+    skill: graph_maintenance
+    prompt: >
+      Run the nightly maintenance cycle:
+      1. Execute OWL inference rules to derive singleSourceRisk, urgentFlag,
+         and riskLevel for all relevant nodes.
+      2. Recalculate reliability scores for all suppliers based on delivery
+         event history from the past 12 months.
+      3. Flag any nodes with confidence below 0.7 as needs_review.
+      4. Log all changes to the activity log.

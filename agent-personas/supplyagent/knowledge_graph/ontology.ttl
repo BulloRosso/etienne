@@ -1,0 +1,217 @@
+@prefix sc: <https://supply.agent/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+# =============================================================================
+# SupplyAgent Ontology — sc: <https://supply.agent/ontology#>
+# Version 1.0
+# =============================================================================
+
+# --- Classes -----------------------------------------------------------------
+
+sc:Supplier rdf:type owl:Class ;
+    rdfs:label "Supplier" ;
+    rdfs:comment "A supplier entity in the supply chain. Represents a company or individual that provides parts or materials." .
+
+sc:Bauteil rdf:type owl:Class ;
+    rdfs:label "Part" ;
+    rdfs:comment "A component or part required for production. May be supplied by one or more suppliers." .
+
+sc:Auftrag rdf:type owl:Class ;
+    rdfs:label "Order" ;
+    rdfs:comment "A customer order with a deadline and part requirements. Tracks urgency and delivery status." .
+
+sc:DeliveryEvent rdf:type owl:Class ;
+    rdfs:label "Delivery Event" ;
+    rdfs:comment "A delivery event tracking status changes: delays, confirmations, price changes, quality issues." .
+
+# --- Object Properties -------------------------------------------------------
+
+sc:suppliesBauteil rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range sc:Bauteil ;
+    rdfs:label "supplies part" ;
+    rdfs:comment "Indicates that a supplier provides a specific part." .
+
+sc:requiredBy rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:Bauteil ;
+    rdfs:range sc:Auftrag ;
+    rdfs:label "required by order" ;
+    rdfs:comment "Indicates that a part is required by a specific order." .
+
+sc:hasAlternative rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range sc:Supplier ;
+    rdfs:label "has alternative supplier" ;
+    rdfs:comment "Indicates a known alternative supplier that can provide similar parts." .
+
+sc:preferredAlternative rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range sc:Supplier ;
+    rdfs:label "preferred alternative" ;
+    rdfs:comment "User-confirmed preferred alternative supplier. Created from approval feedback." .
+
+sc:blockedForPart rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range sc:Bauteil ;
+    rdfs:label "blocked for part" ;
+    rdfs:comment "Supplier is blocked for this specific part. Created from user rejection feedback." .
+
+sc:hasDeliveryEvent rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:Auftrag ;
+    rdfs:range sc:DeliveryEvent ;
+    rdfs:label "has delivery event" ;
+    rdfs:comment "Links an order to its delivery events." .
+
+sc:relatedSupplier rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:DeliveryEvent ;
+    rdfs:range sc:Supplier ;
+    rdfs:label "related supplier" ;
+    rdfs:comment "The supplier associated with this delivery event." .
+
+sc:relatedPart rdf:type owl:ObjectProperty ;
+    rdfs:domain sc:DeliveryEvent ;
+    rdfs:range sc:Bauteil ;
+    rdfs:label "related part" ;
+    rdfs:comment "The part associated with this delivery event." .
+
+# --- Datatype Properties: Supplier -------------------------------------------
+
+sc:hasReliabilityScore rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "reliability score" ;
+    rdfs:comment "Calculated reliability score from 0.0 to 1.0 based on delivery history, quality, communication, and price stability." .
+
+sc:riskLevel rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "risk level" ;
+    rdfs:comment "Derived risk level: low (0.85-1.0), medium (0.70-0.84), high (0.50-0.69), critical (0.00-0.49)." .
+
+sc:contactEmail rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "contact email" .
+
+sc:contactPhone rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "contact phone" .
+
+sc:seasonalNote rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "seasonal note" ;
+    rdfs:comment "User-provided seasonal availability notes (e.g., 'August vacation, 2 weeks unreachable')." .
+
+sc:escalationOverride rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "escalation override" ;
+    rdfs:comment "User-defined escalation rule for this supplier (e.g., 'Contact me first before escalating')." .
+
+sc:humanContactPreference rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "human contact preference" ;
+    rdfs:comment "Preferred method of human contact for this supplier." .
+
+sc:partsSupplied rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "parts supplied" ;
+    rdfs:comment "Comma-separated list of part categories this supplier provides." .
+
+sc:paymentTerms rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Supplier ;
+    rdfs:range xsd:string ;
+    rdfs:label "payment terms" .
+
+# --- Datatype Properties: Part (Bauteil) -------------------------------------
+
+sc:partNumber rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Bauteil ;
+    rdfs:range xsd:string ;
+    rdfs:label "part number" .
+
+sc:singleSourceRisk rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Bauteil ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "single source risk" ;
+    rdfs:comment "True if this part has only one known supplier. Derived by OWL reasoning." .
+
+# --- Datatype Properties: Order (Auftrag) ------------------------------------
+
+sc:orderId rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Auftrag ;
+    rdfs:range xsd:string ;
+    rdfs:label "order ID" .
+
+sc:hasDeadline rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Auftrag ;
+    rdfs:range xsd:date ;
+    rdfs:label "deadline" ;
+    rdfs:comment "The delivery deadline for this order." .
+
+sc:urgentFlag rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Auftrag ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "urgent flag" ;
+    rdfs:comment "True if deadline is within 7 days and no confirmed delivery. Derived by OWL reasoning." .
+
+sc:customerName rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Auftrag ;
+    rdfs:range xsd:string ;
+    rdfs:label "customer name" .
+
+sc:orderStatus rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Auftrag ;
+    rdfs:range xsd:string ;
+    rdfs:label "status" ;
+    rdfs:comment "Order status: open, in-progress, completed, delayed." .
+
+sc:quantity rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:Auftrag ;
+    rdfs:range xsd:integer ;
+    rdfs:label "quantity" .
+
+# --- Datatype Properties: Delivery Event -------------------------------------
+
+sc:eventType rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:DeliveryEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "event type" ;
+    rdfs:comment "Type of delivery event: delay, confirmation, price_change, quality_issue, cancellation, general." .
+
+sc:delayDays rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:DeliveryEvent ;
+    rdfs:range xsd:integer ;
+    rdfs:label "delay days" ;
+    rdfs:comment "Number of days the delivery is delayed." .
+
+sc:eventDate rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:DeliveryEvent ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "event date" ;
+    rdfs:comment "When this delivery event occurred or was recorded." .
+
+sc:newDeliveryDate rdf:type owl:DatatypeProperty ;
+    rdfs:domain sc:DeliveryEvent ;
+    rdfs:range xsd:date ;
+    rdfs:label "new delivery date" ;
+    rdfs:comment "Revised delivery date if the event includes a date change." .
+
+# --- Datatype Properties: Common ---------------------------------------------
+
+sc:confidence rdf:type owl:DatatypeProperty ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "confidence" ;
+    rdfs:comment "Confidence score for this data point (0.0-1.0). Below 0.7 triggers needs_review flag." .
+
+sc:needsReview rdf:type owl:DatatypeProperty ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "needs review" ;
+    rdfs:comment "True if this data point needs human review due to low confidence or detected conflicts." .

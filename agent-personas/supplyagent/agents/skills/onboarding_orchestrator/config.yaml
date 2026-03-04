@@ -1,0 +1,17 @@
+name: supplyagent-onboarding
+description: "Guides new users through 5-phase onboarding: personality, material collection, graph build, cron config, expert knowledge"
+model: sonnet
+temperature: 0.6
+max_tokens: 8192
+readiness_criteria:
+  min_supplier_nodes: 5
+  min_delivery_events: 50
+  min_order_nodes: 1
+  min_confidence_index: 0.6
+  min_expert_inputs: 1
+  cron_jobs_confirmed: true
+  system_prompt_layer1_complete: true
+  system_prompt_layer2_complete: true
+reminder:
+  interval: "daily"
+  tone: "friendly but persistent"

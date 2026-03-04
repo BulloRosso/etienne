@@ -1,0 +1,83 @@
+[
+  {
+    "name": "imap_fetch",
+    "description": "Retrieve email content from the configured IMAP mailbox",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "mailbox": {
+          "type": "string",
+          "description": "Mailbox folder to fetch from (default: INBOX)"
+        },
+        "since": {
+          "type": "string",
+          "description": "Fetch emails since this ISO date"
+        },
+        "unseen_only": {
+          "type": "boolean",
+          "description": "Only fetch unread emails"
+        }
+      }
+    }
+  },
+  {
+    "name": "entity_extract",
+    "description": "Extract named entities (supplier names, order numbers, dates, amounts) from text",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Text to extract entities from"
+        },
+        "entity_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Types of entities to extract: supplier, order_id, part_id, date, amount"
+        }
+      },
+      "required": ["text"]
+    }
+  },
+  {
+    "name": "fuzzy_match_graph_node",
+    "description": "Match an extracted name against existing nodes in the knowledge graph",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name to match against graph nodes"
+        },
+        "node_type": {
+          "type": "string",
+          "enum": ["Supplier", "Bauteil", "Auftrag"],
+          "description": "Type of node to search for"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Minimum similarity threshold (0.0-1.0, default 0.7)"
+        }
+      },
+      "required": ["name"]
+    }
+  },
+  {
+    "name": "flag_for_review",
+    "description": "Send a low-confidence extraction result to the human review queue",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "event_json": {
+          "type": "object",
+          "description": "The extracted event data with confidence < 0.7"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why this needs human review"
+        }
+      },
+      "required": ["event_json", "reason"]
+    }
+  }
+]

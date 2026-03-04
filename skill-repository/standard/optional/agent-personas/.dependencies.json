@@ -1,0 +1,9 @@
+{
+  "requires": [
+    "scrapbook_create_root_node",
+    "scrapbook_add_node",
+    "scrapbook_describe_node"
+  ],
+  "provides": [],
+  "services": ["scrapbook"]
+}

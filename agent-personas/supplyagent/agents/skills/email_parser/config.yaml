@@ -1,0 +1,15 @@
+name: supplyagent-email-parser
+description: "Reads incoming supplier emails and extracts structured event data as JSON — no free text output"
+model: haiku
+temperature: 0.1
+max_tokens: 2048
+imap:
+  host: "${IMAP_HOST}"
+  port: 993
+  tls: true
+  mailbox: "INBOX"
+  polling_interval_seconds: 30
+language_hints:
+  - en
+  - de
+confidence_threshold: 0.7

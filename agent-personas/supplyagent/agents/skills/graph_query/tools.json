@@ -1,0 +1,72 @@
+[
+  {
+    "name": "sparql_execute",
+    "description": "Execute a SPARQL query against the knowledge graph endpoint",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "SPARQL SELECT or ASK query"
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "description": "Query timeout (default: 10)"
+        }
+      },
+      "required": ["query"]
+    }
+  },
+  {
+    "name": "kg_schema_lookup",
+    "description": "Look up schema details for a class or property in the ontology",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "description": "Class or property name to look up (e.g., 'Supplier', 'hasReliabilityScore')"
+        }
+      },
+      "required": ["entity"]
+    }
+  },
+  {
+    "name": "result_formatter",
+    "description": "Format raw SPARQL result bindings into structured JSON",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "bindings": {
+          "type": "array",
+          "description": "Raw SPARQL result bindings to format"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["table", "list", "summary"],
+          "description": "Output format"
+        }
+      },
+      "required": ["bindings"]
+    }
+  },
+  {
+    "name": "query_cache_read",
+    "description": "Read cached results for a frequently-used parameterized query",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query_template": {
+          "type": "string",
+          "enum": ["deadline_scan", "single_source_check", "reliability_trend", "affected_orders", "alternatives"],
+          "description": "Name of the cached query template"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Parameters to fill into the template"
+        }
+      },
+      "required": ["query_template"]
+    }
+  }
+]

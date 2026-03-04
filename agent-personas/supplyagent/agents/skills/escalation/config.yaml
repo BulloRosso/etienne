@@ -1,0 +1,11 @@
+name: supplyagent-escalation
+description: "Assesses supply chain disruptions, determines severity, and creates escalation plans with draft communications"
+model: sonnet
+temperature: 0.4
+max_tokens: 4096
+severity_thresholds:
+  critical_deadline_days: 3
+  high_deadline_days: 7
+  high_delay_days: 5
+  score_recalibration_window_months: 3
+  rejection_rate_threshold: 0.1

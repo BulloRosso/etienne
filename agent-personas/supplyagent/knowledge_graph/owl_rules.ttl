@@ -1,0 +1,116 @@
+@prefix sc: <https://supply.agent/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+# =============================================================================
+# SupplyAgent OWL Inference Rules
+# Version 1.0
+#
+# These rules are executed nightly by the GraphMaintenanceSkill to derive:
+# - singleSourceRisk: parts with exactly one supplier
+# - urgentFlag: orders approaching deadline without confirmed delivery
+# - riskLevel: supplier risk classification from reliability scores
+# =============================================================================
+
+# --- Rule 1: Single Source Risk Detection ------------------------------------
+#
+# A part (Bauteil) has singleSourceRisk = true when exactly one supplier
+# provides it via sc:suppliesBauteil.
+#
+# Implementation note: OWL cannot directly express "exactly one" as an
+# inference rule. The GraphMaintenanceSkill implements this as a SPARQL query:
+#
+# SELECT ?part (COUNT(?supplier) AS ?count)
+# WHERE {
+#   ?supplier sc:suppliesBauteil ?part .
+# }
+# GROUP BY ?part
+# HAVING (COUNT(?supplier) = 1)
+#
+# For each result, set:
+#   ?part sc:singleSourceRisk "true"^^xsd:boolean .
+#
+# For parts with > 1 supplier, set:
+#   ?part sc:singleSourceRisk "false"^^xsd:boolean .
+
+# --- Rule 2: Urgent Flag Derivation -----------------------------------------
+#
+# An order (Auftrag) has urgentFlag = true when:
+# - Its deadline is within 7 days from today
+# - AND there is no DeliveryEvent of type "confirmation" linked to it
+#
+# Implementation as SPARQL:
+#
+# SELECT ?order
+# WHERE {
+#   ?order a sc:Auftrag .
+#   ?order sc:hasDeadline ?deadline .
+#   FILTER(?deadline <= NOW() + "P7D"^^xsd:duration)
+#   FILTER NOT EXISTS {
+#     ?order sc:hasDeliveryEvent ?event .
+#     ?event sc:eventType "confirmation" .
+#   }
+# }
+#
+# For each result, set:
+#   ?order sc:urgentFlag "true"^^xsd:boolean .
+#
+# For orders with confirmed delivery or deadline > 7 days:
+#   ?order sc:urgentFlag "false"^^xsd:boolean .
+
+# --- Rule 3: Risk Level Classification --------------------------------------
+#
+# Supplier riskLevel is derived from hasReliabilityScore:
+#
+#   score >= 0.85 → riskLevel = "low"
+#   score >= 0.70 → riskLevel = "medium"
+#   score >= 0.50 → riskLevel = "high"
+#   score <  0.50 → riskLevel = "critical"
+#
+# Implementation as SPARQL UPDATE:
+#
+# DELETE { ?s sc:riskLevel ?old }
+# INSERT { ?s sc:riskLevel "low" }
+# WHERE {
+#   ?s a sc:Supplier .
+#   ?s sc:hasReliabilityScore ?score .
+#   OPTIONAL { ?s sc:riskLevel ?old }
+#   FILTER(?score >= 0.85)
+# }
+#
+# (Repeated for each band with appropriate FILTER)
+
+# --- Rule 4: Needs Review Propagation ---------------------------------------
+#
+# Any node with sc:confidence below 0.7 should have sc:needsReview set to true.
+#
+# SELECT ?node ?confidence
+# WHERE {
+#   ?node sc:confidence ?confidence .
+#   FILTER(?confidence < 0.7)
+# }
+#
+# For each result, set:
+#   ?node sc:needsReview "true"^^xsd:boolean .
+
+# --- OWL Class Restrictions (for documentation/validation) -------------------
+
+sc:Supplier rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty sc:hasReliabilityScore ;
+    owl:maxCardinality "1"^^xsd:nonNegativeInteger
+] .
+
+sc:Auftrag rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty sc:hasDeadline ;
+    owl:cardinality "1"^^xsd:nonNegativeInteger
+] .
+
+sc:Bauteil rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty sc:singleSourceRisk ;
+    owl:maxCardinality "1"^^xsd:nonNegativeInteger
+] .

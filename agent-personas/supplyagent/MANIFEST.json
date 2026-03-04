@@ -1,0 +1,79 @@
+{
+  "name": "supplyagent",
+  "version": "1.0.0",
+  "description": "Autonomous supply chain assistant for mid-sized manufacturers. Reads supplier emails, builds a living knowledge model of your supply chain, and warns you before a problem gets expensive — with a concrete action proposal you approve or reject with one click.",
+  "author": "SupplyAgent Team",
+  "license": "proprietary",
+  "install_order": [
+    "agents",
+    "cron/jobs.yaml",
+    "knowledge_graph",
+    "dashboard",
+    "cron/cron_governance.yaml",
+    "knowledge_graph/seed_data"
+  ],
+  "platform_mappings": {
+    "agents/orchestrator": {
+      "target": "subagent",
+      "api": "POST /api/subagents/{project}"
+    },
+    "agents/skills/*": {
+      "target": "subagent",
+      "api": "POST /api/subagents/{project}"
+    },
+    "cron/jobs.yaml": {
+      "target": "scheduler",
+      "api": "POST /api/scheduler/{project}/task"
+    },
+    "knowledge_graph/ontology.ttl": {
+      "target": "scrapbook",
+      "api": "scrapbook MCP tools"
+    },
+    "dashboard": {
+      "target": "public-website",
+      "directories": ["web/", "api/"]
+    }
+  },
+  "required_env": [
+    "ANTHROPIC_API_KEY",
+    "IMAP_HOST",
+    "IMAP_USER",
+    "IMAP_PASSWORD"
+  ],
+  "min_requirements": {
+    "ram_gb": 4,
+    "cpu_cores": 2
+  },
+  "artifacts": [
+    { "path": "agents/orchestrator/system_prompt.md", "type": "markdown", "translatable": true },
+    { "path": "agents/orchestrator/config.yaml", "type": "yaml", "translatable": false },
+    { "path": "agents/orchestrator/tools.json", "type": "json", "translatable": false },
+    { "path": "agents/skills/email_parser/system_prompt.md", "type": "markdown", "translatable": true },
+    { "path": "agents/skills/email_parser/config.yaml", "type": "yaml", "translatable": false },
+    { "path": "agents/skills/email_parser/tools.json", "type": "json", "translatable": false },
+    { "path": "agents/skills/graph_query/system_prompt.md", "type": "markdown", "translatable": true },
+    { "path": "agents/skills/graph_query/config.yaml", "type": "yaml", "translatable": false },
+    { "path": "agents/skills/graph_query/tools.json", "type": "json", "translatable": false },
+    { "path": "agents/skills/escalation/system_prompt.md", "type": "markdown", "translatable": true },
+    { "path": "agents/skills/escalation/config.yaml", "type": "yaml", "translatable": false },
+    { "path": "agents/skills/escalation/tools.json", "type": "json", "translatable": false },
+    { "path": "agents/skills/graph_maintenance/system_prompt.md", "type": "markdown", "translatable": true },
+    { "path": "agents/skills/graph_maintenance/config.yaml", "type": "yaml", "translatable": false },
+    { "path": "agents/skills/graph_maintenance/tools.json", "type": "json", "translatable": false },
+    { "path": "agents/skills/report_generator/system_prompt.md", "type": "markdown", "translatable": true },
+    { "path": "agents/skills/report_generator/config.yaml", "type": "yaml", "translatable": false },
+    { "path": "agents/skills/report_generator/tools.json", "type": "json", "translatable": false },
+    { "path": "agents/skills/onboarding_orchestrator/system_prompt.md", "type": "markdown", "translatable": true },
+    { "path": "agents/skills/onboarding_orchestrator/config.yaml", "type": "yaml", "translatable": false },
+    { "path": "agents/skills/onboarding_orchestrator/tools.json", "type": "json", "translatable": false },
+    { "path": "knowledge_graph/ontology.ttl", "type": "turtle", "translatable": false },
+    { "path": "knowledge_graph/owl_rules.ttl", "type": "turtle", "translatable": false },
+    { "path": "knowledge_graph/seed_data/example_supplier_template.csv", "type": "csv", "translatable": true },
+    { "path": "knowledge_graph/seed_data/example_order_template.csv", "type": "csv", "translatable": true },
+    { "path": "cron/jobs.yaml", "type": "yaml", "translatable": true },
+    { "path": "cron/cron_governance.yaml", "type": "yaml", "translatable": false },
+    { "path": ".env.template", "type": "text", "translatable": false },
+    { "path": "install.md", "type": "markdown", "translatable": true },
+    { "path": "MANIFEST.json", "type": "json", "translatable": false }
+  ]
+}

@@ -1,0 +1,107 @@
+[
+  {
+    "name": "sparql_update",
+    "description": "Execute SPARQL UPDATE (INSERT/DELETE) queries against the knowledge graph",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "SPARQL UPDATE query"
+        }
+      },
+      "required": ["query"]
+    }
+  },
+  {
+    "name": "node_upsert",
+    "description": "Create or update a node in the knowledge graph with automatic conflict detection",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "type": "string",
+          "enum": ["Supplier", "Bauteil", "Auftrag", "DeliveryEvent"],
+          "description": "Type of node to create/update"
+        },
+        "label": {
+          "type": "string",
+          "description": "Node label (used for matching existing nodes)"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Properties to set on the node"
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "predicate": { "type": "string" },
+              "target_label": { "type": "string" }
+            }
+          },
+          "description": "Relationships to create/update"
+        }
+      },
+      "required": ["node_type", "label"]
+    }
+  },
+  {
+    "name": "score_recalc",
+    "description": "Trigger reliability score recalculation for one or all suppliers",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "supplier": {
+          "type": "string",
+          "description": "Supplier label to recalculate, or 'all' for all suppliers"
+        },
+        "window_months": {
+          "type": "number",
+          "description": "History window for calculation (default: 12)"
+        }
+      }
+    }
+  },
+  {
+    "name": "owl_infer",
+    "description": "Run OWL inference rules and write derived triples back to the graph",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "rules_file": {
+          "type": "string",
+          "description": "Path to OWL rules file (default: owl_rules.ttl)"
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "If true, show what would be inferred without writing"
+        }
+      }
+    }
+  },
+  {
+    "name": "flag_conflict",
+    "description": "Flag a node as having conflicting data and push alert to dashboard",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "node_label": {
+          "type": "string",
+          "description": "Label of the conflicting node"
+        },
+        "conflict_type": {
+          "type": "string",
+          "enum": ["date_mismatch", "score_divergence", "preference_contradiction"],
+          "description": "Type of conflict detected"
+        },
+        "details": {
+          "type": "string",
+          "description": "Human-readable description of the conflict"
+        }
+      },
+      "required": ["node_label", "conflict_type", "details"]
+    }
+  }
+]

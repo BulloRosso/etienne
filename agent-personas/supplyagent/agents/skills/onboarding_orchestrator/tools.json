@@ -1,0 +1,121 @@
+[
+  {
+    "name": "file_ingest",
+    "description": "Process an uploaded file (CSV, Excel, PDF, .msg) and extract structured data",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "description": "Path to the uploaded file"
+        },
+        "file_type": {
+          "type": "string",
+          "enum": ["csv", "excel", "pdf", "msg", "eml"],
+          "description": "Type of file to process"
+        },
+        "expected_content": {
+          "type": "string",
+          "enum": ["supplier_list", "order_history", "open_orders", "emails", "contracts", "quality_reports", "org_chart"],
+          "description": "What type of data is expected in this file"
+        }
+      },
+      "required": ["file_path", "file_type"]
+    }
+  },
+  {
+    "name": "document_parse",
+    "description": "Parse PDF and email files for structured information (contracts, correspondence)",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "description": "Path to the document"
+        },
+        "extract_fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Specific fields to extract (e.g., 'price', 'delivery_terms', 'contract_duration')"
+        }
+      },
+      "required": ["file_path"]
+    }
+  },
+  {
+    "name": "graph_seed",
+    "description": "Batch-create nodes in the knowledge graph from parsed data",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "label": { "type": "string" },
+              "properties": { "type": "object" },
+              "relationships": { "type": "array" }
+            }
+          },
+          "description": "Array of nodes to create"
+        }
+      },
+      "required": ["nodes"]
+    }
+  },
+  {
+    "name": "system_prompt_update",
+    "description": "Update Layer 3 of the orchestrator's system prompt with company-specific knowledge",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string",
+          "enum": ["critical_suppliers", "seasonal_notes", "escalation_rules", "exceptions"],
+          "description": "Which section of Layer 3 to update"
+        },
+        "content": {
+          "type": "string",
+          "description": "New content for this section"
+        }
+      },
+      "required": ["section", "content"]
+    }
+  },
+  {
+    "name": "cron_propose",
+    "description": "Propose a set of cron jobs based on analysis of uploaded data",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "analysis": {
+          "type": "object",
+          "description": "Data analysis results that inform the cron schedule proposal",
+          "properties": {
+            "order_count": { "type": "number" },
+            "tight_deadline_count": { "type": "number" },
+            "high_risk_suppliers": { "type": "number" },
+            "single_source_parts": { "type": "number" },
+            "team_size": { "type": "number" }
+          }
+        }
+      },
+      "required": ["analysis"]
+    }
+  },
+  {
+    "name": "onboarding_complete",
+    "description": "Mark onboarding as complete — verifies all readiness criteria are met and deactivates this skill",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "readiness_check": {
+          "type": "boolean",
+          "description": "Set to true to verify all criteria before completing"
+        }
+      }
+    }
+  }
+]

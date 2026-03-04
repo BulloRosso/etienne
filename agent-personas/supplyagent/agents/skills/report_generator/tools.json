@@ -1,0 +1,79 @@
+[
+  {
+    "name": "sparql_execute",
+    "description": "Execute a SPARQL query against the knowledge graph to gather report data",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "SPARQL SELECT query for report data"
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "description": "Query timeout (default: 10)"
+        }
+      },
+      "required": ["query"]
+    }
+  },
+  {
+    "name": "preferences_load",
+    "description": "Load user report preferences (format, length, included metrics)",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "preference_type": {
+          "type": "string",
+          "enum": ["report_format", "report_length", "included_metrics", "all"],
+          "description": "Type of report preference to load"
+        }
+      }
+    }
+  },
+  {
+    "name": "email_draft",
+    "description": "Create an email draft containing the report content",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "type": "string",
+          "description": "Email subject line"
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body content (plain text or markdown)"
+        },
+        "recipients": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Email recipient addresses"
+        }
+      },
+      "required": ["subject", "body"]
+    }
+  },
+  {
+    "name": "pdf_export",
+    "description": "Export a report as a PDF file",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "Report content in markdown format"
+        },
+        "filename": {
+          "type": "string",
+          "description": "Output filename for the PDF"
+        },
+        "title": {
+          "type": "string",
+          "description": "Report title for the PDF header"
+        }
+      },
+      "required": ["content", "filename"]
+    }
+  }
+]
