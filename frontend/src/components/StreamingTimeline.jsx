@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import ToolCallTimeline from './ToolCallTimeline';
@@ -7,7 +7,7 @@ import TextSegmentTimeline from './TextSegmentTimeline';
 import TodoWriteTimeline from './TodoWriteTimeline';
 import McpAppRenderer from './McpAppRenderer';
 import useMcpAppMeta from '../hooks/useMcpAppMeta';
-import { useTranslation } from 'react-i18next';
+import { LuBrain } from "react-icons/lu";
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 /**
@@ -224,7 +224,6 @@ export default function StreamingTimeline({
  * Inline thinking/reasoning display for timeline
  */
 function ThinkingTimeline({ content, showBullet = true }) {
-  const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
 
   return (
@@ -269,15 +268,17 @@ function ThinkingTimeline({ content, showBullet = true }) {
             ml: showBullet ? 0 : '10px',
           }}
         >
-          <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600, display: 'block', mb: 0.5 }}>
-            {t('streamingTimeline.thinking')}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
+            <LuBrain size={18} style={{ color: '#1976d2', flexShrink: 0, marginTop: '2px' }} />
           <Box
             sx={{
-              color: themeMode === 'dark' ? '#aaa' : '#555',
-              fontSize: '13px',
+              color: themeMode === 'dark' ? '#aaa' : '#000',
+              fontSize: '14px',
+              paddingTop: '1px',
+              fontWeight: 400,
               fontFamily: 'Roboto',
               wordBreak: 'break-word',
+              '& *': { fontWeight: '400 !important' },
               '& p': { margin: '0 0 0.5em 0' },
               '& p:last-child': { marginBottom: 0 },
               '& ul, & ol': { marginLeft: 0, paddingLeft: '1.2em', marginTop: '0.5em', marginBottom: '0.5em' },
@@ -301,6 +302,7 @@ function ThinkingTimeline({ content, showBullet = true }) {
             }}
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(content, { breaks: true, gfm: true })) }}
           />
+          </Box>
         </Box>
       </Box>
     </Box>
