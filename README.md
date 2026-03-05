@@ -493,7 +493,7 @@ The immune system most other agents lack — with a human hand on the switch.
 
 To enable self-healing on a project, activate the **self-healing** skill from the skill store. It guides users through creating structured issue reports with title, description, reproduction steps, and expected vs. actual behavior — all submitted to an admin for review before any automated repair is triggered.
 
-# Coding-agent Support
+# Supported Coding Agents
 
 Though Etienne was initially implemented for the Anthropic Claude Agent SDK you can use other (coding) models by setting the **CODING_AGENT** variable in the .env file in the backend:
 
