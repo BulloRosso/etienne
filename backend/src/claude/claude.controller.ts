@@ -4,6 +4,7 @@ import { join } from 'path';
 import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
 import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.service';
+import { OpenAIAgentsOrchestratorService } from './openai-agent-sdk/openai-agents-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
@@ -17,14 +18,18 @@ export class ClaudeController {
     private readonly svc: ClaudeService,
     private readonly sdkOrchestrator: ClaudeSdkOrchestratorService,
     private readonly codexOrchestrator: CodexSdkOrchestratorService,
+    private readonly openaiAgentsOrchestrator: OpenAIAgentsOrchestratorService,
     private readonly sessionsService: SessionsService,
     private readonly budgetMonitoringService: BudgetMonitoringService
   ) {
     this.workspaceRoot = process.env.WORKSPACE_ROOT || join(process.cwd(), '..', 'workspace');
   }
 
-  private get isCodexActive(): boolean {
-    return (process.env.CODING_AGENT || 'anthropic') === 'openai';
+  private get activeCodingAgent(): 'anthropic' | 'openai' | 'openai-agents' {
+    const agent = process.env.CODING_AGENT || 'anthropic';
+    if (agent === 'openai-agents') return 'openai-agents';
+    if (agent === 'openai') return 'openai';
+    return 'anthropic';
   }
 
   @Roles('user')
@@ -112,7 +117,18 @@ export class ClaudeController {
     const memoryEnabledBool = memoryEnabled === 'true';
     const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
 
-    if (this.isCodexActive) {
+    if (this.activeCodingAgent === 'openai-agents') {
+      return this.openaiAgentsOrchestrator.streamPrompt(
+        projectDir,
+        prompt,
+        agentMode,
+        memoryEnabledBool,
+        false,
+        maxTurnsNum
+      );
+    }
+
+    if (this.activeCodingAgent === 'openai') {
       return this.codexOrchestrator.streamPrompt(
         projectDir,
         prompt,
@@ -147,6 +163,12 @@ export class ClaudeController {
       return legacyResult;
     }
 
+    // If OpenAI Agents process, try its orchestrator
+    if (processId.startsWith('agents_')) {
+      console.log(`[ClaudeController] Attempting OpenAI Agents orchestrator abort for: ${processId}`);
+      return this.openaiAgentsOrchestrator.abortProcess(processId);
+    }
+
     // If Codex process, try Codex orchestrator
     if (processId.startsWith('codex_')) {
       console.log(`[ClaudeController] Attempting Codex orchestrator abort for: ${processId}`);
@@ -166,7 +188,9 @@ export class ClaudeController {
   @Roles('user')
   @Post('clearSession/:projectDir')
   async clearSession(@Param('projectDir') projectDir: string) {
-    if (this.isCodexActive) {
+    if (this.activeCodingAgent === 'openai-agents') {
+      await this.openaiAgentsOrchestrator.clearSession(projectDir);
+    } else if (this.activeCodingAgent === 'openai') {
       await this.codexOrchestrator.clearSession(projectDir);
     }
     return this.svc.clearSession(projectDir);
@@ -201,7 +225,11 @@ export class ClaudeController {
     let tokenUsage = { input_tokens: 0, output_tokens: 0 };
 
     try {
-      const orchestrator = this.isCodexActive ? this.codexOrchestrator : this.sdkOrchestrator;
+      const orchestrator = this.activeCodingAgent === 'openai-agents'
+        ? this.openaiAgentsOrchestrator
+        : this.activeCodingAgent === 'openai'
+          ? this.codexOrchestrator
+          : this.sdkOrchestrator;
       const observable = orchestrator.streamPrompt(
         project,
         prompt,

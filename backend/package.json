@@ -15,6 +15,8 @@
     "@nestjs/platform-express": "^10.4.20",
     "@nestjs/schedule": "^6.0.1",
     "@nestjs/swagger": "^7.4.2",
+    "@openai/agents": "^0.1.0",
+    "@openai/agents-extensions": "^0.1.0",
     "@openai/codex-sdk": "^0.101.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/core": "^2.2.0",
@@ -55,7 +57,8 @@
     "sparqljs": "^3.7.3",
     "uuid": "^11.0.3",
     "xstate": "^5.28.0",
-    "zeromq": "^6.5.0"
+    "zeromq": "^6.5.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",

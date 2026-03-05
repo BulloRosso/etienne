@@ -13,6 +13,11 @@ import { CodexSdkOrchestratorService } from './claude/codex-sdk/codex-sdk-orches
 import { CodexSessionManagerService } from './claude/codex-sdk/codex-session-manager.service';
 import { CodexPermissionService } from './claude/codex-sdk/codex-permission.service';
 import { CodexPermissionController } from './claude/codex-sdk/codex-permission.controller';
+import { OpenAIAgentsSdkService } from './claude/openai-agent-sdk/openai-agents-sdk.service';
+import { OpenAIAgentsOrchestratorService } from './claude/openai-agent-sdk/openai-agents-orchestrator.service';
+import { OpenAIAgentsSessionManagerService } from './claude/openai-agent-sdk/openai-agents-session-manager.service';
+import { OpenAIAgentsPermissionService } from './claude/openai-agent-sdk/openai-agents-permission.service';
+import { OpenAIAgentsPermissionController } from './claude/openai-agent-sdk/openai-agents-permission.controller';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -61,7 +66,7 @@ import { IssuesModule } from './issues/issues.module';
 
 @Module({
   imports: [AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule],
-  controllers: [ClaudeController, SdkPermissionController, CodexPermissionController],
+  controllers: [ClaudeController, SdkPermissionController, CodexPermissionController, OpenAIAgentsPermissionController],
   providers: [
     ClaudeService,
     ClaudeSdkService,
@@ -73,6 +78,10 @@ import { IssuesModule } from './issues/issues.module';
     CodexSdkOrchestratorService,
     CodexSessionManagerService,
     CodexPermissionService,
+    OpenAIAgentsSdkService,
+    OpenAIAgentsOrchestratorService,
+    OpenAIAgentsSessionManagerService,
+    OpenAIAgentsPermissionService,
     GuardrailsService,
     OutputGuardrailsService,
     SessionsService,

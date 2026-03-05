@@ -24,6 +24,11 @@ export class CodingAgentConfigurationService {
       projectDir: '.codex',
       templateFile: 'codex-config.toml',
     },
+    'openai-agents': {
+      fileName: 'config.json',
+      projectDir: '.openai-agents',
+      templateFile: 'openai-agents-config.json',
+    },
   };
 
   private get templatesDir(): string {
@@ -62,10 +67,14 @@ export class CodingAgentConfigurationService {
   /**
    * Get the agent config directory based on the active coding agent.
    * - anthropic: .claude
-   * - openai/others: .codex
+   * - openai: .codex
+   * - openai-agents: .openai-agents
    */
   getAgentConfigDir(): string {
-    return this.getActiveAgentType() === 'anthropic' ? '.claude' : '.codex';
+    const agentType = this.getActiveAgentType();
+    if (agentType === 'anthropic') return '.claude';
+    if (agentType === 'openai-agents') return '.openai-agents';
+    return '.codex';
   }
 
   async getConfig(agentType: string): Promise<{ content: string; isCustom: boolean }> {
