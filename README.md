@@ -98,6 +98,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [Built for Connectivity](#built-for-connectivity)
 - [Focused on local Data and Services](#focused-on-local-data-and-services)
 - [Self-Healing Capabilities](#self-healing-capabilities)
+- [Supported Coding Models](#supported-coding-models)
 - [Multi-agent Orchestration](#multi-agent-orchestration)
 - [Managed Etienne](#managed-etienne)
 - [Memory](#memory)
@@ -491,6 +492,16 @@ sequenceDiagram
 The immune system most other agents lack — with a human hand on the switch.
 
 To enable self-healing on a project, activate the **self-healing** skill from the skill store. It guides users through creating structured issue reports with title, description, reproduction steps, and expected vs. actual behavior — all submitted to an admin for review before any automated repair is triggered.
+
+# Coding-agent Support
+
+Though Etienne was initially implemented for the Anthropic Claude Agent SDK you can use other (coding) models by setting the **CODING_AGENT** variable in the .env file in the backend:
+
+<div align="center">
+<img src="/docs/images/coding-agents.jpg" alt="Coding agents" width="700">
+</div>
+
+The main drawback with other models is limited support for MCP tools or agent skills which becomes obvious with more complex agentic tasks.
 
 # Multi-agent Orchestration
 
