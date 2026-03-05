@@ -51,18 +51,45 @@ export const VIEWER_COMPONENTS = {
 };
 
 /**
+ * Built-in defaults so files render correctly even if the backend
+ * previewers configuration hasn't loaded yet (or fails to load).
+ */
+const BUILTIN_DEFAULTS = [
+  { viewer: 'html',      extensions: ['.html', '.htm'] },
+  { viewer: 'json',      extensions: ['.json'] },
+  { viewer: 'jsonl',     extensions: ['.jsonl'] },
+  { viewer: 'markdown',  extensions: ['.md'] },
+  { viewer: 'mermaid',   extensions: ['.mermaid'] },
+  { viewer: 'research',  extensions: ['.research'] },
+  { viewer: 'image',     extensions: ['.jpg', '.jpeg', '.png', '.gif'] },
+  { viewer: 'excel',     extensions: ['.xls', '.xlsx'] },
+  { viewer: 'prompt',    extensions: ['.prompt'] },
+  { viewer: 'workflow',  extensions: ['.workflow.json'] },
+  { viewer: 'scrapbook', extensions: ['.scbk'] },
+];
+
+/**
  * Build a lookup map from file extension to viewer name.
- * System defaults are applied first, then project overrides win.
+ * Built-in defaults are applied first, then system config, then project overrides win.
  */
 export function buildExtensionMap(systemPreviewers = [], projectOverrides = []) {
   const map = new Map();
 
+  // Start with built-in defaults
+  for (const previewer of BUILTIN_DEFAULTS) {
+    for (const ext of previewer.extensions) {
+      map.set(ext.toLowerCase(), previewer.viewer);
+    }
+  }
+
+  // System config from backend overrides built-in defaults
   for (const previewer of systemPreviewers) {
     for (const ext of previewer.extensions) {
       map.set(ext.toLowerCase(), previewer.viewer);
     }
   }
 
+  // Project-level overrides win
   for (const override of projectOverrides) {
     map.set(override.extension.toLowerCase(), override.viewer);
   }

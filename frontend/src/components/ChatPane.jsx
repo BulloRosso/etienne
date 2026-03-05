@@ -198,29 +198,80 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           alignItems: 'center',
           gap: 1.5
         }}>
-          <ToggleButtonGroup
-            value={isGuest ? 'plan' : mode}
-            exclusive
-            onChange={handleModeChange}
-            size="small"
-            disabled={isGuest}
+          <Box
             sx={{
-              '& .MuiToggleButton-root.Mui-selected': {
-                backgroundColor: '#DEEBF7',
-                color: '#000',
-                '&:hover': {
-                  backgroundColor: '#90caf9'
-                }
-              }
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              border: 'none',
+              borderRadius: '50px',
+              padding: '2px',
+              position: 'relative',
+              cursor: isGuest ? 'default' : 'pointer',
+              opacity: isGuest ? 0.5 : 1,
             }}
           >
-            <ToggleButton value="plan" title={isGuest ? t('chatPane.planningModeGuestTooltip') : t('chatPane.planningMode')}>
-              <LuBrain size={16} />
-            </ToggleButton>
-            <ToggleButton value="work" title={isGuest ? t('chatPane.workModeGuestTooltip') : t('chatPane.workMode')} disabled={isGuest}>
-              <HiOutlineWrench size={20} />
-            </ToggleButton>
-          </ToggleButtonGroup>
+            <Box
+              onClick={() => !isGuest && handleModeChange(null, 'plan')}
+              title={isGuest ? t('chatPane.planningModeGuestTooltip') : t('chatPane.planningMode')}
+              sx={{
+                width: 29,
+                height: 29,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: (isGuest ? 'plan' : mode) === 'plan'
+                  ? (themeMode === 'dark' ? 'rgba(255,215,0,0.12)' : '#DEEBF7')
+                  : 'transparent',
+                border: (isGuest ? 'plan' : mode) === 'plan'
+                  ? (themeMode === 'dark' ? '1px solid rgba(255,215,0,0.3)' : '1px solid #ccc')
+                  : '1px solid transparent',
+                color: (isGuest ? 'plan' : mode) === 'plan'
+                  ? (themeMode === 'dark' ? 'gold' : '#1565c0')
+                  : (themeMode === 'dark' ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'),
+                transition: 'all 0.2s ease',
+                zIndex: 1,
+                '&:hover': !isGuest ? {
+                  color: (isGuest ? 'plan' : mode) === 'plan'
+                    ? undefined
+                    : (themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'),
+                } : {},
+              }}
+            >
+              <LuBrain size={14} />
+            </Box>
+            <Box
+              onClick={() => !isGuest && handleModeChange(null, 'work')}
+              title={isGuest ? t('chatPane.workModeGuestTooltip') : t('chatPane.workMode')}
+              sx={{
+                width: 29,
+                height: 29,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: mode === 'work' && !isGuest
+                  ? (themeMode === 'dark' ? 'rgba(255,215,0,0.12)' : '#DEEBF7')
+                  : 'transparent',
+                border: mode === 'work' && !isGuest
+                  ? (themeMode === 'dark' ? '1px solid rgba(255,215,0,0.3)' : '1px solid #ccc')
+                  : '1px solid transparent',
+                color: mode === 'work' && !isGuest
+                  ? (themeMode === 'dark' ? 'gold' : '#1565c0')
+                  : (themeMode === 'dark' ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'),
+                transition: 'all 0.2s ease',
+                zIndex: 1,
+                '&:hover': !isGuest ? {
+                  color: mode === 'work'
+                    ? undefined
+                    : (themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'),
+                } : {},
+              }}
+            >
+              <HiOutlineWrench size={16} />
+            </Box>
+          </Box>
           <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
             {mode === 'work' ? t('chatPane.workMode') : t('chatPane.planningMode')}
           </Box>

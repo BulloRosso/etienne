@@ -9,6 +9,7 @@ import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
 import { Roles } from '../auth/roles.decorator';
+import { Public } from '../auth/public.decorator';
 
 @Controller('api/claude')
 export class ClaudeController {
@@ -45,9 +46,11 @@ export class ClaudeController {
   @Get('listProjects')
   listProjects() { return this.svc.listProjects(); }
 
+  @Public()
   @Get('health')
   health() { return this.svc.checkHealth(); }
 
+  @Public()
   @Get('health/model')
   healthModel() { return this.svc.checkModelHealth(); }
 

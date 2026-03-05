@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, Alert, CircularProgress, Drawer, Switch } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, Alert, CircularProgress, Drawer } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ChatPane from './components/ChatPane';
 import ArtifactsPane from './components/ArtifactsPane';
@@ -1239,7 +1239,7 @@ export default function App() {
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview' || data.action === 'research-preview' || data.action === 'image-preview' || data.action === 'excel-preview' || data.action === 'scrapbook-preview') && data.filePath && data.projectName) {
+      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview' || data.action === 'research-preview' || data.action === 'image-preview' || data.action === 'excel-preview' || data.action === 'prompt-preview' || data.action === 'scrapbook-preview') && data.filePath && data.projectName) {
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }
@@ -1956,19 +1956,47 @@ export default function App() {
             <TbPresentation size={24} />
           </IconButton>
           <Box sx={{ flexGrow: 1 }} />
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: '30px' }}>
-            <IoSunnyOutline size={18} style={{ opacity: themeMode === 'light' ? 1 : 0.4 }} />
-            <Switch
-              size="small"
-              checked={themeMode === 'dark'}
-              onChange={toggleMode}
-              sx={{
-                mx: 0.5,
-                '& .MuiSwitch-thumb': { backgroundColor: '#fff' },
-                '& .MuiSwitch-track': { backgroundColor: 'rgba(255,255,255,0.3)' },
-              }}
-            />
-            <IoMoonOutline size={18} style={{ opacity: themeMode === 'dark' ? 1 : 0.4 }} />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              border: 'none',
+              borderRadius: '50px',
+              padding: '2px',
+              cursor: 'pointer',
+              mr: '30px',
+            }}
+            onClick={toggleMode}
+          >
+            <Box sx={{
+              width: 29,
+              height: 29,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: themeMode === 'light' ? 'rgba(255,215,0,0.12)' : 'transparent',
+              border: themeMode === 'light' ? '1px solid rgba(255,215,0,0.3)' : '1px solid transparent',
+              color: themeMode === 'light' ? '#fff' : 'rgba(255,255,255,0.35)',
+              transition: 'all 0.2s ease',
+            }}>
+              <IoSunnyOutline size={14} />
+            </Box>
+            <Box sx={{
+              width: 29,
+              height: 29,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: themeMode === 'dark' ? 'rgba(255,215,0,0.12)' : 'transparent',
+              border: themeMode === 'dark' ? '1px solid rgba(255,215,0,0.3)' : '1px solid transparent',
+              color: themeMode === 'dark' ? 'gold' : 'rgba(255,255,255,0.35)',
+              transition: 'all 0.2s ease',
+            }}>
+              <IoMoonOutline size={14} />
+            </Box>
           </Box>
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
             [{currentProject || t('app.selectProject')}]
