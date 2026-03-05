@@ -221,9 +221,9 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               <HiOutlineWrench size={20} />
             </ToggleButton>
           </ToggleButtonGroup>
-          <Typography variant="body2" sx={{ color: '#666', fontSize: '0.875rem' }}>
+          <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
             {mode === 'work' ? t('chatPane.workMode') : t('chatPane.planningMode')}
-          </Typography>
+          </Box>
         </Box>
         )}
 
