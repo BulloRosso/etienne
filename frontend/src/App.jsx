@@ -16,7 +16,7 @@ import AskUserQuestionModal from './components/AskUserQuestionModal';
 import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
 import LoginDialog from './components/LoginDialog';
-import { TbCalendarTime, TbPresentation, TbDeviceAirtag, TbWorld } from 'react-icons/tb';
+import { TbCalendarTime, TbPresentation, TbWorld } from 'react-icons/tb';
 import { IoInformationCircle, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
@@ -2001,17 +2001,6 @@ export default function App() {
           <Typography variant="subtitle1" sx={{ mr: 2, opacity: 0.8 }}>
             [{currentProject || t('app.selectProject')}]
           </Typography>
-          {sessionId && (
-            <Tooltip title={t('app.sessionIdTooltip', { sessionId })} arrow>
-              <IconButton
-                color="inherit"
-                sx={{ mr: 1, opacity: 0.8 }}
-                onClick={handleCopySessionId}
-              >
-                <TbDeviceAirtag size={24} />
-              </IconButton>
-            </Tooltip>
-          )}
           {currentProject && sessionId && (
             <ContextSwitcher
               projectName={currentProject}
@@ -2024,6 +2013,8 @@ export default function App() {
           )}
           <ProjectMenu
             currentProject={currentProject}
+            sessionId={sessionId}
+            onCopySessionId={handleCopySessionId}
             onProjectChange={handleProjectChange}
             budgetSettings={budgetSettings}
             onBudgetSettingsChange={setBudgetSettings}

@@ -50,7 +50,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 
-export default function ProjectMenu({ currentProject, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved, codingAgent = 'anthropic' }) {
+export default function ProjectMenu({ currentProject, sessionId, onCopySessionId, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved, codingAgent = 'anthropic' }) {
   const { t } = useTranslation();
   const { user, logout, hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -553,6 +553,8 @@ export default function ProjectMenu({ currentProject, onProjectChange, budgetSet
           }}>
             <DashboardGrid
               currentProject={currentProject}
+              sessionId={sessionId}
+              onCopySessionId={onCopySessionId}
               onItemClick={handleDashboardItemClick}
               onClose={handleMenuClose}
               onAboutClick={handleAboutOpen}

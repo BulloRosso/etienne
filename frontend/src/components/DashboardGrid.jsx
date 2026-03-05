@@ -1,10 +1,11 @@
 import React from 'react';
 import { Box, Paper, Typography, IconButton, Tooltip } from '@mui/material';
 import { InfoOutlined, Logout, Settings } from '@mui/icons-material';
+import { TbDeviceAirtag } from 'react-icons/tb';
 import { VscServerProcess } from 'react-icons/vsc';
 import { useTranslation } from 'react-i18next';
 
-const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick }) => {
+const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick }) => {
   const { t } = useTranslation();
   const dashboardItems = [
     // 1st row
@@ -118,32 +119,47 @@ const DashboardGrid = ({ currentProject, onItemClick, onClose, onAboutClick, use
           pb: 1,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative'
+          justifyContent: 'space-between'
         }}
       >
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 600,
-            color: 'primary.main'
-          }}
-        >
-          {t('dashboard.headerTitle')}
-        </Typography>
-        <IconButton
-          size="small"
-          onClick={() => {
-            onAboutClick();
-            onClose();
-          }}
-          sx={{
-            ml: 1,
-            color: 'primary.main'
-          }}
-        >
-          <InfoOutlined fontSize="small" />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              color: 'primary.main'
+            }}
+          >
+            {t('dashboard.headerTitle')}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => {
+              onAboutClick();
+              onClose();
+            }}
+            sx={{
+              ml: 1,
+              color: 'primary.main'
+            }}
+          >
+            <InfoOutlined fontSize="small" />
+          </IconButton>
+        </Box>
+        {sessionId && (
+          <Tooltip title={t('app.sessionIdTooltip', { sessionId })} arrow>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onCopySessionId) onCopySessionId();
+              }}
+              sx={{ color: 'text.secondary' }}
+            >
+              <TbDeviceAirtag size={20} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       {/* Logout Tile */}

@@ -83,6 +83,11 @@ export default function ContextSwitcher({
 
   const activeContext = contexts.find(c => c.id === activeContextId);
 
+  // Hide the component until at least one context is defined
+  if (contexts.length === 0) {
+    return null;
+  }
+
   return (
     <Box sx={sx}>
       <Tooltip title={t('contextSwitcher.tooltip')} arrow>
