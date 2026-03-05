@@ -1027,6 +1027,8 @@
   "filesystem.deleteMessage": "Sind Sie sicher, dass Sie \"{{label}}\" löschen möchten?",
   "filesystem.deleteFolderWarning": "Dies löscht den Ordner und seinen gesamten Inhalt.",
   "filesPanel.introductionAlt": "Einführung",
+  "filesPanel.workspacePlaceholderAlt": "Workspace-Platzhalter",
+  "filesPanel.workspacePlaceholder": "Hier werden ausgewählte Dokumente aus Ihrem Workspace als Vorschau angezeigt",
   "filesPanel.closeAll": "Alle schließen",
   "fileTreeVirtualList.releaseComment": "Hat Release-Kommentar",
   "checkpoints.noProject": "Kein Projekt ausgewählt",

@@ -1079,6 +1079,8 @@
   "filesystem.deleteFolderWarning": "这将删除该文件夹及其所有内容。",
 
   "filesPanel.introductionAlt": "介绍",
+  "filesPanel.workspacePlaceholderAlt": "工作区占位符",
+  "filesPanel.workspacePlaceholder": "您工作区中选定的文档将在此处预览",
   "filesPanel.closeAll": "关闭全部",
 
   "fileTreeVirtualList.releaseComment": "有发布备注",

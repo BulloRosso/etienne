@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Tab, Tabs, IconButton, Menu, MenuItem, Divider } from '@mui/material';
+import { Box, Tab, Tabs, IconButton, Menu, MenuItem, Divider, Typography } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { BsThreeDotsVertical } from 'react-icons/bs';
 import { CiFileOn } from 'react-icons/ci';
@@ -149,29 +149,66 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
         <Box sx={{ p: 2, pb: 0 }}>
           <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
         </Box>
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 2,
-            overflow: 'hidden'
-          }}
-        >
-          <img
-            src={themeMode === 'dark' ? '/etienne-intro.png' : '/etienne-intro.jpg'}
-            alt={t('filesPanel.introductionAlt')}
-            style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-              width: 'auto',
-              height: 'auto',
-              objectFit: 'contain',
-              borderRadius: '8px'
+        {!projectName ? (
+          <Box
+            sx={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 2,
+              overflow: 'hidden'
             }}
-          />
-        </Box>
+          >
+            <img
+              src={themeMode === 'dark' ? '/etienne-intro.png' : '/etienne-intro.jpg'}
+              alt={t('filesPanel.introductionAlt')}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                borderRadius: '8px'
+              }}
+            />
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 2,
+              overflow: 'hidden'
+            }}
+          >
+            <img
+              src="/workspace-placeholder.jpg"
+              alt={t('filesPanel.workspacePlaceholderAlt')}
+              style={{
+                maxWidth: '60%',
+                maxHeight: '60%',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                opacity: 0.6
+              }}
+            />
+            <Typography
+              variant="body2"
+              sx={{
+                mt: 2,
+                color: 'grey.500',
+                textAlign: 'center'
+              }}
+            >
+              {t('filesPanel.workspacePlaceholder')}
+            </Typography>
+          </Box>
+        )}
       </Box>
     );
   }

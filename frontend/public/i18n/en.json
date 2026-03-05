@@ -1079,6 +1079,8 @@
   "filesystem.deleteFolderWarning": "This will delete the folder and all its contents.",
 
   "filesPanel.introductionAlt": "Introduction",
+  "filesPanel.workspacePlaceholderAlt": "Workspace placeholder",
+  "filesPanel.workspacePlaceholder": "Selected documents from your workspace will be previewed here",
   "filesPanel.closeAll": "Close All",
 
   "fileTreeVirtualList.releaseComment": "Has release comment",
