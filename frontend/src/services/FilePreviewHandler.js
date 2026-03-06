@@ -42,6 +42,8 @@ class FilePreviewHandler {
       this.handleExcelPreview(filePath, projectName);
     } else if (extension === 'scbk') {
       this.handleScrapbookPreview(filePath, projectName);
+    } else if (extension === 'youtube' || extension === 'videos' || extension === 'mp4') {
+      this.handleVideoPreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -208,6 +210,21 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'scrapbook-preview'
+    });
+  }
+
+  /**
+   * Handle Video file preview
+   * @param {string} filePath - The path to the video file
+   * @param {string} projectName - The project name
+   */
+  handleVideoPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Video preview for', filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'video-preview'
     });
   }
 

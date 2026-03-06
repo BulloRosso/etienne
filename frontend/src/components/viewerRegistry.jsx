@@ -9,6 +9,7 @@ import ExcelViewer from './ExcelViewer';
 import WorkflowVisualizer from './WorkflowVisualizer';
 import PromptEditor from './PromptEditor';
 import ScrapbookViewer from './ScrapbookViewer';
+import VideoViewer from './VideoViewer';
 
 /**
  * Maps viewer names to their component render functions.
@@ -48,6 +49,9 @@ export const VIEWER_COMPONENTS = {
   scrapbook: (file, projectName) => (
     <ScrapbookViewer filename={file.path} projectName={projectName} />
   ),
+  video: (file, projectName) => (
+    <VideoViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -66,6 +70,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'prompt',    extensions: ['.prompt'] },
   { viewer: 'workflow',  extensions: ['.workflow.json'] },
   { viewer: 'scrapbook', extensions: ['.scbk'] },
+  { viewer: 'video',     extensions: ['.youtube', '.videos', '.mp4'] },
 ];
 
 /**
