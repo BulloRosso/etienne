@@ -575,8 +575,8 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
             display: 'flex',
             flexDirection: 'column'
           }}>
-            <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px', paddingBottom: '5px',mb: '1px', flexShrink: 0 }}>
-              <ListItemText><span dangerouslySetInnerHTML={{ __html: t('projectMenu.chooseProject') }} /></ListItemText>
+            <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px', paddingBottom: '5px', mb: '-2px', flexShrink: 0, position: 'relative', top: '-10px' }}>
+              <ListItemText><span dangerouslySetInnerHTML={{ __html: t('projectMenu.chooseProject') }} style={{ fontSize: '1.1em' }} /></ListItemText>
             </MenuItem>
             <Box sx={{
               flex: 1,

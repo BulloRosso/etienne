@@ -128,6 +128,9 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
             variant="h6"
             sx={{
               fontWeight: 600,
+              position: 'relative',
+              top: '-6px',
+              left: '10px',
               color: 'primary.main'
             }}
           >
@@ -141,6 +144,8 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
             }}
             sx={{
               ml: 1,
+              position: 'relative',
+              top: '-6px',
               color: 'primary.main'
             }}
           >
@@ -151,11 +156,15 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
           <Tooltip title={t('app.sessionIdTooltip', { sessionId })} arrow>
             <IconButton
               size="small"
+              
               onClick={(e) => {
                 e.stopPropagation();
                 if (onCopySessionId) onCopySessionId();
               }}
-              sx={{ color: 'text.secondary' }}
+              sx={{ color: 'text.secondary',
+                 position: 'relative',
+              top: '-5px',
+               }}
             >
               <TbDeviceAirtag size={20} />
             </IconButton>

@@ -186,7 +186,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
             }}
           >
             <img
-              src="/workspace-placeholder.jpg"
+              src="/workspace-placeholder.png"
               alt={t('filesPanel.workspacePlaceholderAlt')}
               style={{
                 maxWidth: '60%',
@@ -194,7 +194,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                 width: 'auto',
                 height: 'auto',
                 objectFit: 'contain',
-                opacity: 0.6
+                opacity: themeMode === 'dark' ? 1 : 0.6
               }}
             />
             <Typography
