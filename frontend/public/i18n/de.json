@@ -130,7 +130,7 @@
   "projectMenu.createNewProject": "Neues Projekt erstellen",
   "projectMenu.agentPersona": "Agent Persona",
 
-  "agentPersona.title": "Agent Persona Persönlichkeit",
+  "agentPersona.title": "Die Persönlichkeit deines Agenten",
   "agentPersona.tabIdentity": "Identität",
   "agentPersona.tabPreferences": "Präferenzen",
   "agentPersona.personaType": "Persona-Typ",

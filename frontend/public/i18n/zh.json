@@ -136,7 +136,7 @@
   "projectMenu.createNewProject": "创建新项目",
   "projectMenu.agentPersona": "代理人格",
 
-  "agentPersona.title": "代理人格个性",
+  "agentPersona.title": "你的代理个性",
   "agentPersona.tabIdentity": "身份",
   "agentPersona.tabPreferences": "偏好设置",
   "agentPersona.personaType": "人格类型",

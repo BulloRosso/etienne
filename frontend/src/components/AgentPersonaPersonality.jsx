@@ -4,9 +4,13 @@ import {
   Box, Typography, Button, IconButton, TextField,
   FormControl, InputLabel, Select, MenuItem,
   RadioGroup, FormControlLabel, Radio, FormLabel,
-  CircularProgress, Alert, Tabs, Tab
+  CircularProgress, Alert, Tabs, Tab, InputAdornment
 } from '@mui/material';
 import { Close, UploadFile } from '@mui/icons-material';
+import { RiSpeakLine } from 'react-icons/ri';
+import { MdOutlineNotificationsOff, MdDoNotDisturbAlt, MdOutlineTipsAndUpdates } from 'react-icons/md';
+import { PiTelegramLogoDuotone, PiMicrosoftTeamsLogoLight } from 'react-icons/pi';
+import { AiOutlineMail } from 'react-icons/ai';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 
@@ -138,9 +142,12 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
       </DialogTitle>
 
-      <Typography variant="body2" color="text.secondary" sx={{ px: 3, pt: 1, pb: 0.5 }}>
-        {t('agentPersona.description')}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mx: 3, mt: 1, mb: '10px', p: '14px', bgcolor: '#fffde7', borderRadius: 1 }}>
+        <MdOutlineTipsAndUpdates color="#1976d2" size={20} />
+        <Typography variant="body2" color="text.secondary">
+          {t('agentPersona.description')}
+        </Typography>
+      </Box>
 
       <Tabs
         value={activeTab}
@@ -246,22 +253,28 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
           <>
             {/* Communication Style */}
             <TextField
+              sx={{ mt: '10px' }}
               label={t('agentPersona.communicationStyle')}
               placeholder={t('agentPersona.communicationStylePlaceholder')}
               value={personality.communicationStyle}
               onChange={(e) => updateField('communicationStyle', e.target.value)}
+              multiline
+              rows={2}
               size="small"
               fullWidth
+              slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><RiSpeakLine color="#1976d2" /></InputAdornment> } }}
             />
 
             {/* Quiet Hours */}
             <TextField
+              sx={{ mt: '10px' }}
               label={t('agentPersona.notifications')}
               placeholder={t('agentPersona.notificationsPlaceholder')}
               value={personality.allowReviewNotificationsBetween}
               onChange={(e) => updateField('allowReviewNotificationsBetween', e.target.value)}
               size="small"
               fullWidth
+              slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><MdOutlineNotificationsOff color="#b71c1c" /></InputAdornment> } }}
             />
 
             {/* Contact Channels */}
@@ -276,6 +289,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                   onChange={(e) => updateContactChannel('email', e.target.value)}
                   size="small"
                   sx={{ flex: 1 }}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><AiOutlineMail color="#1976d2" /></InputAdornment> } }}
                 />
                 <TextField
                   label={t('agentPersona.contactTeams')}
@@ -283,6 +297,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                   onChange={(e) => updateContactChannel('teamsAccount', e.target.value)}
                   size="small"
                   sx={{ flex: 1 }}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><PiMicrosoftTeamsLogoLight color="#1976d2" /></InputAdornment> } }}
                 />
                 <TextField
                   label={t('agentPersona.contactTelegram')}
@@ -290,6 +305,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                   onChange={(e) => updateContactChannel('telegramHandle', e.target.value)}
                   size="small"
                   sx={{ flex: 1 }}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><PiTelegramLogoDuotone color="#1976d2" /></InputAdornment> } }}
                 />
               </Box>
               <FormControl component="fieldset">
@@ -318,6 +334,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
               rows={2}
               size="small"
               fullWidth
+              slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><MdDoNotDisturbAlt color="#b71c1c" /></InputAdornment> } }}
             />
           </>
         )}
