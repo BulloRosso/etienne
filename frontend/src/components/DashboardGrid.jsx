@@ -44,7 +44,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     },
     {
       id: 'guardrails',
-      image: '/guardrails.jpg',
+      image: '/guardrails.png',
       label: t('dashboard.itemGuardrails'),
       disabled: !currentProject,
       adminOnly: true
@@ -99,7 +99,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     // 8th row
     {
       id: 'skillstore',
-      image: '/skills.jpg',
+      image: '/skills.png',
       label: t('dashboard.itemSkillStore'),
       disabled: false,
       adminOnly: true
