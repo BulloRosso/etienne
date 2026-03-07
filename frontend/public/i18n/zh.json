@@ -137,6 +137,8 @@
   "projectMenu.agentPersona": "代理人格",
 
   "agentPersona.title": "代理人格个性",
+  "agentPersona.tabIdentity": "身份",
+  "agentPersona.tabPreferences": "偏好设置",
   "agentPersona.personaType": "人格类型",
   "agentPersona.name": "名称",
   "agentPersona.nameHelper": "3-35个字符",

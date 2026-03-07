@@ -137,6 +137,8 @@
   "projectMenu.agentPersona": "Agent Persona",
 
   "agentPersona.title": "Agent Persona Personality",
+  "agentPersona.tabIdentity": "Identity",
+  "agentPersona.tabPreferences": "Preferences",
   "agentPersona.personaType": "Persona Type",
   "agentPersona.name": "Name",
   "agentPersona.nameHelper": "3-35 characters",

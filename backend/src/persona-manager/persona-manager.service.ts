@@ -115,16 +115,23 @@ export class PersonaManagerService {
     const guidanceBase64 = imageBuffer.toString('base64');
     const guidanceDataUrl = `data:image/png;base64,${guidanceBase64}`;
 
-    this.logger.log('Generating avatar with OpenAI images/edits API (gpt-image-1)...');
+    this.logger.log(`Generating avatar with description: "${avatarDescription}"`);
 
     // Use the new JSON-based images/edits endpoint directly via HTTP
     // The SDK v6.x doesn't support the new format with images array
+    const prompt = [
+      `IMPORTANT: Transform the character in the reference image to match this description: ${avatarDescription}.`,
+      'Change the character appearance (hair, clothing, skin, accessories, expression) to match the description exactly.',
+      'Keep the same cartoon/illustration art style and pose from the reference image.',
+      'The output must clearly show the described appearance - do NOT keep the original character unchanged.',
+    ].join(' ');
+
     const response = await axios.post(
       'https://api.openai.com/v1/images/edits',
       {
         model: 'gpt-image-1',
         images: [{ image_url: guidanceDataUrl }],
-        prompt: `Create an avatar character based on this reference image style. The avatar must look like: ${avatarDescription}. Keep the same artistic style and proportions as the reference but apply the described appearance changes.`,
+        prompt,
         size: '1024x1024',
       },
       {

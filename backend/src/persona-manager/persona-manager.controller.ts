@@ -23,8 +23,12 @@ export class PersonaManagerController {
 
   @Post('generate-avatar')
   @Roles('user')
-  async generateAvatar(@Body() dto: GenerateAvatarDto) {
-    const base64 = await this.personaManagerService.generateAvatar(dto.avatarDescription);
+  async generateAvatar(@Body() body: any) {
+    const description = body?.avatarDescription;
+    if (!description) {
+      throw new Error(`Missing avatarDescription in body. Keys received: ${Object.keys(body || {}).join(', ')}`);
+    }
+    const base64 = await this.personaManagerService.generateAvatar(description);
     return { image: base64 };
   }
 

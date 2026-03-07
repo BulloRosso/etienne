@@ -24,12 +24,6 @@ export class McpAuthGuard implements CanActivate {
     const token = authHeader.startsWith('Bearer ')
       ? authHeader.substring(7)
       : authHeader;
-
-    // Debug logging
-    console.log('Received token:', JSON.stringify(token));
-    console.log('Expected token:', JSON.stringify(this.VALID_TOKEN));
-    console.log('Tokens match:', token === this.VALID_TOKEN);
-
     // Validate token
     if (token !== this.VALID_TOKEN) {
       throw new UnauthorizedException('Invalid MCP access token');
