@@ -6,7 +6,7 @@ import {
   RadioGroup, FormControlLabel, Radio, FormLabel,
   CircularProgress, Alert, Tabs, Tab
 } from '@mui/material';
-import { Close } from '@mui/icons-material';
+import { Close, UploadFile } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 
@@ -107,6 +107,27 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
     }
   };
 
+  const handleUploadAvatar = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'image/png') {
+      setError(t('agentPersona.uploadPngOnly'));
+      return;
+    }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1];
+      setAvatarPreview(base64);
+      try {
+        await apiAxios.post('/api/persona-manager/upload-avatar', { image: base64 });
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to save uploaded avatar');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const isValid = personality.name.length >= 3 && personality.name.length <= 35 && personality.personaType;
 
   return (
@@ -116,6 +137,10 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
         <Typography variant="h6">{t('agentPersona.title')}</Typography>
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
       </DialogTitle>
+
+      <Typography variant="body2" color="text.secondary" sx={{ px: 3, pt: 1, pb: 0.5 }}>
+        {t('agentPersona.description')}
+      </Typography>
 
       <Tabs
         value={activeTab}
@@ -194,14 +219,23 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                   size="small"
                   fullWidth
                 />
-                <Button
-                  variant="contained"
-                  onClick={handleGenerateAvatar}
-                  disabled={generating || !personality.avatarDescription?.trim()}
-                  sx={{ alignSelf: 'flex-start' }}
-                >
-                  {generating ? t('agentPersona.generating') : t('agentPersona.generateAvatar')}
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleGenerateAvatar}
+                    disabled={generating || !personality.avatarDescription?.trim()}
+                  >
+                    {generating ? t('agentPersona.generating') : t('agentPersona.generateAvatar')}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadFile />}
+                  >
+                    {t('agentPersona.uploadPng')}
+                    <input type="file" accept="image/png" hidden onChange={handleUploadAvatar} />
+                  </Button>
+                </Box>
               </Box>
             </Box>
           </>

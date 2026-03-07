@@ -32,6 +32,17 @@ export class PersonaManagerController {
     return { image: base64 };
   }
 
+  @Post('upload-avatar')
+  @Roles('user')
+  async uploadAvatar(@Body() body: any) {
+    const base64 = body?.image;
+    if (!base64) {
+      throw new Error('Missing image in body');
+    }
+    await this.personaManagerService.uploadAvatar(base64);
+    return { success: true };
+  }
+
   @Post('install')
   @Roles('user')
   async install(@Body() dto: InstallPersonaDto) {

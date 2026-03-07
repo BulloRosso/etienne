@@ -159,6 +159,9 @@
   "agentPersona.go": "开始！",
   "agentPersona.installing": "正在安装...",
   "agentPersona.avatarPlaceholder": "头像预览将显示在此处",
+  "agentPersona.description": "花点时间让这个代理真正属于你！给他一个外观，并告诉他如何以及何时回复你。",
+  "agentPersona.uploadPng": "上传 PNG",
+  "agentPersona.uploadPngOnly": "请选择 PNG 文件",
 
   "onboarding.step1Name": "什么是 Etienne？",
   "onboarding.step1Explanation": "你好，我叫 Etienne。\n我是一个基于 Anthropic Agent SDK 的通用 AI 助手。当您处理文件和复杂数据时，我可以为您提供帮助。您需要将数据复制到我们的工作空间中，这样我才能看到它们。",

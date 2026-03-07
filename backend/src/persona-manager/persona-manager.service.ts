@@ -159,6 +159,17 @@ export class PersonaManagerService {
   }
 
   /**
+   * Save an uploaded avatar PNG directly to workspace/.agent/avatar.png
+   */
+  async uploadAvatar(base64: string): Promise<void> {
+    const agentDir = path.join(this.workspaceDir, '.agent');
+    await fs.ensureDir(agentDir);
+    const avatarPath = path.join(agentDir, 'avatar.png');
+    await fs.writeFile(avatarPath, Buffer.from(base64, 'base64'));
+    this.logger.log(`Uploaded avatar saved to ${avatarPath}`);
+  }
+
+  /**
    * Install persona: store personality.json, deflate ZIP, create onboarding project
    */
   async install(

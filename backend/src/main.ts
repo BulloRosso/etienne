@@ -10,7 +10,13 @@ import { RedocModule } from '@jozefazz/nestjs-redoc';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: { origin: 'http://localhost:5000' } });
+  const app = await NestFactory.create(AppModule, {
+    cors: { origin: 'http://localhost:5000' },
+    bodyParser: false,
+  });
+  const bodyParser = require('body-parser');
+  app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const swaggerConfig = new DocumentBuilder()

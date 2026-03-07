@@ -159,6 +159,9 @@
   "agentPersona.go": "Go!",
   "agentPersona.installing": "Installing...",
   "agentPersona.avatarPlaceholder": "Avatar preview will appear here",
+  "agentPersona.description": "Take your time to make this agent truly yours! Give him an appearance and instructions how and when to get back to you.",
+  "agentPersona.uploadPng": "Upload PNG",
+  "agentPersona.uploadPngOnly": "Please select a PNG file",
 
   "onboarding.step1Name": "What is Etienne?",
   "onboarding.step1Explanation": "Hello my name is Etienne.\nI am a general AI assistant based on the Anthropic Agent SDK. I can help you when working with files and complex data. You need to copy data into our workspace, so I am able to see them.",
