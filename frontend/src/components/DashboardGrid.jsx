@@ -3,41 +3,42 @@ import { Box, Paper, Typography, IconButton, Tooltip } from '@mui/material';
 import { InfoOutlined, Logout, Settings } from '@mui/icons-material';
 import { TbDeviceAirtag } from 'react-icons/tb';
 import { VscServerProcess } from 'react-icons/vsc';
+import { RiRobot2Line } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 
-const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick }) => {
+const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick }) => {
   const { t } = useTranslation();
   const dashboardItems = [
     // 1st row
     {
       id: 'subagents',
-      image: '/subagents.jpg',
+      image: '/subagents.png',
       label: t('dashboard.itemSubagents'),
       disabled: !currentProject
     },
     {
       id: 'skills',
-      image: '/skills.jpg',
+      image: '/skills.png',
       label: t('dashboard.itemSkills'),
       disabled: !currentProject
     },
     // 2nd row
     {
       id: 'knowledge',
-      image: '/knowledge.jpg',
+      image: '/knowledge.png',
       label: t('dashboard.itemKnowledgeBase'),
       disabled: !currentProject
     },
     {
       id: 'externalevents',
-      image: '/externalevents.jpg',
+      image: '/externalevents.png',
       label: t('dashboard.itemExternalEvents'),
       disabled: !currentProject
     },
     // 3rd row
     {
       id: 'scheduling',
-      image: '/scheduling.jpg',
+      image: '/scheduling.png',
       label: t('dashboard.itemScheduling'),
       disabled: !currentProject
     },
@@ -51,47 +52,47 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     // 4th row
     {
       id: 'budget',
-      image: '/budget.jpg',
+      image: '/budget.png',
       label: t('dashboard.itemBudgetSettings'),
       disabled: !currentProject
     },
     // 5th row
     {
       id: 'customui',
-      image: '/customui.jpg',
+      image: '/customui.png',
       label: t('dashboard.itemCustomizeUI'),
       disabled: !currentProject
     },
     {
       id: 'contexts',
-      image: '/contextmanager.jpg',
+      image: '/contextmanager.png',
       label: t('dashboard.itemContextTagging'),
       disabled: !currentProject
     },
     // 6th row
     {
       id: 'conditionmonitoring',
-      image: '/conditionmonitoring.jpg',
+      image: '/conditionmonitoring.png',
       label: t('dashboard.itemConditionMonitoring'),
       disabled: !currentProject
     },
     {
       id: 'scrapbook',
-      image: '/scrapbook.jpg',
+      image: '/scrapbook.png',
       label: t('dashboard.itemScrapbook'),
       disabled: !currentProject
     },
     // 7th row
     {
       id: 'issues',
-      image: '/issues.jpg',
+      image: '/issues.png',
       label: t('dashboard.itemIssues'),
       disabled: !currentProject,
       minRole: 'user'
     },
     {
       id: 'ontologycore',
-      image: '/decision-support.jpg',
+      image: '/decision-support.png',
       label: t('dashboard.itemDecisionSupport'),
       disabled: !currentProject
     },
@@ -300,34 +301,61 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
         ))}
       </Box>
 
-      {/* Service Control link - bottom aligned, centered, hidden for guest role */}
+      {/* Bottom links - Service Control & Agent Persona */}
       {user && user.role !== 'guest' && (
         <Box
-          onClick={() => {
-            if (onServiceControlClick) {
-              onServiceControlClick();
-              onClose();
-            }
-          }}
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 1,
+            gap: 3,
             px: 2,
             py: 1.5,
             mt: 'auto',
-            cursor: 'pointer',
-            color: 'text.secondary',
-            '&:hover': {
-              color: 'primary.main'
-            }
           }}
         >
-          <VscServerProcess size={16} />
-          <Typography variant="caption" sx={{ fontWeight: 500 }}>
-            {t('dashboard.serviceControl')}
-          </Typography>
+          <Box
+            onClick={() => {
+              if (onServiceControlClick) {
+                onServiceControlClick();
+                onClose();
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              cursor: 'pointer',
+              color: 'text.secondary',
+              '&:hover': { color: 'primary.main' }
+            }}
+          >
+            <VscServerProcess size={16} />
+            <Typography variant="caption" sx={{ fontWeight: 500 }}>
+              {t('dashboard.serviceControl')}
+            </Typography>
+          </Box>
+          <Box
+            onClick={() => {
+              if (onAgentPersonaClick) {
+                onAgentPersonaClick();
+                onClose();
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              cursor: 'pointer',
+              color: 'text.secondary',
+              '&:hover': { color: '#9c27b0' }
+            }}
+          >
+            <RiRobot2Line size={16} />
+            <Typography variant="caption" sx={{ fontWeight: 500 }}>
+              {t('projectMenu.agentPersona')}
+            </Typography>
+          </Box>
         </Box>
       )}
     </Box>

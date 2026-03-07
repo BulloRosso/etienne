@@ -47,7 +47,7 @@
     "mailparser": "^3.9.0",
     "mqtt": "^5.14.1",
     "multer": "^2.0.2",
-    "openai": "^6.7.0",
+    "openai": "^6.27.0",
     "quadstore": "^15.4.1",
     "rdf-data-factory": "^2.0.2",
     "reflect-metadata": "^0.1.13",

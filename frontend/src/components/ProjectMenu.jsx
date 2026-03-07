@@ -3,7 +3,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,7 +17,9 @@ import {
   Tab,
   Switch,
   FormControlLabel,
-  Drawer
+  Drawer,
+  Fab,
+  Tooltip
 } from '@mui/material';
 import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
 import { TbCalendarTime, TbPalette } from 'react-icons/tb';
@@ -42,6 +43,7 @@ import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
 import Configuration from './Configuration';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
+import AgentPersonaPersonality from './AgentPersonaPersonality';
 import ServiceControlDrawer from './ServiceControlDrawer';
 import IssueManager from './IssueManager';
 import { useTranslation } from 'react-i18next';
@@ -77,6 +79,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   const [newScrapbookName, setNewScrapbookName] = useState('');
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [serviceControlOpen, setServiceControlOpen] = useState(false);
+  const [personaDialogOpen, setPersonaDialogOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -562,6 +565,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
               onLogout={logout}
               onSettingsClick={handleChangePasswordOpen}
               onServiceControlClick={handleServiceControlOpen}
+              onAgentPersonaClick={() => setPersonaDialogOpen(true)}
             />
           </Box>
 
@@ -571,13 +575,14 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
             display: 'flex',
             flexDirection: 'column'
           }}>
-            <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px', flexShrink: 0 }}>
-              <ListItemText>{t('projectMenu.chooseProject')}</ListItemText>
+            <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px', paddingBottom: '5px',mb: '1px', flexShrink: 0 }}>
+              <ListItemText><span dangerouslySetInnerHTML={{ __html: t('projectMenu.chooseProject') }} /></ListItemText>
             </MenuItem>
             <Box sx={{
               flex: 1,
               overflowY: 'auto',
               overflowX: 'hidden',
+              borderTop: '1px solid #ccc',
               '&::-webkit-scrollbar': { width: '8px' },
               '&::-webkit-scrollbar-track': { backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f5f5f0' },
               '&::-webkit-scrollbar-thumb': {
@@ -600,14 +605,28 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
                 </MenuItem>
               ))}
             </Box>
-            <Box sx={{ flexShrink: 0, mb: '10px' }}>
-              <Divider />
-              <MenuItem onClick={handleNewProject}>
-                <ListItemIcon sx={{ color: themeMode === 'dark' ? 'gold' : 'inherit' }}>
-                  <AddOutlined fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primaryTypographyProps={{ fontWeight: 'bold', color: themeMode === 'dark' ? 'gold' : 'inherit' }}>{t('projectMenu.newProject')}</ListItemText>
-              </MenuItem>
+            <Box sx={{ flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: '24px' }}>
+              <Tooltip title={t('projectMenu.createNewProject')} arrow>
+                <Fab
+                  size="large"
+                  onClick={handleNewProject}
+                  sx={{
+                    position: 'relative',
+                    mt: '-28px',
+                    mb: '20px',
+                    bgcolor: themeMode === 'dark' ? 'gold' : 'primary.main',
+                    color: themeMode === 'dark' ? '#000' : '#fff',
+                    '&:hover': {
+                      bgcolor: themeMode === 'dark' ? '#daa520' : 'primary.dark',
+                    },
+                    zIndex: 1,
+                    gap: 0,
+                  }}
+                >
+                  <AddOutlined sx={{ fontSize: 22, position: 'relative', left: '2px' }} />
+                  <FolderOutlined sx={{ fontSize: 22, position: 'relative', left: '-2px' }} />
+                </Fab>
+              </Tooltip>
             </Box>
           </Box>
         </Box>
@@ -621,6 +640,16 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
           handleDialogClose();
           await fetchProjects();
           onProjectChange(projectName, guidanceDocuments);
+        }}
+      />
+
+      <AgentPersonaPersonality
+        open={personaDialogOpen}
+        onClose={() => setPersonaDialogOpen(false)}
+        onInstalled={async (projectName) => {
+          setPersonaDialogOpen(false);
+          await fetchProjects();
+          onProjectChange(projectName);
         }}
       />
 
