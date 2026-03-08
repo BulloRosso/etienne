@@ -31,12 +31,15 @@ import { GiAtom } from 'react-icons/gi';
 import Editor from '@monaco-editor/react';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { apiFetch } from '../services/api';
 import PowerUpSection from './PowerUpSection';
+import MCPServerConfiguration from './MCPServerConfiguration';
 
 export default function SkillsSettings({ open, onClose, project }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
+  const { hasRole } = useAuth();
   const muiTheme = useTheme();
   const isLargeScreen = useMediaQuery(muiTheme.breakpoints.up('lg'));
   const [skills, setSkills] = useState([]);
@@ -426,6 +429,7 @@ Show what the expected output should look like.
           <Tab label={t('skills.tabThisProject')} />
           <Tab label={t('skills.tabOtherProjects')} />
           <Tab label={t('skills.tabRepository')} />
+          <Tab label={t('skills.tabMcpServers')} />
         </Tabs>
         <DialogContent sx={{ p: 0 }}>
           {isLargeScreen && activeTab === 0 ? (
@@ -583,6 +587,13 @@ Show what the expected output should look like.
                 </>
               )}
             </List>
+          ) : (isLargeScreen ? activeTab === 4 : activeTab === 3) ? (
+            <Box sx={{ minHeight: '300px', maxHeight: '400px', overflow: 'auto' }}>
+              <MCPServerConfiguration
+                projectName={project}
+                readOnly={!hasRole('admin')}
+              />
+            </Box>
           ) : (
             (() => {
               const thisProjectTab = isLargeScreen ? 1 : 0;

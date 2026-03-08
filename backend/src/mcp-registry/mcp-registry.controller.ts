@@ -52,6 +52,28 @@ export class McpRegistryController {
   }
 
   /**
+   * Look up a registry server by its URL
+   */
+  @Post('lookup-by-url')
+  async lookupByUrl(@Body() body: { url: string }) {
+    try {
+      const server = await this.mcpRegistryService.getServerByUrl(body.url);
+      return {
+        success: true,
+        server: server || null,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Get a specific MCP server by name
    */
   @Get(':name')

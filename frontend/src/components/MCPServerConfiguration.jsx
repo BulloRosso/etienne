@@ -16,14 +16,24 @@ import {
   Select,
   MenuItem,
   FormControl,
-  Tooltip
+  Tooltip,
+  Menu,
+  Drawer,
+  Typography,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
-import { Add, Delete, Edit as EditIcon, Check, Close, Key } from '@mui/icons-material';
+import { Add, Delete, Edit as EditIcon, Check, Close, Key, MoreVert, Build } from '@mui/icons-material';
+import { HiOutlineWrench } from 'react-icons/hi2';
+import { TfiWorld } from 'react-icons/tfi';
+import { GoShieldCheck } from 'react-icons/go';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
 
-export default function MCPServerConfiguration({ projectName, showBackgroundInfo }) {
+export default function MCPServerConfiguration({ projectName, showBackgroundInfo, readOnly = false }) {
   const { t } = useTranslation();
   const [servers, setServers] = useState({});
   const [originalServers, setOriginalServers] = useState({});
@@ -39,10 +49,18 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     url: 'http://host.docker.internal:6060/mcp/demo',
     command: '',
     args: '',
-    auth: 'test123'
+    auth: 'test123',
+    description: ''
   });
   const [hoveredKey, setHoveredKey] = useState(null);
   const [nameError, setNameError] = useState('');
+  const [rowMenuAnchor, setRowMenuAnchor] = useState(null);
+  const [rowMenuKey, setRowMenuKey] = useState(null);
+  const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);
+  const [toolsDrawerServer, setToolsDrawerServer] = useState(null);
+  const [toolsList, setToolsList] = useState([]);
+  const [toolsLoading, setToolsLoading] = useState(false);
+  const [toolsError, setToolsError] = useState(null);
 
   useEffect(() => {
     loadConfig();
@@ -57,6 +75,21 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
   // Check if there are unsaved changes
   const hasChanges = JSON.stringify(servers) !== JSON.stringify(originalServers);
 
+  const enrichWithRegistryDescriptions = async (loadedServers) => {
+    const enriched = { ...loadedServers };
+    for (const [key, server] of Object.entries(enriched)) {
+      if (!server.description && server.url) {
+        try {
+          const resp = await apiAxios.post('/api/mcp-registry/lookup-by-url', { url: server.url });
+          if (resp.data.server?.description) {
+            enriched[key] = { ...server, description: resp.data.server.description };
+          }
+        } catch { /* ignore lookup failures */ }
+      }
+    }
+    return enriched;
+  };
+
   const loadConfig = async () => {
     setLoading(true);
     setError(null);
@@ -65,8 +98,9 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
         projectName
       });
       const loadedServers = response.data.mcpServers || {};
-      setServers(loadedServers);
-      setOriginalServers(loadedServers);
+      const enriched = await enrichWithRegistryDescriptions(loadedServers);
+      setServers(enriched);
+      setOriginalServers(enriched);
     } catch (err) {
       setError(t('mcpServer.failedToLoadConfig'));
       console.error('Load MCP config error:', err);
@@ -121,6 +155,9 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
         serverConfig.headers = { Authorization: newServer.auth };
       }
     }
+    if (newServer.description) {
+      serverConfig.description = newServer.description;
+    }
 
     setServers({ ...servers, [trimmedName]: serverConfig });
     setNewServer({
@@ -129,7 +166,8 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       url: 'http://host.docker.internal:6060/mcp/demo',
       command: '',
       args: '',
-      auth: 'Bearer test123'
+      auth: 'Bearer test123',
+      description: ''
     });
   };
 
@@ -149,7 +187,8 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       url: server.url || '',
       command: server.command || '',
       args: Array.isArray(server.args) ? server.args.join(' ') : '',
-      auth: server.headers?.Authorization || ''
+      auth: server.headers?.Authorization || '',
+      description: server.description || ''
     });
   };
 
@@ -177,6 +216,9 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
         serverConfig.headers = { Authorization: editValue.auth };
       }
     }
+    if (editValue.description) {
+      serverConfig.description = editValue.description;
+    }
 
     const updated = { ...servers };
     if (editingKey !== trimmedName) {
@@ -191,6 +233,27 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
   const handleCancelEdit = () => {
     setEditingKey(null);
     setEditValue(null);
+  };
+
+  const handleShowTools = async (key, server) => {
+    setRowMenuAnchor(null);
+    setRowMenuKey(null);
+    setToolsDrawerServer({ name: key, ...server });
+    setToolsDrawerOpen(true);
+    setToolsList([]);
+    setToolsError(null);
+    setToolsLoading(true);
+    try {
+      const response = await apiAxios.post('/api/mcp-registry/list-tools', {
+        url: server.url,
+        headers: server.headers
+      });
+      setToolsList(response.data.tools || []);
+    } catch (err) {
+      setToolsError(err.response?.data?.message || err.message || 'Failed to fetch tools');
+    } finally {
+      setToolsLoading(false);
+    }
   };
 
   const getDisplayValue = (key, server) => {
@@ -229,18 +292,14 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       )}
 
       <TableContainer component={Paper} sx={{ flex: 1, mb: 2 }}>
-        <Table stickyHeader>
+        <Table stickyHeader sx={{ '& td': { verticalAlign: 'top', pt: 1.5 } }}>
           <TableHead>
             <TableRow>
               <TableCell><strong>{t('mcpServer.columnName')}</strong></TableCell>
               <TableCell><strong>{t('mcpServer.columnTransport')}</strong></TableCell>
-              <TableCell><strong>{t('mcpServer.columnUrlCmd')}</strong></TableCell>
-              <TableCell>
-                <Tooltip title={t('mcpServer.authTooltip')}>
-                  <Key fontSize="small" />
-                </Tooltip>
-              </TableCell>
-              <TableCell align="right">{t('common.actions')}</TableCell>
+              <TableCell><strong>{t('mcpServer.columnDescription')}</strong></TableCell>
+              <TableCell><strong>{t('mcpServer.columnSecurity')}</strong></TableCell>
+              <TableCell align="center" sx={{ width: 48 }}></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -251,7 +310,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                 onMouseLeave={() => setHoveredKey(null)}
                 sx={{ backgroundColor: index % 2 === 0 ? 'white' : '#EBF5FF', height: '60px' }}
               >
-                {editingKey === key ? (
+                {!readOnly && editingKey === key ? (
                   <>
                     <TableCell>
                       <TextField
@@ -263,46 +322,56 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                       />
                     </TableCell>
                     <TableCell>
-                      <FormControl fullWidth size="small">
-                        <Select
-                          value={editValue.transport}
-                          onChange={(e) => setEditValue({ ...editValue, transport: e.target.value })}
-                          sx={{ backgroundColor: 'white' }}
-                        >
-                          <MenuItem value="stdio">{t('mcpServer.transportStdio')}</MenuItem>
-                          <MenuItem value="http">{t('mcpServer.transportHttp')}</MenuItem>
-                          <MenuItem value="sse">{t('mcpServer.transportSse')}</MenuItem>
-                        </Select>
-                      </FormControl>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <FormControl fullWidth size="small">
+                          <Select
+                            value={editValue.transport}
+                            onChange={(e) => setEditValue({ ...editValue, transport: e.target.value })}
+                            sx={{ backgroundColor: 'white' }}
+                          >
+                            <MenuItem value="stdio">{t('mcpServer.transportStdio')}</MenuItem>
+                            <MenuItem value="http">{t('mcpServer.transportHttp')}</MenuItem>
+                            <MenuItem value="sse">{t('mcpServer.transportSse')}</MenuItem>
+                          </Select>
+                        </FormControl>
+                        {editValue.transport === 'stdio' ? (
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <TextField
+                              size="small"
+                              placeholder={t('mcpServer.placeholderCommand')}
+                              value={editValue.command}
+                              onChange={(e) => setEditValue({ ...editValue, command: e.target.value })}
+                              sx={{ backgroundColor: 'white', width: '30%' }}
+                            />
+                            <TextField
+                              size="small"
+                              placeholder={t('mcpServer.placeholderArgs')}
+                              value={editValue.args}
+                              onChange={(e) => setEditValue({ ...editValue, args: e.target.value })}
+                              sx={{ backgroundColor: 'white', flex: 1 }}
+                            />
+                          </Box>
+                        ) : (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            placeholder={t('mcpServer.placeholderUrl')}
+                            value={editValue.url}
+                            onChange={(e) => setEditValue({ ...editValue, url: e.target.value })}
+                            sx={{ backgroundColor: 'white' }}
+                          />
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell>
-                      {editValue.transport === 'stdio' ? (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <TextField
-                            size="small"
-                            placeholder={t('mcpServer.placeholderCommand')}
-                            value={editValue.command}
-                            onChange={(e) => setEditValue({ ...editValue, command: e.target.value })}
-                            sx={{ backgroundColor: 'white', width: '30%' }}
-                          />
-                          <TextField
-                            size="small"
-                            placeholder={t('mcpServer.placeholderArgs')}
-                            value={editValue.args}
-                            onChange={(e) => setEditValue({ ...editValue, args: e.target.value })}
-                            sx={{ backgroundColor: 'white', flex: 1 }}
-                          />
-                        </Box>
-                      ) : (
-                        <TextField
-                          fullWidth
-                          size="small"
-                          placeholder={t('mcpServer.placeholderUrl')}
-                          value={editValue.url}
-                          onChange={(e) => setEditValue({ ...editValue, url: e.target.value })}
-                          sx={{ backgroundColor: 'white' }}
-                        />
-                      )}
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder={t('mcpServer.placeholderDescription')}
+                        value={editValue.description}
+                        onChange={(e) => setEditValue({ ...editValue, description: e.target.value })}
+                        sx={{ backgroundColor: 'white' }}
+                      />
                     </TableCell>
                     <TableCell>
                       <TextField
@@ -314,7 +383,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                         sx={{ backgroundColor: 'white' }}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center" sx={{ width: 48, whiteSpace: 'nowrap' }}>
                       <IconButton size="small" color="primary" onClick={handleSaveEdit} sx={{ p: 0.5 }}>
                         <Check fontSize="small" />
                       </IconButton>
@@ -326,128 +395,268 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                 ) : (
                   <>
                     <TableCell
-                      onClick={() => handleStartEdit(key)}
-                      sx={{ cursor: 'pointer' }}
+                      onClick={readOnly ? undefined : () => handleStartEdit(key)}
+                      sx={readOnly ? {} : { cursor: 'pointer' }}
                     >
-                      <code>{key}</code>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Tooltip title={getDisplayValue(key, server)} placement="right">
+                          <img src="/logo-mcp.png" alt="MCP" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                        </Tooltip>
+                        <code>{key}</code>
+                      </Box>
                     </TableCell>
                     <TableCell
-                      onClick={() => handleStartEdit(key)}
-                      sx={{ cursor: 'pointer' }}
+                      onClick={readOnly ? undefined : () => handleStartEdit(key)}
+                      sx={readOnly ? {} : { cursor: 'pointer' }}
                     >
                       {(server.type || 'stdio').toUpperCase()}
                     </TableCell>
                     <TableCell
-                      onClick={() => handleStartEdit(key)}
-                      sx={{ cursor: 'pointer' }}
+                      onClick={readOnly ? undefined : () => handleStartEdit(key)}
+                      sx={readOnly ? {} : { cursor: 'pointer' }}
                     >
-                      <code style={{ fontSize: '0.85em' }}>{getDisplayValue(key, server)}</code>
+                      <Typography variant="body2" color="text.secondary">{server.description || ''}</Typography>
                     </TableCell>
                     <TableCell
-                      onClick={() => handleStartEdit(key)}
-                      sx={{ cursor: 'pointer' }}
+                      onClick={readOnly ? undefined : () => handleStartEdit(key)}
+                      sx={readOnly ? {} : { cursor: 'pointer' }}
                     >
-                      {server.headers?.Authorization ? '***' : '-'}
-                    </TableCell>
-                    <TableCell align="right">
-                      {(hoveredKey === key || editingKey === key) && (
-                        <>
-                          <IconButton size="small" onClick={() => handleStartEdit(key)} sx={{ p: 0.5 }}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" color="error" onClick={() => handleDelete(key)} sx={{ p: 0.5 }}>
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </>
+                      {readOnly ? (
+                        server.headers?.Authorization
+                          ? <Tooltip title={t('mcpServer.protected')}><span><GoShieldCheck style={{ fontSize: 18, color: 'green' }} /></span></Tooltip>
+                          : <Tooltip title={t('mcpServer.public')}><span><TfiWorld style={{ fontSize: 16, color: 'black' }} /></span></Tooltip>
+                      ) : (
+                        server.headers?.Authorization ? '***' : '-'
                       )}
+                    </TableCell>
+                    <TableCell align="center" sx={{ width: 48 }}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRowMenuAnchor(e.currentTarget);
+                          setRowMenuKey(key);
+                        }}
+                        sx={{ p: 0.5 }}
+                      >
+                        <MoreVert fontSize="small" />
+                      </IconButton>
                     </TableCell>
                   </>
                 )}
               </TableRow>
             ))}
-            <TableRow>
-              <TableCell>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder={t('mcpServer.placeholderServerName')}
-                  value={newServer.name}
-                  onChange={(e) => {
-                    setNewServer({ ...newServer, name: e.target.value });
-                    setNameError('');
-                  }}
-                  error={!!nameError}
-                  helperText={nameError}
-                />
-              </TableCell>
-              <TableCell>
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={newServer.transport}
-                    onChange={(e) => setNewServer({ ...newServer, transport: e.target.value })}
-                  >
-                    <MenuItem value="stdio">{t('mcpServer.transportStdio')}</MenuItem>
-                    <MenuItem value="http">{t('mcpServer.transportHttp')}</MenuItem>
-                    <MenuItem value="sse">{t('mcpServer.transportSse')}</MenuItem>
-                  </Select>
-                </FormControl>
-              </TableCell>
-              <TableCell>
-                {newServer.transport === 'stdio' ? (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      size="small"
-                      placeholder={t('mcpServer.placeholderCommand')}
-                      value={newServer.command}
-                      onChange={(e) => setNewServer({ ...newServer, command: e.target.value })}
-                      sx={{ width: '30%' }}
-                    />
-                    <TextField
-                      size="small"
-                      placeholder={t('mcpServer.placeholderArgs')}
-                      value={newServer.args}
-                      onChange={(e) => setNewServer({ ...newServer, args: e.target.value })}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-                ) : (
+            {!readOnly && (
+              <TableRow>
+                <TableCell>
                   <TextField
                     fullWidth
                     size="small"
-                    placeholder={t('mcpServer.placeholderHttps')}
-                    value={newServer.url}
-                    onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
+                    placeholder={t('mcpServer.placeholderServerName')}
+                    value={newServer.name}
+                    onChange={(e) => {
+                      setNewServer({ ...newServer, name: e.target.value });
+                      setNameError('');
+                    }}
+                    error={!!nameError}
+                    helperText={nameError}
                   />
-                )}
-              </TableCell>
-              <TableCell>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder={t('mcpServer.placeholderBearerToken')}
-                  value={newServer.auth}
-                  onChange={(e) => setNewServer({ ...newServer, auth: e.target.value })}
-                />
-              </TableCell>
-              <TableCell align="right">
-                <IconButton size="small" color="primary" onClick={handleAdd} disabled={!newServer.name.trim()} sx={{ p: 0.5 }}>
-                  <Add fontSize="small" />
-                </IconButton>
-              </TableCell>
-            </TableRow>
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={newServer.transport}
+                        onChange={(e) => setNewServer({ ...newServer, transport: e.target.value })}
+                      >
+                        <MenuItem value="stdio">{t('mcpServer.transportStdio')}</MenuItem>
+                        <MenuItem value="http">{t('mcpServer.transportHttp')}</MenuItem>
+                        <MenuItem value="sse">{t('mcpServer.transportSse')}</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {newServer.transport === 'stdio' ? (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          size="small"
+                          placeholder={t('mcpServer.placeholderCommand')}
+                          value={newServer.command}
+                          onChange={(e) => setNewServer({ ...newServer, command: e.target.value })}
+                          sx={{ width: '30%' }}
+                        />
+                        <TextField
+                          size="small"
+                          placeholder={t('mcpServer.placeholderArgs')}
+                          value={newServer.args}
+                          onChange={(e) => setNewServer({ ...newServer, args: e.target.value })}
+                          sx={{ flex: 1 }}
+                        />
+                      </Box>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder={t('mcpServer.placeholderHttps')}
+                        value={newServer.url}
+                        onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
+                      />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder={t('mcpServer.placeholderDescription')}
+                    value={newServer.description}
+                    onChange={(e) => setNewServer({ ...newServer, description: e.target.value })}
+                  />
+                </TableCell>
+                <TableCell>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder={t('mcpServer.placeholderBearerToken')}
+                    value={newServer.auth}
+                    onChange={(e) => setNewServer({ ...newServer, auth: e.target.value })}
+                  />
+                </TableCell>
+                <TableCell align="center" sx={{ width: 48 }}>
+                  <IconButton size="small" color="primary" onClick={handleAdd} disabled={!newServer.name.trim()} sx={{ p: 0.5 }}>
+                    <Add fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={saving || !hasChanges}
+      {!readOnly && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+          >
+            {saving ? t('common.saving') : t('common.save')}
+          </Button>
+        </Box>
+      )}
+
+      <Menu
+        anchorEl={rowMenuAnchor}
+        open={Boolean(rowMenuAnchor)}
+        onClose={() => { setRowMenuAnchor(null); setRowMenuKey(null); }}
+      >
+        <MenuItem
+          onClick={() => rowMenuKey && handleShowTools(rowMenuKey, servers[rowMenuKey])}
+          disabled={!rowMenuKey || !servers[rowMenuKey]?.url}
         >
-          {saving ? t('common.saving') : t('common.save')}
-        </Button>
-      </Box>
+          <ListItemIcon sx={{ minWidth: 32 }}>
+            <HiOutlineWrench style={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText>{t('mcpToolsSelector.providedTools')}</ListItemText>
+        </MenuItem>
+        {!readOnly && (
+          <MenuItem
+            onClick={() => {
+              if (rowMenuKey) handleStartEdit(rowMenuKey);
+              setRowMenuAnchor(null);
+              setRowMenuKey(null);
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 32 }}>
+              <EditIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{t('common.edit')}</ListItemText>
+          </MenuItem>
+        )}
+        {!readOnly && (
+          <MenuItem
+            onClick={() => {
+              if (rowMenuKey) handleDelete(rowMenuKey);
+              setRowMenuAnchor(null);
+              setRowMenuKey(null);
+            }}
+            sx={{ color: 'error.main' }}
+          >
+            <ListItemIcon sx={{ minWidth: 32, color: 'error.main' }}>
+              <Delete fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{t('common.delete')}</ListItemText>
+          </MenuItem>
+        )}
+      </Menu>
+
+      <Drawer
+        anchor="left"
+        open={toolsDrawerOpen}
+        onClose={() => setToolsDrawerOpen(false)}
+        sx={{ zIndex: 1400 }}
+      >
+        <Box sx={{ width: 420, p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+            <Typography variant="h6">
+              {t('mcpToolsSelector.providedTools')}
+            </Typography>
+            <IconButton onClick={() => setToolsDrawerOpen(false)} size="small">
+              <Close />
+            </IconButton>
+          </Box>
+          {toolsDrawerServer && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <img src="/logo-mcp.png" alt="MCP" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              <Typography variant="body2" color="text.secondary">
+                {toolsDrawerServer.name}
+              </Typography>
+            </Box>
+          )}
+
+          {toolsLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {toolsError && (
+            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+              {toolsError}
+            </Typography>
+          )}
+
+          {!toolsLoading && !toolsError && toolsList.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              {t('mcpToolsSelector.noToolsAvailable')}
+            </Typography>
+          )}
+
+          {!toolsLoading && toolsList.length > 0 && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {t('mcpToolsSelector.toolsAvailableCount', { count: toolsList.length })}
+              </Typography>
+              <List dense>
+                {toolsList.map((tool, index) => (
+                  <ListItem key={tool.name || index} sx={{ alignItems: 'flex-start', px: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 32, mt: '4px' }}>
+                      <Build sx={{ fontSize: 18, color: 'primary.main' }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                          {tool.name}
+                        </Typography>
+                      }
+                      secondary={tool.description}
+                      secondaryTypographyProps={{ sx: { fontSize: '0.75rem' } }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+        </Box>
+      </Drawer>
     </Box>
   );
 }

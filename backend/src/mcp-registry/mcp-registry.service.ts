@@ -76,6 +76,14 @@ export class McpRegistryService {
   }
 
   /**
+   * Get a specific MCP server by URL
+   */
+  async getServerByUrl(url: string): Promise<McpServerEntry | null> {
+    const servers = await this.loadRegistry();
+    return servers.find((s) => s.url === url) || null;
+  }
+
+  /**
    * Parse a response that may be JSON or SSE (text/event-stream).
    * SSE format: "event: message\ndata: {json}\n\n"
    */
