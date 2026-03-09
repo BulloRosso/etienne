@@ -5,6 +5,7 @@ export class ClaudeConfig {
   readonly timeoutMs: number;
   readonly anthropicKey: string;
   readonly defaultAllowedTools: string[];
+  readonly forceProjectScope: boolean;
 
   constructor() {
     this.container = process.env.CLAUDE_CONTAINER_NAME ?? 'claude-code';
@@ -13,6 +14,7 @@ export class ClaudeConfig {
     this.containerRoot = '/workspace';
     this.timeoutMs = Number(process.env.CLAUDE_TIMEOUT_MS ?? 600000);
     this.anthropicKey = process.env.ANTHROPIC_API_KEY ?? 'key' ;
+    this.forceProjectScope = (process.env.FORCE_PROJECT_SCOPE ?? 'true') !== 'false';
     this.defaultAllowedTools = [
       'Task',
       'WebFetch',

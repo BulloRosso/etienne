@@ -80,12 +80,17 @@ export class ClaudeSdkService {
 
       this.logger.log(`Agent mode: ${agentMode || 'default'} → Permission mode: ${permissionMode}`);
 
+      // Build sandbox configuration for project isolation
+      const workspaceRoot = isContainer ? this.config.containerRoot : this.config.hostRoot;
+      const sandbox = this.buildSandboxConfig(projectRoot, workspaceRoot);
+
       // Configure SDK options
       // Note: systemPrompt is not included - Claude Code SDK will automatically
       // pick it up from .claude/CLAUDE.md in the project directory
       const queryOptions: any = {
         model: altModelConfig?.model || 'claude-opus-4-5-20251101',
         cwd: projectRoot,  // Set working directory to workspace/<project>
+        ...(sandbox && { sandbox }),
         allowedTools: tools,
         permissionMode: permissionMode as any,
         maxTurns: maxTurns || 20,
@@ -166,6 +171,42 @@ export class ClaudeSdkService {
     }
     this.logger.warn(`No active stream found for process: ${processId}`);
     return false;
+  }
+
+  /**
+   * Build sandbox configuration based on FORCE_PROJECT_SCOPE setting.
+   * - true (default): agent can only read/write within its own project directory
+   * - false: agent can read sibling project directories but cannot write to them
+   */
+  private buildSandboxConfig(projectRoot: string, workspaceRoot: string): any {
+    const forceScope = this.config.forceProjectScope;
+    this.logger.log(`FORCE_PROJECT_SCOPE=${forceScope} — sandbox isolation for: ${projectRoot}`);
+
+    const normalizedProjectRoot = projectRoot.replace(/\\/g, '/');
+    const normalizedWorkspaceRoot = workspaceRoot.replace(/\\/g, '/');
+
+    if (forceScope) {
+      // Strict: deny both read and write outside the project
+      return {
+        enabled: true,
+        autoAllowBashIfSandboxed: true,
+        filesystem: {
+          allowWrite: [`${normalizedProjectRoot}/**`],
+          denyRead: [`${normalizedWorkspaceRoot}/**`],
+          denyWrite: [`${normalizedWorkspaceRoot}/**`],
+        },
+      };
+    } else {
+      // Relaxed: allow reading siblings, deny writing to them
+      return {
+        enabled: true,
+        autoAllowBashIfSandboxed: true,
+        filesystem: {
+          allowWrite: [`${normalizedProjectRoot}/**`],
+          denyWrite: [`${normalizedWorkspaceRoot}/**`],
+        },
+      };
+    }
   }
 
   /**
