@@ -48,8 +48,37 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
       setInstalling(false);
       setActiveTab(0);
       fetchPersonaTypes();
+      fetchExistingPersonality();
+      fetchExistingAvatar();
     }
   }, [open]);
+
+  const fetchExistingPersonality = async () => {
+    try {
+      const response = await apiAxios.get('/api/persona-manager/personality');
+      if (response.status === 200 && response.data) {
+        const saved = response.data;
+        setPersonality({
+          ...EMPTY_PERSONALITY,
+          ...saved,
+          contactChannels: { ...EMPTY_PERSONALITY.contactChannels, ...saved.contactChannels },
+        });
+      }
+    } catch {
+      // No existing personality, keep defaults
+    }
+  };
+
+  const fetchExistingAvatar = async () => {
+    try {
+      const response = await apiAxios.get('/api/persona-manager/avatar');
+      if (response.status === 200 && response.data?.image) {
+        setAvatarPreview(response.data.image);
+      }
+    } catch {
+      // No existing avatar, ignore
+    }
+  };
 
   const fetchPersonaTypes = async () => {
     try {
@@ -92,15 +121,19 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
     setError(null);
     try {
       const selectedType = personaTypes.find(p => p.name === personality.personaType);
-      const zipFilename = selectedType?.zipFilename || `${personality.personaType}.zip`;
+      const zipFilename = selectedType ? (selectedType.zipFilename || `${personality.personaType}.zip`) : undefined;
 
-      const response = await apiAxios.post('/api/persona-manager/install', {
-        personality,
-        zipFilename,
-      });
+      const payload = { personality };
+      if (zipFilename) payload.zipFilename = zipFilename;
+
+      const response = await apiAxios.post('/api/persona-manager/install', payload);
 
       if (response.data.success) {
-        onInstalled(response.data.projectName);
+        if (response.data.projectName) {
+          onInstalled(response.data.projectName);
+        } else {
+          onClose();
+        }
       } else {
         setError('Installation failed');
       }
@@ -132,7 +165,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
     reader.readAsDataURL(file);
   };
 
-  const isValid = personality.name.length >= 3 && personality.name.length <= 35 && personality.personaType;
+  const isValid = personality.name.length >= 3 && personality.name.length <= 35;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth
@@ -348,7 +381,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
           disabled={!isValid || installing}
           sx={{ minWidth: 100 }}
         >
-          {installing ? <CircularProgress size={20} /> : t('agentPersona.go')}
+          {installing ? <CircularProgress size={20} /> : personality.personaType ? t('agentPersona.go') : t('common.save')}
         </Button>
       </DialogActions>
     </Dialog>

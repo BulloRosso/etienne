@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { Agent } from 'http';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -32,7 +33,7 @@ export default defineConfig({
     port: 5000,
     strictPort: true,
     proxy: {
-        '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true },
+        '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true, agent: new Agent({ maxSockets: 50, keepAlive: true }) },
         '/mcp': { target: 'http://localhost:6060', changeOrigin: true },
         '/web': { target: 'http://localhost:4000', changeOrigin: true },
         '/auth': { target: 'http://localhost:5950', changeOrigin: true }

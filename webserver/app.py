@@ -210,6 +210,29 @@ def list_api_modules(project: str):
     return jsonify({"project": project, "modules": mods})
 
 # ------------------------------------------------------------
+# .agent static files (workspace/.agent/)
+# Serves whitelisted files from the shared agent directory
+# ------------------------------------------------------------
+AGENT_ALLOWED_FILES = {"avatar.png"}
+
+@app.route("/web/.agent/<path:filepath>")
+def serve_agent_file(filepath: str):
+    """Serve whitelisted static files from workspace/.agent/."""
+    filename = os.path.basename(filepath)
+    if filename not in AGENT_ALLOWED_FILES:
+        abort(404)
+    agent_dir = os.path.join(WORKSPACE, ".agent")
+    full = os.path.join(agent_dir, filepath)
+    _ensure_in_dir(agent_dir, full)
+    if not os.path.isfile(full):
+        abort(404)
+    directory = os.path.dirname(full)
+    response = send_from_directory(directory, filename)
+    response.headers['Content-Type'] = get_mime_type(filename)
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+# ------------------------------------------------------------
 # Public Web Routes (/web/<project>/...)
 # Serves static content from workspace/<project>/web/
 # API endpoints reuse the existing hot-reload dispatcher

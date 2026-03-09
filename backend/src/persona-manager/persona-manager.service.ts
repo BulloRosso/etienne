@@ -170,12 +170,35 @@ export class PersonaManagerService {
   }
 
   /**
+   * Return existing personality.json if it exists, otherwise null
+   */
+  async getExistingPersonality(): Promise<PersonalityDto | null> {
+    const personalityPath = path.join(this.workspaceDir, '.agent', 'personality.json');
+    if (!(await fs.pathExists(personalityPath))) {
+      return null;
+    }
+    return fs.readJson(personalityPath);
+  }
+
+  /**
+   * Return existing avatar as base64 if it exists, otherwise null
+   */
+  async getExistingAvatar(): Promise<string | null> {
+    const avatarPath = path.join(this.workspaceDir, '.agent', 'avatar.png');
+    if (!(await fs.pathExists(avatarPath))) {
+      return null;
+    }
+    const buffer = await fs.readFile(avatarPath);
+    return buffer.toString('base64');
+  }
+
+  /**
    * Install persona: store personality.json, deflate ZIP, create onboarding project
    */
   async install(
     personality: PersonalityDto,
-    zipFilename: string,
-  ): Promise<{ success: boolean; projectName: string; warnings?: string[] }> {
+    zipFilename?: string,
+  ): Promise<{ success: boolean; projectName?: string; warnings?: string[] }> {
     const warnings: string[] = [];
     const agentDir = path.join(this.workspaceDir, '.agent');
 
@@ -186,6 +209,14 @@ export class PersonaManagerService {
     const personalityPath = path.join(agentDir, 'personality.json');
     await fs.writeJson(personalityPath, personality, { spaces: 2 });
     this.logger.log(`Wrote personality.json to ${personalityPath}`);
+
+    // If no ZIP file specified, only save the personality JSON and return
+    if (!zipFilename) {
+      return {
+        success: true,
+        warnings: warnings.length > 0 ? warnings : undefined,
+      };
+    }
 
     // 3. Extract ZIP from .agent-persona-repository into .agent
     const zipPath = path.join(this.workspaceDir, '.agent-persona-repository', zipFilename);

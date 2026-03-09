@@ -1,14 +1,22 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Res, HttpStatus } from '@nestjs/common';
+import { IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { Response } from 'express';
 import { Roles } from '../auth/roles.decorator';
 import { PersonaManagerService, PersonalityDto } from './persona-manager.service';
 
 class GenerateAvatarDto {
+  @IsString()
+  @IsNotEmpty()
   avatarDescription: string;
 }
 
 class InstallPersonaDto {
+  @IsObject()
   personality: PersonalityDto;
-  zipFilename: string;
+
+  @IsString()
+  @IsOptional()
+  zipFilename?: string;
 }
 
 @Controller('api/persona-manager')
@@ -19,6 +27,26 @@ export class PersonaManagerController {
   @Roles('user')
   async listPersonaTypes() {
     return this.personaManagerService.listPersonaTypes();
+  }
+
+  @Get('personality')
+  @Roles('user')
+  async getPersonality(@Res() res: Response) {
+    const personality = await this.personaManagerService.getExistingPersonality();
+    if (!personality) {
+      return res.status(HttpStatus.NO_CONTENT).send();
+    }
+    return res.json(personality);
+  }
+
+  @Get('avatar')
+  @Roles('user')
+  async getAvatar(@Res() res: Response) {
+    const base64 = await this.personaManagerService.getExistingAvatar();
+    if (!base64) {
+      return res.status(HttpStatus.NO_CONTENT).send();
+    }
+    return res.json({ image: base64 });
   }
 
   @Post('generate-avatar')

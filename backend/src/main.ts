@@ -3,11 +3,18 @@ import './observability/instrumentation';
 
 import 'reflect-metadata';
 import 'dotenv/config';
+import * as http from 'http';
+import * as https from 'https';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { RedocModule } from '@jozefazz/nestjs-redoc';
 import { AppModule } from './app.module';
+
+// Increase default socket limits so long-running requests (e.g. image generation)
+// don't block other outbound HTTP connections
+http.globalAgent.maxSockets = 50;
+https.globalAgent.maxSockets = 50;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
