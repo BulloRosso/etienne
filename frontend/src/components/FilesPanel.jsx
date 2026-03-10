@@ -125,8 +125,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
             width: '100%',
             height: '100%',
             overflow: useHiddenOverflow ? 'hidden' : 'auto',
-            border: (viewerName === 'workflow' || viewerName === 'scrapbook') ? 0 : '1px solid',
-            borderColor: 'divider',
+            border: 0,
           }}
         >
           {renderFn(file, projectName)}
@@ -214,26 +213,35 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: themeMode === 'dark' ? 'transparent' : '#999' }}>
-      <Box sx={{ p: 2, pb: 0 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: themeMode === 'dark' ? 'transparent' : '#efefef' }}>
+      <Box sx={{ p: 1, pb: 0 }}>
         <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
       </Box>
 
       {/* Tab Strip */}
-      <Box sx={{ borderBottom: 0, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: themeMode === 'dark' ? 'transparent' : '#999' }}>
+      <Box sx={{ borderBottom: 0, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: themeMode === 'dark' ? 'transparent' : '#efefef' }}>
         <Tabs
           value={activeTab}
           onChange={(e, newValue) => setActiveTab(newValue)}
           variant="scrollable"
           scrollButtons="auto"
-          sx={{ flex: 1, minHeight: 32, '& .MuiTabs-indicator': { backgroundColor: 'gold' } }}
+          sx={{
+            flex: 1,
+            minHeight: 32,
+            '& .MuiTabs-indicator': {
+              top: 0,
+              bottom: 'unset',
+              backgroundColor: 'gold',
+              height: '3px',
+            },
+          }}
         >
           {visibleFiles.map((file, index) => (
             <Tab
               key={file.path}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <CiFileOn size={14} style={{ color: '#ffffff' }} />
+                  <CiFileOn size={14} />
                   <span>{getFilename(file.path)}</span>
                   <Box
                     component="span"
@@ -244,10 +252,9 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                       justifyContent: 'center',
                       p: 0.25,
                       ml: 0.5,
-                      color: '#ffffff',
                       cursor: 'pointer',
                       borderRadius: '2px',
-                      '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+                      '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)' }
                     }}
                   >
                     <IoClose size={12} />
@@ -260,8 +267,14 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                 minWidth: 60,
                 padding: '4px 8px',
                 fontSize: '0.75rem',
-                color: '#ffffff',
-                '&.Mui-selected': { color: 'gold' }
+                color: 'black',
+                backgroundColor: '#ccc',
+                '&.Mui-selected': {
+                  color: 'black',
+                  fontWeight: 'bold',
+                  backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#ffffff',
+                  '& svg': { color: 'black' },
+                },
               }}
             />
           ))}
