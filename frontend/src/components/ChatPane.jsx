@@ -167,7 +167,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#fffef5'
+      backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f0eee6'
     }}>
       {/* Header */}
       <Box sx={{
