@@ -193,9 +193,32 @@ export default function BudgetOverview({
   };
 
   return (
-    <Box sx={{ width: 500, p: 3 }}>
+    <Box sx={{
+      width: 500,
+      p: 2,
+      position: 'relative',
+      minHeight: '100%',
+      '&::after': {
+        content: '""',
+        position: 'absolute',
+        left: '50%',
+        bottom: 24,
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: 154,
+        height: '33.3%',
+        backgroundImage: 'url(/budget.png)',
+        backgroundSize: 'contain',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center bottom',
+        opacity: 0.5,
+        pointerEvents: 'none',
+        zIndex: 0,
+      }
+    }}>
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">{t('budgetOverview.title')}</Typography>
+        <Typography variant="h6">{t('budgetOverview.title')}</Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
@@ -333,6 +356,7 @@ export default function BudgetOverview({
         currency={currency}
         onSettingsChange={onSettingsChange}
       />
+      </Box>
     </Box>
   );
 }

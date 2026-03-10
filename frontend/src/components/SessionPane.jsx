@@ -94,8 +94,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          p: 2,
-          borderBottom: '1px solid #e0e0e0'
+          p: 2
         }}>
           <Typography variant="h6">{t('sessionPane.title')}</Typography>
           <IconButton onClick={onClose} size="small">
@@ -126,7 +125,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
           )}
 
           {!loading && !error && sessions.length > 0 && (
-            <List sx={{ p: 0 }}>
+            <List sx={{ p: 2 }}>
               {sessions.map((session, index) => {
                 const isPinned = !!session.pinned;
 
@@ -136,15 +135,19 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                     button
                     onClick={() => handleSessionClick(session)}
                     sx={{
-                      borderBottom: index < sessions.length - 1 ? '1px solid #e0e0e0' : 'none',
-                      borderLeft: isPinned ? '3px solid #1976d2' : 'none',
+                      border: '1px solid',
+                      borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+                      borderLeft: isPinned ? '3px solid #1976d2' : '1px solid',
+                      borderLeftColor: isPinned ? '#1976d2' : (themeMode === 'dark' ? '#555' : '#e0e0e0'),
+                      borderRadius: 1,
+                      mb: 1,
+                      backgroundColor: isPinned
+                        ? (themeMode === 'dark' ? '#1a2332' : '#f0f6ff')
+                        : (themeMode === 'dark' ? '#383838' : '#fafafa'),
                       '&:hover': {
-                        backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5'
+                        backgroundColor: themeMode === 'dark' ? '#444' : '#f5f5f5'
                       },
                       alignItems: 'flex-start',
-                      ...(isPinned && {
-                        backgroundColor: themeMode === 'dark' ? '#1a2332' : '#f0f6ff',
-                      })
                     }}
                   >
                     <ListItemIcon sx={{ mt: 0.5 }}>
@@ -167,11 +170,6 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                             {formatTimestamp(session.timestamp)}
                           </Typography>
-                          {!isPinned && (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', fontFamily: 'monospace' }}>
-                              {session.sessionId}
-                            </Typography>
-                          )}
                         </Box>
                       }
                     />
