@@ -267,13 +267,14 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                 minWidth: 60,
                 padding: '4px 8px',
                 fontSize: '0.75rem',
-                color: 'black',
-                backgroundColor: '#ccc',
+                color: themeMode === 'dark' ? '#ccc' : 'black',
+                backgroundColor: themeMode === 'dark' ? '#111' : '#ccc',
+                '& svg': { color: themeMode === 'dark' ? '#ccc' : 'inherit' },
                 '&.Mui-selected': {
-                  color: 'black',
+                  color: themeMode === 'dark' ? '#fff' : 'black',
                   fontWeight: 'bold',
                   backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#ffffff',
-                  '& svg': { color: 'black' },
+                  '& svg': { color: themeMode === 'dark' ? '#fff' : 'black' },
                 },
               }}
             />
