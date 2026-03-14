@@ -59,7 +59,7 @@ function PlaceholderCard({ themeMode }) {
   );
 }
 
-function OrderCard({ order, themeMode, onCancel, onInputRequired }) {
+function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
   const Icon = TYPE_ICONS[order.type] || TbSearch;
@@ -104,6 +104,7 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired }) {
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           variant="body2"
+          onClick={!isFinished ? () => onNavigate(order) : undefined}
           sx={{
             fontWeight: 'bold',
             display: '-webkit-box',
@@ -111,6 +112,11 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired }) {
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             lineHeight: 1.3,
+            ...(!isFinished && {
+              color: themeMode === 'dark' ? '#5b9bd5' : '#1976d2',
+              cursor: 'pointer',
+              '&:hover': { textDecoration: 'underline' },
+            }),
           }}
         >
           {order.title}
@@ -293,6 +299,7 @@ export default function UserOrders() {
                   themeMode={themeMode}
                   onCancel={handleCancel}
                   onInputRequired={handleInputRequired}
+                  onNavigate={handleInputRequired}
                 />
               ))}
         </Box>

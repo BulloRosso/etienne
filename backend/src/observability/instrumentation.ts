@@ -42,9 +42,8 @@ if (OTEL_ENABLED && !globalAny[OTEL_INIT_KEY]) {
       'project.name': SERVICE_NAME,
     }),
     spanProcessors: [
-      // Use SimpleSpanProcessor for development (immediate flush)
-      // For production, consider switching to BatchSpanProcessor
-      new SimpleSpanProcessor(
+      // Use BatchSpanProcessor to avoid blocking the event loop during trace export
+      new BatchSpanProcessor(
         new OTLPTraceExporter({
           url: `${PHOENIX_ENDPOINT}/v1/traces`,
         })

@@ -1701,7 +1701,8 @@ export default function App() {
     }
   };
 
-  const handleSessionChange = async (newSessionId) => {
+  const handleSessionChange = async (newSessionId, targetProject) => {
+    const project = targetProject || currentProject;
     // If newSessionId is null, start a new session (clear current session)
     if (newSessionId === null) {
       setCurrentSessionId(null);
@@ -1711,7 +1712,7 @@ export default function App() {
 
       // Clear the session.id file on the backend
       try {
-        await apiFetch(`/api/claude/clearSession/${encodeURIComponent(currentProject)}`, {
+        await apiFetch(`/api/claude/clearSession/${encodeURIComponent(project)}`, {
           method: 'POST'
         });
       } catch (err) {
@@ -1723,7 +1724,7 @@ export default function App() {
         const assistantRes = await apiFetch('/api/claude/assistant', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ projectName: currentProject })
+          body: JSON.stringify({ projectName: project })
         });
         const assistantData = await assistantRes.json();
         const greeting = assistantData?.assistant?.greeting;
@@ -1747,7 +1748,7 @@ export default function App() {
 
     try {
       // Load session history
-      const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${newSessionId}/history`);
+      const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(project)}/${newSessionId}/history`);
       const historyData = await historyRes.json();
       const chatMessages = historyData?.messages || [];
 
@@ -1755,7 +1756,7 @@ export default function App() {
       const assistantRes = await apiFetch('/api/claude/assistant', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectName: currentProject })
+        body: JSON.stringify({ projectName: project })
       });
       const assistantData = await assistantRes.json();
       const greeting = assistantData?.assistant?.greeting;
@@ -1792,6 +1793,23 @@ export default function App() {
       console.error('Failed to load session history:', err);
     }
   };
+
+  // Listen for loadSession events from UserOrders (navigate to a specific session)
+  const handleSessionChangeRef = useRef(handleSessionChange);
+  handleSessionChangeRef.current = handleSessionChange;
+  useEffect(() => {
+    const handleLoadSession = (e) => {
+      const { sessionId: sid, projectName } = e.detail || {};
+      if (projectName) {
+        setProject(projectName);
+      }
+      if (sid) {
+        handleSessionChangeRef.current(sid, projectName);
+      }
+    };
+    window.addEventListener('loadSession', handleLoadSession);
+    return () => window.removeEventListener('loadSession', handleLoadSession);
+  }, [setProject]);
 
   // Save open tabs to workbench.json when files change
   useEffect(() => {
