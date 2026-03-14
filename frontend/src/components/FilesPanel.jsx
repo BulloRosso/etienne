@@ -4,6 +4,7 @@ import { IoClose } from 'react-icons/io5';
 import { BsThreeDotsVertical } from 'react-icons/bs';
 import { CiFileOn } from 'react-icons/ci';
 import BackgroundInfo from './BackgroundInfo';
+import UserOrders from './UserOrders';
 import { VIEWER_COMPONENTS, buildExtensionMap, getViewerForFile } from './viewerRegistry.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useTranslation } from 'react-i18next';
@@ -148,6 +149,12 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
         <Box sx={{ p: 2, pb: 0 }}>
           <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
         </Box>
+        {/* Upper 50%: User Orders carousel */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
+          <UserOrders />
+        </Box>
+
+        {/* Lower 50%: Background image */}
         {!projectName ? (
           <Box
             sx={{

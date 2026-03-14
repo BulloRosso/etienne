@@ -6,6 +6,7 @@ export interface McpServerEntry {
   args?: string[];
   headers?: Record<string, string>;
   description?: string;
+  isStandard?: boolean;
 }
 
 export interface McpRegistryData {

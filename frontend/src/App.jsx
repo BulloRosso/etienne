@@ -22,7 +22,7 @@ import { useProject } from './contexts/ProjectContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
 import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
-import { buildExtensionMap } from './components/viewerRegistry.jsx';
+import { buildExtensionMap, getViewerForFile } from './components/viewerRegistry.jsx';
 import Onboarding from './components/Onboarding';
 import { apiFetch, authSSEUrl } from './services/api';
 
@@ -1163,20 +1163,18 @@ export default function App() {
     return absolutePath;
   };
 
-  // Build dynamic auto-preview extension list from previewers config + project overrides
-  const autoPreviewExtensions = useMemo(() => {
-    const extensionMap = buildExtensionMap(
+  // Build dynamic auto-preview extension map from previewers config + project overrides
+  const autoPreviewExtensionMap = useMemo(() => {
+    return buildExtensionMap(
       previewersConfig,
       uiConfig?.autoFilePreviewExtensions || []
     );
-    return [...extensionMap.keys()];
   }, [previewersConfig, uiConfig?.autoFilePreviewExtensions]);
 
   // Check if a file path ends with a supported preview extension
   const hasPreviewExtension = (filePath) => {
     if (!filePath) return false;
-    const lowerPath = filePath.toLowerCase();
-    return autoPreviewExtensions.some(ext => lowerPath.endsWith(ext));
+    return getViewerForFile(filePath, autoPreviewExtensionMap) !== null;
   };
 
   // Fetch file content and add/update it in the files list
@@ -1239,7 +1237,7 @@ export default function App() {
   // Listen for file preview requests
   useEffect(() => {
     const handleFilePreview = (data) => {
-      if ((data.action === 'html-preview' || data.action === 'json-preview' || data.action === 'markdown-preview' || data.action === 'mermaid-preview' || data.action === 'research-preview' || data.action === 'image-preview' || data.action === 'excel-preview' || data.action === 'prompt-preview' || data.action === 'scrapbook-preview' || data.action === 'video-preview') && data.filePath && data.projectName) {
+      if (data.action && data.action.endsWith('-preview') && data.filePath && data.projectName) {
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }
@@ -1484,6 +1482,14 @@ export default function App() {
       console.log('[file_added] Dispatched claudeHook event for:', absolutePath);
 
       if (hasPreviewExtension(absolutePath)) {
+        const viewer = getViewerForFile(absolutePath, autoPreviewExtensionMap);
+        if (viewer) {
+          claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+            action: `${viewer}-preview`,
+            filePath: relativePath,
+            projectName: currentProject
+          });
+        }
         fetchFile(relativePath, currentProject);
       }
     });

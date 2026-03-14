@@ -250,7 +250,7 @@ export class ClaudeSdkOrchestratorService {
         second: '2-digit',
         timeZoneName: 'long'
       });
-      finalPrompt = `[Current date and time: ${dateTimeString}]\n\n${finalPrompt}`;
+      finalPrompt = `[Current date and time: ${dateTimeString}]\n[Current session ID: ${sessionId}]\n\nAlways create user orders before beginning to work on complex multi step tasks. A single step or action required from a user like 'Create an Excel table from ...' does not count for a user order. At least two different artifacts/files must be created in a user order.\n\n${finalPrompt}`;
 
       // Emit UserPromptSubmit event (before processing)
       this.hookEmitter.emitUserPromptSubmit(projectDir, {

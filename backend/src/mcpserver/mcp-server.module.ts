@@ -14,9 +14,10 @@ import { StatefulWorkflowsModule } from '../stateful-workflows/stateful-workflow
 import { EventHandlingModule } from '../event-handling/event-handling.module';
 import { ProcessManagerModule } from '../process-manager/process-manager.module';
 import { ConfigurationModule } from '../configuration/configuration.module';
+import { UserOrdersModule } from '../user-orders/user-orders.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule],
   controllers: [McpServerController],
   providers: [McpServerFactoryService, McpAuthGuard],
   exports: [McpServerFactoryService],

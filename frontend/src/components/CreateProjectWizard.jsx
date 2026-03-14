@@ -182,7 +182,21 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     setMcpLoading(true);
     try {
       const response = await apiAxios.get('/api/mcp-registry');
-      setRegistryMcpServers(response.data.servers || []);
+      const servers = response.data.servers || [];
+      setRegistryMcpServers(servers);
+
+      // Auto-add standard MCP servers (user cannot remove these)
+      const standardServers = {};
+      servers.filter(s => s.isStandard).forEach(s => {
+        standardServers[s.name] = {
+          type: s.transport,
+          url: s.url,
+          ...(s.headers && { headers: s.headers }),
+        };
+      });
+      if (Object.keys(standardServers).length > 0) {
+        setMcpServers(prev => ({ ...standardServers, ...prev }));
+      }
     } catch (error) {
       console.error('Failed to fetch MCP registry:', error);
     } finally {

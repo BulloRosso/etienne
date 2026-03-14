@@ -60,7 +60,12 @@ export default function McpToolsSelector({
     });
   };
 
+  const isStandard = (serverName) => {
+    return registryServers.some(s => s.name === serverName && s.isStandard);
+  };
+
   const handleRemoveServer = (name) => {
+    if (isStandard(name)) return;
     const updated = { ...configuredServers };
     delete updated[name];
     onServersChange(updated);
@@ -159,9 +164,11 @@ export default function McpToolsSelector({
                       {t('mcpToolsSelector.providedTools')}
                     </Button>
                   )}
-                  <IconButton edge="end" onClick={() => handleRemoveServer(name)} sx={{ color: themeMode === 'dark' ? 'navy' : 'darkred' }}>
-                    <DeleteOutlined />
-                  </IconButton>
+                  {!isStandard(name) && (
+                    <IconButton edge="end" onClick={() => handleRemoveServer(name)} sx={{ color: themeMode === 'dark' ? 'navy' : 'darkred' }}>
+                      <DeleteOutlined />
+                    </IconButton>
+                  )}
                 </Box>
               }
             >
@@ -180,6 +187,14 @@ export default function McpToolsSelector({
                         size="small"
                         label={t('mcpToolsSelector.registry')}
                         color="primary"
+                        sx={{ fontSize: '0.7rem' }}
+                      />
+                    )}
+                    {isStandard(name) && (
+                      <Chip
+                        size="small"
+                        label={t('mcpToolsSelector.standard', 'Standard')}
+                        color="success"
                         sx={{ fontSize: '0.7rem' }}
                       />
                     )}

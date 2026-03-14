@@ -89,6 +89,14 @@
       "transport": "http",
       "url": "http://localhost:3480/mcp",
       "description": "Web scraping tools via Scrapling (get, bulk_get, fetch, bulk_fetch, stealthy_fetch, CSS selectors)"
+    },
+    {
+      "name": "user-orders",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/user-orders",
+      "headers": { "Authorization": "test123" },
+      "description": "User order tracking and management tools",
+      "isStandard": true
     }
   ]
 }
