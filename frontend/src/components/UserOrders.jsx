@@ -73,8 +73,8 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
         minWidth: 0,
         p: 1.5,
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: 1.5,
+        flexDirection: 'column',
+        gap: 0.75,
         opacity: isFinished ? 0.55 : 1,
         backgroundColor: themeMode === 'dark'
           ? (isFinished ? '#303030' : '#383838')
@@ -91,22 +91,18 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
             : themeMode === 'dark' ? '#444' : '#e0e0e0',
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', alignSelf: 'stretch', mt: 0.25 }}>
-        <Avatar sx={{ bgcolor: isFinished ? '#999' : '#666', width: 36, height: 36 }}>
-          <Icon size={18} color="#fff" />
+      {/* Row 1: icon + title + menu */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Avatar sx={{ bgcolor: isFinished ? '#999' : '#666', width: 28, height: 28 }}>
+          <Icon size={14} color="#fff" />
         </Avatar>
-        <Box sx={{ flex: 1 }} />
-        {isFinished && (
-          <CheckCircle sx={{ fontSize: 18, color: '#4caf50', mb: 0.25 }} />
-        )}
-      </Box>
-
-      <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           variant="body2"
           onClick={!isFinished ? () => onNavigate(order) : undefined}
           sx={{
+            flex: 1,
             fontWeight: 'bold',
+            minWidth: 0,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -121,6 +117,33 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
         >
           {order.title}
         </Typography>
+        {isFinished && (
+          <CheckCircle sx={{ fontSize: 18, color: '#4caf50', flexShrink: 0 }} />
+        )}
+        {!isFinished && (
+          <>
+            <IconButton
+              size="small"
+              sx={{ flexShrink: 0 }}
+              onClick={(e) => setAnchorEl(e.currentTarget)}
+            >
+              <MoreVert fontSize="small" />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={() => setAnchorEl(null)}
+            >
+              <MenuItem onClick={() => { setAnchorEl(null); onCancel(order); }}>
+                {t('userOrders.cancel', 'Cancel')}
+              </MenuItem>
+            </Menu>
+          </>
+        )}
+      </Box>
+
+      {/* Row 2: description with icon indent (28px icon + 8px gap) */}
+      <Box sx={{ pl: '36px' }}>
         <Typography
           variant="caption"
           sx={{
@@ -130,7 +153,6 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             lineHeight: 1.4,
-            mt: 0.5,
           }}
         >
           {order.description}
@@ -140,33 +162,13 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
             size="small"
             variant="outlined"
             color="warning"
-            sx={{ mt: 0.5, fontSize: '0.65rem', py: 0, textTransform: 'none' }}
+            sx={{ mt: 0.25, fontSize: '0.65rem', py: 0, textTransform: 'none' }}
             onClick={() => onInputRequired(order)}
           >
             {t('userOrders.inputRequired', 'Your input is required')}
           </Button>
         )}
       </Box>
-
-      {!isFinished && (
-        <>
-          <IconButton
-            size="small"
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-          >
-            <MoreVert fontSize="small" />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem onClick={() => { setAnchorEl(null); onCancel(order); }}>
-              {t('userOrders.cancel', 'Cancel')}
-            </MenuItem>
-          </Menu>
-        </>
-      )}
     </Paper>
   );
 }
