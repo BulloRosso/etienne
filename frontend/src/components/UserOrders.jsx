@@ -15,12 +15,25 @@ import {
   TextField,
   Skeleton
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, MoreVert, CheckCircle } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, MoreVert, CheckCircle, Cancel } from '@mui/icons-material';
 import { TbSearch, TbCalendarTime, TbEye } from 'react-icons/tb';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useProject } from '../contexts/ProjectContext.jsx';
 import { apiFetch } from '../services/api';
 import { useTranslation } from 'react-i18next';
+
+function timeAgo(dateString) {
+  const now = new Date();
+  const then = new Date(dateString);
+  const seconds = Math.floor((now - then) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 const TYPE_ICONS = {
   'Research': TbSearch,
@@ -63,7 +76,8 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
   const Icon = TYPE_ICONS[order.type] || TbSearch;
-  const isFinished = order.status.startsWith('complete-') || order.status.startsWith('canceled-');
+  const isCanceled = order.status.startsWith('canceled-');
+  const isFinished = order.status.startsWith('complete-') || isCanceled;
 
   return (
     <Paper
@@ -117,9 +131,6 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
         >
           {order.title}
         </Typography>
-        {isFinished && (
-          <CheckCircle sx={{ fontSize: 18, color: '#4caf50', flexShrink: 0 }} />
-        )}
         {!isFinished && (
           <>
             <IconButton
@@ -168,6 +179,24 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
             {t('userOrders.inputRequired', 'Your input is required')}
           </Button>
         )}
+      </Box>
+
+      {/* Row 3: status icon + relative timestamp (pushed to bottom) */}
+      <Box sx={{ flex: 1 }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ width: 28, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+          {isFinished && (
+            isCanceled
+              ? <Cancel sx={{ fontSize: 18, color: '#b71c1c' }} />
+              : <CheckCircle sx={{ fontSize: 18, color: '#4caf50' }} />
+          )}
+        </Box>
+        <Typography
+          variant="caption"
+          sx={{ flex: 1, textAlign: 'right', color: 'text.secondary', fontSize: '0.7rem' }}
+        >
+          {timeAgo(order.lastActivity)}
+        </Typography>
       </Box>
     </Paper>
   );
