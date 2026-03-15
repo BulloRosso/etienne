@@ -8,6 +8,8 @@ import CloudDownloadOutlinedIcon from '@mui/icons-material/CloudDownloadOutlined
 import TerminalIcon from '@mui/icons-material/Terminal';
 import FolderIcon from '@mui/icons-material/Folder';
 import CodeIcon from '@mui/icons-material/Code';
+import { PiPackage } from 'react-icons/pi';
+import { RiFileEditLine } from 'react-icons/ri';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
@@ -20,7 +22,7 @@ const TOOL_ICONS = {
   'TodoWrite': ContentPasteOutlinedIcon,
   'Read': RemoveRedEyeOutlinedIcon,
   'Edit': EditOutlinedIcon,
-  'Write': EditOutlinedIcon,
+  'Write': RiFileEditLine,
   'WebSearch': SearchOutlinedIcon,
   'WebFetch': CloudDownloadOutlinedIcon,
   'Bash': TerminalIcon,
@@ -103,6 +105,13 @@ const formatToolDescription = (toolName, args) => {
     case 'Task':
       return args.description || '';
     default:
+      // User order tools: show title for add, statusNew for other methods
+      if (toolName?.includes('__user-orders__')) {
+        if (toolName.includes('add_user_order')) {
+          return args.orderTitle || '';
+        }
+        return args.statusNew || '';
+      }
       return JSON.stringify(args).substring(0, 100);
   }
 };
@@ -143,7 +152,8 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
   const { currentProject } = useProject();
   const { mode: themeMode } = useThemeMode();
 
-  const IconComponent = TOOL_ICONS[toolName];
+  const isUserOrder = toolName?.includes('__user-orders__');
+  const IconComponent = isUserOrder ? PiPackage : TOOL_ICONS[toolName];
   const toolDescription = description || formatToolDescription(toolName, args);
 
   const formattedInput = formatToolIO(args);
@@ -236,7 +246,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
 
         {/* Tool icon */}
         {IconComponent && (
-          <IconComponent sx={{ fontSize: '18px', color: themeMode === 'dark' ? '#ccc' : '#666', flexShrink: 0 }} />
+          <IconComponent sx={{ fontSize: isUserOrder ? '23.4px' : '18px', color: themeMode === 'dark' ? '#ccc' : '#666', flexShrink: 0 }} />
         )}
 
         {/* Tool name */}
@@ -249,7 +259,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
             flexShrink: 0
           }}
         >
-          {toolName}
+          {isUserOrder ? t('timeline.userOrder') : toolName}
         </Typography>
 
         {/* Description */}

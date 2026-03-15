@@ -1542,5 +1542,7 @@
   "webHooksTab.resultingPayload": "生成的事件负载",
   "webHooksTab.resultingPayloadDesc": "事件负载结合了您的 JSON 描述和文件元数据：",
   "webHooksTab.matchFilesAlert": "使用 <code>payload.fileCount:2</code> 匹配文件或在提示词中检查特定文件",
-  "webHooksTab.webhookUrl": "Webhook URL"
+  "webHooksTab.webhookUrl": "Webhook URL",
+  "timeline.userOrder": "用户指令",
+  "userOrders.recentOrders": "您最近的订单"
 }

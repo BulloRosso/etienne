@@ -1542,5 +1542,7 @@
   "webHooksTab.resultingPayload": "Resulting Event Payload",
   "webHooksTab.resultingPayloadDesc": "The event payload combines your JSON description with file metadata:",
   "webHooksTab.matchFilesAlert": "Match files using <code>payload.fileCount:2</code> or check for specific files in your prompt",
-  "webHooksTab.webhookUrl": "Webhook URL"
+  "webHooksTab.webhookUrl": "Webhook URL",
+  "timeline.userOrder": "User order",
+  "userOrders.recentOrders": "Your recent orders"
 }

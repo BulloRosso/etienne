@@ -1454,5 +1454,7 @@
   "webHooksTab.resultingPayload": "Resultierender Ereignis-Payload",
   "webHooksTab.resultingPayloadDesc": "Der Ereignis-Payload kombiniert Ihre JSON-Beschreibung mit Datei-Metadaten:",
   "webHooksTab.matchFilesAlert": "Dateien abgleichen mit <code>payload.fileCount:2</code> oder in Ihrem Prompt nach bestimmten Dateien suchen",
-  "webHooksTab.webhookUrl": "Webhook-URL"
+  "webHooksTab.webhookUrl": "Webhook-URL",
+  "timeline.userOrder": "Benutzerauftrag",
+  "userOrders.recentOrders": "Ihre letzten Aufträge"
 }

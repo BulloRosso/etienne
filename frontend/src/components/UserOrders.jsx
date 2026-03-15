@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, MoreVert, CheckCircle, Cancel } from '@mui/icons-material';
 import { TbSearch, TbCalendarTime, TbEye, TbProgressBolt } from 'react-icons/tb';
+import { PiPackageThin } from 'react-icons/pi';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useProject } from '../contexts/ProjectContext.jsx';
 import { apiFetch } from '../services/api';
@@ -318,6 +319,9 @@ export default function UserOrders() {
 
   return (
     <Box sx={{ width: '100%', px: 2, py: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+        <PiPackageThin size={90} color="#ccc" />
+      </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         <IconButton
           size="small"
@@ -390,6 +394,17 @@ export default function UserOrders() {
           ))}
         </Box>
       )}
+
+      <Typography
+        variant="body2"
+        sx={{
+          mt: '24px',
+          color: 'grey.500',
+          textAlign: 'center'
+        }}
+      >
+        {t('userOrders.recentOrders')}
+      </Typography>
 
       {/* Cancel dialog */}
       <Dialog

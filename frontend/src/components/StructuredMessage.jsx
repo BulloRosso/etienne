@@ -11,6 +11,7 @@ import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LoopIcon from '@mui/icons-material/Loop';
 import { IoHandRightOutline } from 'react-icons/io5';
+import { PiPackage } from 'react-icons/pi';
 
 // Tool icon mapping
 const TOOL_ICONS = {
@@ -150,6 +151,14 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
       return formatTodoWriteArgs(args);
     }
 
+    // Special handling for user order tools
+    if (toolName?.includes('__user-orders__')) {
+      if (toolName.includes('add_user_order')) {
+        return args.orderTitle || '';
+      }
+      return args.statusNew || '';
+    }
+
     let text = '';
 
     // Special handling for file_path - strip workspace path and show relative to project
@@ -212,7 +221,8 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
   const isRunning = status === 'running';
 
   // Get icon component or use text
-  const IconComponent = TOOL_ICONS[toolName];
+  const isUserOrder = toolName?.includes('__user-orders__');
+  const IconComponent = isUserOrder ? PiPackage : TOOL_ICONS[toolName];
 
   return (
     <Box sx={{ mb: 1, px: 2 }}>
@@ -230,7 +240,7 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
         {!isRunning && <Typography sx={{ fontSize: '14px' }}>✓</Typography>}
 
         {IconComponent ? (
-          <IconComponent sx={{ fontSize: '18px', color: '#555' }} />
+          <IconComponent sx={{ fontSize: isUserOrder ? '23.4px' : '18px', color: '#555' }} />
         ) : (
           <Typography
             variant="body2"
@@ -241,7 +251,7 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
               fontWeight: 'bold'
             }}
           >
-            {toolName}:
+            {isUserOrder ? t('timeline.userOrder') : toolName}:
           </Typography>
         )}
 
