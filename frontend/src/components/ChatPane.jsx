@@ -156,8 +156,8 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
     }
   };
 
-  // Fetch agent avatar (from .agent/avatar.png)
-  const [agentAvatar, setAgentAvatar] = useState(null);
+  // Fetch agent avatar (from .agent/avatar.png), fallback to default
+  const [agentAvatar, setAgentAvatar] = useState('/etienne-waving.png');
   useEffect(() => {
     const fetchAvatar = async () => {
       try {
@@ -165,11 +165,11 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         if (response.ok) {
           const data = await response.json();
           if (data.image) {
-            setAgentAvatar(data.image);
+            setAgentAvatar(`data:image/png;base64,${data.image}`);
           }
         }
       } catch (e) {
-        // No avatar configured — that's fine
+        // No avatar configured — use default
       }
     };
     fetchAvatar();
@@ -344,7 +344,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         {agentAvatar && messages.length > 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2, ml: '40px' }}>
             <img
-              src={`data:image/png;base64,${agentAvatar}`}
+              src={agentAvatar}
               alt="Agent avatar"
               style={{ height: 90, objectFit: 'contain', borderRadius: 8 }}
             />

@@ -35,9 +35,10 @@ export default function App() {
   const { mode: themeMode, toggleMode } = useThemeMode();
 
   // Fetch agent name from personality config
-  const [agentName, setAgentName] = useState(null);
+  const [agentName, setAgentName] = useState('Etienne');
   useEffect(() => {
     if (!isAuthenticated) return;
+    document.title = 'Etienne: AI Coworker';
     apiFetch('/api/persona-manager/personality')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
