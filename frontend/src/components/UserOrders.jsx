@@ -16,8 +16,8 @@ import {
   Skeleton,
   Tooltip
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, MoreVert, CheckCircle, Cancel, HourglassTop } from '@mui/icons-material';
-import { TbSearch, TbCalendarTime, TbEye } from 'react-icons/tb';
+import { ChevronLeft, ChevronRight, MoreVert, CheckCircle, Cancel } from '@mui/icons-material';
+import { TbSearch, TbCalendarTime, TbEye, TbProgressBolt } from 'react-icons/tb';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useProject } from '../contexts/ProjectContext.jsx';
 import { apiFetch } from '../services/api';
@@ -194,7 +194,7 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
                 ? <Cancel sx={{ fontSize: 18, color: '#b71c1c' }} />
                 : <CheckCircle sx={{ fontSize: 18, color: '#4caf50' }} />
             ) : (
-              <HourglassTop sx={{ fontSize: 18, color: '#1976d2' }} />
+              <TbProgressBolt size={18} color="#1976d2" />
             )}
           </Box>
         </Tooltip>
