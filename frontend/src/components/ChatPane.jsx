@@ -156,6 +156,25 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
     }
   };
 
+  // Fetch agent avatar (from .agent/avatar.png)
+  const [agentAvatar, setAgentAvatar] = useState(null);
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      try {
+        const response = await apiFetch('/api/persona-manager/avatar');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.image) {
+            setAgentAvatar(data.image);
+          }
+        }
+      } catch (e) {
+        // No avatar configured — that's fine
+      }
+    };
+    fetchAvatar();
+  }, []);
+
   // Check if we should show typing indicator (streaming but no assistant response yet)
   const showTypingIndicator = streaming && (
     messages.length === 0 ||
@@ -321,6 +340,17 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         },
         scrollbarColor: themeMode === 'dark' ? '#555 #2c2c2c' : '#ccc #f5f5f0',
       }}>
+        {/* Agent avatar before first message */}
+        {agentAvatar && messages.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2, ml: '40px' }}>
+            <img
+              src={`data:image/png;base64,${agentAvatar}`}
+              alt="Agent avatar"
+              style={{ height: 90, objectFit: 'contain', borderRadius: 8 }}
+            />
+          </Box>
+        )}
+
         {messages.map((msg, idx) => {
           const isLastMessage = idx === messages.length - 1;
           const isAssistant = msg.role === 'assistant';

@@ -34,16 +34,22 @@ export default function App() {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { mode: themeMode, toggleMode } = useThemeMode();
 
-  // Set document title with agent name from personality config
+  // Fetch agent name from personality config
+  const [agentName, setAgentName] = useState(null);
   useEffect(() => {
     if (!isAuthenticated) return;
     apiFetch('/api/persona-manager/personality')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data?.name) document.title = `${data.name}: AI Coworker`;
+        if (data?.name) {
+          setAgentName(data.name);
+          document.title = `${data.name}: AI Coworker`;
+        }
       })
       .catch(() => {});
   }, [isAuthenticated]);
+
+  const formatGreeting = (text) => agentName ? `**${agentName}**: ${text}` : text;
 
   const [streaming, setStreaming] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -338,7 +344,7 @@ export default function App() {
           if (greeting) {
             loadedMessages.push({
               role: 'assistant',
-              text: greeting,
+              text: formatGreeting(greeting),
               timestamp: formatTime()
             });
           }
@@ -367,7 +373,7 @@ export default function App() {
           if (greeting) {
             loadedMessages.push({
               role: 'assistant',
-              text: greeting,
+              text: formatGreeting(greeting),
               timestamp: formatTime()
             });
           }
@@ -739,7 +745,7 @@ export default function App() {
 
           const loadedMessages = [];
           if (greeting) {
-            loadedMessages.push({ role: 'assistant', text: greeting, timestamp: formatTime() });
+            loadedMessages.push({ role: 'assistant', text: formatGreeting(greeting), timestamp: formatTime() });
           }
 
           chatMessages.forEach(msg => {
@@ -872,7 +878,7 @@ export default function App() {
           if (greeting) {
             loadedMessages.push({
               role: 'assistant',
-              text: greeting,
+              text: formatGreeting(greeting),
               timestamp: formatTime()
             });
           }
@@ -1509,7 +1515,7 @@ export default function App() {
         if (greeting) {
           setMessages([{
             role: 'assistant',
-            text: greeting,
+            text: formatGreeting(greeting),
             timestamp: formatTime()
           }]);
         }
@@ -1542,7 +1548,7 @@ export default function App() {
       if (greeting) {
         loadedMessages.push({
           role: 'assistant',
-          text: greeting,
+          text: formatGreeting(greeting),
           timestamp: formatTime()
         });
       }
