@@ -2,9 +2,7 @@
 <img src="/docs/images/etienne-logo.png" alt="Etienne Logo" width="200">
 </div>
 
-# Etienne - AI Harness Integration Layer
-
-## What you can do with it in one sentence
+# Etienne - AI Coworker
 
 Meet Etienne — a proactive AI coworker built to work alongside you on your local data and navigate even the most complex IT systems on your behalf.
 
