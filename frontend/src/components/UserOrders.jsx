@@ -97,13 +97,14 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
         border: order.status === 'requires-human-input'
           ? '1px solid #f57c00'
           : !isFinished
-            ? `1px solid ${themeMode === 'dark' ? 'navy' : '#1976d2'}`
+            ? `1px solid ${themeMode === 'dark' ? '#fff' : '#1976d2'}`
             : '1px solid',
         borderColor: order.status === 'requires-human-input'
           ? '#f57c00'
           : !isFinished
-            ? (themeMode === 'dark' ? 'navy' : '#1976d2')
+            ? (themeMode === 'dark' ? '#fff' : '#1976d2')
             : themeMode === 'dark' ? '#444' : '#e0e0e0',
+        borderRadius: '8px',
       }}
     >
       {/* Row 1: icon + title + menu */}

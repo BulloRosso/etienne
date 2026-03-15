@@ -33,6 +33,18 @@ export default function App() {
   const { currentProject, projectExists, setProject } = useProject();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { mode: themeMode, toggleMode } = useThemeMode();
+
+  // Set document title with agent name from personality config
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    apiFetch('/api/persona-manager/personality')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.name) document.title = `${data.name}: AI Coworker`;
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
   const [streaming, setStreaming] = useState(false);
   const [messages, setMessages] = useState([]);
   const [structuredMessages, setStructuredMessages] = useState([]);
