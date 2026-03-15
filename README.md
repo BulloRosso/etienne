@@ -4,7 +4,15 @@
 
 # Etienne - AI Harness Integration Layer
 
-## What it does in one sentence
+## What you can do with it in one sentence
+
+Meet Etienne — a proactive AI coworker built to work alongside you on your local data and navigate even the most complex IT systems on your behalf.
+
+<div align="center">
+<img src="/docs/images/core-workflow.jpg" alt="Core Workflow" style="marginBottom: 24px" width="900">
+</div> 
+
+## How it technically composed in one sentence
 
 Etienne is an **integration harness** around a **coding harness** to build user friendly agent interactions:
 
