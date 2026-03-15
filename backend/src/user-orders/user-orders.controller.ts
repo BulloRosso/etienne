@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   HttpException,
@@ -32,6 +33,28 @@ export class UserOrdersController {
       const orders = await this.userOrdersService.getHistoryOrders();
       return { success: true, orders };
     } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete(':orderId')
+  async deleteOrder(@Param('orderId') orderId: string) {
+    try {
+      const deleted = await this.userOrdersService.deleteOrder(orderId);
+      if (!deleted) {
+        throw new HttpException(
+          { success: false, message: `Order '${orderId}' not found` },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return { success: true };
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new HttpException(
         { success: false, message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR,

@@ -351,7 +351,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           );
         })}
 
-        {/* If no messages yet, or last message is not assistant, show streaming timeline */}
+        {/* Show standalone streaming timeline only when no assistant message exists yet */}
         {(messages.length === 0 || messages[messages.length - 1]?.role !== 'assistant') &&
           structuredMessages.length > 0 && (
           <Box sx={{ px: 2 }}>

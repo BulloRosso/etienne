@@ -13,9 +13,10 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Skeleton
+  Skeleton,
+  Tooltip
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, MoreVert, CheckCircle, Cancel } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, MoreVert, CheckCircle, Cancel, HourglassTop } from '@mui/icons-material';
 import { TbSearch, TbCalendarTime, TbEye } from 'react-icons/tb';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useProject } from '../contexts/ProjectContext.jsx';
@@ -48,7 +49,7 @@ function PlaceholderCard({ themeMode }) {
     <Paper
       elevation={0}
       sx={{
-        flex: '0 0 calc(33.333% - 8px)',
+        flex: { xs: '0 0 auto', lg: '0 0 calc(33.333% - 8px)' },
         minWidth: 0,
         p: 1.5,
         display: 'flex',
@@ -72,7 +73,7 @@ function PlaceholderCard({ themeMode }) {
   );
 }
 
-function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) {
+function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNavigate }) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
   const Icon = TYPE_ICONS[order.type] || TbSearch;
@@ -83,7 +84,7 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
     <Paper
       elevation={isFinished ? 0 : 1}
       sx={{
-        flex: '0 0 calc(33.333% - 8px)',
+        flex: { xs: '0 0 auto', lg: '0 0 calc(33.333% - 8px)' },
         minWidth: 0,
         p: 1.5,
         display: 'flex',
@@ -131,26 +132,27 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
         >
           {order.title}
         </Typography>
-        {!isFinished && (
-          <>
-            <IconButton
-              size="small"
-              sx={{ flexShrink: 0 }}
-              onClick={(e) => setAnchorEl(e.currentTarget)}
-            >
-              <MoreVert fontSize="small" />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={() => setAnchorEl(null)}
-            >
-              <MenuItem onClick={() => { setAnchorEl(null); onCancel(order); }}>
-                {t('userOrders.cancel', 'Cancel')}
-              </MenuItem>
-            </Menu>
-          </>
-        )}
+        <IconButton
+          size="small"
+          sx={{ flexShrink: 0 }}
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+        >
+          <MoreVert fontSize="small" />
+        </IconButton>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+        >
+          {!isFinished && (
+            <MenuItem onClick={() => { setAnchorEl(null); onCancel(order); }}>
+              {t('userOrders.cancel', 'Cancel')}
+            </MenuItem>
+          )}
+          <MenuItem onClick={() => { setAnchorEl(null); onRemove(order); }}>
+            {t('userOrders.remove', 'Remove')}
+          </MenuItem>
+        </Menu>
       </Box>
 
       {/* Row 2: description with icon indent (28px icon + 8px gap) */}
@@ -184,13 +186,17 @@ function OrderCard({ order, themeMode, onCancel, onInputRequired, onNavigate }) 
       {/* Row 3: status icon + relative timestamp (pushed to bottom) */}
       <Box sx={{ flex: 1 }} />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box sx={{ width: 28, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-          {isFinished && (
-            isCanceled
-              ? <Cancel sx={{ fontSize: 18, color: '#b71c1c' }} />
-              : <CheckCircle sx={{ fontSize: 18, color: '#4caf50' }} />
-          )}
-        </Box>
+        <Tooltip title={order.status} arrow placement="top">
+          <Box sx={{ width: 28, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+            {isFinished ? (
+              isCanceled
+                ? <Cancel sx={{ fontSize: 18, color: '#b71c1c' }} />
+                : <CheckCircle sx={{ fontSize: 18, color: '#4caf50' }} />
+            ) : (
+              <HourglassTop sx={{ fontSize: 18, color: '#1976d2' }} />
+            )}
+          </Box>
+        </Tooltip>
         <Typography
           variant="caption"
           sx={{ flex: 1, textAlign: 'right', color: 'text.secondary', fontSize: '0.7rem' }}
@@ -281,6 +287,15 @@ export default function UserOrders() {
     }
   };
 
+  const handleRemove = async (order) => {
+    try {
+      await apiFetch(`/api/user-orders/${order.orderId}`, { method: 'DELETE' });
+      fetchOrders();
+    } catch (error) {
+      console.error('Failed to remove order:', error);
+    }
+  };
+
   const handleInputRequired = (order) => {
     if (order.projectName) {
       setProject(order.projectName);
@@ -315,6 +330,7 @@ export default function UserOrders() {
           sx={{
             flex: 1,
             display: 'flex',
+            flexDirection: { xs: 'column', lg: 'row' },
             gap: '8px',
             overflow: 'hidden',
           }}
@@ -329,6 +345,7 @@ export default function UserOrders() {
                   order={order}
                   themeMode={themeMode}
                   onCancel={handleCancel}
+                  onRemove={handleRemove}
                   onInputRequired={handleInputRequired}
                   onNavigate={handleInputRequired}
                 />

@@ -14,7 +14,7 @@ import {
   TbPercentage100
 } from 'react-icons/tb';
 import { useTranslation } from 'react-i18next';
-import { apiFetch, authSSEUrl } from '../services/api';
+import { apiFetch } from '../services/api';
 import BudgetOverview from './BudgetOverview';
 
 const getCurrencySymbol = (currency) => {
@@ -41,7 +41,7 @@ const percentageIcons = [
   TbPercentage100
 ];
 
-export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo }) {
+export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo, mux }) {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentCosts, setCurrentCosts] = useState(0);
@@ -86,14 +86,11 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
     fetchCosts();
   }, [project, budgetSettings?.enabled, refreshKey]);
 
-  // Listen for budget updates via SSE
+  // Listen for budget updates via multiplexed SSE
   useEffect(() => {
-    if (!project || !budgetSettings?.enabled) return;
+    if (!project || !budgetSettings?.enabled || !mux) return;
 
-    const es = new EventSource(authSSEUrl(`/api/budget-monitoring/${project}/stream`));
-
-    es.addEventListener('budget-update', (e) => {
-      const data = JSON.parse(e.data);
+    const handler = (data) => {
       setCurrentCosts(data.currentCosts || 0);
       setNumberOfSessions(data.numberOfSessions || 0);
       setCurrency(data.currency || 'EUR');
@@ -107,16 +104,11 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
           setGlobalOutputTokens(globalData.globalOutputTokens || 0);
         })
         .catch(() => {});
-    });
-
-    es.onerror = () => {
-      console.error('Budget monitoring SSE connection error');
     };
 
-    return () => {
-      es.close();
-    };
-  }, [project, budgetSettings?.enabled]);
+    mux.on('budget', 'budget-update', handler);
+    return () => mux.off('budget', 'budget-update', handler);
+  }, [project, budgetSettings?.enabled, mux]);
 
   // Don't render if budget monitoring is not enabled
   if (!budgetSettings?.enabled) {

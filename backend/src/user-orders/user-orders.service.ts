@@ -104,6 +104,18 @@ export class UserOrdersService {
     return orders.find((o) => o.orderId === orderId) || null;
   }
 
+  async deleteOrder(orderId: string): Promise<boolean> {
+    const orders = await this.loadOrders();
+    const index = orders.findIndex((o) => o.orderId === orderId);
+    if (index === -1) {
+      return false;
+    }
+    orders.splice(index, 1);
+    await this.saveOrders(orders);
+    this.logger.log(`Deleted user order ${orderId}`);
+    return true;
+  }
+
   async getActiveOrders(): Promise<UserOrder[]> {
     const orders = await this.loadOrders();
     return orders

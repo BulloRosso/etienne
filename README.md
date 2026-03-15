@@ -544,6 +544,10 @@ The extraction prompt is adjustable to sharpen the focus to certain business dom
 
 User Orders give you a bird's-eye view of everything the agent is working on across all your projects. Think of them as task tickets that the agent creates and updates automatically as it works through complex requests.
 
+<div align="center">
+<img src="/docs/images/user-orders.jpg" style="marginTop: 24px" alt="user orders" width="800">
+</div> 
+
 ## What is a User Order?
 
 When you ask the agent for something substantial — like "Research Siemens AG's latest products, write a report, and create a pricing Excel table" — the agent creates a **User Order** to track that work. Each order has:

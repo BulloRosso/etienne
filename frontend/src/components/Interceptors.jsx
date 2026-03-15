@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   ToggleButtonGroup,
@@ -14,28 +14,37 @@ import {
   CircularProgress,
   Typography
 } from '@mui/material';
-import { apiAxios, authSSEUrl } from '../services/api';
+import { apiAxios } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import BackgroundInfo from './BackgroundInfo';
+import { useMuxSSE } from '../contexts/MuxSSEContext';
 
 export default function Interceptors({ projectName, showBackgroundInfo }) {
   const { t } = useTranslation();
+  const mux = useMuxSSE();
   const [mode, setMode] = useState('events'); // 'events' or 'hooks'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({});
-  const esRef = useRef(null);
 
   useEffect(() => {
     loadItems();
-    setupSSE();
+  }, [projectName, mode]);
 
-    return () => {
-      if (esRef.current) {
-        esRef.current.close();
+  // Listen for interceptor events via multiplexed SSE
+  useEffect(() => {
+    if (!mux) return;
+
+    const handler = (event) => {
+      if ((mode === 'events' && event.type === 'event') ||
+          (mode === 'hooks' && event.type === 'hook')) {
+        setItems((prev) => [event.data, ...prev]);
       }
     };
-  }, [projectName, mode]);
+
+    mux.on('interceptor', '*', handler);
+    return () => mux.off('interceptor', '*', handler);
+  }, [mux, mode]);
 
   const loadItems = async () => {
     setLoading(true);
@@ -52,28 +61,6 @@ export default function Interceptors({ projectName, showBackgroundInfo }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const setupSSE = () => {
-    if (esRef.current) {
-      esRef.current.close();
-    }
-
-    const es = new EventSource(authSSEUrl(`/api/interceptors/stream/${projectName}`));
-    esRef.current = es;
-
-    es.addEventListener('interceptor', (e) => {
-      const event = JSON.parse(e.data);
-      // Only add items that match the current mode
-      if ((mode === 'events' && event.type === 'event') ||
-          (mode === 'hooks' && event.type === 'hook')) {
-        setItems((prev) => [event.data, ...prev]);
-      }
-    });
-
-    es.onerror = () => {
-      console.error('SSE connection error');
-    };
   };
 
   const handleModeChange = (event, newMode) => {

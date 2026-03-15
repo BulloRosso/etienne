@@ -4,7 +4,8 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { ToolCallMessage } from './StructuredMessage';
 import { useTranslation } from 'react-i18next';
-import { apiFetch, authSSEUrl } from '../services/api';
+import { apiFetch } from '../services/api';
+import { useMuxSSE } from '../contexts/MuxSSEContext';
 
 /**
  * ResearchDocument Component
@@ -19,6 +20,7 @@ import { apiFetch, authSSEUrl } from '../services/api';
  */
 export default function ResearchDocument({ input, output, projectName }) {
   const { t } = useTranslation();
+  const mux = useMuxSSE();
   const [fileExists, setFileExists] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,6 @@ export default function ResearchDocument({ input, output, projectName }) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [clickedLink, setClickedLink] = useState(null);
-  const eventSourceRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const refreshIntervalRef = useRef(null);
@@ -145,194 +146,21 @@ export default function ResearchDocument({ input, output, projectName }) {
     };
   }, [projectName, output, fileExists]);
 
-  // Connect to research event stream
+  // Connect to research event stream via multiplexed SSE
   useEffect(() => {
-    if (fileExists) return; // Don't connect if file already exists
-    if (!projectName || !output) return; // Need these to connect
+    if (fileExists) return;
+    if (!projectName || !output || !mux) return;
 
-    console.log('Connecting to research event stream:', projectName);
-    const eventSource = new EventSource(
-      authSSEUrl(`/api/deep-research/${encodeURIComponent(projectName)}/stream`)
-    );
+    const isForThisResearch = (data) => data.outputFile === output;
 
-    // Helper to check if event is for this research session (by output file)
-    const isForThisResearch = (data) => {
-      return data.outputFile === output;
-    };
+    const handler = (data, type) => {
+      if (!isForThisResearch(data)) return;
 
-    // Lifecycle events
-    eventSource.addEventListener('Research.created', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.created event received:', data);
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.created',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    eventSource.addEventListener('Research.started', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.started event received:', data);
-      if (isForThisResearch(data)) {
+      if (type === 'Research.started') {
         setStartTime(Date.now());
-        setEvents(prev => [{
-          type: 'Research.started',
-          ...data
-        }, ...prev]); // Add to front
       }
-    });
 
-    eventSource.addEventListener('Research.in_progress', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.in_progress event received:', data);
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.in_progress',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    // Web search events
-    eventSource.addEventListener('Research.web_search.in_progress', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.web_search.in_progress event received:', data);
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.web_search.in_progress',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    eventSource.addEventListener('Research.web_search.searching', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.web_search.searching event received:', data);
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.web_search.searching',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    eventSource.addEventListener('Research.web_search.completed', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.web_search.completed event received:', data);
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.web_search.completed',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    // Output item events
-    eventSource.addEventListener('Research.output_item.added', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.output_item.added event received');
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.output_item.added',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    eventSource.addEventListener('Research.output_item.done', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.output_item.done event received');
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.output_item.done',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    // Content part events
-    eventSource.addEventListener('Research.content_part.added', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.content_part.added event received');
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.content_part.added',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    eventSource.addEventListener('Research.content_part.done', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.content_part.done event received');
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.content_part.done',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    eventSource.addEventListener('Research.output_text.delta', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.output_text.delta event received');
-      // Match by output file instead of input file
-      if (isForThisResearch(data)) {
-        setEvents(prev => {
-          const first = prev[0];
-          // Accumulate deltas at the front
-          if (first && first.type === 'Research.output_text.delta') {
-            return [
-              { ...first, delta: (first.delta || '') + data.delta },
-              ...prev.slice(1)
-            ];
-          }
-          return [{ type: 'Research.output_text.delta', ...data }, ...prev]; // Add to front
-        });
-      }
-    });
-
-    // Reasoning delta events
-    eventSource.addEventListener('Research.reasoning.delta', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.reasoning.delta event received');
-      if (isForThisResearch(data)) {
-        setEvents(prev => {
-          const first = prev[0];
-          // Accumulate reasoning deltas at the front
-          if (first && first.type === 'Research.reasoning.delta' && first.itemId === data.itemId) {
-            return [
-              { ...first, delta: (first.delta || '') + data.delta },
-              ...prev.slice(1)
-            ];
-          }
-          return [{ type: 'Research.reasoning.delta', ...data }, ...prev]; // Add to front
-        });
-      }
-    });
-
-    eventSource.addEventListener('Research.output_text.done', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.output_text.done event received');
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.output_text.done',
-          ...data
-        }, ...prev]); // Add to front
-      }
-    });
-
-    eventSource.addEventListener('Research.completed', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.completed event received:', data);
-      if (isForThisResearch(data)) {
-        setEvents(prev => [{
-          type: 'Research.completed',
-          ...data
-        }, ...prev]); // Add to front
-        // Trigger file check
+      if (type === 'Research.completed') {
         checkFileExists().then(exists => {
           if (exists) {
             setFileExists(true);
@@ -340,34 +168,41 @@ export default function ResearchDocument({ input, output, projectName }) {
           }
         });
       }
-    });
 
-    eventSource.addEventListener('Research.error', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research.error event received:', data);
-      if (isForThisResearch(data)) {
+      if (type === 'Research.error') {
         setError(data.error);
-        setEvents(prev => [{
-          type: 'Research.error',
-          ...data
-        }, ...prev]); // Add to front
       }
-    });
 
-    eventSource.onerror = (err) => {
-      console.error('EventSource error:', err);
-      eventSource.close();
+      // Delta accumulation for streaming text
+      if (type === 'Research.output_text.delta') {
+        setEvents(prev => {
+          const first = prev[0];
+          if (first && first.type === 'Research.output_text.delta') {
+            return [{ ...first, delta: (first.delta || '') + data.delta }, ...prev.slice(1)];
+          }
+          return [{ type, ...data }, ...prev];
+        });
+        return;
+      }
+
+      if (type === 'Research.reasoning.delta') {
+        setEvents(prev => {
+          const first = prev[0];
+          if (first && first.type === 'Research.reasoning.delta' && first.itemId === data.itemId) {
+            return [{ ...first, delta: (first.delta || '') + data.delta }, ...prev.slice(1)];
+          }
+          return [{ type, ...data }, ...prev];
+        });
+        return;
+      }
+
+      // All other research events: add to front
+      setEvents(prev => [{ type, ...data }, ...prev]);
     };
 
-    eventSourceRef.current = eventSource;
-
-    // Cleanup
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-  }, [projectName, output, fileExists]); // Fixed: use 'output' instead of 'input' in dependency array
+    mux.on('research', '*', handler);
+    return () => mux.off('research', '*', handler);
+  }, [projectName, output, fileExists, mux]);
 
   // Timer effect for elapsed time
   useEffect(() => {

@@ -42,7 +42,8 @@ import { BiMessageEdit, BiHelpCircle } from 'react-icons/bi';
 import { PiHeartbeat, PiSecurityCameraFill } from 'react-icons/pi';
 import { FcWorkflow } from 'react-icons/fc';
 import { IoMdNotificationsOutline } from 'react-icons/io';
-import { apiAxios, authSSEUrl } from '../services/api';
+import { apiAxios } from '../services/api';
+import { useMuxSSE } from '../contexts/MuxSSEContext';
 import { useTranslation } from 'react-i18next';
 import LiveEventsTab from './LiveEventsTab';
 import {
@@ -97,6 +98,7 @@ const getGroupStyle = (group) => EVENT_GROUP_CONFIG[group] || {
 
 const EventHandling = ({ selectedProject, onClose }) => {
   const { t } = useTranslation();
+  const mux = useMuxSSE();
   const [rules, setRules] = useState([]);
   const [liveEvents, setLiveEvents] = useState([]);
   const [eventLog, setEventLog] = useState([]);
@@ -209,16 +211,13 @@ const EventHandling = ({ selectedProject, onClose }) => {
     }
   };
 
-  // Connect to SSE stream for real-time events
+  // Connect to event handling stream via multiplexed SSE
   useEffect(() => {
-    if (!selectedProject) return;
-
-    const sse = new EventSource(authSSEUrl(`http://localhost:6060/api/events/${selectedProject}/stream`));
+    if (!selectedProject || !mux) return;
 
     const addOrUpdateEvent = (newEvent) => {
       setLiveEvents((prev) => {
         const existingIndex = prev.findIndex(e => e.id === newEvent.id);
-
         if (existingIndex !== -1) {
           const updated = [...prev];
           updated[existingIndex] = {
@@ -233,81 +232,60 @@ const EventHandling = ({ selectedProject, onClose }) => {
       });
     };
 
-    sse.addEventListener('event', (e) => {
-      const event = JSON.parse(e.data);
-      addOrUpdateEvent(event);
-    });
-
-    sse.addEventListener('rule-execution', (e) => {
-      const data = JSON.parse(e.data);
-      addOrUpdateEvent({ ...data.event, triggeredRules: data.triggeredRules });
-    });
-
-    sse.addEventListener('prompt-execution', (e) => {
-      const data = JSON.parse(e.data);
-      setPromptExecutions((prev) => {
-        const existingIndex = prev.findIndex(
-          (p) => p.ruleId === data.ruleId && p.eventId === data.eventId
-        );
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...updated[existingIndex], ...data };
-          return updated;
+    const handler = (data, type) => {
+      if (type === 'event') {
+        addOrUpdateEvent(data);
+      } else if (type === 'rule-execution') {
+        addOrUpdateEvent({ ...data.event, triggeredRules: data.triggeredRules });
+      } else if (type === 'prompt-execution') {
+        setPromptExecutions((prev) => {
+          const existingIndex = prev.findIndex(
+            (p) => p.ruleId === data.ruleId && p.eventId === data.eventId
+          );
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], ...data };
+            return updated;
+          }
+          return [data, ...prev].slice(0, 20);
+        });
+      } else if (type === 'workflow-execution') {
+        setWorkflowExecutions((prev) => {
+          const existingIndex = prev.findIndex(
+            (w) => w.ruleId === data.ruleId && w.eventId === data.eventId
+          );
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], ...data };
+            return updated;
+          }
+          return [data, ...prev].slice(0, 20);
+        });
+      } else if (type === 'script-execution') {
+        setScriptExecutions((prev) => {
+          const existingIndex = prev.findIndex(
+            (s) => s.workflowId === data.workflowId && s.scriptFile === data.scriptFile && s.state === data.state
+          );
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], ...data };
+            return updated;
+          }
+          return [data, ...prev].slice(0, 20);
+        });
+      } else if (type === 'service-status') {
+        if (data.service === 'mqtt') {
+          setServiceStatus(prev => ({
+            ...prev,
+            mqtt: { connected: data.connected, subscriptions: data.subscriptions || [] }
+          }));
         }
-        return [data, ...prev].slice(0, 20);
-      });
-    });
-
-    sse.addEventListener('workflow-execution', (e) => {
-      const data = JSON.parse(e.data);
-      setWorkflowExecutions((prev) => {
-        const existingIndex = prev.findIndex(
-          (w) => w.ruleId === data.ruleId && w.eventId === data.eventId
-        );
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...updated[existingIndex], ...data };
-          return updated;
-        }
-        return [data, ...prev].slice(0, 20);
-      });
-    });
-
-    sse.addEventListener('script-execution', (e) => {
-      const data = JSON.parse(e.data);
-      setScriptExecutions((prev) => {
-        const existingIndex = prev.findIndex(
-          (s) => s.workflowId === data.workflowId && s.scriptFile === data.scriptFile && s.state === data.state
-        );
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...updated[existingIndex], ...data };
-          return updated;
-        }
-        return [data, ...prev].slice(0, 20);
-      });
-    });
-
-    sse.addEventListener('service-status', (e) => {
-      const data = JSON.parse(e.data);
-      if (data.service === 'mqtt') {
-        setServiceStatus(prev => ({
-          ...prev,
-          mqtt: { connected: data.connected, subscriptions: data.subscriptions || [] }
-        }));
       }
-    });
-
-    sse.onerror = (error) => {
-      console.error('SSE error:', error);
     };
 
-    setEventStream(sse);
-
-    return () => {
-      sse.close();
-    };
-  }, [selectedProject]);
+    mux.on('events', '*', handler);
+    return () => mux.off('events', '*', handler);
+  }, [selectedProject, mux]);
 
   // Load MQTT status
   const loadMqttStatus = async () => {

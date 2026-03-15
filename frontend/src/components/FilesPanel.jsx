@@ -155,66 +155,40 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
         </Box>
 
         {/* Lower 50%: Background image */}
-        {!projectName ? (
-          <Box
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 2,
+            overflow: 'hidden'
+          }}
+        >
+          <img
+            src="/workspace-placeholder.png"
+            alt={t('filesPanel.workspacePlaceholderAlt')}
+            style={{
+              maxWidth: '60%',
+              maxHeight: '60%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              opacity: themeMode === 'dark' ? 1 : 0.6
+            }}
+          />
+          <Typography
+            variant="body2"
             sx={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              p: 2,
-              overflow: 'hidden'
+              mt: 2,
+              color: 'grey.500',
+              textAlign: 'center'
             }}
           >
-            <img
-              src={themeMode === 'dark' ? '/etienne-intro.png' : '/etienne-intro.jpg'}
-              alt={t('filesPanel.introductionAlt')}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain',
-                borderRadius: '8px'
-              }}
-            />
-          </Box>
-        ) : (
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              p: 2,
-              overflow: 'hidden'
-            }}
-          >
-            <img
-              src="/workspace-placeholder.png"
-              alt={t('filesPanel.workspacePlaceholderAlt')}
-              style={{
-                maxWidth: '60%',
-                maxHeight: '60%',
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain',
-                opacity: themeMode === 'dark' ? 1 : 0.6
-              }}
-            />
-            <Typography
-              variant="body2"
-              sx={{
-                mt: 2,
-                color: 'grey.500',
-                textAlign: 'center'
-              }}
-            >
-              {t('filesPanel.workspacePlaceholder')}
-            </Typography>
-          </Box>
-        )}
+            {t('filesPanel.workspacePlaceholder')}
+          </Typography>
+        </Box>
       </Box>
     );
   }

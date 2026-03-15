@@ -24,7 +24,9 @@ import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 import { buildExtensionMap, getViewerForFile } from './components/viewerRegistry.jsx';
 import Onboarding from './components/Onboarding';
-import { apiFetch, authSSEUrl } from './services/api';
+import { apiFetch } from './services/api';
+import useMultiplexSSE from './hooks/useMultiplexSSE';
+import { MuxSSEProvider } from './contexts/MuxSSEContext';
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -69,9 +71,7 @@ export default function App() {
   const [previewersConfig, setPreviewersConfig] = useState([]);
 
   const esRef = useRef(null);
-  const globalInterceptorEsRef = useRef(null); // For global events like pairing requests
-  const interceptorEsRef = useRef(null);
-  const eventsEsRef = useRef(null);
+  const mux = useMultiplexSSE(currentProject);
   const currentMessageRef = useRef(null);
   const currentUsageRef = useRef(null);
   const activeToolCallsRef = useRef(new Map());
@@ -80,9 +80,6 @@ export default function App() {
 
   useEffect(() => () => {
     esRef.current?.close();
-    interceptorEsRef.current?.close();
-    eventsEsRef.current?.close();
-    globalInterceptorEsRef.current?.close();
   }, []);
 
   // Handle hash route for opening scrapbook modal
@@ -189,14 +186,8 @@ export default function App() {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
-  // Connect to global interceptors SSE stream for pairing requests (always active)
+  // Fetch any existing pending pairings on mount
   useEffect(() => {
-    // Close existing connection
-    if (globalInterceptorEsRef.current) {
-      globalInterceptorEsRef.current.close();
-    }
-
-    // Fetch any existing pending pairings on mount
     const fetchPendingPairings = async () => {
       try {
         const res = await apiFetch('/api/remote-sessions/pairing/pending');
@@ -204,7 +195,6 @@ export default function App() {
           const data = await res.json();
           const pairings = data.pairings || [];
           if (pairings.length > 0) {
-            // Show the first pending pairing (oldest)
             const pairing = pairings[0];
             if (!handledRequestIdsRef.current.has(pairing.id)) {
               console.log('Found existing pending pairing:', pairing);
@@ -218,18 +208,13 @@ export default function App() {
       }
     };
     fetchPendingPairings();
+  }, []);
 
-    // Connect to __global__ project for pairing events
-    const es = new EventSource(authSSEUrl('/api/interceptors/stream/__global__'));
-    globalInterceptorEsRef.current = es;
-
-    es.addEventListener('interceptor', (e) => {
-      const event = JSON.parse(e.data);
-
+  // Global interceptor events (pairing requests) via multiplexed SSE
+  useEffect(() => {
+    const handler = (event) => {
       console.log('Global interceptor event:', event.type, event.data);
-
       if (event.type === 'pairing_request') {
-        // Handle Telegram pairing request
         const pairingId = event.data?.id;
         if (handledRequestIdsRef.current.has(pairingId)) {
           console.log('Skipping duplicate pairing request:', pairingId);
@@ -239,16 +224,10 @@ export default function App() {
         console.log('Pairing request received:', event.data);
         setPendingPairing(event.data);
       }
-    });
-
-    es.onerror = () => {
-      console.error('Global interceptor SSE connection error');
     };
-
-    return () => {
-      es.close();
-    };
-  }, []); // Run once on mount
+    mux.on('interceptor-global', '*', handler);
+    return () => mux.off('interceptor-global', '*', handler);
+  }, [mux]);
 
   // Load tags when project changes
   useEffect(() => {
@@ -438,30 +417,11 @@ export default function App() {
     initializeProject();
   }, [currentProject]);
 
-  // Connect to interceptors SSE stream with auto-reconnect
+  // Project interceptor events via multiplexed SSE
   useEffect(() => {
     if (!currentProject) return;
 
-    let reconnectTimeout = null;
-    let isCancelled = false;
-
-    const connect = () => {
-      // Close existing connection
-      if (interceptorEsRef.current) {
-        interceptorEsRef.current.close();
-      }
-
-      console.log(`[SSE] Connecting to /api/interceptors/stream/${currentProject}`);
-      const es = new EventSource(authSSEUrl(`/api/interceptors/stream/${currentProject}`));
-      interceptorEsRef.current = es;
-
-      es.onopen = () => {
-        console.log(`[SSE] Connected to interceptor stream for ${currentProject}`);
-      };
-
-      es.addEventListener('interceptor', (e) => {
-      const event = JSON.parse(e.data);
-
+    const handler = (event) => {
       // Log ALL interceptor events for debugging
       console.log('Interceptor event:', event.type, event.data);
 
@@ -470,16 +430,11 @@ export default function App() {
         const hookData = event.data;
         const eventType = hookData.event_type;
 
-        // Log for debugging
         console.log('Hook event:', eventType, hookData);
 
         if (eventType === 'PreToolUse') {
-          // PreToolUse hook is logged but UI updates come from main stream 'tool' events
-          // to avoid duplicates (backend emits to both streams)
           console.log('PreToolUse hook received:', hookData);
         } else if (eventType === 'PostToolUse') {
-          // PostToolUse hook handles side effects only (file operations, etc.)
-          // UI updates come from main stream 'tool' events to avoid duplicates
           const toolName = hookData.tool_name;
           const toolInput = hookData.tool_input;
 
@@ -490,45 +445,30 @@ export default function App() {
 
           console.log('PostToolUse hook received:', hookData);
 
-          // Dispatch claudeHook event for file operations (still needed for file watchers)
+          // Dispatch claudeHook event for file operations
           const fileOperationTools = ['Edit', 'Write', 'NotebookEdit'];
           if (fileOperationTools.includes(toolName) && toolInput?.file_path) {
             const claudeHookEvent = new CustomEvent('claudeHook', {
-              detail: {
-                hook: 'PostHook',
-                file: toolInput.file_path
-              }
+              detail: { hook: 'PostHook', file: toolInput.file_path }
             });
             window.dispatchEvent(claudeHookEvent);
             console.log('Dispatched claudeHook for file:', toolInput.file_path);
 
-            // Auto-preview files with supported extensions (must end with the extension)
             const filePath = toolInput.file_path;
-
             if (hasPreviewExtension(filePath)) {
-              // Extract relative path from absolute path
               const relativePath = extractRelativePath(filePath);
-              console.log(`[Auto-preview] File created: ${filePath}`);
-              console.log(`[Auto-preview] Relative path: ${relativePath}`);
-              console.log(`[Auto-preview] Current project: ${currentProject}`);
-              console.log(`[Auto-preview] Waiting 800ms before fetching...`);
-
-              // Increase delay to ensure file is fully written to disk
               setTimeout(() => {
-                console.log(`[Auto-preview] Now fetching file: ${relativePath}`);
                 fetchFile(relativePath, currentProject);
               }, 800);
             }
           }
         }
       } else if (event.type === 'event') {
-        // Handle other events (Notification, UserPromptSubmit, MemoryExtracted, etc.)
         const eventData = event.data;
         const eventType = eventData.event_type;
 
         console.log('Event (not hook):', eventType, eventData);
 
-        // Check if this is a memory extraction event
         if (eventType === 'MemoryExtracted') {
           setStructuredMessages(prev => [...prev, {
             id: `memory_${Date.now()}`,
@@ -538,11 +478,9 @@ export default function App() {
           }]);
         }
 
-        // Check if this is a permission-related notification
         if (eventType === 'Notification' && eventData.message) {
           const msg = eventData.message.toLowerCase();
           if (msg.includes('permission') || msg.includes('allow') || msg.includes('grant')) {
-            // This might be a permission request
             setStructuredMessages(prev => [...prev, {
               id: `perm_${Date.now()}`,
               type: 'permission_request',
@@ -552,7 +490,6 @@ export default function App() {
           }
         }
 
-        // Desktop notification when task completes
         if (eventType === 'Stop' && eventData.reason === 'completed') {
           try {
             const notifChannels = JSON.parse(localStorage.getItem('notificationChannels') || '[]');
@@ -569,52 +506,29 @@ export default function App() {
           } catch { /* ignore */ }
         }
       } else if (event.type === 'elicitation_request') {
-        // Handle MCP elicitation request - show modal for user input
         setPendingElicitation(event.data);
       } else if (event.type === 'permission_request') {
-        // Handle SDK canUseTool permission request
-        // Skip if already handled (ReplaySubject may replay old events)
         const permId = event.data?.id;
-        if (handledRequestIdsRef.current.has(permId)) {
-          console.log('Skipping duplicate permission request:', permId);
-          return;
-        }
-        // Mark as handled IMMEDIATELY to prevent duplicates
+        if (handledRequestIdsRef.current.has(permId)) return;
         handledRequestIdsRef.current.add(permId);
         console.log('Permission request received:', event.data);
         setPendingPermission(event.data);
       } else if (event.type === 'ask_user_question') {
-        // Handle AskUserQuestion tool request
-        // Skip if already handled (ReplaySubject may replay old events)
         const questionId = event.data?.id;
-        if (handledRequestIdsRef.current.has(questionId)) {
-          console.log('Skipping duplicate AskUserQuestion:', questionId);
-          return;
-        }
-        // Mark as handled IMMEDIATELY to prevent duplicates
+        if (handledRequestIdsRef.current.has(questionId)) return;
         handledRequestIdsRef.current.add(questionId);
         console.log('AskUserQuestion received:', event.data);
         setPendingQuestion(event.data);
       } else if (event.type === 'plan_approval') {
-        // Handle ExitPlanMode tool request
-        // Skip if already handled (ReplaySubject may replay old events)
         const planId = event.data?.id;
-        if (handledRequestIdsRef.current.has(planId)) {
-          console.log('Skipping duplicate plan approval:', planId);
-          return;
-        }
-        // Mark as handled IMMEDIATELY to prevent duplicates
+        if (handledRequestIdsRef.current.has(planId)) return;
         handledRequestIdsRef.current.add(planId);
         console.log('Plan approval request received:', event.data);
         setPendingPlanApproval(event.data);
       } else if (event.type === 'chat_message') {
-        // Handle chat message from remote sessions (Telegram, Teams, etc.)
         const chatData = event.data;
         console.log('Remote chat message received:', chatData);
 
-        // For remote messages (from Telegram, Teams, etc.), always display them
-        // as a live feed - this lets users monitor remote conversations in real-time.
-        // For non-remote messages, filter by session ID.
         const isRemoteMessage = chatData.source === 'remote';
         const sessionMatches = !currentSessionIdRef.current || currentSessionIdRef.current === chatData.sessionId;
 
@@ -623,52 +537,21 @@ export default function App() {
             role: chatData.isAgent ? 'assistant' : 'user',
             text: chatData.message,
             timestamp: new Date(chatData.timestamp).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
+              hour: '2-digit', minute: '2-digit', hour12: false
             }),
             usage: chatData.costs,
             source: chatData.source,
             sourceMetadata: chatData.sourceMetadata
           };
-
           setMessages(prev => [...prev, newMessage]);
-
-          // Update hasSessions if this creates a new session
-          if (!hasSessions) {
-            setHasSessions(true);
-          }
+          if (!hasSessions) setHasSessions(true);
         }
       }
-    });
-
-      es.onerror = () => {
-        console.error('Interceptor SSE connection error, will reconnect in 3s...');
-        // Reconnect after a delay unless cancelled
-        if (!isCancelled) {
-          reconnectTimeout = setTimeout(() => {
-            if (!isCancelled) {
-              console.log('Reconnecting interceptor SSE...');
-              connect();
-            }
-          }, 3000);
-        }
-      };
     };
 
-    // Initial connection
-    connect();
-
-    return () => {
-      isCancelled = true;
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-      if (interceptorEsRef.current) {
-        interceptorEsRef.current.close();
-      }
-    };
-  }, [currentProject]);
+    mux.on('interceptor', '*', handler);
+    return () => mux.off('interceptor', '*', handler);
+  }, [currentProject, mux]);
 
   // Handle elicitation response from user
   const handleElicitationResponse = async (response) => {
@@ -781,242 +664,111 @@ export default function App() {
     }
   };
 
-  // Listen for deep research events and auto-open research files
+  // Listen for deep research events via multiplexed SSE
   useEffect(() => {
     if (!currentProject) return;
 
-    const researchEs = new EventSource(authSSEUrl(`/api/deep-research/${encodeURIComponent(currentProject)}/stream`));
+    const handler = (data, type) => {
+      if (type === 'Research.started') {
+        console.log('Research started:', data);
+        const file = { path: data.outputFile, content: '', type: 'research' };
+        setFiles(prevFiles => {
+          const exists = prevFiles.some(f => f.path === data.outputFile);
+          return exists ? prevFiles : [...prevFiles, file];
+        });
+      } else if (type === 'Research.completed') {
+        console.log('Research completed:', data);
+      } else if (type === 'Research.error') {
+        console.error('Research error:', data);
+      }
+    };
 
-    researchEs.addEventListener('Research.started', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research started:', data);
+    mux.on('research', '*', handler);
+    return () => mux.off('research', '*', handler);
+  }, [currentProject, mux]);
 
-      // Auto-open the research file (even though it doesn't exist yet)
-      // The ResearchDocument component will show progress
-      const file = {
-        path: data.outputFile,
-        content: '', // Empty content, component handles polling
-        type: 'research'
-      };
+  // Event handling events (prompt-execution, chat-refresh) via multiplexed SSE
+  useEffect(() => {
+    if (!currentProject) return;
 
-      setFiles(prevFiles => {
-        // Check if file already exists in the list
-        const exists = prevFiles.some(f => f.path === data.outputFile);
-        if (exists) {
-          return prevFiles;
+    const reloadChatHistory = async (source) => {
+      let sessionId = currentSessionIdRef.current;
+
+      if (!sessionId) {
+        try {
+          const sessionsRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
+          const sessionsData = await sessionsRes.json();
+          if (sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0) {
+            sessionId = sessionsData.sessions[0].sessionId;
+            setCurrentSessionId(sessionId);
+            setSessionId(sessionId);
+            console.log('No current session, loaded most recent:', sessionId);
+          }
+        } catch (err) {
+          console.error('Failed to fetch sessions:', err);
         }
-        return [...prevFiles, file];
-      });
+      }
 
-      // Don't show structured messages in chat - all progress shown in ResearchDocument component only
-    });
+      if (sessionId) {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 500));
 
-    researchEs.addEventListener('Research.completed', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Research completed:', data);
+          const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
+          const historyData = await historyRes.json();
+          const chatMessages = historyData?.messages || [];
 
-      // Don't show structured messages in chat - all progress shown in ResearchDocument component only
-    });
+          const assistantRes = await apiFetch('/api/claude/assistant', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ projectName: currentProject })
+          });
+          const assistantData = await assistantRes.json();
+          const greeting = assistantData?.assistant?.greeting;
 
-    researchEs.addEventListener('Research.error', (e) => {
-      const data = JSON.parse(e.data);
-      console.error('Research error:', data);
+          const loadedMessages = [];
+          if (greeting) {
+            loadedMessages.push({ role: 'assistant', text: greeting, timestamp: formatTime() });
+          }
 
-      // Don't show structured messages in chat - all progress shown in ResearchDocument component only
-    });
+          chatMessages.forEach(msg => {
+            loadedMessages.push({
+              role: msg.isAgent ? 'assistant' : 'user',
+              text: msg.message,
+              timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+              usage: msg.costs,
+              reasoningSteps: msg.reasoningSteps || [],
+              contextName: msg.contextName,
+              source: msg.source,
+              sourceMetadata: msg.sourceMetadata
+            });
+          });
 
-    researchEs.onerror = () => {
-      console.error('Research SSE connection error');
+          setMessages(loadedMessages);
+          setHasSessions(true);
+          console.log(`Chat history reloaded after ${source}`);
+        } catch (err) {
+          console.error('Failed to reload chat history:', err);
+        }
+      }
     };
 
-    return () => {
-      researchEs.close();
-    };
-  }, [currentProject]);
-
-  // Connect to event-handling SSE stream for prompt executions
-  useEffect(() => {
-    if (!currentProject) return;
-
-    // Close existing connection
-    if (eventsEsRef.current) {
-      eventsEsRef.current.close();
-    }
-
-    const es = new EventSource(authSSEUrl(`/api/events/${encodeURIComponent(currentProject)}/stream`));
-    eventsEsRef.current = es;
-
-    es.addEventListener('prompt-execution', async (e) => {
-      const data = JSON.parse(e.data);
+    const promptHandler = (data) => {
       console.log('Prompt execution event:', data);
+      if (data.status === 'completed') reloadChatHistory('prompt execution');
+    };
 
-      // When a prompt completes, reload the chat history to show the automated response
-      if (data.status !== 'completed') return;
-
-      // Use ref to get current session ID to avoid stale closure
-      let sessionId = currentSessionIdRef.current;
-
-      // If no session is currently selected, fetch the most recent session
-      if (!sessionId) {
-        try {
-          const sessionsRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
-          const sessionsData = await sessionsRes.json();
-          if (sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0) {
-            sessionId = sessionsData.sessions[0].sessionId;
-            // Update the refs and state with the new session
-            setCurrentSessionId(sessionId);
-            setSessionId(sessionId);
-            console.log('No current session, loaded most recent:', sessionId);
-          }
-        } catch (err) {
-          console.error('Failed to fetch sessions:', err);
-        }
-      }
-
-      if (sessionId) {
-        try {
-          // Add a small delay to ensure the message is persisted
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
-          const historyData = await historyRes.json();
-          const chatMessages = historyData?.messages || [];
-
-          // Load assistant greeting
-          const assistantRes = await apiFetch('/api/claude/assistant', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ projectName: currentProject })
-          });
-          const assistantData = await assistantRes.json();
-          const greeting = assistantData?.assistant?.greeting;
-
-          const loadedMessages = [];
-          if (greeting) {
-            loadedMessages.push({
-              role: 'assistant',
-              text: greeting,
-              timestamp: formatTime()
-            });
-          }
-
-          chatMessages.forEach(msg => {
-            loadedMessages.push({
-              role: msg.isAgent ? 'assistant' : 'user',
-              text: msg.message,
-              timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }),
-              usage: msg.costs,
-              reasoningSteps: msg.reasoningSteps || [],
-              contextName: msg.contextName,
-              source: msg.source,
-              sourceMetadata: msg.sourceMetadata
-            });
-          });
-
-          setMessages(loadedMessages);
-          setHasSessions(true);
-          console.log('Chat history reloaded after prompt execution');
-        } catch (err) {
-          console.error('Failed to reload chat history:', err);
-        }
-      } else {
-        console.log('No session available for prompt execution refresh');
-      }
-    });
-
-    // Listen for chat-refresh events (triggered after automated prompt execution)
-    es.addEventListener('chat-refresh', async (e) => {
-      const data = JSON.parse(e.data);
+    const chatRefreshHandler = (data) => {
       console.log('Chat refresh event:', data);
-
-      // Reload chat history when notified
-      // Use ref to get current session ID to avoid stale closure
-      let sessionId = currentSessionIdRef.current;
-
-      // If no session is currently selected, fetch the most recent session
-      if (!sessionId) {
-        try {
-          const sessionsRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}`);
-          const sessionsData = await sessionsRes.json();
-          if (sessionsData.success && sessionsData.sessions && sessionsData.sessions.length > 0) {
-            sessionId = sessionsData.sessions[0].sessionId;
-            // Update the refs and state with the new session
-            setCurrentSessionId(sessionId);
-            setSessionId(sessionId);
-            console.log('No current session, loaded most recent:', sessionId);
-          }
-        } catch (err) {
-          console.error('Failed to fetch sessions:', err);
-        }
-      }
-
-      if (sessionId) {
-        try {
-          // Add a small delay to ensure the message is persisted
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(currentProject)}/${sessionId}/history`);
-          const historyData = await historyRes.json();
-          const chatMessages = historyData?.messages || [];
-
-          // Load assistant greeting
-          const assistantRes = await apiFetch('/api/claude/assistant', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ projectName: currentProject })
-          });
-          const assistantData = await assistantRes.json();
-          const greeting = assistantData?.assistant?.greeting;
-
-          const loadedMessages = [];
-          if (greeting) {
-            loadedMessages.push({
-              role: 'assistant',
-              text: greeting,
-              timestamp: formatTime()
-            });
-          }
-
-          chatMessages.forEach(msg => {
-            loadedMessages.push({
-              role: msg.isAgent ? 'assistant' : 'user',
-              text: msg.message,
-              timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }),
-              usage: msg.costs,
-              reasoningSteps: msg.reasoningSteps || [],
-              contextName: msg.contextName,
-              source: msg.source,
-              sourceMetadata: msg.sourceMetadata
-            });
-          });
-
-          setMessages(loadedMessages);
-          setHasSessions(true);
-          console.log('Chat history reloaded after chat-refresh event');
-        } catch (err) {
-          console.error('Failed to reload chat history:', err);
-        }
-      } else {
-        console.log('No session available for chat refresh');
-      }
-    });
-
-    es.onerror = () => {
-      console.error('Events SSE connection error');
+      reloadChatHistory('chat-refresh event');
     };
 
+    mux.on('events', 'prompt-execution', promptHandler);
+    mux.on('events', 'chat-refresh', chatRefreshHandler);
     return () => {
-      es.close();
+      mux.off('events', 'prompt-execution', promptHandler);
+      mux.off('events', 'chat-refresh', chatRefreshHandler);
     };
-  }, [currentProject]); // Removed currentSessionId from deps - using ref instead
+  }, [currentProject, mux]);
 
   // Check if sessions exist for the current project
   useEffect(() => {
@@ -1346,6 +1098,18 @@ export default function App() {
     // Track accumulated text before line breaks
     let textBuffer = '';
     let lastChunkTime = Date.now();
+    let assistantMessageAdded = false;
+
+    // Ensure an empty assistant message exists so the elapsed timer shows
+    const ensureAssistantMessage = () => {
+      if (assistantMessageAdded) return;
+      assistantMessageAdded = true;
+      setMessages(prev => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant') return prev;
+        return [...prev, { ...currentMessageRef.current }];
+      });
+    };
 
     es.addEventListener('session', (e) => {
       const data = JSON.parse(e.data);
@@ -1360,6 +1124,7 @@ export default function App() {
     es.addEventListener('stdout', (e) => {
       const { chunk } = JSON.parse(e.data);
       const chunkTime = Date.now();
+      ensureAssistantMessage();
 
       // Update last chunk time immediately
       lastChunkTime = chunkTime;
@@ -1925,6 +1690,7 @@ export default function App() {
   }
 
   return (
+    <MuxSSEProvider mux={mux}>
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <AppBar
         position="static"
@@ -1944,6 +1710,7 @@ export default function App() {
               budgetSettings={budgetSettings}
               onSettingsChange={setBudgetSettings}
               showBackgroundInfo={showBackgroundInfo}
+              mux={mux}
             />
           )}
           {hasTasks && currentProject && (
@@ -2237,5 +2004,6 @@ export default function App() {
         onClose={() => setPendingPairing(null)}
       />
     </Box>
+    </MuxSSEProvider>
   );
 }
