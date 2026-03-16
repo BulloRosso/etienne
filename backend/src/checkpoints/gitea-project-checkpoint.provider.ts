@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -11,21 +11,22 @@ import {
   GitTag,
   GitConnectionStatus,
 } from './checkpoint-provider.interface';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 const execAsync = promisify(exec);
 
 @Injectable()
-export class GiteaProjectCheckpointProvider implements ICheckpointProvider {
+export class GiteaProjectCheckpointProvider implements ICheckpointProvider, OnModuleInit {
   private readonly logger = new Logger(GiteaProjectCheckpointProvider.name);
   private readonly giteaUrl: string;
   private readonly giteaUsername: string;
-  private readonly giteaPassword: string;
+  private giteaPassword: string;
   private readonly workspaceDir: string;
   private axiosClient: AxiosInstance;
   private giteaActualUsername: string | null = null;
   private initializedProjects = new Set<string>();
 
-  constructor() {
+  constructor(private readonly secretsManager: SecretsManagerService) {
     this.giteaUrl = process.env.GITEA_URL || 'http://localhost:3000';
     this.giteaUsername =
       process.env.GITEA_USERNAME || 'ralph.goellner@e-ntegration.de';
@@ -46,6 +47,18 @@ export class GiteaProjectCheckpointProvider implements ICheckpointProvider {
     this.logger.log(
       `GiteaProject provider initialized: ${this.giteaUrl}`,
     );
+  }
+
+  async onModuleInit() {
+    const password = await this.secretsManager.getSecret('GITEA_PASSWORD');
+    if (password) {
+      this.giteaPassword = password;
+      this.axiosClient = axios.create({
+        baseURL: `${this.giteaUrl}/api/v1`,
+        auth: { username: this.giteaUsername, password },
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   // ── Helpers ──

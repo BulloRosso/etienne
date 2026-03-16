@@ -1,13 +1,15 @@
+import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
+
 export class ClaudeConfig {
   readonly container: string;
   readonly hostRoot: string;
   readonly containerRoot: string;
   readonly timeoutMs: number;
-  readonly anthropicKey: string;
+  anthropicKey: string;
   readonly defaultAllowedTools: string[];
   readonly forceProjectScope: boolean;
 
-  constructor() {
+  constructor(private secretsManager?: SecretsManagerService) {
     this.container = process.env.CLAUDE_CONTAINER_NAME ?? 'claude-code';
     // Use WORKSPACE_ROOT for consistency (WORKSPACE_HOST_ROOT is kept for backwards compatibility)
     this.hostRoot = process.env.WORKSPACE_ROOT ?? process.env.WORKSPACE_HOST_ROOT ?? 'C:/Data/GitHub/claude-multitenant/workspace';
@@ -31,6 +33,12 @@ export class ClaudeConfig {
       'MultiEdit(${containerCwd}/out/**)',
       'NotebookEdit(${containerCwd}/out/**)',
     ];
+  }
+
+  async initSecrets(): Promise<void> {
+    if (this.secretsManager) {
+      this.anthropicKey = await this.secretsManager.getSecret('ANTHROPIC_API_KEY') || this.anthropicKey;
+    }
   }
 
   getActiveEventsHooks(projectName: string): any {

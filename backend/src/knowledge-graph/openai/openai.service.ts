@@ -1,16 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import OpenAI from 'openai';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
 @Injectable()
-export class OpenAiService {
+export class OpenAiService implements OnModuleInit {
   private client: OpenAI | null = null;
   private readonly workspaceDir = path.join(process.cwd(), '..', 'workspace');
   private readonly logger = new Logger(OpenAiService.name);
-  private readonly isAvailable: boolean;
+  private isAvailable: boolean;
 
-  constructor() {
+  constructor(private readonly secretsManager: SecretsManagerService) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       this.client = new OpenAI({ apiKey });
@@ -19,6 +20,17 @@ export class OpenAiService {
     } else {
       this.isAvailable = false;
       this.logger.warn('OPENAI_API_KEY not set. OpenAI features (embeddings, SPARQL translation, entity extraction) will not be available.');
+    }
+  }
+
+  async onModuleInit() {
+    if (!this.isAvailable) {
+      const apiKey = await this.secretsManager.getSecret('OPENAI_API_KEY');
+      if (apiKey) {
+        this.client = new OpenAI({ apiKey });
+        this.isAvailable = true;
+        this.logger.log('OpenAI service initialized from secrets vault');
+      }
     }
   }
 

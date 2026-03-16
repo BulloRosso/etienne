@@ -6,7 +6,7 @@ import { VscServerProcess } from 'react-icons/vsc';
 import { PiShareNetworkLight, PiTelegramLogo, PiMicrosoftTeamsLogo, PiVectorThree } from 'react-icons/pi';
 import { AiOutlineMail } from 'react-icons/ai';
 import { RiRobot2Line } from 'react-icons/ri';
-import { MdSecurity } from 'react-icons/md';
+import { MdSecurity, MdVpnKey } from 'react-icons/md';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
@@ -19,6 +19,7 @@ const serviceIcons = {
   'a2a-server': RiRobot2Line,
   'vector-store': PiVectorThree,
   'oauth-server': MdSecurity,
+  'secrets-manager': MdVpnKey,
 };
 
 export default function ServiceControlDrawer({ open, onClose }) {

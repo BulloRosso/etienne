@@ -16,6 +16,7 @@ import { sanitize_user_message } from '../../input-guardrails/index';
 import { CodexConfig } from './codex.config';
 import { safeRoot } from '../utils/path.utils';
 import { TelemetryService } from '../../observability/telemetry.service';
+import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
 /**
  * Orchestrator service for Codex app-server conversations.
@@ -27,12 +28,12 @@ import { TelemetryService } from '../../observability/telemetry.service';
 export class CodexSdkOrchestratorService {
   private readonly logger = new Logger(CodexSdkOrchestratorService.name);
   private readonly config = new CodexConfig();
-  private readonly JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
+  private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
   private generateServiceToken(): string {
     return jwt.sign(
       { sub: 'codex-sdk-orchestrator', username: 'system', role: 'admin', displayName: 'Codex Orchestrator', type: 'access' },
-      this.JWT_SECRET,
+      this.jwtSecret,
       { expiresIn: '1h' }
     );
   }
@@ -50,8 +51,14 @@ export class CodexSdkOrchestratorService {
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly sessionsService: SessionsService,
     private readonly contextInterceptor: ContextInterceptorService,
-    private readonly telemetryService: TelemetryService
+    private readonly telemetryService: TelemetryService,
+    private readonly secretsManager: SecretsManagerService,
   ) {}
+
+  async onModuleInit() {
+    const secret = await this.secretsManager.getSecret('JWT_SECRET');
+    if (secret) this.jwtSecret = secret;
+  }
 
   /**
    * Clear the Codex thread for a project (called on "new session")

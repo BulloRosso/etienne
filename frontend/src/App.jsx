@@ -16,6 +16,7 @@ import AskUserQuestionModal from './components/AskUserQuestionModal';
 import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
 import LoginDialog from './components/LoginDialog';
+import ServiceHealthGate from './components/ServiceHealthGate';
 import { TbCalendarTime, TbPresentation, TbWorld } from 'react-icons/tb';
 import { IoInformationCircle, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
@@ -33,6 +34,15 @@ export default function App() {
   const { currentProject, projectExists, setProject } = useProject();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { mode: themeMode, toggleMode } = useThemeMode();
+
+  // Check required services (secrets-manager, oauth-server) before login
+  const [servicesReady, setServicesReady] = useState(null); // null=checking, true/false
+  useEffect(() => {
+    fetch('/api/process-manager/health/required')
+      .then(r => r.json())
+      .then(data => setServicesReady(data.ok))
+      .catch(() => setServicesReady(false));
+  }, []);
 
   // Fetch agent name from personality config
   const [agentName, setAgentName] = useState('Etienne');
@@ -1679,6 +1689,20 @@ export default function App() {
     setShowConfigurationRequired(false);
     setProject(projectName);
   };
+
+  // Show loading while checking required services
+  if (servicesReady === null) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show service health gate if required services are not running
+  if (servicesReady === false) {
+    return <ServiceHealthGate onReady={() => setServicesReady(true)} />;
+  }
 
   // Show loading while checking authentication
   if (authLoading) {

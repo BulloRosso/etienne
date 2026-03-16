@@ -1,18 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { generateText } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 export type ModelTier = 'small' | 'regular';
 
 @Injectable()
-export class LlmService {
+export class LlmService implements OnModuleInit {
   private readonly logger = new Logger(LlmService.name);
   private readonly provider: 'anthropic' | 'openai';
   private readonly models: { small: string; regular: string };
-  private readonly providerInstance: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenAI>;
+  private providerInstance: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenAI>;
 
-  constructor() {
+  constructor(private readonly secretsManager: SecretsManagerService) {
     this.provider = (process.env.CODING_AGENT || 'anthropic') as 'anthropic' | 'openai';
 
     if (this.provider === 'openai') {
@@ -28,6 +29,17 @@ export class LlmService {
     }
 
     this.logger.log(`LLM provider: ${this.provider}, models: ${JSON.stringify(this.models)}`);
+  }
+
+  async onModuleInit() {
+    // Re-initialize provider with secrets from vault
+    if (this.provider === 'openai') {
+      const key = await this.secretsManager.getSecret('OPENAI_API_KEY');
+      if (key) this.providerInstance = createOpenAI({ apiKey: key });
+    } else {
+      const key = await this.secretsManager.getSecret('ANTHROPIC_API_KEY');
+      if (key) this.providerInstance = createAnthropic({ apiKey: key });
+    }
   }
 
   async generateText(opts: {
@@ -66,10 +78,12 @@ export class LlmService {
     return this.models[tier];
   }
 
-  hasApiKey(): boolean {
+  async hasApiKey(): Promise<boolean> {
     if (this.provider === 'openai') {
-      return !!process.env.OPENAI_API_KEY;
+      const key = await this.secretsManager.getSecret('OPENAI_API_KEY');
+      return !!key;
     }
-    return !!process.env.ANTHROPIC_API_KEY;
+    const key = await this.secretsManager.getSecret('ANTHROPIC_API_KEY');
+    return !!key;
   }
 }

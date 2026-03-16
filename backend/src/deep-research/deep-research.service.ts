@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { Observable, ReplaySubject } from 'rxjs';
 import OpenAI from 'openai';
 import { randomUUID } from 'crypto';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 interface ResearchSession {
   id: string;
@@ -31,11 +32,11 @@ interface ResearchEvent {
 }
 
 @Injectable()
-export class DeepResearchService {
+export class DeepResearchService implements OnModuleInit {
   private readonly logger = new Logger(DeepResearchService.name);
   private readonly workspaceRoot = process.env.WORKSPACE_ROOT || 'C:/Data/GitHub/claude-multitenant/workspace';
-  private readonly openaiClient: OpenAI | null = null;
-  private readonly isAvailable: boolean;
+  private openaiClient: OpenAI | null = null;
+  private isAvailable: boolean;
   private eventSubjects = new Map<string, ReplaySubject<ResearchEvent>>();
   private activeSessions = new Map<string, ResearchSession>();
 
@@ -43,7 +44,7 @@ export class DeepResearchService {
   private currentOutputItems = new Map<string, { type: string; itemId: string }>();
   private outputItemContent = new Map<string, Map<string, string>>(); // sessionId -> itemId -> content
 
-  constructor() {
+  constructor(private readonly secretsManager: SecretsManagerService) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       this.logger.warn('OPENAI_API_KEY environment variable is not set. Deep research will not be available.');
@@ -51,6 +52,17 @@ export class DeepResearchService {
     } else {
       this.openaiClient = new OpenAI({ apiKey });
       this.isAvailable = true;
+    }
+  }
+
+  async onModuleInit() {
+    if (!this.isAvailable) {
+      const apiKey = await this.secretsManager.getSecret('OPENAI_API_KEY');
+      if (apiKey) {
+        this.openaiClient = new OpenAI({ apiKey });
+        this.isAvailable = true;
+        this.logger.log('Deep research initialized from secrets vault');
+      }
     }
   }
 

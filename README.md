@@ -951,19 +951,26 @@ And once you understand it, you'll never look at AI agents the same way.</small>
 
 # Setup
 
-## API Keys
-We use **Anthropic Sonnet 4.5** via console account (default). To use OpenAI models (GPT-5-Codex, GPT-5-mini), configure the LiteLLM proxy.
+## API Keys & Secrets Management
 
-You need to create an .env file inside the backend directory:
-```
+We use **Anthropic Opus 4.5** via the Claude Agent SDK. 
+
+### Entering API Keys via `.env` (Standard Developer Workflow)
+
+For development purposes create a `.env` file inside the `backend/` directory with your sensitive keys:
+
+```env
 # Anthropic API Key (used for direct Claude API calls when aiModel=claude)
 ANTHROPIC_API_KEY=sk-ant-api03-...AA
 
 # Local data directory root for all projects
 WORKSPACE_ROOT=C:/Data/GitHub/claude-multitenant/workspace
 
-# Only used for deep research module (optional), enter any string but don't remove(!)
-OPENAI_API_KEY=34343434343434
+# OpenAI API Key (used for deep research, output guardrails, sessions, persona manager)
+OPENAI_API_KEY=sk-...
+
+# JWT secret for authentication tokens
+JWT_SECRET=your-jwt-secret-here
 
 # Memory Management Configuration
 MEMORY_MANAGEMENT_URL=http://localhost:6060/api/memories
@@ -980,7 +987,86 @@ GITEA_URL=http://localhost:3000
 GITEA_USERNAME=your.user@gitea.local
 GITEA_PASSWORD=****
 GITEA_REPO=workspace-checkpoints
+
+# Secrets Manager Configuration
+SECRET_VAULT_PROVIDER=openbao
+OPENBAO_ADDR=http://127.0.0.1:8200
+OPENBAO_DEV_ROOT_TOKEN=dev-root-token
 ```
+
+The `.env` file is the quickest way to get started. All backend services read their keys from this file by default. You can copy `backend/.env.template` as a starting point.
+
+### Secrets Manager (OpenBao Vault)
+
+For **production or team environments**, the project includes a **Secrets Manager** — a standalone service at `/secrets-manager/` that runs [OpenBao](https://github.com/openbao/openbao) (an open-source secrets vault). This provides centralized, secure storage for API keys instead of keeping them in plaintext `.env` files.
+
+**How it works:**
+- The Secrets Manager runs as a separate process on port **8200**, managed via the Process Manager
+- The backend has an abstraction layer (`SecretsManagerService`) with a provider pattern:
+  - **OpenBao provider** (primary) — reads/writes secrets from the vault via HTTP API
+  - **Env provider** (fallback) — reads from `process.env` when the vault is unavailable
+- All backend services inject `SecretsManagerService` to retrieve keys at runtime
+- If OpenBao is down, the system automatically falls back to `.env` values — zero downtime
+
+**Starting the Secrets Manager:**
+```bash
+cd secrets-manager
+npm install
+npm run dev       # Downloads OpenBao binary and starts dev server on :8200
+npm run seed      # Seeds secrets from backend/.env into the vault
+```
+
+**Managed secrets:** `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `JWT_SECRET`, `GITEA_PASSWORD`, `SMTP_CONNECTION`, `IMAP_CONNECTION`, `DIFFBOT_TOKEN`, `VAPI_TOKEN`
+
+### Secret Lifecycle — Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant Frontend as Frontend UI
+    participant API as Backend API<br>/api/secrets-manager
+    participant SMS as SecretsManagerService
+    participant OB as OpenBao Vault<br>:8200
+    participant Env as .env fallback
+
+    rect rgb(230, 245, 255)
+    note over Admin, OB: Secret Creation (Admin)
+    Admin->>Frontend: Navigate to Settings → Secrets
+    Admin->>Frontend: Enter ANTHROPIC_API_KEY = sk-ant-...
+    Frontend->>API: PUT /api/secrets-manager/ANTHROPIC_API_KEY
+    API->>SMS: set("ANTHROPIC_API_KEY", "sk-ant-...")
+    SMS->>OB: POST /v1/secret/data/ANTHROPIC_API_KEY
+    OB-->>SMS: 200 OK (stored)
+    SMS-->>API: success
+    API-->>Frontend: { success: true }
+    end
+
+    rect rgb(240, 255, 240)
+    note over SMS, Env: Secret Usage (Backend Service)
+    participant Svc as ClaudeService /<br>LlmService / etc.
+    Svc->>SMS: getSecret("ANTHROPIC_API_KEY")
+    SMS->>OB: GET /v1/secret/data/ANTHROPIC_API_KEY
+    alt Vault available
+        OB-->>SMS: { data: { data: { value: "sk-ant-..." } } }
+        SMS-->>Svc: "sk-ant-..."
+    else Vault unavailable
+        OB--xSMS: connection refused
+        SMS->>Env: process.env.ANTHROPIC_API_KEY
+        Env-->>SMS: "sk-ant-..." (from .env)
+        SMS-->>Svc: "sk-ant-..."
+    end
+    Svc->>Svc: Use key for API call
+    end
+```
+
+### Provider Selection
+
+Set `SECRET_VAULT_PROVIDER` in your `.env` to choose the primary provider:
+
+| Value | Description |
+|-------|-------------|
+| `openbao` (default) | Uses OpenBao vault with automatic `.env` fallback |
+| `env` | Uses `.env` file directly, vault is ignored |
 
 ## Checkpoints
 

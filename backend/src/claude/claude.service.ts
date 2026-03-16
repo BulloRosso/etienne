@@ -20,18 +20,19 @@ import { OutputGuardrailsService } from '../output-guardrails/output-guardrails.
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 import { McpServerConfigService } from './mcpserverconfig/mcp.server.config';
 import { LlmService } from '../llm/llm.service';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 @Injectable()
 export class ClaudeService {
-  private readonly config = new ClaudeConfig();
-  private readonly JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
+  private readonly config: ClaudeConfig;
+  private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
   private queues = new Map<string, Promise<unknown>>();
   private processes = new Map<string, any>(); // Store process references by processId
 
   private generateServiceToken(): string {
     return jwt.sign(
       { sub: 'claude-service', username: 'system', role: 'admin', displayName: 'Claude Service', type: 'access' },
-      this.JWT_SECRET,
+      this.jwtSecret,
       { expiresIn: '1h' }
     );
   }
@@ -44,7 +45,16 @@ export class ClaudeService {
     private readonly codingAgentConfigService: CodingAgentConfigurationService,
     private readonly mcpServerConfigService: McpServerConfigService,
     private readonly llmService: LlmService,
-  ) {}
+    private readonly secretsManager: SecretsManagerService,
+  ) {
+    this.config = new ClaudeConfig(secretsManager);
+  }
+
+  async onModuleInit() {
+    const secret = await this.secretsManager.getSecret('JWT_SECRET');
+    if (secret) this.jwtSecret = secret;
+    await this.config.initSecrets();
+  }
 
   private async ensureProject(projectDir: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);

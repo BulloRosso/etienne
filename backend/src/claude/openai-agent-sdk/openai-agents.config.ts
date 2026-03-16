@@ -1,3 +1,5 @@
+import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
+
 /**
  * Configuration for the OpenAI Agents SDK integration.
  * Loads settings from environment variables with sensible defaults.
@@ -7,7 +9,7 @@ export class OpenAIAgentsConfig {
   readonly hostRoot: string;
 
   /** OpenAI API key (shared with Codex SDK) */
-  readonly openAiApiKey: string;
+  openAiApiKey: string;
 
   /** Default model for the Agents SDK */
   readonly defaultModel: string;
@@ -21,7 +23,7 @@ export class OpenAIAgentsConfig {
   /** Whether to include the experimental codex tool */
   readonly enableCodexTool: boolean;
 
-  constructor() {
+  constructor(private secretsManager?: SecretsManagerService) {
     this.hostRoot =
       process.env.WORKSPACE_ROOT ??
       process.env.WORKSPACE_HOST_ROOT ??
@@ -35,6 +37,12 @@ export class OpenAIAgentsConfig {
     );
     this.enableCodexTool =
       (process.env.OPENAI_AGENTS_ENABLE_CODEX_TOOL ?? 'false') === 'true';
+  }
+
+  async initSecrets(): Promise<void> {
+    if (this.secretsManager) {
+      this.openAiApiKey = await this.secretsManager.getSecret('OPENAI_API_KEY') || this.openAiApiKey;
+    }
   }
 
   /** Check whether this agent backend is the active one */

@@ -19,6 +19,7 @@ import { OpenAIAgentsConfig } from './openai-agents.config';
 import { safeRoot } from '../utils/path.utils';
 import { TelemetryService } from '../../observability/telemetry.service';
 import { CodingAgentConfigurationService } from '../../coding-agent-configuration/coding-agent-configuration.service';
+import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
 /**
  * Orchestrator service for OpenAI Agents SDK conversations.
@@ -30,7 +31,7 @@ import { CodingAgentConfigurationService } from '../../coding-agent-configuratio
 export class OpenAIAgentsOrchestratorService {
   private readonly logger = new Logger(OpenAIAgentsOrchestratorService.name);
   private readonly config = new OpenAIAgentsConfig();
-  private readonly JWT_SECRET =
+  private jwtSecret: string =
     process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
   private generateServiceToken(): string {
@@ -42,7 +43,7 @@ export class OpenAIAgentsOrchestratorService {
         displayName: 'OpenAI Agents Orchestrator',
         type: 'access',
       },
-      this.JWT_SECRET,
+      this.jwtSecret,
       { expiresIn: '1h' },
     );
   }
@@ -59,7 +60,13 @@ export class OpenAIAgentsOrchestratorService {
     private readonly contextInterceptor: ContextInterceptorService,
     private readonly telemetryService: TelemetryService,
     private readonly codingAgentConfigService: CodingAgentConfigurationService,
+    private readonly secretsManager: SecretsManagerService,
   ) {}
+
+  async onModuleInit() {
+    const secret = await this.secretsManager.getSecret('JWT_SECRET');
+    if (secret) this.jwtSecret = secret;
+  }
 
   /**
    * Clear the session for a project (called on "new session")

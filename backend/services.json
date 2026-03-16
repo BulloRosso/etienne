@@ -71,6 +71,14 @@
       "directory": "web-scraper",
       "startCommand": "bash start.sh",
       "port": 3480
+    },
+    {
+      "name": "secrets-manager",
+      "displayName": "Secrets Manager",
+      "description": "OpenBao-based secrets vault for secure API key management",
+      "directory": "secrets-manager",
+      "startCommand": "npm run dev",
+      "port": 8200
     }
   ]
 }

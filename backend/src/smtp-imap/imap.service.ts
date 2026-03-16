@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { simpleParser } from 'mailparser';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 /**
  * IMAP Service
@@ -26,6 +27,8 @@ export class ImapService {
   private readonly logger = new Logger(ImapService.name);
   private imapModule: any = null;
 
+  constructor(private readonly secretsManager: SecretsManagerService) {}
+
   /**
    * Load imap module dynamically
    * Uses dynamic require to load CommonJS module
@@ -41,10 +44,10 @@ export class ImapService {
   /**
    * Parse IMAP connection string
    */
-  private parseConnectionString(): any {
-    const connectionString = process.env.IMAP_CONNECTION;
+  private async parseConnectionString(): Promise<any> {
+    const connectionString = await this.secretsManager.getSecret('IMAP_CONNECTION');
     if (!connectionString) {
-      throw new Error('IMAP_CONNECTION environment variable is not set');
+      throw new Error('IMAP_CONNECTION is not set in secrets vault or environment');
     }
 
     const parts = connectionString.split('|');
@@ -81,7 +84,7 @@ export class ImapService {
   ): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
-        const config = this.parseConnectionString();
+        const config = await this.parseConnectionString();
         const Imap = await this.loadImap();
         const imap = new Imap(config);
 

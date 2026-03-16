@@ -5,6 +5,7 @@ import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
 import OpenAI from 'openai';
 import { LlmService } from '../llm/llm.service';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 // Generate UUID v4 using native crypto
 function uuidv4(): string {
@@ -98,7 +99,7 @@ export class ScrapbookService {
   private readonly workspaceDir = process.env.WORKSPACE_ROOT || path.join(process.cwd(), '..', 'workspace');
   private quadstoreAvailable = false;
 
-  constructor(private readonly llmService: LlmService) {
+  constructor(private readonly llmService: LlmService, private readonly secretsManager: SecretsManagerService) {
     this.checkQuadstoreAvailability();
   }
 
@@ -989,7 +990,7 @@ export class ScrapbookService {
 
     // Call OpenAI to extract structure
     const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: await this.secretsManager.getSecret('OPENAI_API_KEY') || process.env.OPENAI_API_KEY,
     });
 
     // Define the JSON schema for structured output

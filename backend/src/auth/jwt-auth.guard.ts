@@ -1,10 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, OnModuleInit } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { IS_PUBLIC_KEY } from './public.decorator';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 export interface JwtUser {
   sub: string;
@@ -17,8 +16,18 @@ export interface JwtUser {
 }
 
 @Injectable()
-export class JwtAuthGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+export class JwtAuthGuard implements CanActivate, OnModuleInit {
+  private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
+
+  constructor(
+    private reflector: Reflector,
+    private secretsManager: SecretsManagerService,
+  ) {}
+
+  async onModuleInit() {
+    const secret = await this.secretsManager.getSecret('JWT_SECRET');
+    if (secret) this.jwtSecret = secret;
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -37,7 +46,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = jwt.verify(token, JWT_SECRET) as JwtUser;
+      const payload = jwt.verify(token, this.jwtSecret) as JwtUser;
       if (payload.type !== 'access') {
         throw new UnauthorizedException('Invalid token type');
       }

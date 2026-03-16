@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 /**
  * SMTP Service
@@ -17,6 +18,8 @@ export class SmtpService {
   private readonly logger = new Logger(SmtpService.name);
   private client: any = null;
   private config: any = null;
+
+  constructor(private readonly secretsManager: SecretsManagerService) {}
   private whitelist: string[] = [];
   private emailjsModule: any = null;
 
@@ -43,9 +46,9 @@ export class SmtpService {
 
     const { SMTPClient } = await this.loadEmailjs();
 
-    const connectionString = process.env.SMTP_CONNECTION;
+    const connectionString = await this.secretsManager.getSecret('SMTP_CONNECTION');
     if (!connectionString) {
-      throw new Error('SMTP_CONNECTION environment variable is not set');
+      throw new Error('SMTP_CONNECTION is not set in secrets vault or environment');
     }
 
     const parts = connectionString.split('|');

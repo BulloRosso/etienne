@@ -5,6 +5,7 @@ import { ClaudeConfig } from '../config/claude.config';
 import { safeRoot } from '../utils/path.utils';
 import { posixProjectPath } from '../../common/path.util';
 import { CanUseTool } from './sdk-permission.types';
+import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
 // Use Function constructor to prevent TypeScript from transpiling dynamic import to require()
 const dynamicImport = new Function('specifier', 'return import(specifier)');
@@ -12,7 +13,15 @@ const dynamicImport = new Function('specifier', 'return import(specifier)');
 @Injectable()
 export class ClaudeSdkService {
   private readonly logger = new Logger(ClaudeSdkService.name);
-  private readonly config = new ClaudeConfig();
+  private readonly config: ClaudeConfig;
+
+  constructor(private readonly secretsManager: SecretsManagerService) {
+    this.config = new ClaudeConfig(secretsManager);
+  }
+
+  async onModuleInit() {
+    await this.config.initSecrets();
+  }
   private query: any = null;
   private readonly abortControllers = new Map<string, AbortController>();
 
@@ -106,7 +115,7 @@ export class ClaudeSdkService {
       // The SDK spawns a subprocess and passes these via env
       queryOptions.env = {
         ...process.env,  // Inherit existing environment
-        ANTHROPIC_API_KEY: altModelConfig?.token || process.env.ANTHROPIC_API_KEY
+        ANTHROPIC_API_KEY: altModelConfig?.token || await this.secretsManager.getSecret('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY
       };
 
       // Add alternative model configuration via environment variables if present

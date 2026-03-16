@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import OpenAI from 'openai';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 export interface GuardrailResponse {
   guardrailTriggered: boolean;
@@ -17,15 +18,24 @@ export interface OutputGuardrailsConfig {
 }
 
 @Injectable()
-export class OutputGuardrailsService {
+export class OutputGuardrailsService implements OnModuleInit {
   private readonly workspaceDir = path.resolve(process.cwd(), '../workspace');
   private openaiClient: OpenAI | null = null;
 
-  constructor() {
+  constructor(private readonly secretsManager: SecretsManagerService) {
     // Initialize OpenAI client if API key is available
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       this.openaiClient = new OpenAI({ apiKey });
+    }
+  }
+
+  async onModuleInit() {
+    if (!this.openaiClient) {
+      const apiKey = await this.secretsManager.getSecret('OPENAI_API_KEY');
+      if (apiKey) {
+        this.openaiClient = new OpenAI({ apiKey });
+      }
     }
   }
 

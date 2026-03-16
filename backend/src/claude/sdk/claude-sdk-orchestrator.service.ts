@@ -19,6 +19,7 @@ import { ClaudeConfig } from '../config/claude.config';
 import { safeRoot } from '../utils/path.utils';
 import { TelemetryService } from '../../observability/telemetry.service';
 import { UserNotificationsService } from '../../user-notifications/user-notifications.service';
+import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
 /**
  * Orchestrator service that integrates SDK, sessions, guardrails, and memory
@@ -27,13 +28,13 @@ import { UserNotificationsService } from '../../user-notifications/user-notifica
 @Injectable()
 export class ClaudeSdkOrchestratorService {
   private readonly logger = new Logger(ClaudeSdkOrchestratorService.name);
-  private readonly config = new ClaudeConfig();
-  private readonly JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
+  private readonly config: ClaudeConfig;
+  private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
   private generateServiceToken(): string {
     return jwt.sign(
       { sub: 'claude-sdk-orchestrator', username: 'system', role: 'admin', displayName: 'SDK Orchestrator', type: 'access' },
-      this.JWT_SECRET,
+      this.jwtSecret,
       { expiresIn: '1h' }
     );
   }
@@ -49,8 +50,17 @@ export class ClaudeSdkOrchestratorService {
     private readonly sessionsService: SessionsService,
     private readonly contextInterceptor: ContextInterceptorService,
     private readonly telemetryService: TelemetryService,
-    private readonly userNotificationsService: UserNotificationsService
-  ) {}
+    private readonly userNotificationsService: UserNotificationsService,
+    private readonly secretsManager: SecretsManagerService,
+  ) {
+    this.config = new ClaudeConfig(secretsManager);
+  }
+
+  async onModuleInit() {
+    const secret = await this.secretsManager.getSecret('JWT_SECRET');
+    if (secret) this.jwtSecret = secret;
+    await this.config.initSecrets();
+  }
 
   /**
    * Stream a prompt using the Agent SDK with full integration

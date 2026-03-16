@@ -5,6 +5,7 @@ import AdmZip from 'adm-zip';
 import axios from 'axios';
 import { ProjectsService } from '../projects/projects.service';
 import { SessionsService, ChatMessage } from '../sessions/sessions.service';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 export interface ContactChannels {
   email?: string;
@@ -38,6 +39,7 @@ export class PersonaManagerService {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly sessionsService: SessionsService,
+    private readonly secretsManager: SecretsManagerService,
   ) {}
 
   /**
@@ -91,7 +93,7 @@ export class PersonaManagerService {
    * with etienne-waving.png as guidance image and gpt-image-1 model
    */
   async generateAvatar(avatarDescription: string): Promise<string> {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = await this.secretsManager.getSecret('OPENAI_API_KEY');
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY is not configured');
     }

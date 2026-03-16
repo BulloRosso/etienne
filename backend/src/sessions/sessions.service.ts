@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import axios from 'axios';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 export interface ChatMessage {
   timestamp: string;
@@ -36,6 +37,8 @@ export interface SessionsData {
 
 @Injectable()
 export class SessionsService {
+  constructor(private readonly secretsManager: SecretsManagerService) {}
+
   /** Per-project write locks to prevent concurrent read-modify-write corruption */
   private writeLocks = new Map<string, Promise<void>>();
 
@@ -174,7 +177,7 @@ export class SessionsService {
       }).join('\n\n');
 
       // Call OpenAI GPT-4o-mini for summarization
-      const openaiApiKey = process.env.OPENAI_API_KEY;
+      const openaiApiKey = await this.secretsManager.getSecret('OPENAI_API_KEY');
       if (!openaiApiKey) {
         console.error('[SessionsService] OPENAI_API_KEY not set, cannot generate summary');
         return 'Summary generation unavailable (API key not configured).';

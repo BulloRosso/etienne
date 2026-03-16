@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ICheckpointProvider, Checkpoint, FileChange, GitTag, GitConnectionStatus } from './checkpoint-provider.interface';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 const execAsync = promisify(exec);
 
@@ -13,18 +14,18 @@ interface CheckpointManifest {
 }
 
 @Injectable()
-export class GiteaCheckpointProvider implements ICheckpointProvider {
+export class GiteaCheckpointProvider implements ICheckpointProvider, OnModuleInit {
   private readonly logger = new Logger(GiteaCheckpointProvider.name);
   private readonly giteaUrl: string;
   private readonly giteaUsername: string;
-  private readonly giteaPassword: string;
+  private giteaPassword: string;
   private readonly giteaRepo: string;
   private readonly workspaceDir: string;
   private readonly tempDir: string;
   private axiosClient: AxiosInstance;
   private giteaActualUsername: string | null = null;
 
-  constructor() {
+  constructor(private readonly secretsManager: SecretsManagerService) {
     this.giteaUrl = process.env.GITEA_URL || 'http://localhost:3000';
     this.giteaUsername = process.env.GITEA_USERNAME || 'ralph.goellner@e-ntegration.de';
     this.giteaPassword = process.env.GITEA_PASSWORD || 'gitea123';
@@ -47,6 +48,18 @@ export class GiteaCheckpointProvider implements ICheckpointProvider {
     this.logger.log(`Gitea provider initialized: ${this.giteaUrl}, repo: ${this.giteaRepo}`);
   }
 
+  async onModuleInit() {
+    const password = await this.secretsManager.getSecret('GITEA_PASSWORD');
+    if (password) {
+      this.giteaPassword = password;
+      this.axiosClient = axios.create({
+        baseURL: `${this.giteaUrl}/api/v1`,
+        auth: { username: this.giteaUsername, password },
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   /**
    * Get the actual Gitea username (cached after first call)
    */
@@ -57,8 +70,8 @@ export class GiteaCheckpointProvider implements ICheckpointProvider {
 
     try {
       const response = await this.axiosClient.get('/user');
-      this.giteaActualUsername = response.data.login;
-      return this.giteaActualUsername;
+      this.giteaActualUsername = response.data.login as string;
+      return this.giteaActualUsername!;
     } catch (error: any) {
       throw new Error(`Failed to get Gitea username: ${error.message}`);
     }

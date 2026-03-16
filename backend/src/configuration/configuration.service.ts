@@ -23,6 +23,9 @@ interface ConfigurationDto {
   PHOENIX_COLLECTOR_ENDPOINT?: string;
   OTEL_SERVICE_NAME?: string;
   REGISTERED_PREVIEWERS?: string;
+  SECRET_VAULT_PROVIDER?: string;
+  OPENBAO_ADDR?: string;
+  OPENBAO_DEV_ROOT_TOKEN?: string;
   [key: string]: string | undefined;
 }
 
@@ -205,6 +208,21 @@ export class ConfigurationService {
       lines.push('# Registered file previewers available in the frontend');
       lines.push('# Format: name:ext1,ext2|name2:ext3,ext4');
       lines.push(`REGISTERED_PREVIEWERS=${config.REGISTERED_PREVIEWERS}`);
+    }
+
+    // Secrets Manager Configuration
+    if (config.SECRET_VAULT_PROVIDER || config.OPENBAO_ADDR || config.OPENBAO_DEV_ROOT_TOKEN) {
+      lines.push('');
+      lines.push('# Secrets Manager Configuration');
+      if (config.SECRET_VAULT_PROVIDER) {
+        lines.push(`SECRET_VAULT_PROVIDER=${config.SECRET_VAULT_PROVIDER}`);
+      }
+      if (config.OPENBAO_ADDR) {
+        lines.push(`OPENBAO_ADDR=${config.OPENBAO_ADDR}`);
+      }
+      if (config.OPENBAO_DEV_ROOT_TOKEN) {
+        lines.push(`OPENBAO_DEV_ROOT_TOKEN=${config.OPENBAO_DEV_ROOT_TOKEN}`);
+      }
     }
 
     return lines.join('\n') + '\n';
