@@ -214,10 +214,10 @@ project using the [Scrapbook](#scrapbook)
       const mcpPermissions = (settingsJson.allowedTools || []).filter((tool: string) => tool.startsWith('mcp__'));
 
       // Merge: base permissions + MCP permissions
-      return { allowedTools: [...basePermissions, ...mcpPermissions] };
+      return { allowedTools: [...basePermissions, ...mcpPermissions], deniedTools: this.config.defaultDeniedTools };
     } catch {
       // If settings.json doesn't exist or has no MCP permissions, just return base
-      return { allowedTools: basePermissions };
+      return { allowedTools: basePermissions, deniedTools: this.config.defaultDeniedTools };
     }
   }
 
@@ -508,13 +508,13 @@ project using the [Scrapbook](#scrapbook)
         }
 
         // Load permissions
-        const { allowedTools } = await this.getPermissions(projectDir);
+        const { allowedTools, deniedTools } = await this.getPermissions(projectDir);
 
         // Determine planning mode
         const planningMode = agentMode === 'plan';
 
         // Build script and docker args
-        const script = buildClaudeScript({ containerCwd, envHome, resumeArg, allowedTools, planningMode, maxTurns });
+        const script = buildClaudeScript({ containerCwd, envHome, resumeArg, allowedTools, deniedTools, planningMode, maxTurns });
         const args = [
           'exec',
           '-w', containerCwd,

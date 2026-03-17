@@ -3,15 +3,20 @@ export interface ScriptOptions {
   envHome: string;
   resumeArg: string;
   allowedTools: string[];
+  deniedTools: string[];
   planningMode?: boolean;
   maxTurns?: number;
 }
 
 export function buildClaudeScript(options: ScriptOptions): string {
-  const { containerCwd, envHome, resumeArg, allowedTools, planningMode, maxTurns } = options;
+  const { containerCwd, envHome, resumeArg, allowedTools, deniedTools, planningMode, maxTurns } = options;
 
   const allowedToolsArgs = allowedTools
     .map(tool => `  --allowedTools "${tool}"`)
+    .join(' \\\n');
+
+  const deniedToolsArgs = deniedTools
+    .map(tool => `  --disallowedTools "${tool}"`)
     .join(' \\\n');
 
   const permissionMode = planningMode ? 'plan' : 'acceptEdits';
@@ -28,6 +33,7 @@ export function buildClaudeScript(options: ScriptOptions): string {
     '  --include-partial-messages',
     `  --permission-mode ${permissionMode}`,
     allowedToolsArgs,
+    deniedToolsArgs,
   ];
 
   if (maxTurnsArg) {

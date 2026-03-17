@@ -73,7 +73,8 @@ export class ClaudeSdkService {
         : safeRoot(this.config.hostRoot, projectDir);
 
       // Load permissions if not provided
-      const tools = allowedTools || await this.loadPermissions(projectDir);
+      const loaded = allowedTools ? { allowedTools, deniedTools: this.config.defaultDeniedTools } : await this.loadPermissions(projectDir);
+      const tools = loaded.allowedTools;
 
       // Load alternative AI model configuration
       const altModelConfig = await this.loadAlternativeModelConfig(projectDir);
@@ -101,6 +102,7 @@ export class ClaudeSdkService {
         cwd: projectRoot,  // Set working directory to workspace/<project>
         ...(sandbox && { sandbox }),
         allowedTools: tools,
+        disallowedTools: loaded.deniedTools,
         permissionMode: permissionMode as any,
         maxTurns: maxTurns || 20,
         settingSources: ['project' as const],
@@ -219,9 +221,9 @@ export class ClaudeSdkService {
   }
 
   /**
-   * Load allowed tools from permissions.json and settings.json
+   * Load allowed and denied tools from permissions.json and settings.json
    */
-  private async loadPermissions(projectDir: string): Promise<string[]> {
+  private async loadPermissions(projectDir: string): Promise<{ allowedTools: string[]; deniedTools: string[] }> {
     const root = safeRoot(this.config.hostRoot, projectDir);
     const permissionsPath = join(root, 'data', 'permissions.json');
     const settingsJsonPath = join(root, '.claude', 'settings.json');
@@ -236,6 +238,8 @@ export class ClaudeSdkService {
       basePermissions = this.config.defaultAllowedTools;
     }
 
+    const deniedTools = this.config.defaultDeniedTools;
+
     // Load MCP permissions from settings.json and merge
     try {
       const settingsContent = await fs.readFile(settingsJsonPath, 'utf8');
@@ -243,10 +247,10 @@ export class ClaudeSdkService {
       const mcpPermissions = (settingsJson.allowedTools || []).filter((tool: string) => tool.startsWith('mcp__'));
 
       // Merge: base permissions + MCP permissions
-      return [...basePermissions, ...mcpPermissions];
+      return { allowedTools: [...basePermissions, ...mcpPermissions], deniedTools };
     } catch {
       // If settings.json doesn't exist or has no MCP permissions, just return base
-      return basePermissions;
+      return { allowedTools: basePermissions, deniedTools };
     }
   }
 

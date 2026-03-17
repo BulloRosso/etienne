@@ -7,6 +7,7 @@ export class ClaudeConfig {
   readonly timeoutMs: number;
   anthropicKey: string;
   readonly defaultAllowedTools: string[];
+  readonly defaultDeniedTools: string[];
   readonly forceProjectScope: boolean;
 
   constructor(private secretsManager?: SecretsManagerService) {
@@ -32,6 +33,14 @@ export class ClaudeConfig {
       'Write(${containerCwd}/out/**)',
       'MultiEdit(${containerCwd}/out/**)',
       'NotebookEdit(${containerCwd}/out/**)',
+    ];
+    this.defaultDeniedTools = [
+      'Read(.env)',
+      'Read(.env.*)',
+      'Read(**/.env)',
+      'Read(**/.env.*)',
+      'Bash(cat .env*)',
+      'Bash(cat */.env*)',
     ];
   }
 
