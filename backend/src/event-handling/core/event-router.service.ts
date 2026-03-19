@@ -18,6 +18,14 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
   private subscribers: Set<(event: InternalEvent) => void> = new Set();
   private isRunning = false;
 
+  // Use TCP on Windows since IPC (Unix domain sockets) is not supported
+  private static readonly PUB_ENDPOINT = process.platform === 'win32'
+    ? 'tcp://127.0.0.1:5557'
+    : 'ipc:///tmp/etienne-events-pub';
+  private static readonly PULL_ENDPOINT = process.platform === 'win32'
+    ? 'tcp://127.0.0.1:5558'
+    : 'ipc:///tmp/etienne-events-pull';
+
   constructor(
     @Inject(forwardRef(() => RuleEngineService))
     private readonly ruleEngine: RuleEngineService,
@@ -43,13 +51,13 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
     try {
       // Create PUB socket for distributing events
       this.pubSocket = new zmq.Publisher();
-      await this.pubSocket.bind('ipc:///tmp/etienne-events-pub');
-      this.logger.log('Event publisher socket bound to ipc:///tmp/etienne-events-pub');
+      await this.pubSocket.bind(EventRouterService.PUB_ENDPOINT);
+      this.logger.log(`Event publisher socket bound to ${EventRouterService.PUB_ENDPOINT}`);
 
       // Create PULL socket for receiving events
       this.pullSocket = new zmq.Pull();
-      await this.pullSocket.bind('ipc:///tmp/etienne-events-pull');
-      this.logger.log('Event pull socket bound to ipc:///tmp/etienne-events-pull');
+      await this.pullSocket.bind(EventRouterService.PULL_ENDPOINT);
+      this.logger.log(`Event pull socket bound to ${EventRouterService.PULL_ENDPOINT}`);
 
       // Start listening for events
       this.isRunning = true;
@@ -173,7 +181,7 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
     try {
       // Send to pull socket (which will then distribute)
       const pushSocket = new zmq.Push();
-      await pushSocket.connect('ipc:///tmp/etienne-events-pull');
+      await pushSocket.connect(EventRouterService.PULL_ENDPOINT);
       await pushSocket.send(JSON.stringify(fullEvent));
       await pushSocket.close();
 

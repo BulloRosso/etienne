@@ -111,7 +111,37 @@ export class ProjectsService {
         }
       }
 
-      // 8. Create or copy UI config with agent name
+      // 8. Create intro video reference file and copy video assets
+      try {
+        const frontendPublicDir = path.resolve(process.cwd(), '..', 'frontend', 'public');
+        const introVideoFiles = ['etienne-intro-1.mp4', 'etienne-intro-2.mp4', 'etienne-intro-3.mp4'];
+        const copiedVideos: string[] = [];
+
+        for (const videoFile of introVideoFiles) {
+          const videoSource = path.join(frontendPublicDir, videoFile);
+          if (await fs.pathExists(videoSource)) {
+            await fs.copy(videoSource, path.join(projectPath, videoFile));
+            copiedVideos.push(videoFile);
+          }
+        }
+
+        const introVideosContent =
+          '# These videos introduce the key features of your agent\n' +
+          copiedVideos.map((v) => v + '\n').join('');
+        await fs.writeFile(path.join(projectPath, 'intro.videos'), introVideosContent, 'utf-8');
+
+        if (copiedVideos.length > 0) {
+          this.logger.log(`Copied ${copiedVideos.length} intro video(s) to ${dto.projectName}`);
+        } else {
+          warnings.push('No intro video files found in frontend/public');
+        }
+
+        this.logger.log(`Created intro.videos for ${dto.projectName}`);
+      } catch (error: any) {
+        warnings.push(`Failed to create intro.videos: ${error.message}`);
+      }
+
+      // 9. Create or copy UI config with agent name
       try {
         await this.createUIConfig(dto, projectPath);
         this.logger.log(`Created UI config for ${dto.projectName}`);
@@ -119,7 +149,7 @@ export class ProjectsService {
         warnings.push(`Failed to create UI config: ${error.message}`);
       }
 
-      // 9. Generate chat greeting message from mission brief
+      // 10. Generate chat greeting message from mission brief
       if (dto.missionBrief && dto.missionBrief.trim().length > 0) {
         try {
           const greetingMessage = await this.generateWelcomeMessage(dto, projectPath);
@@ -135,7 +165,7 @@ export class ProjectsService {
         }
       }
 
-      // 10. Collect guidance documents from provisioned skills
+      // 11. Collect guidance documents from provisioned skills
       const guidanceDocuments = await this.findGuidanceDocuments(projectPath);
 
       return {
@@ -275,6 +305,12 @@ export class ProjectsService {
         if (dto.autoFilePreviewExtensions && dto.autoFilePreviewExtensions.length > 0) {
           existingConfig.autoFilePreviewExtensions = dto.autoFilePreviewExtensions;
         }
+        // Ensure intro.videos is in the auto-open documents
+        const previewDocs: string[] = existingConfig.previewDocuments || [];
+        if (!previewDocs.includes('intro.videos')) {
+          previewDocs.push('intro.videos');
+        }
+        existingConfig.previewDocuments = previewDocs;
         await fs.writeJson(uiConfigPath, existingConfig, { spaces: 2 });
         return;
       }
@@ -293,7 +329,7 @@ export class ProjectsService {
         quickActions: [],
         showWelcomeMessage: true,
       },
-      previewDocuments: [],
+      previewDocuments: ['intro.videos'],
       autoFilePreviewExtensions: dto.autoFilePreviewExtensions || [],
     };
 

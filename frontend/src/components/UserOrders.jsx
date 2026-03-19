@@ -16,7 +16,7 @@ import {
   Skeleton,
   Tooltip
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, MoreVert, CheckCircle, Cancel } from '@mui/icons-material';
+import { MoreVert, CheckCircle, Cancel } from '@mui/icons-material';
 import { TbSearch, TbCalendarTime, TbEye, TbProgressBolt } from 'react-icons/tb';
 import { PiPackageThin } from 'react-icons/pi';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
@@ -43,14 +43,13 @@ const TYPE_ICONS = {
   'Monitoring': TbEye,
 };
 
-const ITEMS_PER_PAGE = 3;
 
 function PlaceholderCard({ themeMode }) {
   return (
     <Paper
       elevation={0}
       sx={{
-        flex: { xs: '0 0 auto', lg: '0 0 calc(33.333% - 8px)' },
+        width: '100%',
         minWidth: 0,
         p: 1.5,
         display: 'flex',
@@ -85,7 +84,7 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
     <Paper
       elevation={isFinished ? 0 : 1}
       sx={{
-        flex: { xs: '0 0 auto', lg: '0 0 calc(33.333% - 8px)' },
+        width: '100%',
         minWidth: 0,
         p: 1.5,
         display: 'flex',
@@ -149,6 +148,11 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
           {!isFinished && (
             <MenuItem onClick={() => { setAnchorEl(null); onCancel(order); }}>
               {t('userOrders.cancel', 'Cancel')}
+            </MenuItem>
+          )}
+          {isFinished && (
+            <MenuItem onClick={() => { setAnchorEl(null); onNavigate(order); }}>
+              {t('userOrders.gotoChat', 'Goto chat')}
             </MenuItem>
           )}
           <MenuItem onClick={() => { setAnchorEl(null); onRemove(order); }}>
@@ -217,7 +221,6 @@ export default function UserOrders() {
   const [orders, setOrders] = useState([]);
   const [historyOrders, setHistoryOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
   const [cancelDialog, setCancelDialog] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const intervalRef = useRef(null);
@@ -258,13 +261,6 @@ export default function UserOrders() {
 
   // Combine active orders + last 3 finished into one list
   const allOrders = [...orders, ...historyOrders];
-  const totalPages = Math.max(1, Math.ceil(allOrders.length / ITEMS_PER_PAGE));
-
-  useEffect(() => {
-    if (currentPage >= totalPages) {
-      setCurrentPage(Math.max(0, totalPages - 1));
-    }
-  }, [totalPages, currentPage]);
 
   const handleCancel = (order) => {
     setCancelDialog(order);
@@ -310,11 +306,6 @@ export default function UserOrders() {
     }
   };
 
-  const pageOrders = allOrders.slice(
-    currentPage * ITEMS_PER_PAGE,
-    (currentPage + 1) * ITEMS_PER_PAGE,
-  );
-
   const showPlaceholders = allOrders.length === 0;
 
   return (
@@ -322,78 +313,29 @@ export default function UserOrders() {
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
         <PiPackageThin size={90} color="#ccc" />
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        <IconButton
-          size="small"
-          disabled={showPlaceholders || currentPage === 0}
-          onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-        >
-          <ChevronLeft fontSize="small" />
-        </IconButton>
-
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: { xs: 'column', lg: 'row' },
-            gap: '8px',
-            overflow: 'hidden',
-          }}
-        >
-          {showPlaceholders
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <PlaceholderCard key={i} themeMode={themeMode} />
-              ))
-            : pageOrders.map((order) => (
-                <OrderCard
-                  key={order.orderId}
-                  order={order}
-                  themeMode={themeMode}
-                  onCancel={handleCancel}
-                  onRemove={handleRemove}
-                  onInputRequired={handleInputRequired}
-                  onNavigate={handleInputRequired}
-                />
-              ))}
-        </Box>
-
-        <IconButton
-          size="small"
-          disabled={showPlaceholders || currentPage >= totalPages - 1}
-          onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-        >
-          <ChevronRight fontSize="small" />
-        </IconButton>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
+      >
+        {showPlaceholders
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <PlaceholderCard key={i} themeMode={themeMode} />
+            ))
+          : allOrders.map((order) => (
+              <OrderCard
+                key={order.orderId}
+                order={order}
+                themeMode={themeMode}
+                onCancel={handleCancel}
+                onRemove={handleRemove}
+                onInputRequired={handleInputRequired}
+                onNavigate={handleInputRequired}
+              />
+            ))}
       </Box>
-
-      {/* Page dots */}
-      {!showPlaceholders && totalPages > 1 && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 0.5,
-            mt: 1,
-          }}
-        >
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <Box
-              key={i}
-              onClick={() => setCurrentPage(i)}
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: i === currentPage
-                  ? (themeMode === 'dark' ? '#fff' : '#333')
-                  : (themeMode === 'dark' ? '#555' : '#ccc'),
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-            />
-          ))}
-        </Box>
-      )}
 
       <Typography
         variant="body2"

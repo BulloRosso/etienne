@@ -96,8 +96,8 @@ function VideosPlaylist({ filename, projectName, themeMode }) {
         );
         if (!response.ok) throw new Error(`Failed to load: ${response.statusText}`);
         const text = await response.text();
-        const entries = text.split('\n').map(l => l.trim()).filter(Boolean);
-        setLines(entries);
+        const allLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        setLines(allLines);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -132,8 +132,20 @@ function VideosPlaylist({ filename, projectName, themeMode }) {
     );
   }
 
+  const descriptions = lines.filter(l => l.startsWith('#')).map(l => l.replace(/^#+\s*/, ''));
+  const videoLines = lines.filter(l => !l.startsWith('#'));
+
   return (
     <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
+      {descriptions.length > 0 && (
+        <Box sx={{ mb: '24px' }}>
+          {descriptions.map((desc, idx) => (
+            <Typography key={idx} variant="body2" color="text.secondary">
+              {desc}
+            </Typography>
+          ))}
+        </Box>
+      )}
       <Box
         sx={{
           display: 'grid',
@@ -141,7 +153,7 @@ function VideosPlaylist({ filename, projectName, themeMode }) {
           gap: 2,
         }}
       >
-        {lines.map((line, idx) => {
+        {videoLines.map((line, idx) => {
           const lower = line.toLowerCase();
           if (lower.endsWith('.youtube')) {
             const basename = line.split('/').pop().split('\\').pop();
