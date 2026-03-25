@@ -693,7 +693,6 @@ function ModificationGuideTab({ C }) {
   const sections = [
     {
       title: 'How to add new things',
-      icon: <InfoIcon sx={{ fontSize: 18, color: C.accent }} />,
       items: [
         { text: 'Just mention them in conversation:', example: '"We signed a new vendor called Acme Corp"' },
         { text: 'Or be explicit:', example: '"Add a new Customer named Jane Smith with email jane@example.com"' },
@@ -701,7 +700,6 @@ function ModificationGuideTab({ C }) {
     },
     {
       title: 'How to update things',
-      icon: <EditIcon sx={{ fontSize: 18, color: C.accent }} />,
       items: [
         { text: 'Describe the change naturally:', example: '"The Acme Corp order status changed to shipped"' },
         { text: 'Or specify directly:', example: '"Update Jane Smith\'s phone number to 555-1234"' },
@@ -709,7 +707,6 @@ function ModificationGuideTab({ C }) {
     },
     {
       title: 'How to add new categories',
-      icon: <DefaultEntityIcon sx={{ fontSize: 18, color: C.accent }} />,
       items: [
         { text: 'Mention a new type of thing:', example: '"We need to start tracking Warehouses as well"' },
         { text: 'Define with properties:', example: '"Add a new entity type called DeliveryRoute with properties: origin, destination, distance"' },
@@ -717,7 +714,6 @@ function ModificationGuideTab({ C }) {
     },
     {
       title: 'How to define relationships',
-      icon: <RelationsIcon sx={{ fontSize: 18, color: C.accent }} />,
       items: [
         { text: 'Describe connections naturally:', example: '"Acme Corp supplies Widget Pro"' },
         { text: 'Or state them:', example: '"Jane Smith works at Globex Corporation"' },
@@ -725,10 +721,17 @@ function ModificationGuideTab({ C }) {
     },
     {
       title: 'How to remove things',
-      icon: <DeleteOutlineIcon sx={{ fontSize: 18, color: C.danger }} />,
       items: [
         { text: 'Use the trash icon on the Dashboard or Relations tab to remove entities and relationships directly.' },
         { text: 'Or tell the assistant:', example: '"Remove vendor Acme Corp from the system"' },
+      ],
+    },
+    {
+      title: 'Learn from files',
+      items: [
+        { text: 'Drop an image (.jpg, .png) into the file explorer — OCR will automatically extract text and learn entities from it.' },
+        { text: 'Drop an Office document (.docx, .xlsx, .pptx, .odt, ...) — the content will be parsed and searched for new entities and relationships.' },
+        { text: 'A green notification appears when new knowledge has been acquired from a file.' },
       ],
     },
   ];
@@ -740,7 +743,7 @@ function ModificationGuideTab({ C }) {
           How to modify your knowledge base
         </Typography>
         <Typography sx={{ color: C.textMuted, fontSize: 13, lineHeight: 1.6 }}>
-          Your assistant learns from every message — you don't need special commands.
+          Your agent learns from every message — you don't need special commands.
           Just talk naturally and relevant information will be captured automatically.
         </Typography>
       </Box>
@@ -756,8 +759,7 @@ function ModificationGuideTab({ C }) {
             overflow: 'hidden',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.25, background: C.panel }}>
-            {section.icon}
+          <Box sx={{ px: 2, py: 1.25, background: C.panel }}>
             <Typography sx={{ color: C.text, fontSize: 13, fontWeight: 700 }}>
               {section.title}
             </Typography>
