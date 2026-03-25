@@ -129,6 +129,104 @@ const tools: McpTool[] = [
       required: ['project', 'query'],
     },
   },
+  {
+    name: 'kg_create_entity',
+    description: 'Creates a new entity in the knowledge graph ontology. Use this to add business entities like customers, products, orders, suppliers, etc. The entity ID should be lowercase-hyphenated and prefixed with the type slug (e.g., "customer-acme-corp", "product-widget-pro"). A createdAt timestamp is added automatically.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: {
+          type: 'string',
+          description: 'The project name (directory name in workspace). Extract this from the current working directory.',
+        },
+        id: {
+          type: 'string',
+          description: 'Unique entity ID in lowercase-hyphenated format, prefixed with type slug (e.g., "supplier-acme-corp", "product-widget-pro", "order-2026-001").',
+        },
+        type: {
+          type: 'string',
+          description: 'Entity type name in PascalCase (e.g., "Customer", "Product", "Supplier", "Order").',
+        },
+        properties: {
+          type: 'object',
+          description: 'Key-value pairs of entity properties (e.g., { "name": "Acme Corp", "industry": "Manufacturing" }). All values should be strings.',
+          additionalProperties: { type: 'string' },
+        },
+      },
+      required: ['project', 'id', 'type'],
+    },
+  },
+  {
+    name: 'kg_update_entity',
+    description: 'Updates an existing entity in the knowledge graph. Deletes the old entity and re-creates it with updated properties. Properties not included in the update are lost — always pass the full set of properties.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: {
+          type: 'string',
+          description: 'The project name (directory name in workspace).',
+        },
+        id: {
+          type: 'string',
+          description: 'The existing entity ID to update.',
+        },
+        type: {
+          type: 'string',
+          description: 'Entity type name in PascalCase.',
+        },
+        properties: {
+          type: 'object',
+          description: 'Full set of key-value properties for the entity. All previous properties are replaced.',
+          additionalProperties: { type: 'string' },
+        },
+      },
+      required: ['project', 'id', 'type'],
+    },
+  },
+  {
+    name: 'kg_delete_entity',
+    description: 'Deletes an entity and all its triples from the knowledge graph. This is irreversible. Always confirm with the user before deleting.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: {
+          type: 'string',
+          description: 'The project name (directory name in workspace).',
+        },
+        id: {
+          type: 'string',
+          description: 'The entity ID to delete (e.g., "supplier-old-vendor").',
+        },
+      },
+      required: ['project', 'id'],
+    },
+  },
+  {
+    name: 'kg_create_relationship',
+    description: 'Creates a directed relationship between two entities in the knowledge graph. Both entities must already exist. The predicate should be a camelCase verb describing the relationship (e.g., "supplies", "placesOrder", "contains").',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: {
+          type: 'string',
+          description: 'The project name (directory name in workspace).',
+        },
+        subject: {
+          type: 'string',
+          description: 'The source entity ID (e.g., "supplier-acme-corp").',
+        },
+        predicate: {
+          type: 'string',
+          description: 'The relationship type in camelCase (e.g., "supplies", "placesOrder", "worksAt").',
+        },
+        object: {
+          type: 'string',
+          description: 'The target entity ID (e.g., "product-widget-pro").',
+        },
+      },
+      required: ['project', 'subject', 'predicate', 'object'],
+    },
+  },
 ];
 
 /**
@@ -557,6 +655,103 @@ Important rules:
   }
 
   /**
+   * Create a new entity in the knowledge graph
+   */
+  async function createEntity(project: string, id: string, type: string, properties: Record<string, string> = {}): Promise<any> {
+    if (!project) throw new Error('Project name is required.');
+    if (!id) throw new Error('Entity ID is required.');
+    if (!type) throw new Error('Entity type is required.');
+
+    const propsWithTimestamp = {
+      ...properties,
+      createdAt: properties.createdAt || new Date().toISOString(),
+    };
+
+    await knowledgeGraphService.addEntity(project, {
+      id,
+      type: type as any,
+      properties: propsWithTimestamp,
+    });
+
+    return {
+      success: true,
+      message: `Entity "${id}" (type=${type}) created in project ${project}`,
+      id,
+      type,
+      properties: propsWithTimestamp,
+    };
+  }
+
+  /**
+   * Update an existing entity (delete + re-create)
+   */
+  async function updateEntity(project: string, id: string, type: string, properties: Record<string, string> = {}): Promise<any> {
+    if (!project) throw new Error('Project name is required.');
+    if (!id) throw new Error('Entity ID is required.');
+    if (!type) throw new Error('Entity type is required.');
+
+    // Delete existing entity first
+    try {
+      await knowledgeGraphService.deleteEntity(project, id);
+    } catch { /* entity may not exist yet — that's okay */ }
+
+    const propsWithTimestamp = {
+      ...properties,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await knowledgeGraphService.addEntity(project, {
+      id,
+      type: type as any,
+      properties: propsWithTimestamp,
+    });
+
+    return {
+      success: true,
+      message: `Entity "${id}" (type=${type}) updated in project ${project}`,
+      id,
+      type,
+      properties: propsWithTimestamp,
+    };
+  }
+
+  /**
+   * Delete an entity from the knowledge graph
+   */
+  async function deleteEntity(project: string, id: string): Promise<any> {
+    if (!project) throw new Error('Project name is required.');
+    if (!id) throw new Error('Entity ID is required.');
+
+    await knowledgeGraphService.deleteEntity(project, id);
+
+    return {
+      success: true,
+      message: `Entity "${id}" deleted from project ${project}`,
+      id,
+    };
+  }
+
+  /**
+   * Create a relationship between two entities
+   */
+  async function createRelationship(project: string, subject: string, predicate: string, object: string): Promise<any> {
+    if (!project) throw new Error('Project name is required.');
+    if (!subject) throw new Error('Subject entity ID is required.');
+    if (!predicate) throw new Error('Predicate is required.');
+    if (!object) throw new Error('Object entity ID is required.');
+
+    await knowledgeGraphService.addRelationship(project, { subject, predicate, object });
+
+    return {
+      success: true,
+      message: `Relationship created: ${subject} —[${predicate}]→ ${object} in project ${project}`,
+      subject,
+      predicate,
+      object,
+    };
+  }
+
+  /**
    * Execute a tool by name with given arguments
    *
    * @param toolName - Name of the tool to execute
@@ -582,6 +777,18 @@ Important rules:
 
       case 'kg_find_Products':
         return findProducts(args.project, args.query);
+
+      case 'kg_create_entity':
+        return createEntity(args.project, args.id, args.type, args.properties);
+
+      case 'kg_update_entity':
+        return updateEntity(args.project, args.id, args.type, args.properties);
+
+      case 'kg_delete_entity':
+        return deleteEntity(args.project, args.id);
+
+      case 'kg_create_relationship':
+        return createRelationship(args.project, args.subject, args.predicate, args.object);
 
       default:
         throw new Error(`Unknown tool: ${toolName}`);

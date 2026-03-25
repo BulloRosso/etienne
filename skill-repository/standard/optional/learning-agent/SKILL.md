@@ -34,6 +34,8 @@ curl -s "http://localhost:6060/api/public/ontology/context/${PROJECT}" \
 - If entities exist, enter **Continuous Learning Mode**.
 - Also check if a `.knowledge` file exists in the project root. If not, you will create one after onboarding.
 
+> **Important:** For creating, updating, and deleting entities and relationships, always use the MCP tools (`kg_create_entity`, `kg_update_entity`, `kg_delete_entity`, `kg_create_relationship`) instead of curl. The curl endpoints are documented below as reference but the MCP tools are the preferred method.
+
 ---
 
 ## 3. Onboarding Mode
@@ -135,34 +137,52 @@ For each message, determine if it contains:
 
 ### CREATE an entity
 
-```bash
-curl -s -X POST "http://localhost:6060/api/public/ontology/entities/${PROJECT}" \
-  -H "Content-Type: application/json" \
-  -d '{ "id": "vendor-acme-corp", "type": "Vendor", "properties": { "name": "Acme Corp", "status": "active" } }'
+Use the `kg_create_entity` MCP tool:
+
+```json
+{
+  "project": "${PROJECT}",
+  "id": "vendor-acme-corp",
+  "type": "Vendor",
+  "properties": { "name": "Acme Corp", "status": "active" }
+}
 ```
 
 ### UPDATE an entity
 
-```bash
-curl -s -X PUT "http://localhost:6060/api/public/ontology/entities/${PROJECT}/order-johnson-2024" \
-  -H "Content-Type: application/json" \
-  -d '{ "type": "Order", "properties": { "status": "shipped", "shippedDate": "2026-03-24" } }'
+Use the `kg_update_entity` MCP tool. **Pass all properties** — previous values are replaced:
+
+```json
+{
+  "project": "${PROJECT}",
+  "id": "order-johnson-2024",
+  "type": "Order",
+  "properties": { "name": "Johnson Order", "status": "shipped", "shippedDate": "2026-03-24" }
+}
 ```
 
 ### DELETE an entity
 
-**Always confirm with the user before deleting.** Then:
+**Always confirm with the user before deleting.** Then use `kg_delete_entity`:
 
-```bash
-curl -s -X DELETE "http://localhost:6060/api/public/ontology/entities/${PROJECT}/vendor-old-supplier"
+```json
+{
+  "project": "${PROJECT}",
+  "id": "vendor-old-supplier"
+}
 ```
 
 ### CREATE a relationship
 
-```bash
-curl -s -X POST "http://localhost:6060/api/public/ontology/relationships/${PROJECT}" \
-  -H "Content-Type: application/json" \
-  -d '{ "subject": "vendor-acme-corp", "predicate": "supplies", "object": "product-widget-pro" }'
+Use the `kg_create_relationship` MCP tool:
+
+```json
+{
+  "project": "${PROJECT}",
+  "subject": "vendor-acme-corp",
+  "predicate": "supplies",
+  "object": "product-widget-pro"
+}
 ```
 
 ### Update the `.knowledge` file
@@ -217,7 +237,23 @@ This happens fully automatically. You do **not** need to process Office document
 
 ---
 
-## 7. API Reference
+## 7. MCP Tools Reference (preferred)
+
+| Tool | Purpose |
+|------|---------|
+| `kg_create_entity` | Create entity `{project, id, type, properties}` |
+| `kg_update_entity` | Update entity `{project, id, type, properties}` (full replace) |
+| `kg_delete_entity` | Delete entity `{project, id}` |
+| `kg_create_relationship` | Create relationship `{project, subject, predicate, object}` |
+| `kg_learn_document` | Add document to vector store `{project, filepath, content?}` |
+| `kg_search_document` | Search vector store `{project, query}` |
+| `kg_find_Companies` | Find companies via SPARQL `{project, query}` |
+| `kg_find_Persons` | Find persons via SPARQL `{project, query}` |
+| `kg_find_Products` | Find products via SPARQL `{project, query}` |
+
+**Always use the MCP tools above** for entity CRUD. The REST endpoints below are for reference only.
+
+## 7b. REST API Reference (fallback)
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -231,7 +267,7 @@ This happens fully automatically. You do **not** need to process Office document
 | `GET` | `/api/public/ontology/relations/{project}/{id}` | Entity relationships (grouped) |
 | `POST` | `/api/public/ontology/relationships/{project}` | Create relationship `{subject, predicate, object}` |
 
-All endpoints are on `http://localhost:6060`. No authentication required — these are public endpoints for agent skill use.
+All REST endpoints are on `http://localhost:6060`. No authentication required.
 
 ---
 
