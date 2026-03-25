@@ -432,7 +432,7 @@ function formatEntityLabel(id, type) {
 
 // ── Relations Tab ──
 
-function RelationsTab({ entityId, entityType, projectName, C }) {
+function RelationsTab({ entityId, entityType, projectName, C, typeIcons }) {
   const [relations, setRelations] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedPredicates, setExpandedPredicates] = useState(new Set());
@@ -504,12 +504,13 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
 
   const Icon = getEntityIcon(entityType);
   const color = getEntityColor(entityType);
+  const CustomHeaderIcon = typeIcons?.[entityType] ? allReactIcons[typeIcons[entityType]] : null;
 
   return (
     <Box sx={{ p: 2 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1.5, borderBottom: `1px solid ${C.border}` }}>
-        <Icon sx={{ fontSize: 22, color }} />
+        {CustomHeaderIcon ? <CustomHeaderIcon size={22} color={color} /> : <Icon sx={{ fontSize: 22, color }} />}
         <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 15, fontFamily: 'Roboto, sans-serif' }}>
           {relations?.entityName || formatEntityLabel(entityId, entityType)}
         </Typography>
@@ -555,6 +556,7 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
                   const relKey = `out:${predicate}:${r.targetId}:${idx}`;
                   const TargetIcon = getEntityIcon(r.targetType);
                   const targetColor = getEntityColor(r.targetType);
+                  const CustomTargetIcon = typeIcons?.[r.targetType] ? allReactIcons[typeIcons[r.targetType]] : null;
                   return (
                     <Box
                       key={relKey}
@@ -567,7 +569,7 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
-                        <TargetIcon sx={{ fontSize: 14, color: targetColor }} />
+                        {CustomTargetIcon ? <CustomTargetIcon size={14} color={targetColor} /> : <TargetIcon sx={{ fontSize: 14, color: targetColor }} />}
                         <Typography sx={{
                           color: C.text, fontSize: 12, fontFamily: 'Roboto, sans-serif',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -627,6 +629,7 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
                   const relKey = `in:${predicate}:${r.sourceId}:${idx}`;
                   const SourceIcon = getEntityIcon(r.sourceType);
                   const sourceColor = getEntityColor(r.sourceType);
+                  const CustomSourceIcon = typeIcons?.[r.sourceType] ? allReactIcons[typeIcons[r.sourceType]] : null;
                   return (
                     <Box
                       key={relKey}
@@ -639,7 +642,7 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
-                        <SourceIcon sx={{ fontSize: 14, color: sourceColor }} />
+                        {CustomSourceIcon ? <CustomSourceIcon size={14} color={sourceColor} /> : <SourceIcon sx={{ fontSize: 14, color: sourceColor }} />}
                         <Typography sx={{
                           color: C.text, fontSize: 12, fontFamily: 'Roboto, sans-serif',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -934,7 +937,7 @@ export default function KnowledgeViewer({ filename, projectName }) {
       setTimeout(() => {
         setToastVisible(false);
         setTimeout(() => setKnowledgeToast(null), 500); // wait for fade-out
-      }, 5000);
+      }, 10000);
     };
     window.addEventListener('knowledgeAcquired', handleKnowledgeAcquired);
     return () => window.removeEventListener('knowledgeAcquired', handleKnowledgeAcquired);
@@ -970,11 +973,10 @@ export default function KnowledgeViewer({ filename, projectName }) {
       <Box sx={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         px: 2.5, py: 1.5,
-        borderBottom: `1px solid ${C.border}`,
         background: C.panel,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <GuideIcon sx={{ fontSize: 22, color: C.accent }} />
+          <img src="/knowledge.png" alt="Knowledge" style={{ width: 60 }} />
           <Box>
             <Typography sx={{ color: C.text, fontSize: 15, fontWeight: 700, lineHeight: 1.2 }}>
               {knowledgeMeta?.name || 'Knowledge Base'}
@@ -1067,6 +1069,7 @@ export default function KnowledgeViewer({ filename, projectName }) {
                 entityType={selectedInstance?.type}
                 projectName={projectName}
                 C={C}
+                typeIcons={typeIcons}
               />
             )}
             {activeTab === 2 && (

@@ -2009,7 +2009,7 @@ export default function App() {
       {/* Knowledge-acquired toast */}
       <Snackbar
         open={knowledgeToast.open}
-        autoHideDuration={5000}
+        autoHideDuration={10000}
         onClose={() => setKnowledgeToast(prev => ({ ...prev, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
