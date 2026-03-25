@@ -86,6 +86,7 @@ export default function App() {
   const [showWelcomePage, setShowWelcomePage] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [langToast, setLangToast] = useState({ open: false, language: '' });
+  const [knowledgeToast, setKnowledgeToast] = useState({ open: false, message: '' });
   const [activeContextId, setActiveContextId] = useState(null);
   const [contexts, setContexts] = useState([]);
   const [contextManagerOpen, setContextManagerOpen] = useState(false);
@@ -510,6 +511,9 @@ export default function App() {
         if (eventType === 'knowledge-acquired') {
           // Dispatch window event for KnowledgeViewer to pick up
           window.dispatchEvent(new CustomEvent('knowledgeAcquired', { detail: eventData }));
+          // Show global toast so user sees confirmation regardless of active tab
+          const msg = eventData.summary || `Learned from ${eventData.document || 'document'}`;
+          setKnowledgeToast({ open: true, message: msg });
         }
 
         if (eventType === 'Notification' && eventData.message) {
@@ -1999,6 +2003,23 @@ export default function App() {
           sx={{ width: '100%' }}
         >
           {langToast.language}
+        </Alert>
+      </Snackbar>
+
+      {/* Knowledge-acquired toast */}
+      <Snackbar
+        open={knowledgeToast.open}
+        autoHideDuration={5000}
+        onClose={() => setKnowledgeToast(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setKnowledgeToast(prev => ({ ...prev, open: false }))}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%', fontWeight: 600 }}
+        >
+          {knowledgeToast.message}
         </Alert>
       </Snackbar>
 

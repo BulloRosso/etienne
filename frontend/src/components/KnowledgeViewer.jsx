@@ -13,6 +13,13 @@ import {
   Alert,
   CircularProgress,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Paper,
+  Grid,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -37,9 +44,41 @@ import {
   Edit as EditIcon,
   Info as InfoIcon,
 } from '@mui/icons-material';
+import * as FaIcons from 'react-icons/fa';
+import * as MdIcons from 'react-icons/md';
+import * as IoIcons from 'react-icons/io5';
+import * as BiIcons from 'react-icons/bi';
+import * as AiIcons from 'react-icons/ai';
+import * as GiIcons from 'react-icons/gi';
+import * as FiIcons from 'react-icons/fi';
+import * as TbIcons from 'react-icons/tb';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 import { apiAxios } from '../services/api';
+
+// ── React-icons picker helpers ──
+
+const allReactIcons = {
+  ...Object.fromEntries(Object.entries(FaIcons).filter(([k]) => k.startsWith('Fa'))),
+  ...Object.fromEntries(Object.entries(MdIcons).filter(([k]) => k.startsWith('Md'))),
+  ...Object.fromEntries(Object.entries(IoIcons).filter(([k]) => k.startsWith('Io'))),
+  ...Object.fromEntries(Object.entries(BiIcons).filter(([k]) => k.startsWith('Bi'))),
+  ...Object.fromEntries(Object.entries(AiIcons).filter(([k]) => k.startsWith('Ai'))),
+  ...Object.fromEntries(Object.entries(GiIcons).filter(([k]) => k.startsWith('Gi'))),
+  ...Object.fromEntries(Object.entries(FiIcons).filter(([k]) => k.startsWith('Fi'))),
+  ...Object.fromEntries(Object.entries(TbIcons).filter(([k]) => k.startsWith('Tb'))),
+};
+
+const reactIconNames = Object.keys(allReactIcons);
+
+const POPULAR_ICONS = [
+  'FaHome', 'FaBook', 'FaUser', 'FaCog', 'FaHeart', 'FaStar', 'FaFolder', 'FaFile',
+  'FaImage', 'FaCamera', 'FaMusic', 'FaVideo', 'FaCar', 'FaPlane', 'FaTree', 'FaLeaf',
+  'FaBed', 'FaCouch', 'FaTv', 'FaUtensils', 'FaCoffee', 'FaGift', 'FaShoppingCart', 'FaCreditCard',
+  'FaTruck', 'FaBox', 'FaWarehouse', 'FaIndustry', 'FaTools', 'FaLaptop', 'FaMicrochip', 'FaMemory',
+  'MdHome', 'MdWork', 'MdSchool', 'MdFavorite', 'MdInventory', 'MdLocalShipping', 'MdFactory',
+  'BiHome', 'BiBook', 'BiPackage', 'IoHome', 'IoBook', 'IoBuild',
+];
 
 // ── Icon & Color helpers (shared with OntologyCoreEditor) ──
 
@@ -113,7 +152,7 @@ const lightPalette = {
 
 // ── Dashboard Tab ──
 
-function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery }) {
+function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery, typeIcons, onIconClick }) {
   const [expanded, setExpanded] = useState(new Set());
   const [hoveredInstance, setHoveredInstance] = useState(null);
   const [toast, setToast] = useState(null);
@@ -176,7 +215,7 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
         {filteredTypeNodes.map(tn => {
           const Icon = getEntityIcon(tn.type);
           const color = getEntityColor(tn.type);
@@ -187,8 +226,7 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
             <Box
               key={tn.type}
               sx={{
-                flex: '1 1 320px',
-                maxWidth: 480,
+                minWidth: 0,
                 background: C.surface,
                 border: `1px solid ${C.border}`,
                 borderTop: `3px solid ${color}`,
@@ -207,7 +245,22 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Icon sx={{ fontSize: 20, color }} />
+                  {(() => {
+                    const customIconName = typeIcons?.[tn.type];
+                    const CustomIcon = customIconName ? allReactIcons[customIconName] : null;
+                    return (
+                      <Tooltip title="Change icon" placement="top">
+                        <Box
+                          onClick={(e) => { e.stopPropagation(); onIconClick?.(tn.type); }}
+                          sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', '&:hover': { opacity: 0.7 } }}
+                        >
+                          {CustomIcon
+                            ? <CustomIcon size={20} color={color} />
+                            : <Icon sx={{ fontSize: 20, color }} />}
+                        </Box>
+                      </Tooltip>
+                    );
+                  })()}
                   <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 14 }}>
                     {tn.type}
                   </Typography>
@@ -232,7 +285,14 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
                 {visibleInstances.map(inst => {
                   if (inst.id === deletedEntity) return null;
                   const isHovered = hoveredInstance === inst.id;
-                  const propEntries = Object.entries(inst.properties || {}).slice(0, 3);
+                  const META_KEYS = ['createdAt', 'type', 'updatedAt', 'name'];
+                  const propEntries = Object.entries(inst.properties || {})
+                    .filter(([k]) => !META_KEYS.includes(k))
+                    .slice(0, 3);
+                  const createdAt = inst.properties?.createdAt;
+                  const formattedDate = createdAt
+                    ? new Date(createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                    : null;
                   return (
                     <Box
                       key={inst.id}
@@ -251,21 +311,33 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
                       }}
                     >
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography sx={{
-                          color: C.text, fontSize: 12, fontWeight: 600, fontFamily: 'monospace',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
-                          {inst.id}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                          <Typography sx={{
+                            color: C.text, fontSize: 14, fontWeight: 600, fontFamily: 'Roboto, sans-serif',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {inst.properties?.name || (() => {
+                              const prefix = tn.type.toLowerCase() + '-';
+                              const raw = inst.id.startsWith(prefix) ? inst.id.slice(prefix.length) : inst.id;
+                              const label = raw.replace(/-/g, ' ');
+                              return label.charAt(0).toUpperCase() + label.slice(1);
+                            })()}
+                          </Typography>
+                          {formattedDate && (
+                            <Typography sx={{ color: C.textDim, fontSize: 10, flexShrink: 0 }}>
+                              {formattedDate}
+                            </Typography>
+                          )}
+                        </Box>
                         {propEntries.length > 0 && (
                           <Box sx={{ display: 'flex', gap: 0.5, mt: 0.25, flexWrap: 'wrap' }}>
                             {propEntries.map(([k, v]) => (
                               <Chip
                                 key={k}
-                                label={`${k}=${String(v).slice(0, 20)}`}
+                                label={`${k.charAt(0).toUpperCase() + k.slice(1)}: ${String(v).slice(0, 20)}`}
                                 size="small"
                                 sx={{
-                                  height: 16, fontSize: 9,
+                                  height: 20, fontSize: 14,
                                   background: C.panel, color: C.textMuted,
                                   border: `1px solid ${C.border}`,
                                 }}
@@ -724,6 +796,49 @@ export default function KnowledgeViewer({ filename, projectName }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInstance, setSelectedInstance] = useState(null); // { id, type }
 
+  // Icon picker state
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [iconPickerType, setIconPickerType] = useState(null); // entity type being edited
+  const [iconSearch, setIconSearch] = useState('');
+
+  const typeIcons = knowledgeMeta?.typeIcons || {};
+
+  const filteredPickerIcons = useMemo(() => {
+    if (!iconSearch) return POPULAR_ICONS;
+    const search = iconSearch.toLowerCase();
+    return reactIconNames.filter(name => name.toLowerCase().includes(search)).slice(0, 30);
+  }, [iconSearch]);
+
+  const handleIconClick = useCallback((entityType) => {
+    setIconPickerType(entityType);
+    setIconSearch('');
+    setIconPickerOpen(true);
+  }, []);
+
+  const handleIconSelect = useCallback(async (iconName) => {
+    setIconPickerOpen(false);
+    if (!knowledgeMeta || !filename || !projectName) return;
+
+    const updatedMeta = {
+      ...knowledgeMeta,
+      typeIcons: { ...knowledgeMeta.typeIcons, [iconPickerType]: iconName },
+      updatedAt: new Date().toISOString(),
+    };
+    // Remove key if icon cleared
+    if (!iconName) delete updatedMeta.typeIcons[iconPickerType];
+
+    setKnowledgeMeta(updatedMeta);
+
+    try {
+      await apiAxios.put(
+        `/api/workspace/${encodeURIComponent(projectName)}/files/save/${filename}`,
+        { content: JSON.stringify(updatedMeta, null, 2) },
+      );
+    } catch (err) {
+      console.error('Failed to save icon to .knowledge file:', err);
+    }
+  }, [knowledgeMeta, iconPickerType, filename, projectName]);
+
   // Load .knowledge file metadata
   useEffect(() => {
     if (!filename || !projectName) return;
@@ -797,7 +912,17 @@ export default function KnowledgeViewer({ filename, projectName }) {
     setActiveTab(1); // Switch to Relations tab
   }, []);
 
-  const totalEntities = typeNodes.reduce((sum, tn) => sum + tn.count, 0);
+  // Filter out type-definition instances (type-def-*) — schema metadata, not user data
+  const visibleTypeNodes = useMemo(() => {
+    return typeNodes
+      .map(tn => {
+        const instances = tn.instances.filter(inst => !inst.id.startsWith('type-def-'));
+        return instances.length > 0 ? { ...tn, instances, count: instances.length } : null;
+      })
+      .filter(Boolean);
+  }, [typeNodes]);
+
+  const totalEntities = visibleTypeNodes.reduce((sum, tn) => sum + tn.count, 0);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: C.bg, position: 'relative' }}>
@@ -815,7 +940,7 @@ export default function KnowledgeViewer({ filename, projectName }) {
               {knowledgeMeta?.name || 'Knowledge Base'}
             </Typography>
             <Typography sx={{ color: C.textMuted, fontSize: 11 }}>
-              {typeNodes.length} types · {totalEntities} entities
+              {visibleTypeNodes.length} types · {totalEntities} entities
             </Typography>
           </Box>
         </Box>
@@ -890,11 +1015,13 @@ export default function KnowledgeViewer({ filename, projectName }) {
           <>
             {activeTab === 0 && (
               <DashboardTab
-                typeNodes={typeNodes}
+                typeNodes={visibleTypeNodes}
                 projectName={projectName}
                 onSelectInstance={handleSelectInstance}
                 C={C}
                 searchQuery={searchQuery}
+                typeIcons={typeIcons}
+                onIconClick={handleIconClick}
               />
             )}
             {activeTab === 1 && (
@@ -911,6 +1038,71 @@ export default function KnowledgeViewer({ filename, projectName }) {
           </>
         )}
       </Box>
+
+      {/* Icon Picker Dialog */}
+      <Dialog
+        open={iconPickerOpen}
+        onClose={() => setIconPickerOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Select icon for {iconPickerType}</DialogTitle>
+        <DialogContent>
+          <TextField
+            placeholder="Search icons..."
+            value={iconSearch}
+            onChange={(e) => setIconSearch(e.target.value)}
+            fullWidth
+            size="small"
+            sx={{ mb: 2, mt: 1 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 18 }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Grid container spacing={1}>
+            {filteredPickerIcons.map((name) => {
+              const IconComp = allReactIcons[name];
+              if (!IconComp) return null;
+              const selected = typeIcons[iconPickerType] === name;
+              return (
+                <Grid item key={name}>
+                  <Paper
+                    variant={selected ? 'elevation' : 'outlined'}
+                    elevation={selected ? 3 : 0}
+                    sx={{
+                      width: 48, height: 48,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                      backgroundColor: selected ? 'primary.light' : 'transparent',
+                      '&:hover': { backgroundColor: 'action.hover' },
+                    }}
+                    onClick={() => handleIconSelect(name)}
+                  >
+                    <IconComp size={24} />
+                  </Paper>
+                </Grid>
+              );
+            })}
+          </Grid>
+          {filteredPickerIcons.length === 0 && (
+            <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+              No icons found
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {typeIcons[iconPickerType] && (
+            <Button onClick={() => handleIconSelect('')} color="error">
+              Clear icon
+            </Button>
+          )}
+          <Button onClick={() => setIconPickerOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Knowledge-acquired green success toast — centered at bottom with slow fade-in */}
       {knowledgeToast && (

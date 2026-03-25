@@ -44,6 +44,8 @@ class FilePreviewHandler {
       this.handleScrapbookPreview(filePath, projectName);
     } else if (extension === 'youtube' || extension === 'videos' || extension === 'mp4') {
       this.handleVideoPreview(filePath, projectName);
+    } else if (extension === 'knowledge') {
+      this.handleKnowledgePreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -225,6 +227,21 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'video-preview'
+    });
+  }
+
+  /**
+   * Handle Knowledge file preview
+   * @param {string} filePath - The path to the .knowledge file
+   * @param {string} projectName - The project name
+   */
+  handleKnowledgePreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Knowledge preview for', filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'knowledge-preview'
     });
   }
 

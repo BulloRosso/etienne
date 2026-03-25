@@ -74,11 +74,12 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
 
     // Add property triples
     for (const [key, value] of Object.entries(entity.properties)) {
+      if (value == null) continue;
       const predicate = `${this.baseUri}${key}`;
       await axios.post(`${QUADSTORE_URL}/${project}/quad`, {
         subject: entityUri,
         predicate: predicate,
-        object: value,
+        object: typeof value === 'string' ? value : JSON.stringify(value),
         objectType: 'literal'
       });
     }

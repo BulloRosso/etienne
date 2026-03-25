@@ -67,7 +67,8 @@ export class OntologyLearningService implements OnModuleInit {
     let textContent: string;
     try {
       const filePath = absolutePath || path.join(WORKSPACE_ROOT, relativePath);
-      textContent = await officeparser.parseOffice(filePath) as string;
+      const ast = await officeparser.parseOffice(filePath);
+      textContent = typeof ast === 'string' ? ast : ast.toText();
     } catch (err: any) {
       this.logger.warn(`Could not extract text from ${fileName}: ${err.message}`);
       return;
