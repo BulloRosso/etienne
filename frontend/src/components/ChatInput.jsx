@@ -379,6 +379,9 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
                 setShowSuggestions(false);
                 setMentionStart(-1);
               }
+            } else if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
             } else if (e.key === 'Enter' && e.shiftKey) {
               // Allow Shift+Enter for new line
               return;

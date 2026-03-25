@@ -1,0 +1,24 @@
+[project]
+name = "multi-tenant-chromadb"
+version = "1.0.0"
+description = "Multi-Tenant ChromaDB Server with per-project workspaces"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "chromadb>=0.4.0",
+    "requests>=2.31.0",
+    "numpy>=1.21.0",
+]
+
+[project.optional-dependencies]
+embeddings = [
+    "sentence-transformers>=2.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+]

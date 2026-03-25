@@ -249,7 +249,7 @@ const nodeTypes = {
 function EntityTypeNode({ data, selected }) {
   const C = data._palette || darkPalette;
   const Icon = entityTypeIcons[data.entityType] || DefaultEntityIcon;
-  const color = entityTypeColors[data.entityType] || C.accent;
+  const color = getEntityColor(data.entityType) || C.accent;
   return (
     <div style={{
       borderRadius: 14, border: '2px solid', padding: '14px 18px',
@@ -283,7 +283,7 @@ function EntityTypeNode({ data, selected }) {
 
 function EntityInstanceNode({ data }) {
   const C = data._palette || darkPalette;
-  const color = entityTypeColors[data.entityType] || C.accent;
+  const color = getEntityColor(data.entityType) || C.accent;
   return (
     <div style={{
       borderRadius: 10, border: `1.5px solid ${color}55`, padding: '8px 12px',
@@ -497,6 +497,19 @@ const entityTypeColors = {
   Product: '#14b8a6',
 };
 
+/**
+ * Generate a stable color for unknown entity types via string hash.
+ */
+function getEntityColor(type) {
+  if (entityTypeColors[type]) return entityTypeColors[type];
+  let hash = 0;
+  for (let i = 0; i < type.length; i++) {
+    hash = type.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = ((hash % 360) + 360) % 360;
+  return `hsl(${hue}, 55%, 50%)`;
+}
+
 // ── Action Config Form (inside dialog) ──────────
 
 function ActionConfigForm({ actionData, palette, onSave, onCancel }) {
@@ -657,6 +670,22 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
   const [entityDetailForm, setEntityDetailForm] = useState({ id: '', type: '', properties: '' });
   const [entityDetailSaving, setEntityDetailSaving] = useState(false);
 
+  // Dynamic entity types (discovered from ontology)
+  const [discoveredTypes, setDiscoveredTypes] = useState([]);
+  useEffect(() => {
+    if (!selectedProject) return;
+    apiAxios.get(`/api/decision-support/ontology-types/${selectedProject}`)
+      .then(res => {
+        if (res.data?.success && Array.isArray(res.data.types)) {
+          setDiscoveredTypes(res.data.types);
+        }
+      })
+      .catch(() => {});
+  }, [selectedProject, ontologyData]); // re-fetch when ontology data changes
+
+  // Merge default types with discovered types for the entity form dropdown
+  const allEntityTypes = [...new Set([...Object.keys(entityTypeIcons), ...discoveredTypes])].sort();
+
   // Load saved graphs from backend
   const loadSavedGraphs = useCallback(() => {
     if (!selectedProject) return;
@@ -813,8 +842,8 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
             id: `e-${typeId}-${instId}`,
             source: typeId,
             target: instId,
-            style: { stroke: (entityTypeColors[tn.type] || C2.accent) + '66', strokeWidth: 1.5, strokeDasharray: '4 3' },
-            markerEnd: { type: MarkerType.ArrowClosed, color: (entityTypeColors[tn.type] || C2.accent) + '66' },
+            style: { stroke: (getEntityColor(tn.type) || C2.accent) + '66', strokeWidth: 1.5, strokeDasharray: '4 3' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: (getEntityColor(tn.type) || C2.accent) + '66' },
           });
         });
       }
@@ -1457,7 +1486,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                     SelectProps={{ native: true }}
                     sx={{ mb: 1, '& .MuiInputBase-input': { fontSize: 11, color: C.text }, '& .MuiInputLabel-root': { fontSize: 11 } }}
                   >
-                    {Object.keys(entityTypeIcons).map(t => (
+                    {allEntityTypes.map(t => (
                       <option key={t} value={t}>{t}</option>
                     ))}
                   </TextField>
@@ -1511,7 +1540,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                   </Typography>
                   {ontologyData.missingEntities.map(me => {
                     const MeIcon = getEntityIcon(me.type);
-                    const meColor = entityTypeColors[me.type] || C.accent;
+                    const meColor = getEntityColor(me.type) || C.accent;
                     return (
                       <Box key={me.id} sx={{
                         background: themeMode === 'dark' ? '#f59e0b11' : '#f59e0b08',
@@ -1599,7 +1628,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                 }
                 return Object.entries(grouped).map(([type, entities]) => {
                   const TypeIcon = getEntityIcon(type);
-                  const typeColor = entityTypeColors[type] || C.accent;
+                  const typeColor = getEntityColor(type) || C.accent;
                   return (
                     <Box key={type} sx={{ mb: 1 }}>
                       {/* Type header */}
@@ -1917,9 +1946,9 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
                 <MiniMap
                   position="bottom-left"
                   nodeColor={n => {
-                    if (n.type === 'entityType') return entityTypeColors[n.data?.entityType] || C.accent;
+                    if (n.type === 'entityType') return getEntityColor(n.data?.entityType) || C.accent;
                     if (n.type === 'decisionGraph') return C.accent;
-                    return entityTypeColors[n.data?.entityType] || C.accentDim;
+                    return getEntityColor(n.data?.entityType) || C.accentDim;
                   }}
                   maskColor={C.bg + 'cc'}
                   style={{ background: C.panel, border: `1px solid ${C.panelBorder}`, borderRadius: 8 }}
@@ -2088,7 +2117,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
             sx: {
               background: C.panel,
               border: `1px solid ${C.panelBorder}`,
-              borderTop: `3px solid ${entityDetailData ? (entityTypeColors[entityDetailData.type] || C.accent) : C.accent}`,
+              borderTop: `3px solid ${entityDetailData ? (getEntityColor(entityDetailData.type) || C.accent) : C.accent}`,
               borderRadius: 2,
             },
           },
@@ -2098,7 +2127,7 @@ function OntologyCoreEditorInner({ selectedProject, onClose }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {entityDetailData && (() => {
               const Icon = getEntityIcon(entityDetailData.type);
-              return <Icon sx={{ fontSize: 20, color: entityTypeColors[entityDetailData.type] || C.accent }} />;
+              return <Icon sx={{ fontSize: 20, color: getEntityColor(entityDetailData.type) || C.accent }} />;
             })()}
             <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Entity Details</Typography>
           </Box>

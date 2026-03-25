@@ -507,6 +507,11 @@ export default function App() {
           }]);
         }
 
+        if (eventType === 'knowledge-acquired') {
+          // Dispatch window event for KnowledgeViewer to pick up
+          window.dispatchEvent(new CustomEvent('knowledgeAcquired', { detail: eventData }));
+        }
+
         if (eventType === 'Notification' && eventData.message) {
           const msg = eventData.message.toLowerCase();
           if (msg.includes('permission') || msg.includes('allow') || msg.includes('grant')) {

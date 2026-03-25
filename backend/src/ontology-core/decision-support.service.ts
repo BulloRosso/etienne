@@ -132,8 +132,15 @@ export class DecisionSupportService implements OnModuleInit {
 
   // ── Ontology Context Loader ──────────────────
 
+  private static readonly INTERNAL_PREFIXES = ['Decision', 'Condition', 'Action'];
+
+  private filterInternalTypes(types: string[]): string[] {
+    return types.filter(t => !DecisionSupportService.INTERNAL_PREFIXES.some(p => t.startsWith(p)));
+  }
+
   async buildOntologyContext(project: string): Promise<string> {
-    const typeNames = ['Sensor', 'Compressor', 'Pipeline', 'Alert', 'WorkOrder', 'Person', 'Company', 'Product'];
+    const allTypes = await this.kg.findAllEntityTypes(project);
+    const typeNames = this.filterInternalTypes(allTypes);
     const lines: string[] = ['## Current Ontology State\n'];
 
     for (const type of typeNames) {
@@ -644,7 +651,8 @@ Valid action statuses: pending, approved, rejected, executing, done`;
     }>;
     graphs: Array<{ id: string; title: string }>;
   }> {
-    const entityTypes = ['Sensor', 'Compressor', 'Pipeline', 'Alert', 'WorkOrder', 'Person', 'Company', 'Product'];
+    const allTypes = await this.kg.findAllEntityTypes(project);
+    const entityTypes = this.filterInternalTypes(allTypes);
     const entities: Array<{
       id: string;
       type: string;
@@ -735,10 +743,15 @@ Valid action statuses: pending, approved, rejected, executing, done`;
     type: string,
     properties: Record<string, string>,
   ): Promise<void> {
+    // Automatically stamp createdAt on every new entity
+    const propsWithTimestamp = {
+      ...properties,
+      createdAt: properties.createdAt || new Date().toISOString(),
+    };
     await this.kg.addEntity(project, {
       id,
       type: type as any, // Quadstore accepts any type string via RDF triples
-      properties,
+      properties: propsWithTimestamp,
     });
     this.logger.log(`Created ontology entity: ${id} (type=${type}) in project ${project}`);
   }
@@ -769,6 +782,82 @@ Valid action statuses: pending, approved, rejected, executing, done`;
     this.logger.log(`Deleted ontology entity: ${id} in project ${project}`);
   }
 
+  // ── List Ontology Types ──────────────────────
+
+  async getOntologyTypes(project: string): Promise<string[]> {
+    const allTypes = await this.kg.findAllEntityTypes(project);
+    return this.filterInternalTypes(allTypes);
+  }
+
+  // ── Bootstrap Ontology (bulk create) ──────────
+
+  async bootstrapOntology(
+    project: string,
+    entities: Array<{ id: string; type: string; properties: Record<string, string> }>,
+    relationships: Array<{ subject: string; predicate: string; object: string }>,
+  ): Promise<{ entitiesCreated: number; relationshipsCreated: number }> {
+    let entitiesCreated = 0;
+    let relationshipsCreated = 0;
+
+    for (const entity of entities) {
+      await this.createOntologyEntity(project, entity.id, entity.type, entity.properties || {});
+      entitiesCreated++;
+    }
+
+    for (const rel of relationships) {
+      await this.kg.addRelationship(project, rel);
+      relationshipsCreated++;
+    }
+
+    this.logger.log(`Bootstrapped ontology for ${project}: ${entitiesCreated} entities, ${relationshipsCreated} relationships`);
+    return { entitiesCreated, relationshipsCreated };
+  }
+
+  // ── Entity Relations (grouped) ──────────────────
+
+  async getEntityRelations(
+    project: string,
+    entityId: string,
+  ): Promise<{
+    entityId: string;
+    entityType: string | null;
+    outgoing: Array<{ predicate: string; targetId: string; targetType: string | null }>;
+    incoming: Array<{ predicate: string; sourceId: string; sourceType: string | null }>;
+  }> {
+    const INTERNAL_PREDICATES = ['hasCondition', 'hasAction', 'requiresCondition'];
+
+    const entity = await this.kg.findEntityById(project, entityId);
+    const entityType = entity?.type || null;
+
+    const rels = await this.kg.findRelationshipsByEntity(project, entityId);
+
+    const outgoing: Array<{ predicate: string; targetId: string; targetType: string | null }> = [];
+    const incoming: Array<{ predicate: string; sourceId: string; sourceType: string | null }> = [];
+
+    for (const rel of rels) {
+      if (INTERNAL_PREDICATES.includes(rel.predicate)) continue;
+      if (rel.predicate.startsWith('rel/')) continue;
+
+      if (rel.direction === 'outgoing') {
+        const target = await this.kg.findEntityById(project, rel.object);
+        outgoing.push({
+          predicate: rel.predicate,
+          targetId: rel.object,
+          targetType: target?.type || null,
+        });
+      } else {
+        const source = await this.kg.findEntityById(project, rel.subject);
+        incoming.push({
+          predicate: rel.predicate,
+          sourceId: rel.subject,
+          sourceType: source?.type || null,
+        });
+      }
+    }
+
+    return { entityId, entityType, outgoing, incoming };
+  }
+
   // ── Ontology Graph (for visualization) ─────────
 
   async getOntologyGraph(project: string): Promise<{
@@ -777,7 +866,8 @@ Valid action statuses: pending, approved, rejected, executing, done`;
     graphLinks: Array<{ entityId: string; entityType: string; graphId: string; graphTitle: string; role: string }>;
     graphs: Array<{ id: string; title: string }>;
   }> {
-    const entityTypes = ['Sensor', 'Compressor', 'Pipeline', 'Alert', 'WorkOrder', 'Person', 'Company', 'Product'];
+    const allTypes = await this.kg.findAllEntityTypes(project);
+    const entityTypes = this.filterInternalTypes(allTypes);
     const typeNodes: Array<{ type: string; count: number; instances: Array<{ id: string; properties: Record<string, string> }> }> = [];
     const allEntityIds: string[] = [];
 

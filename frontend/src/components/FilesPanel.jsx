@@ -110,7 +110,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const overflowFiles = overflowIndices.map(i => ({ file: files[i], index: i })).filter(item => item.file);
   const hasOverflow = overflowFiles.length > 0;
 
-  const HIDDEN_OVERFLOW_VIEWERS = new Set(['workflow', 'excel', 'prompt', 'scrapbook']);
+  const HIDDEN_OVERFLOW_VIEWERS = new Set(['workflow', 'excel', 'prompt', 'scrapbook', 'knowledge']);
 
   const renderFileContent = (file) => {
     if (!file) return null;

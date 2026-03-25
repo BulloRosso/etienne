@@ -327,6 +327,72 @@ export class DecisionSupportController {
   }
 
   /**
+   * List all entity types discovered in a project's ontology
+   */
+  @Get('ontology-types/:project')
+  async getOntologyTypes(@Param('project') project: string) {
+    try {
+      const types = await this.svc.getOntologyTypes(project);
+      return { success: true, types };
+    } catch (error: any) {
+      this.logger.error('Failed to get ontology types', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Bulk-create entities and relationships for ontology onboarding
+   */
+  @Post('ontology-bootstrap/:project')
+  @Roles('user')
+  async bootstrapOntology(
+    @Param('project') project: string,
+    @Body() body: {
+      entities: Array<{ id: string; type: string; properties?: Record<string, string> }>;
+      relationships: Array<{ subject: string; predicate: string; object: string }>;
+    },
+  ) {
+    try {
+      const entities = (body.entities || []).map(e => ({
+        ...e,
+        properties: e.properties || {},
+      }));
+      const relationships = body.relationships || [];
+      const result = await this.svc.bootstrapOntology(project, entities, relationships);
+      return { success: true, ...result };
+    } catch (error: any) {
+      this.logger.error('Failed to bootstrap ontology', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get relationships for a specific entity (grouped by predicate)
+   */
+  @Get('ontology-relations/:project/:entityId')
+  async getEntityRelations(
+    @Param('project') project: string,
+    @Param('entityId') entityId: string,
+  ) {
+    try {
+      const result = await this.svc.getEntityRelations(project, entityId);
+      return { success: true, ...result };
+    } catch (error: any) {
+      this.logger.error('Failed to get entity relations', error);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Hydrate a decision graph: fetch entity properties for the test scenario modal
    */
   @Get('graphs/:project/:graphId/hydrate')

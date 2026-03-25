@@ -13,7 +13,7 @@
       "displayName": "Vector Store",
       "description": "A fulltext index using embeddings to find similar data",
       "directory": "vector-store",
-      "startCommand": "python multi-tenant-chromadb.py",
+      "startCommand": "uv run python multi-tenant-chromadb.py",
       "port": 7100
     },
     {
@@ -29,7 +29,7 @@
       "displayName": "Web Server",
       "description": "Allows Etienne to create and expose API endpoints. The server is capable of hot-reloading.",
       "directory": "webserver",
-      "startCommand": "python app.py",
+      "startCommand": "uv run python app.py",
       "port": 4000
     },
     {

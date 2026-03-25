@@ -195,6 +195,33 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Discover all distinct entity types in a project's RDF store.
+   * Queries all rdf:type triples and returns unique type names.
+   */
+  async findAllEntityTypes(project: string): Promise<string[]> {
+    await this.ensureQuadstoreAvailable();
+
+    const rdfType = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+
+    try {
+      const response = await axios.post(`${QUADSTORE_URL}/${project}/match`, {
+        subject: null,
+        predicate: rdfType,
+        object: null,
+      });
+
+      const typeSet = new Set<string>();
+      for (const quad of response.data.results) {
+        const typeName = quad.object.value.replace(this.baseUri, '');
+        typeSet.add(typeName);
+      }
+      return Array.from(typeSet);
+    } catch {
+      return [];
+    }
+  }
+
   async findRelationshipsByEntity(project: string, entityId: string): Promise<any[]> {
     await this.ensureQuadstoreAvailable();
 

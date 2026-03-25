@@ -1,0 +1,14 @@
+[project]
+name = "webserver"
+version = "1.0.0"
+description = "Flask server for React apps and dynamic API endpoints with hot-reload"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+]
