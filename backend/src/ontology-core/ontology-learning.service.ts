@@ -13,6 +13,8 @@ const OFFICE_EXTENSIONS = new Set([
   '.odt', '.ods', '.odp',
 ]);
 
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png']);
+
 const WORKSPACE_ROOT = path.join(process.cwd(), '..', 'workspace');
 
 @Injectable()
@@ -36,7 +38,9 @@ export class OntologyLearningService implements OnModuleInit {
       if (!filePath || !projectName) return;
 
       const ext = path.extname(filePath).toLowerCase();
-      if (!OFFICE_EXTENSIONS.has(ext)) return;
+      const isOffice = OFFICE_EXTENSIONS.has(ext);
+      const isImage = IMAGE_EXTENSIONS.has(ext);
+      if (!isOffice && !isImage) return;
 
       // Check if learning-agent skill is enabled for this project
       const skillDir = path.join(WORKSPACE_ROOT, projectName, '.claude', 'skills', 'learning-agent');
@@ -44,16 +48,23 @@ export class OntologyLearningService implements OnModuleInit {
       if (!skillExists) return;
 
       // Launch background task — fire and forget
-      this.processOfficeDocument(projectName, filePath, event.payload?.absolutePath).catch(err => {
-        this.logger.error(`Background document learning failed for ${filePath}: ${err.message}`);
-      });
+      const absoluteFilePath = event.payload?.absolutePath;
+      if (isImage) {
+        this.processImageFile(projectName, filePath, absoluteFilePath).catch(err => {
+          this.logger.error(`Background image learning failed for ${filePath}: ${err.message}`);
+        });
+      } else {
+        this.processOfficeDocument(projectName, filePath, absoluteFilePath).catch(err => {
+          this.logger.error(`Background document learning failed for ${filePath}: ${err.message}`);
+        });
+      }
     });
 
     this.logger.log('OntologyLearningService subscribed to filesystem events');
   }
 
   /**
-   * Extract text from an Office document and learn entities for the ontology.
+   * Extract text from an Office document and feed it into ontology learning.
    */
   private async processOfficeDocument(
     projectName: string,
@@ -63,7 +74,6 @@ export class OntologyLearningService implements OnModuleInit {
     const fileName = path.basename(relativePath);
     this.logger.log(`Processing Office document for ontology learning: ${fileName} (project: ${projectName})`);
 
-    // 1. Extract text content
     let textContent: string;
     try {
       const filePath = absolutePath || path.join(WORKSPACE_ROOT, relativePath);
@@ -79,16 +89,86 @@ export class OntologyLearningService implements OnModuleInit {
       return;
     }
 
+    await this.learnFromText(projectName, fileName, textContent);
+  }
+
+  /**
+   * Extract text from an image via LLM vision and feed it into ontology learning.
+   */
+  private async processImageFile(
+    projectName: string,
+    relativePath: string,
+    absolutePath: string,
+  ): Promise<void> {
+    const fileName = path.basename(relativePath);
+    this.logger.log(`Processing image for ontology learning: ${fileName} (project: ${projectName})`);
+
+    const filePath = absolutePath || path.join(WORKSPACE_ROOT, relativePath);
+
+    let imageBuffer: Buffer;
+    try {
+      imageBuffer = await fs.readFile(filePath);
+    } catch (err: any) {
+      this.logger.warn(`Could not read image file ${fileName}: ${err.message}`);
+      return;
+    }
+
+    const ext = path.extname(fileName).toLowerCase();
+    const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
+    const base64Data = imageBuffer.toString('base64');
+
+    // Use LLM vision to extract text from the image
+    let extractedText: string;
+    try {
+      extractedText = await this.llm.generateTextWithMessages({
+        tier: 'regular',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: `data:${mimeType};base64,${base64Data}`,
+              },
+              {
+                type: 'text',
+                text: 'Extract ALL text visible in this image. Return only the extracted text, preserving structure (tables, lists, headings). If there is no readable text, respond with exactly: NO_TEXT_FOUND',
+              },
+            ],
+          },
+        ],
+        maxOutputTokens: 4096,
+      });
+    } catch (err: any) {
+      this.logger.warn(`LLM vision extraction failed for ${fileName}: ${err.message}`);
+      return;
+    }
+
+    if (!extractedText || extractedText.trim() === 'NO_TEXT_FOUND' || extractedText.trim().length < 20) {
+      this.logger.debug(`Image ${fileName} has no meaningful text content, skipping`);
+      return;
+    }
+
+    this.logger.log(`Extracted ${extractedText.length} chars of text from image ${fileName}`);
+    await this.learnFromText(projectName, fileName, extractedText);
+  }
+
+  /**
+   * Shared ontology learning pipeline: takes extracted text and creates entities/relationships.
+   */
+  private async learnFromText(
+    projectName: string,
+    fileName: string,
+    textContent: string,
+  ): Promise<void> {
     // Truncate very large documents to avoid LLM context limits
     const maxChars = 12000;
     const content = textContent.length > maxChars
       ? textContent.substring(0, maxChars) + '\n\n[...truncated...]'
       : textContent;
 
-    // 2. Get current ontology context
     const ontologyContext = await this.dss.buildOntologyContext(projectName);
 
-    // 3. Ask LLM to extract entities and relationships
     const systemPrompt = `You are an ontology learning agent. You analyze documents to extract business entities and relationships for a knowledge graph.
 
 ${ontologyContext}
@@ -144,7 +224,6 @@ If there is nothing meaningful to extract, return an empty update:
       return;
     }
 
-    // 4. Parse the structured output
     const match = llmResponse.match(/<ontology_update>([\s\S]*?)<\/ontology_update>/);
     if (!match) {
       this.logger.debug(`No ontology_update block in LLM response for ${fileName}`);
@@ -167,7 +246,6 @@ If there is nothing meaningful to extract, return an empty update:
       return;
     }
 
-    // 5. Apply updates to the ontology
     let entitiesCreated = 0;
     let relationshipsCreated = 0;
 
@@ -198,7 +276,6 @@ If there is nothing meaningful to extract, return an empty update:
       `Ontology learning from ${fileName}: ${entitiesCreated} entities, ${relationshipsCreated} relationships created`,
     );
 
-    // 6. Emit knowledge-acquired event via InterceptorsService
     if (entitiesCreated > 0 || relationshipsCreated > 0) {
       this.interceptors.addInterceptor(projectName, {
         event_type: 'knowledge-acquired',

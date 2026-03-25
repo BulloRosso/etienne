@@ -43,6 +43,7 @@ import {
   AccountTree as RelationsIcon,
   Edit as EditIcon,
   Info as InfoIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
@@ -152,7 +153,7 @@ const lightPalette = {
 
 // ── Dashboard Tab ──
 
-function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery, typeIcons, onIconClick }) {
+function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery, typeIcons, onIconClick, linkedEntityIds }) {
   const [expanded, setExpanded] = useState(new Set());
   const [hoveredInstance, setHoveredInstance] = useState(null);
   const [toast, setToast] = useState(null);
@@ -287,8 +288,9 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
                   const isHovered = hoveredInstance === inst.id;
                   const META_KEYS = ['createdAt', 'type', 'updatedAt', 'name'];
                   const propEntries = Object.entries(inst.properties || {})
-                    .filter(([k]) => !META_KEYS.includes(k))
-                    .slice(0, 3);
+                    .filter(([k, v]) => !META_KEYS.includes(k) && !String(v).startsWith('http://'))
+                    .slice(0, 6);
+                  const hasRelations = linkedEntityIds?.has(inst.id);
                   const createdAt = inst.properties?.createdAt;
                   const formattedDate = createdAt
                     ? new Date(createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -316,33 +318,51 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
                             color: C.text, fontSize: 14, fontWeight: 600, fontFamily: 'Roboto, sans-serif',
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}>
-                            {inst.properties?.name || (() => {
-                              const prefix = tn.type.toLowerCase() + '-';
-                              const raw = inst.id.startsWith(prefix) ? inst.id.slice(prefix.length) : inst.id;
-                              const label = raw.replace(/-/g, ' ');
-                              return label.charAt(0).toUpperCase() + label.slice(1);
-                            })()}
+                            {inst.properties?.name || formatEntityLabel(inst.id, tn.type)}
                           </Typography>
                           {formattedDate && (
                             <Typography sx={{ color: C.textDim, fontSize: 10, flexShrink: 0 }}>
                               {formattedDate}
                             </Typography>
                           )}
+                          <Box sx={{ flex: 1 }} />
+                          {hasRelations && (
+                            <Tooltip title="Has relationships" placement="top">
+                              <LinkIcon sx={{ fontSize: 14, color: C.textDim, flexShrink: 0 }} />
+                            </Tooltip>
+                          )}
                         </Box>
                         {propEntries.length > 0 && (
-                          <Box sx={{ display: 'flex', gap: 0.5, mt: 0.25, flexWrap: 'wrap' }}>
-                            {propEntries.map(([k, v]) => (
-                              <Chip
-                                key={k}
-                                label={`${k.charAt(0).toUpperCase() + k.slice(1)}: ${String(v).slice(0, 20)}`}
-                                size="small"
-                                sx={{
-                                  height: 20, fontSize: 14,
-                                  background: C.panel, color: C.textMuted,
-                                  border: `1px solid ${C.border}`,
-                                }}
-                              />
-                            ))}
+                          <Box component="table" sx={{ width: '100%', mt: 0.5, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                            <tbody>
+                              {propEntries.map(([k, v], i) => (
+                                <Box
+                                  component="tr"
+                                  key={k}
+                                  sx={{ background: i % 2 === 0 ? 'transparent' : C.panel + '88' }}
+                                >
+                                  <Box
+                                    component="td"
+                                    sx={{
+                                      color: C.textMuted, fontSize: 12, fontWeight: 600,
+                                      py: 0.25, pr: 1.5, width: '35%', verticalAlign: 'top',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {k.charAt(0).toUpperCase() + k.slice(1)}
+                                  </Box>
+                                  <Box
+                                    component="td"
+                                    sx={{
+                                      color: C.text, fontSize: 12, py: 0.25,
+                                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {String(v)}
+                                  </Box>
+                                </Box>
+                              ))}
+                            </tbody>
                           </Box>
                         )}
                       </Box>
@@ -399,6 +419,15 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
       </Snackbar>
     </Box>
   );
+}
+
+// ── Helpers ──
+
+function formatEntityLabel(id, type) {
+  const prefix = type ? type.toLowerCase() + '-' : '';
+  const raw = prefix && id.startsWith(prefix) ? id.slice(prefix.length) : id;
+  const label = raw.replace(/-/g, ' ');
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 // ── Relations Tab ──
@@ -481,8 +510,8 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1.5, borderBottom: `1px solid ${C.border}` }}>
         <Icon sx={{ fontSize: 22, color }} />
-        <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 15, fontFamily: 'monospace' }}>
-          {entityId}
+        <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 15, fontFamily: 'Roboto, sans-serif' }}>
+          {relations?.entityName || formatEntityLabel(entityId, entityType)}
         </Typography>
         <Chip label={entityType} size="small" sx={{
           height: 20, fontSize: 10, fontWeight: 600,
@@ -540,10 +569,10 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
                         <TargetIcon sx={{ fontSize: 14, color: targetColor }} />
                         <Typography sx={{
-                          color: C.text, fontSize: 12, fontFamily: 'monospace',
+                          color: C.text, fontSize: 12, fontFamily: 'Roboto, sans-serif',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
-                          {r.targetId}
+                          {r.targetName || formatEntityLabel(r.targetId, r.targetType)}
                         </Typography>
                         {r.targetType && (
                           <Chip label={r.targetType} size="small" sx={{
@@ -612,10 +641,10 @@ function RelationsTab({ entityId, entityType, projectName, C }) {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
                         <SourceIcon sx={{ fontSize: 14, color: sourceColor }} />
                         <Typography sx={{
-                          color: C.text, fontSize: 12, fontFamily: 'monospace',
+                          color: C.text, fontSize: 12, fontFamily: 'Roboto, sans-serif',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
-                          {r.sourceId}
+                          {r.sourceName || formatEntityLabel(r.sourceId, r.sourceType)}
                         </Typography>
                         {r.sourceType && (
                           <Chip label={r.sourceType} size="small" sx={{
@@ -791,6 +820,7 @@ export default function KnowledgeViewer({ filename, projectName }) {
   const [activeTab, setActiveTab] = useState(0);
   const [knowledgeMeta, setKnowledgeMeta] = useState(null);
   const [typeNodes, setTypeNodes] = useState([]);
+  const [graphRelationships, setGraphRelationships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -860,6 +890,7 @@ export default function KnowledgeViewer({ filename, projectName }) {
       .then(res => {
         if (res.data?.success) {
           setTypeNodes(res.data.typeNodes || []);
+          setGraphRelationships(res.data.relationships || []);
         }
       })
       .catch(() => {})
@@ -922,6 +953,13 @@ export default function KnowledgeViewer({ filename, projectName }) {
       .filter(Boolean);
   }, [typeNodes]);
 
+  // Build set of entity IDs that participate in at least one relationship
+  const linkedEntityIds = useMemo(() => {
+    const ids = new Set();
+    graphRelationships.forEach(r => { ids.add(r.source); ids.add(r.target); });
+    return ids;
+  }, [graphRelationships]);
+
   const totalEntities = visibleTypeNodes.reduce((sum, tn) => sum + tn.count, 0);
 
   return (
@@ -967,13 +1005,9 @@ export default function KnowledgeViewer({ filename, projectName }) {
           '& .MuiTabs-indicator': { background: C.accent, height: 2 },
         }}
       >
-        <Tab icon={<DashboardIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="Dashboard" />
-        <Tab
-          icon={<RelationsIcon sx={{ fontSize: 16 }} />}
-          iconPosition="start"
-          label={selectedInstance ? `Relations: ${selectedInstance.id}` : 'Relations'}
-        />
-        <Tab icon={<GuideIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="How to Modify" />
+        <Tab label="Dashboard" />
+        <Tab label={selectedInstance ? `Relations: ${selectedInstance.id}` : 'Relations'} />
+        <Tab label="How to Modify" />
       </Tabs>
 
       {/* Search bar (Dashboard only) */}
@@ -1022,6 +1056,7 @@ export default function KnowledgeViewer({ filename, projectName }) {
                 searchQuery={searchQuery}
                 typeIcons={typeIcons}
                 onIconClick={handleIconClick}
+                linkedEntityIds={linkedEntityIds}
               />
             )}
             {activeTab === 1 && (

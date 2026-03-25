@@ -821,18 +821,20 @@ Valid action statuses: pending, approved, rejected, executing, done`;
   ): Promise<{
     entityId: string;
     entityType: string | null;
-    outgoing: Array<{ predicate: string; targetId: string; targetType: string | null }>;
-    incoming: Array<{ predicate: string; sourceId: string; sourceType: string | null }>;
+    entityName: string | null;
+    outgoing: Array<{ predicate: string; targetId: string; targetType: string | null; targetName: string | null }>;
+    incoming: Array<{ predicate: string; sourceId: string; sourceType: string | null; sourceName: string | null }>;
   }> {
     const INTERNAL_PREDICATES = ['hasCondition', 'hasAction', 'requiresCondition'];
 
     const entity = await this.kg.findEntityById(project, entityId);
     const entityType = entity?.type || null;
+    const entityName = entity?.name || null;
 
     const rels = await this.kg.findRelationshipsByEntity(project, entityId);
 
-    const outgoing: Array<{ predicate: string; targetId: string; targetType: string | null }> = [];
-    const incoming: Array<{ predicate: string; sourceId: string; sourceType: string | null }> = [];
+    const outgoing: Array<{ predicate: string; targetId: string; targetType: string | null; targetName: string | null }> = [];
+    const incoming: Array<{ predicate: string; sourceId: string; sourceType: string | null; sourceName: string | null }> = [];
 
     for (const rel of rels) {
       if (INTERNAL_PREDICATES.includes(rel.predicate)) continue;
@@ -844,6 +846,7 @@ Valid action statuses: pending, approved, rejected, executing, done`;
           predicate: rel.predicate,
           targetId: rel.object,
           targetType: target?.type || null,
+          targetName: target?.name || null,
         });
       } else {
         const source = await this.kg.findEntityById(project, rel.subject);
@@ -851,11 +854,12 @@ Valid action statuses: pending, approved, rejected, executing, done`;
           predicate: rel.predicate,
           sourceId: rel.subject,
           sourceType: source?.type || null,
+          sourceName: source?.name || null,
         });
       }
     }
 
-    return { entityId, entityType, outgoing, incoming };
+    return { entityId, entityType, entityName, outgoing, incoming };
   }
 
   // ── Ontology Graph (for visualization) ─────────

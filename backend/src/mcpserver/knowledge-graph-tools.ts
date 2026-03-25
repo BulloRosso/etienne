@@ -2,6 +2,7 @@ import { ToolService, McpTool } from './types';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
 import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.service';
+import { InterceptorsService } from '../interceptors/interceptors.service';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as crypto from 'crypto';
@@ -240,6 +241,7 @@ export function createKnowledgeGraphToolsService(
   vectorStoreService: VectorStoreService,
   openAiService: OpenAiService,
   knowledgeGraphService: KnowledgeGraphService,
+  interceptorsService?: InterceptorsService,
 ): ToolService {
   const workspaceDir = path.join(process.cwd(), '..', 'workspace');
 
@@ -673,6 +675,15 @@ Important rules:
       properties: propsWithTimestamp,
     });
 
+    interceptorsService?.addInterceptor(project, {
+      event_type: 'knowledge-acquired',
+      source: 'kg_create_entity',
+      entitiesCreated: 1,
+      relationshipsCreated: 0,
+      summary: `Created ${type}: ${properties.name || id}`,
+      timestamp: new Date().toISOString(),
+    });
+
     return {
       success: true,
       message: `Entity "${id}" (type=${type}) created in project ${project}`,
@@ -706,6 +717,15 @@ Important rules:
       properties: propsWithTimestamp,
     });
 
+    interceptorsService?.addInterceptor(project, {
+      event_type: 'knowledge-acquired',
+      source: 'kg_update_entity',
+      entitiesCreated: 0,
+      relationshipsCreated: 0,
+      summary: `Updated ${type}: ${properties.name || id}`,
+      timestamp: new Date().toISOString(),
+    });
+
     return {
       success: true,
       message: `Entity "${id}" (type=${type}) updated in project ${project}`,
@@ -724,6 +744,15 @@ Important rules:
 
     await knowledgeGraphService.deleteEntity(project, id);
 
+    interceptorsService?.addInterceptor(project, {
+      event_type: 'knowledge-acquired',
+      source: 'kg_delete_entity',
+      entitiesCreated: 0,
+      relationshipsCreated: 0,
+      summary: `Deleted entity: ${id}`,
+      timestamp: new Date().toISOString(),
+    });
+
     return {
       success: true,
       message: `Entity "${id}" deleted from project ${project}`,
@@ -741,6 +770,15 @@ Important rules:
     if (!object) throw new Error('Object entity ID is required.');
 
     await knowledgeGraphService.addRelationship(project, { subject, predicate, object });
+
+    interceptorsService?.addInterceptor(project, {
+      event_type: 'knowledge-acquired',
+      source: 'kg_create_relationship',
+      entitiesCreated: 0,
+      relationshipsCreated: 1,
+      summary: `New relationship: ${subject} → ${predicate} → ${object}`,
+      timestamp: new Date().toISOString(),
+    });
 
     return {
       success: true,

@@ -96,7 +96,7 @@ export class McpServerFactoryService implements OnModuleInit {
         toolServices: [createDeepResearchToolsService(deepResearchService)],
       },
       'knowledge-graph': {
-        toolServices: [createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService)],
+        toolServices: [createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService, this.interceptorsService)],
       },
       'email': {
         toolServices: [createEmailToolsService(smtpService, imapService)],
