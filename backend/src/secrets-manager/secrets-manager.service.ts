@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ISecretProvider } from './secret-provider.interface';
 import { OpenBaoProvider } from './providers/openbao.provider';
 import { EnvProvider } from './providers/env.provider';
+import { AzureKeyVaultProvider } from './providers/azure-keyvault.provider';
+import { AwsSecretsManagerProvider } from './providers/aws-secrets-manager.provider';
 
 @Injectable()
 export class SecretsManagerService {
@@ -12,12 +14,20 @@ export class SecretsManagerService {
   constructor(
     private openbaoProvider: OpenBaoProvider,
     private envProvider: EnvProvider,
+    private azureKeyVaultProvider: AzureKeyVaultProvider,
+    private awsSecretsManagerProvider: AwsSecretsManagerProvider,
   ) {
     const providerType = process.env.SECRET_VAULT_PROVIDER || 'openbao';
 
     if (providerType === 'env') {
       this.provider = envProvider;
       this.logger.log('Using environment variable secret provider');
+    } else if (providerType === 'azure-keyvault') {
+      this.provider = azureKeyVaultProvider;
+      this.logger.log('Using Azure Key Vault secret provider');
+    } else if (providerType === 'aws') {
+      this.provider = awsSecretsManagerProvider;
+      this.logger.log('Using AWS Secrets Manager provider');
     } else {
       this.provider = openbaoProvider;
       this.logger.log('Using OpenBao secret provider');

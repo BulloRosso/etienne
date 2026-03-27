@@ -57,6 +57,19 @@ export class OntologyPublicController {
     }
   }
 
+  /** Get ontology graph for visualization (types, instances, relationships) */
+  @Public()
+  @Get('graph/:project')
+  async getGraph(@Param('project') project: string) {
+    try {
+      const result = await this.svc.getOntologyGraph(project);
+      return { success: true, ...result };
+    } catch (error: any) {
+      this.logger.error('Failed to get ontology graph', error);
+      throw new HttpException({ success: false, message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   /** Create an entity */
   @Public()
   @Post('entities/:project')

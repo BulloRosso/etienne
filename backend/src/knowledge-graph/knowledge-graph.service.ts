@@ -278,6 +278,23 @@ export class KnowledgeGraphService implements OnModuleInit, OnModuleDestroy {
 
     const entityUri = `${this.baseUri}${id}`;
 
+    // First, delete all relationships connected to this entity
+    const relationships = await this.findRelationshipsByEntity(project, id);
+    for (const rel of relationships) {
+      try {
+        await axios.delete(`${QUADSTORE_URL}/${project}/quad`, {
+          data: {
+            subject: `${this.baseUri}${rel.subject}`,
+            predicate: `${this.baseUri}${rel.predicate}`,
+            object: `${this.baseUri}${rel.object}`
+          }
+        });
+      } catch (err) {
+        // Ignore errors from already-deleted relationships
+      }
+    }
+
+    // Then delete the entity itself
     await axios.delete(`${QUADSTORE_URL}/${project}/entity/${encodeURIComponent(entityUri)}`);
   }
 

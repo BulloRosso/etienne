@@ -205,10 +205,10 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
       <Box sx={{ p: 4, textAlign: 'center' }}>
         <DefaultEntityIcon sx={{ fontSize: 48, color: C.textDim, mb: 1 }} />
         <Typography sx={{ color: C.textMuted, fontSize: 14 }}>
-          {searchQuery ? 'No entities match your search.' : 'No entities in this ontology yet.'}
+          {searchQuery ? 'No entities match your search.' : 'No entity types defined yet.'}
         </Typography>
         <Typography sx={{ color: C.textDim, fontSize: 12, mt: 0.5 }}>
-          {searchQuery ? 'Try a different search term.' : 'Use the chat to describe your business domain.'}
+          {searchQuery ? 'Try a different search term.' : 'Use the chat to describe your business domain and entity types.'}
         </Typography>
       </Box>
     );
@@ -382,6 +382,15 @@ function DashboardTab({ typeNodes, projectName, onSelectInstance, C, searchQuery
                     </Box>
                   );
                 })}
+
+                {/* Empty state when type has no instances */}
+                {tn.instances.length === 0 && (
+                  <Box sx={{ px: 2, py: 1.5, textAlign: 'center', borderTop: `1px solid ${C.border}44` }}>
+                    <Typography sx={{ color: C.textDim, fontSize: 12, fontStyle: 'italic' }}>
+                      No instances yet — mention one in chat to add it
+                    </Typography>
+                  </Box>
+                )}
 
                 {/* Show more / less button */}
                 {!searchQuery && tn.instances.length > 3 && !isExpanded && (
@@ -887,15 +896,16 @@ export default function KnowledgeViewer({ filename, projectName }) {
       .catch(() => {});
   }, [filename, projectName, refreshKey]);
 
-  // Load ontology graph data
+  // Load ontology graph data (use public endpoint for broader compatibility)
   const loadData = useCallback(() => {
     if (!projectName) return;
     setLoading(true);
-    apiAxios.get(`/api/decision-support/ontology-graph/${projectName}`)
-      .then(res => {
-        if (res.data?.success) {
-          setTypeNodes(res.data.typeNodes || []);
-          setGraphRelationships(res.data.relationships || []);
+    apiFetch(`/api/public/ontology/graph/${projectName}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.success) {
+          setTypeNodes(data.typeNodes || []);
+          setGraphRelationships(data.relationships || []);
         }
       })
       .catch(() => {})
@@ -949,13 +959,13 @@ export default function KnowledgeViewer({ filename, projectName }) {
   }, []);
 
   // Filter out type-definition instances (type-def-*) — schema metadata, not user data
+  // But keep the type itself visible even if it has 0 real instances
   const visibleTypeNodes = useMemo(() => {
     return typeNodes
       .map(tn => {
         const instances = tn.instances.filter(inst => !inst.id.startsWith('type-def-'));
-        return instances.length > 0 ? { ...tn, instances, count: instances.length } : null;
-      })
-      .filter(Boolean);
+        return { ...tn, instances, count: instances.length };
+      });
   }, [typeNodes]);
 
   // Build set of entity IDs that participate in at least one relationship
