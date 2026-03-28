@@ -42,9 +42,18 @@ export default function Configuration({ onSave }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [isCloudVault, setIsCloudVault] = useState(false);
+  const [vaultProvider, setVaultProvider] = useState('');
 
   useEffect(() => {
     loadConfiguration();
+    fetch('/api/configuration/vault-info')
+      .then(r => r.json())
+      .then(data => {
+        setIsCloudVault(data.isCloudVault || false);
+        setVaultProvider(data.provider || '');
+      })
+      .catch(() => {});
   }, []);
 
   const loadConfiguration = async () => {
@@ -107,7 +116,7 @@ export default function Configuration({ onSave }) {
     }
   };
 
-  const isValid = config.ANTHROPIC_API_KEY && config.WORKSPACE_ROOT;
+  const isValid = (isCloudVault || config.ANTHROPIC_API_KEY) && config.WORKSPACE_ROOT;
 
   if (loading) {
     return (
@@ -135,16 +144,22 @@ export default function Configuration({ onSave }) {
         {t('configuration.sectionRequired')}
       </Typography>
 
-      <TextField
-        fullWidth
-        label={t('configuration.anthropicApiKeyLabel')}
-        value={config.ANTHROPIC_API_KEY}
-        onChange={handleChange('ANTHROPIC_API_KEY')}
-        type="password"
-        required
-        sx={{ mb: 2 }}
-        helperText={t('configuration.anthropicApiKeyHelperText')}
-      />
+      {isCloudVault ? (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t('configuration.cloudVaultActive', { provider: vaultProvider })}
+        </Alert>
+      ) : (
+        <TextField
+          fullWidth
+          label={t('configuration.anthropicApiKeyLabel')}
+          value={config.ANTHROPIC_API_KEY}
+          onChange={handleChange('ANTHROPIC_API_KEY')}
+          type="password"
+          required
+          sx={{ mb: 2 }}
+          helperText={t('configuration.anthropicApiKeyHelperText')}
+        />
+      )}
 
       <TextField
         fullWidth

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -59,6 +59,7 @@ export default function Onboarding({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [workspacePath, setWorkspacePath] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [isCloudVault, setIsCloudVault] = useState(false);
   const [selectedServices, setSelectedServices] = useState({
     'rdf-store': true,
     'vector-store': true,
@@ -71,6 +72,14 @@ export default function Onboarding({ onComplete }) {
   const [serviceErrors, setServiceErrors] = useState({});
   const [serviceStatuses, setServiceStatuses] = useState({});
 
+  // Check if a cloud vault provider is active (skip API key step)
+  useEffect(() => {
+    fetch('/api/configuration/vault-info')
+      .then(r => r.json())
+      .then(data => setIsCloudVault(data.isCloudVault || false))
+      .catch(() => {});
+  }, []);
+
   const STEPS = getSteps(t);
   const SERVICE_DEFINITIONS = getServiceDefinitions(t);
   const step = STEPS[currentStep];
@@ -80,7 +89,7 @@ export default function Onboarding({ onComplete }) {
       case 0:
         return workspacePath.length > 3;
       case 1:
-        return apiKey.length > 10;
+        return isCloudVault || apiKey.length > 10;
       case 2:
         return true; // Services can all be disabled
       case 3:
@@ -97,8 +106,20 @@ export default function Onboarding({ onComplete }) {
     try {
       switch (currentStep) {
         case 0:
-          // Just proceed to next step, workspace path will be saved with API key
-          setCurrentStep(1);
+          if (isCloudVault) {
+            // Cloud vault provides API keys — save workspace and skip API key step
+            const wsResponse = await apiFetch('/api/configuration', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ WORKSPACE_ROOT: workspacePath })
+            });
+            if (!wsResponse.ok) {
+              throw new Error(t('onboarding.failedToSaveConfig'));
+            }
+            setCurrentStep(2);
+          } else {
+            setCurrentStep(1);
+          }
           break;
 
         case 1:

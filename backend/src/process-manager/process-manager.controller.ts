@@ -27,9 +27,19 @@ export class ProcessManagerController {
     }
   }
 
+  /**
+   * Check if a cloud vault provider (Azure Key Vault, AWS) is configured,
+   * making the local secrets-manager (OpenBao) unnecessary.
+   */
+  private usesCloudVault(): boolean {
+    if (process.env.CLAUDE_CODE_USE_FOUNDRY) return true;
+    const provider = process.env.SECRET_VAULT_PROVIDER || 'openbao';
+    return provider === 'azure-keyvault' || provider === 'aws';
+  }
+
   private getRequiredServices(): string[] {
     const services = ['oauth-server'];
-    if (!this.envHasApiKeys()) {
+    if (!this.envHasApiKeys() && !this.usesCloudVault()) {
       services.unshift('secrets-manager');
     }
     return services;

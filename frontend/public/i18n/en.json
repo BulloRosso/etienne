@@ -234,6 +234,7 @@
   "configuration.sectionRequired": "Required Configuration (.env file in backend project)",
   "configuration.anthropicApiKeyLabel": "Anthropic API Key",
   "configuration.anthropicApiKeyHelperText": "Your Anthropic API key (sk-ant-api03-...)",
+  "configuration.cloudVaultActive": "API keys are managed by {{provider}}. No manual key entry required.",
   "configuration.workspaceRootLabel": "Workspace Root",
   "configuration.workspaceRootHelperText": "Local path to workspace files",
   "configuration.sectionOptional": "Optional Features",

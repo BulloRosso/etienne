@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { Roles } from '../auth/roles.decorator';
+import { Public } from '../auth/public.decorator';
 import { ConfigurationService } from './configuration.service';
 
 interface ConfigurationDto {
@@ -24,6 +25,22 @@ interface ConfigurationDto {
 @Controller('api/configuration')
 export class ConfigurationController {
   constructor(private readonly configurationService: ConfigurationService) {}
+
+  /**
+   * GET /api/configuration/vault-info
+   * Public endpoint: returns the effective vault provider type so the frontend
+   * can decide whether to show the API key prompt and require OpenBao.
+   */
+  @Public()
+  @Get('vault-info')
+  getVaultInfo() {
+    const useFoundry = !!process.env.CLAUDE_CODE_USE_FOUNDRY;
+    const provider = useFoundry
+      ? 'azure-keyvault'
+      : process.env.SECRET_VAULT_PROVIDER || 'openbao';
+    const isCloudVault = provider === 'azure-keyvault' || provider === 'aws';
+    return { provider, isCloudVault, useFoundry };
+  }
 
   /**
    * GET /api/configuration
