@@ -1637,5 +1637,21 @@
   "webHooksTab.matchFilesAlert": "Match files using <code>payload.fileCount:2</code> or check for specific files in your prompt",
   "webHooksTab.webhookUrl": "Webhook URL",
   "timeline.userOrder": "User order",
-  "userOrders.recentOrders": "Your recent orders"
+  "userOrders.recentOrders": "Your recent orders",
+  "teamUp.title": "Team up!",
+  "teamUp.heading": "Pair with another agent",
+  "teamUp.description": "Connect your agent with another agent for secure, auditable collaboration. All file exchanges will be tracked in a dedicated project folder.",
+  "teamUp.agentUrlLabel": "Agent URL",
+  "teamUp.agentUrlPlaceholder": "https://other-agent.example.com",
+  "teamUp.sendRequest": "Send pairing request",
+  "teamUp.connectedTo": "Connected to {{name}}",
+  "teamUp.pinInstructions": "Ask the owner of the remote agent for the 8-digit PIN. They can see it in their Team up! dialog. The PIN is typically communicated by phone or email.",
+  "teamUp.pinLabel": "8-digit PIN",
+  "teamUp.verifyPin": "Verify PIN & connect",
+  "teamUp.successTitle": "Agents paired successfully!",
+  "teamUp.successDescription": "A counterpart project has been created for {{name}}. All exchanges will be logged in the conversations folder.",
+  "teamUp.pendingTitle": "Incoming pairing requests",
+  "teamUp.pendingDescription": "Share the PIN below with the requesting agent's owner (by phone or email).",
+  "teamUp.errorInitiate": "Failed to reach the remote agent. Please check the URL.",
+  "teamUp.errorVerify": "PIN verification failed. Please check the PIN and try again."
 }

@@ -26,6 +26,7 @@ import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
 import { createEmailToolsService } from './email-tools';
 import { createScrapbookToolsService } from './scrapbook-tools';
 import { createA2AToolsService, generateDynamicA2ATools } from './a2a-tools';
+import { CollaborationService } from '../collaboration/collaboration.service';
 import { confirmationToolsService } from './confirmation-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
@@ -84,6 +85,7 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly configurationService: ConfigurationService,
     private readonly ssePublisherService: SSEPublisherService,
     private readonly userOrdersService: UserOrdersService,
+    private readonly collaborationService: CollaborationService,
   ) {
     this.groupConfigs = {
       'demo': {
@@ -105,7 +107,7 @@ export class McpServerFactoryService implements OnModuleInit {
         toolServices: [createScrapbookToolsService(scrapbookService, ssePublisherService)],
       },
       'a2a': {
-        toolServices: [createA2AToolsService(a2aClientService, a2aSettingsService, () => this.currentProjectRoot)],
+        toolServices: [createA2AToolsService(a2aClientService, a2aSettingsService, () => this.currentProjectRoot, collaborationService)],
         dynamicToolsLoader: async (projectRoot: string) => {
           const enabledAgents = await this.a2aSettingsService.getEnabledAgents(projectRoot);
           if (enabledAgents.length > 0) {
@@ -464,6 +466,31 @@ export class McpServerFactoryService implements OnModuleInit {
         };
       }
 
+      // Auto-provision counterpart project
+      let counterpartProjectPath: string | null = null;
+      try {
+        counterpartProjectPath = await this.collaborationService.ensureCounterpartProject(
+          matchedAgent.name,
+          matchedAgent,
+        );
+      } catch (err: any) {
+        this.logger.warn(`Failed to ensure counterpart project: ${err.message}`);
+      }
+
+      // Log outbound message
+      const timestamp = new Date().toISOString();
+      try {
+        const prompt = args.prompt || '';
+        await this.collaborationService.logConversation(matchedAgent.name, {
+          timestamp,
+          direction: 'outbound',
+          message: prompt.length > 200 ? prompt.substring(0, 200) + '...' : prompt,
+          files: args.file_paths,
+        });
+      } catch {
+        // Don't block on logging failures
+      }
+
       const result = await this.a2aClientService.sendMessage(
         matchedAgent.url,
         args.prompt || '',
@@ -484,11 +511,38 @@ export class McpServerFactoryService implements OnModuleInit {
         response.task_id = result.taskId;
       }
 
+      // Route received files to counterpart exchange/inbound or fallback
       if (result.files && result.files.length > 0) {
-        const path = await import('path');
-        const outputDir = path.join(projectRoot, 'out', 'a2a-responses');
+        const pathModule = await import('path');
+        let outputDir: string;
+        if (counterpartProjectPath) {
+          outputDir = pathModule.join(counterpartProjectPath, 'exchange', 'inbound');
+        } else {
+          outputDir = pathModule.join(projectRoot, 'out', 'a2a-responses');
+        }
         const savedPaths = await this.a2aClientService.saveExtractedFiles(result, outputDir);
         response.saved_files = savedPaths;
+
+        if (counterpartProjectPath) {
+          response.counterpart_project = this.collaborationService.getCounterpartProjectName(matchedAgent.name);
+        }
+      }
+
+      // Log inbound response
+      try {
+        const savedFiles = response.saved_files as string[] | undefined;
+        await this.collaborationService.logConversation(matchedAgent.name, {
+          timestamp: new Date().toISOString(),
+          direction: 'inbound',
+          message: result.text
+            ? (result.text.length > 200 ? result.text.substring(0, 200) + '...' : result.text)
+            : `Task ${result.status}`,
+          status: result.status,
+          taskId: result.taskId,
+          files: savedFiles,
+        });
+      } catch {
+        // Don't block on logging failures
       }
 
       this.logger.log(`Dynamic A2A tool ${toolName} executed successfully`);

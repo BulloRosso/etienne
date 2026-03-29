@@ -21,7 +21,7 @@ import {
   Fab,
   Tooltip
 } from '@mui/material';
-import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
+import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment, GroupAdd } from '@mui/icons-material';
 import { TbCalendarTime, TbPalette } from 'react-icons/tb';
 import { IoHandRightOutline } from 'react-icons/io5';
 import { RiRobot2Line } from 'react-icons/ri';
@@ -43,6 +43,7 @@ import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
 
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
+import TeamUpDialog from './TeamUpDialog';
 import AgentPersonaPersonality from './AgentPersonaPersonality';
 import ServiceControlDrawer from './ServiceControlDrawer';
 import IssueManager from './IssueManager';
@@ -80,6 +81,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [serviceControlOpen, setServiceControlOpen] = useState(false);
   const [personaDialogOpen, setPersonaDialogOpen] = useState(false);
+  const [teamUpOpen, setTeamUpOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -597,7 +599,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
                 </MenuItem>
               ))}
             </Box>
-            <Box sx={{ flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: '24px' }}>
+            <Box sx={{ flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: '24px', gap: 1 }}>
               <Tooltip title={t('projectMenu.createNewProject')} arrow>
                 <Fab
                   size="large"
@@ -605,7 +607,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
                   sx={{
                     position: 'relative',
                     mt: '-28px',
-                    mb: '20px',
+                    mb: '4px',
                     bgcolor: themeMode === 'dark' ? 'gold' : 'primary.main',
                     color: themeMode === 'dark' ? '#000' : '#fff',
                     '&:hover': {
@@ -617,6 +619,23 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
                 >
                   <AddOutlined sx={{ fontSize: 22, position: 'relative', left: '2px' }} />
                   <FolderOutlined sx={{ fontSize: 22, position: 'relative', left: '-2px' }} />
+                </Fab>
+              </Tooltip>
+              <Tooltip title={t('teamUp.title')} arrow>
+                <Fab
+                  size="medium"
+                  onClick={() => { setTeamUpOpen(true); handleMenuClose(); }}
+                  sx={{
+                    mb: '12px',
+                    bgcolor: themeMode === 'dark' ? '#4caf50' : '#2e7d32',
+                    color: '#fff',
+                    '&:hover': {
+                      bgcolor: themeMode === 'dark' ? '#388e3c' : '#1b5e20',
+                    },
+                    zIndex: 1,
+                  }}
+                >
+                  <GroupAdd sx={{ fontSize: 22 }} />
                 </Fab>
               </Tooltip>
             </Box>
@@ -642,6 +661,15 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
           setPersonaDialogOpen(false);
           await fetchProjects();
           onProjectChange(projectName);
+        }}
+      />
+
+      <TeamUpDialog
+        open={teamUpOpen}
+        onClose={() => setTeamUpOpen(false)}
+        onPaired={async (counterpartName) => {
+          setTeamUpOpen(false);
+          await fetchProjects();
         }}
       />
 

@@ -1549,5 +1549,21 @@
   "webHooksTab.matchFilesAlert": "Dateien abgleichen mit <code>payload.fileCount:2</code> oder in Ihrem Prompt nach bestimmten Dateien suchen",
   "webHooksTab.webhookUrl": "Webhook-URL",
   "timeline.userOrder": "Benutzerauftrag",
-  "userOrders.recentOrders": "Ihre letzten Aufträge"
+  "userOrders.recentOrders": "Ihre letzten Aufträge",
+  "teamUp.title": "Team up!",
+  "teamUp.heading": "Mit einem anderen Agenten koppeln",
+  "teamUp.description": "Verbinden Sie Ihren Agenten mit einem anderen Agenten für sichere, nachvollziehbare Zusammenarbeit. Alle Datei-Austausche werden in einem dedizierten Projektordner protokolliert.",
+  "teamUp.agentUrlLabel": "Agenten-URL",
+  "teamUp.agentUrlPlaceholder": "https://anderer-agent.beispiel.de",
+  "teamUp.sendRequest": "Kopplungsanfrage senden",
+  "teamUp.connectedTo": "Verbunden mit {{name}}",
+  "teamUp.pinInstructions": "Fragen Sie den Besitzer des entfernten Agenten nach der 8-stelligen PIN. Diese wird im Team up!-Dialog des Empfängers angezeigt und typischerweise per Telefon oder E-Mail kommuniziert.",
+  "teamUp.pinLabel": "8-stellige PIN",
+  "teamUp.verifyPin": "PIN prüfen & verbinden",
+  "teamUp.successTitle": "Agenten erfolgreich gekoppelt!",
+  "teamUp.successDescription": "Ein Gegenstellen-Projekt wurde für {{name}} erstellt. Alle Austausche werden im Conversations-Ordner protokolliert.",
+  "teamUp.pendingTitle": "Eingehende Kopplungsanfragen",
+  "teamUp.pendingDescription": "Teilen Sie die untenstehende PIN dem anfragenden Agenten-Besitzer mit (per Telefon oder E-Mail).",
+  "teamUp.errorInitiate": "Der entfernte Agent konnte nicht erreicht werden. Bitte prüfen Sie die URL.",
+  "teamUp.errorVerify": "PIN-Überprüfung fehlgeschlagen. Bitte prüfen Sie die PIN und versuchen Sie es erneut."
 }

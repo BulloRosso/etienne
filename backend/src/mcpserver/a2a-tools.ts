@@ -1,6 +1,7 @@
 import { ToolService, McpTool } from './types';
 import { A2AClientService } from '../a2a-client/a2a-client.service';
 import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
+import { CollaborationService } from '../collaboration/collaboration.service';
 import { AgentCardDto } from '../a2a-settings/dto/a2a-settings.dto';
 import * as path from 'path';
 import * as fs from 'fs-extra';
@@ -13,19 +14,22 @@ import * as fs from 'fs-extra';
  *
  * Tool naming convention: a2a_<agent_name>_<skill_id>
  * This allows the AI to see exactly which agent and skill it's invoking.
+ *
+ * Integrates with CollaborationService to:
+ * - Auto-provision counterpart projects on first contact
+ * - Route exchanged files through exchange/inbound and exchange/outbound
+ * - Log all conversations for auditability
  */
 export function createA2AToolsService(
   a2aClient: A2AClientService,
   a2aSettings: A2ASettingsService,
   getProjectRoot: () => string | null,
+  collaborationService?: CollaborationService,
 ): ToolService {
-  // We need to dynamically generate tools based on enabled agents
-  // For now, we create a single generic tool that routes to the appropriate agent
-
   const tools: McpTool[] = [
     {
       name: 'a2a_send_message',
-      description: 'Send a message to an external A2A agent. Use this to delegate tasks to specialized external agents that have been configured in the A2A settings. The agent will process your request and return a response.',
+      description: 'Send a message to an external A2A agent. Use this to delegate tasks to specialized external agents that have been configured in the A2A settings. The agent will process your request and return a response. Files are automatically routed through a counterpart project for auditability.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -40,7 +44,7 @@ export function createA2AToolsService(
           file_paths: {
             type: 'array',
             items: { type: 'string' },
-            description: 'Optional array of file paths to send along with the message',
+            description: 'Optional array of file paths to send along with the message. Files will be copied to the counterpart exchange/outbound/ folder.',
           },
         },
         required: ['agent_url', 'prompt'],
@@ -80,7 +84,7 @@ export function createA2AToolsService(
   }
 
   /**
-   * Send a message to an A2A agent
+   * Send a message to an A2A agent with counterpart project integration
    */
   async function executeA2ASendMessage(
     args: { agent_url: string; prompt: string; file_paths?: string[] },
@@ -90,9 +94,9 @@ export function createA2AToolsService(
 
     // Verify the agent is in our enabled list
     const enabledAgents = await a2aSettings.getEnabledAgents(projectRoot);
-    const isEnabled = enabledAgents.some(a => a.url === agent_url);
+    const matchedAgent = enabledAgents.find(a => a.url === agent_url);
 
-    if (!isEnabled) {
+    if (!matchedAgent) {
       return {
         success: false,
         error: `Agent at ${agent_url} is not enabled. Please enable it in A2A settings first.`,
@@ -101,6 +105,35 @@ export function createA2AToolsService(
     }
 
     try {
+      // Auto-provision counterpart project if collaboration service is available
+      let counterpartProjectPath: string | null = null;
+      if (collaborationService) {
+        try {
+          counterpartProjectPath = await collaborationService.ensureCounterpartProject(
+            matchedAgent.name,
+            matchedAgent,
+          );
+        } catch (err: any) {
+          // Log but don't block the A2A call
+          console.warn(`Failed to ensure counterpart project: ${err.message}`);
+        }
+      }
+
+      // Log the outbound message
+      const timestamp = new Date().toISOString();
+      if (collaborationService) {
+        try {
+          await collaborationService.logConversation(matchedAgent.name, {
+            timestamp,
+            direction: 'outbound',
+            message: prompt.length > 200 ? prompt.substring(0, 200) + '...' : prompt,
+            files: file_paths,
+          });
+        } catch {
+          // Don't block on logging failures
+        }
+      }
+
       // Send the message
       const result = await a2aClient.sendMessage(agent_url, prompt, file_paths);
 
@@ -108,6 +141,7 @@ export function createA2AToolsService(
       const response: any = {
         success: true,
         agent_url,
+        agent_name: matchedAgent.name,
         status: result.status,
       };
 
@@ -119,15 +153,58 @@ export function createA2AToolsService(
         response.task_id = result.taskId;
       }
 
-      // If there are files, save them
+      // If there are files, save them to the counterpart's exchange/inbound
       if (result.files && result.files.length > 0) {
-        const outputDir = path.join(projectRoot, 'out', 'a2a-responses');
+        let outputDir: string;
+        if (counterpartProjectPath) {
+          outputDir = path.join(counterpartProjectPath, 'exchange', 'inbound');
+        } else {
+          // Fallback to original location if no counterpart project
+          outputDir = path.join(projectRoot, 'out', 'a2a-responses');
+        }
         const savedPaths = await a2aClient.saveExtractedFiles(result, outputDir);
         response.saved_files = savedPaths;
+
+        if (counterpartProjectPath) {
+          response.counterpart_project = collaborationService?.getCounterpartProjectName(matchedAgent.name);
+        }
+      }
+
+      // Log the inbound response
+      if (collaborationService) {
+        try {
+          const savedFiles = response.saved_files as string[] | undefined;
+          await collaborationService.logConversation(matchedAgent.name, {
+            timestamp: new Date().toISOString(),
+            direction: 'inbound',
+            message: result.text
+              ? (result.text.length > 200 ? result.text.substring(0, 200) + '...' : result.text)
+              : `Task ${result.status}`,
+            status: result.status,
+            taskId: result.taskId,
+            files: savedFiles,
+          });
+        } catch {
+          // Don't block on logging failures
+        }
       }
 
       return response;
-    } catch (error) {
+    } catch (error: any) {
+      // Log failed attempts too
+      if (collaborationService) {
+        try {
+          await collaborationService.logConversation(matchedAgent.name, {
+            timestamp: new Date().toISOString(),
+            direction: 'inbound',
+            message: `Error: ${error.message}`,
+            status: 'failed',
+          });
+        } catch {
+          // Don't block on logging failures
+        }
+      }
+
       return {
         success: false,
         error: error.message,
@@ -151,6 +228,9 @@ export function createA2AToolsService(
           description: agent.description,
           url: agent.url,
           version: agent.version,
+          counterpart_project: collaborationService
+            ? collaborationService.getCounterpartProjectName(agent.name)
+            : undefined,
           skills: agent.skills?.map(skill => ({
             id: skill.id,
             name: skill.name,
@@ -159,7 +239,7 @@ export function createA2AToolsService(
           capabilities: agent.capabilities || {},
         })),
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message,
@@ -212,7 +292,7 @@ export async function generateDynamicA2ATools(
               file_paths: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Optional array of file paths to include with the request',
+                description: 'Optional array of file paths to include with the request. Files will be routed through the counterpart exchange folder.',
               },
             },
             required: ['prompt'],
@@ -234,7 +314,7 @@ export async function generateDynamicA2ATools(
             file_paths: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Optional array of file paths to include with the request',
+              description: 'Optional array of file paths to include with the request. Files will be routed through the counterpart exchange folder.',
             },
           },
           required: ['prompt'],

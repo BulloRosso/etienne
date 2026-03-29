@@ -15,9 +15,10 @@ import { EventHandlingModule } from '../event-handling/event-handling.module';
 import { ProcessManagerModule } from '../process-manager/process-manager.module';
 import { ConfigurationModule } from '../configuration/configuration.module';
 import { UserOrdersModule } from '../user-orders/user-orders.module';
+import { CollaborationModule } from '../collaboration/collaboration.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule],
   controllers: [McpServerController],
   providers: [McpServerFactoryService, McpAuthGuard],
   exports: [McpServerFactoryService],
