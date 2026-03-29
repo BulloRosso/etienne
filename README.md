@@ -1582,6 +1582,30 @@ UI/UX features, administrative tools, and system utilities:
 * **Frontend State** ([/requirements-docs/prd-frontend-state.md](requirements-docs/prd-frontend-state.md))
   Manages frontend state persistence using localStorage to remember the currently loaded project. Controls UI element visibility and enabled/disabled states based on whether a project is loaded. Validates that stored projects exist in the workspace on startup and gracefully handles missing projects.
 
+# Working with PDF and Office Format Documents
+
+The standard skill **office-and-pdf-documents** provides document parsing capabilities using the `@llamaindex/liteparse` npm package. It extracts text from documents while preserving spatial layout, and includes built-in OCR for scanned content. LiteParse is the local, open-source version of LlamaIndex's cloud service **LlamaParse**, which could be used for use cases with more complex requirements in regard to parsing quality (e.g. complex tables, multi-column layouts, or heavily formatted documents).
+
+## Supported Formats
+
+- **PDF** — native digital PDFs as well as PDFs containing scanned images (processed via built-in OCR)
+- **Word** — `.doc`, `.docx`, `.docm`, `.odt`, `.rtf`
+- **PowerPoint** — `.ppt`, `.pptx`, `.pptm`, `.odp`
+- **Excel / Sheets** — `.xls`, `.xlsx`, `.xlsm`, `.ods`, `.csv`, `.tsv`
+- **Images** — `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.tiff`, `.webp`, `.svg` (via OCR)
+
+## Binary Dependency: LibreOffice
+
+Non-PDF formats (Word, PowerPoint, Excel) are converted to PDF before parsing. This conversion requires **LibreOffice** (`soffice`) to be installed on the system. It is a binary dependency that cannot be installed via npm and must be installed manually.
+
+Before parsing, the skill checks availability by running:
+
+```bash
+soffice --version
+```
+
+If LibreOffice is missing and the user needs to parse Office documents, the skill will report the issue and provide installation instructions. PDF parsing (including scanned/image-based PDFs) works without LibreOffice.
+
 # File Type Previewers
 
 The frontend includes specialized preview components for various file types through the [FilePreviewHandler](frontend/src/services/FilePreviewHandler.js) service. When files are selected in the filesystem browser, they are automatically opened in the appropriate viewer component within the Artifacts pane.
