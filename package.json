@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.71",
-    "@anthropic-ai/sdk": "^0.78.0"
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@llamaindex/liteparse": "^1.4.1"
   }
 }

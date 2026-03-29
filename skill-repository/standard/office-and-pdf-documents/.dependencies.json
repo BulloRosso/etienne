@@ -1,0 +1,5 @@
+{
+  "requires": [],
+  "provides": ["parse_document", "screenshot_document", "batch_parse_documents"],
+  "services": []
+}
