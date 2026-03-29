@@ -1002,11 +1002,16 @@ For **production or team environments**, the project includes a **Secrets Manage
 
 **How it works:**
 - The Secrets Manager runs as a separate process on port **8200**, managed via the Process Manager
-- The backend has an abstraction layer (`SecretsManagerService`) with a provider pattern:
-  - **OpenBao provider** (primary) — reads/writes secrets from the vault via HTTP API
+- The backend has an abstraction layer (`SecretsManagerService`) with a plugin-based provider pattern:
+  - **OpenBao provider** (default) — reads/writes secrets from the self-hosted vault via HTTP API
+  - **Azure Key Vault provider** — uses Azure Key Vault with Service Principal authentication
+  - **AWS Secrets Manager provider** — uses AWS Secrets Manager with IAM credentials
   - **Env provider** (fallback) — reads from `process.env` when the vault is unavailable
 - All backend services inject `SecretsManagerService` to retrieve keys at runtime
-- If OpenBao is down, the system automatically falls back to `.env` values — zero downtime
+- If the primary provider is down or a key is not found in the vault, the system **permanently** falls back to `.env` values for the rest of the session — zero downtime
+- This means only sensitive values (API keys, tokens, credentials) need to be stored in the vault; all other configuration stays in `.env` as usual
+
+> **Note:** When using **Azure Key Vault** or **AWS Secrets Manager** as your provider, the OpenBao service is **not required** — you do not need to install or start it. OpenBao is only needed when `SECRET_VAULT_PROVIDER=openbao` (the default).
 
 **Starting the Secrets Manager:**
 ```bash
@@ -1066,7 +1071,35 @@ Set `SECRET_VAULT_PROVIDER` in your `.env` to choose the primary provider:
 | Value | Description |
 |-------|-------------|
 | `openbao` (default) | Uses OpenBao vault with automatic `.env` fallback |
+| `azure-keyvault` | Uses Azure Key Vault with Service Principal authentication |
+| `aws` | Uses AWS Secrets Manager with IAM credentials |
 | `env` | Uses `.env` file directly, vault is ignored |
+
+> **Note:** The `CLAUDE_CODE_USE_FOUNDRY` environment variable, when set, automatically selects `azure-keyvault` as the provider.
+
+#### Azure Key Vault Configuration
+
+Set the following environment variables when using `SECRET_VAULT_PROVIDER=azure-keyvault`:
+
+| Variable | Description |
+|----------|-------------|
+| `AZURE_TENANT_ID` | Azure Active Directory tenant ID |
+| `AZURE_CLIENT_ID` | Application (Service Principal) client ID |
+| `AZURE_CLIENT_SECRET` | Application client secret |
+| `AZURE_VAULT_URL` | Vault URL, e.g. `https://<vault-name>.vault.azure.net/` |
+
+Key names are automatically converted: underscores (`_`) become hyphens (`-`) to comply with Azure naming restrictions (e.g. `ANTHROPIC_API_KEY` is stored as `ANTHROPIC-API-KEY`).
+
+#### AWS Secrets Manager Configuration
+
+Set the following environment variables when using `SECRET_VAULT_PROVIDER=aws`:
+
+| Variable | Description |
+|----------|-------------|
+| `AWS_REGION` | AWS region, e.g. `us-east-1` |
+| `AWS_ACCESS_KEY_ID` | IAM access key ID |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret access key |
+| `AWS_SECRETS_PREFIX` | *(optional)* Namespace prefix — secrets are stored as `<prefix>/<KEY_NAME>` |
 
 ## Checkpoints
 
