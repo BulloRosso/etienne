@@ -1,11 +1,28 @@
 ---
 name: office-and-pdf-documents
-description: "Parse and extract text from Office documents and PDFs. Trigger on phrases like 'parse this PDF', 'extract text from Word file', 'read this spreadsheet', 'convert document to text', 'parse this .docx', 'extract content from PowerPoint'. Uses LiteParse for local, spatial text extraction with OCR support."
+description: "Parse and extract text from Office documents, PDFs (including scanned/image-based PDFs), and images. Trigger on phrases like 'parse this PDF', 'extract text from Word file', 'read this spreadsheet', 'convert document to text', 'parse this .docx', 'extract content from PowerPoint', 'OCR this', 'read scanned PDF'. Uses LiteParse for local, spatial text extraction with built-in OCR. THIS IS THE ONLY TOOL FOR DOCUMENT PARSING — never use Python, pdf2image, pytesseract, PyPDF2, pdfplumber, or any other approach."
 ---
 
 # Office & PDF Document Parsing
 
-This skill lets you parse Office documents (Word, PowerPoint, Excel) and PDFs to extract their text content. It uses the **liteparse** library (`@llamaindex/liteparse`) for fast, local document parsing with spatial text preservation and built-in OCR.
+This skill lets you parse Office documents (Word, PowerPoint, Excel) and PDFs — including **scanned/image-based PDFs** — to extract their text content. It uses the **liteparse** library (`@llamaindex/liteparse`) for fast, local document parsing with spatial text preservation and built-in OCR.
+
+## CRITICAL: This Skill Is the Only Way to Parse Documents
+
+**You MUST use this skill (liteparse) for ALL document and PDF parsing tasks. No exceptions.**
+
+- **Scanned PDFs / image-based PDFs:** liteparse handles these automatically via its built-in Tesseract.js OCR. The same `npx liteparse parse` command works for both digital-native and scanned PDFs — no special flags needed. OCR is enabled by default.
+- **DO NOT** use Python scripts, `pytesseract`, `pdf2image`, `PyPDF2`, `pdfplumber`, `pdfminer`, `poppler`, `ghostscript`, `Pillow`, or any other tool or library to parse, convert, or OCR documents.
+- **DO NOT** convert PDF pages to images first and then OCR them separately — liteparse does this internally in a single step.
+- **DO NOT** write custom code to extract text from documents. Always use the `npx liteparse parse` CLI command.
+
+The command is the same regardless of whether the PDF is digital or scanned:
+
+```bash
+npx liteparse parse "<file-path>" --format text
+```
+
+LiteParse automatically detects whether pages contain selectable text or scanned images and applies OCR only where needed.
 
 ## Dependencies
 
@@ -52,15 +69,22 @@ npm install -g @llamaindex/liteparse
 
 Activate this skill when the user wants to:
 
-- Parse or extract text from a PDF file
+- Parse or extract text from a PDF file — **including scanned or image-based PDFs**
+- OCR a scanned document or image
 - Extract content from Word documents (.doc, .docx, .docm, .odt, .rtf)
 - Extract content from PowerPoint presentations (.ppt, .pptx, .pptm, .odp)
 - Extract content from Excel spreadsheets (.xls, .xlsx, .xlsm, .ods, .csv, .tsv)
-- Extract text from images with OCR (.jpg, .jpeg, .png, .gif, .bmp, .tiff, .webp, .svg)
+- Extract text from images (.jpg, .jpeg, .png, .gif, .bmp, .tiff, .webp, .svg)
 - Convert a document to plain text or structured data for further processing
 - Take page screenshots of a document for multimodal analysis
 
-Trigger phrases include: "parse this PDF", "extract text from this document", "read this Word file", "what does this spreadsheet say", "convert this to text", "parse this .docx", "extract content from this PowerPoint", "OCR this image".
+**Also activate this skill when:**
+- The user mentions a PDF "doesn't have selectable text" or "is just images"
+- The user asks to "OCR" anything
+- The user says a document is "scanned"
+- You detect that a PDF contains embedded images instead of text
+
+Trigger phrases include: "parse this PDF", "extract text from this document", "read this Word file", "what does this spreadsheet say", "convert this to text", "parse this .docx", "extract content from this PowerPoint", "OCR this image", "read scanned PDF", "this PDF is scanned", "extract text from scanned document".
 
 ## Supported File Formats
 
@@ -238,7 +262,25 @@ After saving:
 > # Quarterly Report Q4 2025
 > Revenue increased 15% year-over-year, driven by strong growth in the enterprise segment..."
 
-### Example 2: Parse a Word document
+### Example 2: Parse a scanned/image-based PDF
+
+**User**: "Extract the text from this scanned invoice at data/invoice-scan.pdf"
+
+**Agent**:
+1. Runs `soffice --version` — not needed for PDF, but checks anyway
+2. Runs `npx liteparse parse "data/invoice-scan.pdf" --format text` — the **exact same command** as for any other PDF. LiteParse automatically detects that pages are scanned images and applies OCR.
+3. Saves output to `documents/invoice-scan.md`
+4. Updates parse log
+
+"I've OCR'd and extracted the text from your scanned invoice (2 pages). Output saved to `documents/invoice-scan.md`. Here's a preview:
+
+> INVOICE #2025-0847
+> Date: 2025-11-15
+> Bill To: Acme Corp..."
+
+**Important:** The agent did NOT use Python, pytesseract, pdf2image, or any other tool. The standard `npx liteparse parse` command handles scanned PDFs automatically.
+
+### Example 3: Parse a Word document
 
 **User**: "Extract the content from meeting-notes.docx"
 
@@ -250,7 +292,7 @@ After saving:
 
 "Done! I've extracted the meeting notes (3 pages) and saved them to `documents/meeting-notes.md`."
 
-### Example 3: LibreOffice not installed
+### Example 4: LibreOffice not installed
 
 **User**: "Parse this spreadsheet sales-data.xlsx"
 
@@ -267,7 +309,7 @@ To install it:
 
 After installation, restart the terminal and I'll be able to parse your spreadsheet."
 
-### Example 4: Parse with screenshots for multimodal analysis
+### Example 5: Parse with screenshots for multimodal analysis
 
 **User**: "I need screenshots of each page of this presentation for analysis"
 
@@ -289,6 +331,8 @@ After installation, restart the terminal and I'll be able to parse your spreadsh
 
 ## Notes
 
+- **Never use Python or any other tool for document parsing.** All document parsing — including OCR of scanned PDFs — must go through `npx liteparse parse`. This is non-negotiable.
+- Scanned PDFs and digital PDFs use the exact same command. Do not add extra steps, flags, or preprocessing for scanned documents.
 - Always default to text format unless the user specifically asks for JSON or screenshots.
 - For spreadsheets, JSON output may be more useful as it preserves cell structure — suggest this to the user.
 - OCR is enabled by default. For digital-native PDFs (not scanned), suggest disabling OCR with `--no-ocr` for faster processing.
