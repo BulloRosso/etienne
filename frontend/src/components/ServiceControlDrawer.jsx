@@ -1,15 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer, Box, Typography, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress, Snackbar, Alert } from '@mui/material';
-import { Close, PlayArrow, Stop, MoreVert } from '@mui/icons-material';
+import { Close, PlayArrow, Stop, MoreVert, Settings as SettingsIcon } from '@mui/icons-material';
 import CodingAgentConfigDialog from './CodingAgentConfigDialog.jsx';
+import ServiceSettings from './ServiceSettings.jsx';
 import { VscServerProcess } from 'react-icons/vsc';
 import { PiShareNetworkLight, PiTelegramLogo, PiMicrosoftTeamsLogo, PiVectorThree } from 'react-icons/pi';
 import { AiOutlineMail } from 'react-icons/ai';
 import { RiRobot2Line } from 'react-icons/ri';
-import { MdSecurity, MdVpnKey } from 'react-icons/md';
+import { MdSecurity, MdVpnKey, MdDns } from 'react-icons/md';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
+
+/** All env keys defined in ServiceSettings SETTINGS_GROUPS */
+const ALL_ENV_KEYS = [
+  'CODING_AGENT', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY',
+  'ANTHROPIC_MODELS', 'OPENAI_MODELS',
+  'OPENAI_AGENTS_MODEL', 'OPENAI_AGENTS_ENABLE_CODEX_TOOL', 'OPENAI_AGENTS_PERMISSION_TIMEOUT_MS',
+  'OTEL_ENABLED', 'PHOENIX_COLLECTOR_ENDPOINT', 'OTEL_SERVICE_NAME',
+  'MEMORY_MANAGEMENT_URL', 'MEMORY_DECAY_DAYS',
+  'WORKSPACE_ROOT', 'FORCE_PROJECT_SCOPE',
+  'COSTS_CURRENCY_UNIT', 'COSTS_PER_MIO_INPUT_TOKENS', 'COSTS_PER_MIO_OUTPUT_TOKENS',
+  'DIFFBOT_TOKEN', 'VAPI_TOKEN',
+  'CHECKPOINT_PROVIDER', 'GITEA_URL', 'GITEA_USERNAME', 'GITEA_PASSWORD', 'GITEA_REPO',
+  'SMTP_CONNECTION', 'IMAP_CONNECTION', 'SMTP_WHITELIST',
+  'AGENT_BUS_LOG_CMS', 'AGENT_BUS_LOG_DSS', 'AGENT_BUS_LOG_SWE',
+  'REGISTERED_PREVIEWERS',
+  'SECRET_VAULT_PROVIDER', 'OPENBAO_ADDR', 'OPENBAO_DEV_ROOT_TOKEN',
+  'AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_VAULT_URL',
+  'AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SECRETS_PREFIX',
+];
 
 const serviceIcons = {
   'rdf-store': PiShareNetworkLight,
@@ -33,11 +53,21 @@ export default function ServiceControlDrawer({ open, onClose }) {
   const [selectedService, setSelectedService] = useState(null);
   const [settingsMenuAnchor, setSettingsMenuAnchor] = useState(null);
   const [codingAgentConfigOpen, setCodingAgentConfigOpen] = useState(false);
+  const [serviceSettingsOpen, setServiceSettingsOpen] = useState(false);
+  const [settingsService, setSettingsService] = useState(null);
+  const [serviceEnvMappings, setServiceEnvMappings] = useState(null);
+  const [backendAllowedVars, setBackendAllowedVars] = useState(null);
   const [errorToast, setErrorToast] = useState({ open: false, message: '' });
 
   useEffect(() => {
     if (open) {
       fetchServicesAndStatuses();
+      if (!serviceEnvMappings) {
+        apiFetch('/api/configuration/service-env-mappings')
+          .then(r => r.json())
+          .then(data => setServiceEnvMappings(data))
+          .catch(() => setServiceEnvMappings({}));
+      }
     }
   }, [open]);
 
@@ -134,6 +164,8 @@ export default function ServiceControlDrawer({ open, onClose }) {
 
   const isRunning = (serviceName) => statuses[serviceName]?.status === 'running';
   const getPort = (serviceName) => statuses[serviceName]?.port;
+  const hasEnvSettings = (serviceName) =>
+    serviceEnvMappings && serviceName in serviceEnvMappings && serviceEnvMappings[serviceName].length > 0;
 
   return (
     <>
@@ -282,6 +314,19 @@ export default function ServiceControlDrawer({ open, onClose }) {
             <ListItemText>{t('serviceControl.start')}</ListItemText>
           </MenuItem>
         )}
+        {selectedService && hasEnvSettings(selectedService.name) && (
+          <MenuItem onClick={() => {
+            const svc = selectedService;
+            handleMenuClose();
+            setSettingsService(svc);
+            setServiceSettingsOpen(true);
+          }}>
+            <ListItemIcon>
+              <SettingsIcon />
+            </ListItemIcon>
+            <ListItemText>{t('serviceControl.configurationSettings')}</ListItemText>
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Settings Menu */}
@@ -296,12 +341,48 @@ export default function ServiceControlDrawer({ open, onClose }) {
         }}>
           <ListItemText>{t('serviceControl.codingAgentConfig')}</ListItemText>
         </MenuItem>
+        <MenuItem onClick={() => {
+          setSettingsMenuAnchor(null);
+          // Compute vars not mapped to any service
+          const mappedVars = new Set(
+            Object.values(serviceEnvMappings || {}).flat()
+          );
+          const unmappedVars = ALL_ENV_KEYS.filter(k => !mappedVars.has(k));
+          setSettingsService({
+            name: '_backend',
+            displayName: t('serviceControl.backendConfiguration'),
+            description: t('serviceSettings.backendDescription'),
+          });
+          setBackendAllowedVars(unmappedVars);
+          setServiceSettingsOpen(true);
+        }}>
+          <ListItemText>{t('serviceControl.backendConfiguration')}</ListItemText>
+        </MenuItem>
       </Menu>
 
       {/* Coding Agent Configuration Dialog */}
       <CodingAgentConfigDialog
         open={codingAgentConfigOpen}
         onClose={() => setCodingAgentConfigOpen(false)}
+      />
+
+      {/* Service Settings Dialog */}
+      <ServiceSettings
+        open={serviceSettingsOpen}
+        onClose={() => {
+          setServiceSettingsOpen(false);
+          setSettingsService(null);
+          setBackendAllowedVars(null);
+          fetchServicesAndStatuses();
+        }}
+        service={settingsService}
+        serviceStatus={settingsService?.name === '_backend' ? null : (settingsService ? statuses[settingsService.name] : null)}
+        serviceIcon={settingsService ? (serviceIcons[settingsService.name] || (settingsService.name === '_backend' ? MdDns : VscServerProcess)) : VscServerProcess}
+        allowedVars={
+          settingsService?.name === '_backend'
+            ? backendAllowedVars
+            : (settingsService && serviceEnvMappings ? serviceEnvMappings[settingsService.name] : undefined)
+        }
       />
 
       {/* Error Toast */}

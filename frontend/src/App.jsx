@@ -1869,8 +1869,6 @@ export default function App() {
                 setShowWelcomePage(true);
               }
             }}
-            showConfigurationRequired={showConfigurationRequired}
-            onConfigurationSaved={() => setShowConfigurationRequired(false)}
             codingAgent={codingAgent}
           />
         </Toolbar>

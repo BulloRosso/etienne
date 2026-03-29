@@ -1,0 +1,10 @@
+{
+  "imap-connector": [
+    "IMAP_CONNECTION"
+  ],
+  "secrets-manager": [
+    "SECRET_VAULT_PROVIDER",
+    "OPENBAO_ADDR",
+    "OPENBAO_DEV_ROOT_TOKEN"
+  ]
+}

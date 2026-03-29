@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/
 import { Roles } from '../auth/roles.decorator';
 import { Public } from '../auth/public.decorator';
 import { ConfigurationService } from './configuration.service';
+import * as serviceEnvMappings from './service-env-mappings.json';
 
 interface ConfigurationDto {
   ANTHROPIC_API_KEY?: string;
@@ -40,6 +41,17 @@ export class ConfigurationController {
       : process.env.SECRET_VAULT_PROVIDER || 'openbao';
     const isCloudVault = provider === 'azure-keyvault' || provider === 'aws';
     return { provider, isCloudVault, useFoundry };
+  }
+
+  /**
+   * GET /api/configuration/service-env-mappings
+   * Returns the mapping of service names to the backend .env vars they use.
+   * Services not present in the map have no backend .env settings.
+   */
+  @Public()
+  @Get('service-env-mappings')
+  getServiceEnvMappings() {
+    return serviceEnvMappings;
   }
 
   /**

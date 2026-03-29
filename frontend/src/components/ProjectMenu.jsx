@@ -40,7 +40,7 @@ import DashboardGrid from './DashboardGrid';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
 import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
-import Configuration from './Configuration';
+
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
 import AgentPersonaPersonality from './AgentPersonaPersonality';
@@ -52,7 +52,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 
-export default function ProjectMenu({ currentProject, sessionId, onCopySessionId, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, showConfigurationRequired, onConfigurationSaved, codingAgent = 'anthropic' }) {
+export default function ProjectMenu({ currentProject, sessionId, onCopySessionId, onProjectChange, budgetSettings, onBudgetSettingsChange, onTasksChange, showBackgroundInfo, onUIConfigChange, codingAgent = 'anthropic' }) {
   const { t } = useTranslation();
   const { user, logout, hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -91,14 +91,6 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   useEffect(() => {
     fetchProjects();
   }, []);
-
-  // Open About dialog with Configuration tab when configuration is required (admin only)
-  useEffect(() => {
-    if (showConfigurationRequired && hasRole('admin')) {
-      setAboutOpen(true);
-      setCurrentTab(3); // Configuration tab index
-    }
-  }, [showConfigurationRequired, hasRole]);
 
   useEffect(() => {
     if (currentProject) {
@@ -664,7 +656,6 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
           <Tab label={t('projectMenu.tabIntention')} />
           <Tab label={t('projectMenu.tabHowItWorks')} />
           <Tab label={t('projectMenu.tabHowToCreate')} />
-          {hasRole('admin') && <Tab label={t('projectMenu.tabConfiguration')} />}
         </Tabs>
         <DialogContent>
           {currentTab === 0 && (
@@ -721,16 +712,6 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
             </Box>
           )}
 
-          {currentTab === 3 && hasRole('admin') && (
-            <Box sx={{ minHeight: '400px' }}>
-              <Configuration onSave={() => {
-                if (onConfigurationSaved) {
-                  onConfigurationSaved();
-                }
-                handleAboutClose();
-              }} />
-            </Box>
-          )}
         </DialogContent>
       </Dialog>
 

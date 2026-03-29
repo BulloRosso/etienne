@@ -4,8 +4,16 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 
 interface ConfigurationDto {
+  CODING_AGENT?: string;
   ANTHROPIC_API_KEY?: string;
+  OPENAI_API_KEY?: string;
+  OPENAI_AGENTS_MODEL?: string;
+  OPENAI_AGENTS_ENABLE_CODEX_TOOL?: string;
+  OPENAI_AGENTS_PERMISSION_TIMEOUT_MS?: string;
+  ANTHROPIC_MODELS?: string;
+  OPENAI_MODELS?: string;
   WORKSPACE_ROOT?: string;
+  FORCE_PROJECT_SCOPE?: string;
   CHECKPOINT_PROVIDER?: string;
   GITEA_URL?: string;
   GITEA_USERNAME?: string;
@@ -22,12 +30,49 @@ interface ConfigurationDto {
   OTEL_ENABLED?: string;
   PHOENIX_COLLECTOR_ENDPOINT?: string;
   OTEL_SERVICE_NAME?: string;
+  DIFFBOT_TOKEN?: string;
+  VAPI_TOKEN?: string;
+  AGENT_BUS_LOG_CMS?: string;
+  AGENT_BUS_LOG_DSS?: string;
+  AGENT_BUS_LOG_SWE?: string;
   REGISTERED_PREVIEWERS?: string;
   SECRET_VAULT_PROVIDER?: string;
   OPENBAO_ADDR?: string;
   OPENBAO_DEV_ROOT_TOKEN?: string;
+  AZURE_TENANT_ID?: string;
+  AZURE_CLIENT_ID?: string;
+  AZURE_CLIENT_SECRET?: string;
+  AZURE_VAULT_URL?: string;
+  AWS_REGION?: string;
+  AWS_ACCESS_KEY_ID?: string;
+  AWS_SECRET_ACCESS_KEY?: string;
+  AWS_SECRETS_PREFIX?: string;
   [key: string]: string | undefined;
 }
+
+/** Declarative .env section template — drives formatEnvFile */
+const ENV_SECTIONS: { comment: string; keys: string[] }[] = [
+  { comment: '# Coding Agent Selection', keys: ['CODING_AGENT'] },
+  { comment: '# Anthropic API Key', keys: ['ANTHROPIC_API_KEY'] },
+  { comment: '# OpenAI API Key', keys: ['OPENAI_API_KEY'] },
+  { comment: '# Model tiers per provider (comma-separated: small,regular)', keys: ['ANTHROPIC_MODELS', 'OPENAI_MODELS'] },
+  { comment: '# OpenAI Agents SDK Configuration', keys: ['OPENAI_AGENTS_MODEL', 'OPENAI_AGENTS_ENABLE_CODEX_TOOL', 'OPENAI_AGENTS_PERMISSION_TIMEOUT_MS'] },
+  { comment: '# Workspace', keys: ['WORKSPACE_ROOT', 'FORCE_PROJECT_SCOPE'] },
+  { comment: '# Memory Management Configuration', keys: ['MEMORY_MANAGEMENT_URL', 'MEMORY_DECAY_DAYS'] },
+  { comment: '# Budget Control Configuration', keys: ['COSTS_CURRENCY_UNIT', 'COSTS_PER_MIO_INPUT_TOKENS', 'COSTS_PER_MIO_OUTPUT_TOKENS'] },
+  { comment: '# MCP Tools', keys: ['DIFFBOT_TOKEN', 'VAPI_TOKEN'] },
+  { comment: '# Checkpoint Provider Configuration', keys: ['CHECKPOINT_PROVIDER', 'GITEA_URL', 'GITEA_USERNAME', 'GITEA_PASSWORD', 'GITEA_REPO'] },
+  {
+    comment: '# Email Configuration\n# SMTP_CONNECTION format: host|port|secure|user|password\n# IMAP_CONNECTION format: host|port|secure|user|password',
+    keys: ['SMTP_CONNECTION', 'IMAP_CONNECTION', 'SMTP_WHITELIST'],
+  },
+  { comment: '# Agent Bus Logging', keys: ['AGENT_BUS_LOG_CMS', 'AGENT_BUS_LOG_DSS', 'AGENT_BUS_LOG_SWE'] },
+  { comment: '# OpenTelemetry Observability Configuration', keys: ['OTEL_ENABLED', 'PHOENIX_COLLECTOR_ENDPOINT', 'OTEL_SERVICE_NAME'] },
+  { comment: '# File Previewer Mappings (pipe-separated: viewer:.ext1,.ext2)', keys: ['REGISTERED_PREVIEWERS'] },
+  { comment: '# Secrets Manager Configuration', keys: ['SECRET_VAULT_PROVIDER', 'OPENBAO_ADDR', 'OPENBAO_DEV_ROOT_TOKEN'] },
+  { comment: '# Azure Key Vault Configuration', keys: ['AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_VAULT_URL'] },
+  { comment: '# AWS Secrets Manager Configuration', keys: ['AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SECRETS_PREFIX'] },
+];
 
 @Injectable()
 export class ConfigurationService {
@@ -99,129 +144,38 @@ export class ConfigurationService {
   }
 
   /**
-   * Format configuration object as .env file content
+   * Format configuration object as .env file content using a declarative section template.
+   * Sections are only emitted when at least one key in the section has a value.
    */
   private formatEnvFile(config: ConfigurationDto): string {
     const lines: string[] = [];
+    const writtenKeys = new Set<string>();
 
-    // Core settings
-    if (config.ANTHROPIC_API_KEY) {
-      lines.push('# Anthropic API Key (used for direct Claude API calls when aiModel=claude)');
-      lines.push(`ANTHROPIC_API_KEY=${config.ANTHROPIC_API_KEY}`);
-    }
+    for (const section of ENV_SECTIONS) {
+      const sectionValues = section.keys.filter(k => config[k]);
+      if (sectionValues.length === 0) continue;
 
-    if (config.WORKSPACE_ROOT) {
-      lines.push('# Local path to workspace files');
-      lines.push(`WORKSPACE_ROOT=${config.WORKSPACE_ROOT}`);
-    }
-
-    // Memory Management Configuration
-    if (config.MEMORY_MANAGEMENT_URL || config.MEMORY_DECAY_DAYS) {
-      lines.push('');
-      lines.push('# Memory Management Configuration');
-      if (config.MEMORY_MANAGEMENT_URL) {
-        lines.push(`MEMORY_MANAGEMENT_URL=${config.MEMORY_MANAGEMENT_URL}`);
+      if (lines.length > 0) lines.push('');
+      for (const commentLine of section.comment.split('\n')) {
+        lines.push(commentLine);
       }
-      if (config.MEMORY_DECAY_DAYS) {
-        lines.push(`MEMORY_DECAY_DAYS=${config.MEMORY_DECAY_DAYS}`);
+      for (const key of section.keys) {
+        if (config[key]) {
+          lines.push(`${key}=${config[key]}`);
+          writtenKeys.add(key);
+        }
       }
     }
 
-    // Budget Control Configuration
-    if (config.COSTS_CURRENCY_UNIT || config.COSTS_PER_MIO_INPUT_TOKENS || config.COSTS_PER_MIO_OUTPUT_TOKENS) {
+    // Write any remaining keys not covered by the template
+    const remaining = Object.entries(config).filter(
+      ([k, v]) => v && !writtenKeys.has(k),
+    );
+    if (remaining.length > 0) {
       lines.push('');
-      lines.push('# Budget Control Configuration');
-      if (config.COSTS_CURRENCY_UNIT) {
-        lines.push(`COSTS_CURRENCY_UNIT=${config.COSTS_CURRENCY_UNIT}`);
-      }
-      if (config.COSTS_PER_MIO_INPUT_TOKENS) {
-        lines.push(`COSTS_PER_MIO_INPUT_TOKENS=${config.COSTS_PER_MIO_INPUT_TOKENS}`);
-      }
-      if (config.COSTS_PER_MIO_OUTPUT_TOKENS) {
-        lines.push(`COSTS_PER_MIO_OUTPUT_TOKENS=${config.COSTS_PER_MIO_OUTPUT_TOKENS}`);
-      }
-    }
-
-    // Checkpoint Provider Configuration
-    if (config.CHECKPOINT_PROVIDER || config.GITEA_URL || config.GITEA_USERNAME || config.GITEA_PASSWORD || config.GITEA_REPO) {
-      lines.push('');
-      lines.push('# Checkpoint Provider Configuration');
-      if (config.CHECKPOINT_PROVIDER) {
-        lines.push(`CHECKPOINT_PROVIDER=${config.CHECKPOINT_PROVIDER}`);
-      }
-      if (config.GITEA_URL) {
-        lines.push(`GITEA_URL=${config.GITEA_URL}`);
-      }
-      if (config.GITEA_USERNAME) {
-        lines.push(`GITEA_USERNAME=${config.GITEA_USERNAME}`);
-      }
-      if (config.GITEA_PASSWORD) {
-        lines.push(`GITEA_PASSWORD=${config.GITEA_PASSWORD}`);
-      }
-      if (config.GITEA_REPO) {
-        lines.push(`GITEA_REPO=${config.GITEA_REPO}`);
-      }
-    }
-
-    // Email Configuration
-    if (config.SMTP_CONNECTION || config.IMAP_CONNECTION || config.SMTP_WHITELIST) {
-      lines.push('');
-      lines.push('# Email Configuration');
-      lines.push('# SMTP_CONNECTION format: host|port|secure|user|password');
-      lines.push('# Port 587 uses STARTTLS (secure=false triggers STARTTLS mode)');
-      lines.push('# Port 993 uses direct SSL/TLS (secure=true)');
-      if (config.SMTP_CONNECTION) {
-        lines.push(`SMTP_CONNECTION=${config.SMTP_CONNECTION}`);
-      }
-      lines.push('');
-      lines.push('# IMAP_CONNECTION format: host|port|secure|user|password');
-      lines.push('# IMAP uses SSL on port 993');
-      if (config.IMAP_CONNECTION) {
-        lines.push(`IMAP_CONNECTION=${config.IMAP_CONNECTION}`);
-      }
-      lines.push('');
-      lines.push('# SMTP Whitelist - comma-separated list of allowed recipients');
-      lines.push('# This prevents AI agents from sending emails to unauthorized recipients');
-      if (config.SMTP_WHITELIST) {
-        lines.push(`SMTP_WHITELIST=${config.SMTP_WHITELIST}`);
-      }
-    }
-
-    // OpenTelemetry Observability Configuration
-    if (config.OTEL_ENABLED || config.PHOENIX_COLLECTOR_ENDPOINT || config.OTEL_SERVICE_NAME) {
-      lines.push('');
-      lines.push('# OpenTelemetry Observability Configuration');
-      if (config.OTEL_ENABLED) {
-        lines.push(`OTEL_ENABLED=${config.OTEL_ENABLED}`);
-      }
-      if (config.PHOENIX_COLLECTOR_ENDPOINT) {
-        lines.push(`PHOENIX_COLLECTOR_ENDPOINT=${config.PHOENIX_COLLECTOR_ENDPOINT}`);
-      }
-      if (config.OTEL_SERVICE_NAME) {
-        lines.push(`OTEL_SERVICE_NAME=${config.OTEL_SERVICE_NAME}`);
-      }
-    }
-
-    // Registered File Previewers
-    if (config.REGISTERED_PREVIEWERS) {
-      lines.push('');
-      lines.push('# Registered file previewers available in the frontend');
-      lines.push('# Format: name:ext1,ext2|name2:ext3,ext4');
-      lines.push(`REGISTERED_PREVIEWERS=${config.REGISTERED_PREVIEWERS}`);
-    }
-
-    // Secrets Manager Configuration
-    if (config.SECRET_VAULT_PROVIDER || config.OPENBAO_ADDR || config.OPENBAO_DEV_ROOT_TOKEN) {
-      lines.push('');
-      lines.push('# Secrets Manager Configuration');
-      if (config.SECRET_VAULT_PROVIDER) {
-        lines.push(`SECRET_VAULT_PROVIDER=${config.SECRET_VAULT_PROVIDER}`);
-      }
-      if (config.OPENBAO_ADDR) {
-        lines.push(`OPENBAO_ADDR=${config.OPENBAO_ADDR}`);
-      }
-      if (config.OPENBAO_DEV_ROOT_TOKEN) {
-        lines.push(`OPENBAO_DEV_ROOT_TOKEN=${config.OPENBAO_DEV_ROOT_TOKEN}`);
+      lines.push('# Additional Configuration');
+      for (const [key, value] of remaining) {
+        lines.push(`${key}=${value}`);
       }
     }
 
