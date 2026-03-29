@@ -1,0 +1,5 @@
+{
+  "requires": [],
+  "provides": ["email_send", "email_check_inbox"],
+  "services": ["imap-connector"]
+}
