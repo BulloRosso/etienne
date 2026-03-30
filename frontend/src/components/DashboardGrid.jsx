@@ -98,6 +98,12 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     },
     // 8th row
     {
+      id: 'a2a',
+      image: '/project-wizard-step-6.png',
+      label: t('dashboard.itemA2AAgents'),
+      disabled: !currentProject
+    },
+    {
       id: 'skillstore',
       image: '/skills.png',
       label: t('dashboard.itemSkillStore'),

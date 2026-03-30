@@ -179,6 +179,9 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
       case 'scrapbook':
         handleScrapbookOpen();
         break;
+      case 'a2a':
+        setTeamUpOpen(true);
+        break;
       case 'skillstore':
         handleSkillCatalogOpen();
         break;

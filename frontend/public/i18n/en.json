@@ -323,6 +323,7 @@
   "dashboard.itemDecisionSupport": "Decision Support",
   "dashboard.itemSkillStore": "Skill Store",
   "dashboard.itemIssues": "Issues",
+  "dashboard.itemA2AAgents": "A2A Agents",
   "dashboard.serviceControl": "Service Control",
 
   "issues.dialogTitle": "Issue Manager",

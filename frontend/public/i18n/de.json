@@ -310,6 +310,7 @@
   "dashboard.itemDecisionSupport": "Entscheidungsunterstützung",
   "dashboard.itemSkillStore": "Skill Store",
   "dashboard.itemIssues": "Probleme",
+  "dashboard.itemA2AAgents": "A2A-Agenten",
   "dashboard.serviceControl": "Dienstesteuerung",
 
   "issues.dialogTitle": "Problemverwaltung",
