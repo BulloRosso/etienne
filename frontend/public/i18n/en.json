@@ -323,7 +323,6 @@
   "dashboard.itemDecisionSupport": "Decision Support",
   "dashboard.itemSkillStore": "Skill Store",
   "dashboard.itemIssues": "Issues",
-  "dashboard.itemA2AAgents": "A2A Agents",
   "dashboard.serviceControl": "Service Control",
 
   "issues.dialogTitle": "Issue Manager",
@@ -1641,7 +1640,7 @@
   "userOrders.recentOrders": "Your recent orders",
   "teamUp.title": "Team up!",
   "teamUp.heading": "Pair with another agent",
-  "teamUp.description": "Connect your agent with another agent for secure, auditable collaboration. All file exchanges will be tracked in a dedicated project folder.",
+  "teamUp.description": "Connect your agent with another Etienne instance for secure, auditable collaboration. This pairing only works between Etienne instances. All file exchanges will be tracked in a dedicated project folder.",
   "teamUp.agentUrlLabel": "Agent URL",
   "teamUp.agentUrlPlaceholder": "https://other-agent.example.com",
   "teamUp.sendRequest": "Send pairing request",

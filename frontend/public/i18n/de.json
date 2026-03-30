@@ -310,7 +310,6 @@
   "dashboard.itemDecisionSupport": "Entscheidungsunterstützung",
   "dashboard.itemSkillStore": "Skill Store",
   "dashboard.itemIssues": "Probleme",
-  "dashboard.itemA2AAgents": "A2A-Agenten",
   "dashboard.serviceControl": "Dienstesteuerung",
 
   "issues.dialogTitle": "Problemverwaltung",
@@ -1553,7 +1552,7 @@
   "userOrders.recentOrders": "Ihre letzten Aufträge",
   "teamUp.title": "Team up!",
   "teamUp.heading": "Mit einem anderen Agenten koppeln",
-  "teamUp.description": "Verbinden Sie Ihren Agenten mit einem anderen Agenten für sichere, nachvollziehbare Zusammenarbeit. Alle Datei-Austausche werden in einem dedizierten Projektordner protokolliert.",
+  "teamUp.description": "Verbinden Sie Ihren Agenten mit einer anderen Etienne-Instanz für sichere, nachvollziehbare Zusammenarbeit. Diese Kopplung funktioniert nur zwischen Etienne-Instanzen. Alle Datei-Austausche werden in einem dedizierten Projektordner protokolliert.",
   "teamUp.agentUrlLabel": "Agenten-URL",
   "teamUp.agentUrlPlaceholder": "https://anderer-agent.beispiel.de",
   "teamUp.sendRequest": "Kopplungsanfrage senden",

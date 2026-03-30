@@ -100,7 +100,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     {
       id: 'a2a',
       image: '/project-wizard-step-6.png',
-      label: t('dashboard.itemA2AAgents'),
+      label: t('teamUp.title'),
       disabled: !currentProject
     },
     {
