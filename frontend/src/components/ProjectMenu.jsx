@@ -21,7 +21,7 @@ import {
   Fab,
   Tooltip
 } from '@mui/material';
-import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment, GroupAdd } from '@mui/icons-material';
+import { Menu as MenuIcon, FolderOutlined, AddOutlined, InfoOutlined, Close, Assessment } from '@mui/icons-material';
 import { TbCalendarTime, TbPalette } from 'react-icons/tb';
 import { IoHandRightOutline } from 'react-icons/io5';
 import { RiRobot2Line } from 'react-icons/ri';
@@ -531,7 +531,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
           paper: {
             sx: {
               maxHeight: 'calc(100vh - 32px)',
-              overflow: 'hidden'
+              overflow: 'visible'
             }
           }
         }}
@@ -570,7 +570,8 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
           <Box sx={{
             minWidth: '250px',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            overflow: 'visible',
           }}>
             <MenuItem disabled sx={{ opacity: '1 !important', mt: '20px', paddingBottom: '5px', mb: '-2px', flexShrink: 0, position: 'relative', top: '-10px' }}>
               <ListItemText><span dangerouslySetInnerHTML={{ __html: t('projectMenu.chooseProject') }} style={{ fontSize: '1.1em' }} /></ListItemText>
@@ -602,7 +603,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
                 </MenuItem>
               ))}
             </Box>
-            <Box sx={{ flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: '24px', gap: 1 }}>
+            <Box sx={{ flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: '24px', gap: 1, overflow: 'visible' }}>
               <Tooltip title={t('projectMenu.createNewProject')} arrow>
                 <Fab
                   size="large"
@@ -610,35 +611,18 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
                   sx={{
                     position: 'relative',
                     mt: '-28px',
-                    mb: '4px',
+                    mb: '12px',
                     bgcolor: themeMode === 'dark' ? 'gold' : 'primary.main',
                     color: themeMode === 'dark' ? '#000' : '#fff',
                     '&:hover': {
                       bgcolor: themeMode === 'dark' ? '#daa520' : 'primary.dark',
                     },
-                    zIndex: 1,
+                    zIndex: 9999,
                     gap: 0,
                   }}
                 >
                   <AddOutlined sx={{ fontSize: 22, position: 'relative', left: '2px' }} />
                   <FolderOutlined sx={{ fontSize: 22, position: 'relative', left: '-2px' }} />
-                </Fab>
-              </Tooltip>
-              <Tooltip title={t('teamUp.title')} arrow>
-                <Fab
-                  size="medium"
-                  onClick={() => { setTeamUpOpen(true); handleMenuClose(); }}
-                  sx={{
-                    mb: '12px',
-                    bgcolor: themeMode === 'dark' ? '#4caf50' : '#2e7d32',
-                    color: '#fff',
-                    '&:hover': {
-                      bgcolor: themeMode === 'dark' ? '#388e3c' : '#1b5e20',
-                    },
-                    zIndex: 1,
-                  }}
-                >
-                  <GroupAdd sx={{ fontSize: 22 }} />
                 </Fab>
               </Tooltip>
             </Box>

@@ -1,0 +1,331 @@
+{
+  "quote_id": "QB-20260403-1761",
+  "status": "success",
+  "base_product": {
+    "product_id": "BC-NMC-2170",
+    "product_name": "NMC 21700 High Energy Cell"
+  },
+  "configuration": {
+    "features": [
+      {
+        "feature_id": "F-001",
+        "feature_name": "Capacity Tier",
+        "requested_value": "5.0 Ah minimum",
+        "configured_value": "High-Density (5.0 Ah)",
+        "tier": "premium",
+        "status": "configured",
+        "surcharge": "15% on base unit price",
+        "notes": "Standard capacity is 4.8 Ah. High-Density option achieves 5.0 Ah as required. Note: High-Density reduces cycle life by approximately 10-15% and cannot be combined with Extended Cycle Life option."
+      },
+      {
+        "feature_id": "F-002",
+        "feature_name": "Discharge Rate Configuration",
+        "requested_value": "3C continuous (15A), 5C peak (25A)",
+        "configured_value": "2.5C continuous (12.5A)",
+        "tier": "custom",
+        "status": "adjusted",
+        "surcharge": "15% on base unit price",
+        "notes": "CRITICAL GAP: Customer requires 3C continuous discharge, but BC-NMC-2170 maximum configurable rate is 2.5C per feature catalog. Configured at maximum available (2.5C). Customer must confirm acceptability or consider alternative product BC-NMC-2170-HP which offers 5.0C but has NMC 622 chemistry (instead of requested NMC 811) and only 4.0 Ah capacity."
+      },
+      {
+        "feature_id": "F-003",
+        "feature_name": "Operating Temperature Range",
+        "requested_value": "Discharge: -20C to +55C, Charge: 0C to +45C",
+        "configured_value": "Standard (-20C to +55C)",
+        "tier": "standard",
+        "status": "configured",
+        "surcharge": "None",
+        "notes": "Customer requirements fall within standard operating temperature range. No extended temperature option required."
+      },
+      {
+        "feature_id": "F-004",
+        "feature_name": "Certification Package",
+        "requested_value": "CE, IEC 62619, IEC 62660, UN 38.3, EU Battery Regulation compliance, UL 2580 (desired)",
+        "configured_value": "EU Standard + IEC 62660 Add-on + UL Option",
+        "tier": "premium",
+        "status": "configured",
+        "surcharge": "+EUR 0.05/unit (IEC 62660) + EUR 0.08/unit (UL)",
+        "notes": "EU Standard package (CE, IEC 62619, UN 38.3) included as standard. IEC 62660 automotive testing added (4 weeks additional lead time). UL certification available - note: UL 1642 is the cell-level standard available; UL 2580 is for battery systems. UL adds 4-6 weeks lead time. Customer to confirm if UL 1642 satisfies their UL 2580 requirement or if system-level certification is needed."
+      },
+      {
+        "feature_id": "F-005",
+        "feature_name": "Extended Cycle Life",
+        "requested_value": "1,200 cycles to 80% SoH",
+        "configured_value": "Standard (1,000 cycles)",
+        "tier": "standard",
+        "status": "infeasible",
+        "surcharge": "N/A",
+        "notes": "CONSTRAINT CONFLICT: Extended Cycle Life (+25% = 1,250 cycles) would meet the 1,200 cycle requirement, but Extended Cycle Life cannot be combined with High-Density capacity (F-001), which is required to meet the 5.0 Ah capacity requirement. With High-Density selected, the effective cycle life is further reduced by 10-15%, yielding approximately 850-900 cycles. Customer must choose: (A) Accept ~850-900 cycles with 5.0 Ah capacity, (B) Accept standard capacity (4.8 Ah) with Extended Cycle Life (1,250 cycles), or (C) Consider alternative product."
+      },
+      {
+        "feature_id": "F-006",
+        "feature_name": "Cell Packaging & Grouping",
+        "requested_value": "Cell matching implied (capacity/impedance)",
+        "configured_value": "Matched sets (capacity and impedance +/-1%)",
+        "tier": "premium",
+        "status": "configured",
+        "surcharge": "+EUR 0.05/unit",
+        "notes": "Matched sets recommended for EV application to ensure consistent pack performance. Adds 2-3 days to production."
+      },
+      {
+        "feature_id": "F-007",
+        "feature_name": "Electrolyte Formulation",
+        "requested_value": "Not specified",
+        "configured_value": "Standard (EC/DMC formulation)",
+        "tier": "standard",
+        "status": "configured",
+        "surcharge": "None",
+        "notes": "Standard electrolyte formulation selected. No extended temperature or high-voltage requirements indicated."
+      },
+      {
+        "feature_id": "F-009",
+        "feature_name": "Labeling & Marking",
+        "requested_value": "Dual branding (Velora Mobility + EuroBatt), QR code required, Italian language",
+        "configured_value": "Dual branding + QR/DataMatrix code",
+        "tier": "premium",
+        "status": "configured",
+        "surcharge": "+EUR 0.03/unit (dual branding) + EUR 800 setup fee + EUR 0.02/unit (QR code)",
+        "notes": "Dual branding with Velora Mobility and EuroBatt logos. Customer must supply artwork in vector format (AI/EPS/SVG). QR code will link to digital product passport. Italian-language safety warnings included as per regulatory requirement. Minimum order 5,000 units - customer volume of 50,000 units qualifies."
+      },
+      {
+        "feature_id": "F-010",
+        "feature_name": "EU Battery Passport",
+        "requested_value": "EU Battery Regulation 2023/1542 compliance",
+        "configured_value": "Standard passport",
+        "tier": "regulatory",
+        "status": "configured",
+        "surcharge": "+EUR 0.12/unit",
+        "notes": "Mandatory for EV and light means of transport applications. Digital product passport per EU 2023/1542 requirements. QR code on cell links to passport data."
+      },
+      {
+        "feature_id": "safety_features",
+        "feature_name": "Safety Features",
+        "requested_value": "CID, PTC, no thermal runaway propagation",
+        "configured_value": "CID + PTC included as standard",
+        "tier": "standard",
+        "status": "configured",
+        "surcharge": "None",
+        "notes": "Current Interrupt Device (CID) and Positive Temperature Coefficient (PTC) are standard features on BC-NMC-2170. Thermal runaway propagation prevention is a pack-level design consideration - cell-level thermal stability is within specification."
+      },
+      {
+        "feature_id": "internal_resistance",
+        "feature_name": "Internal Resistance",
+        "requested_value": "25 mohm maximum",
+        "configured_value": "Typical 18-22 mohm",
+        "tier": "standard",
+        "status": "configured",
+        "surcharge": "None",
+        "notes": "BC-NMC-2170 typical internal resistance is within customer's 25 mohm maximum requirement."
+      },
+      {
+        "feature_id": "weight",
+        "feature_name": "Cell Weight",
+        "requested_value": "70g maximum",
+        "configured_value": "68g typical",
+        "tier": "standard",
+        "status": "configured",
+        "surcharge": "None",
+        "notes": "BC-NMC-2170 typical weight of 68g is within customer's 70g maximum requirement."
+      }
+    ],
+    "mandatory_additions": [
+      {
+        "feature_id": "F-010",
+        "reason": "EU Battery Regulation 2023/1542 requires digital product passport for EV and industrial batteries",
+        "status": "included_in_configuration"
+      },
+      {
+        "feature_id": "italian_language_labeling",
+        "reason": "Italian-language safety warnings required per D.Lgs. 188/2008 and customer obligation",
+        "status": "added"
+      },
+      {
+        "feature_id": "cdcnpa_producer_marking",
+        "reason": "Producer identification for Italian EPR compliance (Centro di Coordinamento Nazionale Pile e Accumulatori)",
+        "status": "added"
+      }
+    ]
+  },
+  "feasibility": {
+    "all_feasible": false,
+    "infeasible_features": [
+      {
+        "feature": "discharge_rate",
+        "requested": "3C continuous",
+        "maximum_available": "2.5C",
+        "gap": "0.5C (17% shortfall)"
+      },
+      {
+        "feature": "cycle_life",
+        "requested": "1,200 cycles",
+        "estimated_with_config": "850-900 cycles",
+        "gap": "300-350 cycles (25-29% shortfall)",
+        "reason": "High-Density capacity required for 5.0 Ah reduces cycle life and prevents Extended Cycle Life option"
+      }
+    ],
+    "adjusted_features": [
+      "discharge_rate"
+    ],
+    "unsupported_features": [],
+    "recommendation": "Two critical gaps exist that require customer decision:\n\n1. DISCHARGE RATE: Maximum configurable is 2.5C vs. required 3C. Options:\n   (a) Accept 2.5C if application can accommodate\n   (b) Switch to BC-NMC-2170-HP (5.0C capable) but accept NMC 622 chemistry and 4.0 Ah capacity\n   (c) Consider BC-NMC-POUCH-50 which offers 3.0C with reinforced tabs\n\n2. CYCLE LIFE vs. CAPACITY TRADE-OFF: Cannot achieve both 5.0 Ah and 1,200 cycles due to feature conflict. Options:\n   (a) Priority: Capacity - Accept 5.0 Ah with ~850-900 cycles\n   (b) Priority: Cycle Life - Accept 4.8 Ah standard capacity with 1,250 cycles (Enhanced option)\n   (c) Re-evaluate pack design to work with 4.0 Ah cells from BC-NMC-2170-HP\n\nRecommend customer review meeting to determine priorities before finalizing quote."
+  },
+  "technical_specifications_configured": {
+    "product_code": "BC-NMC-2170-HD-HP25",
+    "chemistry": "NMC 811 (LiNi0.8Mn0.1Co0.1O2)",
+    "form_factor": "Cylindrical 21700 (21mm x 70mm)",
+    "nominal_voltage": "3.63V",
+    "voltage_range": "2.5V - 4.2V",
+    "nominal_capacity": "5.0 Ah",
+    "energy": "18.15 Wh",
+    "continuous_discharge_rate": "2.5C (12.5A)",
+    "peak_discharge_rate": "3.5C (17.5A) for 10 seconds",
+    "standard_charge_rate": "0.5C (2.5A)",
+    "fast_charge_rate": "1.0C (5.0A)",
+    "operating_temp_discharge": "-20C to +55C",
+    "operating_temp_charge": "0C to +45C",
+    "cycle_life_estimated": "850-900 cycles to 80% SoH",
+    "internal_resistance_typical": "18-22 mohm",
+    "weight_typical": "68g"
+  },
+  "certifications_included": [
+    {
+      "certification": "CE Marking",
+      "standard": "LVD 2014/35/EU, EMC 2014/30/EU",
+      "status": "included",
+      "lead_time_impact": "None"
+    },
+    {
+      "certification": "IEC 62619",
+      "standard": "Secondary lithium cells for industrial applications",
+      "status": "included",
+      "lead_time_impact": "None"
+    },
+    {
+      "certification": "UN 38.3",
+      "standard": "Transport of dangerous goods - lithium batteries",
+      "status": "included",
+      "lead_time_impact": "None"
+    },
+    {
+      "certification": "IEC 62660-1/2/3",
+      "standard": "EV battery cell performance, reliability, and safety testing",
+      "status": "added",
+      "lead_time_impact": "+4 weeks"
+    },
+    {
+      "certification": "UL 1642",
+      "standard": "Lithium batteries (cell level)",
+      "status": "optional - pending customer confirmation",
+      "lead_time_impact": "+4-6 weeks",
+      "notes": "Customer requested UL 2580 which is pack/system level. UL 1642 is cell level. Customer to confirm requirement."
+    },
+    {
+      "certification": "RoHS",
+      "standard": "Directive 2011/65/EU",
+      "status": "compliant",
+      "lead_time_impact": "None"
+    },
+    {
+      "certification": "REACH",
+      "standard": "Regulation (EC) No 1907/2006",
+      "status": "compliant",
+      "lead_time_impact": "None"
+    }
+  ],
+  "country_specific_config": {
+    "country": "Italy",
+    "country_code": "IT",
+    "requirements": [
+      {
+        "requirement": "Italian-language safety warnings",
+        "status": "included",
+        "notes": "Safety warnings and handling instructions in Italian on cell wrap and packaging"
+      },
+      {
+        "requirement": "CDCNPA producer marking",
+        "status": "included",
+        "notes": "EuroBatt producer registration number included. Customer (Velora Mobility) must also register as producer/importer."
+      },
+      {
+        "requirement": "EU Battery Passport",
+        "status": "included",
+        "notes": "Digital product passport accessible via QR code on each cell"
+      }
+    ],
+    "customer_obligations_noted": [
+      "Register as producer with CDCNPA (Centro di Coordinamento Nazionale Pile e Accumulatori)",
+      "Join EPR consortium for collection/recycling financing (estimated EUR 0.03-0.08/unit)",
+      "Submit annual MUD environmental compliance report",
+      "Appoint fiscal representative if Velora Mobility is non-Italian (appears to be Italian S.r.l.)"
+    ]
+  },
+  "packaging_config": {
+    "cell_packaging": "Matched sets - cells sorted by capacity and impedance (+/-1%)",
+    "traceability": "QR/DataMatrix code on each cell linking to digital product passport",
+    "labeling": {
+      "dual_branding": true,
+      "primary_brand": "Velora Mobility",
+      "secondary_brand": "EuroBatt",
+      "language": "Italian",
+      "required_markings": [
+        "Product ID and batch code",
+        "Polarity indicators",
+        "Safety warnings (Italian)",
+        "CE mark",
+        "Recycling symbol (crossed-out wheelie bin)",
+        "QR code for product passport"
+      ]
+    },
+    "artwork_requirements": "Customer to supply Velora Mobility logo in vector format (AI/EPS/SVG)"
+  },
+  "custom_branding": {
+    "dual_branding_required": true,
+    "brands": [
+      {
+        "name": "Velora Mobility",
+        "position": "Primary",
+        "artwork_status": "Pending - customer to provide"
+      },
+      {
+        "name": "EuroBatt",
+        "position": "Secondary",
+        "artwork_status": "Available"
+      }
+    ],
+    "setup_fee": "EUR 800 one-time",
+    "minimum_order": "5,000 units (customer order of 50,000 qualifies)"
+  },
+  "configuration_notes": [
+    {
+      "priority": "critical",
+      "note": "Discharge rate gap: Customer requires 3C, maximum available is 2.5C. This is a fundamental mismatch that cannot be resolved with current product without accepting performance reduction or changing products."
+    },
+    {
+      "priority": "critical",
+      "note": "Cycle life and capacity conflict: Cannot achieve both 5.0 Ah capacity and 1,200 cycle life due to feature catalog constraint (F-001 conflicts with F-005). Customer must prioritize one requirement."
+    },
+    {
+      "priority": "high",
+      "note": "With High-Density capacity selected, estimated cycle life drops to 850-900 cycles (vs. 1,200 required), a 25-29% shortfall."
+    },
+    {
+      "priority": "medium",
+      "note": "UL certification clarification needed: Customer requested UL 2580 (pack/system level) but EuroBatt offers UL 1642 (cell level). Customer should confirm if cell-level certification is sufficient."
+    },
+    {
+      "priority": "info",
+      "note": "Alternative product BC-NMC-2170-HP could meet discharge rate (5.0C) but uses NMC 622 chemistry instead of requested NMC 811, and has only 4.0 Ah capacity vs. 5.0 Ah required."
+    },
+    {
+      "priority": "info",
+      "note": "Alternative product BC-NMC-POUCH-50 could meet 3.0C discharge requirement with reinforced tab welding, but would require pack redesign for pouch form factor."
+    }
+  ],
+  "feasibility_status": "CONDITIONAL",
+  "conditions_for_proceeding": [
+    "Customer accepts adjusted discharge rate of 2.5C instead of 3C, OR confirms alternative product",
+    "Customer accepts cycle life trade-off (either reduced cycles with 5.0 Ah, or reduced capacity with extended cycles)",
+    "Customer provides vector artwork for dual branding",
+    "Customer confirms UL certification level requirement (cell vs. system)"
+  ]
+}

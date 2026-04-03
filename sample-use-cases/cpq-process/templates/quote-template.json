@@ -1,0 +1,459 @@
+{
+  "template_version": "1.4",
+  "effective_date": "2026-01-15",
+  "description": "PDF layout template for EuroBatt GmbH customer quotes. Used by the DocumentComposer agent to generate quote_<quote_id>.pdf.",
+
+  "document_settings": {
+    "page_size": "A4",
+    "orientation": "portrait",
+    "margins": {
+      "top_mm": 25,
+      "bottom_mm": 25,
+      "left_mm": 25,
+      "right_mm": 25
+    },
+    "fonts": {
+      "heading": "Helvetica-Bold",
+      "subheading": "Helvetica-Bold",
+      "body": "Helvetica",
+      "monospace": "Courier"
+    },
+    "colors": {
+      "primary": "#1B4F72",
+      "primary_light": "#2E86C1",
+      "accent": "#E67E22",
+      "text_dark": "#1C1C1C",
+      "text_medium": "#4A4A4A",
+      "text_light": "#7F8C8D",
+      "table_header_bg": "#1B4F72",
+      "table_header_text": "#FFFFFF",
+      "table_row_even": "#F8F9FA",
+      "table_row_odd": "#FFFFFF",
+      "table_border": "#D5D8DC",
+      "status_ok": "#27AE60",
+      "status_adjusted": "#E67E22",
+      "status_infeasible": "#E74C3C",
+      "divider": "#BDC3C7"
+    }
+  },
+
+  "header": {
+    "show_on": "all_pages",
+    "height_mm": 18,
+    "content": {
+      "left": {
+        "type": "text",
+        "value": "EuroBatt GmbH",
+        "font": "Helvetica-Bold",
+        "size_pt": 10,
+        "color": "primary"
+      },
+      "right": {
+        "type": "text",
+        "value": "CONFIDENTIAL",
+        "font": "Helvetica",
+        "size_pt": 8,
+        "color": "text_light"
+      }
+    },
+    "divider_line": {
+      "color": "primary",
+      "thickness_pt": 1.5
+    },
+    "logo": {
+      "enabled": false,
+      "path": "assets/eurobatt-logo.png",
+      "width_mm": 30,
+      "position": "left",
+      "note": "Set enabled to true and provide logo file to include company logo"
+    }
+  },
+
+  "footer": {
+    "show_on": "all_pages",
+    "height_mm": 15,
+    "content": {
+      "left": {
+        "type": "text",
+        "value": "EuroBatt GmbH · Fürther Straße 212 · 90429 Nürnberg · Germany",
+        "font": "Helvetica",
+        "size_pt": 7,
+        "color": "text_light"
+      },
+      "center": {
+        "type": "page_number",
+        "format": "Page {current} of {total}",
+        "font": "Helvetica",
+        "size_pt": 7,
+        "color": "text_light"
+      },
+      "right": {
+        "type": "text",
+        "value": "Quote ID: {quote_id}",
+        "font": "Helvetica",
+        "size_pt": 7,
+        "color": "text_light"
+      }
+    },
+    "divider_line": {
+      "color": "divider",
+      "thickness_pt": 0.5
+    }
+  },
+
+  "pages": [
+    {
+      "id": "cover",
+      "title": "Cover & Summary",
+      "page_break_after": true,
+      "sections": [
+        {
+          "id": "company_header",
+          "type": "block",
+          "spacing_before_mm": 30,
+          "content": [
+            {
+              "type": "text",
+              "value": "EuroBatt GmbH",
+              "font": "heading",
+              "size_pt": 28,
+              "color": "primary"
+            },
+            {
+              "type": "text",
+              "value": "Battery Cell Solutions",
+              "font": "body",
+              "size_pt": 14,
+              "color": "primary_light"
+            }
+          ]
+        },
+        {
+          "id": "document_title",
+          "type": "block",
+          "spacing_before_mm": 20,
+          "content": [
+            {
+              "type": "divider",
+              "color": "accent",
+              "thickness_pt": 3,
+              "width_percent": 30
+            },
+            {
+              "type": "text",
+              "value": "Technical & Commercial Quote",
+              "font": "heading",
+              "size_pt": 22,
+              "color": "text_dark",
+              "spacing_before_mm": 5
+            }
+          ]
+        },
+        {
+          "id": "quote_meta",
+          "type": "key_value_block",
+          "spacing_before_mm": 20,
+          "fields": [
+            { "label": "Quote ID", "value": "{quote_id}", "font_value": "monospace" },
+            { "label": "Date of Issue", "value": "{issue_date}" },
+            { "label": "Valid Until", "value": "{validity_date}" },
+            { "label": "Target Market", "value": "{country_name} ({country_code})" },
+            { "label": "Prepared by", "value": "EuroBatt GmbH — Sales Engineering" }
+          ],
+          "style": {
+            "label_font": "Helvetica-Bold",
+            "label_size_pt": 10,
+            "label_color": "text_medium",
+            "value_font": "Helvetica",
+            "value_size_pt": 10,
+            "value_color": "text_dark",
+            "row_spacing_mm": 4
+          }
+        },
+        {
+          "id": "executive_summary",
+          "type": "summary_table",
+          "spacing_before_mm": 25,
+          "title": "Summary",
+          "columns": [
+            { "header": "Product", "key": "product_name", "width_percent": 40 },
+            { "header": "Quantity", "key": "quantity", "width_percent": 15, "align": "right" },
+            { "header": "Unit Price", "key": "final_unit_price", "width_percent": 20, "align": "right", "format": "€{value}" },
+            { "header": "Total", "key": "total_price", "width_percent": 25, "align": "right", "format": "€{value}", "font": "Helvetica-Bold" }
+          ]
+        },
+        {
+          "id": "cover_note",
+          "type": "text_block",
+          "spacing_before_mm": 15,
+          "content": "Thank you for your inquiry. This document presents our technical and commercial proposal based on your requirements. All specifications and pricing are subject to the terms outlined herein.",
+          "font": "body",
+          "size_pt": 10,
+          "color": "text_medium"
+        }
+      ]
+    },
+
+    {
+      "id": "technical",
+      "title": "Technical Specification",
+      "page_break_after": true,
+      "sections": [
+        {
+          "id": "section_heading_tech",
+          "type": "section_heading",
+          "value": "1. Technical Specification",
+          "style": {
+            "font": "heading",
+            "size_pt": 16,
+            "color": "primary",
+            "underline_color": "accent",
+            "underline_thickness_pt": 2
+          }
+        },
+        {
+          "id": "product_overview",
+          "type": "subsection",
+          "title": "1.1 Matched Product",
+          "spacing_before_mm": 10,
+          "content_source": "specs.matched_product",
+          "render_as": "key_value_block",
+          "fields": [
+            { "label": "Product ID", "key": "product_id" },
+            { "label": "Product Name", "key": "product_name" },
+            { "label": "Match Confidence", "key": "match_confidence" },
+            { "label": "Notes", "key": "match_notes" }
+          ]
+        },
+        {
+          "id": "feature_table",
+          "type": "subsection",
+          "title": "1.2 Feature Configuration",
+          "spacing_before_mm": 10,
+          "content_source": "config.configuration.features",
+          "render_as": "table",
+          "columns": [
+            { "header": "Feature", "key": "feature_id", "width_percent": 22 },
+            { "header": "Requested", "key": "requested_value", "width_percent": 20 },
+            { "header": "Configured", "key": "configured_value", "width_percent": 20 },
+            { "header": "Tier", "key": "tier", "width_percent": 13 },
+            { "header": "Status", "key": "status", "width_percent": 12, "color_map": {
+              "configured": "status_ok",
+              "adjusted": "status_adjusted",
+              "infeasible": "status_infeasible"
+            }},
+            { "header": "Notes", "key": "notes", "width_percent": 13 }
+          ],
+          "note": "Color-code the Status column using the color_map to visually distinguish configured (green), adjusted (orange), and infeasible (red) features."
+        },
+        {
+          "id": "mandatory_additions",
+          "type": "subsection",
+          "title": "1.3 Mandatory Regulatory Additions",
+          "spacing_before_mm": 10,
+          "content_source": "config.configuration.mandatory_additions",
+          "render_as": "table",
+          "columns": [
+            { "header": "Feature", "key": "feature_id", "width_percent": 30 },
+            { "header": "Reason", "key": "reason", "width_percent": 50 },
+            { "header": "Status", "key": "status", "width_percent": 20 }
+          ]
+        },
+        {
+          "id": "feasibility_notes",
+          "type": "subsection",
+          "title": "1.4 Feasibility Assessment",
+          "spacing_before_mm": 10,
+          "content_source": "config.feasibility",
+          "render_as": "text_block",
+          "field": "recommendation",
+          "conditional": {
+            "show_if": "config.feasibility.all_feasible == false",
+            "highlight_style": {
+              "background": "#FFF3E0",
+              "border_left_color": "status_adjusted",
+              "border_left_width_pt": 3,
+              "padding_mm": 5
+            }
+          }
+        },
+        {
+          "id": "compliance_section",
+          "type": "subsection",
+          "title": "1.5 Regulatory Compliance",
+          "spacing_before_mm": 10,
+          "content_source": "specs.country",
+          "render_as": "table",
+          "columns": [
+            { "header": "Regulation", "key": "applicable_regulations[].regulation", "width_percent": 40 },
+            { "header": "Relevance", "key": "applicable_regulations[].relevance", "width_percent": 60 }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "commercial",
+      "title": "Commercial Terms",
+      "page_break_after": true,
+      "sections": [
+        {
+          "id": "section_heading_comm",
+          "type": "section_heading",
+          "value": "2. Commercial Terms"
+        },
+        {
+          "id": "price_breakdown",
+          "type": "subsection",
+          "title": "2.1 Price Breakdown",
+          "spacing_before_mm": 10,
+          "content_source": "price.pricing",
+          "render_as": "pricing_waterfall",
+          "rows": [
+            { "label": "Base unit price", "key": "base_price_per_unit", "format": "€{value}", "style": "normal" },
+            { "label": "Feature surcharges", "key": "feature_surcharges", "format": "+€{value}", "style": "indent", "expand": true },
+            { "label": "Regulatory surcharges", "key": "regulatory_surcharges", "format": "+€{value}", "style": "indent", "expand": true },
+            { "label": "Unit price before discount", "key": "unit_price_before_discount", "format": "€{value}", "style": "subtotal" },
+            { "label": "Volume discount ({volume_discount_percent}%)", "key": "volume_discount_amount", "format": "−€{value}", "style": "discount" },
+            { "label": "Unit price after discount", "key": "unit_price_after_discount", "format": "€{value}", "style": "subtotal" },
+            { "label": "Delivery adjustment ({delivery_adjustment_percent}%)", "key": "delivery_adjustment_amount", "format": "€{value}", "style": "normal" },
+            { "label": "Final unit price", "key": "final_unit_price", "format": "€{value}", "style": "bold" },
+            { "label": "divider" },
+            { "label": "Quantity", "key": "quantity", "format": "{value} units", "style": "normal" },
+            { "label": "Total price", "key": "total_price", "format": "€{value}", "style": "total",
+              "total_style": {
+                "background": "primary",
+                "text_color": "#FFFFFF",
+                "font": "Helvetica-Bold",
+                "size_pt": 13,
+                "padding_mm": 4
+              }
+            }
+          ]
+        },
+        {
+          "id": "delivery",
+          "type": "subsection",
+          "title": "2.2 Delivery",
+          "spacing_before_mm": 15,
+          "content_template": [
+            "Estimated lead time: {delivery_weeks} weeks from order confirmation.",
+            "Delivery terms: FCA Nürnberg (Incoterms 2020).",
+            "Shipping and import duties are not included in the quoted price."
+          ]
+        },
+        {
+          "id": "payment",
+          "type": "subsection",
+          "title": "2.3 Payment Terms",
+          "spacing_before_mm": 10,
+          "content_source": "price",
+          "fields": [
+            { "label": "Payment terms", "key": "payment_terms" },
+            { "label": "Currency", "key": "currency" }
+          ]
+        },
+        {
+          "id": "validity",
+          "type": "subsection",
+          "title": "2.4 Quote Validity",
+          "spacing_before_mm": 10,
+          "content_source": "price.validity",
+          "render_as": "callout_box",
+          "style": {
+            "background": "#EBF5FB",
+            "border_color": "primary_light",
+            "border_width_pt": 1,
+            "padding_mm": 8,
+            "font": "Helvetica-Bold",
+            "size_pt": 10
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "notes",
+      "title": "Notes & Disclaimers",
+      "page_break_after": false,
+      "sections": [
+        {
+          "id": "section_heading_notes",
+          "type": "section_heading",
+          "value": "3. Notes & Disclaimers"
+        },
+        {
+          "id": "agent_notes",
+          "type": "subsection",
+          "title": "3.1 Technical Notes",
+          "spacing_before_mm": 10,
+          "content_sources": [
+            { "source": "specs.extraction_notes", "label": "Specification Notes" },
+            { "source": "config.feasibility.recommendation", "label": "Configuration Recommendation" },
+            { "source": "price.notes", "label": "Pricing Notes" }
+          ],
+          "render_as": "notes_list",
+          "conditional": "show_only_non_empty"
+        },
+        {
+          "id": "customer_obligations",
+          "type": "subsection",
+          "title": "3.2 Customer Obligations",
+          "spacing_before_mm": 10,
+          "content_template": [
+            "The customer is responsible for:",
+            "• EPR (Extended Producer Responsibility) registration in the target market as required by local regulations.",
+            "• Compliance with end-product regulations (e.g., machinery directive, automotive type approval) when integrating EuroBatt cells.",
+            "• Providing BMS specifications if module assembly (F-006) is selected.",
+            "• Thermal management design suitable for the configured discharge rate."
+          ]
+        },
+        {
+          "id": "disclaimers",
+          "type": "subsection",
+          "title": "3.3 General Terms",
+          "spacing_before_mm": 10,
+          "content_template": [
+            "This quote is for budgetary and planning purposes. A binding order confirmation will be issued upon receipt of a purchase order.",
+            "All specifications are typical values measured under standard test conditions (25°C, 1C/1C unless stated otherwise). Actual performance may vary depending on application conditions.",
+            "Prices are quoted in EUR and do not include VAT, customs duties, or shipping costs.",
+            "EuroBatt GmbH's General Terms and Conditions of Sale apply. Available on request.",
+            "Minimum order quantities apply as specified in our product catalog."
+          ]
+        },
+        {
+          "id": "contact",
+          "type": "contact_block",
+          "spacing_before_mm": 20,
+          "title": "Contact",
+          "fields": [
+            { "label": "Sales Engineering", "value": "quotes@eurobatt.de" },
+            { "label": "Phone", "value": "+49 911 555 0800" },
+            { "label": "Web", "value": "www.eurobatt.de" },
+            { "label": "Address", "value": "EuroBatt GmbH · Fürther Straße 212 · 90429 Nürnberg · Germany" }
+          ],
+          "style": {
+            "background": "#F8F9FA",
+            "padding_mm": 10,
+            "border_color": "divider"
+          }
+        }
+      ]
+    }
+  ],
+
+  "conditional_pages": [
+    {
+      "id": "draft_watermark",
+      "condition": "any_input_status == 'failure'",
+      "apply_to": "all_pages",
+      "type": "watermark",
+      "text": "DRAFT — INCOMPLETE",
+      "font": "Helvetica-Bold",
+      "size_pt": 48,
+      "color": "#E74C3C",
+      "opacity": 0.15,
+      "rotation_deg": -45
+    }
+  ]
+}

@@ -26,6 +26,7 @@ import { createKnowledgeGraphToolsService } from './knowledge-graph-tools';
 import { createEmailToolsService } from './email-tools';
 import { createScrapbookToolsService } from './scrapbook-tools';
 import { createA2AToolsService, generateDynamicA2ATools } from './a2a-tools';
+import { createSharedKnowledgeToolsService } from './shared-knowledge-tools';
 import { CollaborationService } from '../collaboration/collaboration.service';
 import { confirmationToolsService } from './confirmation-tools';
 import { DeepResearchService } from '../deep-research/deep-research.service';
@@ -148,6 +149,14 @@ export class McpServerFactoryService implements OnModuleInit {
       },
       'user-orders': {
         toolServices: [createUserOrdersToolsService(userOrdersService)],
+      },
+      'shared-knowledge': {
+        toolServices: [createSharedKnowledgeToolsService(
+          vectorStoreService,
+          openAiService,
+          knowledgeGraphService,
+          () => this.currentProjectRoot,
+        )],
       },
     };
   }

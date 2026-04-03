@@ -1,0 +1,295 @@
+{
+  "quote_id": "QB-20260403-1761",
+  "status": "success",
+  "currency": "EUR",
+  "base_product": {
+    "product_id": "BC-NMC-2170",
+    "product_name": "NMC 21700 High Energy Cell",
+    "configured_variant": "BC-NMC-2170-HD-HP25"
+  },
+  "base_price_per_cell": 4.20,
+  "configuration_surcharges": [
+    {
+      "feature_code": "F-001",
+      "description": "High-Density Capacity (5.0 Ah)",
+      "tier": "premium",
+      "surcharge_type": "percentage",
+      "surcharge_percent": 15,
+      "surcharge_per_unit": 0.63,
+      "notes": "Customer prioritized 5.0 Ah capacity over cycle life (Option A selected)"
+    },
+    {
+      "feature_code": "F-002",
+      "description": "Enhanced Discharge Rate (2.5C continuous)",
+      "tier": "custom",
+      "surcharge_type": "percentage",
+      "surcharge_percent": 15,
+      "surcharge_per_unit": 0.63,
+      "notes": "Customer accepted 2.5C vs. originally requested 3C"
+    },
+    {
+      "feature_code": "F-004a",
+      "description": "IEC 62660-1/2/3 Certification (EV battery testing)",
+      "tier": "premium",
+      "surcharge_type": "absolute",
+      "surcharge_per_unit": 0.05,
+      "notes": "Adds 4 weeks to lead time"
+    },
+    {
+      "feature_code": "F-004b",
+      "description": "UL 1642 Certification (cell-level safety)",
+      "tier": "premium",
+      "surcharge_type": "absolute",
+      "surcharge_per_unit": 0.08,
+      "notes": "Customer-requested UL certification. Adds 4-6 weeks to lead time."
+    },
+    {
+      "feature_code": "F-006",
+      "description": "Matched Sets (capacity and impedance +/-1%)",
+      "tier": "premium",
+      "surcharge_type": "absolute",
+      "surcharge_per_unit": 0.05,
+      "notes": "Recommended for EV pack consistency. Adds 2-3 days production time."
+    },
+    {
+      "feature_code": "F-009a",
+      "description": "Dual Branding (Velora Mobility + EuroBatt)",
+      "tier": "premium",
+      "surcharge_type": "absolute",
+      "surcharge_per_unit": 0.03,
+      "notes": "Customer to provide vector artwork"
+    },
+    {
+      "feature_code": "F-009b",
+      "description": "QR/DataMatrix Code for Product Passport",
+      "tier": "premium",
+      "surcharge_type": "absolute",
+      "surcharge_per_unit": 0.02,
+      "notes": "Links to digital product passport per EU 2023/1542"
+    },
+    {
+      "feature_code": "F-010",
+      "description": "EU Battery Passport",
+      "tier": "regulatory",
+      "surcharge_type": "absolute",
+      "surcharge_per_unit": 0.12,
+      "notes": "Mandatory for EV/industrial batteries under EU Battery Regulation 2023/1542"
+    }
+  ],
+  "pricing_calculation": {
+    "base_price_per_unit": 4.20,
+    "total_surcharges_per_unit": 1.61,
+    "unit_price_before_discount": 5.81,
+    "surcharge_breakdown": {
+      "percentage_surcharges": 1.26,
+      "absolute_surcharges": 0.35
+    }
+  },
+  "volume_pricing": {
+    "engineering_samples": {
+      "quantity": 500,
+      "volume_tier": "1-999",
+      "discount_percent": 0,
+      "unit_price_before_discount": 5.81,
+      "unit_price_after_discount": 5.81,
+      "delivery_adjustment_percent": 0,
+      "final_unit_price": 5.81,
+      "total_price": 2905.00,
+      "notes": "No volume discount applies. Standard 12-week lead time."
+    },
+    "pre_series": {
+      "quantity": 5000,
+      "volume_tier": "1,000-9,999",
+      "discount_percent": 5,
+      "unit_price_before_discount": 5.81,
+      "unit_price_after_discount": 5.52,
+      "delivery_adjustment_percent": 0,
+      "final_unit_price": 5.52,
+      "total_price": 27600.00,
+      "notes": "5% volume discount applied. Standard 12-week lead time."
+    },
+    "sop_annual": {
+      "quantity": 50000,
+      "volume_tier": "50,000-99,999",
+      "discount_percent": 18,
+      "unit_price_before_discount": 5.81,
+      "unit_price_after_discount": 4.76,
+      "delivery_adjustment_percent": 0,
+      "final_unit_price": 4.76,
+      "total_price": 238000.00,
+      "notes": "18% volume discount applied. Annual volume at SOP."
+    },
+    "ramp_up_year2": {
+      "quantity": 80000,
+      "volume_tier": "50,000-99,999",
+      "discount_percent": 18,
+      "unit_price_before_discount": 5.81,
+      "unit_price_after_discount": 4.76,
+      "delivery_adjustment_percent": 0,
+      "final_unit_price": 4.76,
+      "total_price": 380800.00,
+      "notes": "18% volume discount applied. Projected Year 2 volume."
+    }
+  },
+  "volume_discount_schedule": [
+    {
+      "tier": "1-999 units",
+      "discount_percent": 0,
+      "example_unit_price": 5.81
+    },
+    {
+      "tier": "1,000-9,999 units",
+      "discount_percent": 5,
+      "example_unit_price": 5.52
+    },
+    {
+      "tier": "10,000-49,999 units",
+      "discount_percent": 12,
+      "example_unit_price": 5.11
+    },
+    {
+      "tier": "50,000-99,999 units",
+      "discount_percent": 18,
+      "example_unit_price": 4.76
+    },
+    {
+      "tier": "100,000+ units",
+      "discount_percent": 22,
+      "example_unit_price": 4.53
+    }
+  ],
+  "nre_charges": [
+    {
+      "item": "Dual Branding Setup",
+      "description": "One-time tooling and setup for custom cell wrap with Velora Mobility and EuroBatt branding",
+      "amount": 800.00,
+      "notes": "Customer to provide vector artwork (AI/EPS/SVG format)"
+    }
+  ],
+  "certification_costs": {
+    "included_in_unit_price": [
+      {
+        "certification": "CE Marking (LVD 2014/35/EU, EMC 2014/30/EU)",
+        "cost": "Included in base price"
+      },
+      {
+        "certification": "IEC 62619 (Industrial lithium cells)",
+        "cost": "Included in base price"
+      },
+      {
+        "certification": "UN 38.3 (Transport certification)",
+        "cost": "Included in base price"
+      },
+      {
+        "certification": "RoHS Directive 2011/65/EU",
+        "cost": "Included in base price"
+      },
+      {
+        "certification": "REACH Regulation (EC) No 1907/2006",
+        "cost": "Included in base price"
+      }
+    ],
+    "additional_certifications": [
+      {
+        "certification": "IEC 62660-1/2/3 (EV battery testing)",
+        "per_unit_cost": 0.05,
+        "lead_time_impact": "+4 weeks"
+      },
+      {
+        "certification": "UL 1642 (Cell-level safety)",
+        "per_unit_cost": 0.08,
+        "lead_time_impact": "+4-6 weeks"
+      }
+    ],
+    "regulatory_compliance": [
+      {
+        "item": "EU Battery Passport",
+        "per_unit_cost": 0.12,
+        "notes": "Digital product passport per EU 2023/1542"
+      }
+    ]
+  },
+  "total_summary": {
+    "engineering_samples": {
+      "cells": 500,
+      "cell_cost": 2905.00,
+      "nre_cost": 800.00,
+      "subtotal": 3705.00
+    },
+    "pre_series": {
+      "cells": 5000,
+      "cell_cost": 27600.00,
+      "nre_cost": 0.00,
+      "subtotal": 27600.00
+    },
+    "sop_annual": {
+      "cells": 50000,
+      "cell_cost": 238000.00,
+      "nre_cost": 0.00,
+      "subtotal": 238000.00
+    },
+    "first_year_total": {
+      "description": "Engineering Samples + Pre-Series + SOP Annual",
+      "total_cells": 55500,
+      "total_cost": 269305.00
+    },
+    "year_2_projected": {
+      "cells": 80000,
+      "cell_cost": 380800.00,
+      "nre_cost": 0.00,
+      "subtotal": 380800.00
+    }
+  },
+  "payment_terms": {
+    "engineering_samples": "100% payment upon order confirmation",
+    "pre_series": "50% upon order confirmation, 50% upon delivery",
+    "sop_production": "30% upon order confirmation, 70% Net 30 from delivery",
+    "nre_charges": "100% upon order confirmation",
+    "accepted_currencies": ["EUR", "USD"],
+    "exchange_rate_clause": "Non-EUR payments subject to exchange rate at time of invoicing"
+  },
+  "warranty_terms": {
+    "warranty_period": "24 months from date of delivery",
+    "coverage": "Manufacturing defects in materials and workmanship",
+    "cycle_life_guarantee": "Minimum 850 cycles to 80% SoH under standard test conditions (25C, 0.5C charge, 1C discharge)",
+    "capacity_guarantee": "Minimum 4.9 Ah initial capacity (98% of nominal)",
+    "exclusions": [
+      "Damage from misuse, abuse, or non-approved charging",
+      "Operation outside specified temperature range",
+      "Mechanical damage after delivery",
+      "Cells modified or disassembled by customer"
+    ],
+    "remedy": "Replacement of defective cells at EuroBatt discretion",
+    "limitation": "Liability limited to replacement value of defective cells"
+  },
+  "pricing_validity": {
+    "valid_from": "2026-04-03",
+    "valid_until": "2026-05-03",
+    "validity_period": "30 days from date of issue",
+    "extension_clause": "Pricing may be extended upon request, subject to material cost review"
+  },
+  "pricing_notes": [
+    "All prices quoted in EUR, ex-works EuroBatt facility (Dusseldorf, Germany).",
+    "Prices exclude shipping, insurance, and import duties. DAP Carpi (MO), Italy delivery available - shipping costs to be quoted separately.",
+    "Customer EPR obligations (CDCNPA consortium fee) estimated at EUR 0.03-0.08/unit are customer responsibility.",
+    "Minimum order quantity for custom branding: 5,000 units (customer volume qualifies).",
+    "Lead time: 12 weeks standard + 4 weeks (IEC 62660) + 4-6 weeks (UL 1642) = 20-22 weeks for first delivery with all certifications.",
+    "Subsequent production runs: 8-10 weeks after initial qualification.",
+    "Raw material price adjustment clause applies for orders beyond 6 months - cobalt, nickel, and lithium indexed to LME pricing.",
+    "Customer has accepted 2.5C discharge rate (vs. originally requested 3C) and Option A (5.0 Ah capacity with ~850-900 cycle life)."
+  ],
+  "customer_decisions_confirmed": [
+    {
+      "decision": "Discharge Rate",
+      "requested": "3C continuous",
+      "accepted": "2.5C continuous",
+      "status": "ACCEPTED"
+    },
+    {
+      "decision": "Capacity vs. Cycle Life Trade-off",
+      "option_selected": "Option A",
+      "description": "5.0 Ah capacity prioritized, cycle life ~850-900 cycles",
+      "status": "CONFIRMED"
+    }
+  ]
+}

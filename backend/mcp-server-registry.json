@@ -97,6 +97,13 @@
       "headers": { "Authorization": "test123" },
       "description": "User order tracking and management tools",
       "isStandard": true
+    },
+    {
+      "name": "shared-knowledge",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/shared-knowledge",
+      "headers": { "Authorization": "test123" },
+      "description": "Cross-project knowledge search for A2A scenarios"
     }
   ]
 }

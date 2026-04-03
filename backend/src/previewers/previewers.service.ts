@@ -39,6 +39,7 @@ export class PreviewersService {
       { viewer: 'prompt', extensions: ['.prompt'] },
       { viewer: 'workflow', extensions: ['.workflow.json'] },
       { viewer: 'scrapbook', extensions: ['.scbk'] },
+      { viewer: 'pdf', extensions: ['.pdf'] },
     ];
   }
 }

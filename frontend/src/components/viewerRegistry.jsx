@@ -11,6 +11,7 @@ import PromptEditor from './PromptEditor';
 import ScrapbookViewer from './ScrapbookViewer';
 import VideoViewer from './VideoViewer';
 import KnowledgeViewer from './KnowledgeViewer';
+import PdfViewer from './PdfViewer';
 
 /**
  * Maps viewer names to their component render functions.
@@ -56,6 +57,9 @@ export const VIEWER_COMPONENTS = {
   knowledge: (file, projectName) => (
     <KnowledgeViewer filename={file.path} projectName={projectName} />
   ),
+  pdf: (file, projectName) => (
+    <PdfViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -76,6 +80,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'scrapbook', extensions: ['.scbk'] },
   { viewer: 'video',     extensions: ['.youtube', '.videos', '.mp4'] },
   { viewer: 'knowledge', extensions: ['.knowledge'] },
+  { viewer: 'pdf', extensions: ['.pdf'] },
 ];
 
 /**

@@ -150,7 +150,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
         </Box>
         {/* Upper 50%: User Orders carousel */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0 }}>
           <UserOrders />
         </Box>
 

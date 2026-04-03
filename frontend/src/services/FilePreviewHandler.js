@@ -46,6 +46,8 @@ class FilePreviewHandler {
       this.handleVideoPreview(filePath, projectName);
     } else if (extension === 'knowledge') {
       this.handleKnowledgePreview(filePath, projectName);
+    } else if (extension === 'pdf') {
+      this.handlePdfPreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -242,6 +244,21 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'knowledge-preview'
+    });
+  }
+
+  /**
+   * Handle PDF file preview
+   * @param {string} filePath - The path to the PDF file
+   * @param {string} projectName - The project name
+   */
+  handlePdfPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening PDF preview for', filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'pdf-preview'
     });
   }
 

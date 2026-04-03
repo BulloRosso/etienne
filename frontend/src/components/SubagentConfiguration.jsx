@@ -288,14 +288,21 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
                         edge="end"
                         color="error"
                         onClick={(e) => handleDeleteClick(subagent, e)}
+                        className="delete-icon"
                       >
                         <DeleteOutlined />
                       </IconButton>
                     }
-                    sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '5px', p: 0 }}
+                    sx={{
+                      border: '1px solid', borderColor: 'divider', borderRadius: '5px', p: 0,
+                      alignItems: 'flex-start',
+                      '& .MuiListItemSecondaryAction-root': { top: 8, transform: 'none' },
+                      '& .delete-icon': { opacity: 0, transition: 'opacity 0.2s' },
+                      '&:hover .delete-icon': { opacity: 1 },
+                    }}
                   >
-                    <ListItemButton onClick={() => handleSelectSubagent(subagent)} sx={{ borderRadius: '5px' }}>
-                      <ListItemIcon sx={{ minWidth: 40 }}>
+                    <ListItemButton onClick={() => handleSelectSubagent(subagent)} sx={{ borderRadius: '5px', alignItems: 'flex-start' }}>
+                      <ListItemIcon sx={{ minWidth: 40, mt: '8px' }}>
                         <RiRobot2Line style={{ fontSize: '24px' }} />
                       </ListItemIcon>
                       <ListItemText

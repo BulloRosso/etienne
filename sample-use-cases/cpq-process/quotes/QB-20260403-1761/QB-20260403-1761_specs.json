@@ -1,0 +1,202 @@
+{
+  "quote_id": "QB-20260403-1761",
+  "status": "success",
+  "country": {
+    "name": "Italy",
+    "code": "IT",
+    "applicable_regulations": [
+      {
+        "regulation": "EU Battery Regulation 2023/1542",
+        "relevance": "Mandatory for all batteries placed on EU market. Requires CE marking, labeling, digital product passport (from 2027), carbon footprint declaration for EV batteries, supply chain due diligence."
+      },
+      {
+        "regulation": "D.Lgs. 188/2008 (Battery Directive transposition)",
+        "relevance": "Italian national implementation. Producer registration with CDCNPA required."
+      },
+      {
+        "regulation": "CDCNPA EPR Obligations",
+        "relevance": "Customer must register as producer and finance collection/recycling via consortium membership. Estimated cost: EUR 0.03-0.08/unit."
+      },
+      {
+        "regulation": "CE Marking - LVD 2014/35/EU & EMC 2014/30/EU",
+        "relevance": "Mandatory for all battery cells on EU market. Included as standard."
+      },
+      {
+        "regulation": "RoHS Directive 2011/65/EU",
+        "relevance": "Restriction of hazardous substances. EuroBatt cells comply."
+      },
+      {
+        "regulation": "REACH Regulation (EC) No 1907/2006",
+        "relevance": "Chemical registration requirements. EuroBatt maintains compliance."
+      },
+      {
+        "regulation": "ADR / UN 38.3 Transport Regulations",
+        "relevance": "Required for transport classification. Included as standard."
+      }
+    ],
+    "customer_obligations": [
+      "Register as producer with CDCNPA (Centro di Coordinamento Nazionale Pile e Accumulatori)",
+      "Join EPR consortium for collection/recycling financing",
+      "Appoint fiscal representative if non-Italian company",
+      "Submit annual MUD environmental compliance report",
+      "Ensure Italian-language safety warnings on packaging"
+    ]
+  },
+  "matched_product": {
+    "product_id": "BC-NMC-2170",
+    "product_name": "NMC 21700 High Energy Cell",
+    "match_confidence": "high",
+    "match_notes": "Chemistry (NMC 811) and form factor (21700 cylindrical) are exact matches. Capacity requires high-density option (5.0 Ah) to meet customer minimum. Voltage (3.63V) compatible with 3.6V requirement. IMPORTANT: Standard discharge rate is 2.0-2.5C but customer requires 3C continuous. This may require the high-power variant (BC-NMC-2170-HP) which offers 5.0C but has NMC 622 chemistry and only 4.0 Ah capacity, or a custom high-power configuration.",
+    "configuration_required": [
+      "High-density capacity option (5.0 Ah)",
+      "Enhanced discharge rate to meet 3C continuous requirement"
+    ],
+    "alternative_product": {
+      "product_id": "BC-NMC-2170-HP",
+      "reason": "Meets 3C+ discharge requirement (5.0C capable) but uses NMC 622 chemistry instead of preferred NMC 811, and capacity is only 4.0 Ah vs. 5.0 Ah required."
+    }
+  },
+  "customer_info": {
+    "company_name": "Velora Mobility S.r.l.",
+    "country": "Italy",
+    "delivery_location": "Carpi (MO), Italy"
+  },
+  "application_context": {
+    "application_type": "Electric Vehicle",
+    "market_segment": "Light Electric Vehicles / Urban Mobility"
+  },
+  "customer_features": {
+    "chemistry": {
+      "value": "NMC 811",
+      "priority": "mandatory"
+    },
+    "form_factor": {
+      "value": "Cylindrical 21700 (21mm x 70mm)",
+      "priority": "mandatory"
+    },
+    "capacity_ah": {
+      "value": 5.0,
+      "condition": "minimum",
+      "priority": "mandatory"
+    },
+    "nominal_voltage_v": {
+      "value": 3.6,
+      "range": {
+        "min": 2.5,
+        "max": 4.2
+      },
+      "priority": "mandatory"
+    },
+    "max_continuous_discharge_c": {
+      "value": 3,
+      "current_a": 15,
+      "priority": "mandatory"
+    },
+    "peak_discharge_c": {
+      "value": 5,
+      "current_a": 25,
+      "duration_seconds": 10,
+      "priority": "high"
+    },
+    "operating_temp_discharge_c": {
+      "min": -20,
+      "max": 55,
+      "priority": "mandatory"
+    },
+    "operating_temp_charge_c": {
+      "min": 0,
+      "max": 45,
+      "priority": "mandatory"
+    },
+    "cycle_life_min": {
+      "value": 1200,
+      "soh_threshold_percent": 80,
+      "priority": "mandatory"
+    },
+    "calendar_life_years": {
+      "value": 8,
+      "soh_threshold_percent": 70,
+      "priority": "high"
+    },
+    "internal_resistance_mohm": {
+      "value": 25,
+      "condition": "maximum",
+      "priority": "high"
+    },
+    "weight_g": {
+      "value": 70,
+      "condition": "maximum",
+      "priority": "high"
+    },
+    "safety_features": {
+      "cid_required": true,
+      "ptc_required": true,
+      "no_thermal_runaway_propagation": true,
+      "priority": "mandatory"
+    }
+  },
+  "certifications_required": [
+    {
+      "certification": "CE Marking",
+      "requirement_level": "mandatory",
+      "notes": "Included as standard"
+    },
+    {
+      "certification": "IEC 62619",
+      "requirement_level": "mandatory",
+      "notes": "Secondary lithium cells for industrial applications - included as standard"
+    },
+    {
+      "certification": "IEC 62660-1/2/3",
+      "requirement_level": "mandatory",
+      "notes": "EV battery cell performance/reliability/safety testing - available on request"
+    },
+    {
+      "certification": "UN 38.3",
+      "requirement_level": "mandatory",
+      "notes": "Transport testing - included as standard"
+    },
+    {
+      "certification": "EU Battery Regulation 2023/1542",
+      "requirement_level": "mandatory",
+      "notes": "Full compliance required including digital product passport"
+    },
+    {
+      "certification": "UL 2580",
+      "requirement_level": "desired",
+      "notes": "EV battery safety standard - available on request with additional lead time"
+    }
+  ],
+  "packaging_requirements": {
+    "labeling": {
+      "dual_branding": true,
+      "brands": ["Velora Mobility", "EuroBatt"],
+      "qr_code_required": true,
+      "language": "Italian"
+    }
+  },
+  "volume_schedule": {
+    "annual_volume": 50000,
+    "volume_unit": "cells",
+    "volume_phase": "SOP (Start of Production)"
+  },
+  "delivery_terms": {
+    "incoterm": "DAP",
+    "destination": "Carpi (MO), Italy"
+  },
+  "gaps_and_risks": [
+    {
+      "gap": "Discharge rate",
+      "description": "Customer requires 3C continuous discharge. BC-NMC-2170 standard offers 2.0-2.5C. High-power option or custom configuration needed.",
+      "severity": "high",
+      "recommendation": "Discuss with ProductConfigurator whether enhanced discharge rate feature can bridge this gap, or whether BC-NMC-2170-HP is acceptable despite NMC 622 chemistry."
+    },
+    {
+      "gap": "Cycle life",
+      "description": "Customer requires 1,200 cycles to 80% SoH. Standard product specifies >= 1,000 cycles. Gap of 200 cycles.",
+      "severity": "medium",
+      "recommendation": "Extended cycle life configuration may be available. Confirm with ProductConfigurator."
+    }
+  ],
+  "extraction_notes": "Customer request was well-structured with clear technical specifications. All mandatory and high-priority features were explicitly stated. Country (Italy) clearly identified from company name (S.r.l. = Italian legal entity) and delivery location. Two potential gaps identified: discharge rate requirement exceeds standard product capability, and cycle life requirement exceeds standard specification. These should be addressed in product configuration phase. Chemistry preference for NMC 811 is explicitly stated, which aligns with BC-NMC-2170 but not BC-NMC-2170-HP (NMC 622)."
+}

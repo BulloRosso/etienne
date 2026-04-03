@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ISecretProvider } from './secret-provider.interface';
 import { OpenBaoProvider } from './providers/openbao.provider';
 import { EnvProvider } from './providers/env.provider';
@@ -6,7 +6,7 @@ import { AzureKeyVaultProvider } from './providers/azure-keyvault.provider';
 import { AwsSecretsManagerProvider } from './providers/aws-secrets-manager.provider';
 
 @Injectable()
-export class SecretsManagerService {
+export class SecretsManagerService implements OnModuleInit {
   private readonly logger = new Logger(SecretsManagerService.name);
   private provider: ISecretProvider;
   private fallback: ISecretProvider;
@@ -37,6 +37,22 @@ export class SecretsManagerService {
     }
 
     this.fallback = envProvider;
+  }
+
+  async onModuleInit(): Promise<void> {
+    const providerType = process.env.CLAUDE_CODE_USE_FOUNDRY
+      ? 'azure-keyvault'
+      : process.env.SECRET_VAULT_PROVIDER || 'openbao';
+
+    if (providerType === 'azure-keyvault') {
+      const key = await this.getSecret('ANTHROPIC_FOUNDRY_API_KEY');
+      if (key) {
+        process.env.ANTHROPIC_FOUNDRY_API_KEY = key;
+        this.logger.log('ANTHROPIC_FOUNDRY_API_KEY loaded from Azure Key Vault into process.env');
+      } else {
+        this.logger.warn('ANTHROPIC_FOUNDRY_API_KEY not found in Azure Key Vault');
+      }
+    }
   }
 
   private disableProvider(reason: string): void {

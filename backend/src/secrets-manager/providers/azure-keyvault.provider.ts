@@ -32,10 +32,28 @@ export class AzureKeyVaultProvider implements ISecretProvider {
     return name.replace(/-/g, '_');
   }
 
+  /**
+   * Resolve the actual Key Vault secret name for a logical key.
+   * Checks for *_SECRET_NAME env vars: e.g. FOUNDRY_API_KEY_SECRET_NAME=api-key-ms-foundry
+   * will match any logical key ending with FOUNDRY_API_KEY (e.g. ANTHROPIC_FOUNDRY_API_KEY).
+   */
+  private resolveSecretName(key: string): string {
+    for (const [envKey, envValue] of Object.entries(process.env)) {
+      if (envKey.endsWith('_SECRET_NAME') && envValue) {
+        const suffix = envKey.slice(0, -'_SECRET_NAME'.length);
+        if (key === suffix || key.endsWith(`_${suffix}`)) {
+          this.logger.debug(`Resolved secret name for ${key} → ${envValue} (via ${envKey})`);
+          return envValue;
+        }
+      }
+    }
+    return this.toAzureName(key);
+  }
+
   async get(key: string): Promise<string | null> {
     if (!this.client) return null;
     try {
-      const secret = await this.client.getSecret(this.toAzureName(key), {
+      const secret = await this.client.getSecret(this.resolveSecretName(key), {
         abortSignal: AbortSignal.timeout(5000),
       });
       return secret.value ?? null;
