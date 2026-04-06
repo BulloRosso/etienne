@@ -47,6 +47,18 @@ interface ConfigurationDto {
   AWS_ACCESS_KEY_ID?: string;
   AWS_SECRET_ACCESS_KEY?: string;
   AWS_SECRETS_PREFIX?: string;
+  AUTH_PROVIDER?: string;
+  AZURE_ENTRAID_TENANT_ID?: string;
+  AZURE_ENTRAID_CLIENT_ID?: string;
+  AZURE_ENTRAID_CLIENT_SECRET?: string;
+  AZURE_ENTRAID_REDIRECT_URI?: string;
+  AZURE_ENTRAID_ADMIN_GROUPS?: string;
+  AWS_COGNITO_USER_POOL_ID?: string;
+  AWS_COGNITO_CLIENT_ID?: string;
+  AWS_COGNITO_CLIENT_SECRET?: string;
+  AWS_COGNITO_REGION?: string;
+  AWS_COGNITO_DOMAIN?: string;
+  AWS_COGNITO_ADMIN_GROUPS?: string;
   [key: string]: string | undefined;
 }
 
@@ -72,6 +84,9 @@ const ENV_SECTIONS: { comment: string; keys: string[] }[] = [
   { comment: '# Secrets Manager Configuration', keys: ['SECRET_VAULT_PROVIDER', 'OPENBAO_ADDR', 'OPENBAO_DEV_ROOT_TOKEN'] },
   { comment: '# Azure Key Vault Configuration', keys: ['AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_VAULT_URL'] },
   { comment: '# AWS Secrets Manager Configuration', keys: ['AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SECRETS_PREFIX'] },
+  { comment: "# Authentication Provider Configuration\n# Provider: 'local' (default), 'azure-entraid', or 'aws-cognito'", keys: ['AUTH_PROVIDER'] },
+  { comment: '# Azure Entra ID Authentication (only used when AUTH_PROVIDER=azure-entraid)', keys: ['AZURE_ENTRAID_TENANT_ID', 'AZURE_ENTRAID_CLIENT_ID', 'AZURE_ENTRAID_CLIENT_SECRET', 'AZURE_ENTRAID_REDIRECT_URI', 'AZURE_ENTRAID_ADMIN_GROUPS'] },
+  { comment: '# AWS Cognito Authentication (only used when AUTH_PROVIDER=aws-cognito)', keys: ['AWS_COGNITO_USER_POOL_ID', 'AWS_COGNITO_CLIENT_ID', 'AWS_COGNITO_CLIENT_SECRET', 'AWS_COGNITO_REGION', 'AWS_COGNITO_DOMAIN', 'AWS_COGNITO_ADMIN_GROUPS'] },
 ];
 
 @Injectable()

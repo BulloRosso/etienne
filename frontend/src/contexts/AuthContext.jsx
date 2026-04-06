@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authProvider, setAuthProvider] = useState('local');
 
   // Listen for forced logout from API client (e.g. unrecoverable 401)
   useEffect(() => {
@@ -32,45 +33,94 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('auth:logout', handleForceLogout);
   }, []);
 
-  // Check for existing token on mount
+  // Fetch which auth provider is active
   useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      const storage = getStorage();
-      const accessToken = storage.getItem('auth_accessToken');
+    fetch('/auth/provider')
+      .then((r) => r.json())
+      .then((data) => setAuthProvider(data.provider || 'local'))
+      .catch(() => setAuthProvider('local'));
+  }, []);
 
-      if (accessToken) {
-        try {
-          const response = await fetch('/auth/me', {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
+  // Handle OIDC callback (user returning from cloud IdP)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authCode = params.get('auth_code');
+    const authError = params.get('auth_error');
 
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-            setIsAuthenticated(true);
-          } else if (response.status === 401) {
-            // Try to refresh token
-            const refreshed = await refreshToken();
-            if (!refreshed) {
-              clearAuth();
-            }
-          } else {
-            clearAuth();
-          }
-        } catch (error) {
-          console.error('Auth check failed:', error);
-          clearAuth();
-        }
-      }
-
+    if (authError) {
+      console.error('Auth callback error:', authError);
+      window.history.replaceState({}, '', window.location.pathname);
       setLoading(false);
-    };
+      return;
+    }
 
+    if (authCode) {
+      // Exchange the one-time code for tokens
+      fetch('/auth/exchange-callback-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: authCode }),
+      })
+        .then((r) => {
+          if (!r.ok) throw new Error('Code exchange failed');
+          return r.json();
+        })
+        .then((data) => {
+          const storage = localStorage; // cloud auth always persists
+          storage.setItem('auth_accessToken', data.accessToken);
+          storage.setItem('auth_refreshToken', data.refreshToken);
+          setUser(data.user);
+          setIsAuthenticated(true);
+          // Clean URL
+          window.history.replaceState({}, '', window.location.pathname);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('OIDC code exchange failed:', err);
+          window.history.replaceState({}, '', window.location.pathname);
+          setLoading(false);
+        });
+      return; // skip the normal checkAuth while handling callback
+    }
+
+    // Normal auth check on mount
     checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    setLoading(true);
+    const storage = getStorage();
+    const accessToken = storage.getItem('auth_accessToken');
+
+    if (accessToken) {
+      try {
+        const response = await fetch('/auth/me', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+          setIsAuthenticated(true);
+        } else if (response.status === 401) {
+          // Try to refresh token
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            clearAuth();
+          }
+        } else {
+          clearAuth();
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        clearAuth();
+      }
+    }
+
+    setLoading(false);
+  };
 
   const clearAuth = () => {
     localStorage.removeItem('auth_accessToken');
@@ -112,6 +162,15 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true);
 
     return userData;
+  };
+
+  const loginWithProvider = async () => {
+    const response = await fetch('/auth/authorize');
+    if (!response.ok) {
+      throw new Error('Failed to get authorization URL');
+    }
+    const { url } = await response.json();
+    window.location.href = url;
   };
 
   const logout = useCallback(() => {
@@ -188,7 +247,9 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     loading,
+    authProvider,
     login,
+    loginWithProvider,
     logout,
     refreshToken,
     hasRole,

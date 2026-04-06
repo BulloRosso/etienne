@@ -105,7 +105,9 @@ export default function ServiceHealthGate({ onReady }) {
         </Typography>
 
         <Typography variant="body1" color="text.secondary" textAlign="center">
-          The Secrets Manager and OAuth Server need to be running before you can use the application.
+          {services.length > 0
+            ? `The following services need to be running: ${services.map((s) => s.name).join(', ')}.`
+            : 'Required services need to be running before you can use the application.'}
         </Typography>
 
         {downServices.length > 0 && (

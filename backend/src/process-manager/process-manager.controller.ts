@@ -38,7 +38,11 @@ export class ProcessManagerController {
   }
 
   private getRequiredServices(): string[] {
-    const services = ['oauth-server'];
+    const services: string[] = [];
+    const authProvider = process.env.AUTH_PROVIDER || 'local';
+    if (authProvider === 'local') {
+      services.push('oauth-server');
+    }
     if (!this.envHasApiKeys() && !this.usesCloudVault()) {
       services.unshift('secrets-manager');
     }

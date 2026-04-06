@@ -9,13 +9,14 @@ import {
   Alert,
   CircularProgress,
   Paper,
+  Divider,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function LoginDialog({ onSuccess }) {
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { login, loginWithProvider, authProvider } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -39,11 +40,30 @@ export default function LoginDialog({ onSuccess }) {
     }
   };
 
+  const handleCloudLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await loginWithProvider();
+      // Browser will redirect — loading stays true
+    } catch (err) {
+      setError(err.message || 'Failed to initiate login');
+      setLoading(false);
+    }
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSubmit(e);
     }
   };
+
+  const providerLabel =
+    authProvider === 'azure-entraid'
+      ? 'Microsoft'
+      : authProvider === 'aws-cognito'
+        ? 'AWS'
+        : null;
 
   return (
     <Box
@@ -80,53 +100,76 @@ export default function LoginDialog({ onSuccess }) {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label={t('login.username')}
-            variant="outlined"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={loading}
-            autoFocus
-            sx={{ mb: 2 }}
-          />
+        {/* Cloud provider login */}
+        {authProvider !== 'local' && (
+          <>
+            <Button
+              fullWidth
+              variant="contained"
+              size="large"
+              onClick={handleCloudLogin}
+              disabled={loading}
+              sx={{ py: 1.5 }}
+            >
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                `Sign in with ${providerLabel}`
+              )}
+            </Button>
+          </>
+        )}
 
-          <TextField
-            fullWidth
-            label={t('login.password')}
-            type="password"
-            variant="outlined"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={loading}
-            sx={{ mb: 2 }}
-          />
+        {/* Local username/password login */}
+        {authProvider === 'local' && (
+          <form onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label={t('login.username')}
+              variant="outlined"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={loading}
+              autoFocus
+              sx={{ mb: 2 }}
+            />
 
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={loading}
-              />
-            }
-            label={t('login.rememberMe')}
-            sx={{ mb: 2 }}
-          />
+            <TextField
+              fullWidth
+              label={t('login.password')}
+              type="password"
+              variant="outlined"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={loading}
+              sx={{ mb: 2 }}
+            />
 
-          <Button
-            fullWidth
-            variant="contained"
-            type="submit"
-            disabled={loading || !username || !password}
-            sx={{ py: 1.5 }}
-          >
-            {loading ? <CircularProgress size={24} color="inherit" /> : t('common.signIn')}
-          </Button>
-        </form>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={loading}
+                />
+              }
+              label={t('login.rememberMe')}
+              sx={{ mb: 2 }}
+            />
+
+            <Button
+              fullWidth
+              variant="contained"
+              type="submit"
+              disabled={loading || !username || !password}
+              sx={{ py: 1.5 }}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : t('common.signIn')}
+            </Button>
+          </form>
+        )}
       </Paper>
     </Box>
   );

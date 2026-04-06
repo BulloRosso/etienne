@@ -6,5 +6,8 @@
     "SECRET_VAULT_PROVIDER",
     "OPENBAO_ADDR",
     "OPENBAO_DEV_ROOT_TOKEN"
+  ],
+  "oauth-server": [
+    "AUTH_PROVIDER"
   ]
 }
