@@ -54,6 +54,10 @@ import { ConfigurationService } from '../configuration/configuration.service';
 import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
 import { createUserOrdersToolsService } from './user-orders-tools';
 import { UserOrdersService } from '../user-orders/user-orders.service';
+import { EmbeddingsService } from '../embeddings';
+import { LlmService } from '../llm/llm.service';
+import { RagService } from '../rag/rag.service';
+import { createRagToolsService } from './rag-tools';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -87,6 +91,9 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly ssePublisherService: SSEPublisherService,
     private readonly userOrdersService: UserOrdersService,
     private readonly collaborationService: CollaborationService,
+    private readonly embeddingsService: EmbeddingsService,
+    private readonly llmService: LlmService,
+    private readonly ragService: RagService,
   ) {
     this.groupConfigs = {
       'demo': {
@@ -99,7 +106,7 @@ export class McpServerFactoryService implements OnModuleInit {
         toolServices: [createDeepResearchToolsService(deepResearchService)],
       },
       'knowledge-graph': {
-        toolServices: [createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService, this.interceptorsService)],
+        toolServices: [createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService, this.interceptorsService, embeddingsService, llmService)],
       },
       'email': {
         toolServices: [createEmailToolsService(smtpService, imapService)],
@@ -156,7 +163,12 @@ export class McpServerFactoryService implements OnModuleInit {
           openAiService,
           knowledgeGraphService,
           () => this.currentProjectRoot,
+          embeddingsService,
+          llmService,
         )],
+      },
+      'rag': {
+        toolServices: [createRagToolsService(ragService)],
       },
     };
   }

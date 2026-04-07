@@ -3,6 +3,8 @@ import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
 import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.service';
 import { InterceptorsService } from '../interceptors/interceptors.service';
+import { EmbeddingsService } from '../embeddings';
+import { LlmService } from '../llm/llm.service';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as crypto from 'crypto';
@@ -233,15 +235,20 @@ const tools: McpTool[] = [
 /**
  * Create a knowledge graph tools service with injected dependencies
  * @param vectorStoreService - The vector store service instance
- * @param openAiService - The OpenAI service instance for embeddings
+ * @param openAiService - The OpenAI service instance for SPARQL and entity extraction
  * @param knowledgeGraphService - The knowledge graph service instance for SPARQL queries
+ * @param interceptorsService - Optional interceptors service
+ * @param embeddingsService - The embeddings service for vector embeddings
+ * @param llmService - The LLM service for text generation
  * @returns ToolService instance
  */
 export function createKnowledgeGraphToolsService(
   vectorStoreService: VectorStoreService,
   openAiService: OpenAiService,
   knowledgeGraphService: KnowledgeGraphService,
-  interceptorsService?: InterceptorsService,
+  interceptorsService: InterceptorsService | undefined,
+  embeddingsService: EmbeddingsService,
+  llmService: LlmService,
 ): ToolService {
   const workspaceDir = path.join(process.cwd(), '..', 'workspace');
 
@@ -295,7 +302,7 @@ export function createKnowledgeGraphToolsService(
       }
 
       // Generate embedding for the document content
-      const embedding = await openAiService.createEmbedding(content);
+      const embedding = await embeddingsService.embed(content);
 
       // Create document ID from filepath
       const documentId = generateDocumentId(filepath);
@@ -344,7 +351,7 @@ export function createKnowledgeGraphToolsService(
 
     try {
       // Generate embedding for the query
-      const queryEmbedding = await openAiService.createEmbedding(query);
+      const queryEmbedding = await embeddingsService.embed(query);
 
       // Search vector store for top 3 matches
       const results = await vectorStoreService.search(project, queryEmbedding, 3);
@@ -473,16 +480,16 @@ Important rules:
 
       const userPrompt = `Generate a SPARQL query to find ${entityType} entities matching: "${query}"`;
 
-      const response = await openAiService['client'].chat.completions.create({
-        model: 'gpt-4',
+      const result = await llmService.generateTextWithMessages({
+        tier: 'small',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.1,
+        maxOutputTokens: 1024,
       });
 
-      let sparqlQuery = response.choices[0].message.content.trim();
+      let sparqlQuery = result.trim();
 
       // Clean up the query - remove markdown code blocks if present
       sparqlQuery = sparqlQuery.replace(/```sparql\n?/g, '').replace(/```\n?/g, '').trim();

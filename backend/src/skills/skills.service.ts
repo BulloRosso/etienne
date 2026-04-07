@@ -573,6 +573,9 @@ export class SkillsService {
       // Copy the skill directory
       await this.copyDirectory(sourceDir, targetDir);
 
+      // Post-copy hook: provision event rules and prompts from .dependencies.json
+      await this.provisionSkillResources(project, sourceDir);
+
       return {
         skillName,
         success: true,
@@ -583,6 +586,73 @@ export class SkillsService {
         success: false,
         error: error.message || `Failed to provision skill '${skillName}'`,
       };
+    }
+  }
+
+  /**
+   * Provision event rules and prompts declared in a skill's .dependencies.json.
+   * Merges into the project's .etienne/ config files, skipping duplicates by id.
+   */
+  private async provisionSkillResources(project: string, skillSourceDir: string): Promise<void> {
+    const depsPath = path.join(skillSourceDir, '.dependencies.json');
+    try {
+      await fs.access(depsPath);
+    } catch {
+      return; // No .dependencies.json — nothing to provision
+    }
+
+    const depsContent = await fs.readFile(depsPath, 'utf-8');
+    const deps = JSON.parse(depsContent);
+
+    const workspaceDir = path.join(process.cwd(), '..', 'workspace');
+    const etienneDir = path.join(workspaceDir, project, '.etienne');
+
+    // Provision event rules
+    if (deps.provisionEventRules && Array.isArray(deps.provisionEventRules) && deps.provisionEventRules.length > 0) {
+      const rulesPath = path.join(etienneDir, 'event-handling.json');
+      let config: { rules: any[] } = { rules: [] };
+
+      try {
+        const existing = await fs.readFile(rulesPath, 'utf-8');
+        config = JSON.parse(existing);
+        if (!Array.isArray(config.rules)) config.rules = [];
+      } catch {
+        // File doesn't exist or is invalid — start fresh
+      }
+
+      const existingIds = new Set(config.rules.map((r: any) => r.id));
+      for (const rule of deps.provisionEventRules) {
+        if (!existingIds.has(rule.id)) {
+          config.rules.push(rule);
+        }
+      }
+
+      await fs.mkdir(etienneDir, { recursive: true });
+      await fs.writeFile(rulesPath, JSON.stringify(config, null, 2), 'utf-8');
+    }
+
+    // Provision prompts
+    if (deps.provisionPrompts && Array.isArray(deps.provisionPrompts) && deps.provisionPrompts.length > 0) {
+      const promptsPath = path.join(etienneDir, 'prompts.json');
+      let config: { prompts: any[] } = { prompts: [] };
+
+      try {
+        const existing = await fs.readFile(promptsPath, 'utf-8');
+        config = JSON.parse(existing);
+        if (!Array.isArray(config.prompts)) config.prompts = [];
+      } catch {
+        // File doesn't exist or is invalid — start fresh
+      }
+
+      const existingIds = new Set(config.prompts.map((p: any) => p.id));
+      for (const prompt of deps.provisionPrompts) {
+        if (!existingIds.has(prompt.id)) {
+          config.prompts.push(prompt);
+        }
+      }
+
+      await fs.mkdir(etienneDir, { recursive: true });
+      await fs.writeFile(promptsPath, JSON.stringify(config, null, 2), 'utf-8');
     }
   }
 

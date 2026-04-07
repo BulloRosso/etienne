@@ -1,8 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import axios from 'axios';
+import { EmbeddingsService } from '../../embeddings';
 
 const CHROMADB_URL = process.env.CHROMADB_URL || 'http://localhost:7100';
-const COLLECTION_NAME = 'documents'; // Default collection name for documents
 
 export interface VectorDocument {
   id: string;
@@ -33,7 +33,16 @@ export interface SearchOptions {
 
 @Injectable()
 export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
-  private readonly dimension = 1536; // OpenAI text-embedding-3-small
+  constructor(private readonly embeddingsService: EmbeddingsService) {}
+
+  private get dimension(): number {
+    return this.embeddingsService.dimension;
+  }
+
+  /** Collection name includes dimension to avoid mixing embeddings from different providers */
+  private get collectionName(): string {
+    return `documents_${this.dimension}`;
+  }
 
   async onModuleInit() {
     // Check if ChromaDB service is available
@@ -64,7 +73,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     try {
       // Try to get the collection, if it doesn't exist, create it
       await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections`, {
-        name: COLLECTION_NAME,
+        name: this.collectionName,
         metadata: { description: 'Document embeddings for vector similarity search' },
         get_or_create: true
       });
@@ -78,7 +87,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     await this.ensureCollection(project);
 
     try {
-      await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/add`, {
+      await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/add`, {
         ids: [doc.id],
         embeddings: [doc.embedding],
         documents: [doc.content],
@@ -113,7 +122,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
         ...doc.metadata
       }));
 
-      await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/add`, {
+      await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/add`, {
         ids,
         embeddings,
         documents,
@@ -150,7 +159,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
-      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, queryParams);
+      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/query`, queryParams);
 
       const results = response.data.results;
 
@@ -193,7 +202,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     await this.ensureCollection(project);
 
     try {
-      await axios.delete(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/documents`, {
+      await axios.delete(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/documents`, {
         data: {
           ids: [id]
         }
@@ -213,7 +222,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
 
     try {
       // First, get all chunks for this document
-      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, {
+      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/query`, {
         query_embeddings: [new Array(this.dimension).fill(0)],
         n_results: 10000, // Get all chunks
         where: { documentId: documentId },
@@ -225,7 +234,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
 
       if (ids.length > 0) {
         // Delete all chunks
-        await axios.delete(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/documents`, {
+        await axios.delete(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/documents`, {
           data: {
             ids: ids
           }
@@ -242,7 +251,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
 
     try {
       // Use ChromaDB's where clause to filter by entityId
-      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/query`, {
+      const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/query`, {
         query_embeddings: [new Array(this.dimension).fill(0)],
         n_results: 1000,
         where: { entityId: entityId },
@@ -279,7 +288,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     await this.ensureCollection(project);
 
     try {
-      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}`);
+      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}`);
 
       return {
         documentCount: response.data.collection.count || 0,
@@ -297,7 +306,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     await this.ensureCollection(project);
 
     try {
-      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/get`, {
+      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/get`, {
         params: {
           ids: [id],
           include: ['documents', 'metadatas', 'embeddings']
@@ -326,7 +335,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
 
     try {
       // Get all documents from the collection
-      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${COLLECTION_NAME}/get`, {
+      const response = await axios.get(`${CHROMADB_URL}/api/v1/${project}/collections/${this.collectionName}/get`, {
         params: {
           include: ['documents', 'metadatas', 'embeddings']
         }

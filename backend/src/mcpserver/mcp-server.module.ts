@@ -16,9 +16,10 @@ import { ProcessManagerModule } from '../process-manager/process-manager.module'
 import { ConfigurationModule } from '../configuration/configuration.module';
 import { UserOrdersModule } from '../user-orders/user-orders.module';
 import { CollaborationModule } from '../collaboration/collaboration.module';
+import { RagModule } from '../rag/rag.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule, RagModule],
   controllers: [McpServerController],
   providers: [McpServerFactoryService, McpAuthGuard],
   exports: [McpServerFactoryService],

@@ -13,6 +13,7 @@ import {
   HybridSearchResult
 } from './search.dto';
 import { NaiveChunkingStrategy } from '../chunking';
+import { EmbeddingsService } from '../../embeddings';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
@@ -24,13 +25,14 @@ export class SearchService {
     private readonly vectorStore: VectorStoreService,
     private readonly knowledgeGraph: KnowledgeGraphService,
     private readonly graphBuilder: GraphBuilderService,
-    private readonly openai: OpenAiService
+    private readonly openai: OpenAiService,
+    private readonly embeddings: EmbeddingsService,
   ) {}
 
   async createDocument(project: string, dto: CreateDocumentDto): Promise<any> {
     try {
-      // Get embedding from OpenAI
-      const embedding = await this.openai.createEmbedding(dto.content);
+      // Get embedding
+      const embedding = await this.embeddings.embed(dto.content);
 
       // Store in vector database
       await this.vectorStore.addDocument(project, {
@@ -145,7 +147,7 @@ export class SearchService {
     try {
       // Vector search - request more results since we'll deduplicate chunks
       if (dto.includeVectorSearch) {
-        const queryEmbedding = await this.openai.createEmbedding(dto.query);
+        const queryEmbedding = await this.embeddings.embed(dto.query);
         const topK = (dto.topK || 5) * 3; // Request 3x more to account for chunks
         const rawResults = await this.vectorStore.search(project, queryEmbedding, topK);
 
@@ -180,7 +182,7 @@ export class SearchService {
 
   async vectorSearch(project: string, dto: VectorSearchDto): Promise<any[]> {
     try {
-      const queryEmbedding = await this.openai.createEmbedding(dto.query);
+      const queryEmbedding = await this.embeddings.embed(dto.query);
       const topK = (dto.topK || 5) * 3; // Request 3x more to account for chunks
       const rawResults = await this.vectorStore.search(project, queryEmbedding, topK);
 
@@ -255,29 +257,26 @@ export class SearchService {
 
       // Skip entity extraction if graph layer is disabled
       if (!useGraphLayer) {
-        // Store each chunk in vector store with embeddings
-        const chunkDocuments = await Promise.all(
-          chunks.map(async (chunk) => {
-            const embedding = await this.openai.createEmbedding(chunk.content);
-            return {
-              id: chunk.chunkId,
-              content: chunk.content,
-              embedding: embedding,
-              metadata: {
-                documentId: documentId,
-                chunkNumber: chunk.chunkNumber,
-                startPosition: chunk.startPosition,
-                endPosition: chunk.endPosition,
-                totalChunks: chunk.totalChunks,
-                contentLength: chunk.content.length,
-                createdAt: new Date().toISOString(),
-                uploadedAt: new Date().toISOString(),
-                fullContentLength: content.length,
-                useGraphLayer: false
-              }
-            };
-          })
-        );
+        // Embed all chunks in a single batch
+        const chunkTexts = chunks.map(c => c.content);
+        const chunkEmbeddings = await this.embeddings.embedBatch(chunkTexts);
+        const chunkDocuments = chunks.map((chunk, i) => ({
+          id: chunk.chunkId,
+          content: chunk.content,
+          embedding: chunkEmbeddings[i],
+          metadata: {
+            documentId: documentId,
+            chunkNumber: chunk.chunkNumber,
+            startPosition: chunk.startPosition,
+            endPosition: chunk.endPosition,
+            totalChunks: chunk.totalChunks,
+            contentLength: chunk.content.length,
+            createdAt: new Date().toISOString(),
+            uploadedAt: new Date().toISOString(),
+            fullContentLength: content.length,
+            useGraphLayer: false
+          }
+        }));
 
         // Batch insert chunks into vector store
         await this.vectorStore.addDocumentChunks(project, chunkDocuments);
@@ -317,30 +316,27 @@ export class SearchService {
       // Add the document entity to knowledge graph
       await this.graphBuilder.addEntity(project, documentEntity);
 
-      // Create embeddings for all chunks in parallel
-      const chunkDocuments = await Promise.all(
-        chunks.map(async (chunk) => {
-          const embedding = await this.openai.createEmbedding(chunk.content);
-          return {
-            id: chunk.chunkId,
-            content: chunk.content,
-            embedding: embedding,
-            metadata: {
-              documentId: documentId,
-              chunkNumber: chunk.chunkNumber,
-              startPosition: chunk.startPosition,
-              endPosition: chunk.endPosition,
-              totalChunks: chunk.totalChunks,
-              contentLength: chunk.content.length,
-              createdAt: new Date().toISOString(),
-              uploadedAt: new Date().toISOString(),
-              entityCount: entities.length,
-              fullContentLength: content.length,
-              useGraphLayer: true
-            }
-          };
-        })
-      );
+      // Embed all chunks in a single batch
+      const chunkTexts = chunks.map(c => c.content);
+      const chunkEmbeddings = await this.embeddings.embedBatch(chunkTexts);
+      const chunkDocuments = chunks.map((chunk, i) => ({
+        id: chunk.chunkId,
+        content: chunk.content,
+        embedding: chunkEmbeddings[i],
+        metadata: {
+          documentId: documentId,
+          chunkNumber: chunk.chunkNumber,
+          startPosition: chunk.startPosition,
+          endPosition: chunk.endPosition,
+          totalChunks: chunk.totalChunks,
+          contentLength: chunk.content.length,
+          createdAt: new Date().toISOString(),
+          uploadedAt: new Date().toISOString(),
+          entityCount: entities.length,
+          fullContentLength: content.length,
+          useGraphLayer: true
+        }
+      }));
 
       // Batch insert chunks into vector store
       await this.vectorStore.addDocumentChunks(project, chunkDocuments);

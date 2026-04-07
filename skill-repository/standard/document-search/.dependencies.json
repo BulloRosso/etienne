@@ -1,0 +1,35 @@
+{
+  "requires": ["rag_index_document", "rag_index_text", "rag_index_search"],
+  "provides": ["document_search"],
+  "services": ["rag"],
+  "provisionEventRules": [
+    {
+      "id": "rag-auto-index-documents",
+      "name": "Auto-index documents for RAG search",
+      "enabled": true,
+      "condition": {
+        "type": "simple",
+        "event": {
+          "group": "Filesystem",
+          "name": "File Created",
+          "payload.path": "*/documents/*"
+        }
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "rag-auto-index"
+      },
+      "createdAt": "2026-04-07T00:00:00.000Z",
+      "updatedAt": "2026-04-07T00:00:00.000Z"
+    }
+  ],
+  "provisionPrompts": [
+    {
+      "id": "rag-auto-index",
+      "title": "Auto-index document for RAG",
+      "content": "A new document was added at {{payload.path}}. Index it for semantic search by calling the rag_index_document tool with scope_name='project_{{projectName}}' and document_path='{{payload.path}}'.",
+      "createdAt": "2026-04-07T00:00:00.000Z",
+      "updatedAt": "2026-04-07T00:00:00.000Z"
+    }
+  ]
+}

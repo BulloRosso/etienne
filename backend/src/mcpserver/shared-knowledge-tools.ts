@@ -2,6 +2,8 @@ import { ToolService, McpTool } from './types';
 import { VectorStoreService } from '../knowledge-graph/vector-store/vector-store.service';
 import { OpenAiService } from '../knowledge-graph/openai/openai.service';
 import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.service';
+import { EmbeddingsService } from '../embeddings';
+import { LlmService } from '../llm/llm.service';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
@@ -81,6 +83,8 @@ export function createSharedKnowledgeToolsService(
   openAiService: OpenAiService,
   knowledgeGraphService: KnowledgeGraphService,
   getProjectRoot: () => string | null,
+  embeddingsService: EmbeddingsService,
+  llmService: LlmService,
 ): ToolService {
   const workspaceDir =
     process.env.WORKSPACE_ROOT || path.join(process.cwd(), '..', 'workspace');
@@ -193,7 +197,7 @@ export function createSharedKnowledgeToolsService(
     // 1. Vector search across projects (parallel)
     let queryEmbedding: number[];
     try {
-      queryEmbedding = await openAiService.createEmbedding(query);
+      queryEmbedding = await embeddingsService.embed(query);
     } catch (err: any) {
       throw new Error(`Failed to create embedding: ${err.message}`);
     }
@@ -300,7 +304,7 @@ export function createSharedKnowledgeToolsService(
       let vectorStoreInfo: any = null;
       try {
         // Attempt a zero-result search to verify the collection exists
-        const embedding = new Array(1536).fill(0);
+        const embedding = new Array(embeddingsService.dimension).fill(0);
         const results = await vectorStoreService.search(project, embedding, {
           topK: 1,
         });
@@ -389,7 +393,7 @@ export function createSharedKnowledgeToolsService(
 
     const targetType = entityType || 'any entity';
 
-    // Generate SPARQL via OpenAI
+    // Generate SPARQL via LLM
     const systemPrompt = `You are a SPARQL query generator for a knowledge graph.
 
 Entity Schema:
@@ -405,18 +409,16 @@ Important rules:
 
     const userPrompt = `Generate a SPARQL query to find ${targetType} entities matching: "${query}"`;
 
-    const response = await (openAiService as any).client.chat.completions.create(
-      {
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.1,
-      },
-    );
+    const result = await llmService.generateTextWithMessages({
+      tier: 'small',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      maxOutputTokens: 1024,
+    });
 
-    let sparqlQuery = response.choices[0].message.content.trim();
+    let sparqlQuery = result.trim();
     sparqlQuery = sparqlQuery
       .replace(/```sparql\n?/g, '')
       .replace(/```\n?/g, '')

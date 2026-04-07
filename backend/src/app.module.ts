@@ -68,9 +68,10 @@ import { UserOrdersModule } from './user-orders/user-orders.module';
 import { SseMultiplexModule } from './sse-multiplex/sse-multiplex.module';
 import { SecretsManagerModule } from './secrets-manager/secrets-manager.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
+import { EmbeddingsModule } from './embeddings';
 
 @Module({
-  imports: [SecretsManagerModule, AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, SseMultiplexModule, CollaborationModule],
+  imports: [SecretsManagerModule, EmbeddingsModule.register(), AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule, AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, SseMultiplexModule, CollaborationModule],
   controllers: [ClaudeController, SdkPermissionController, CodexPermissionController, OpenAIAgentsPermissionController],
   providers: [
     ClaudeService,
