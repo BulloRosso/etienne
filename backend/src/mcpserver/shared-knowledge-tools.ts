@@ -409,7 +409,7 @@ Important rules:
 
     const userPrompt = `Generate a SPARQL query to find ${targetType} entities matching: "${query}"`;
 
-    const result = await llmService.generateTextWithMessages({
+    const llmResult = await llmService.generateTextWithMessages({
       tier: 'small',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -418,7 +418,7 @@ Important rules:
       maxOutputTokens: 1024,
     });
 
-    let sparqlQuery = result.trim();
+    let sparqlQuery = llmResult.trim();
     sparqlQuery = sparqlQuery
       .replace(/```sparql\n?/g, '')
       .replace(/```\n?/g, '')
