@@ -28,6 +28,8 @@ class FilePreviewHandler {
       this.handleHtmlPreview(filePath, projectName);
     } else if (extension === 'json' || extension === 'jsonl' || extension === 'csv' || extension === 'txt') {
       this.handleJsonPreview(filePath, projectName);
+    } else if (extension === 'py') {
+      this.handleTextPreview(filePath, projectName);
     } else if (extension === 'md') {
       this.handleMarkdownPreview(filePath, projectName);
     } else if (extension === 'mermaid') {
@@ -259,6 +261,22 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'pdf-preview'
+    });
+  }
+
+  /**
+   * Handle plain-text source file preview (e.g. .py)
+   * Renders via FilesPanel's <pre> fallback since no dedicated viewer is registered.
+   * @param {string} filePath - The path to the text file
+   * @param {string} projectName - The project name
+   */
+  handleTextPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening text preview for', filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'text-preview'
     });
   }
 

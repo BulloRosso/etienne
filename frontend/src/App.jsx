@@ -508,6 +508,28 @@ export default function App() {
           }]);
         }
 
+        if (eventType === 'file_added' || eventType === 'file_changed') {
+          const absolutePath = eventData.path;
+          if (absolutePath) {
+            const relativePath = extractRelativePath(absolutePath);
+            console.log(`[mux ${eventType}] Absolute: ${absolutePath}, Relative: ${relativePath}`);
+
+            // Dispatch claudeHook event for LiveHTMLPreview to refresh
+            const claudeHookEvent = new CustomEvent('claudeHook', {
+              detail: {
+                hook: 'PostHook',
+                file: absolutePath
+              }
+            });
+            window.dispatchEvent(claudeHookEvent);
+            console.log(`[mux ${eventType}] Dispatched claudeHook event for:`, absolutePath);
+
+            if (hasPreviewExtension(absolutePath)) {
+              fetchFile(relativePath, currentProject);
+            }
+          }
+        }
+
         if (eventType === 'knowledge-acquired') {
           // Dispatch window event for KnowledgeViewer to pick up
           window.dispatchEvent(new CustomEvent('knowledgeAcquired', { detail: eventData }));
