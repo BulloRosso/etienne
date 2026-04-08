@@ -11,7 +11,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, source = null, sourceMetadata = null }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, traceId = null, source = null, sourceMetadata = null }) {
   const { t } = useTranslation();
   const isUser = role === 'user';
   const { mode: themeMode } = useThemeMode();
@@ -32,7 +32,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
       const response = await apiFetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spanId, feedback: type }),
+        body: JSON.stringify({ spanId, traceId, feedback: type }),
       });
 
       if (response.ok) {

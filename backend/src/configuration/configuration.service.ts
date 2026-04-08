@@ -28,8 +28,13 @@ interface ConfigurationDto {
   MEMORY_MANAGEMENT_URL?: string;
   MEMORY_DECAY_DAYS?: string;
   OTEL_ENABLED?: string;
+  OBSERVABILITY_PROVIDER?: string;
+  OTEL_SPAN_PROCESSOR?: string;
   PHOENIX_COLLECTOR_ENDPOINT?: string;
   OTEL_SERVICE_NAME?: string;
+  AZURE_MONITOR_CONNECTION_STRING?: string;
+  AWS_OTEL_REGION?: string;
+  AWS_OTEL_ENDPOINT?: string;
   DIFFBOT_TOKEN?: string;
   VAPI_TOKEN?: string;
   AGENT_BUS_LOG_CMS?: string;
@@ -79,7 +84,10 @@ const ENV_SECTIONS: { comment: string; keys: string[] }[] = [
     keys: ['SMTP_CONNECTION', 'IMAP_CONNECTION', 'SMTP_WHITELIST'],
   },
   { comment: '# Agent Bus Logging', keys: ['AGENT_BUS_LOG_CMS', 'AGENT_BUS_LOG_DSS', 'AGENT_BUS_LOG_SWE'] },
-  { comment: '# OpenTelemetry Observability Configuration', keys: ['OTEL_ENABLED', 'PHOENIX_COLLECTOR_ENDPOINT', 'OTEL_SERVICE_NAME'] },
+  { comment: "# Observability - Provider Selection\n# OBSERVABILITY_PROVIDER: 'phoenix' (default), 'azure', or 'aws'", keys: ['OBSERVABILITY_PROVIDER', 'OTEL_ENABLED', 'OTEL_SERVICE_NAME', 'OTEL_SPAN_PROCESSOR'] },
+  { comment: '# Observability - Phoenix Arize', keys: ['PHOENIX_COLLECTOR_ENDPOINT'] },
+  { comment: '# Observability - Azure Application Insights', keys: ['AZURE_MONITOR_CONNECTION_STRING'] },
+  { comment: '# Observability - AWS CloudWatch / X-Ray OTLP', keys: ['AWS_OTEL_REGION', 'AWS_OTEL_ENDPOINT'] },
   { comment: '# File Previewer Mappings (pipe-separated: viewer:.ext1,.ext2)', keys: ['REGISTERED_PREVIEWERS'] },
   { comment: '# Secrets Manager Configuration', keys: ['SECRET_VAULT_PROVIDER', 'OPENBAO_ADDR', 'OPENBAO_DEV_ROOT_TOKEN'] },
   { comment: '# Azure Key Vault Configuration', keys: ['AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_VAULT_URL'] },

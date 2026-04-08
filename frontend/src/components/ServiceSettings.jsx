@@ -48,8 +48,13 @@ const SETTINGS_GROUPS = (t) => [
     label: t('serviceSettings.sectionObservability'),
     fields: [
       { key: 'OTEL_ENABLED', label: t('serviceSettings.otelEnabledLabel'), type: 'select', options: ['true', 'false'], helperText: t('serviceSettings.otelEnabledHelperText') },
-      { key: 'PHOENIX_COLLECTOR_ENDPOINT', label: t('serviceSettings.phoenixEndpointLabel'), type: 'text', helperText: t('serviceSettings.phoenixEndpointHelperText') },
       { key: 'OTEL_SERVICE_NAME', label: t('serviceSettings.otelServiceNameLabel'), type: 'text', helperText: t('serviceSettings.otelServiceNameHelperText') },
+      { key: 'OBSERVABILITY_PROVIDER', label: t('serviceSettings.observabilityProviderLabel'), type: 'select', options: ['phoenix', 'azure', 'aws'], helperText: t('serviceSettings.observabilityProviderHelperText') },
+      { key: 'OTEL_SPAN_PROCESSOR', label: t('serviceSettings.otelSpanProcessorLabel'), type: 'select', options: ['batch', 'simple'], helperText: t('serviceSettings.otelSpanProcessorHelperText') },
+      { key: 'PHOENIX_COLLECTOR_ENDPOINT', label: t('serviceSettings.phoenixEndpointLabel'), type: 'text', helperText: t('serviceSettings.phoenixEndpointHelperText'), showWhen: { key: 'OBSERVABILITY_PROVIDER', value: ['phoenix', ''] } },
+      { key: 'AZURE_MONITOR_CONNECTION_STRING', label: t('serviceSettings.azureMonitorConnStringLabel'), type: 'password', helperText: t('serviceSettings.azureMonitorConnStringHelperText'), showWhen: { key: 'OBSERVABILITY_PROVIDER', value: 'azure' } },
+      { key: 'AWS_OTEL_REGION', label: t('serviceSettings.awsOtelRegionLabel'), type: 'text', helperText: t('serviceSettings.awsOtelRegionHelperText'), showWhen: { key: 'OBSERVABILITY_PROVIDER', value: 'aws' } },
+      { key: 'AWS_OTEL_ENDPOINT', label: t('serviceSettings.awsOtelEndpointLabel'), type: 'text', helperText: t('serviceSettings.awsOtelEndpointHelperText'), showWhen: { key: 'OBSERVABILITY_PROVIDER', value: 'aws' } },
     ]
   },
   {
@@ -278,6 +283,17 @@ export default function ServiceSettings({ open, onClose, service, serviceStatus,
   };
 
   const renderField = (field) => {
+    // Conditional rendering based on another field's current value.
+    // `showWhen: { key, value }` where value can be a string or string[].
+    if (field.showWhen) {
+      const current = config[field.showWhen.key] || '';
+      const expected = field.showWhen.value;
+      const matches = Array.isArray(expected)
+        ? expected.includes(current)
+        : current === expected;
+      if (!matches) return null;
+    }
+
     if (isCloudVault && (field.key === 'ANTHROPIC_API_KEY' || field.key === 'OPENAI_API_KEY')) {
       return (
         <Alert severity="info" sx={{ mb: 2 }} key={field.key}>

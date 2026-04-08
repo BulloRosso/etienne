@@ -11,8 +11,10 @@ export class FeedbackController {
   @Post()
   async submitFeedback(@Body() dto: FeedbackDto): Promise<{ success: boolean }> {
     try {
-      this.logger.log(`Received feedback: spanId=${dto.spanId}, feedback=${dto.feedback}`);
-      await this.feedbackService.sendAnnotationToPhoenix(dto.spanId, dto.feedback);
+      this.logger.log(
+        `Received feedback: spanId=${dto.spanId}, traceId=${dto.traceId || '-'}, feedback=${dto.feedback}`
+      );
+      await this.feedbackService.submitFeedback(dto.spanId, dto.traceId, dto.feedback);
       return { success: true };
     } catch (error: any) {
       this.logger.error(`Failed to submit feedback: ${error?.message}`, error?.stack);

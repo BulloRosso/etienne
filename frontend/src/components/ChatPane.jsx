@@ -375,6 +375,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               reasoningSteps={reasoningStepsToShow}
               isStreaming={isStreaming}
               spanId={msg.spanId}
+              traceId={msg.traceId}
               source={msg.source}
               sourceMetadata={msg.sourceMetadata}
             />
