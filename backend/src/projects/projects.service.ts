@@ -3,6 +3,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { CreateProjectDto, CreateProjectResult } from './dto/create-project.dto';
 import { SkillsService } from '../skills/skills.service';
+import { SubagentsService } from '../subagents/subagents.service';
 import { AgentRoleRegistryService } from '../agent-role-registry/agent-role-registry.service';
 import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
@@ -23,6 +24,7 @@ export class ProjectsService {
 
   constructor(
     private readonly skillsService: SkillsService,
+    private readonly subagentsService: SubagentsService,
     private readonly agentRoleRegistryService: AgentRoleRegistryService,
     private readonly a2aSettingsService: A2ASettingsService,
     private readonly mcpServerConfigService: McpServerConfigService,
@@ -68,6 +70,17 @@ export class ProjectsService {
         }
       } catch (error: any) {
         warnings.push(`Failed to provision standard skills: ${error.message}`);
+      }
+
+      // 4b. Provision standard subagents
+      try {
+        const subagentResults = await this.subagentsService.provisionStandardSubagents(dto.projectName);
+        const failedSubagents = subagentResults.filter((r) => !r.success);
+        if (failedSubagents.length > 0) {
+          warnings.push(`Failed to provision ${failedSubagents.length} standard subagents`);
+        }
+      } catch (error: any) {
+        warnings.push(`Failed to provision standard subagents: ${error.message}`);
       }
 
       // 5. Provision optional skills if selected

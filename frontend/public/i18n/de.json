@@ -555,6 +555,8 @@
   "subagent.formModelInherit": "Vererben",
   "subagent.formToolsHelp": "Tools (leer lassen, um alle Tools zu erben)",
   "subagent.formSystemPrompt": "System-Prompt",
+  "subagent.addPredefined": "Vordefinierten Subagenten hinzufügen",
+  "subagent.errorProvisionFailed": "Vordefinierter Subagent konnte nicht hinzugefügt werden",
   "mcpServer.failedToLoadConfig": "MCP-Konfiguration konnte nicht geladen werden",
   "mcpServer.failedToSaveConfig": "MCP-Konfiguration konnte nicht gespeichert werden",
   "mcpServer.savedSuccessfully": "MCP-Konfiguration erfolgreich gespeichert",

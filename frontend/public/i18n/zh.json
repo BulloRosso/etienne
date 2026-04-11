@@ -582,6 +582,8 @@
   "subagent.formModelInherit": "继承",
   "subagent.formToolsHelp": "工具（留空则继承所有工具）",
   "subagent.formSystemPrompt": "系统提示词",
+  "subagent.addPredefined": "添加预定义子代理",
+  "subagent.errorProvisionFailed": "添加预定义子代理失败",
 
   "mcpServer.failedToLoadConfig": "加载 MCP 配置失败",
   "mcpServer.failedToSaveConfig": "保存 MCP 配置失败",

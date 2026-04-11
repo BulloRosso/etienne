@@ -583,6 +583,8 @@
   "subagent.formModelInherit": "Inherit",
   "subagent.formToolsHelp": "Tools (leave empty to inherit all tools)",
   "subagent.formSystemPrompt": "System Prompt",
+  "subagent.addPredefined": "Add Predefined Subagent",
+  "subagent.errorProvisionFailed": "Failed to add predefined subagent",
 
   "mcpServer.failedToLoadConfig": "Failed to load MCP configuration",
   "mcpServer.failedToSaveConfig": "Failed to save MCP configuration",

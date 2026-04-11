@@ -13,6 +13,19 @@ export interface SubagentConfig {
   systemPrompt: string;
 }
 
+export interface RepositorySubagent {
+  name: string;
+  source: 'standard' | 'optional';
+  description?: string;
+  hasThumbnail?: boolean;
+}
+
+export interface ProvisionSubagentResult {
+  subagentName: string;
+  success: boolean;
+  error?: string;
+}
+
 @Injectable()
 export class SubagentsService {
   private readonly logger = new Logger(SubagentsService.name);
@@ -389,5 +402,178 @@ export class SubagentsService {
 
     const filePath = path.join(agentsDir, `${config.name}.toml`);
     await fs.writeFile(filePath, stringify(agentToml), 'utf-8');
+  }
+
+  // ── Subagent Repository ──────────────────────────────────────────────
+
+  private getSubagentRepositoryPath(): string {
+    const envPath = process.env.SUBAGENT_REPOSITORY;
+    if (envPath) return envPath;
+    return path.resolve(process.cwd(), '..', 'subagent-repository');
+  }
+
+  private getStandardSubagentsDir(): string {
+    return path.join(this.getSubagentRepositoryPath(), 'standard');
+  }
+
+  private getOptionalSubagentsDir(): string {
+    return path.join(this.getSubagentRepositoryPath(), 'standard', 'optional');
+  }
+
+  private getRepoSubagentDir(name: string, source: 'standard' | 'optional'): string {
+    const baseDir = source === 'optional'
+      ? this.getOptionalSubagentsDir()
+      : this.getStandardSubagentsDir();
+    return path.join(baseDir, name);
+  }
+
+  private async fileExists(filePath: string): Promise<boolean> {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async isRepositoryAvailable(): Promise<boolean> {
+    return this.fileExists(this.getSubagentRepositoryPath());
+  }
+
+  /**
+   * List subagents from the subagent repository
+   */
+  async listRepositorySubagents(includeOptional: boolean = false): Promise<RepositorySubagent[]> {
+    const subagents: RepositorySubagent[] = [];
+    const standardDir = this.getStandardSubagentsDir();
+    const optionalDir = this.getOptionalSubagentsDir();
+
+    // List standard subagents (excluding the 'optional' subdirectory)
+    try {
+      const entries = await fs.readdir(standardDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== 'optional') {
+          const subagentDir = path.join(standardDir, entry.name);
+          const config = await this.readRepoSubagentConfig(subagentDir);
+          const hasThumbnail = await this.fileExists(path.join(subagentDir, 'thumbnail.png'));
+          subagents.push({
+            name: entry.name,
+            source: 'standard',
+            description: config?.description,
+            hasThumbnail,
+          });
+        }
+      }
+    } catch (error) {
+      // Standard directory doesn't exist or is not accessible
+    }
+
+    // List optional subagents if requested
+    if (includeOptional) {
+      try {
+        const entries = await fs.readdir(optionalDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const subagentDir = path.join(optionalDir, entry.name);
+            const config = await this.readRepoSubagentConfig(subagentDir);
+            const hasThumbnail = await this.fileExists(path.join(subagentDir, 'thumbnail.png'));
+            subagents.push({
+              name: entry.name,
+              source: 'optional',
+              description: config?.description,
+              hasThumbnail,
+            });
+          }
+        }
+      } catch (error) {
+        // Optional directory doesn't exist or is not accessible
+      }
+    }
+
+    return subagents.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Read a SUBAGENT.md from a repository subagent directory
+   */
+  private async readRepoSubagentConfig(subagentDir: string): Promise<SubagentConfig | null> {
+    try {
+      const subagentPath = path.join(subagentDir, 'SUBAGENT.md');
+      const content = await fs.readFile(subagentPath, 'utf-8');
+      return this.parseClaudeSubagentFile(content);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Provision all standard subagents to a project
+   */
+  async provisionStandardSubagents(project: string): Promise<ProvisionSubagentResult[]> {
+    const results: ProvisionSubagentResult[] = [];
+    const standardDir = this.getStandardSubagentsDir();
+
+    try {
+      const entries = await fs.readdir(standardDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== 'optional') {
+          const result = await this.provisionSingleSubagent(project, entry.name, 'standard');
+          results.push(result);
+        }
+      }
+    } catch (error) {
+      this.logger.warn('Subagent repository not available for provisioning');
+    }
+
+    return results;
+  }
+
+  /**
+   * Provision specific subagents from the repository to a project
+   */
+  async provisionSubagentsFromRepository(
+    project: string,
+    subagentNames: string[],
+    source: 'standard' | 'optional',
+  ): Promise<ProvisionSubagentResult[]> {
+    const results: ProvisionSubagentResult[] = [];
+
+    for (const name of subagentNames) {
+      const result = await this.provisionSingleSubagent(project, name, source);
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  private async provisionSingleSubagent(
+    project: string,
+    name: string,
+    source: 'standard' | 'optional',
+  ): Promise<ProvisionSubagentResult> {
+    try {
+      // Check if subagent already exists in the project
+      const existing = await this.getSubagent(project, name);
+      if (existing) {
+        return { subagentName: name, success: true }; // Already exists, skip
+      }
+
+      const subagentDir = this.getRepoSubagentDir(name, source);
+      const config = await this.readRepoSubagentConfig(subagentDir);
+
+      if (!config) {
+        return { subagentName: name, success: false, error: 'SUBAGENT.md not found or invalid' };
+      }
+
+      await this.createSubagent(project, config);
+      return { subagentName: name, success: true };
+    } catch (error: any) {
+      this.logger.error(`Failed to provision subagent ${name}:`, error);
+      return { subagentName: name, success: false, error: error.message };
+    }
+  }
+
+  getSubagentThumbnailPath(name: string, source: 'standard' | 'optional'): string {
+    return path.join(this.getRepoSubagentDir(name, source), 'thumbnail.png');
   }
 }

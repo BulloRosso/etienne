@@ -24,6 +24,7 @@ import {
   Select,
   MenuItem,
   Stack,
+  Popover,
 } from '@mui/material';
 import { Add, DeleteOutlined, ArrowBack } from '@mui/icons-material';
 import { RiRobot2Line } from 'react-icons/ri';
@@ -56,9 +57,14 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
   // Available tools from MCP config
   const [availableTools, setAvailableTools] = useState([]);
 
+  // Repository subagents
+  const [repositorySubagents, setRepositorySubagents] = useState([]);
+  const [addMenuAnchorEl, setAddMenuAnchorEl] = useState(null);
+
   useEffect(() => {
     loadSubagents();
     loadMcpTools();
+    loadRepositorySubagents();
   }, [project]);
 
   const loadSubagents = async () => {
@@ -90,6 +96,33 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
       console.error('Failed to load MCP tools:', err);
       // Set only built-in tools if MCP config fails
       setAvailableTools(['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'Task']);
+    }
+  };
+
+  const loadRepositorySubagents = async () => {
+    try {
+      const response = await apiAxios.get('/api/subagents/repository/list?includeOptional=true');
+      setRepositorySubagents(response.data.subagents || []);
+    } catch (err) {
+      console.error('Failed to load repository subagents:', err);
+    }
+  };
+
+  const availableRepoSubagents = repositorySubagents.filter(
+    (repo) => !subagents.some((s) => s.name === repo.name)
+  );
+
+  const handleProvisionSubagent = async (repoAgent) => {
+    setAddMenuAnchorEl(null);
+    try {
+      await apiAxios.post(`/api/subagents/${project}/provision`, {
+        subagentNames: [repoAgent.name],
+        source: repoAgent.source,
+      });
+      await loadSubagents();
+    } catch (err) {
+      setError(t('subagent.errorProvisionFailed'));
+      console.error('Provision subagent error:', err);
     }
   };
 
@@ -272,48 +305,88 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
 
           {/* Right column: list + new button */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-            {subagents.length === 0 ? (
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography color="text.secondary">
-                  {t('subagent.emptyState')}
-                </Typography>
-              </Paper>
-            ) : (
-              <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {subagents.map((subagent) => (
-                  <ListItem
-                    key={subagent.name}
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        color="error"
-                        onClick={(e) => handleDeleteClick(subagent, e)}
-                        className="delete-icon"
-                      >
-                        <DeleteOutlined />
-                      </IconButton>
-                    }
-                    sx={{
-                      border: '1px solid', borderColor: 'divider', borderRadius: '5px', p: 0,
-                      alignItems: 'flex-start',
-                      '& .MuiListItemSecondaryAction-root': { top: 8, transform: 'none' },
-                      '& .delete-icon': { opacity: 0, transition: 'opacity 0.2s' },
-                      '&:hover .delete-icon': { opacity: 1 },
-                    }}
-                  >
-                    <ListItemButton onClick={() => handleSelectSubagent(subagent)} sx={{ borderRadius: '5px', alignItems: 'flex-start' }}>
-                      <ListItemIcon sx={{ minWidth: 40, mt: '8px' }}>
-                        <RiRobot2Line style={{ fontSize: '24px' }} />
+            <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {subagents.length === 0 && availableRepoSubagents.length === 0 && (
+                <Paper sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography color="text.secondary">
+                    {t('subagent.emptyState')}
+                  </Typography>
+                </Paper>
+              )}
+              {subagents.map((subagent) => (
+                <ListItem
+                  key={subagent.name}
+                  secondaryAction={
+                    <IconButton
+                      edge="end"
+                      color="error"
+                      onClick={(e) => handleDeleteClick(subagent, e)}
+                      className="delete-icon"
+                    >
+                      <DeleteOutlined />
+                    </IconButton>
+                  }
+                  sx={{
+                    border: '1px solid', borderColor: 'divider', borderRadius: '5px', p: 0,
+                    alignItems: 'flex-start',
+                    '& .MuiListItemSecondaryAction-root': { top: 8, transform: 'none' },
+                    '& .delete-icon': { opacity: 0, transition: 'opacity 0.2s' },
+                    '&:hover .delete-icon': { opacity: 1 },
+                  }}
+                >
+                  <ListItemButton onClick={() => handleSelectSubagent(subagent)} sx={{ borderRadius: '5px', alignItems: 'flex-start' }}>
+                    <ListItemIcon sx={{ minWidth: 40, mt: '8px' }}>
+                      <RiRobot2Line style={{ fontSize: '24px' }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={<Typography variant="subtitle1" fontWeight="bold">{subagent.name}</Typography>}
+                      secondary={subagent.description?.length > 512 ? subagent.description.substring(0, 512) + '...' : subagent.description}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+              {availableRepoSubagents.length > 0 && (
+                <ListItem
+                  sx={{
+                    border: '2px dashed', borderColor: 'divider', borderRadius: '5px', p: 0,
+                  }}
+                >
+                  <ListItemButton onClick={(e) => setAddMenuAnchorEl(e.currentTarget)} sx={{ borderRadius: '5px' }}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      <Add />
+                    </ListItemIcon>
+                    <ListItemText primary={t('subagent.addPredefined')} />
+                  </ListItemButton>
+                </ListItem>
+              )}
+            </List>
+            <Popover
+              open={Boolean(addMenuAnchorEl)}
+              anchorEl={addMenuAnchorEl}
+              onClose={() => setAddMenuAnchorEl(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+              <List sx={{ minWidth: 300, maxHeight: 400, overflow: 'auto' }}>
+                {availableRepoSubagents.map((agent) => (
+                  <ListItem key={agent.name} disablePadding>
+                    <ListItemButton onClick={() => handleProvisionSubagent(agent)}>
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        {agent.hasThumbnail ? (
+                          <Box
+                            component="img"
+                            src={`/api/subagents/repository/${agent.name}/thumbnail?source=${agent.source}`}
+                            sx={{ width: 32, height: 32, borderRadius: 1 }}
+                          />
+                        ) : (
+                          <RiRobot2Line style={{ fontSize: 24 }} />
+                        )}
                       </ListItemIcon>
-                      <ListItemText
-                        primary={<Typography variant="subtitle1" fontWeight="bold">{subagent.name}</Typography>}
-                        secondary={subagent.description}
-                      />
+                      <ListItemText primary={agent.name.charAt(0).toUpperCase() + agent.name.slice(1)} />
                     </ListItemButton>
                   </ListItem>
                 ))}
               </List>
-            )}
+            </Popover>
 
             <Box sx={{ flex: 1 }} />
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
