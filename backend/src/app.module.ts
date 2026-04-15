@@ -18,6 +18,7 @@ import { OpenAIAgentsOrchestratorService } from './claude/openai-agent-sdk/opena
 import { OpenAIAgentsSessionManagerService } from './claude/openai-agent-sdk/openai-agents-session-manager.service';
 import { OpenAIAgentsPermissionService } from './claude/openai-agent-sdk/openai-agents-permission.service';
 import { OpenAIAgentsPermissionController } from './claude/openai-agent-sdk/openai-agents-permission.controller';
+import { PiMonoOrchestratorService } from './claude/pi-mono-sdk/pi-mono-orchestrator.service';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -88,6 +89,7 @@ import { EmbeddingsModule } from './embeddings';
     OpenAIAgentsOrchestratorService,
     OpenAIAgentsSessionManagerService,
     OpenAIAgentsPermissionService,
+    PiMonoOrchestratorService,
     GuardrailsService,
     OutputGuardrailsService,
     SessionsService,

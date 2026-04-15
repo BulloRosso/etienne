@@ -554,6 +554,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
             <DashboardGrid
               currentProject={currentProject}
               sessionId={sessionId}
+              codingAgent={codingAgent}
               onCopySessionId={onCopySessionId}
               onItemClick={handleDashboardItemClick}
               onClose={handleMenuClose}

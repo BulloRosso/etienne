@@ -15,7 +15,7 @@ const SETTINGS_GROUPS = (t) => [
     key: 'codingAgent',
     label: t('serviceSettings.sectionCodingAgent'),
     fields: [
-      { key: 'CODING_AGENT', label: t('serviceSettings.codingAgentLabel'), type: 'select', options: ['anthropic', 'openai', 'openai-agents'], helperText: t('serviceSettings.codingAgentHelperText') },
+      { key: 'CODING_AGENT', label: t('serviceSettings.codingAgentLabel'), type: 'select', options: ['anthropic', 'openai', 'openai-agents', 'pi-mono'], helperText: t('serviceSettings.codingAgentHelperText') },
     ]
   },
   {

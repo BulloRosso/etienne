@@ -5,6 +5,7 @@ import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
 import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.service';
 import { OpenAIAgentsOrchestratorService } from './openai-agent-sdk/openai-agents-orchestrator.service';
+import { PiMonoOrchestratorService } from './pi-mono-sdk/pi-mono-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
@@ -20,14 +21,16 @@ export class ClaudeController {
     private readonly sdkOrchestrator: ClaudeSdkOrchestratorService,
     private readonly codexOrchestrator: CodexSdkOrchestratorService,
     private readonly openaiAgentsOrchestrator: OpenAIAgentsOrchestratorService,
+    private readonly piMonoOrchestrator: PiMonoOrchestratorService,
     private readonly sessionsService: SessionsService,
     private readonly budgetMonitoringService: BudgetMonitoringService
   ) {
     this.workspaceRoot = process.env.WORKSPACE_ROOT || join(process.cwd(), '..', 'workspace');
   }
 
-  private get activeCodingAgent(): 'anthropic' | 'openai' | 'openai-agents' {
+  private get activeCodingAgent(): 'anthropic' | 'openai' | 'openai-agents' | 'pi-mono' {
     const agent = process.env.CODING_AGENT || 'anthropic';
+    if (agent === 'pi-mono') return 'pi-mono';
     if (agent === 'openai-agents') return 'openai-agents';
     if (agent === 'openai') return 'openai';
     return 'anthropic';
@@ -120,6 +123,17 @@ export class ClaudeController {
     const memoryEnabledBool = memoryEnabled === 'true';
     const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
 
+    if (this.activeCodingAgent === 'pi-mono') {
+      return this.piMonoOrchestrator.streamPrompt(
+        projectDir,
+        prompt,
+        agentMode,
+        memoryEnabledBool,
+        false,
+        maxTurnsNum
+      );
+    }
+
     if (this.activeCodingAgent === 'openai-agents') {
       return this.openaiAgentsOrchestrator.streamPrompt(
         projectDir,
@@ -178,6 +192,11 @@ export class ClaudeController {
       return this.codexOrchestrator.abortProcess(processId);
     }
 
+    if (processId.startsWith('pimono_')) {
+      console.log(`[ClaudeController] Attempting pi-mono orchestrator abort for: ${processId}`);
+      return this.piMonoOrchestrator.abortProcess(processId);
+    }
+
     // If not found in legacy processes, try SDK orchestrator
     if (processId.startsWith('sdk_')) {
       console.log(`[ClaudeController] Attempting SDK orchestrator abort for: ${processId}`);
@@ -191,7 +210,9 @@ export class ClaudeController {
   @Roles('user')
   @Post('clearSession/:projectDir')
   async clearSession(@Param('projectDir') projectDir: string) {
-    if (this.activeCodingAgent === 'openai-agents') {
+    if (this.activeCodingAgent === 'pi-mono') {
+      await this.piMonoOrchestrator.clearSession(projectDir);
+    } else if (this.activeCodingAgent === 'openai-agents') {
       await this.openaiAgentsOrchestrator.clearSession(projectDir);
     } else if (this.activeCodingAgent === 'openai') {
       await this.codexOrchestrator.clearSession(projectDir);
@@ -228,11 +249,13 @@ export class ClaudeController {
     let tokenUsage = { input_tokens: 0, output_tokens: 0 };
 
     try {
-      const orchestrator = this.activeCodingAgent === 'openai-agents'
-        ? this.openaiAgentsOrchestrator
-        : this.activeCodingAgent === 'openai'
-          ? this.codexOrchestrator
-          : this.sdkOrchestrator;
+      const orchestrator = this.activeCodingAgent === 'pi-mono'
+        ? this.piMonoOrchestrator
+        : this.activeCodingAgent === 'openai-agents'
+          ? this.openaiAgentsOrchestrator
+          : this.activeCodingAgent === 'openai'
+            ? this.codexOrchestrator
+            : this.sdkOrchestrator;
       const observable = orchestrator.streamPrompt(
         project,
         prompt,

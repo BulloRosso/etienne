@@ -1,0 +1,5 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "notes": "pi-mono uses @mariozechner/pi-coding-agent. Per-project overrides live in .etienne/ai-model.json — see backend/src/claude/pi-mono-sdk/README.md for the supported provider matrix."
+}

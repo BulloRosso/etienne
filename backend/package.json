@@ -20,6 +20,8 @@
     "@jozefazz/nestjs-redoc": "^1.0.7",
     "@llamaindex/core": "^0.6.23",
     "@llamaindex/liteparse": "^1.4.6",
+    "@mariozechner/pi-agent-core": "^0.67.2",
+    "@mariozechner/pi-coding-agent": "^0.67.2",
     "@modelcontextprotocol/sdk": "^1.19.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",

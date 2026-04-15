@@ -25,6 +25,7 @@ import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 import { buildExtensionMap, getViewerForFile } from './components/viewerRegistry.jsx';
 import Onboarding from './components/Onboarding';
+import TechnologyRadarPage from './pages/TechnologyRadarPage';
 import { apiFetch } from './services/api';
 import useMultiplexSSE from './hooks/useMultiplexSSE';
 import { MuxSSEProvider } from './contexts/MuxSSEContext';
@@ -84,6 +85,7 @@ export default function App() {
   const [currentProcessId, setCurrentProcessId] = useState(null);
   const [uiConfig, setUiConfig] = useState(null);
   const [showWelcomePage, setShowWelcomePage] = useState(false);
+  const [hashRoute, setHashRoute] = useState(window.location.hash.slice(1) || '');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [langToast, setLangToast] = useState({ open: false, language: '' });
   const [knowledgeToast, setKnowledgeToast] = useState({ open: false, message: '' });
@@ -112,10 +114,12 @@ export default function App() {
     esRef.current?.close();
   }, []);
 
-  // Handle hash route for opening scrapbook modal
+  // Handle hash routes
   useEffect(() => {
     const handleHashChange = () => {
-      if (window.location.hash === '#scrapbook') {
+      const hash = window.location.hash.slice(1) || '';
+      setHashRoute(hash);
+      if (hash === 'scrapbook') {
         window.dispatchEvent(new CustomEvent('openScrapbook'));
       }
     };
@@ -1899,7 +1903,11 @@ export default function App() {
       </AppBar>
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
-        {showWelcomePage ? (
+        {hashRoute === 'techradar' ? (
+          <Box sx={{ height: '100%', overflow: 'auto' }}>
+            <TechnologyRadarPage />
+          </Box>
+        ) : showWelcomePage ? (
           <WelcomePage
             welcomeConfig={uiConfig?.welcomePage}
             onSendMessage={(message) => {

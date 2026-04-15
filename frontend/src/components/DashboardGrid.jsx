@@ -6,15 +6,17 @@ import { VscServerProcess } from 'react-icons/vsc';
 import { RiRobot2Line } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 
-const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick }) => {
+const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic' }) => {
   const { t } = useTranslation();
+  const subagentsUnsupported = codingAgent === 'pi-mono';
   const dashboardItems = [
     // 1st row
     {
       id: 'subagents',
       image: '/subagents.png',
       label: t('dashboard.itemSubagents'),
-      disabled: !currentProject
+      disabled: !currentProject || subagentsUnsupported,
+      disabledReason: subagentsUnsupported ? t('dashboard.subagentsUnsupportedPiMono') : undefined
     },
     {
       id: 'skills',
@@ -260,7 +262,8 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
           if (item.adminOnly && (!user || user.role !== 'admin')) return false;
           if (item.minRole === 'user' && (!user || user.role === 'guest')) return false;
           return true;
-        }).map((item) => (
+        }).map((item) => {
+          const paper = (
           <Paper
             key={item.id}
             elevation={3}
@@ -313,7 +316,13 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
               {item.label}
             </Typography>
           </Paper>
-        ))}
+          );
+          return item.disabledReason ? (
+            <Tooltip key={item.id} title={item.disabledReason}>
+              <span style={{ display: 'flex' }}>{paper}</span>
+            </Tooltip>
+          ) : paper;
+        })}
       </Box>
 
       {/* Bottom links - Service Control & Agent Persona */}
