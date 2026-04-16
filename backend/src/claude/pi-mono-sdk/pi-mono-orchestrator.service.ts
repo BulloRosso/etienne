@@ -10,6 +10,8 @@ import { buildPiMcpBridge, PiMcpBridge } from './mcp-bridge.extension';
 import { SessionsService } from '../../sessions/sessions.service';
 import { BudgetMonitoringService } from '../../budget-monitoring/budget-monitoring.service';
 import { ContextInterceptorService } from '../../contexts/context-interceptor.service';
+import { SubagentsService } from '../../subagents/subagents.service';
+import { buildSubagentTool } from './subagent-tool.extension';
 
 type PiAgentSession = {
   prompt(input: string): Promise<void>;
@@ -31,12 +33,14 @@ export class PiMonoOrchestratorService {
   private readonly workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace';
   private readonly activeSessions = new Map<string, PiAgentSession>();
   private readonly activeBridges = new Map<string, PiMcpBridge>();
+  private readonly nestedSessions = new Map<string, { abort?: () => void | Promise<void> }>();
 
   constructor(
     private readonly permissionService: SdkPermissionService,
     private readonly sessionsService: SessionsService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly contextInterceptor: ContextInterceptorService,
+    private readonly subagentsService: SubagentsService,
   ) {}
 
   async clearSession(projectDir: string): Promise<void> {
@@ -48,6 +52,14 @@ export class PiMonoOrchestratorService {
   }
 
   async abortProcess(processId: string): Promise<{ success: boolean }> {
+    // Abort nested subagent sessions first.
+    for (const [key, nested] of this.nestedSessions.entries()) {
+      if (key.includes(processId) || processId.includes(key)) {
+        try { await nested.abort?.(); } catch { /* ignore */ }
+        this.nestedSessions.delete(key);
+      }
+    }
+
     for (const [key, session] of this.activeSessions.entries()) {
       if (key.includes(processId) && session.abort) {
         try { await session.abort(); } catch { /* ignore */ }
@@ -161,6 +173,9 @@ export class PiMonoOrchestratorService {
     const mcpBridge = await buildPiMcpBridge({ logger: this.logger, projectRoot });
     this.activeBridges.set(processId, mcpBridge);
 
+    // Build the tools array: MCP bridge tools + subagent Task tool.
+    const allTools = [...mcpBridge.tools];
+
     const beforeToolCall = createPiMonoPermissionHook({
       logger: this.logger,
       permissionService: this.permissionService,
@@ -190,6 +205,32 @@ export class PiMonoOrchestratorService {
       }
     };
 
+    // Build the subagent Task tool from .claude/agents/*.md definitions.
+    try {
+      const subagentTool = await buildSubagentTool({
+        logger: this.logger,
+        subagentsService: this.subagentsService,
+        projectDir,
+        parentProcessId: processId,
+        parentTools: allTools,
+        piModule: pi,
+        modelConfig: modelConfig ? {
+          model: modelConfig.model,
+          provider: modelConfig.provider,
+          baseUrl: modelConfig.baseUrl,
+          token: modelConfig.token,
+        } : undefined,
+        projectRoot,
+        beforeToolCall,
+        emit: (ev) => observer.next(ev),
+        nestedSessions: this.nestedSessions,
+        depth: 0,
+      });
+      if (subagentTool) allTools.push(subagentTool);
+    } catch (err: any) {
+      this.logger.warn(`pi-mono subagent tool build failed: ${err?.message}`);
+    }
+
     const { session } = await createAgentSession({
       cwd: projectRoot,
       sessionManager: SessionManager?.inMemory ? SessionManager.inMemory() : undefined,
@@ -197,7 +238,7 @@ export class PiMonoOrchestratorService {
       provider: modelConfig?.provider,
       baseUrl: modelConfig?.baseUrl,
       apiKey: modelConfig?.token,
-      tools: mcpBridge.tools,
+      tools: allTools,
       beforeToolCall,
       afterToolCall,
     });

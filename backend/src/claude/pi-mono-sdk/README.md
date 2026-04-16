@@ -6,14 +6,14 @@ pi-mono is MIT-licensed, TypeScript-native, and supports a very large multi-prov
 
 ## Status
 
-**Vertical slice, in progress.** The orchestrator streams text, thinking, tool-call, tool-result, usage, and completion events end-to-end via the pi-agent-core SDK. Permissions bridge and MCP→AgentTool bridge are **not yet implemented** — see the plan at `.claude/plans/twinkling-enchanting-crane.md`.
+The orchestrator streams text, thinking, tool-call, tool-result, usage, and completion events via the pi-agent-core SDK. Permission bridge, MCP→AgentTool bridge, context interceptors, chat persistence, budget tracking, and subagent simulation are wired end-to-end.
 
 ## When to pick `pi-mono` vs `anthropic`
 
 | You want... | Pick |
 |---|---|
 | Full MCP servers (tools + resources + prompts + sampling) | `anthropic` |
-| Native subagents and `Agent` tool | `anthropic` |
+| Native subagents (automatic SDK discovery) | `anthropic` |
 | Built-in `TodoWrite` / plan mode | `anthropic` |
 | To run against OpenAI, Google, xAI, Groq, Ollama, ... without switching harness | `pi-mono` |
 | To reuse a Claude Pro/Max or ChatGPT Plus subscription (OAuth) | `pi-mono` |
@@ -38,7 +38,7 @@ pi-mono is MIT-licensed, TypeScript-native, and supports a very large multi-prov
 | Guardrails (input / output) | ✅ | ⚠️ via `beforeToolCall` bridge (TODO) |
 | MCP tool calls | ✅ | ✅ via MCP→AgentTool bridge (allowlisted) |
 | MCP resources / prompts / sampling | ✅ | ❌ |
-| Subagents (`Agent` tool) | ✅ | ❌ |
+| Subagents (`Task` tool) | ✅ | ✅ simulated via `Task` tool |
 | `TodoWrite` / todo tracking | ✅ | ❌ |
 | Plan mode | ✅ | ❌ |
 | Skills (`/skill:name`, agentskills.io) | ✅ | ✅ |
@@ -105,12 +105,49 @@ The bridge owns its MCP clients for the lifetime of a session and closes them on
 
 [pi-mono-permission.bridge.ts](./pi-mono-permission.bridge.ts) wires pi's `beforeToolCall` hook to the existing [SdkPermissionService](../sdk/sdk-permission.service.ts). Every tool call — pi builtins and bridged MCP tools — routes through the same service the Anthropic harness uses, emits the same `permission_request` SSE event, and resolves from the same frontend dialog. Default mode is `requireAllPermissions: false`, matching the Anthropic harness default.
 
+## Subagents
+
+pi-mono has no native subagent support. [subagent-tool.extension.ts](./subagent-tool.extension.ts) reads the project's standard Anthropic-format subagent definitions from `.claude/agents/<name>.md` (same files the UI creates via the Subagent Configuration panel) and exposes a single `Task` tool to the main agent.
+
+**How it works:**
+
+1. On session start, reads all `.md` files from `.claude/agents/` via [`SubagentsService.listSubagents`](../../subagents/subagents.service.ts).
+2. Builds a `Task` tool whose `subagent_type` parameter enumerates the available subagent names. The tool description includes each subagent's name and description so the model picks the right one.
+3. When the model calls `Task(subagent_type="researcher", prompt="...")`:
+   - Reads the subagent's `.md` file to get its system prompt and tool allowlist.
+   - Spawns a **nested pi session** (`SessionManager.inMemory()`) with the subagent's system prompt and a filtered tool set.
+   - Emits `subagent_start` / `subagent_end` events on the parent SSE stream.
+   - Forwards text/thinking/tool events from the nested session to the frontend.
+   - Returns the final assistant text as the tool result.
+4. Recursion capped at depth 2 (configurable via `MAX_SUBAGENT_DEPTH`).
+5. Each nested session has a 5-minute timeout. Abort propagation kills nested sessions when the parent is aborted.
+
+**Subagent file format** (unchanged from Anthropic):
+
+```yaml
+---
+name: researcher
+description: "Web researcher for factual information"
+tools: WebSearch, WebFetch
+model: sonnet
+---
+
+You are a research subagent...
+```
+
+- `tools` — comma-separated; the child session only gets these tools from the parent's tool set. Empty = all parent tools.
+- `model` — `sonnet`, `haiku`, `opus`, `inherit`, or a full model ID. `inherit` / empty uses the parent's model.
+
+**Differences from Anthropic's native subagents:**
+- **Serial, not parallel** — pi is synchronous; the parent blocks on each `Task` call.
+- **No shared prompt cache** — each nested session is independent.
+- **Model mapping** — short names (`sonnet`, `opus`) are translated to full IDs; pi-mono handles multi-provider routing from there.
+
 ## Known gaps
 
-1. **Subagents** — no equivalent. `subagent_start`/`subagent_end` events will never fire.
-2. **Guardrails** — input/output guardrails not yet plumbed. Prompts and outputs are passed through untouched.
-3. **Todos / plan mode** — not supported by pi-mono by design. Todo UI will be empty.
-4. **MCP resources / prompts / sampling** — bridge only covers tools.
+1. **Guardrails** — input/output guardrails not yet plumbed. Prompts and outputs are passed through untouched.
+2. **Todos / plan mode** — not supported by pi-mono by design. Todo UI will be empty.
+3. **MCP resources / prompts / sampling** — bridge only covers tools.
 
 ## Local development
 

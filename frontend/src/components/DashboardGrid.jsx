@@ -8,15 +8,13 @@ import { useTranslation } from 'react-i18next';
 
 const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic' }) => {
   const { t } = useTranslation();
-  const subagentsUnsupported = codingAgent === 'pi-mono';
   const dashboardItems = [
     // 1st row
     {
       id: 'subagents',
       image: '/subagents.png',
       label: t('dashboard.itemSubagents'),
-      disabled: !currentProject || subagentsUnsupported,
-      disabledReason: subagentsUnsupported ? t('dashboard.subagentsUnsupportedPiMono') : undefined
+      disabled: !currentProject
     },
     {
       id: 'skills',
