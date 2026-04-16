@@ -35,6 +35,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   fileTags,
   getTagColor,
   releaseComments,
+  indexedPaths,
   isGuest,
   isDropTarget,
   isDragged,
@@ -49,6 +50,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   const { t } = useTranslation();
   const nodeTags = fileTags[row.path] || [];
   const hasReleaseComment = releaseComments && !!releaseComments[row.path];
+  const isIndexed = indexedPaths && indexedPaths.has(row.path);
 
   // For compressed rows use the last (deepest) folder name for icon lookup
   const folderName = row.labels[row.labels.length - 1];
@@ -191,6 +193,15 @@ const FileTreeRow = React.memo(function FileTreeRow({
         />
       )}
 
+      {/* ── RAG indexed indicator ── */}
+      {isIndexed && (
+        <i
+          className="codicon codicon-check"
+          style={{ fontSize: 14, color: '#4caf50', marginLeft: 4, flexShrink: 0 }}
+          title={t('fileTreeVirtualList.ragIndexed')}
+        />
+      )}
+
       {/* ── Timestamp ── */}
       <Box
         sx={{
@@ -217,6 +228,7 @@ export default function FileTreeVirtualList({
   fileTags,
   getTagColor,
   releaseComments = {},
+  indexedPaths,
   isGuest,
   onToggleExpand,
   onContextMenu,
@@ -402,6 +414,7 @@ export default function FileTreeVirtualList({
             fileTags={fileTags}
             getTagColor={getTagColor}
             releaseComments={releaseComments}
+            indexedPaths={indexedPaths}
             isGuest={isGuest}
             isDropTarget={dropTargetId === row.id}
             isDragged={draggedRowId === row.id}

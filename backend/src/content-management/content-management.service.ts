@@ -536,6 +536,60 @@ export class ContentManagementService {
   }
 
   /**
+   * List image files in an images/ subdirectory relative to a given directory path.
+   * Returns existence flag and sorted image metadata.
+   */
+  async listImages(
+    projectName: string,
+    directoryPath: string
+  ): Promise<{ exists: boolean; images: Array<{ name: string; path: string; createdAt: string }> }> {
+    try {
+      const root = safeRoot(this.config.hostRoot, projectName);
+      const imagesDir = directoryPath
+        ? join(root, directoryPath, 'images')
+        : join(root, 'images');
+
+      try {
+        await fs.access(imagesDir);
+      } catch {
+        return { exists: false, images: [] };
+      }
+
+      const entries = await fs.readdir(imagesDir, { withFileTypes: true });
+      const imageExtensions = new Set(['.png', '.jpg', '.jpeg']);
+      const images: Array<{ name: string; path: string; createdAt: string }> = [];
+
+      for (const entry of entries) {
+        if (!entry.isFile()) continue;
+        const ext = extname(entry.name).toLowerCase();
+        if (!imageExtensions.has(ext)) continue;
+
+        const fullPath = join(imagesDir, entry.name);
+        const stat = await fs.stat(fullPath);
+        const relativePath = directoryPath
+          ? `${directoryPath}/images/${entry.name}`
+          : `images/${entry.name}`;
+
+        images.push({
+          name: entry.name,
+          path: relativePath,
+          createdAt: stat.birthtime.toISOString(),
+        });
+      }
+
+      // Sort by creation date descending (newest first), cap at 50
+      images.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      return { exists: true, images: images.slice(0, 50) };
+    } catch (error) {
+      if (error.message === 'Path traversal') {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to list images: ${error.message}`);
+    }
+  }
+
+  /**
    * Get workbench configuration
    */
   async getWorkbenchConfig(projectName: string): Promise<any> {

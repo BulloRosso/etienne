@@ -375,7 +375,7 @@
   "welcome.speechNotSupported": "Il riconoscimento vocale non \u00e8 supportato in questo browser",
   "welcome.fileUploadAppend": "Per favore dai un'occhiata a {{fileList}} nella cartella .attachments. Voglio ",
 
-  "artifacts.tabArtifacts": "Artefatti",
+  "artifacts.tabArtifacts": "Area di lavoro",
   "artifacts.tabRole": "Ruolo",
   "artifacts.tabMission": "Missione",
   "artifacts.tabPermissions": "Permessi",
@@ -1116,6 +1116,13 @@
   "filesystem.deleteTitle": "Conferma eliminazione",
   "filesystem.deleteMessage": "Sei sicuro di voler eliminare \"{{label}}\"?",
   "filesystem.deleteFolderWarning": "Questo eliminer\u00e0 la cartella e tutto il suo contenuto.",
+  "filesystem.extractRequirements": "Estrai requisiti",
+  "filesystem.extractingRequirements": "Estrazione requisiti in corso…",
+  "filesystem.errorExtractRequirements": "Estrazione requisiti non riuscita: {{message}}",
+  "filesystem.ragAddToIndex": "Aggiungi all'indice (RAG)",
+  "filesystem.ragIndexing": "Indicizzazione...",
+  "filesystem.ragIndexSuccess": "Documento indicizzato con successo ({{chunks}} segmenti)",
+  "filesystem.ragIndexFailed": "Indicizzazione del documento non riuscita: {{message}}",
 
   "filesPanel.introductionAlt": "Introduzione",
   "filesPanel.workspacePlaceholderAlt": "Segnaposto workspace",
@@ -1123,6 +1130,7 @@
   "filesPanel.closeAll": "Chiudi tutto",
 
   "fileTreeVirtualList.releaseComment": "Ha un commento di rilascio",
+  "fileTreeVirtualList.ragIndexed": "Indicizzato nel vector store (RAG)",
 
   "checkpoints.noProject": "Nessun progetto selezionato",
   "checkpoints.placeholder": "descrivi questo checkpoint",
@@ -1333,6 +1341,17 @@
 
   "markdownViewer.errorLoading": "Errore nel caricamento del file markdown:",
   "markdownViewer.reloadFile": "Ricarica file",
+  "markdownViewer.editMode": "Modifica",
+  "markdownViewer.save": "Salva",
+  "markdownViewer.saving": "Salvataggio...",
+  "markdownViewer.insertImage": "Inserisci immagine",
+  "markdownViewer.errorSaving": "Errore nel salvataggio del file",
+  "markdownViewer.imageGallery.title": "Inserisci immagine",
+  "markdownViewer.imageGallery.sizeSmall": "Piccolo",
+  "markdownViewer.imageGallery.sizeMedium": "Medio",
+  "markdownViewer.imageGallery.sizeLarge": "Grande",
+  "markdownViewer.imageGallery.noImages": "Nessuna immagine trovata nella cartella immagini.",
+  "markdownViewer.imageGallery.loading": "Caricamento immagini...",
 
   "mcpAppRenderer.error": "Errore MCP App:",
   "mcpAppRenderer.errorPrefix": "Errore MCP App: {{message}}",

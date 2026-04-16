@@ -375,7 +375,7 @@
   "welcome.speechNotSupported": "Speech recognition is not supported in this browser",
   "welcome.fileUploadAppend": "Please have a look at {{fileList}} in the .attachments folder. I want to ",
 
-  "artifacts.tabArtifacts": "Artifacts",
+  "artifacts.tabArtifacts": "Workspace",
   "artifacts.tabRole": "Role",
   "artifacts.tabMission": "Mission",
   "artifacts.tabPermissions": "Permissions",
@@ -1116,6 +1116,13 @@
   "filesystem.deleteTitle": "Confirm Delete",
   "filesystem.deleteMessage": "Are you sure you want to delete \"{{label}}\"?",
   "filesystem.deleteFolderWarning": "This will delete the folder and all its contents.",
+  "filesystem.extractRequirements": "Extract Requirements",
+  "filesystem.extractingRequirements": "Extracting Requirements…",
+  "filesystem.errorExtractRequirements": "Failed to extract requirements: {{message}}",
+  "filesystem.ragAddToIndex": "Add to Index (RAG)",
+  "filesystem.ragIndexing": "Indexing...",
+  "filesystem.ragIndexSuccess": "Document indexed successfully ({{chunks}} chunks)",
+  "filesystem.ragIndexFailed": "Failed to index document: {{message}}",
 
   "filesPanel.introductionAlt": "Introduction",
   "filesPanel.workspacePlaceholderAlt": "Workspace placeholder",
@@ -1123,6 +1130,7 @@
   "filesPanel.closeAll": "Close All",
 
   "fileTreeVirtualList.releaseComment": "Has release comment",
+  "fileTreeVirtualList.ragIndexed": "Indexed in vector store (RAG)",
 
   "checkpoints.noProject": "No project selected",
   "checkpoints.placeholder": "describe this checkpoint",
@@ -1333,6 +1341,17 @@
 
   "markdownViewer.errorLoading": "Error loading markdown file:",
   "markdownViewer.reloadFile": "Reload file",
+  "markdownViewer.editMode": "Edit",
+  "markdownViewer.save": "Save",
+  "markdownViewer.saving": "Saving...",
+  "markdownViewer.insertImage": "Insert Image",
+  "markdownViewer.errorSaving": "Error saving file",
+  "markdownViewer.imageGallery.title": "Insert Image",
+  "markdownViewer.imageGallery.sizeSmall": "Small",
+  "markdownViewer.imageGallery.sizeMedium": "Medium",
+  "markdownViewer.imageGallery.sizeLarge": "Large",
+  "markdownViewer.imageGallery.noImages": "No images found in the images directory.",
+  "markdownViewer.imageGallery.loading": "Loading images...",
 
   "mcpAppRenderer.error": "MCP App Error:",
   "mcpAppRenderer.errorPrefix": "MCP App Error: {{message}}",

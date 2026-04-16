@@ -76,6 +76,11 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [releaseComments, setReleaseComments] = useState({});
   const [releaseEnabled, setReleaseEnabled] = useState(false);
 
+  // ── RAG indexing ──
+  const [indexing, setIndexing] = useState(false);
+  const [ragSuccess, setRagSuccess] = useState(null);
+  const [indexedPaths, setIndexedPaths] = useState(new Set());
+
   // ── File upload ──
   const fileInputRef = useRef(null);
 
@@ -84,6 +89,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     loadFilesystem();
     loadTags();
     loadReleaseData();
+    loadIndexedPaths();
   }, [projectName]);
 
   const loadFilesystem = async () => {
@@ -126,6 +132,15 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     } catch (err) {
       // Compliance module may not be available — silently ignore
       console.debug('Release data not available:', err.message);
+    }
+  };
+
+  const loadIndexedPaths = async () => {
+    try {
+      const res = await apiAxios.get(`/api/workspace/${projectName}/rag/indexed-paths`);
+      setIndexedPaths(new Set(res.data.paths || []));
+    } catch {
+      // RAG/ChromaDB may not be available — silently ignore
     }
   };
 
@@ -235,6 +250,63 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     setTagManagerDialog({ open: false, row: null, filePath: '' });
     loadTags();
     loadReleaseData();
+  };
+
+  // ── Extract Requirements (EARS) ──
+
+  /**
+   * Returns true when the context-menu row is a PDF inside an "inbox" folder.
+   */
+  const isInboxPdf = useCallback((row) => {
+    if (!row || row.type === 'folder') return false;
+    const p = row.path.toLowerCase();
+    return p.endsWith('.pdf') && p.split('/').slice(0, -1).some(seg => seg === 'inbox');
+  }, []);
+
+  /**
+   * Returns true when the context-menu row is a file inside an "inbox" folder.
+   */
+  const isInboxFile = useCallback((row) => {
+    if (!row || row.type === 'folder') return false;
+    return row.path.toLowerCase().split('/').slice(0, -1).some(seg => seg === 'inbox');
+  }, []);
+
+  const handleExtractRequirements = () => {
+    const row = contextMenu?.row;
+    handleCloseContextMenu();
+    if (!row) return;
+
+    // Compute the requirements output path and open the viewer.
+    // The RequirementsViewer will check whether the file already exists
+    // and trigger MCP extraction if needed.
+    const pdfName = row.path.split('/').pop().replace(/\.pdf$/i, '');
+    const outputPath = `out/requirements-analysis/${pdfName}.requirements.json`;
+    filePreviewHandler.handlePreview(outputPath, projectName);
+  };
+
+  // ── RAG index ──
+  const handleAddToIndex = async () => {
+    const row = contextMenu?.row;
+    handleCloseContextMenu();
+    if (!row) return;
+
+    setIndexing(true);
+    setError(null);
+    setRagSuccess(null);
+    try {
+      const response = await apiAxios.post(
+        `/api/workspace/${projectName}/rag/index-document`,
+        { documentPath: row.path }
+      );
+      setRagSuccess(t('filesystem.ragIndexSuccess', { chunks: response.data.chunkCount }));
+      loadIndexedPaths();
+    } catch (err) {
+      setError(t('filesystem.ragIndexFailed', {
+        message: err.response?.data?.message || err.message,
+      }));
+    } finally {
+      setIndexing(false);
+    }
   };
 
   // ── New folder ──
@@ -407,6 +479,11 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           {error}
         </Alert>
       )}
+      {ragSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setRagSuccess(null)}>
+          {ragSuccess}
+        </Alert>
+      )}
 
       {/* ── Tag Filter Bar ── */}
       {allTags.length > 0 && (
@@ -441,6 +518,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         fileTags={fileTags}
         getTagColor={getTagColor}
         releaseComments={releaseComments}
+        indexedPaths={indexedPaths}
         isGuest={isGuest}
         onToggleExpand={handleToggleExpand}
         onContextMenu={handleContextMenu}
@@ -518,6 +596,18 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           <MenuItem onClick={handlePreviewClick}>
             <i className="codicon codicon-eye" style={{ fontSize: 16, marginRight: 8 }} />
             {t('filesystem.openPreview')}
+          </MenuItem>
+        )}
+        {isInboxPdf(contextMenu?.row) && !isGuest && (
+          <MenuItem onClick={handleExtractRequirements}>
+            <i className="codicon codicon-checklist" style={{ fontSize: 16, marginRight: 8 }} />
+            {t('filesystem.extractRequirements')}
+          </MenuItem>
+        )}
+        {isInboxFile(contextMenu?.row) && !isGuest && (
+          <MenuItem onClick={handleAddToIndex} disabled={indexing}>
+            <i className="codicon codicon-database" style={{ fontSize: 16, marginRight: 8 }} />
+            {indexing ? t('filesystem.ragIndexing') : t('filesystem.ragAddToIndex')}
           </MenuItem>
         )}
         {!isGuest && (

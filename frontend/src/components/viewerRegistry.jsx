@@ -12,6 +12,7 @@ import ScrapbookViewer from './ScrapbookViewer';
 import VideoViewer from './VideoViewer';
 import KnowledgeViewer from './KnowledgeViewer';
 import PdfViewer from './PdfViewer';
+import RequirementsViewer from './RequirementsViewer';
 
 /**
  * Maps viewer names to their component render functions.
@@ -60,6 +61,9 @@ export const VIEWER_COMPONENTS = {
   pdf: (file, projectName) => (
     <PdfViewer filename={file.path} projectName={projectName} />
   ),
+  requirements: (file, projectName) => (
+    <RequirementsViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -81,6 +85,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'video',     extensions: ['.youtube', '.videos', '.mp4'] },
   { viewer: 'knowledge', extensions: ['.knowledge'] },
   { viewer: 'pdf', extensions: ['.pdf'] },
+  { viewer: 'requirements', extensions: ['.requirements.json'] },
 ];
 
 /**

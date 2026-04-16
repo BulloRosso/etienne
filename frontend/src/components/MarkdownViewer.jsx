@@ -1,20 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Box, CircularProgress, IconButton, Tooltip,
+  Switch, FormControlLabel, Button
+} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import SaveIcon from '@mui/icons-material/Save';
+import ImageIcon from '@mui/icons-material/Image';
+import Editor from '@monaco-editor/react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import ImageGalleryModal from './ImageGalleryModal.jsx';
 
 export default function MarkdownViewer({ filename, projectName, className = '' }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const isDark = themeMode === 'dark';
   const [htmlContent, setHtmlContent] = useState('');
+  const [rawContent, setRawContent] = useState('');
+  const [savedContent, setSavedContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editMode, setEditMode] = useState(false);
+  const [imagesAvailable, setImagesAvailable] = useState(false);
+  const [imagesDir, setImagesDir] = useState('');
+  const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
+  const editorRef = useRef(null);
+
+  const isDirty = rawContent !== savedContent;
+
+  // Compute parent directory of the markdown file
+  const parentDir = filename.includes('/')
+    ? filename.substring(0, filename.lastIndexOf('/'))
+    : '';
 
   // Function to fetch markdown file content
   const fetchMarkdownContent = async () => {
@@ -32,12 +54,13 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
 
       const markdownText = await response.text();
 
+      // Store raw content for editor
+      setRawContent(markdownText);
+      setSavedContent(markdownText);
+
       // Parse markdown to HTML
       const rawHtml = await marked.parse(markdownText);
-
-      // Sanitize HTML to prevent XSS
       const cleanHtml = DOMPurify.sanitize(rawHtml);
-
       setHtmlContent(cleanHtml);
       setLoading(false);
     } catch (err) {
@@ -52,39 +75,108 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
     fetchMarkdownContent();
   }, [filename, projectName, refreshKey]);
 
+  // Check if images directory exists (try parent dir first, then project root)
+  useEffect(() => {
+    const checkImages = async () => {
+      try {
+        // Try parent directory of the markdown file first
+        if (parentDir) {
+          const res = await apiFetch(`/api/workspace/${encodeURIComponent(projectName)}/list-images/${parentDir}`);
+          const data = await res.json();
+          if (data.exists) {
+            setImagesAvailable(true);
+            setImagesDir(parentDir);
+            return;
+          }
+        }
+        // Fall back to project root
+        const res = await apiFetch(`/api/workspace/${encodeURIComponent(projectName)}/list-images/`);
+        const data = await res.json();
+        setImagesAvailable(data.exists);
+        setImagesDir('');
+      } catch {
+        setImagesAvailable(false);
+      }
+    };
+    checkImages();
+  }, [filename, projectName]);
+
   // Handler for manual reload
   const handleReload = () => {
     setRefreshKey(prev => prev + 1);
   };
 
+  // Save handler
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const response = await apiFetch(
+        `/api/workspace/${encodeURIComponent(projectName)}/files/save/${filename}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: rawContent }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(t('markdownViewer.errorSaving'));
+      }
+
+      setSavedContent(rawContent);
+
+      // Re-render HTML preview and switch back to view mode
+      const rawHtml = await marked.parse(rawContent);
+      setHtmlContent(DOMPurify.sanitize(rawHtml));
+      setSaving(false);
+      setEditMode(false);
+    } catch (err) {
+      console.error('Error saving markdown file:', err);
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  // Image insertion handler
+  const handleInsertImage = (imagePath) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const altText = imagePath.split('/').pop().replace(/\.[^.]+$/, '');
+    const imageUrl = `/api/workspace/${encodeURIComponent(projectName)}/files/${imagePath}`;
+    const insertText = `![${altText}](${imageUrl})`;
+
+    const position = editor.getPosition();
+    editor.executeEdits('insert-image', [{
+      range: {
+        startLineNumber: position.lineNumber,
+        startColumn: position.column,
+        endLineNumber: position.lineNumber,
+        endColumn: position.column,
+      },
+      text: insertText,
+    }]);
+    setRawContent(editor.getValue());
+    setImageGalleryOpen(false);
+  };
+
   // Listen for file changes via claudeHook events
   useEffect(() => {
     const handleClaudeHook = (event) => {
-      // Check if this is a PostHook event for our file
       if (event.type === 'claudeHook' && event.detail) {
         const { hook, file } = event.detail;
 
-        console.log('[MarkdownViewer] Received claudeHook:', { hook, file, currentFilename: filename });
-
         if (hook === 'PostHook' && file) {
-          // Handle both absolute and relative paths
+          // Suppress auto-refresh when in edit mode to avoid overwriting user edits
+          if (editMode) return;
+
           const normalizedFile = file.replace(/\\/g, '/');
           const normalizedFilename = filename.replace(/\\/g, '/');
-
-          console.log('[MarkdownViewer] Normalized paths:', { normalizedFile, normalizedFilename });
-
-          // Check if paths match (exact match or file ends with filename)
           const exactMatch = normalizedFile === normalizedFilename;
           const endsWithMatch = normalizedFile.endsWith('/' + normalizedFilename);
 
-          console.log('[MarkdownViewer] Match check:', { exactMatch, endsWithMatch });
-
           if (exactMatch || endsWithMatch) {
-            console.log('[MarkdownViewer] ✓ Match found! Refreshing content for', filename);
-            // Increment refresh key to trigger reload
             setRefreshKey(prev => prev + 1);
-          } else {
-            console.log('[MarkdownViewer] ✗ No match for', filename);
           }
         }
       }
@@ -95,7 +187,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
     return () => {
       window.removeEventListener('claudeHook', handleClaudeHook);
     };
-  }, [filename]);
+  }, [filename, editMode]);
 
   if (loading) {
     return (
@@ -124,151 +216,237 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   }
 
   return (
-    <Box className={className} height="100%" width="100%" position="relative">
-      <Tooltip title={t('markdownViewer.reloadFile')}>
-        <IconButton
-          onClick={handleReload}
-          disabled={loading}
+    <Box className={className} height="100%" width="100%" position="relative" display="flex" flexDirection="column">
+      {/* Header controls */}
+      <Box sx={{ position: 'absolute', top: 8, right: 18, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={editMode}
+              onChange={(e) => setEditMode(e.target.checked)}
+              size="small"
+            />
+          }
+          label={t('markdownViewer.editMode')}
           sx={{
-            position: 'absolute',
-            top: 8,
-            right: 18,
-            zIndex: 1000,
-            bgcolor: 'background.paper',
-            boxShadow: 1,
-            '&:hover': {
-              bgcolor: 'action.hover'
+            mr: 0,
+          }}
+        />
+        {!editMode && (
+          <Tooltip title={t('markdownViewer.reloadFile')}>
+            <IconButton
+              onClick={handleReload}
+              disabled={loading}
+              sx={{
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                '&:hover': {
+                  bgcolor: 'action.hover'
+                }
+              }}
+              size="small"
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+
+      {editMode ? (
+        <>
+          {/* Monaco Editor */}
+          <Box sx={{ flex: 1, overflow: 'hidden', mt: '34px' }}>
+            <Editor
+              height="100%"
+              language="markdown"
+              theme="light"
+              value={rawContent}
+              onChange={(value) => setRawContent(value || '')}
+              onMount={(editor) => { editorRef.current = editor; }}
+              options={{
+                readOnly: false,
+                minimap: { enabled: false },
+                wordWrap: 'on',
+                fontSize: 13,
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
+            />
+          </Box>
+
+          {/* Bottom bar */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              px: 2,
+              py: '22px',
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+            }}
+          >
+            <Box>
+              {imagesAvailable && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ImageIcon />}
+                  onClick={() => setImageGalleryOpen(true)}
+                >
+                  {t('markdownViewer.insertImage')}
+                </Button>
+              )}
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<SaveIcon />}
+              onClick={handleSave}
+              disabled={!isDirty || saving}
+            >
+              {saving ? t('markdownViewer.saving') : t('markdownViewer.save')}
+            </Button>
+          </Box>
+
+          {/* Image Gallery Modal */}
+          <ImageGalleryModal
+            open={imageGalleryOpen}
+            onClose={() => setImageGalleryOpen(false)}
+            onInsert={handleInsertImage}
+            projectName={projectName}
+            directoryPath={imagesDir}
+          />
+        </>
+      ) : (
+        /* Rendered markdown view */
+        <Box
+          sx={{
+            flex: 1,
+            overflow: 'auto',
+            p: 3,
+            color: isDark ? '#c9d1d9' : 'inherit',
+            '& h1': {
+              fontSize: '2em',
+              fontWeight: 'bold',
+              marginTop: '0.67em',
+              marginBottom: '0.67em',
+              borderBottom: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
+              paddingBottom: '0.3em'
+            },
+            '& h2': {
+              fontSize: '1.5em',
+              fontWeight: 'bold',
+              marginTop: '0.83em',
+              marginBottom: '0.83em',
+              borderBottom: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
+              paddingBottom: '0.3em'
+            },
+            '& h3': {
+              fontSize: '1.17em',
+              fontWeight: 'bold',
+              marginTop: '1em',
+              marginBottom: '1em'
+            },
+            '& h4': {
+              fontSize: '1em',
+              fontWeight: 'bold',
+              marginTop: '1.33em',
+              marginBottom: '1.33em'
+            },
+            '& h5': {
+              fontSize: '0.83em',
+              fontWeight: 'bold',
+              marginTop: '1.67em',
+              marginBottom: '1.67em'
+            },
+            '& h6': {
+              fontSize: '0.67em',
+              fontWeight: 'bold',
+              marginTop: '2.33em',
+              marginBottom: '2.33em'
+            },
+            '& p': {
+              marginTop: '1em',
+              marginBottom: '1em',
+              lineHeight: '1.6'
+            },
+            '& ul, & ol': {
+              marginTop: '1em',
+              marginBottom: '1em',
+              paddingLeft: '2em'
+            },
+            '& li': {
+              marginTop: '0.25em',
+              marginBottom: '0.25em'
+            },
+            '& code': {
+              backgroundColor: isDark ? '#161b22' : '#f6f8fa',
+              borderRadius: '3px',
+              padding: '0.2em 0.4em',
+              fontFamily: 'monospace',
+              fontSize: '0.9em',
+              color: isDark ? '#c9d1d9' : 'inherit'
+            },
+            '& pre': {
+              backgroundColor: isDark ? '#161b22' : '#f6f8fa',
+              borderRadius: '6px',
+              padding: '16px',
+              overflow: 'auto',
+              marginTop: '1em',
+              marginBottom: '1em'
+            },
+            '& pre code': {
+              backgroundColor: 'transparent',
+              padding: 0,
+              fontSize: '0.85em',
+              lineHeight: '1.45'
+            },
+            '& blockquote': {
+              borderLeft: `4px solid ${isDark ? '#3b434b' : '#dfe2e5'}`,
+              paddingLeft: '1em',
+              marginLeft: 0,
+              color: isDark ? '#8b949e' : '#6a737d',
+              marginTop: '1em',
+              marginBottom: '1em'
+            },
+            '& table': {
+              borderCollapse: 'collapse',
+              width: '100%',
+              marginTop: '1em',
+              marginBottom: '1em'
+            },
+            '& table th, & table td': {
+              border: `1px solid ${isDark ? '#30363d' : '#dfe2e5'}`,
+              padding: '6px 13px'
+            },
+            '& table th': {
+              fontWeight: 'bold',
+              backgroundColor: isDark ? '#161b22' : '#f6f8fa'
+            },
+            '& a': {
+              color: isDark ? '#58a6ff' : '#0366d6',
+              textDecoration: 'none',
+              '&:hover': {
+                textDecoration: 'underline'
+              }
+            },
+            '& img': {
+              maxWidth: '100%',
+              height: 'auto'
+            },
+            '& hr': {
+              border: 'none',
+              borderTop: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
+              marginTop: '1.5em',
+              marginBottom: '1.5em'
             }
           }}
-          size="small"
-        >
-          <RefreshIcon />
-        </IconButton>
-      </Tooltip>
-      <Box
-        sx={{
-          height: '100%',
-          overflow: 'auto',
-          p: 3,
-          color: isDark ? '#c9d1d9' : 'inherit',
-          '& h1': {
-            fontSize: '2em',
-            fontWeight: 'bold',
-            marginTop: '0.67em',
-            marginBottom: '0.67em',
-            borderBottom: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
-            paddingBottom: '0.3em'
-          },
-          '& h2': {
-            fontSize: '1.5em',
-            fontWeight: 'bold',
-            marginTop: '0.83em',
-            marginBottom: '0.83em',
-            borderBottom: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
-            paddingBottom: '0.3em'
-          },
-          '& h3': {
-            fontSize: '1.17em',
-            fontWeight: 'bold',
-            marginTop: '1em',
-            marginBottom: '1em'
-          },
-          '& h4': {
-            fontSize: '1em',
-            fontWeight: 'bold',
-            marginTop: '1.33em',
-            marginBottom: '1.33em'
-          },
-          '& h5': {
-            fontSize: '0.83em',
-            fontWeight: 'bold',
-            marginTop: '1.67em',
-            marginBottom: '1.67em'
-          },
-          '& h6': {
-            fontSize: '0.67em',
-            fontWeight: 'bold',
-            marginTop: '2.33em',
-            marginBottom: '2.33em'
-          },
-          '& p': {
-            marginTop: '1em',
-            marginBottom: '1em',
-            lineHeight: '1.6'
-          },
-          '& ul, & ol': {
-            marginTop: '1em',
-            marginBottom: '1em',
-            paddingLeft: '2em'
-          },
-          '& li': {
-            marginTop: '0.25em',
-            marginBottom: '0.25em'
-          },
-          '& code': {
-            backgroundColor: isDark ? '#161b22' : '#f6f8fa',
-            borderRadius: '3px',
-            padding: '0.2em 0.4em',
-            fontFamily: 'monospace',
-            fontSize: '0.9em',
-            color: isDark ? '#c9d1d9' : 'inherit'
-          },
-          '& pre': {
-            backgroundColor: isDark ? '#161b22' : '#f6f8fa',
-            borderRadius: '6px',
-            padding: '16px',
-            overflow: 'auto',
-            marginTop: '1em',
-            marginBottom: '1em'
-          },
-          '& pre code': {
-            backgroundColor: 'transparent',
-            padding: 0,
-            fontSize: '0.85em',
-            lineHeight: '1.45'
-          },
-          '& blockquote': {
-            borderLeft: `4px solid ${isDark ? '#3b434b' : '#dfe2e5'}`,
-            paddingLeft: '1em',
-            marginLeft: 0,
-            color: isDark ? '#8b949e' : '#6a737d',
-            marginTop: '1em',
-            marginBottom: '1em'
-          },
-          '& table': {
-            borderCollapse: 'collapse',
-            width: '100%',
-            marginTop: '1em',
-            marginBottom: '1em'
-          },
-          '& table th, & table td': {
-            border: `1px solid ${isDark ? '#30363d' : '#dfe2e5'}`,
-            padding: '6px 13px'
-          },
-          '& table th': {
-            fontWeight: 'bold',
-            backgroundColor: isDark ? '#161b22' : '#f6f8fa'
-          },
-          '& a': {
-            color: isDark ? '#58a6ff' : '#0366d6',
-            textDecoration: 'none',
-            '&:hover': {
-              textDecoration: 'underline'
-            }
-          },
-          '& img': {
-            maxWidth: '100%',
-            height: 'auto'
-          },
-          '& hr': {
-            border: 'none',
-            borderTop: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
-            marginTop: '1.5em',
-            marginBottom: '1.5em'
-          }
-        }}
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
+      )}
     </Box>
   );
 }

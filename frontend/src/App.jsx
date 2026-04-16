@@ -134,8 +134,8 @@ export default function App() {
 
   // Ctrl+L: cycle UI language
   useEffect(() => {
-    const SUPPORTED_LANGS = ['en', 'de', 'zh'];
-    const LANG_LABELS = { en: 'English', de: 'Deutsch', zh: '中文' };
+    const SUPPORTED_LANGS = ['en', 'de', 'it', 'zh'];
+    const LANG_LABELS = { en: 'English', de: 'Deutsch', it: 'Italiano', zh: '中文' };
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.key === 'l') {
         e.preventDefault();
@@ -1054,6 +1054,16 @@ export default function App() {
   useEffect(() => {
     const handleFilePreview = (data) => {
       if (data.action && data.action.endsWith('-preview') && data.filePath && data.projectName) {
+        // For viewers that handle their own data loading (e.g. RequirementsViewer),
+        // add a placeholder entry immediately so the tab opens and the viewer mounts,
+        // even if the file doesn't exist on disk yet.
+        if (data.filePath.endsWith('.requirements.json')) {
+          setFiles((arr) => {
+            if (arr.some(x => x.path === data.filePath)) return arr;
+            return arr.concat([{ path: data.filePath, content: '' }]);
+          });
+          return;
+        }
         // Fetch and add the file to the files list
         fetchFile(data.filePath, data.projectName);
       }

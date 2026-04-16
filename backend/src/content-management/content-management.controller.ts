@@ -4,6 +4,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ContentManagementService } from './content-management.service';
 import { TagsService } from '../tags/tags.service';
 import { Roles } from '../auth/roles.decorator';
+import { Public } from '../auth/public.decorator';
 
 @Controller('api/workspace')
 export class ContentManagementController {
@@ -12,6 +13,7 @@ export class ContentManagementController {
     @Optional() @Inject(TagsService) private readonly tagsService?: TagsService,
   ) {}
 
+  @Public()
   @Get(':project/files/*')
   async getFile(
     @Param('project') project: string,
@@ -166,6 +168,21 @@ export class ContentManagementController {
     @Body() body: { content: string }
   ) {
     return await this.contentManagementService.appendProjectHistory(project, body.content);
+  }
+
+  @Get(':project/list-images')
+  async listImagesRoot(
+    @Param('project') project: string,
+  ) {
+    return await this.contentManagementService.listImages(project, '');
+  }
+
+  @Get(':project/list-images/*')
+  async listImages(
+    @Param('project') project: string,
+    @Param('0') directoryPath: string,
+  ) {
+    return await this.contentManagementService.listImages(project, directoryPath || '');
   }
 
   @Get(':project/search-files')

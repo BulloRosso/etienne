@@ -146,7 +146,9 @@ export class RagService {
 
     if (BINARY_EXTENSIONS.has(ext)) {
       this.logger.log(`Parsing binary file with LiteParse: ${absolutePath}`);
-      const { LiteParse } = await import('@llamaindex/liteparse');
+      // Use Function-based import to get a real ESM dynamic import that won't be
+      // transpiled to require() by ts-node. @llamaindex/liteparse is ESM-only.
+      const { LiteParse } = await (new Function('return import("@llamaindex/liteparse")'))();
       const parser = new LiteParse({ ocrEnabled: true, outputFormat: 'text' });
       const result = await parser.parse(absolutePath, true /* quiet */);
       if (!result.text || !result.text.trim()) {
@@ -278,6 +280,37 @@ export class RagService {
       chunkCount: chunks.length,
       contentLength: textPart.length,
     };
+  }
+
+  /**
+   * Return the set of document paths that have been indexed in the given scope.
+   */
+  async getIndexedPaths(scopeName: string): Promise<string[]> {
+    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+
+    try {
+      await this.ensureCollection(project, collection);
+    } catch {
+      return []; // ChromaDB not available — treat as empty
+    }
+
+    try {
+      const response = await axios.get(
+        `${CHROMADB_URL}/api/v1/${project}/collections/${collection}/get`,
+        { params: { include: 'metadatas' } },
+      );
+
+      const metadatas: Record<string, any>[] = response.data?.results?.metadatas
+        || response.data?.metadatas
+        || [];
+      const paths = new Set<string>();
+      for (const m of metadatas) {
+        if (m?.filepath) paths.add(m.filepath);
+      }
+      return Array.from(paths);
+    } catch {
+      return [];
+    }
   }
 
   /**

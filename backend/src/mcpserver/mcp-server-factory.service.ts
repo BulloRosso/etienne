@@ -58,6 +58,7 @@ import { EmbeddingsService } from '../embeddings';
 import { LlmService } from '../llm/llm.service';
 import { RagService } from '../rag/rag.service';
 import { createRagToolsService } from './rag-tools';
+import { createDocumentAnalysisToolsService } from './document-analysis-tools';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -169,6 +170,9 @@ export class McpServerFactoryService implements OnModuleInit {
       },
       'rag': {
         toolServices: [createRagToolsService(ragService)],
+      },
+      'document-analysis': {
+        toolServices: [createDocumentAnalysisToolsService(llmService)],
       },
     };
   }
@@ -377,7 +381,7 @@ export class McpServerFactoryService implements OnModuleInit {
       });
 
       // CallTool handler
-      server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
         const { name, arguments: args } = request.params;
 
         if (!name) {
@@ -398,7 +402,19 @@ export class McpServerFactoryService implements OnModuleInit {
         try {
           this.logger.log(`[${groupName}] Executing tool: ${name} with args: ${JSON.stringify(args || {}).substring(0, 200)}`);
           const elicitCallback = this.createElicitationCallback(name);
-          const result = await service.execute(name, args || {}, elicitCallback);
+
+          // Build progress callback if the client sent a progressToken
+          const progressToken = request.params._meta?.progressToken;
+          const onProgress = progressToken
+            ? async (progress: number, total?: number, message?: string) => {
+                await extra.sendNotification({
+                  method: 'notifications/progress' as const,
+                  params: { progressToken, progress, ...(total != null && { total }), ...(message != null && { message }) },
+                });
+              }
+            : undefined;
+
+          const result = await service.execute(name, args || {}, elicitCallback, onProgress);
           this.logger.log(`[${groupName}] Tool ${name} executed successfully`);
 
           return {

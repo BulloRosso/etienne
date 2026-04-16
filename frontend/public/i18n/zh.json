@@ -374,7 +374,7 @@
   "welcome.speechNotSupported": "此浏览器不支持语音识别",
   "welcome.fileUploadAppend": "请查看 .attachments 文件夹中的 {{fileList}}。我想",
 
-  "artifacts.tabArtifacts": "产物",
+  "artifacts.tabArtifacts": "工作区",
   "artifacts.tabRole": "角色",
   "artifacts.tabMission": "任务",
   "artifacts.tabPermissions": "权限",
@@ -1115,6 +1115,13 @@
   "filesystem.deleteTitle": "确认删除",
   "filesystem.deleteMessage": "确定要删除\"{{label}}\"吗？",
   "filesystem.deleteFolderWarning": "这将删除该文件夹及其所有内容。",
+  "filesystem.extractRequirements": "提取需求",
+  "filesystem.extractingRequirements": "正在提取需求…",
+  "filesystem.errorExtractRequirements": "需求提取失败：{{message}}",
+  "filesystem.ragAddToIndex": "添加到索引 (RAG)",
+  "filesystem.ragIndexing": "正在索引...",
+  "filesystem.ragIndexSuccess": "文档索引成功（{{chunks}} 个片段）",
+  "filesystem.ragIndexFailed": "文档索引失败：{{message}}",
 
   "filesPanel.introductionAlt": "介绍",
   "filesPanel.workspacePlaceholderAlt": "工作区占位符",
@@ -1122,6 +1129,7 @@
   "filesPanel.closeAll": "关闭全部",
 
   "fileTreeVirtualList.releaseComment": "有发布备注",
+  "fileTreeVirtualList.ragIndexed": "已索引到向量存储 (RAG)",
 
   "checkpoints.noProject": "未选择项目",
   "checkpoints.placeholder": "描述此检查点",
@@ -1332,6 +1340,17 @@
 
   "markdownViewer.errorLoading": "加载 Markdown 文件出错：",
   "markdownViewer.reloadFile": "重新加载文件",
+  "markdownViewer.editMode": "编辑",
+  "markdownViewer.save": "保存",
+  "markdownViewer.saving": "保存中...",
+  "markdownViewer.insertImage": "插入图片",
+  "markdownViewer.errorSaving": "保存文件出错",
+  "markdownViewer.imageGallery.title": "插入图片",
+  "markdownViewer.imageGallery.sizeSmall": "小",
+  "markdownViewer.imageGallery.sizeMedium": "中",
+  "markdownViewer.imageGallery.sizeLarge": "大",
+  "markdownViewer.imageGallery.noImages": "图片目录中未找到图片。",
+  "markdownViewer.imageGallery.loading": "正在加载图片...",
 
   "mcpAppRenderer.error": "MCP 应用错误：",
   "mcpAppRenderer.errorPrefix": "MCP 应用错误：{{message}}",

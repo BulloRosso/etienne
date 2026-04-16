@@ -38,10 +38,13 @@ export interface McpTool {
   };
 }
 
+// Progress callback for long-running tool operations
+export type ProgressCallback = (progress: number, total?: number, message?: string) => Promise<void>;
+
 // Tool service interface for registering multiple tools
 export interface ToolService {
   tools: McpTool[];
-  execute: (toolName: string, args: any, elicit?: ElicitationCallback) => Promise<any>;
+  execute: (toolName: string, args: any, elicit?: ElicitationCallback, onProgress?: ProgressCallback) => Promise<any>;
 }
 
 // ============================================
