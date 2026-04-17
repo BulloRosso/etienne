@@ -110,12 +110,15 @@ export class RagService {
     collection: string,
     queryEmbedding: number[],
     topK: number = 5,
+    where?: Record<string, any>,
   ): Promise<SearchResult[]> {
-    const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${collection}/query`, {
+    const body: any = {
       query_embeddings: [queryEmbedding],
       n_results: topK,
       include: ['documents', 'metadatas', 'distances'],
-    });
+    };
+    if (where) body.where = where;
+    const response = await axios.post(`${CHROMADB_URL}/api/v1/${project}/collections/${collection}/query`, body);
 
     const results = response.data.results;
     const ids = results.ids[0] || [];
@@ -329,6 +332,41 @@ export class RagService {
 
     const queryEmbedding = await this.embeddingsService.embed(searchQuery);
     const results = await this.queryCollection(project, collection, queryEmbedding, 5);
+
+    return {
+      results,
+      query: searchQuery,
+      scope: scopeName,
+    };
+  }
+
+  /**
+   * Semantic search filtered to specific document filepaths.
+   * Uses ChromaDB metadata where clause to restrict results.
+   *
+   * @param scopeName - Scope: project_<name>, global, or domain_<name>
+   * @param searchQuery - Natural language search query
+   * @param filepaths - Only return results from these document paths
+   * @param topK - Number of results to return (default 10)
+   */
+  async indexSearchFiltered(
+    scopeName: string,
+    searchQuery: string,
+    filepaths: string[],
+    topK: number = 10,
+  ): Promise<{ results: SearchResult[]; query: string; scope: string }> {
+    if (!searchQuery.trim()) {
+      throw new Error('Search query cannot be empty.');
+    }
+
+    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    await this.ensureCollection(project, collection);
+
+    const queryEmbedding = await this.embeddingsService.embed(searchQuery);
+    const where = filepaths.length > 0
+      ? { filepath: { $in: filepaths } }
+      : undefined;
+    const results = await this.queryCollection(project, collection, queryEmbedding, topK, where);
 
     return {
       results,

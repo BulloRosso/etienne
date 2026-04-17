@@ -36,6 +36,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import FileTreeVirtualList from './FileTreeVirtualList';
 import { flattenTree, getTagColor } from './fileTreeModel';
 import { useTranslation } from 'react-i18next';
+import OfferGeneratorModal from './OfferGeneratorModal';
 
 export default function Filesystem({ projectName, showBackgroundInfo }) {
   const { t } = useTranslation();
@@ -71,6 +72,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [allTags, setAllTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, row: null, filePath: '' });
+  const [offerGeneratorOpen, setOfferGeneratorOpen] = useState(false);
 
   // ── Release comments (compliance) ──
   const [releaseComments, setReleaseComments] = useState({});
@@ -270,6 +272,17 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     if (!row || row.type === 'folder') return false;
     return row.path.toLowerCase().split('/').slice(0, -1).some(seg => seg === 'inbox');
   }, []);
+
+  const isSelectedRequirementsMd = useCallback((row) => {
+    if (!row || row.type === 'folder') return false;
+    const name = row.path.split('/').pop();
+    return name === 'selected-requirements.md';
+  }, []);
+
+  const handleOpenOfferGenerator = () => {
+    handleCloseContextMenu();
+    setOfferGeneratorOpen(true);
+  };
 
   const handleExtractRequirements = () => {
     const row = contextMenu?.row;
@@ -598,6 +611,12 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             {t('filesystem.openPreview')}
           </MenuItem>
         )}
+        {isSelectedRequirementsMd(contextMenu?.row) && !isGuest && (
+          <MenuItem onClick={handleOpenOfferGenerator}>
+            <i className="codicon codicon-notebook" style={{ fontSize: 16, marginRight: 8 }} />
+            Generate Offer Paragraphs
+          </MenuItem>
+        )}
         {isInboxPdf(contextMenu?.row) && !isGuest && (
           <MenuItem onClick={handleExtractRequirements}>
             <i className="codicon codicon-checklist" style={{ fontSize: 16, marginRight: 8 }} />
@@ -717,6 +736,13 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         releaseEnabled={releaseEnabled}
         releaseComment={releaseComments[tagManagerDialog.filePath] || ''}
         onReleaseCommentSaved={loadReleaseData}
+      />
+
+      {/* ── Offer Generator Modal ── */}
+      <OfferGeneratorModal
+        open={offerGeneratorOpen}
+        onClose={() => setOfferGeneratorOpen(false)}
+        projectName={projectName}
       />
     </Box>
   );

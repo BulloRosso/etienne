@@ -1,8 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { generateText } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
+import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 
 export type ModelTier = 'small' | 'regular';
 
@@ -13,7 +14,10 @@ export class LlmService implements OnModuleInit {
   private readonly models: { small: string; regular: string };
   private providerInstance: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenAI>;
 
-  constructor(private readonly secretsManager: SecretsManagerService) {
+  constructor(
+    private readonly secretsManager: SecretsManagerService,
+    @Optional() private readonly budgetMonitoringService?: BudgetMonitoringService,
+  ) {
     this.provider = (process.env.CODING_AGENT || 'anthropic') as 'anthropic' | 'openai';
 
     if (this.provider === 'openai') {
@@ -75,10 +79,19 @@ export class LlmService implements OnModuleInit {
     }
   }
 
+  private trackUsage(usage: { inputTokens?: number; outputTokens?: number }, projectDir?: string): void {
+    if (projectDir && this.budgetMonitoringService && (usage.inputTokens || usage.outputTokens)) {
+      this.budgetMonitoringService
+        .trackCosts(projectDir, usage.inputTokens ?? 0, usage.outputTokens ?? 0)
+        .catch((err) => this.logger.warn(`Failed to track LLM costs for ${projectDir}: ${err.message}`));
+    }
+  }
+
   async generateText(opts: {
     tier: ModelTier;
     prompt: string;
     maxOutputTokens?: number;
+    projectDir?: string;
   }): Promise<string> {
     const modelId = this.models[opts.tier];
     const result = await generateText({
@@ -86,6 +99,7 @@ export class LlmService implements OnModuleInit {
       maxOutputTokens: opts.maxOutputTokens ?? 1024,
       prompt: opts.prompt,
     });
+    this.trackUsage(result.usage, opts.projectDir);
     return result.text;
   }
 
@@ -93,6 +107,7 @@ export class LlmService implements OnModuleInit {
     tier: ModelTier;
     messages: Array<{ role: 'user' | 'assistant' | 'system'; content: any }>;
     maxOutputTokens?: number;
+    projectDir?: string;
   }): Promise<string> {
     const modelId = this.models[opts.tier];
     const result = await generateText({
@@ -100,6 +115,7 @@ export class LlmService implements OnModuleInit {
       maxOutputTokens: opts.maxOutputTokens ?? 1024,
       messages: opts.messages,
     });
+    this.trackUsage(result.usage, opts.projectDir);
     return result.text;
   }
 

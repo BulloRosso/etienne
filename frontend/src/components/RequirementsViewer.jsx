@@ -12,6 +12,8 @@ import {
   Chip,
   Tabs,
   Tab,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -77,6 +79,10 @@ export default function RequirementsViewer({ filename, projectName }) {
       return next;
     });
   }, [tocExpandedKey]);
+
+  // Tracking status from progress/tracking.md
+  const [trackingStatus, setTrackingStatus] = useState({}); // { "REQ-001": "Done"|"Ignore"|"ToDo" }
+  const trackingFile = 'progress/tracking.md';
 
   // Selected requirements persisted to out/selected-requirements.md
   const [selectedReqs, setSelectedReqs] = useState({}); // { "docName::REQ-ID": { id, original_text } }
@@ -184,6 +190,23 @@ export default function RequirementsViewer({ filename, projectName }) {
     return () => { cancelled = true; };
   }, [projectName]);
 
+  // Load tracking.md on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTracking() {
+      try {
+        const res = await apiFetch(
+          `/api/workspace/${encodeURIComponent(projectName)}/files/${trackingFile}`,
+        );
+        if (!res.ok) return;
+        const text = await res.text();
+        if (!cancelled) setTrackingStatus(parseTrackingMarkdown(text));
+      } catch { /* file may not exist */ }
+    }
+    if (projectName) loadTracking();
+    return () => { cancelled = true; };
+  }, [projectName]);
+
   // Toggle a requirement selection and persist to markdown file
   const handleToggleReq = useCallback(async (req) => {
     const key = `${docName}::${req.id}`;
@@ -206,6 +229,32 @@ export default function RequirementsViewer({ filename, projectName }) {
       console.error('[RequirementsViewer] Failed to save selected requirements:', err);
     }
   }, [selectedReqs, docName, projectName]);
+
+  // Set tracking status for a requirement and persist to tracking.md
+  const handleSetTrackingStatus = useCallback(async (reqId, status) => {
+    const next = { ...trackingStatus };
+    if (status === null) {
+      delete next[reqId];
+    } else {
+      next[reqId] = status;
+    }
+    setTrackingStatus(next);
+
+    const md = buildTrackingMarkdown(next);
+    try {
+      await apiAxios.post(`/api/workspace/${projectName}/files/create-folder`, {
+        folderPath: 'progress',
+      });
+    } catch { /* folder may already exist */ }
+    try {
+      await apiAxios.put(
+        `/api/workspace/${projectName}/files/save/${trackingFile}`,
+        { content: md },
+      );
+    } catch (err) {
+      console.error('[RequirementsViewer] Failed to save tracking status:', err);
+    }
+  }, [trackingStatus, projectName]);
 
   const handleToggleCheck = useCallback((e, sectionId) => {
     e.stopPropagation();
@@ -253,6 +302,37 @@ export default function RequirementsViewer({ filename, projectName }) {
     if (!summary) return '';
     return DOMPurify.sanitize(marked.parse(summary, { breaks: true, gfm: true }));
   }, [summary]);
+
+  // Compute per-section tracking status for TOC indicators
+  const sectionTrackingStatus = useMemo(() => {
+    const result = {};
+    const sections = data?.document_sections || [];
+    const requirements = data?.requirements || [];
+    if (sections.length === 0 || Object.keys(trackingStatus).length === 0) return result;
+
+    for (const sec of sections) {
+      const secNum = sec.section_number;
+      const reqs = requirements.filter(
+        (r) => r.source_section === secNum || r.source_section?.startsWith(secNum + '.'),
+      );
+      if (reqs.length === 0) {
+        result[secNum] = 'none';
+        continue;
+      }
+      const doneCount = reqs.filter((r) => trackingStatus[r.id] === 'Done').length;
+      const doneOrIgnoreCount = reqs.filter(
+        (r) => trackingStatus[r.id] === 'Done' || trackingStatus[r.id] === 'Ignore',
+      ).length;
+      if (doneOrIgnoreCount === reqs.length) {
+        result[secNum] = 'complete';
+      } else if (doneCount > 0) {
+        result[secNum] = 'partial';
+      } else {
+        result[secNum] = 'none';
+      }
+    }
+    return result;
+  }, [data, trackingStatus]);
 
   if (loading) {
     const hasProgress = extracting && progress?.total;
@@ -423,6 +503,7 @@ export default function RequirementsViewer({ filename, projectName }) {
                 expandedSections={expandedSections}
                 onToggleExpand={handleToggleExpand}
                 showTranslations={showTranslations}
+                sectionTrackingStatus={sectionTrackingStatus}
               />
             </Box>
 
@@ -469,6 +550,8 @@ export default function RequirementsViewer({ filename, projectName }) {
                   docName={docName}
                   onToggleReq={handleToggleReq}
                   showTranslations={showTranslations}
+                  trackingStatus={trackingStatus}
+                  onSetTrackingStatus={handleSetTrackingStatus}
                 />
               </Box>
             )}
@@ -536,7 +619,7 @@ async function callEarsExtraction(projectName, pdfBaseName, onProgress) {
  * Renders document_sections as a tree with checkboxes.
  * First level items are visible; second level starts collapsed.
  */
-function TocTree({ sections, requirements, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations }) {
+function TocTree({ sections, requirements, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations, sectionTrackingStatus }) {
   const tree = buildSectionTree(sections);
 
   // Build a set of top-level section numbers that have at least one requirement
@@ -568,6 +651,7 @@ function TocTree({ sections, requirements, checkedSections, onToggleCheck, selec
           expandedSections={expandedSections}
           onToggleExpand={onToggleExpand}
           showTranslations={showTranslations}
+          sectionTrackingStatus={sectionTrackingStatus}
           depth={0}
           dimmed={!topLevelWithReqs.has(node.section.section_number)}
         />
@@ -576,7 +660,7 @@ function TocTree({ sections, requirements, checkedSections, onToggleCheck, selec
   );
 }
 
-function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations, depth, dimmed }) {
+function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations, sectionTrackingStatus, depth, dimmed }) {
   const { section, children } = node;
   const id = section.section_number;
   const hasChildren = children.length > 0;
@@ -630,6 +714,8 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
             fontWeight: isSelected ? 600 : 400,
             userSelect: 'none',
             color: dimmed ? '#999' : 'text.primary',
+            flex: 1,
+            minWidth: 0,
           }}
         >
           <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>
@@ -653,6 +739,12 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
             </Box>
           )}
         </Typography>
+        {sectionTrackingStatus[id] === 'complete' && (
+          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'success.main', flexShrink: 0, mt: 0.75, mr: 1 }} />
+        )}
+        {sectionTrackingStatus[id] === 'partial' && (
+          <Box sx={{ width: 10, height: 10, borderRadius: '50%', border: 2, borderColor: 'success.main', flexShrink: 0, mt: 0.75, mr: 1 }} />
+        )}
       </Box>
       {hasChildren && (
         <Collapse in={expanded}>
@@ -667,6 +759,7 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
               expandedSections={expandedSections}
               onToggleExpand={onToggleExpand}
               showTranslations={showTranslations}
+              sectionTrackingStatus={sectionTrackingStatus}
               depth={depth + 1}
               dimmed={dimmed}
             />
@@ -680,7 +773,7 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
 /**
  * Content pane showing details for the selected section.
  */
-function SectionContentPane({ section, subsections, requirements, selectedReqs, docName, onToggleReq, showTranslations }) {
+function SectionContentPane({ section, subsections, requirements, selectedReqs, docName, onToggleReq, showTranslations, trackingStatus, onSetTrackingStatus }) {
   if (!section) return null;
 
   const priorityColor = {
@@ -800,6 +893,32 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
                     Page: {req.source_page}
                   </Typography>
                 )}
+              </Box>
+              {/* Tracking status */}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                <Select
+                  size="small"
+                  displayEmpty
+                  value={trackingStatus[req.id] || ''}
+                  onChange={(e) => onSetTrackingStatus(req.id, e.target.value || null)}
+                  sx={{
+                    minWidth: 100,
+                    height: 28,
+                    fontSize: '0.75rem',
+                    bgcolor: trackingStatus[req.id] === 'Done' ? 'success.main'
+                      : trackingStatus[req.id] === 'ToDo' ? 'info.main'
+                      : trackingStatus[req.id] === 'Ignore' ? 'action.disabled'
+                      : 'transparent',
+                    color: trackingStatus[req.id] ? '#fff' : 'text.primary',
+                    '& .MuiSelect-icon': { color: trackingStatus[req.id] ? '#fff' : undefined },
+                    borderRadius: 1,
+                  }}
+                >
+                  <MenuItem value="" sx={{ fontSize: '0.75rem' }}>—</MenuItem>
+                  <MenuItem value="ToDo" sx={{ fontSize: '0.75rem' }}>ToDo</MenuItem>
+                  <MenuItem value="Done" sx={{ fontSize: '0.75rem' }}>Done</MenuItem>
+                  <MenuItem value="Ignore" sx={{ fontSize: '0.75rem' }}>Ignore</MenuItem>
+                </Select>
               </Box>
             </Box>
           ))}
@@ -1051,4 +1170,56 @@ function buildSectionTree(sections) {
 
 function isAncestor(parentNum, childNum) {
   return childNum.startsWith(parentNum + '.');
+}
+
+// ---------------------------------------------------------------------------
+// tracking.md persistence helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a progress/tracking.md into a { "REQ-001": "Done"|"Ignore"|"ToDo" } map.
+ */
+function parseTrackingMarkdown(text) {
+  const result = {};
+  let currentStatus = null;
+  for (const line of text.split('\n')) {
+    const headingMatch = line.match(/^#\s+(Done|Ignore|ToDo)\s*$/i);
+    if (headingMatch) {
+      const raw = headingMatch[1];
+      // Normalize to exact casing
+      if (raw.toLowerCase() === 'done') currentStatus = 'Done';
+      else if (raw.toLowerCase() === 'ignore') currentStatus = 'Ignore';
+      else if (raw.toLowerCase() === 'todo') currentStatus = 'ToDo';
+      continue;
+    }
+    const itemMatch = line.match(/^\*\s+(.+)$/);
+    if (itemMatch && currentStatus) {
+      result[itemMatch[1].trim()] = currentStatus;
+    }
+  }
+  return result;
+}
+
+/**
+ * Build tracking.md content from a status map.
+ * Sections are emitted in fixed order; empty sections are omitted.
+ */
+function buildTrackingMarkdown(statusMap) {
+  const groups = { ToDo: [], Done: [], Ignore: [] };
+  for (const [reqId, status] of Object.entries(statusMap)) {
+    if (groups[status]) groups[status].push(reqId);
+  }
+  // Sort each group numerically
+  const sortFn = (a, b) => a.localeCompare(b, undefined, { numeric: true });
+  let md = '';
+  for (const section of ['ToDo', 'Done', 'Ignore']) {
+    const items = groups[section].sort(sortFn);
+    if (items.length === 0) continue;
+    if (md) md += '\n';
+    md += `# ${section}\n\n`;
+    for (const id of items) {
+      md += `* ${id}\n`;
+    }
+  }
+  return md;
 }

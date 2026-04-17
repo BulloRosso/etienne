@@ -108,6 +108,16 @@ export class ContentManagementController {
   }
 
   @Roles('user')
+  @Post(':project/files/export-docx/*')
+  async exportDocx(
+    @Param('project') project: string,
+    @Param('0') filepath: string,
+    @Body() body: { content: string },
+  ) {
+    return await this.contentManagementService.exportMarkdownToDocx(project, filepath, body.content);
+  }
+
+  @Roles('user')
   @Post(':project/files/create-folder')
   async createFolder(
     @Param('project') project: string,

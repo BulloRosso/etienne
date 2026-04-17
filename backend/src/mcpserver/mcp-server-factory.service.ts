@@ -59,6 +59,7 @@ import { LlmService } from '../llm/llm.service';
 import { RagService } from '../rag/rag.service';
 import { createRagToolsService } from './rag-tools';
 import { createDocumentAnalysisToolsService } from './document-analysis-tools';
+import { createRequirementsMatcherToolsService } from './requirements-matcher-tools';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -96,6 +97,7 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly llmService: LlmService,
     private readonly ragService: RagService,
   ) {
+    const scopedLlm = this.createProjectScopedLlm();
     this.groupConfigs = {
       'demo': {
         toolServices: [demoToolsService],
@@ -107,7 +109,7 @@ export class McpServerFactoryService implements OnModuleInit {
         toolServices: [createDeepResearchToolsService(deepResearchService)],
       },
       'knowledge-graph': {
-        toolServices: [createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService, this.interceptorsService, embeddingsService, llmService)],
+        toolServices: [createKnowledgeGraphToolsService(vectorStoreService, openAiService, knowledgeGraphService, this.interceptorsService, embeddingsService, scopedLlm)],
       },
       'email': {
         toolServices: [createEmailToolsService(smtpService, imapService)],
@@ -165,14 +167,17 @@ export class McpServerFactoryService implements OnModuleInit {
           knowledgeGraphService,
           () => this.currentProjectRoot,
           embeddingsService,
-          llmService,
+          scopedLlm,
         )],
       },
       'rag': {
         toolServices: [createRagToolsService(ragService)],
       },
       'document-analysis': {
-        toolServices: [createDocumentAnalysisToolsService(llmService)],
+        toolServices: [createDocumentAnalysisToolsService(scopedLlm)],
+      },
+      'requirements-matcher': {
+        toolServices: [createRequirementsMatcherToolsService(scopedLlm, ragService)],
       },
     };
   }
@@ -237,6 +242,28 @@ export class McpServerFactoryService implements OnModuleInit {
    */
   setProjectContext(projectRoot: string | null) {
     this.currentProjectRoot = projectRoot;
+  }
+
+  /**
+   * Create a proxy over the LLM service that automatically injects the current
+   * project directory for token tracking. The project is resolved lazily at
+   * call time from `currentProjectRoot`.
+   */
+  private createProjectScopedLlm(): LlmService {
+    const factory = this;
+    const getProjectDir = (): string | undefined => {
+      if (!factory.currentProjectRoot) return undefined;
+      return factory.currentProjectRoot.split('/').pop()
+        || factory.currentProjectRoot.split('\\').pop()
+        || undefined;
+    };
+
+    const proxy = Object.create(this.llmService) as LlmService;
+    proxy.generateText = (opts: any) =>
+      factory.llmService.generateText({ ...opts, projectDir: opts.projectDir ?? getProjectDir() });
+    proxy.generateTextWithMessages = (opts: any) =>
+      factory.llmService.generateTextWithMessages({ ...opts, projectDir: opts.projectDir ?? getProjectDir() });
+    return proxy;
   }
 
   // ============================================

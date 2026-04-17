@@ -1,12 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException, Optional, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Optional, Inject, Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join, extname, dirname, basename } from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
 import { ClaudeConfig } from '../claude/config/claude.config';
 import { safeRoot } from '../claude/utils/path.utils';
 import { FileWatcherService } from '../event-handling/core/file-watcher.service';
 
+const execAsync = promisify(exec);
+
 @Injectable()
 export class ContentManagementService {
+  private readonly logger = new Logger(ContentManagementService.name);
   private readonly config = new ClaudeConfig();
 
   constructor(
@@ -283,6 +290,80 @@ export class ContentManagementService {
       };
     } catch (error) {
       throw new BadRequestException(`Failed to upload file: ${error.message}`);
+    }
+  }
+
+  /**
+   * Convert Markdown content to DOCX via LibreOffice and save to target path.
+   * Pipeline: Markdown → HTML (via marked) → temp .html file → soffice --convert-to docx → target path
+   */
+  async exportMarkdownToDocx(
+    projectName: string,
+    filepath: string,
+    markdownContent: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const root = safeRoot(this.config.hostRoot, projectName);
+    const fullPath = join(root, filepath);
+
+    // Ensure target directory exists
+    const dir = dirname(fullPath);
+    await fs.mkdir(dir, { recursive: true });
+
+    // Convert markdown to HTML using marked (ESM-only, use dynamic import)
+    const { marked } = await (new Function('return import("marked")'))();
+    const htmlBody = marked.parse(markdownContent, { breaks: true, gfm: true });
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; margin: 2cm; }
+  h1 { font-size: 18pt; margin-top: 24pt; }
+  h2 { font-size: 16pt; margin-top: 18pt; }
+  h3 { font-size: 14pt; margin-top: 14pt; }
+  h4 { font-size: 12pt; margin-top: 12pt; }
+  table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
+  th, td { border: 1px solid #999; padding: 4pt 8pt; text-align: left; }
+  th { background: #f0f0f0; font-weight: bold; }
+  code { font-family: Consolas, monospace; font-size: 10pt; background: #f5f5f5; padding: 1pt 3pt; }
+  pre { background: #f5f5f5; padding: 8pt; overflow-x: auto; }
+</style>
+</head><body>${htmlBody}</body></html>`;
+
+    // Write HTML to temp file
+    const tempId = randomUUID();
+    const tempDir = join(tmpdir(), 'etienne-docx-export');
+    await fs.mkdir(tempDir, { recursive: true });
+    const tempHtmlPath = join(tempDir, `${tempId}.html`);
+
+    try {
+      await fs.writeFile(tempHtmlPath, html, 'utf-8');
+
+      // Convert HTML to DOCX via LibreOffice
+      const cmd = `soffice --headless --convert-to "docx:Office Open XML Text" --outdir "${tempDir}" "${tempHtmlPath}"`;
+      await execAsync(cmd, { timeout: 60_000 });
+
+      const tempDocxPath = join(tempDir, `${tempId}.docx`);
+
+      // Verify docx was created
+      try {
+        await fs.access(tempDocxPath);
+      } catch {
+        throw new Error('LibreOffice conversion produced no output. Is LibreOffice (soffice) installed?');
+      }
+
+      // Move docx to target
+      const docxContent = await fs.readFile(tempDocxPath);
+      await fs.writeFile(fullPath, docxContent);
+
+      this.logger.log(`Exported DOCX: ${filepath} (${docxContent.length} bytes)`);
+
+      return {
+        success: true,
+        message: `Exported to ${filepath}`,
+      };
+    } finally {
+      // Clean up temp files
+      try { await fs.unlink(tempHtmlPath); } catch { /* ignore */ }
+      try { await fs.unlink(join(tempDir, `${tempId}.docx`)); } catch { /* ignore */ }
     }
   }
 
