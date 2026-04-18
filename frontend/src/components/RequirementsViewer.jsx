@@ -56,8 +56,7 @@ export default function RequirementsViewer({ filename, projectName }) {
     : '';
 
   // UI state
-  const [activeTab, setActiveTab] = useState(0);
-  const [checkedSections, setCheckedSections] = useState({});
+  const [activeTab, setActiveTab] = useState(1);
   const [selectedSection, setSelectedSection] = useState(null);
 
   // Show/hide English translations
@@ -86,6 +85,10 @@ export default function RequirementsViewer({ filename, projectName }) {
 
   // Selected requirements persisted to out/selected-requirements.md
   const [selectedReqs, setSelectedReqs] = useState({}); // { "docName::REQ-ID": { id, original_text } }
+
+  // Selected chapters (ToC sections) persisted to out/selected-chapters.md
+  const [checkedSections, setCheckedSections] = useState({}); // { "docName::sectionNumber": { sectionNumber, title } }
+  const selectedChaptersFile = 'out/selected-chapters.md';
 
   // Resizable split: percentage for left (TOC) pane, persisted in localStorage
   const SPLIT_STORAGE_KEY = 'requirementsViewer.tocSplitPct';
@@ -190,6 +193,24 @@ export default function RequirementsViewer({ filename, projectName }) {
     return () => { cancelled = true; };
   }, [projectName]);
 
+  // Load existing selected-chapters.md on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSelectedChapters() {
+      try {
+        const res = await apiFetch(
+          `/api/workspace/${encodeURIComponent(projectName)}/files/${selectedChaptersFile}`,
+        );
+        if (!res.ok) return;
+        const text = await res.text();
+        const parsed = parseSelectedChaptersMarkdown(text);
+        if (!cancelled) setCheckedSections(parsed);
+      } catch { /* file may not exist yet */ }
+    }
+    if (projectName) loadSelectedChapters();
+    return () => { cancelled = true; };
+  }, [projectName]);
+
   // Load tracking.md on mount
   useEffect(() => {
     let cancelled = false;
@@ -256,10 +277,30 @@ export default function RequirementsViewer({ filename, projectName }) {
     }
   }, [trackingStatus, projectName]);
 
-  const handleToggleCheck = useCallback((e, sectionId) => {
+  const handleToggleCheck = useCallback(async (e, sectionId) => {
     e.stopPropagation();
-    setCheckedSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
-  }, []);
+    const key = `${docName}::${sectionId}`;
+    const next = { ...checkedSections };
+    if (next[key]) {
+      delete next[key];
+    } else {
+      const sectionObj = data?.document_sections?.find(
+        (s) => s.section_number === sectionId,
+      );
+      next[key] = { sectionNumber: sectionId, title: sectionObj?.title || '' };
+    }
+    setCheckedSections(next);
+
+    const md = buildSelectedChaptersMarkdown(next);
+    try {
+      await apiAxios.put(
+        `/api/workspace/${projectName}/files/save/${selectedChaptersFile}`,
+        { content: md },
+      );
+    } catch (err) {
+      console.error('[RequirementsViewer] Failed to save selected chapters:', err);
+    }
+  }, [checkedSections, docName, projectName, data]);
 
   const handleSelectSection = useCallback((sectionId) => {
     setSelectedSection((prev) => (prev === sectionId ? null : sectionId));
@@ -504,6 +545,8 @@ export default function RequirementsViewer({ filename, projectName }) {
                 onToggleExpand={handleToggleExpand}
                 showTranslations={showTranslations}
                 sectionTrackingStatus={sectionTrackingStatus}
+                docName={docName}
+                themeMode={themeMode}
               />
             </Box>
 
@@ -619,7 +662,7 @@ async function callEarsExtraction(projectName, pdfBaseName, onProgress) {
  * Renders document_sections as a tree with checkboxes.
  * First level items are visible; second level starts collapsed.
  */
-function TocTree({ sections, requirements, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations, sectionTrackingStatus }) {
+function TocTree({ sections, requirements, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations, sectionTrackingStatus, docName, themeMode }) {
   const tree = buildSectionTree(sections);
 
   // Build a set of top-level section numbers that have at least one requirement
@@ -652,6 +695,8 @@ function TocTree({ sections, requirements, checkedSections, onToggleCheck, selec
           onToggleExpand={onToggleExpand}
           showTranslations={showTranslations}
           sectionTrackingStatus={sectionTrackingStatus}
+          docName={docName}
+          themeMode={themeMode}
           depth={0}
           dimmed={!topLevelWithReqs.has(node.section.section_number)}
         />
@@ -660,12 +705,13 @@ function TocTree({ sections, requirements, checkedSections, onToggleCheck, selec
   );
 }
 
-function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations, sectionTrackingStatus, depth, dimmed }) {
+function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSelectSection, expandedSections, onToggleExpand, showTranslations, sectionTrackingStatus, docName, themeMode, depth, dimmed }) {
   const { section, children } = node;
   const id = section.section_number;
   const hasChildren = children.length > 0;
   const isSelected = selectedSection === id;
   const expanded = !!expandedSections[id];
+  const isChecked = !!checkedSections[docName + '::' + id];
 
   return (
     <Box>
@@ -677,8 +723,18 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
           pl: depth * 2,
           cursor: 'pointer',
           borderRadius: 1,
-          bgcolor: isSelected ? 'action.selected' : 'transparent',
-          '&:hover': { bgcolor: isSelected ? 'action.selected' : 'action.hover' },
+          bgcolor: isSelected
+            ? 'action.selected'
+            : isChecked
+              ? (themeMode === 'dark' ? 'rgba(255,255,255,0.08)' : '#efefef')
+              : 'transparent',
+          '&:hover': {
+            bgcolor: isSelected
+              ? 'action.selected'
+              : isChecked
+                ? (themeMode === 'dark' ? 'rgba(255,255,255,0.12)' : '#e0e0e0')
+                : 'action.hover',
+          },
         }}
       >
         {hasChildren ? (
@@ -701,7 +757,7 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
         )}
         <Checkbox
           size="small"
-          checked={!!checkedSections[id]}
+          checked={isChecked}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onToggleCheck(e, id)}
           sx={{ p: 0.5, mt: 0.25 }}
@@ -760,6 +816,8 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
               onToggleExpand={onToggleExpand}
               showTranslations={showTranslations}
               sectionTrackingStatus={sectionTrackingStatus}
+              docName={docName}
+              themeMode={themeMode}
               depth={depth + 1}
               dimmed={dimmed}
             />
@@ -1129,6 +1187,65 @@ function parseSelectedReqsMarkdown(text) {
       const id = reqMatch[1].trim();
       const original_text = reqMatch[2].trim();
       result[`${currentDoc}::${id}`] = { id, original_text };
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// selected-chapters.md persistence helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Build markdown content from the checkedSections map.
+ * Format:
+ *   # Selected Chapters
+ *
+ *   ## DocumentName
+ *
+ *   - **2.1**: Attività a canone
+ *   - **6.2**: Personale dedicato
+ */
+function buildSelectedChaptersMarkdown(checkedSections) {
+  const byDoc = {};
+  for (const [key, val] of Object.entries(checkedSections)) {
+    const sepIdx = key.indexOf('::');
+    const doc = key.substring(0, sepIdx);
+    if (!byDoc[doc]) byDoc[doc] = [];
+    byDoc[doc].push(val);
+  }
+
+  let md = '# Selected Chapters\n';
+  for (const [doc, chapters] of Object.entries(byDoc)) {
+    chapters.sort((a, b) =>
+      a.sectionNumber.localeCompare(b.sectionNumber, undefined, { numeric: true }),
+    );
+    md += `\n## ${doc}\n\n`;
+    for (const ch of chapters) {
+      md += `- **${ch.sectionNumber}**: ${ch.title}\n`;
+    }
+  }
+  return md;
+}
+
+/**
+ * Parse a selected-chapters.md back into a
+ * { "doc::sectionNumber": { sectionNumber, title } } map.
+ */
+function parseSelectedChaptersMarkdown(text) {
+  const result = {};
+  let currentDoc = '';
+  for (const line of text.split('\n')) {
+    const docMatch = line.match(/^## (.+)$/);
+    if (docMatch) {
+      currentDoc = docMatch[1].trim();
+      continue;
+    }
+    const chapterMatch = line.match(/^- \*\*([^*]+)\*\*:\s*(.*)$/);
+    if (chapterMatch && currentDoc) {
+      const sectionNumber = chapterMatch[1].trim();
+      const title = chapterMatch[2].trim();
+      result[`${currentDoc}::${sectionNumber}`] = { sectionNumber, title };
     }
   }
   return result;

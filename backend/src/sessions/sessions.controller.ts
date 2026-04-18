@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Param, Body } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { safeRoot } from '../claude/utils/path.utils';
 import { Roles } from '../auth/roles.decorator';
@@ -78,6 +78,53 @@ export class SessionsController {
         success: false,
         error: error.message,
         contextId: null
+      };
+    }
+  }
+
+  @Roles('user')
+  @Patch(':projectname/:sessionId/summary')
+  async updateSessionSummary(
+    @Param('projectname') projectname: string,
+    @Param('sessionId') sessionId: string,
+    @Body() body: { summary: string }
+  ): Promise<any> {
+    try {
+      const summary = (body.summary || '').trim();
+      if (!summary || summary.length > 500) {
+        return {
+          success: false,
+          error: 'Summary must be between 1 and 500 characters'
+        };
+      }
+
+      const projectRoot = safeRoot(this.hostRoot, projectname);
+      await this.sessionsService.updateSessionSummary(projectRoot, sessionId, summary);
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  @Roles('user')
+  @Delete(':projectname/:sessionId')
+  async deleteSession(
+    @Param('projectname') projectname: string,
+    @Param('sessionId') sessionId: string
+  ): Promise<any> {
+    try {
+      const projectRoot = safeRoot(this.hostRoot, projectname);
+      await this.sessionsService.deleteSession(projectRoot, sessionId);
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
       };
     }
   }

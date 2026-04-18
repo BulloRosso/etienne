@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Drawer, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
+import { Box, Drawer, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert, TextField, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { PiChatsThin, PiRobotThin } from 'react-icons/pi';
+import { AiOutlineDelete, AiOutlineEdit } from 'react-icons/ai';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function SessionPane({ open, onClose, projectName, onSessionSelect }) {
+export default function SessionPane({ open, onClose, projectName, onSessionSelect, currentSessionId }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (open && projectName) {
@@ -52,8 +56,87 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
   };
 
   const handleSessionClick = (session) => {
+    if (editingSessionId) return;
     onSessionSelect(session.sessionId);
     onClose();
+  };
+
+  const handleEditClick = (e, session) => {
+    e.stopPropagation();
+    setEditingSessionId(session.sessionId);
+    setEditValue(session.summary || '');
+  };
+
+  const handleEditSave = async (sessionId) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) {
+      setEditingSessionId(null);
+      return;
+    }
+
+    try {
+      const response = await apiFetch(
+        `/api/sessions/${encodeURIComponent(projectName)}/${sessionId}/summary`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ summary: trimmed })
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setSessions(prev => prev.map(s =>
+          s.sessionId === sessionId ? { ...s, summary: trimmed } : s
+        ));
+      } else {
+        setError(data.error || t('sessionPane.editError'));
+      }
+    } catch (err) {
+      setError(err.message || t('sessionPane.editError'));
+    } finally {
+      setEditingSessionId(null);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditingSessionId(null);
+  };
+
+  const handleEditKeyDown = (e, sessionId) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleEditSave(sessionId);
+    } else if (e.key === 'Escape') {
+      handleEditCancel();
+    }
+  };
+
+  const handleDeleteClick = (e, session) => {
+    e.stopPropagation();
+    setDeleteTarget(session);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const sessionId = deleteTarget.sessionId;
+    setDeleteTarget(null);
+
+    try {
+      const response = await apiFetch(
+        `/api/sessions/${encodeURIComponent(projectName)}/${sessionId}`,
+        { method: 'DELETE' }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setSessions(prev => prev.filter(s => s.sessionId !== sessionId));
+      } else {
+        setError(data.error || t('sessionPane.deleteError'));
+      }
+    } catch (err) {
+      setError(err.message || t('sessionPane.deleteError'));
+    }
   };
 
   const formatTimestamp = (timestamp) => {
@@ -145,9 +228,11 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                         ? (themeMode === 'dark' ? '#1a2332' : '#f0f6ff')
                         : (themeMode === 'dark' ? '#383838' : '#fafafa'),
                       '&:hover': {
-                        backgroundColor: themeMode === 'dark' ? '#444' : '#f5f5f5'
+                        backgroundColor: themeMode === 'dark' ? '#444' : '#f5f5f5',
+                        '& .session-actions': { opacity: 1 }
                       },
                       alignItems: 'flex-start',
+                      position: 'relative',
                     }}
                   >
                     <ListItemIcon sx={{ mt: 0.5 }}>
@@ -158,12 +243,29 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                     </ListItemIcon>
                     <ListItemText
                       primary={
-                        <Typography variant="body2" sx={{ fontWeight: isPinned ? 600 : 500, mb: 0.5 }}>
-                          {isPinned
-                            ? (session.sessionName || session.summary || t('sessionPane.noSummary'))
-                            : (session.summary || t('sessionPane.noSummary'))
-                          }
-                        </Typography>
+                        editingSessionId === session.sessionId ? (
+                          <TextField
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleEditKeyDown(e, session.sessionId)}
+                            onBlur={() => handleEditSave(session.sessionId)}
+                            autoFocus
+                            size="small"
+                            fullWidth
+                            variant="outlined"
+                            multiline
+                            maxRows={4}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{ mb: 0.5 }}
+                          />
+                        ) : (
+                          <Typography variant="body2" sx={{ fontWeight: isPinned ? 600 : 500, mb: 0.5, pr: !isPinned ? 6 : 0 }}>
+                            {isPinned
+                              ? (session.sessionName || session.summary || t('sessionPane.noSummary'))
+                              : (session.summary || t('sessionPane.noSummary'))
+                            }
+                          </Typography>
+                        )
                       }
                       secondary={
                         <Box>
@@ -173,6 +275,37 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                         </Box>
                       }
                     />
+                    {!isPinned && editingSessionId !== session.sessionId && (
+                      <Box
+                        className="session-actions"
+                        sx={{
+                          position: 'absolute',
+                          right: 8,
+                          top: 8,
+                          display: 'flex',
+                          gap: 0.25,
+                          opacity: 0,
+                          transition: 'opacity 0.2s',
+                        }}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleEditClick(e, session)}
+                          sx={{ p: 0.5 }}
+                        >
+                          <AiOutlineEdit size={16} />
+                        </IconButton>
+                        {session.sessionId !== currentSessionId && (
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleDeleteClick(e, session)}
+                            sx={{ p: 0.5 }}
+                          >
+                            <AiOutlineDelete size={16} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    )}
                   </ListItem>
                 );
               })}
@@ -180,6 +313,20 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
           )}
         </Box>
       </Box>
+
+      <Dialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+      >
+        <DialogTitle>{t('sessionPane.deleteTitle')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{t('sessionPane.deleteConfirm')}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">{t('common.delete')}</Button>
+        </DialogActions>
+      </Dialog>
     </Drawer>
   );
 }

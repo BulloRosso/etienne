@@ -18,7 +18,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic' }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -585,6 +585,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         onClose={() => setSessionPaneOpen(false)}
         projectName={projectName}
         onSessionSelect={handleSessionSelect}
+        currentSessionId={sessionId}
       />
     </Box>
   );

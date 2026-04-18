@@ -541,6 +541,10 @@
   "sessionPane.minutesAgo": "{{count}} 分钟前",
   "sessionPane.hoursAgo": "{{count}} 小时前",
   "sessionPane.daysAgo": "{{count}} 天前",
+  "sessionPane.deleteTitle": "删除会话",
+  "sessionPane.deleteConfirm": "确定要删除此会话吗？这将永久删除该会话及其全部聊天记录。",
+  "sessionPane.deleteError": "删除会话失败",
+  "sessionPane.editError": "更新会话摘要失败",
 
   "guardrails.title": "安全护栏",
   "guardrails.tabPreProcessing": "预处理",

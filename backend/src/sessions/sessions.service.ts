@@ -124,6 +124,53 @@ export class SessionsService {
   }
 
   /**
+   * Update the summary text for a session
+   */
+  async updateSessionSummary(projectRoot: string, sessionId: string, summary: string): Promise<void> {
+    return this.withLock(projectRoot, async () => {
+      const data = await this.loadSessions(projectRoot);
+      const session = data.sessions.find(s => s.sessionId === sessionId);
+
+      if (!session) {
+        throw new Error(`Session not found: ${sessionId}`);
+      }
+      if (session.pinned) {
+        throw new Error('Cannot edit pinned sessions');
+      }
+
+      session.summary = summary;
+      await this.saveSessions(projectRoot, data);
+    });
+  }
+
+  /**
+   * Delete a session and its history file
+   */
+  async deleteSession(projectRoot: string, sessionId: string): Promise<void> {
+    return this.withLock(projectRoot, async () => {
+      const data = await this.loadSessions(projectRoot);
+      const session = data.sessions.find(s => s.sessionId === sessionId);
+
+      if (!session) {
+        throw new Error(`Session not found: ${sessionId}`);
+      }
+      if (session.pinned) {
+        throw new Error('Cannot delete pinned sessions');
+      }
+
+      data.sessions = data.sessions.filter(s => s.sessionId !== sessionId);
+      await this.saveSessions(projectRoot, data);
+
+      // Delete the history file (ignore if it doesn't exist)
+      try {
+        await fs.unlink(this.getSessionHistoryPath(projectRoot, sessionId));
+      } catch (err: any) {
+        if (err.code !== 'ENOENT') throw err;
+      }
+    });
+  }
+
+  /**
    * Load messages for a specific session
    */
   async loadSessionHistory(projectRoot: string, sessionId: string): Promise<ChatMessage[]> {

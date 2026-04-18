@@ -542,6 +542,10 @@
   "sessionPane.minutesAgo": "{{count}} minute(s) ago",
   "sessionPane.hoursAgo": "{{count}} hour(s) ago",
   "sessionPane.daysAgo": "{{count}} day(s) ago",
+  "sessionPane.deleteTitle": "Delete Session",
+  "sessionPane.deleteConfirm": "Are you sure you want to delete this session? This will permanently remove the session and its chat history.",
+  "sessionPane.deleteError": "Failed to delete session",
+  "sessionPane.editError": "Failed to update session summary",
 
   "guardrails.title": "Guardrails",
   "guardrails.tabPreProcessing": "Pre-processing",

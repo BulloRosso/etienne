@@ -542,6 +542,10 @@
   "sessionPane.minutesAgo": "{{count}} minuto/i fa",
   "sessionPane.hoursAgo": "{{count}} ora/e fa",
   "sessionPane.daysAgo": "{{count}} giorno/i fa",
+  "sessionPane.deleteTitle": "Elimina sessione",
+  "sessionPane.deleteConfirm": "Sei sicuro di voler eliminare questa sessione? La sessione e l'intera cronologia della chat verranno rimosse permanentemente.",
+  "sessionPane.deleteError": "Eliminazione della sessione fallita",
+  "sessionPane.editError": "Aggiornamento del riepilogo della sessione fallito",
 
   "guardrails.title": "Guardrails",
   "guardrails.tabPreProcessing": "Pre-elaborazione",
