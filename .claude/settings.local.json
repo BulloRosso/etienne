@@ -117,7 +117,8 @@
       "Bash(.venv/Scripts/python.exe -c \":*)",
       "WebFetch(domain:api.github.com)",
       "Bash(agent-browser install)",
-      "Bash(wc -l /c/Data/GitHub/claude-multitenant/frontend/public/i18n/*.json)"
+      "Bash(wc -l /c/Data/GitHub/claude-multitenant/frontend/public/i18n/*.json)",
+      "WebFetch(domain:opencode.ai)"
     ],
     "deny": [],
     "ask": []

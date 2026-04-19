@@ -1,0 +1,25 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-sonnet-4-5-20250514",
+  "permissions": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow",
+    "write": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "question": "allow",
+    "skill": "allow",
+    "*.env": "deny",
+    "external_directory": "ask",
+    "doom_loop": "ask"
+  },
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "lsp": {},
+  "mcp": {},
+  "agents": []
+}

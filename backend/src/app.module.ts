@@ -19,6 +19,10 @@ import { OpenAIAgentsSessionManagerService } from './claude/openai-agent-sdk/ope
 import { OpenAIAgentsPermissionService } from './claude/openai-agent-sdk/openai-agents-permission.service';
 import { OpenAIAgentsPermissionController } from './claude/openai-agent-sdk/openai-agents-permission.controller';
 import { PiMonoOrchestratorService } from './claude/pi-mono-sdk/pi-mono-orchestrator.service';
+import { OpenCodeSdkService } from './claude/opencode-sdk/opencode-sdk.service';
+import { OpenCodeOrchestratorService } from './claude/opencode-sdk/opencode-sdk-orchestrator.service';
+import { OpenCodeSessionManagerService } from './claude/opencode-sdk/opencode-session-manager.service';
+import { OpenCodePermissionService } from './claude/opencode-sdk/opencode-permission.service';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -90,6 +94,10 @@ import { EmbeddingsModule } from './embeddings';
     OpenAIAgentsSessionManagerService,
     OpenAIAgentsPermissionService,
     PiMonoOrchestratorService,
+    OpenCodeSdkService,
+    OpenCodeOrchestratorService,
+    OpenCodeSessionManagerService,
+    OpenCodePermissionService,
     GuardrailsService,
     OutputGuardrailsService,
     SessionsService,

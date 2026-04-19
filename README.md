@@ -508,19 +508,47 @@ Though Etienne was initially implemented for the Anthropic Claude Agent SDK you 
 <img src="/docs/images/coding-agents.jpg" alt="Coding agents" width="700">
 </div>
 
-The main drawback with other models is limited support for MCP tools or agent skills which becomes obvious with more complex agentic tasks.
+The main drawback with other models is limited support for MCP tools or agent skills which becomes obvious with more complex agentic tasks. **OpenCode** (`CODING_AGENT=open-code`) is a notable exception — it provides native MCP, subagent, skill, and elicitation support on par with the Anthropic harness, plus LSP integration and 75+ model support.
+
+## Coding Agent Feature Matrix
+
+| Feature | Anthropic | Codex | OpenAI Agents | pi-mono | OpenCode |
+|---|:-:|:-:|:-:|:-:|:-:|
+| **Subagents** | Native SDK | Understands defs | Agents-as-tools | Simulated (Task tool) | Native (agent system) |
+| **MCP tools** | Native | Native | Native | Bridge (tools only) | Native |
+| **MCP resources/prompts/sampling** | Yes | Yes | Partial | No | Yes |
+| **Agent skills** | agentskills.io | Via AGENTS.md | Via AGENTS.md | Via skills dir | Native skill tool |
+| **Elicitations (AskUserQuestion)** | AskUserQuestion tool | No | No | Via beforeToolCall | question tool |
+| **Plan mode** | Built-in | No | No | No | Custom modes |
+| **File Explorer** | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST |
+| **Multi-provider models** | Anthropic only | OpenAI only | OpenAI only | 50+ providers | 75+ providers |
+| **LSP / code intelligence** | No | No | No | No | 30+ languages |
+| **Permission prompts** | canUseTool callback | No | No | beforeToolCall bridge | permission.asked events |
+| **Streaming text** | Yes | Yes | Yes | Yes | Yes |
+| **Streaming thinking** | Yes | Reasoning events | No | Yes | Yes (reasoning field) |
+| **Token/cost tracking** | Yes | Yes | Yes | Yes | Yes |
+| **Session resume** | Yes | Yes | No | Yes | Yes (SQLite) |
+| **Guardrails (input/output)** | Yes | Yes | Yes | Partial | Yes |
+| **Memory / RAG** | Yes | Yes | Yes | Yes | Yes |
+
+For detailed configuration and architecture of each agent, see:
+- [CODEX_SUPPORT.md](CODEX_SUPPORT.md) — OpenAI Codex integration
+- [OPENCODE_SUPPORT.md](OPENCODE_SUPPORT.md) — OpenCode integration
+- [backend/src/claude/pi-mono-sdk/README.md](backend/src/claude/pi-mono-sdk/README.md) — pi-mono integration
 
 # Multi-agent Orchestration
 
-Multi-agent orchestration is currently only supported if CODING_AGENT=anthropic is set for the backend. In this case you can define subagents in the project menu:
+Multi-agent orchestration is supported with `CODING_AGENT=anthropic` and `CODING_AGENT=open-code`. You can define subagents in the project menu:
 
 <div align="center">
 <img src="/docs/images/multi-agent-orchestration.jpg" alt="Managed Etienne" width="700">
 </div>
 
-The Claude Agent SDK will pick up those agents and run them in parallel or in sequence whenever it detects tasks might benefit from doing so. Your subagents will be used additionally to the built-in Claude agents.
+With **Anthropic**, the Claude Agent SDK picks up subagents and runs them in parallel or in sequence whenever it detects tasks might benefit from doing so. Your subagents will be used additionally to the built-in Claude agents.
 
-**Codex AppServer** does not support orchestration though it can use and understand a subagent definition. As of early 2026 the MacOS Codex App is responsible for orchestration of several AppServer instances.
+With **OpenCode**, subagent definitions from `.claude/agents/*.md` are automatically translated to OpenCode's native agent format. OpenCode supports hierarchical agent delegation with configurable depth limits and call budgets.
+
+**Codex AppServer** does not support orchestration though it can use and understand a subagent definition. **pi-mono** simulates subagents via a custom Task tool that spawns nested sessions.
 
 # Managed Etienne
 

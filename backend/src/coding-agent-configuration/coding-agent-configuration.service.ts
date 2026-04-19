@@ -34,6 +34,11 @@ export class CodingAgentConfigurationService {
       projectDir: '.pi-mono',
       templateFile: 'pi-mono-config.json',
     },
+    'open-code': {
+      fileName: 'opencode.json',
+      projectDir: '.opencode',
+      templateFile: 'opencode-config.json',
+    },
   };
 
   private get templatesDir(): string {
@@ -78,6 +83,7 @@ export class CodingAgentConfigurationService {
   getAgentConfigDir(): string {
     const agentType = this.getActiveAgentType();
     if (agentType === 'anthropic') return '.claude';
+    if (agentType === 'open-code') return '.opencode';
     if (agentType === 'openai-agents') return '.openai-agents';
     if (agentType === 'pi-mono') return '.pi-mono';
     return '.codex';
