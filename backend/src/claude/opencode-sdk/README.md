@@ -139,10 +139,7 @@ Supported `provider` values: `anthropic`, `openai`, `azure-openai`, `google`, `v
 ## Local development
 
 ```bash
-# install OpenCode globally
-npm i -g opencode-ai@latest
-
-# install SDK (already in package.json)
+# install both the binary and SDK (both in package.json)
 cd backend
 npm install
 

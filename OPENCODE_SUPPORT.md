@@ -32,28 +32,16 @@ When `CODING_AGENT` is not set or set to `anthropic`, the default Claude Code SD
 
 ## Prerequisites
 
-OpenCode must be installed globally:
-
-```bash
-# Install via npm (recommended)
-npm i -g opencode-ai@latest
-
-# Or via curl
-curl -fsSL https://opencode.ai/install | bash
-
-# Or via Scoop (Windows)
-scoop install opencode
-
-# Or via Homebrew (macOS/Linux)
-brew install anomalyco/tap/opencode
-```
-
-The TypeScript SDK (used by the backend) is already listed in `package.json`:
+Both the OpenCode binary and the TypeScript SDK are listed in `package.json`:
 
 ```bash
 cd backend
 npm install
 ```
+
+This installs:
+- `opencode-ai` — the OpenCode binary (spawned as a background server by the SDK)
+- `@opencode-ai/sdk` — the TypeScript client library used by the orchestrator
 
 ## Architecture: SDK-Based Integration
 

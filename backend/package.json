@@ -27,6 +27,7 @@
     "@nestjs/schedule": "^6.0.1",
     "@nestjs/swagger": "^7.4.2",
     "@opencode-ai/sdk": "^1.4.11",
+    "opencode-ai": "^1.14.18",
     "@openai/agents": "^0.1.0",
     "@openai/agents-extensions": "^0.1.0",
     "@openai/codex-sdk": "^0.101.0",
