@@ -1,6 +1,6 @@
 # OpenCode coding agent
 
-Integration of [OpenCode](https://github.com/opencode-ai/opencode) (by SST) via the official `@opencode-ai/sdk` TypeScript SDK as a `CODING_AGENT=open-code` option alongside the existing Anthropic, Codex, OpenAI-Agents, and pi-mono orchestrators.
+Integration of [OpenCode](https://github.com/anomalyco/opencode) (by SST) via the official `@opencode-ai/sdk` TypeScript SDK as a `CODING_AGENT=open-code` option alongside the existing Anthropic, Codex, OpenAI-Agents, and pi-mono orchestrators.
 
 OpenCode is a Go-based terminal AI coding assistant with 75+ model support, LSP integration, and first-class MCP support. It is MIT-licensed and actively maintained by the SST team.
 
@@ -140,7 +140,7 @@ Supported `provider` values: `anthropic`, `openai`, `azure-openai`, `google`, `v
 
 ```bash
 # install OpenCode binary
-go install github.com/opencode-ai/opencode@latest
+go install github.com/anomalyco/opencode@latest
 
 # install SDK
 cd backend

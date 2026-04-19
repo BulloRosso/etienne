@@ -36,7 +36,7 @@ OpenCode requires the Go binary to be installed:
 
 ```bash
 # Install via go
-go install github.com/opencode-ai/opencode@latest
+go install github.com/anomalyco/opencode@latest
 
 # Or download from https://opencode.ai/docs/installation
 ```
