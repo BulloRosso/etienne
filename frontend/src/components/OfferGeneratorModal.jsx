@@ -826,8 +826,9 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                   language="markdown"
                   theme="light"
                   value={generatedContent}
+                  onChange={(value) => setGeneratedContent(value ?? '')}
                   options={{
-                    readOnly: true,
+                    readOnly: generating,
                     minimap: { enabled: false },
                     wordWrap: 'on',
                     fontSize: 13,
