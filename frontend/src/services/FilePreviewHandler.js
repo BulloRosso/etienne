@@ -50,6 +50,8 @@ class FilePreviewHandler {
       this.handleKnowledgePreview(filePath, projectName);
     } else if (extension === 'pdf') {
       this.handlePdfPreview(filePath, projectName);
+    } else if (extension === 'docx' || extension === 'doc') {
+      this.handleDocxPreview(filePath, projectName);
     } else {
       // Future: Handle other file types
       console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
@@ -261,6 +263,21 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'pdf-preview'
+    });
+  }
+
+  /**
+   * Handle DOCX file preview
+   * @param {string} filePath - The path to the DOCX file
+   * @param {string} projectName - The project name
+   */
+  handleDocxPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening DOCX preview for', filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'docx-preview'
     });
   }
 

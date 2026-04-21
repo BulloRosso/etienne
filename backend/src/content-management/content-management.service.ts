@@ -5,6 +5,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
+import AdmZip from 'adm-zip';
 import { ClaudeConfig } from '../claude/config/claude.config';
 import { safeRoot } from '../claude/utils/path.utils';
 import { FileWatcherService } from '../event-handling/core/file-watcher.service';
@@ -40,6 +41,8 @@ export class ContentManagementService {
       '.txt': 'text/plain',
       '.xml': 'application/xml',
       '.pdf': 'application/pdf',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.doc': 'application/msword',
       '.woff': 'font/woff',
       '.woff2': 'font/woff2',
       '.ttf': 'font/ttf',
@@ -67,6 +70,58 @@ export class ContentManagementService {
         throw new NotFoundException(`File not found: ${filepath}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Convert a DOCX/DOC file to PDF via LibreOffice for preview.
+   * Returns the PDF buffer and MIME type.
+   */
+  async convertDocxToPdf(projectName: string, filepath: string): Promise<{ content: Buffer; mimeType: string }> {
+    const root = safeRoot(this.config.hostRoot, projectName);
+    const fullPath = join(root, filepath);
+
+    // Verify source exists
+    try {
+      await fs.access(fullPath);
+    } catch {
+      throw new NotFoundException(`File not found: ${filepath}`);
+    }
+
+    const tempId = randomUUID();
+    const tempDir = join(tmpdir(), 'etienne-docx-preview');
+    await fs.mkdir(tempDir, { recursive: true });
+
+    const ext = extname(filepath).toLowerCase();
+    const tempSourcePath = join(tempDir, `${tempId}${ext}`);
+
+    try {
+      // Copy the source file to temp directory
+      await fs.copyFile(fullPath, tempSourcePath);
+
+      // Convert to PDF via LibreOffice
+      const cmd = `soffice --headless --convert-to pdf --outdir "${tempDir}" "${tempSourcePath}"`;
+      await execAsync(cmd, { timeout: 60_000 });
+
+      const tempPdfPath = join(tempDir, `${tempId}.pdf`);
+
+      // Verify PDF was created
+      try {
+        await fs.access(tempPdfPath);
+      } catch {
+        throw new BadRequestException(
+          'LibreOffice conversion produced no output. Is LibreOffice (soffice) installed?',
+        );
+      }
+
+      const content = await fs.readFile(tempPdfPath);
+      this.logger.log(`DOCX preview: converted ${filepath} to PDF (${content.length} bytes)`);
+
+      return { content, mimeType: 'application/pdf' };
+    } finally {
+      // Clean up temp files
+      try { await fs.unlink(tempSourcePath); } catch { /* ignore */ }
+      try { await fs.unlink(join(tempDir, `${tempId}.pdf`)); } catch { /* ignore */ }
     }
   }
 
@@ -365,6 +420,148 @@ export class ContentManagementService {
       try { await fs.unlink(tempHtmlPath); } catch { /* ignore */ }
       try { await fs.unlink(join(tempDir, `${tempId}.docx`)); } catch { /* ignore */ }
     }
+  }
+
+  /**
+   * Export Markdown to DOCX using an existing DOCX as a template.
+   * Selectively replaces only the specified sections while preserving everything else.
+   *
+   * Pipeline:
+   *   1. Open template DOCX with adm-zip
+   *   2. Discover heading styles from word/styles.xml
+   *   3. Split document.xml body into sections by Heading 1
+   *   4. Replace selected sections with generated Markdown (converted to OOXML)
+   *   5. Reassemble and write output
+   */
+  async exportMarkdownToDocxWithTemplate(
+    projectName: string,
+    outputPath: string,
+    markdownContent: string,
+    templateDocPath: string,
+    selectedSections: { number: string; title: string }[],
+  ): Promise<{ success: boolean; message: string }> {
+    const root = safeRoot(this.config.hostRoot, projectName);
+    const fullOutputPath = join(root, outputPath);
+    const fullTemplatePath = join(root, templateDocPath);
+
+    // Ensure output directory exists
+    await fs.mkdir(dirname(fullOutputPath), { recursive: true });
+
+    // Verify template exists
+    try {
+      await fs.access(fullTemplatePath);
+    } catch {
+      throw new BadRequestException(`Template document not found: ${templateDocPath}`);
+    }
+
+    const templateBuffer = await fs.readFile(fullTemplatePath);
+    const zip = new AdmZip(templateBuffer);
+
+    // --- Discover heading styles ---
+    const stylesEntry = zip.getEntry('word/styles.xml');
+    const headingStyleIds = new Map<number, string>();
+    let listParagraphStyleId = 'ListParagraph';
+
+    if (stylesEntry) {
+      const stylesXml = stylesEntry.getData().toString('utf-8');
+      // Find heading styles: <w:style w:type="paragraph" w:styleId="XXX">...<w:name w:val="heading N"/>
+      const stylePattern = /<w:style\b[^>]*w:type="paragraph"[^>]*w:styleId="([^"]*)"[^>]*>([\s\S]*?)<\/w:style>/gi;
+      let styleMatch: RegExpExecArray | null;
+      while ((styleMatch = stylePattern.exec(stylesXml)) !== null) {
+        const styleId = styleMatch[1];
+        const inner = styleMatch[2];
+        const nameMatch = inner.match(/<w:name\s+w:val="([^"]*)"/i);
+        if (nameMatch) {
+          const nameVal = nameMatch[1].toLowerCase();
+          const headingMatch = nameVal.match(/^heading\s+(\d+)$/);
+          if (headingMatch) {
+            headingStyleIds.set(parseInt(headingMatch[1], 10), styleId);
+          }
+          if (nameVal === 'list paragraph') {
+            listParagraphStyleId = styleId;
+          }
+        }
+      }
+    }
+
+    // Fallback heading styles if none found
+    if (headingStyleIds.size === 0) {
+      for (let i = 1; i <= 6; i++) headingStyleIds.set(i, `Heading${i}`);
+    }
+
+    const heading1StyleId = headingStyleIds.get(1) ?? 'Heading1';
+
+    // --- Parse document.xml ---
+    const docEntry = zip.getEntry('word/document.xml');
+    if (!docEntry) {
+      throw new BadRequestException('Template DOCX has no word/document.xml');
+    }
+    const docXml = docEntry.getData().toString('utf-8');
+
+    // Extract <w:body> content
+    const bodyMatch = docXml.match(/<w:body>([\s\S]*)<\/w:body>/);
+    if (!bodyMatch) {
+      throw new BadRequestException('Cannot parse <w:body> in template');
+    }
+    const bodyContent = bodyMatch[1];
+
+    // Extract <w:sectPr> (last one, defines page layout) — must be preserved
+    const sectPrMatch = bodyContent.match(/(<w:sectPr[\s\S]*<\/w:sectPr>)\s*$/);
+    const sectPr = sectPrMatch ? sectPrMatch[1] : '';
+    const bodyWithoutSectPr = sectPr ? bodyContent.slice(0, bodyContent.lastIndexOf(sectPr)) : bodyContent;
+
+    // --- Split body into sections by Heading 1 paragraphs ---
+    // A "section" = one Heading 1 paragraph + all content until the next Heading 1 (or end)
+    const sections = splitBodyBySections(bodyWithoutSectPr, heading1StyleId);
+
+    // --- Split generated Markdown by top-level headings ---
+    // The generated Markdown has ## headings for each section (depth+1 from assembleMarkdown)
+    const mdSections = splitMarkdownBySections(markdownContent);
+
+    // --- Replace selected sections ---
+    const replacedBody: string[] = [];
+    let preambleAdded = false;
+
+    for (const section of sections) {
+      const matched = matchSectionToSelected(section.headingText, selectedSections);
+      if (matched) {
+        // Keep the original heading paragraph from the template
+        replacedBody.push(section.headingXml);
+        // Find generated content for this section
+        const mdContent = findMarkdownForSection(matched, mdSections);
+        if (mdContent) {
+          replacedBody.push(markdownBodyToOoxml(mdContent, headingStyleIds, listParagraphStyleId));
+        }
+      } else {
+        // Keep entire section as-is (preamble + heading + content)
+        if (!preambleAdded && section.preambleXml) {
+          replacedBody.push(section.preambleXml);
+          preambleAdded = true;
+        }
+        replacedBody.push(section.headingXml);
+        replacedBody.push(section.contentXml);
+      }
+
+      if (!preambleAdded && !section.preambleXml) {
+        preambleAdded = true;
+      }
+    }
+
+    // Handle content before the first heading (preamble)
+    if (sections.length > 0 && sections[0].preambleXml && !preambleAdded) {
+      replacedBody.unshift(sections[0].preambleXml);
+    }
+
+    // Reassemble document.xml
+    const newBody = `<w:body>${replacedBody.join('')}${sectPr}</w:body>`;
+    const newDocXml = docXml.replace(/<w:body>[\s\S]*<\/w:body>/, newBody);
+
+    zip.updateFile('word/document.xml', Buffer.from(newDocXml, 'utf-8'));
+    const outputBuffer = zip.toBuffer();
+    await fs.writeFile(fullOutputPath, outputBuffer);
+
+    this.logger.log(`Exported DOCX with template: ${outputPath} (${outputBuffer.length} bytes)`);
+    return { success: true, message: `Exported to ${outputPath}` };
   }
 
   /**
@@ -728,4 +925,445 @@ export class ContentManagementService {
       throw new BadRequestException(`Failed to save workbench configuration: ${error.message}`);
     }
   }
+
+  /**
+   * Copy files and folders from one project to another.
+   * Overwrites existing files in the destination project.
+   */
+  async copyBetweenProjects(
+    sourceProject: string,
+    paths: string[],
+    destinationProject: string,
+  ): Promise<{ success: boolean; message: string; copiedCount: number }> {
+    if (sourceProject === destinationProject) {
+      throw new BadRequestException('Source and destination projects must be different');
+    }
+    if (!paths || paths.length === 0) {
+      throw new BadRequestException('No paths specified for copying');
+    }
+
+    const sourceRoot = safeRoot(this.config.hostRoot, sourceProject);
+    const destRoot = safeRoot(this.config.hostRoot, destinationProject);
+
+    // Verify destination project directory exists
+    try {
+      await fs.access(destRoot);
+    } catch {
+      throw new NotFoundException(`Destination project not found: ${destinationProject}`);
+    }
+
+    if (this.fileWatcher) {
+      await this.fileWatcher.suspend();
+    }
+
+    let copiedCount = 0;
+    try {
+      for (const filePath of paths) {
+        const sourceFullPath = join(sourceRoot, filePath);
+        const destFullPath = join(destRoot, filePath);
+
+        // Verify source exists
+        try {
+          await fs.access(sourceFullPath);
+        } catch {
+          this.logger.warn(`Skipping non-existent source path: ${filePath}`);
+          continue;
+        }
+
+        // Ensure destination parent directory exists
+        await fs.mkdir(dirname(destFullPath), { recursive: true });
+
+        const stats = await fs.stat(sourceFullPath);
+        if (stats.isDirectory()) {
+          await fs.cp(sourceFullPath, destFullPath, { recursive: true, force: true });
+        } else {
+          await fs.copyFile(sourceFullPath, destFullPath);
+        }
+        copiedCount++;
+      }
+    } finally {
+      if (this.fileWatcher) {
+        await this.fileWatcher.resume();
+      }
+    }
+
+    return {
+      success: true,
+      message: `Copied ${copiedCount} item(s) to project ${destinationProject}`,
+      copiedCount,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DOCX template helpers (used by exportMarkdownToDocxWithTemplate)
+// ---------------------------------------------------------------------------
+
+interface DocSection {
+  /** XML before the first Heading 1 (only present on section index 0) */
+  preambleXml: string;
+  /** The Heading 1 paragraph XML */
+  headingXml: string;
+  /** Extracted plain text of the heading */
+  headingText: string;
+  /** All content XML between this heading and the next Heading 1 */
+  contentXml: string;
+}
+
+/**
+ * Split the body XML (without sectPr) into sections delimited by Heading 1 paragraphs.
+ */
+function splitBodyBySections(bodyXml: string, heading1StyleId: string): DocSection[] {
+  const sections: DocSection[] = [];
+
+  // Split into paragraphs and tables — top-level <w:p> and <w:tbl> elements
+  const elementPattern = /<w:(p|tbl)\b[\s\S]*?<\/w:\1>/g;
+  const elements: { xml: string; isHeading1: boolean; text: string }[] = [];
+  let elemMatch: RegExpExecArray | null;
+
+  while ((elemMatch = elementPattern.exec(bodyXml)) !== null) {
+    const xml = elemMatch[0];
+    const isP = elemMatch[1] === 'p';
+
+    let isHeading1 = false;
+    let text = '';
+
+    if (isP) {
+      // Check if this paragraph uses the Heading 1 style
+      const styleMatch = xml.match(/<w:pStyle\s+w:val="([^"]*)"/);
+      if (styleMatch && styleMatch[1] === heading1StyleId) {
+        isHeading1 = true;
+      }
+      // Extract text content
+      const textParts: string[] = [];
+      const tPattern = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+      let tMatch: RegExpExecArray | null;
+      while ((tMatch = tPattern.exec(xml)) !== null) {
+        textParts.push(tMatch[1]);
+      }
+      text = textParts.join('');
+    }
+
+    elements.push({ xml, isHeading1, text });
+  }
+
+  // Group into sections
+  let preamble = '';
+  let currentHeadingXml = '';
+  let currentHeadingText = '';
+  let currentContent: string[] = [];
+  let foundFirstHeading = false;
+
+  for (const elem of elements) {
+    if (elem.isHeading1) {
+      if (foundFirstHeading) {
+        sections.push({
+          preambleXml: '',
+          headingXml: currentHeadingXml,
+          headingText: currentHeadingText,
+          contentXml: currentContent.join(''),
+        });
+      }
+      currentHeadingXml = elem.xml;
+      currentHeadingText = elem.text;
+      currentContent = [];
+      foundFirstHeading = true;
+    } else if (!foundFirstHeading) {
+      preamble += elem.xml;
+    } else {
+      currentContent.push(elem.xml);
+    }
+  }
+
+  // Push the last section
+  if (foundFirstHeading) {
+    sections.push({
+      preambleXml: '',
+      headingXml: currentHeadingXml,
+      headingText: currentHeadingText,
+      contentXml: currentContent.join(''),
+    });
+  }
+
+  // Attach preamble to the first section
+  if (sections.length > 0) {
+    sections[0].preambleXml = preamble;
+  }
+
+  return sections;
+}
+
+/**
+ * Match a section heading from the template against the user's selected sections.
+ * Returns the matched selected section or null.
+ */
+function matchSectionToSelected(
+  headingText: string,
+  selectedSections: { number: string; title: string }[],
+): { number: string; title: string } | null {
+  const normalized = headingText.trim().toLowerCase().replace(/\s+/g, ' ');
+  for (const sel of selectedSections) {
+    // Try matching by title (fuzzy — the template heading may include the section number)
+    const selTitle = sel.title.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (normalized === selTitle || normalized.includes(selTitle) || selTitle.includes(normalized)) {
+      return sel;
+    }
+    // Try matching with number prefix: "1. Executive Summary" or "1 Executive Summary"
+    const withNumber = `${sel.number} ${selTitle}`;
+    const withNumberDot = `${sel.number}. ${selTitle}`;
+    if (normalized.includes(withNumber) || normalized.includes(withNumberDot)) {
+      return sel;
+    }
+  }
+  return null;
+}
+
+interface MdSection {
+  /** Section number (e.g. "1", "2") */
+  number: string;
+  /** Section title */
+  title: string;
+  /** Markdown body content (everything below the heading) */
+  body: string;
+}
+
+/**
+ * Split the generated Markdown into sections by top-level headings (## headings).
+ * The assembleMarkdown function uses ## for depth-1 sections.
+ */
+function splitMarkdownBySections(markdown: string): MdSection[] {
+  const sections: MdSection[] = [];
+  const lines = markdown.split('\n');
+  let current: MdSection | null = null;
+  let bodyLines: string[] = [];
+
+  for (const line of lines) {
+    // Match ## N Title (the format from assembleMarkdown: depth 1 = ##)
+    const headingMatch = line.match(/^##\s+(\d+(?:\.\d+)*)\s+(.+)/);
+    if (headingMatch) {
+      if (current) {
+        current.body = bodyLines.join('\n').trim();
+        sections.push(current);
+      }
+      current = { number: headingMatch[1], title: headingMatch[2].trim(), body: '' };
+      bodyLines = [];
+    } else if (current) {
+      bodyLines.push(line);
+    }
+  }
+
+  if (current) {
+    current.body = bodyLines.join('\n').trim();
+    sections.push(current);
+  }
+
+  return sections;
+}
+
+/**
+ * Find the generated Markdown content for a given selected section.
+ */
+function findMarkdownForSection(
+  selected: { number: string; title: string },
+  mdSections: MdSection[],
+): string | null {
+  // Try exact number match first
+  for (const md of mdSections) {
+    if (md.number === selected.number) return md.body;
+  }
+  // Try title match
+  const selTitle = selected.title.trim().toLowerCase();
+  for (const md of mdSections) {
+    if (md.title.trim().toLowerCase() === selTitle) return md.body;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Markdown to OOXML conversion
+// ---------------------------------------------------------------------------
+
+function xmlEscape(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Convert a Markdown body string (sub-section content, no top-level heading) into OOXML paragraphs.
+ */
+function markdownBodyToOoxml(
+  markdown: string,
+  headingStyles: Map<number, string>,
+  listStyleId: string,
+): string {
+  const paragraphs: string[] = [];
+  const lines = markdown.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Empty line — skip
+    if (!line.trim()) {
+      i++;
+      continue;
+    }
+
+    // Heading (### Sub-heading, #### etc.)
+    const headingMatch = line.match(/^(#{1,6})\s+(?:\d+(?:\.\d+)*\s+)?(.+)/);
+    if (headingMatch) {
+      const depth = headingMatch[1].length;
+      const text = headingMatch[2].trim();
+      const styleId = headingStyles.get(depth) ?? headingStyles.get(2) ?? 'Heading2';
+      paragraphs.push(
+        `<w:p><w:pPr><w:pStyle w:val="${styleId}"/></w:pPr>` +
+        inlineToRuns(text) +
+        `</w:p>`
+      );
+      i++;
+      continue;
+    }
+
+    // Bullet list item
+    const bulletMatch = line.match(/^[-*]\s+(.+)/);
+    if (bulletMatch) {
+      paragraphs.push(
+        `<w:p><w:pPr><w:pStyle w:val="${listStyleId}"/>` +
+        `<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>` +
+        inlineToRuns(bulletMatch[1]) +
+        `</w:p>`
+      );
+      i++;
+      continue;
+    }
+
+    // Numbered list item
+    const numMatch = line.match(/^\d+[.)]\s+(.+)/);
+    if (numMatch) {
+      paragraphs.push(
+        `<w:p><w:pPr><w:pStyle w:val="${listStyleId}"/>` +
+        `<w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr>` +
+        inlineToRuns(numMatch[1]) +
+        `</w:p>`
+      );
+      i++;
+      continue;
+    }
+
+    // Table (starts with |)
+    if (line.trim().startsWith('|')) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      paragraphs.push(markdownTableToOoxml(tableLines));
+      continue;
+    }
+
+    // Regular paragraph
+    paragraphs.push(
+      `<w:p>` + inlineToRuns(line) + `</w:p>`
+    );
+    i++;
+  }
+
+  return paragraphs.join('');
+}
+
+/**
+ * Convert inline Markdown (bold, italic, code) to OOXML runs.
+ */
+function inlineToRuns(text: string): string {
+  const runs: string[] = [];
+  // Split on inline patterns: **bold**, *italic*, `code`
+  const pattern = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    // Text before this match
+    if (match.index > lastIndex) {
+      const before = text.slice(lastIndex, match.index);
+      if (before) runs.push(`<w:r><w:t xml:space="preserve">${xmlEscape(before)}</w:t></w:r>`);
+    }
+
+    if (match[2]) {
+      // Bold+Italic: ***text***
+      runs.push(`<w:r><w:rPr><w:b/><w:i/></w:rPr><w:t xml:space="preserve">${xmlEscape(match[2])}</w:t></w:r>`);
+    } else if (match[3]) {
+      // Bold: **text**
+      runs.push(`<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${xmlEscape(match[3])}</w:t></w:r>`);
+    } else if (match[4]) {
+      // Italic: *text*
+      runs.push(`<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">${xmlEscape(match[4])}</w:t></w:r>`);
+    } else if (match[5]) {
+      // Code: `text`
+      runs.push(`<w:r><w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${xmlEscape(match[5])}</w:t></w:r>`);
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Remaining text
+  if (lastIndex < text.length) {
+    const remaining = text.slice(lastIndex);
+    if (remaining) runs.push(`<w:r><w:t xml:space="preserve">${xmlEscape(remaining)}</w:t></w:r>`);
+  }
+
+  // If no runs were produced, output at least an empty run for the full text
+  if (runs.length === 0 && text.trim()) {
+    runs.push(`<w:r><w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r>`);
+  }
+
+  return runs.join('');
+}
+
+/**
+ * Convert a Markdown table to OOXML <w:tbl>.
+ */
+function markdownTableToOoxml(tableLines: string[]): string {
+  // Filter out separator lines (|---|---|)
+  const dataLines = tableLines.filter(l => !l.match(/^\|[\s\-:|]+\|$/));
+  if (!dataLines.length) return '';
+
+  const rows = dataLines.map(line => {
+    const cells = line.split('|').slice(1, -1).map(c => c.trim());
+    return cells;
+  });
+
+  const colCount = rows[0]?.length ?? 1;
+  const colWidthTwips = Math.floor(9000 / colCount); // ~15cm total, divided equally
+
+  let xml = '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>' +
+    '<w:tblBorders>' +
+    '<w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/>' +
+    '<w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>' +
+    '<w:bottom w:val="single" w:sz="4" w:space="0" w:color="999999"/>' +
+    '<w:right w:val="single" w:sz="4" w:space="0" w:color="999999"/>' +
+    '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="999999"/>' +
+    '<w:insideV w:val="single" w:sz="4" w:space="0" w:color="999999"/>' +
+    '</w:tblBorders></w:tblPr>';
+
+  for (let ri = 0; ri < rows.length; ri++) {
+    const isHeader = ri === 0;
+    xml += '<w:tr>';
+    for (let ci = 0; ci < colCount; ci++) {
+      const cellText = rows[ri]?.[ci] ?? '';
+      xml += `<w:tc><w:tcPr><w:tcW w:w="${colWidthTwips}" w:type="dxa"/></w:tcPr>`;
+      if (isHeader) {
+        xml += `<w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${xmlEscape(cellText)}</w:t></w:r></w:p>`;
+      } else {
+        xml += `<w:p><w:r><w:t xml:space="preserve">${xmlEscape(cellText)}</w:t></w:r></w:p>`;
+      }
+      xml += '</w:tc>';
+    }
+    xml += '</w:tr>';
+  }
+
+  xml += '</w:tbl>';
+  return xml;
 }

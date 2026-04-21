@@ -9,7 +9,7 @@
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Box, Chip } from '@mui/material';
+import { Box, Checkbox, Chip } from '@mui/material';
 import '@vscode/codicons/dist/codicon.css';
 import { FileIcon, FolderIcon } from '@react-symbols/icons/utils';
 import {
@@ -39,7 +39,10 @@ const FileTreeRow = React.memo(function FileTreeRow({
   isGuest,
   isDropTarget,
   isDragged,
+  selectionMode,
+  isSelected,
   onToggleExpand,
+  onToggleSelection,
   onContextMenu,
   onDragStartRow,
   onDragEnterRow,
@@ -83,10 +86,14 @@ const FileTreeRow = React.memo(function FileTreeRow({
             : '#FFD700',
         },
       }}
-      draggable={!isGuest}
+      draggable={!isGuest && !selectionMode}
       onClick={(e) => {
         e.stopPropagation();
-        onContextMenu(e, row);
+        if (selectionMode) {
+          onToggleSelection(row.path);
+        } else {
+          onContextMenu(e, row);
+        }
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -98,6 +105,19 @@ const FileTreeRow = React.memo(function FileTreeRow({
       onDrop={(e) => onDropRow(e, row)}
       onDragLeave={(e) => onDragLeaveRow(e)}
     >
+      {/* ── Selection checkbox ── */}
+      {selectionMode && (
+        <Checkbox
+          size="small"
+          checked={isSelected}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelection(row.path);
+          }}
+          sx={{ p: 0, mr: 0.5, minWidth: 20 }}
+        />
+      )}
+
       {/* ── Twistie (expand / collapse chevron) ── */}
       {row.type === 'folder' ? (
         <span
@@ -230,7 +250,10 @@ export default function FileTreeVirtualList({
   releaseComments = {},
   indexedPaths,
   isGuest,
+  selectionMode = false,
+  selectedPaths,
   onToggleExpand,
+  onToggleSelection,
   onContextMenu,
   onDrop,
   onDropExternal,
@@ -418,7 +441,10 @@ export default function FileTreeVirtualList({
             isGuest={isGuest}
             isDropTarget={dropTargetId === row.id}
             isDragged={draggedRowId === row.id}
+            selectionMode={selectionMode}
+            isSelected={selectedPaths && selectedPaths.has(row.path)}
             onToggleExpand={onToggleExpand}
+            onToggleSelection={onToggleSelection}
             onContextMenu={onContextMenu}
             onDragStartRow={handleDragStartRow}
             onDragEnterRow={handleDragEnterRow}

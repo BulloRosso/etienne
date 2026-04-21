@@ -40,6 +40,7 @@ export class PreviewersService {
       { viewer: 'workflow', extensions: ['.workflow.json'] },
       { viewer: 'scrapbook', extensions: ['.scbk'] },
       { viewer: 'pdf', extensions: ['.pdf'] },
+      { viewer: 'docx', extensions: ['.docx', '.doc'] },
     ];
   }
 }

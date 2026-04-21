@@ -224,6 +224,69 @@ function batchArray<T>(arr: T[], size: number): T[][] {
 }
 
 // ---------------------------------------------------------------------------
+// Extract top-level headings from a document
+// ---------------------------------------------------------------------------
+
+const MAX_STRUCTURE_CHARS = 40_000;
+
+async function extractDocumentHeadings(
+  llm: LlmService,
+  documentPath: string,
+  onProgress?: ProgressCallback,
+): Promise<{ number: string; title: string }[]> {
+  if (onProgress) await onProgress(0, 3, 'Parsing document...');
+
+  const doc = await getOrParseDocument(documentPath, (msg) => {
+    if (onProgress) onProgress(0, 3, msg);
+  });
+
+  if (onProgress) await onProgress(1, 3, 'Extracting headings...');
+
+  const systemPrompt = await loadPrompt('extract-headings-system.md');
+  const truncatedText = doc.fullText.slice(0, MAX_STRUCTURE_CHARS);
+
+  const raw = await llm.generateTextWithMessages({
+    tier: 'small',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: truncatedText },
+    ],
+    maxOutputTokens: 4096,
+  });
+
+  if (onProgress) await onProgress(2, 3, 'Done');
+
+  try {
+    return parseLlmJson<{ number: string; title: string }[]>(raw);
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Language name helper
+// ---------------------------------------------------------------------------
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  it: 'Italian',
+  en: 'English',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  zh: 'Chinese',
+};
+
+function languageInstruction(langCode: string): string {
+  const name = LANGUAGE_NAMES[langCode] || langCode;
+  return (
+    `\nOutput language: ${name} (${langCode})\n` +
+    `You MUST write ALL generated content strictly in ${name}. ` +
+    `If source excerpts are in a different language, translate them accurately into ${name} ` +
+    `while preserving technical terms, acronyms, and proper nouns.`
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Pass 1 — Documents mode: LLM-based matching
 // ---------------------------------------------------------------------------
 
@@ -393,6 +456,7 @@ async function generateSectionContent(
   requirements: RequirementInput[],
   matches: Map<string, MatchEntry[]>,
   assignedReqIds: string[],
+  outputLanguage?: string,
 ): Promise<string> {
   const systemPrompt = await loadPrompt('pass2-combining-system.md');
 
@@ -412,9 +476,13 @@ async function generateSectionContent(
     return `*No requirements were mapped to this section.*\n`;
   }
 
-  const userMsg =
+  let userMsg =
     `Section: ${section.number} ${section.title}\n\n` +
     `Requirements and their matched offer excerpts:\n${JSON.stringify(reqsWithMatches, null, 1)}`;
+
+  if (outputLanguage) {
+    userMsg += languageInstruction(outputLanguage);
+  }
 
   const raw = await llm.generateTextWithMessages({
     tier: 'regular',
@@ -460,6 +528,7 @@ async function runPipeline(
   offerDocuments: string[],
   guidanceStructure: string,
   source: 'documents' | 'rag',
+  outputLanguage?: string,
   onProgress?: ProgressCallback,
 ): Promise<string> {
   const report = async (progress: number, total: number, message: string) => {
@@ -505,7 +574,7 @@ async function runPipeline(
     await report(i + 1, sections.length + 1, `Generating section ${i + 1}/${sections.length}: ${section.title}`);
 
     const assignedReqIds = sectionMapping[section.number] ?? [];
-    const content = await generateSectionContent(llm, section, requirements, allMatches, assignedReqIds);
+    const content = await generateSectionContent(llm, section, requirements, allMatches, assignedReqIds, outputLanguage);
     sectionContents.set(section.number, content);
   }
 
@@ -573,8 +642,30 @@ const tools: McpTool[] = [
             '"documents": parse offer files with LiteParse (cached in <project>/parsed-documents/). ' +
             '"rag": query the RAG index, filtered to the specified offer_documents (documents must be pre-indexed).',
         },
+        output_language: {
+          type: 'string',
+          description:
+            'ISO 639-1 language code for the generated output (e.g. "it", "en"). ' +
+            'All generated content will be written in this language. Default: "it" (Italian).',
+        },
       },
       required: ['requirements', 'offer_documents', 'guidance_structure', 'source'],
+    },
+  },
+  {
+    name: 'extract_document_headings',
+    description:
+      'Extract top-level section headings from a document (PDF or DOCX). ' +
+      'Returns a JSON array of { number, title } objects representing the first-level heading structure.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        document_path: {
+          type: 'string',
+          description: 'Path to the document, relative to the workspace root (e.g. "my-project/previous-offers/Offer.docx").',
+        },
+      },
+      required: ['document_path'],
     },
   },
 ];
@@ -587,6 +678,7 @@ export function createRequirementsMatcherToolsService(llmService: LlmService, ra
         const offerDocuments: string[] = args.offer_documents ?? [];
         const guidanceStructure: string = args.guidance_structure ?? '';
         const source: 'documents' | 'rag' = args.source === 'rag' ? 'rag' : 'documents';
+        const outputLanguage: string | undefined = args.output_language || undefined;
 
         if (!requirements.length) throw new Error('requirements array is empty');
         if (!offerDocuments.length) throw new Error('offer_documents array is empty');
@@ -599,8 +691,16 @@ export function createRequirementsMatcherToolsService(llmService: LlmService, ra
           offerDocuments,
           guidanceStructure,
           source,
+          outputLanguage,
           onProgress,
         );
+      }
+
+      case 'extract_document_headings': {
+        const documentPath: string = args.document_path ?? '';
+        if (!documentPath.trim()) throw new Error('document_path is empty');
+
+        return await extractDocumentHeadings(llmService, documentPath, onProgress);
       }
 
       default:

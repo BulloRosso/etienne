@@ -16,15 +16,21 @@ import {
   Button,
   Chip,
   Checkbox,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControl,
   IconButton,
   LinearProgress,
+  MenuItem,
+  Radio,
+  Select,
   Tab,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
@@ -83,8 +89,16 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
   const splitDragging = useRef(false);
   const splitContainerRef = useRef(null);
 
-  // Output structure
+  // Template document (selected from offer docs, must be .docx)
+  const [templateDocPath, setTemplateDocPath] = useState(null);
+  const [templateHeadings, setTemplateHeadings] = useState([]); // [{ number, title, selected }]
+  const [extractingHeadings, setExtractingHeadings] = useState(false);
+
+  // Output structure (used when no template is selected)
   const [guidanceStructure, setGuidanceStructure] = useState(DEFAULT_GUIDANCE_STRUCTURE);
+
+  // Output language
+  const [outputLanguage, setOutputLanguage] = useState('it');
 
   // Generation state
   const [generating, setGenerating] = useState(false);
@@ -104,7 +118,11 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
     if (!open || !projectName) return;
     loadRequirements();
     loadOfferDocuments();
-    // Reset generation state
+    // Reset state
+    setTemplateDocPath(null);
+    setTemplateHeadings([]);
+    setExtractingHeadings(false);
+    setOutputLanguage('it');
     setGenerating(false);
     setProgress(null);
     setGeneratedContent('');
@@ -259,8 +277,79 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
     );
   }, []);
 
+  /**
+   * Toggle a document as the template (radio behavior — only one at a time).
+   * Only .docx files can be templates. Triggers heading extraction.
+   */
+  const toggleTemplate = useCallback(async (docPath) => {
+    if (templateDocPath === docPath) {
+      // Deselect template
+      setTemplateDocPath(null);
+      setTemplateHeadings([]);
+      return;
+    }
+    setTemplateDocPath(docPath);
+    setTemplateHeadings([]);
+    setExtractingHeadings(true);
+
+    try {
+      const mcpUrl = new URL('/mcp/requirements-matcher', window.location.origin);
+      const transport = new StreamableHTTPClientTransport(mcpUrl, {
+        requestInit: { headers: { Authorization: 'test123' } },
+      });
+      const client = new Client(
+        { name: 'heading-extractor', version: '1.0.0' },
+        { capabilities: {} },
+      );
+      await client.connect(transport);
+
+      const result = await client.callTool(
+        {
+          name: 'extract_document_headings',
+          arguments: { document_path: `${projectName}/${docPath}` },
+        },
+        undefined,
+        { timeout: 5 * 60 * 1000 },
+      );
+
+      const textContent = result.content?.find((c) => c.type === 'text');
+      if (textContent) {
+        let headings = textContent.text;
+        try { headings = JSON.parse(headings); } catch { /* already parsed */ }
+        if (Array.isArray(headings)) {
+          setTemplateHeadings(headings.map((h) => ({ ...h, selected: true })));
+        }
+      }
+
+      try { await client.close(); } catch { /* ignore */ }
+    } catch (err) {
+      console.error('Failed to extract headings:', err);
+      setTemplateHeadings([]);
+    } finally {
+      setExtractingHeadings(false);
+    }
+  }, [templateDocPath, projectName]);
+
+  const toggleHeadingSelection = useCallback((idx) => {
+    setTemplateHeadings((prev) =>
+      prev.map((h, i) => (i === idx ? { ...h, selected: !h.selected } : h)),
+    );
+  }, []);
+
   const selectedDocs = offerDocs.filter((d) => d.selected);
-  const canGenerate = requirements.length > 0 && selectedDocs.length > 0 && guidanceStructure.trim();
+  const hasTemplate = !!templateDocPath;
+  const selectedHeadings = templateHeadings.filter((h) => h.selected);
+
+  // Build effective guidance structure from template headings or manual editor
+  const effectiveGuidanceStructure = hasTemplate
+    ? selectedHeadings.map((h) => `${h.number} ${h.title}`).join('\n')
+    : guidanceStructure;
+
+  const canGenerate =
+    requirements.length > 0 &&
+    selectedDocs.length > 0 &&
+    effectiveGuidanceStructure.trim() &&
+    (!hasTemplate || selectedHeadings.length > 0);
 
   // Drag-to-resize handler for Requirements tab split
   const handleSplitDragStart = useCallback((e) => {
@@ -326,8 +415,9 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
           arguments: {
             requirements: reqArgs,
             offer_documents: docPaths,
-            guidance_structure: guidanceStructure,
+            guidance_structure: effectiveGuidanceStructure,
             source: 'documents',
+            output_language: outputLanguage,
           },
         },
         undefined,
@@ -407,10 +497,23 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
       });
     } catch { /* folder may already exist */ }
     try {
-      await apiAxios.post(
-        `/api/workspace/${projectName}/files/export-docx/${filepath}`,
-        { content: generatedContent },
-      );
+      if (hasTemplate) {
+        // Template-based export: selectively replace sections in the template DOCX
+        await apiAxios.post(
+          `/api/workspace/${projectName}/files/export-docx-template/${filepath}`,
+          {
+            content: generatedContent,
+            templatePath: templateDocPath,
+            selectedSections: selectedHeadings.map((h) => ({ number: h.number, title: h.title })),
+          },
+        );
+      } else {
+        // Default export via LibreOffice
+        await apiAxios.post(
+          `/api/workspace/${projectName}/files/export-docx/${filepath}`,
+          { content: generatedContent },
+        );
+      }
       setExportDialog({ open: false, filename: '' });
     } catch (err) {
       console.error('Export failed:', err);
@@ -543,6 +646,18 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Offer Documents
               </Typography>
+              {/* Column headers */}
+              {!loadingDocs && !offerDocsError && offerDocs.length > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5, mb: 0.5 }}>
+                  <Box sx={{ width: 28, textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Source</Typography>
+                  </Box>
+                  <Box sx={{ width: 28, textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Template</Typography>
+                  </Box>
+                  <Box sx={{ flex: 1 }} />
+                </Box>
+              )}
               {loadingDocs ? (
                 <Typography variant="body2" color="text.secondary">Loading...</Typography>
               ) : offerDocsError ? (
@@ -550,28 +665,50 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                   {offerDocsError}
                 </Typography>
               ) : (
-                offerDocs.map((doc, idx) => (
-                  <Box
-                    key={doc.path}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      py: 0.5,
-                      cursor: 'pointer',
-                      '&:hover': { bgcolor: 'action.hover' },
-                      borderRadius: 1,
-                      px: 0.5,
-                    }}
-                    onClick={() => toggleDocSelection(idx)}
-                  >
-                    <Checkbox size="small" checked={doc.selected} sx={{ p: 0 }} />
-                    <i className={`codicon ${docIcon(doc.name)}`} style={{ fontSize: 14 }} />
-                    <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                      {doc.name}
-                    </Typography>
-                  </Box>
-                ))
+                offerDocs.map((doc, idx) => {
+                  const isDocx = doc.name.toLowerCase().endsWith('.docx');
+                  const isTemplate = templateDocPath === doc.path;
+                  return (
+                    <Box
+                      key={doc.path}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        py: 0.5,
+                        borderRadius: 1,
+                        px: 0.5,
+                        bgcolor: isTemplate ? 'action.selected' : 'transparent',
+                        '&:hover': { bgcolor: isTemplate ? 'action.selected' : 'action.hover' },
+                      }}
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={doc.selected}
+                        onClick={() => toggleDocSelection(idx)}
+                        sx={{ p: 0 }}
+                      />
+                      <Tooltip title={isDocx ? (isTemplate ? 'Remove as template' : 'Use as template') : 'Only .docx files can be used as template'}>
+                        <span>
+                          <Radio
+                            size="small"
+                            checked={isTemplate}
+                            disabled={!isDocx || extractingHeadings}
+                            onClick={() => isDocx && toggleTemplate(doc.path)}
+                            sx={{ p: 0 }}
+                          />
+                        </span>
+                      </Tooltip>
+                      <i className={`codicon ${docIcon(doc.name)}`} style={{ fontSize: 14 }} />
+                      <Typography variant="body2" sx={{ fontSize: '0.8rem', flex: 1, cursor: 'pointer' }} onClick={() => toggleDocSelection(idx)}>
+                        {doc.name}
+                      </Typography>
+                      {isTemplate && extractingHeadings && (
+                        <CircularProgress size={14} />
+                      )}
+                    </Box>
+                  );
+                })
               )}
             </Box>
           </Box>
@@ -579,22 +716,71 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
 
         {/* ── Tab 1: Output Structure ── */}
         {activeTab === 1 && (
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            <Editor
-              height="100%"
-              language="markdown"
-              theme="light"
-              value={guidanceStructure}
-              onChange={(value) => setGuidanceStructure(value || '')}
-              options={{
-                minimap: { enabled: false },
-                wordWrap: 'on',
-                fontSize: 13,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-              }}
-            />
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            {hasTemplate ? (
+              /* Template mode: heading checklist */
+              <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Select which sections of the template to fill with generated content.
+                  Unchecked sections will be preserved from the template document.
+                </Typography>
+                {extractingHeadings ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 2 }}>
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="text.secondary">Extracting headings from template...</Typography>
+                  </Box>
+                ) : templateHeadings.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    No headings found in the template document.
+                  </Typography>
+                ) : (
+                  templateHeadings.map((heading, idx) => (
+                    <Box
+                      key={`${heading.number}-${idx}`}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        py: 0.75,
+                        px: 1,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                        bgcolor: heading.selected ? 'rgba(25, 118, 210, 0.04)' : 'transparent',
+                      }}
+                      onClick={() => toggleHeadingSelection(idx)}
+                    >
+                      <Checkbox size="small" checked={heading.selected} sx={{ p: 0 }} />
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {heading.number}
+                      </Typography>
+                      <Typography variant="body1">
+                        {heading.title}
+                      </Typography>
+                    </Box>
+                  ))
+                )}
+              </Box>
+            ) : (
+              /* No template: Monaco editor for manual guidance structure */
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <Editor
+                  height="100%"
+                  language="markdown"
+                  theme="light"
+                  value={guidanceStructure}
+                  onChange={(value) => setGuidanceStructure(value || '')}
+                  options={{
+                    minimap: { enabled: false },
+                    wordWrap: 'on',
+                    fontSize: 13,
+                    lineNumbers: 'on',
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
+                />
+              </Box>
+            )}
           </Box>
         )}
 
@@ -670,7 +856,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                   onClick={() => setExportDialog({ open: true, filename: '' })}
                   disabled={saving}
                 >
-                  Export as Word
+                  {hasTemplate ? 'Export as Word (template)' : 'Export as Word'}
                 </Button>
               </Box>
             )}
@@ -682,6 +868,18 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
         <Button onClick={onClose} disabled={generating}>
           Close
         </Button>
+        <Box sx={{ flex: 1 }} />
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <Select
+            value={outputLanguage}
+            onChange={(e) => setOutputLanguage(e.target.value)}
+            disabled={generating}
+            sx={{ fontSize: '0.8rem', height: 36 }}
+          >
+            <MenuItem value="it">Italiano</MenuItem>
+            <MenuItem value="en">English</MenuItem>
+          </Select>
+        </FormControl>
         <Button
           variant="contained"
           onClick={handleGenerate}

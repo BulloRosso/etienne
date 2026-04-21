@@ -14,15 +14,32 @@ export class ContentManagementController {
   ) {}
 
   @Public()
+  @Get(':project/preview-docx/*')
+  async previewDocx(
+    @Param('project') project: string,
+    @Param('0') filepath: string,
+    @Res() res: Response,
+  ) {
+    const { content, mimeType } = await this.contentManagementService.convertDocxToPdf(project, filepath);
+    res.setHeader('Content-Type', mimeType);
+    res.send(content);
+  }
+
+  @Public()
   @Get(':project/files/*')
   async getFile(
     @Param('project') project: string,
     @Param('0') filepath: string,
+    @Query('download') download: string,
     @Res() res: Response,
   ) {
     const { content, mimeType } = await this.contentManagementService.getFileContent(project, filepath);
 
     res.setHeader('Content-Type', mimeType);
+    if (download) {
+      const filename = filepath.split('/').pop();
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    }
     res.send(content);
   }
 
@@ -118,6 +135,26 @@ export class ContentManagementController {
   }
 
   @Roles('user')
+  @Post(':project/files/export-docx-template/*')
+  async exportDocxWithTemplate(
+    @Param('project') project: string,
+    @Param('0') filepath: string,
+    @Body() body: {
+      content: string;
+      templatePath: string;
+      selectedSections: { number: string; title: string }[];
+    },
+  ) {
+    return await this.contentManagementService.exportMarkdownToDocxWithTemplate(
+      project,
+      filepath,
+      body.content,
+      body.templatePath,
+      body.selectedSections,
+    );
+  }
+
+  @Roles('user')
   @Post(':project/files/create-folder')
   async createFolder(
     @Param('project') project: string,
@@ -162,6 +199,18 @@ export class ContentManagementController {
   @Get('projects-with-ui')
   async getProjectsWithUI() {
     return await this.contentManagementService.listProjectsWithUIConfig();
+  }
+
+  @Roles('user')
+  @Post('copy-between-projects')
+  async copyBetweenProjects(
+    @Body() body: { sourceProject: string; paths: string[]; destinationProject: string }
+  ) {
+    return await this.contentManagementService.copyBetweenProjects(
+      body.sourceProject,
+      body.paths,
+      body.destinationProject,
+    );
   }
 
   @Get(':project/project-history')

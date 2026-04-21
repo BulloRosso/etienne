@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { MdOutlineFileDownload } from "react-icons/md";
 import {
   Box,
   Button,
@@ -26,6 +27,8 @@ import {
   Tooltip,
   Chip,
   Autocomplete,
+  Radio,
+  RadioGroup,
 } from '@mui/material';
 import '@vscode/codicons/dist/codicon.css';
 import { apiAxios } from '../services/api';
@@ -73,6 +76,14 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, row: null, filePath: '' });
   const [offerGeneratorOpen, setOfferGeneratorOpen] = useState(false);
+
+  // ── Copy-to-project selection mode ──
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPaths, setSelectedPaths] = useState(new Set());
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [availableProjects, setAvailableProjects] = useState([]);
+  const [destinationProject, setDestinationProject] = useState('');
+  const [copying, setCopying] = useState(false);
 
   // ── Release comments (compliance) ──
   const [releaseComments, setReleaseComments] = useState({});
@@ -187,6 +198,21 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const handlePreviewClick = () => {
     if (contextMenu?.row && contextMenu.row.type !== 'folder') {
       filePreviewHandler.handlePreview(contextMenu.row.path, projectName);
+    }
+    handleCloseContextMenu();
+  };
+
+  // ── Download ──
+  const handleDownloadClick = () => {
+    if (contextMenu?.row && contextMenu.row.type !== 'folder') {
+      const filePath = contextMenu.row.path;
+      const url = `/api/workspace/${projectName}/files/${filePath}?download=1`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filePath.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
     handleCloseContextMenu();
   };
@@ -474,6 +500,59 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
   const handleDropToRoot = (e) => handleDropExternal(e, null);
 
+  // ── Copy-to-project selection mode ──
+  const handleToggleSelection = useCallback((path) => {
+    setSelectedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }, []);
+
+  const handleEnterSelectionMode = () => {
+    if (isGuest) return;
+    setSelectionMode(true);
+    setSelectedPaths(new Set());
+  };
+
+  const handleCancelSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedPaths(new Set());
+  };
+
+  const handleOpenCopyDialog = async () => {
+    try {
+      const response = await apiAxios.get('/api/claude/listProjects');
+      const projects = (response.data.projects || [])
+        .filter((p) => !p.startsWith('.') && p !== projectName);
+      setAvailableProjects(projects);
+      setDestinationProject('');
+      setCopyDialogOpen(true);
+    } catch (err) {
+      setError(t('filesystem.errorLoadProjectsFailed', { message: err.message }));
+    }
+  };
+
+  const handleCopyConfirm = async () => {
+    if (!destinationProject || selectedPaths.size === 0) return;
+    setCopying(true);
+    try {
+      await apiAxios.post('/api/workspace/copy-between-projects', {
+        sourceProject: projectName,
+        paths: [...selectedPaths],
+        destinationProject,
+      });
+      setCopyDialogOpen(false);
+      setSelectionMode(false);
+      setSelectedPaths(new Set());
+    } catch (err) {
+      setError(t('filesystem.errorCopyFailed', { message: err.response?.data?.message || err.message }));
+    } finally {
+      setCopying(false);
+    }
+  };
+
   // ── Loading state ──
   if (loading) {
     return (
@@ -533,7 +612,10 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         releaseComments={releaseComments}
         indexedPaths={indexedPaths}
         isGuest={isGuest}
+        selectionMode={selectionMode}
+        selectedPaths={selectedPaths}
         onToggleExpand={handleToggleExpand}
+        onToggleSelection={handleToggleSelection}
         onContextMenu={handleContextMenu}
         onDrop={handleDrop}
         onDropExternal={handleDropExternal}
@@ -542,7 +624,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
 
       {/* ── Toolbar ── */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-        {isAdmin && (
+        {!selectionMode && isAdmin && (
           <FormControlLabel
             control={
               <Checkbox
@@ -554,35 +636,61 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             sx={{ ml: 2 }}
           />
         )}
-        {!isAdmin && <Box />}
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title={isGuest ? t('filesystem.uploadGuestTooltip') : t('common.upload')}>
-            <span>
-              <IconButton
-                onClick={() => {
-                  if (isGuest) return;
-                  fileInputRef.current.targetRow = null;
-                  fileInputRef.current.click();
-                }}
-                disabled={isGuest}
-              >
-                <i className="codicon codicon-cloud-upload" style={{ fontSize: 20 }} />
+        {!selectionMode && !isAdmin && <Box />}
+        {selectionMode ? (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 'auto' }}>
+            <Typography variant="body2" sx={{ mr: 1 }}>
+              {t('filesystem.selectedCount', { count: selectedPaths.size })}
+            </Typography>
+            <Button onClick={handleCancelSelectionMode} size="small">
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleOpenCopyDialog}
+              variant="contained"
+              size="small"
+              disabled={selectedPaths.size === 0}
+            >
+              {t('filesystem.copyToButton')}
+            </Button>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title={isGuest ? t('filesystem.copyToProjectGuestTooltip') : t('filesystem.copyToProject')}>
+              <span>
+                <IconButton onClick={handleEnterSelectionMode} disabled={isGuest}>
+                  <i className="codicon codicon-files" style={{ fontSize: 20 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={isGuest ? t('filesystem.uploadGuestTooltip') : t('common.upload')}>
+              <span>
+                <IconButton
+                  onClick={() => {
+                    if (isGuest) return;
+                    fileInputRef.current.targetRow = null;
+                    fileInputRef.current.click();
+                  }}
+                  disabled={isGuest}
+                >
+                  <i className="codicon codicon-cloud-upload" style={{ fontSize: 20 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={isGuest ? t('filesystem.newFolderGuestTooltip') : t('filesystem.newFolder')}>
+              <span>
+                <IconButton onClick={handleNewFolderClick} disabled={isGuest}>
+                  <i className="codicon codicon-new-folder" style={{ fontSize: 20 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={t('common.refresh')}>
+              <IconButton onClick={loadFilesystem}>
+                <i className="codicon codicon-refresh" style={{ fontSize: 20 }} />
               </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title={isGuest ? t('filesystem.newFolderGuestTooltip') : t('filesystem.newFolder')}>
-            <span>
-              <IconButton onClick={handleNewFolderClick} disabled={isGuest}>
-                <i className="codicon codicon-new-folder" style={{ fontSize: 20 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title={t('common.refresh')}>
-            <IconButton onClick={loadFilesystem}>
-              <i className="codicon codicon-refresh" style={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
+            </Tooltip>
+          </Box>
+        )}
       </Box>
 
       {/* Hidden file input for uploads */}
@@ -651,6 +759,12 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
           <i className="codicon codicon-tag" style={{ fontSize: 16, marginRight: 8 }} />
           {t('filesystem.manageTags')}
         </MenuItem>
+        {contextMenu?.row?.type !== 'folder' && (
+          <MenuItem onClick={handleDownloadClick}>
+            <MdOutlineFileDownload style={{ fontSize: 18, marginRight: 8 }} />
+            {t('filesystem.download')}
+          </MenuItem>
+        )}
       </Menu>
 
       {/* ── Rename Dialog ── */}
@@ -744,6 +858,32 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         onClose={() => setOfferGeneratorOpen(false)}
         projectName={projectName}
       />
+
+      {/* ── Copy to Project Dialog ── */}
+      <Dialog open={copyDialogOpen} onClose={() => setCopyDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('filesystem.copyToProjectTitle')}</DialogTitle>
+        <DialogContent>
+          {availableProjects.length === 0 ? (
+            <Typography color="text.secondary">{t('filesystem.noOtherProjects')}</Typography>
+          ) : (
+            <RadioGroup value={destinationProject} onChange={(e) => setDestinationProject(e.target.value)}>
+              {availableProjects.map((proj) => (
+                <FormControlLabel key={proj} value={proj} control={<Radio />} label={proj} />
+              ))}
+            </RadioGroup>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCopyDialogOpen(false)}>{t('common.cancel')}</Button>
+          <Button
+            onClick={handleCopyConfirm}
+            variant="contained"
+            disabled={!destinationProject || copying}
+          >
+            {copying ? t('filesystem.copying') : t('common.copy')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

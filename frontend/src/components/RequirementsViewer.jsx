@@ -497,7 +497,7 @@ export default function RequirementsViewer({ filename, projectName }) {
       </Box>
 
       {/* Tab content */}
-      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: activeTab === 1 ? 'hidden' : 'auto', p: 2 }}>
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: (activeTab === 1 || activeTab === 2) ? 'hidden' : 'auto', p: 2 }}>
         {/* Summary tab */}
         {activeTab === 0 && (
           <Box>
@@ -991,12 +991,31 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
 }
 
 /**
- * Quality Analysis tab content — shows duplicates, contradictions, and gaps.
+ * Quality Analysis tab content — shows duplicates, contradictions, and gaps
+ * with a left-side section navigation.
  */
 function QualityAnalysisPane({ qualityAnalysis, requirements }) {
   const duplicates = qualityAnalysis.duplicates || [];
   const contradictions = qualityAnalysis.contradictions || [];
   const gaps = qualityAnalysis.gaps || [];
+
+  // Refs for scrolling to sections
+  const duplicatesRef = useRef(null);
+  const contradictionsRef = useRef(null);
+  const gapsRef = useRef(null);
+
+  const [activeSection, setActiveSection] = useState('duplicates');
+
+  const sections = [
+    { key: 'duplicates', label: 'Duplicates', count: duplicates.length, icon: <DuplicateIcon fontSize="small" color="warning" />, ref: duplicatesRef },
+    { key: 'contradictions', label: 'Contradictions', count: contradictions.length, icon: <ErrorIcon fontSize="small" color="error" />, ref: contradictionsRef },
+    { key: 'gaps', label: 'Gaps', count: gaps.length, icon: <WarningIcon fontSize="small" color="info" />, ref: gapsRef },
+  ];
+
+  const handleNavClick = (key, ref) => {
+    setActiveSection(key);
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // Helper to look up requirement text by ID
   const reqById = {};
@@ -1005,130 +1024,175 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
   }
 
   return (
-    <Box>
-      {/* Duplicates */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <DuplicateIcon fontSize="small" color="warning" />
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Duplicates
-          </Typography>
-          <Chip label={duplicates.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
-        </Box>
-        {duplicates.length > 0 ? (
-          duplicates.map((dup, i) => (
-            <Box
-              key={i}
-              sx={{
-                mb: 1.5,
-                p: 1.5,
-                borderRadius: 1,
-                border: 1,
-                borderColor: 'warning.main',
-                borderLeftWidth: 3,
-              }}
-            >
-              <Box sx={{ display: 'flex', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                {dup.ids.map((id) => (
-                  <Chip key={id} label={id} size="small" variant="outlined" sx={{ height: 22, fontSize: '0.75rem' }} />
-                ))}
-              </Box>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                {dup.reason}
-              </Typography>
-              {/* Show the referenced requirements */}
-              {dup.ids.map((id) => {
-                const r = reqById[id];
-                if (!r) return null;
-                return (
-                  <Typography key={id} variant="caption" sx={{ display: 'block', color: 'text.secondary', pl: 1, py: 0.25 }}>
-                    <strong>{id}:</strong> {r.ears_normalized}
-                  </Typography>
-                );
-              })}
-            </Box>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
-            No duplicates detected.
-          </Typography>
-        )}
+    <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      {/* Left navigation */}
+      <Box
+        sx={{
+          width: 200,
+          flexShrink: 0,
+          borderRight: 1,
+          borderColor: 'divider',
+          pr: 1,
+          mr: 2,
+          position: 'sticky',
+          top: 0,
+          alignSelf: 'flex-start',
+        }}
+      >
+        {sections.map((sec) => (
+          <Box
+            key={sec.key}
+            onClick={() => handleNavClick(sec.key, sec.ref)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.5,
+              py: 1,
+              mb: 0.5,
+              borderRadius: 1,
+              cursor: 'pointer',
+              bgcolor: activeSection === sec.key ? 'action.selected' : 'transparent',
+              '&:hover': {
+                bgcolor: activeSection === sec.key ? 'action.selected' : 'action.hover',
+              },
+            }}
+          >
+            {sec.icon}
+            <Typography variant="body2" sx={{ fontWeight: activeSection === sec.key ? 600 : 400, flex: 1 }}>
+              {sec.label}
+            </Typography>
+            <Chip label={sec.count} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
+          </Box>
+        ))}
       </Box>
 
-      {/* Contradictions */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <ErrorIcon fontSize="small" color="error" />
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Contradictions
-          </Typography>
-          <Chip label={contradictions.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
-        </Box>
-        {contradictions.length > 0 ? (
-          contradictions.map((c, i) => (
-            <Box
-              key={i}
-              sx={{
-                mb: 1.5,
-                p: 1.5,
-                borderRadius: 1,
-                border: 1,
-                borderColor: 'error.main',
-                borderLeftWidth: 3,
-              }}
-            >
-              {c.ids && (
+      {/* Right content */}
+      <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        {/* Duplicates */}
+        <Box ref={duplicatesRef} sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <DuplicateIcon fontSize="small" color="warning" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Duplicates
+            </Typography>
+            <Chip label={duplicates.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
+          </Box>
+          {duplicates.length > 0 ? (
+            duplicates.map((dup, i) => (
+              <Box
+                key={i}
+                sx={{
+                  mb: 1.5,
+                  p: 1.5,
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: 'warning.main',
+                  borderLeftWidth: 3,
+                }}
+              >
                 <Box sx={{ display: 'flex', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                  {c.ids.map((id) => (
+                  {dup.ids.map((id) => (
                     <Chip key={id} label={id} size="small" variant="outlined" sx={{ height: 22, fontSize: '0.75rem' }} />
                   ))}
                 </Box>
-              )}
-              <Typography variant="body2">{c.reason || c.text || JSON.stringify(c)}</Typography>
-            </Box>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
-            No contradictions detected.
-          </Typography>
-        )}
-      </Box>
-
-      {/* Gaps */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <WarningIcon fontSize="small" color="info" />
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Gaps
-          </Typography>
-          <Chip label={gaps.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  {dup.reason}
+                </Typography>
+                {/* Show the referenced requirements */}
+                {dup.ids.map((id) => {
+                  const r = reqById[id];
+                  if (!r) return null;
+                  return (
+                    <Typography key={id} variant="caption" sx={{ display: 'block', color: 'text.secondary', pl: 1, py: 0.25 }}>
+                      <strong>{id}:</strong> {r.ears_normalized}
+                    </Typography>
+                  );
+                })}
+              </Box>
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
+              No duplicates detected.
+            </Typography>
+          )}
         </Box>
-        {gaps.length > 0 ? (
-          gaps.map((gap, i) => (
-            <Box
-              key={i}
-              sx={{
-                mb: 1.5,
-                p: 1.5,
-                borderRadius: 1,
-                border: 1,
-                borderColor: 'info.main',
-                borderLeftWidth: 3,
-              }}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                {gap.area}
-              </Typography>
-              <Typography variant="body2">
-                {gap.explanation}
-              </Typography>
-            </Box>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
-            No gaps identified.
-          </Typography>
-        )}
+
+        {/* Contradictions */}
+        <Box ref={contradictionsRef} sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <ErrorIcon fontSize="small" color="error" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Contradictions
+            </Typography>
+            <Chip label={contradictions.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
+          </Box>
+          {contradictions.length > 0 ? (
+            contradictions.map((c, i) => (
+              <Box
+                key={i}
+                sx={{
+                  mb: 1.5,
+                  p: 1.5,
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: 'error.main',
+                  borderLeftWidth: 3,
+                }}
+              >
+                {c.ids && (
+                  <Box sx={{ display: 'flex', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+                    {c.ids.map((id) => (
+                      <Chip key={id} label={id} size="small" variant="outlined" sx={{ height: 22, fontSize: '0.75rem' }} />
+                    ))}
+                  </Box>
+                )}
+                <Typography variant="body2">{c.reason || c.text || JSON.stringify(c)}</Typography>
+              </Box>
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
+              No contradictions detected.
+            </Typography>
+          )}
+        </Box>
+
+        {/* Gaps */}
+        <Box ref={gapsRef} sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <WarningIcon fontSize="small" color="info" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Gaps
+            </Typography>
+            <Chip label={gaps.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
+          </Box>
+          {gaps.length > 0 ? (
+            gaps.map((gap, i) => (
+              <Box
+                key={i}
+                sx={{
+                  mb: 1.5,
+                  p: 1.5,
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: 'info.main',
+                  borderLeftWidth: 3,
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  {gap.area}
+                </Typography>
+                <Typography variant="body2">
+                  {gap.explanation}
+                </Typography>
+              </Box>
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
+              No gaps identified.
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Box>
   );

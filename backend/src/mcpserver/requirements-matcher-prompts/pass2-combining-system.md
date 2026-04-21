@@ -22,6 +22,6 @@ Output format:
 Rules:
 - Do not fabricate technical claims — only use information present in the provided excerpts
 - You may rephrase and restructure for flow, but do not alter the substance
-- If excerpts are in a language other than the guidance structure's language, keep the original language of the excerpts
+- You MUST write all output content in the language specified in the "Output language" field of the user message. If source excerpts are in a different language, translate them accurately into the target language while preserving technical terms, acronyms, and proper nouns. If no output language is specified, write in the same language as the majority of the excerpts.
 - Prioritize high-relevance matches over low-relevance ones
 - When multiple excerpts address the same requirement, choose the most complete and specific one, or merge them if they provide complementary details
