@@ -13,6 +13,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install LibreOffice for Office document conversion (used by @llamaindex/liteparse)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice-core \
+    libreoffice-writer \
+    libreoffice-calc \
+    libreoffice-impress \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create app directory
 WORKDIR /app
 

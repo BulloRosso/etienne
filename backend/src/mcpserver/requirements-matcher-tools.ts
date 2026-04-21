@@ -276,6 +276,15 @@ const LANGUAGE_NAMES: Record<string, string> = {
   zh: 'Chinese',
 };
 
+const NO_REQUIREMENTS_MESSAGE: Record<string, string> = {
+  en: '*No requirements were mapped to this section.*',
+  it: '*Nessun requisito \u00e8 stato associato a questa sezione.*',
+  de: '*Dieser Abschnitt wurden keine Anforderungen zugeordnet.*',
+  fr: "*Aucune exigence n'a \u00e9t\u00e9 associ\u00e9e \u00e0 cette section.*",
+  es: '*No se asignaron requisitos a esta secci\u00f3n.*',
+  zh: '*\u6ca1\u6709\u9700\u6c42\u88ab\u6620\u5c04\u5230\u6b64\u7ae0\u8282\u3002*',
+};
+
 function languageInstruction(langCode: string): string {
   const name = LANGUAGE_NAMES[langCode] || langCode;
   return (
@@ -473,7 +482,9 @@ async function generateSectionContent(
   }));
 
   if (!reqsWithMatches.length) {
-    return `*No requirements were mapped to this section.*\n`;
+    const msg = (outputLanguage && NO_REQUIREMENTS_MESSAGE[outputLanguage])
+      ?? NO_REQUIREMENTS_MESSAGE['en'];
+    return `${msg}\n`;
   }
 
   let userMsg =

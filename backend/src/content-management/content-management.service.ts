@@ -520,7 +520,11 @@ export class ContentManagementService {
 
     // --- Replace selected sections ---
     const replacedBody: string[] = [];
-    let preambleAdded = false;
+
+    // Always preserve preamble (title page, TOC, content before first heading)
+    if (sections.length > 0 && sections[0].preambleXml) {
+      replacedBody.push(sections[0].preambleXml);
+    }
 
     for (const section of sections) {
       const matched = matchSectionToSelected(section.headingText, selectedSections);
@@ -533,23 +537,10 @@ export class ContentManagementService {
           replacedBody.push(markdownBodyToOoxml(mdContent, headingStyleIds, listParagraphStyleId));
         }
       } else {
-        // Keep entire section as-is (preamble + heading + content)
-        if (!preambleAdded && section.preambleXml) {
-          replacedBody.push(section.preambleXml);
-          preambleAdded = true;
-        }
+        // Keep entire section as-is (heading + content)
         replacedBody.push(section.headingXml);
         replacedBody.push(section.contentXml);
       }
-
-      if (!preambleAdded && !section.preambleXml) {
-        preambleAdded = true;
-      }
-    }
-
-    // Handle content before the first heading (preamble)
-    if (sections.length > 0 && sections[0].preambleXml && !preambleAdded) {
-      replacedBody.unshift(sections[0].preambleXml);
     }
 
     // Reassemble document.xml
@@ -557,6 +548,20 @@ export class ContentManagementService {
     const newDocXml = docXml.replace(/<w:body>[\s\S]*<\/w:body>/, newBody);
 
     zip.updateFile('word/document.xml', Buffer.from(newDocXml, 'utf-8'));
+
+    // Force TOC and other fields to refresh when the document is opened
+    const settingsEntry = zip.getEntry('word/settings.xml');
+    if (settingsEntry) {
+      let settingsXml = settingsEntry.getData().toString('utf-8');
+      if (!settingsXml.includes('<w:updateFields')) {
+        settingsXml = settingsXml.replace(
+          /(<w:settings[^>]*>)/,
+          '$1<w:updateFields w:val="true"/>',
+        );
+        zip.updateFile('word/settings.xml', Buffer.from(settingsXml, 'utf-8'));
+      }
+    }
+
     const outputBuffer = zip.toBuffer();
     await fs.writeFile(fullOutputPath, outputBuffer);
 
@@ -1012,82 +1017,53 @@ interface DocSection {
 
 /**
  * Split the body XML (without sectPr) into sections delimited by Heading 1 paragraphs.
+ * Uses positional string slicing to preserve ALL XML content (including <w:sdt> TOC
+ * wrappers, bookmarks, custom XML, etc.) rather than extracting individual elements.
  */
 function splitBodyBySections(bodyXml: string, heading1StyleId: string): DocSection[] {
   const sections: DocSection[] = [];
 
-  // Split into paragraphs and tables — top-level <w:p> and <w:tbl> elements
-  const elementPattern = /<w:(p|tbl)\b[\s\S]*?<\/w:\1>/g;
-  const elements: { xml: string; isHeading1: boolean; text: string }[] = [];
-  let elemMatch: RegExpExecArray | null;
+  // Find all Heading 1 paragraph positions by scanning <w:p> elements.
+  // <w:p> elements do not nest in OOXML, so the lazy quantifier is safe.
+  const pPattern = /<w:p\b[\s\S]*?<\/w:p>/g;
+  const h1Positions: { start: number; end: number; text: string }[] = [];
+  let pMatch: RegExpExecArray | null;
 
-  while ((elemMatch = elementPattern.exec(bodyXml)) !== null) {
-    const xml = elemMatch[0];
-    const isP = elemMatch[1] === 'p';
-
-    let isHeading1 = false;
-    let text = '';
-
-    if (isP) {
-      // Check if this paragraph uses the Heading 1 style
-      const styleMatch = xml.match(/<w:pStyle\s+w:val="([^"]*)"/);
-      if (styleMatch && styleMatch[1] === heading1StyleId) {
-        isHeading1 = true;
-      }
-      // Extract text content
+  while ((pMatch = pPattern.exec(bodyXml)) !== null) {
+    const xml = pMatch[0];
+    const styleMatch = xml.match(/<w:pStyle\s+w:val="([^"]*)"/);
+    if (styleMatch && styleMatch[1] === heading1StyleId) {
+      // Extract heading text
       const textParts: string[] = [];
       const tPattern = /<w:t[^>]*>([^<]*)<\/w:t>/g;
       let tMatch: RegExpExecArray | null;
       while ((tMatch = tPattern.exec(xml)) !== null) {
         textParts.push(tMatch[1]);
       }
-      text = textParts.join('');
-    }
-
-    elements.push({ xml, isHeading1, text });
-  }
-
-  // Group into sections
-  let preamble = '';
-  let currentHeadingXml = '';
-  let currentHeadingText = '';
-  let currentContent: string[] = [];
-  let foundFirstHeading = false;
-
-  for (const elem of elements) {
-    if (elem.isHeading1) {
-      if (foundFirstHeading) {
-        sections.push({
-          preambleXml: '',
-          headingXml: currentHeadingXml,
-          headingText: currentHeadingText,
-          contentXml: currentContent.join(''),
-        });
-      }
-      currentHeadingXml = elem.xml;
-      currentHeadingText = elem.text;
-      currentContent = [];
-      foundFirstHeading = true;
-    } else if (!foundFirstHeading) {
-      preamble += elem.xml;
-    } else {
-      currentContent.push(elem.xml);
+      h1Positions.push({
+        start: pMatch.index,
+        end: pMatch.index + xml.length,
+        text: textParts.join(''),
+      });
     }
   }
 
-  // Push the last section
-  if (foundFirstHeading) {
+  if (h1Positions.length === 0) {
+    return [];
+  }
+
+  // Preamble = everything before the first Heading 1 (title page, TOC, etc.)
+  const preamble = bodyXml.slice(0, h1Positions[0].start);
+
+  for (let i = 0; i < h1Positions.length; i++) {
+    const h1 = h1Positions[i];
+    const nextStart = i + 1 < h1Positions.length ? h1Positions[i + 1].start : bodyXml.length;
     sections.push({
-      preambleXml: '',
-      headingXml: currentHeadingXml,
-      headingText: currentHeadingText,
-      contentXml: currentContent.join(''),
+      preambleXml: i === 0 ? preamble : '',
+      headingXml: bodyXml.slice(h1.start, h1.end),
+      headingText: h1.text,
+      contentXml: bodyXml.slice(h1.end, nextStart),
     });
-  }
-
-  // Attach preamble to the first section
-  if (sections.length > 0) {
-    sections[0].preambleXml = preamble;
   }
 
   return sections;
@@ -1217,7 +1193,11 @@ function markdownBodyToOoxml(
     if (headingMatch) {
       const depth = headingMatch[1].length;
       const text = headingMatch[2].trim();
-      const styleId = headingStyles.get(depth) ?? headingStyles.get(2) ?? 'Heading2';
+      // Sub-headings are one level deeper in Markdown than their target template level
+      // because the parent ## heading was replaced by the template's Heading 1.
+      // So ### (depth 3) → Heading 2, #### (depth 4) → Heading 3, etc.
+      const templateLevel = Math.max(depth - 1, 2);
+      const styleId = headingStyles.get(templateLevel) ?? headingStyles.get(2) ?? 'Heading2';
       paragraphs.push(
         `<w:p><w:pPr><w:pStyle w:val="${styleId}"/></w:pPr>` +
         inlineToRuns(text) +
