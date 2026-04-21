@@ -36,6 +36,7 @@ import {
 import { Close as CloseIcon } from '@mui/icons-material';
 import { BsMagic } from 'react-icons/bs';
 import Editor from '@monaco-editor/react';
+import { useTranslation } from 'react-i18next';
 import { apiFetch, apiAxios } from '../services/api';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -73,6 +74,7 @@ const DEFAULT_GUIDANCE_STRUCTURE = `1. Executive Summary
 8.2 Reference Projects`;
 
 export default function OfferGeneratorModal({ open, onClose, projectName }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(0);
 
   // Requirements state
@@ -227,12 +229,12 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
       findDocsInFolder(tree, 'previous-offers', docs);
 
       if (docs.length === 0) {
-        setOfferDocsError('Please upload some documents to the previous-offers directory');
+        setOfferDocsError(t('offerGenerator.documents.uploadHint'));
       }
       setOfferDocs(docs.map((d) => ({ ...d, selected: true })));
     } catch (err) {
       console.error('Failed to load offer documents:', err);
-      setOfferDocsError('Please upload some documents to the previous-offers directory');
+      setOfferDocsError(t('offerGenerator.documents.uploadHint'));
       setOfferDocs([]);
     } finally {
       setLoadingDocs(false);
@@ -438,11 +440,11 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
         try { content = JSON.parse(content); } catch { /* already plain text */ }
         setGeneratedContent(content);
       } else {
-        setGeneratedContent('No content was generated.');
+        setGeneratedContent(t('offerGenerator.generate.noContent'));
       }
     } catch (err) {
       console.error('Generation failed:', err);
-      setGenerationError(err.message || 'Generation failed');
+      setGenerationError(err.message || t('offerGenerator.generate.failed'));
     } finally {
       setGenerating(false);
       if (mcpClientRef.current) {
@@ -475,7 +477,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
       setSaveDialog({ open: false, filename: '' });
     } catch (err) {
       console.error('Save failed:', err);
-      setGenerationError(`Save failed: ${err.response?.data?.message || err.message}`);
+      setGenerationError(t('offerGenerator.save.failed', { message: err.response?.data?.message || err.message }));
     } finally {
       setSaving(false);
     }
@@ -517,7 +519,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
       setExportDialog({ open: false, filename: '' });
     } catch (err) {
       console.error('Export failed:', err);
-      setGenerationError(`Export failed: ${err.response?.data?.message || err.message}`);
+      setGenerationError(t('offerGenerator.export.failed', { message: err.response?.data?.message || err.message }));
     } finally {
       setSaving(false);
     }
@@ -543,7 +545,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
     >
       <DialogTitle sx={{ pb: 0 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" component="span">Generate Offer Paragraphs</Typography>
+          <Typography variant="h6" component="span">{t('offerGenerator.title')}</Typography>
           <IconButton onClick={onClose} disabled={generating} size="small">
             <CloseIcon />
           </IconButton>
@@ -551,9 +553,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 1, mb: '20px', bgcolor: '#e3f2fd', borderRadius: 1, px: '20px', py: '20px' }}>
           <BsMagic style={{ fontSize: 21, color: '#1976d2', flexShrink: 0, marginTop: 2 }} />
           <Typography variant="body2" color="text.secondary">
-            Craft a compelling offer response by matching your selected requirements against previous winning proposals.
-            The AI will identify the most relevant paragraphs from your offer library and weave them into a coherent document that follows your output structure.
-            Fine-tune the guidance outline on the next tab, then sit back and let the magic happen.
+            {t('offerGenerator.description')}
           </Typography>
         </Box>
       </DialogTitle>
@@ -565,9 +565,9 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
           onChange={(_, v) => setActiveTab(v)}
           sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5, textTransform: 'none' } }}
         >
-          <Tab label="Input Content" />
-          <Tab label="Output Structure" />
-          <Tab label="Generated Content" />
+          <Tab label={t('offerGenerator.tab.inputContent')} />
+          <Tab label={t('offerGenerator.tab.outputStructure')} />
+          <Tab label={t('offerGenerator.tab.generatedContent')} />
         </Tabs>
       </Box>
 
@@ -578,13 +578,13 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
             {/* Left: Requirements list */}
             <Box sx={{ width: `${splitPct}%`, overflow: 'auto', p: 2, flexShrink: 0 }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Selected Requirements ({requirements.length})
+                {t('offerGenerator.requirements.title', { count: requirements.length })}
               </Typography>
               {loadingReqs ? (
-                <Typography variant="body2" color="text.secondary">Loading requirements...</Typography>
+                <Typography variant="body2" color="text.secondary">{t('offerGenerator.requirements.loading')}</Typography>
               ) : requirements.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                  No requirements selected. Select requirements in the Requirements Viewer first.
+                  {t('offerGenerator.requirements.empty')}
                 </Typography>
               ) : (
                 requirements.map((req) => (
@@ -613,7 +613,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                       )}
                     </Box>
                     <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                      {req.ears_normalized || req.original_text || '(no text)'}
+                      {req.ears_normalized || req.original_text || t('offerGenerator.requirements.noText')}
                     </Typography>
                   </Box>
                 ))
@@ -644,22 +644,22 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
             {/* Right: Offer documents */}
             <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto', p: 2, borderLeft: 1, borderColor: 'divider' }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Offer Documents
+                {t('offerGenerator.documents.title')}
               </Typography>
               {/* Column headers */}
               {!loadingDocs && !offerDocsError && offerDocs.length > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5, mb: 0.5 }}>
                   <Box sx={{ width: 28, textAlign: 'center' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Source</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{t('offerGenerator.documents.columnSource')}</Typography>
                   </Box>
                   <Box sx={{ width: 28, textAlign: 'center' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Template</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{t('offerGenerator.documents.columnTemplate')}</Typography>
                   </Box>
                   <Box sx={{ flex: 1 }} />
                 </Box>
               )}
               {loadingDocs ? (
-                <Typography variant="body2" color="text.secondary">Loading...</Typography>
+                <Typography variant="body2" color="text.secondary">{t('common.loading')}</Typography>
               ) : offerDocsError ? (
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                   {offerDocsError}
@@ -688,7 +688,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                         onClick={() => toggleDocSelection(idx)}
                         sx={{ p: 0 }}
                       />
-                      <Tooltip title={isDocx ? (isTemplate ? 'Remove as template' : 'Use as template') : 'Only .docx files can be used as template'}>
+                      <Tooltip title={isDocx ? (isTemplate ? t('offerGenerator.documents.removeAsTemplate') : t('offerGenerator.documents.useAsTemplate')) : t('offerGenerator.documents.templateOnlyDocx')}>
                         <span>
                           <Radio
                             size="small"
@@ -721,17 +721,16 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
               /* Template mode: heading checklist */
               <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Select which sections of the template to fill with generated content.
-                  Unchecked sections will be preserved from the template document.
+                  {t('offerGenerator.template.instruction')}
                 </Typography>
                 {extractingHeadings ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 2 }}>
                     <CircularProgress size={18} />
-                    <Typography variant="body2" color="text.secondary">Extracting headings from template...</Typography>
+                    <Typography variant="body2" color="text.secondary">{t('offerGenerator.template.extracting')}</Typography>
                   </Box>
                 ) : templateHeadings.length === 0 ? (
                   <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                    No headings found in the template document.
+                    {t('offerGenerator.template.noHeadings')}
                   </Typography>
                 ) : (
                   templateHeadings.map((heading, idx) => (
@@ -796,7 +795,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                   sx={{ height: 8, borderRadius: 4, mb: 1 }}
                 />
                 <Typography variant="body2" color="text.secondary">
-                  {progress?.message || 'Initializing...'}{progress?.total ? ` — ${pct}%` : ''}
+                  {progress?.message || t('offerGenerator.generate.initializing')}{progress?.total ? ` — ${pct}%` : ''}
                 </Typography>
               </Box>
             )}
@@ -814,7 +813,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
             {!generating && !generationError && !generatedContent && (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                  Click "Generate Response" to start generating content.
+                  {t('offerGenerator.generate.empty')}
                 </Typography>
               </Box>
             )}
@@ -849,7 +848,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                   onClick={() => setSaveDialog({ open: true, filename: '' })}
                   disabled={saving}
                 >
-                  Save as Markdown
+                  {t('offerGenerator.action.saveMarkdown')}
                 </Button>
                 <Button
                   variant="outlined"
@@ -857,7 +856,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
                   onClick={() => setExportDialog({ open: true, filename: '' })}
                   disabled={saving}
                 >
-                  {hasTemplate ? 'Export as Word (template)' : 'Export as Word'}
+                  {hasTemplate ? t('offerGenerator.action.exportWordTemplate') : t('offerGenerator.action.exportWord')}
                 </Button>
               </Box>
             )}
@@ -867,7 +866,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
 
       <DialogActions sx={{ px: 3, py: 1.5 }}>
         <Button onClick={onClose} disabled={generating}>
-          Close
+          {t('common.close')}
         </Button>
         <Box sx={{ flex: 1 }} />
         <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -886,7 +885,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
           onClick={handleGenerate}
           disabled={!canGenerate || generating || !!offerDocsError}
         >
-          {generating ? 'Generating...' : 'Generate Response'}
+          {generating ? t('offerGenerator.generate.generating') : t('offerGenerator.generate.button')}
         </Button>
       </DialogActions>
 
@@ -897,16 +896,14 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>Save as Markdown</DialogTitle>
+        <DialogTitle>{t('offerGenerator.save.title')}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            File will be saved to <strong>out/created-snippets/</strong>
-          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }} dangerouslySetInnerHTML={{ __html: t('offerGenerator.save.description') }} />
           <TextField
             autoFocus
             fullWidth
-            label="Filename"
-            placeholder="my-response.md"
+            label={t('offerGenerator.save.filename')}
+            placeholder={t('offerGenerator.save.placeholder')}
             value={saveDialog.filename}
             onChange={(e) => setSaveDialog({ ...saveDialog, filename: e.target.value })}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSaveMarkdown(); }}
@@ -914,13 +911,13 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSaveDialog({ open: false, filename: '' })}>Cancel</Button>
+          <Button onClick={() => setSaveDialog({ open: false, filename: '' })}>{t('common.cancel')}</Button>
           <Button
             variant="contained"
             onClick={handleSaveMarkdown}
             disabled={!saveDialog.filename.trim() || saving}
           >
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? t('offerGenerator.save.saving') : t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -932,16 +929,14 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>Export as Word</DialogTitle>
+        <DialogTitle>{t('offerGenerator.export.title')}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            File will be exported to <strong>out/exported-snippets/</strong>
-          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }} dangerouslySetInnerHTML={{ __html: t('offerGenerator.export.description') }} />
           <TextField
             autoFocus
             fullWidth
-            label="Filename"
-            placeholder="my-response.docx"
+            label={t('offerGenerator.export.filename')}
+            placeholder={t('offerGenerator.export.placeholder')}
             value={exportDialog.filename}
             onChange={(e) => setExportDialog({ ...exportDialog, filename: e.target.value })}
             onKeyDown={(e) => { if (e.key === 'Enter') handleExportDocx(); }}
@@ -949,13 +944,13 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setExportDialog({ open: false, filename: '' })}>Cancel</Button>
+          <Button onClick={() => setExportDialog({ open: false, filename: '' })}>{t('common.cancel')}</Button>
           <Button
             variant="contained"
             onClick={handleExportDocx}
             disabled={!exportDialog.filename.trim() || saving}
           >
-            {saving ? 'Exporting...' : 'Export'}
+            {saving ? t('offerGenerator.export.exporting') : t('offerGenerator.export.button')}
           </Button>
         </DialogActions>
       </Dialog>
