@@ -1,9 +1,8 @@
 /**
  * Canonical shape for one MCP server entry.
  *
- * All providers (JSON / Azure API Center / Composio / AWS AgentCore) must
- * return entries that conform to this shape. Provider-specific metadata
- * lives in `metadata`.
+ * All providers (JSON / Azure API Center / Composio) must return entries that
+ * conform to this shape. Provider-specific metadata lives in `metadata`.
  *
  * Secret values MUST NOT be resolved at this layer. `headers` and `env` may
  * contain placeholders like `${env:FOO}` or `${kv:bar}` that are resolved
@@ -36,13 +35,7 @@ export interface McpServerEntry {
   env?: Record<string, string>;
 
   /** Which provider produced this entry. Useful for debugging and routing. */
-  providerId?: string;
-
-  /**
-   * Legacy field kept for backward compatibility with the frontend.
-   * Prefer `metadata.lifecycle === 'standard'` in new code.
-   */
-  isStandard?: boolean;
+  providerId: string;
 
   /**
    * Governance metadata. Providers fill what they have; consumers treat as
@@ -53,7 +46,7 @@ export interface McpServerEntry {
     environment?: string;
     /** E.g. `v1.0.0`. */
     version?: string;
-    /** E.g. `production`, `deprecated`, `standard`. From API Center lifecycle. */
+    /** E.g. `production`, `deprecated`. From API Center lifecycle. */
     lifecycle?: string;
     /** Owner team/person. */
     owner?: string;

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LlmService } from '../llm/llm.service';
-import { McpRegistryService } from '../mcp-registry/mcp-registry.service';
+import { McpRegistryService } from '../mcp-registry/core/mcp-registry.service';
 import { SkillsService } from '../skills/skills.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';

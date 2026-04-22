@@ -9,7 +9,7 @@ import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 import { LlmService } from '../llm/llm.service';
-import { McpRegistryService } from '../mcp-registry/mcp-registry.service';
+import { McpRegistryService } from '../mcp-registry/core/mcp-registry.service';
 
 @Injectable()
 export class ProjectsService {

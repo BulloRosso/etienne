@@ -1,0 +1,28 @@
+{
+  "name": "mcp-registry-providers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pluggable MCP registry providers with Key Vault-backed secrets",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agentcore-control": "^3.700.0",
+    "@azure/identity": "^4.4.0",
+    "@azure/keyvault-secrets": "^4.9.0",
+    "@nestjs/common": "^10.0.0"
+  },
+  "peerDependencies": {
+    "@composio/core": "^0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@composio/core": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

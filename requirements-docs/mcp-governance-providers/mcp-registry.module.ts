@@ -27,7 +27,6 @@ import {
   AwsBedrockAgentCoreProvider,
   AwsBedrockAgentCoreProviderOptions,
 } from './providers/aws-bedrock-agentcore.provider';
-import { McpRegistryController } from './mcp-registry.controller';
 
 export interface McpRegistryModuleOptions {
   /** Providers to compose, in priority order (last wins on name collision). */
@@ -91,7 +90,6 @@ export class McpRegistryModule {
 
     return {
       module: McpRegistryModule,
-      controllers: [McpRegistryController],
       providers,
       exports: [McpRegistryService],
       global: true,
