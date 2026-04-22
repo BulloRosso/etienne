@@ -2166,65 +2166,6 @@ Order matters: later providers override earlier ones on name collisions. That me
 | Process 50 MB payloads through an MCP server                | `aws-bedrock-agentcore`  |
 | Mix internal and SaaS servers                               | all four together        |
 
-## Quick start
-
-```ts
-// app.module.ts
-import { Module } from '@nestjs/common';
-import { McpRegistryModule } from './mcp-registry/mcp-registry.module';
-
-@Module({
-  imports: [
-    McpRegistryModule.forRoot({
-      providers: [
-        // Order matters — later providers override earlier on name collision.
-        { kind: 'json-file' },
-        {
-          kind: 'azure-api-center',
-          options: {
-            endpoint: 'https://my-apic.data.westeurope.azure-apicenter.ms',
-          },
-        },
-        {
-          kind: 'aws-bedrock-agentcore',
-          options: {
-            region: 'us-west-2',
-            qualifier: 'DEFAULT',
-            authMode: 'sigv4',
-          },
-        },
-        {
-          kind: 'composio',
-          options: {
-            apiKey: process.env.COMPOSIO_API_KEY!,
-            defaultUserId: 'tenant-42',
-          },
-        },
-      ],
-      secrets: {
-        keyVaultUrl: 'https://my-vault.vault.azure.net',
-      },
-    }),
-  ],
-})
-export class AppModule {}
-```
-
-```ts
-// anywhere you want to generate an MCP config
-@Injectable()
-export class ClaudeConfigBuilder {
-  constructor(private readonly registry: McpRegistryService) {}
-
-  async writeConfig(path: string) {
-    const config = await this.registry.toClaudeConfig({ environment: 'prod' });
-    await fs.writeFile(path, JSON.stringify(config, null, 2));
-  }
-}
-```
-
-That's enough to produce a working Claude config combining all four sources, with every secret resolved at the moment of materialization — not a moment earlier.
-
 ## Architecture
 
 ```
@@ -2370,46 +2311,6 @@ Implement `IMcpRegistryProvider` and pass it through:
 | Works offline / air-gapped         | Yes       | No               | No              | No                    |
 | Multi-tenant per-user URLs         | No        | Possible via APIM| Native          | Possible via Identity |
 | Long-running sessions (> 5 min)    | N/A       | APIM-dependent   | N/A             | 15 min → 8 hours      |
-
-## API
-
-### `McpRegistryService`
-
-```ts
-listServers(options?): Promise<McpServerEntry[]>       // placeholders intact
-getServer(name): Promise<McpServerEntry | null>
-
-listServersResolved(options?): Promise<McpServerEntry[]> // secrets expanded
-getServerResolved(name): Promise<McpServerEntry | null>
-
-toClaudeConfig(options?): Promise<ClaudeConfig>         // { mcpServers: { ... } }
-toOpenAiTools(options?): Promise<OpenAiMcpTool[]>       // for Responses API
-```
-
-`options` accepts `{ environment, query }` for filtering.
-
-### `IMcpRegistryProvider`
-
-```ts
-readonly id: string;
-isAvailable(): Promise<boolean>;
-listServers(options?): Promise<McpServerEntry[]>;
-getServer(name): Promise<McpServerEntry | null>;
-```
-
-Providers that support mutation additionally implement `IMutableMcpRegistryProvider` with `registerServer`, `updateServer`, `deleteServer`. Today that's `json-file` (when `writable: true`) and `composio`.
-
-## FAQ
-
-**Is this production-ready?** The code is small and typechecks; tests for the provider contract are a good next step. The JSON file provider is drop-in compatible with the existing `mcp-server-registry.json` format.
-
-**Can I use it outside NestJS?** Yes — the providers and `McpRegistryService` are plain classes. The NestJS module is a convenience wrapper. Instantiate them directly if you prefer.
-
-**How do I handle multiple Key Vaults?** Register multiple resolvers under different schemes (e.g. `kv-prod:` and `kv-staging:`). The `SecretResolverChain.register()` method takes any `ISecretResolver` instance.
-
-**What if a provider is down?** `McpRegistryService.listServers()` calls `isAvailable()` first and silently skips unavailable providers with a warning log. Your config generation keeps working with whatever sources are reachable.
-
-**Can I cache the output?** Yes, but cache the *unresolved* output (from `listServers`, not `listServersResolved`). Then resolve secrets at the moment of materialization. This keeps caches free of credentials.
 
 # Maintainer
 Brought to you by **[e-ntegration GmbH](https://e-ntegration.de)**, Nürnberg, Germany.
