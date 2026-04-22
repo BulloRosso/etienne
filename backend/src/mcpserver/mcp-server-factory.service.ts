@@ -60,6 +60,7 @@ import { RagService } from '../rag/rag.service';
 import { createRagToolsService } from './rag-tools';
 import { createDocumentAnalysisToolsService } from './document-analysis-tools';
 import { createRequirementsMatcherToolsService } from './requirements-matcher-tools';
+import { createImageGenerationToolsService } from './image-generation-tools';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -178,6 +179,9 @@ export class McpServerFactoryService implements OnModuleInit {
       },
       'requirements-matcher': {
         toolServices: [createRequirementsMatcherToolsService(scopedLlm, ragService)],
+      },
+      'image-generation': {
+        toolServices: [createImageGenerationToolsService()],
       },
     };
   }

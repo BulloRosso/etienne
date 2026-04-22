@@ -1,0 +1,5 @@
+{
+  "requires": [],
+  "provides": ["generate_image", "edit_image"],
+  "services": ["image-generation"]
+}

@@ -19,12 +19,14 @@ import {
   CircularProgress,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Card,
+  CardContent,
+  Tooltip
 } from '@mui/material';
-import { DeleteOutlined, Add, Build, ExpandMore, Close } from '@mui/icons-material';
+import { Add, Build, BuildOutlined, ExpandMore, Close, RemoveCircleOutline } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
-import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 export default function McpToolsSelector({
   registryServers = [],
@@ -33,7 +35,6 @@ export default function McpToolsSelector({
   isAdmin = false
 }) {
   const { t } = useTranslation();
-  const { mode: themeMode } = useThemeMode();
   const [newServer, setNewServer] = useState({
     name: '',
     transport: 'http',
@@ -135,134 +136,137 @@ export default function McpToolsSelector({
     server => !configuredServers[server.name]
   );
 
+  const renderServerCard = (name, config, { isConfigured, server }) => {
+    const description = server?.description || config?.url || config?.command || '';
+    const standard = isStandard(name);
+    const registry = isInRegistry(name);
+    const url = config?.url || server?.url;
+    const headers = config?.headers || server?.headers;
+
+    return (
+      <Tooltip key={name} title={description} arrow placement="top" enterDelay={400}>
+        <Card
+          variant="outlined"
+          sx={{
+            position: 'relative',
+            minHeight: 72,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            borderColor: isConfigured ? 'primary.main' : 'divider',
+            borderWidth: isConfigured ? 2 : 1,
+            bgcolor: isConfigured ? 'action.selected' : 'background.paper',
+            transition: 'border-color 0.2s, background-color 0.2s',
+            '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
+          }}
+        >
+          <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+            {/* Top-right action: add or remove */}
+            <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
+              {isConfigured ? (
+                !standard && (
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveServer(name)}
+                    sx={{ color: 'error.main', p: 0.25 }}
+                  >
+                    <RemoveCircleOutline sx={{ fontSize: 18 }} />
+                  </IconButton>
+                )
+              ) : (
+                <IconButton
+                  size="small"
+                  onClick={() => handleAddFromRegistry(server)}
+                  sx={{ color: 'primary.main', p: 0.25 }}
+                >
+                  <Add sx={{ fontSize: 18 }} />
+                </IconButton>
+              )}
+            </Box>
+
+            {/* Server name + badges */}
+            <Typography
+              variant="subtitle2"
+              sx={{
+                pr: 3,
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                lineHeight: 1.3,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {name}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+              {standard && (
+                <Chip size="small" label={t('mcpToolsSelector.standard', 'Standard')} color="success" sx={{ fontSize: '0.65rem', height: 18 }} />
+              )}
+              {registry && !standard && (
+                <Chip size="small" label={t('mcpToolsSelector.registry')} color="primary" sx={{ fontSize: '0.65rem', height: 18 }} />
+              )}
+            </Box>
+
+            {/* Bottom-right: show tools */}
+            {url && (
+              <Box sx={{ position: 'absolute', bottom: 4, right: 4 }}>
+                <Tooltip title={t('mcpToolsSelector.providedTools')} arrow placement="bottom">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleShowTools({ name, url, headers, description })}
+                    sx={{ color: 'text.secondary', p: 0.25 }}
+                  >
+                    <BuildOutlined sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Tooltip>
+    );
+  };
+
+  // Merge configured + available into a unified list for the grid
+  const allServers = [];
+
+  // Configured servers first
+  Object.entries(configuredServers).forEach(([name, config]) => {
+    const server = registryServers.find(s => s.name === name);
+    allServers.push({ name, config, server, isConfigured: true });
+  });
+
+  // Available (not yet configured) registry servers
+  availableRegistryServers.forEach(server => {
+    allServers.push({ name: server.name, config: null, server, isConfigured: false });
+  });
+
   return (
     <Box>
-      {/* Configured Servers Section */}
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        {t('mcpToolsSelector.configuredServers')}
-      </Typography>
-      {Object.keys(configuredServers).length > 0 ? (
-        <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2, color: '#000' }}>
-          {Object.entries(configuredServers).map(([name, config]) => (
-            <ListItem
-              key={name}
-              secondaryAction={
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  {config.url && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<Build sx={{ fontSize: 16 }} />}
-                      onClick={() => handleShowTools({
-                        name,
-                        url: config.url,
-                        headers: config.headers,
-                        description: registryServers.find(s => s.name === name)?.description
-                      })}
-                      sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'navy', borderColor: 'navy' }}
-                    >
-                      {t('mcpToolsSelector.providedTools')}
-                    </Button>
-                  )}
-                  {!isStandard(name) && (
-                    <IconButton edge="end" onClick={() => handleRemoveServer(name)} sx={{ color: themeMode === 'dark' ? 'navy' : 'darkred' }}>
-                      <DeleteOutlined />
-                    </IconButton>
-                  )}
-                </Box>
-              }
-            >
-              <ListItemText
-                primary={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {name}
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={config.type || 'http'}
-                      sx={{ fontSize: '0.7rem', color: '#000', borderColor: '#000' }}
-                    />
-                    {isInRegistry(name) && (
-                      <Chip
-                        size="small"
-                        label={t('mcpToolsSelector.registry')}
-                        color="primary"
-                        sx={{ fontSize: '0.7rem' }}
-                      />
-                    )}
-                    {isStandard(name) && (
-                      <Chip
-                        size="small"
-                        label={t('mcpToolsSelector.standard', 'Standard')}
-                        color="success"
-                        sx={{ fontSize: '0.7rem' }}
-                      />
-                    )}
-                  </Box>
-                }
-                secondary={config.url || config.command}
-                secondaryTypographyProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-              />
-            </ListItem>
-          ))}
-        </List>
+      {/* Card Grid */}
+      {allServers.length > 0 ? (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+              md: 'repeat(3, 1fr)',
+              lg: 'repeat(4, 1fr)',
+            },
+            gap: 1.5,
+            mb: 2,
+          }}
+        >
+          {allServers.map(({ name, config, server, isConfigured }) =>
+            renderServerCard(name, config, { isConfigured, server })
+          )}
+        </Box>
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {t('mcpToolsSelector.noServersConfigured')}
         </Typography>
-      )}
-
-      {/* Available from Registry Section */}
-      {availableRegistryServers.length > 0 && (
-        <>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            {t('mcpToolsSelector.availableFromRegistry')}
-          </Typography>
-          <List dense sx={{ bgcolor: '#e3f2fd', borderRadius: 1, mb: 2, color: '#000' }}>
-            {availableRegistryServers.map(server => (
-              <ListItem
-                key={server.name}
-                secondaryAction={
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<Build sx={{ fontSize: 16 }} />}
-                      onClick={() => handleShowTools(server)}
-                      sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'navy', borderColor: 'navy' }}
-                    >
-                      {t('mcpToolsSelector.providedTools')}
-                    </Button>
-                    <IconButton
-                      edge="end"
-                      onClick={() => handleAddFromRegistry(server)}
-                      sx={{ color: 'navy' }}
-                    >
-                      <Add />
-                    </IconButton>
-                  </Box>
-                }
-              >
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {server.name}
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        label={server.transport}
-                        sx={{ fontSize: '0.7rem', color: '#000', borderColor: '#000' }}
-                      />
-                    </Box>
-                  }
-                  secondary={server.description || server.url}
-                  secondaryTypographyProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </>
       )}
 
       {/* Add Custom Server Section - Admin only, collapsible */}

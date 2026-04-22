@@ -104,6 +104,13 @@
       "url": "http://localhost:6060/mcp/shared-knowledge",
       "headers": { "Authorization": "test123" },
       "description": "Cross-project knowledge search for A2A scenarios"
+    },
+    {
+      "name": "image-generation",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/image-generation",
+      "headers": { "Authorization": "test123" },
+      "description": "AI image generation and editing via GPT Images 2.0 with thinking mode"
     }
   ]
 }
