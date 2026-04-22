@@ -678,6 +678,8 @@
   "skillsSelector.noOptionalSkills": "Keine optionalen Skills im Repository verfügbar.",
   "skillsSelector.chooseDialogTitle": "Optionale Skills auswählen",
   "skillsSelector.noOptionalSkillsDialog": "Keine optionalen Skills verfügbar.",
+  "skillsSelector.standardChip": "Standard",
+  "skillsSelector.optionalChip": "Optional",
   "skillIndicator.tooltip": "Skills aktiv",
   "skillIndicator.label": "Skills aktiv",
   "mcpToolsSelector.configuredServers": "Konfigurierte MCP-Server",

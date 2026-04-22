@@ -709,6 +709,8 @@
   "skillsSelector.noOptionalSkills": "仓库中暂无可用的可选技能。",
   "skillsSelector.chooseDialogTitle": "选择可选技能",
   "skillsSelector.noOptionalSkillsDialog": "暂无可用的可选技能。",
+  "skillsSelector.standardChip": "标准",
+  "skillsSelector.optionalChip": "可选",
 
   "skillIndicator.tooltip": "技能已激活",
   "skillIndicator.label": "个技能已激活",

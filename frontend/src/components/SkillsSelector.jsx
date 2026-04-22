@@ -1,23 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Checkbox,
+  IconButton,
   Typography,
   Divider,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  Card,
+  CardContent,
+  Chip,
+  Tooltip
 } from '@mui/material';
+import { Add, RemoveCircleOutline } from '@mui/icons-material';
 import { GiAtom } from 'react-icons/gi';
 import { useTranslation } from 'react-i18next';
 
-const SkillIcon = ({ skill, size = 20 }) => {
+const SkillIcon = ({ skill, size = 28 }) => {
   if (skill?.hasThumbnail) {
     return (
       <img
@@ -38,7 +34,6 @@ export default function SkillsSelector({
   onSelectionChange
 }) {
   const { t } = useTranslation();
-  const [optionalDialogOpen, setOptionalDialogOpen] = useState(false);
 
   const isSelected = (skillName) => selectedOptionalSkills.includes(skillName);
 
@@ -50,132 +45,135 @@ export default function SkillsSelector({
     }
   };
 
-  const removeOptionalSkill = (skillName) => {
-    onSelectionChange(selectedOptionalSkills.filter(s => s !== skillName));
+  const gridSx = {
+    display: 'grid',
+    gridTemplateColumns: {
+      xs: '1fr',
+      sm: 'repeat(2, 1fr)',
+      md: 'repeat(3, 1fr)',
+      lg: 'repeat(4, 1fr)',
+    },
+    gap: 1.5,
   };
+
+  const renderSkillCard = (skill, { isConfigured, isStandard }) => {
+    return (
+      <Tooltip key={skill.name} title={skill.description || ''} arrow placement="top" enterDelay={400}>
+        <Card
+          variant="outlined"
+          sx={{
+            position: 'relative',
+            minHeight: 90,
+            display: 'flex',
+            flexDirection: 'column',
+            borderColor: isConfigured ? 'primary.main' : '#ccc',
+            borderWidth: isConfigured ? 2 : 1,
+            bgcolor: isConfigured ? '#e3f2fd' : 'background.paper',
+            transition: 'border-color 0.2s, background-color 0.2s',
+            '&:hover': { borderColor: 'primary.light', bgcolor: isConfigured ? '#d0e8fc' : 'action.hover' },
+          }}
+        >
+          <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 }, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+            {/* Top-right action: add or remove */}
+            <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
+              {isConfigured && !isStandard && (
+                <IconButton
+                  size="small"
+                  onClick={() => toggleOptionalSkill(skill.name)}
+                  sx={{ color: 'error.main', p: 0.25 }}
+                >
+                  <RemoveCircleOutline sx={{ fontSize: 18 }} />
+                </IconButton>
+              )}
+              {!isConfigured && (
+                <IconButton
+                  size="small"
+                  onClick={() => toggleOptionalSkill(skill.name)}
+                  sx={{ color: 'primary.main', p: 0.25 }}
+                >
+                  <Add sx={{ fontSize: 18 }} />
+                </IconButton>
+              )}
+            </Box>
+
+            {/* Centered icon */}
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.secondary', mt: 0.5 }}>
+              <SkillIcon skill={skill} />
+            </Box>
+
+            {/* Skill name + badge */}
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                lineHeight: 1.3,
+                textAlign: 'center',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                width: '100%',
+              }}
+            >
+              {skill.name.charAt(0).toUpperCase() + skill.name.slice(1)}
+            </Typography>
+            {isConfigured && isStandard && (
+              <Chip size="small" label={t('skillsSelector.standardChip', 'Standard')} sx={{ fontSize: '0.65rem', height: 18, mt: 0.25, bgcolor: '#616161', color: '#fff' }} />
+            )}
+            {isConfigured && !isStandard && (
+              <Chip size="small" label={t('skillsSelector.optionalChip', 'Optional')} color="primary" sx={{ fontSize: '0.65rem', height: 18, mt: 0.25 }} />
+            )}
+          </CardContent>
+        </Card>
+      </Tooltip>
+    );
+  };
+
+  // Build the two groups
+  const selectedCards = [
+    ...standardSkills.map(skill => ({ skill, isConfigured: true, isStandard: true })),
+    ...selectedOptionalSkills.map(skillName => {
+      const skill = optionalSkills.find(s => s.name === skillName) || { name: skillName };
+      return { skill, isConfigured: true, isStandard: false };
+    }),
+  ];
+
+  const availableCards = optionalSkills
+    .filter(skill => !isSelected(skill.name))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(skill => ({ skill, isConfigured: false, isStandard: false }));
 
   return (
     <Box>
-      {/* Standard Skills Section */}
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        {t('skillsSelector.standardSkillsTitle')}
-      </Typography>
-      {standardSkills.length > 0 ? (
-        <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 2, color: '#000' }}>
-          {standardSkills.map(skill => (
-            <ListItem key={skill.name} sx={{ alignItems: 'flex-start' }}>
-              <ListItemIcon sx={{ minWidth: 36, mt: '-5px' }}>
-                <Checkbox checked disabled sx={{ color: '#000', '&.Mui-checked': { color: '#000' }, '&.Mui-disabled': { color: '#000' } }} />
-              </ListItemIcon>
-              <ListItemIcon sx={{ minWidth: 42, mt: '8px', color: '#000' }}>
-                <SkillIcon skill={skill} />
-              </ListItemIcon>
-              <ListItemText
-                primary={skill.name}
-                secondary={skill.description}
-                secondaryTypographyProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-              />
-            </ListItem>
-          ))}
-        </List>
-      ) : (
+      {/* Selected skills (standard + chosen optional) */}
+      {selectedCards.length > 0 && (
+        <Box sx={{ ...gridSx, mb: availableCards.length > 0 ? 1 : 2 }}>
+          {selectedCards.map(({ skill, isConfigured, isStandard }) =>
+            renderSkillCard(skill, { isConfigured, isStandard })
+          )}
+        </Box>
+      )}
+
+      {/* Available optional skills */}
+      {availableCards.length > 0 && (
+        <>
+          <Divider sx={{ my: 1.5 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            {t('skillsSelector.optionalSkillsTitle')}
+          </Typography>
+          <Box sx={{ ...gridSx, mb: 2 }}>
+            {availableCards.map(({ skill, isConfigured, isStandard }) =>
+              renderSkillCard(skill, { isConfigured, isStandard })
+            )}
+          </Box>
+        </>
+      )}
+
+      {selectedCards.length === 0 && availableCards.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {t('skillsSelector.noStandardSkills')}
         </Typography>
       )}
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* Selected Optional Skills Section */}
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        {t('skillsSelector.optionalSkillsTitle')}
-      </Typography>
-      {selectedOptionalSkills.length > 0 && (
-        <List dense sx={{ bgcolor: '#fff3e0', borderRadius: 1, mb: 2 }}>
-          {selectedOptionalSkills.map(skillName => {
-            const skill = optionalSkills.find(s => s.name === skillName);
-            return (
-              <ListItem key={skillName} sx={{ alignItems: 'flex-start' }}>
-                <ListItemIcon sx={{ minWidth: 36, mt: '-5px' }}>
-                  <Checkbox
-                    checked
-                    onChange={() => removeOptionalSkill(skillName)}
-                  />
-                </ListItemIcon>
-                <ListItemIcon sx={{ minWidth: 42, mt: '8px' }}>
-                  <SkillIcon skill={skill} />
-                </ListItemIcon>
-                <ListItemText
-                  primary={skillName}
-                  secondary={skill?.description}
-                />
-              </ListItem>
-            );
-          })}
-        </List>
-      )}
-
-      {optionalSkills.length > 0 && (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => setOptionalDialogOpen(true)}
-        >
-          {t('skillsSelector.chooseAdditionalSkill')}
-        </Button>
-      )}
-
-      {optionalSkills.length === 0 && selectedOptionalSkills.length === 0 && (
-        <Typography variant="body2" color="text.secondary">
-          {t('skillsSelector.noOptionalSkills')}
-        </Typography>
-      )}
-
-      {/* Optional Skills Selection Dialog */}
-      <Dialog
-        open={optionalDialogOpen}
-        onClose={() => setOptionalDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('skillsSelector.chooseDialogTitle')}</DialogTitle>
-        <DialogContent>
-          {optionalSkills.length > 0 ? (
-            <List dense>
-              {optionalSkills.map(skill => (
-                <ListItem
-                  key={skill.name}
-                  onClick={() => toggleOptionalSkill(skill.name)}
-                  sx={{ cursor: 'pointer', alignItems: 'flex-start' }}
-                >
-                  <ListItemIcon sx={{ minWidth: 36, mt: '-5px' }}>
-                    <Checkbox
-                      edge="start"
-                      checked={isSelected(skill.name)}
-                      tabIndex={-1}
-                      disableRipple
-                    />
-                  </ListItemIcon>
-                  <ListItemIcon sx={{ minWidth: 36, mt: '4px' }}>
-                    <SkillIcon skill={skill} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={skill.name}
-                    secondary={skill.description}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              {t('skillsSelector.noOptionalSkillsDialog')}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOptionalDialogOpen(false)}>{t('common.done')}</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

@@ -132,9 +132,9 @@ export default function McpToolsSelector({
     return registryServers.some(s => s.name === serverName);
   };
 
-  const availableRegistryServers = registryServers.filter(
-    server => !configuredServers[server.name]
-  );
+  const availableRegistryServers = registryServers
+    .filter(server => !configuredServers[server.name])
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const renderServerCard = (name, config, { isConfigured, server }) => {
     const description = server?.description || config?.url || config?.command || '';
@@ -153,14 +153,14 @@ export default function McpToolsSelector({
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            borderColor: isConfigured ? 'primary.main' : 'divider',
+            borderColor: isConfigured ? 'primary.main' : '#ccc',
             borderWidth: isConfigured ? 2 : 1,
-            bgcolor: isConfigured ? 'action.selected' : 'background.paper',
+            bgcolor: isConfigured ? '#e3f2fd' : 'background.paper',
             transition: 'border-color 0.2s, background-color 0.2s',
-            '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
+            '&:hover': { borderColor: 'primary.light', bgcolor: isConfigured ? '#d0e8fc' : 'action.hover' },
           }}
         >
-          <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+          <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 }, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {/* Top-right action: add or remove */}
             <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
               {isConfigured ? (
@@ -188,25 +188,28 @@ export default function McpToolsSelector({
             <Typography
               variant="subtitle2"
               sx={{
-                pr: 3,
+                px: 3,
                 fontSize: '0.8rem',
                 fontWeight: 600,
                 lineHeight: 1.3,
+                textAlign: 'center',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}
             >
-              {name}
+              {name.charAt(0).toUpperCase() + name.slice(1)}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-              {standard && (
-                <Chip size="small" label={t('mcpToolsSelector.standard', 'Standard')} color="success" sx={{ fontSize: '0.65rem', height: 18 }} />
-              )}
-              {registry && !standard && (
-                <Chip size="small" label={t('mcpToolsSelector.registry')} color="primary" sx={{ fontSize: '0.65rem', height: 18 }} />
-              )}
-            </Box>
+            {isConfigured && (
+              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {standard && (
+                  <Chip size="small" label={t('mcpToolsSelector.standard', 'Standard')} sx={{ fontSize: '0.65rem', height: 18, bgcolor: '#616161', color: '#fff' }} />
+                )}
+                {registry && !standard && (
+                  <Chip size="small" label={t('mcpToolsSelector.registry')} color="primary" sx={{ fontSize: '0.65rem', height: 18 }} />
+                )}
+              </Box>
+            )}
 
             {/* Bottom-right: show tools */}
             {url && (
@@ -228,42 +231,59 @@ export default function McpToolsSelector({
     );
   };
 
-  // Merge configured + available into a unified list for the grid
-  const allServers = [];
+  // Separate configured and available servers
+  const configuredList = Object.entries(configuredServers).map(([name, config]) => ({
+    name,
+    config,
+    server: registryServers.find(s => s.name === name),
+    isConfigured: true,
+  }));
 
-  // Configured servers first
-  Object.entries(configuredServers).forEach(([name, config]) => {
-    const server = registryServers.find(s => s.name === name);
-    allServers.push({ name, config, server, isConfigured: true });
-  });
+  const availableList = availableRegistryServers.map(server => ({
+    name: server.name,
+    config: null,
+    server,
+    isConfigured: false,
+  }));
 
-  // Available (not yet configured) registry servers
-  availableRegistryServers.forEach(server => {
-    allServers.push({ name: server.name, config: null, server, isConfigured: false });
-  });
+  const gridSx = {
+    display: 'grid',
+    gridTemplateColumns: {
+      xs: '1fr',
+      sm: 'repeat(2, 1fr)',
+      md: 'repeat(3, 1fr)',
+      lg: 'repeat(4, 1fr)',
+    },
+    gap: 1.5,
+  };
 
   return (
     <Box>
-      {/* Card Grid */}
-      {allServers.length > 0 ? (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, 1fr)',
-              md: 'repeat(3, 1fr)',
-              lg: 'repeat(4, 1fr)',
-            },
-            gap: 1.5,
-            mb: 2,
-          }}
-        >
-          {allServers.map(({ name, config, server, isConfigured }) =>
+      {/* Selected servers */}
+      {configuredList.length > 0 && (
+        <Box sx={{ ...gridSx, mb: availableList.length > 0 ? 1 : 2 }}>
+          {configuredList.map(({ name, config, server, isConfigured }) =>
             renderServerCard(name, config, { isConfigured, server })
           )}
         </Box>
-      ) : (
+      )}
+
+      {/* Available (not yet added) servers */}
+      {availableList.length > 0 && (
+        <>
+          <Divider sx={{ my: 1.5 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            {t('mcpToolsSelector.availableFromRegistry')}
+          </Typography>
+          <Box sx={{ ...gridSx, mb: 2 }}>
+            {availableList.map(({ name, config, server, isConfigured }) =>
+              renderServerCard(name, config, { isConfigured, server })
+            )}
+          </Box>
+        </>
+      )}
+
+      {configuredList.length === 0 && availableList.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {t('mcpToolsSelector.noServersConfigured')}
         </Typography>

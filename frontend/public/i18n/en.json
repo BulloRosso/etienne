@@ -710,6 +710,8 @@
   "skillsSelector.noOptionalSkills": "No optional skills available in the repository.",
   "skillsSelector.chooseDialogTitle": "Choose Optional Skills",
   "skillsSelector.noOptionalSkillsDialog": "No optional skills available.",
+  "skillsSelector.standardChip": "Standard",
+  "skillsSelector.optionalChip": "Optional",
 
   "skillIndicator.tooltip": "Skills Active",
   "skillIndicator.label": "skills active",
