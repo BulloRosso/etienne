@@ -214,7 +214,7 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
   );
 }
 
-export default function UserOrders() {
+export default function UserOrders({ minimal = false }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const { setProject } = useProject();
@@ -307,6 +307,9 @@ export default function UserOrders() {
   };
 
   const showPlaceholders = allOrders.length === 0;
+
+  // In minimalistic mode, hide entirely when there are no orders
+  if (minimal && showPlaceholders) return null;
 
   return (
     <Box sx={{ width: '100%', px: 2, py: 1.5 }}>

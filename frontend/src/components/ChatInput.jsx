@@ -11,7 +11,7 @@ import { GoArrowUp } from "react-icons/go";
 import { GoPlus } from "react-icons/go";
 import { CiFileOn } from "react-icons/ci";
 
-export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
+export default function ChatInput({ onSend, onAbort, streaming, disabled, minimal = false }) {
   const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -216,7 +216,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled }) {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 1, pr: 0, pl: 1, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined, backgroundImage: themeMode === 'dark' ? 'none' : undefined }}>
+    <Paper elevation={minimal ? 0 : 3} sx={{ p: 1, pr: 0, pl: 1, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined, backgroundImage: themeMode === 'dark' ? 'none' : undefined, ...(minimal && { boxShadow: 'none' }) }}>
       <style>
         {`
           @keyframes rotateIcon {

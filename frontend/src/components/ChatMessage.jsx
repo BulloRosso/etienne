@@ -11,7 +11,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, traceId = null, source = null, sourceMetadata = null }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, traceId = null, source = null, sourceMetadata = null, minimal = false }) {
   const { t } = useTranslation();
   const isUser = role === 'user';
   const { mode: themeMode } = useThemeMode();
@@ -241,13 +241,13 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
       }}>
         <Box sx={{ maxWidth: '70%' }}>
           <Paper
-            elevation={2}
+            elevation={minimal ? 0 : 2}
             sx={{
               p: 2,
-              backgroundColor: themeMode === 'dark' ? 'gold' : '#fff',
+              backgroundColor: minimal ? (themeMode === 'dark' ? 'transparent' : '#fafafa') : (themeMode === 'dark' ? 'gold' : '#fff'),
               color: themeMode === 'dark' ? '#000' : 'inherit',
               borderRadius: 2,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              boxShadow: minimal ? 'none' : '0 2px 4px rgba(0,0,0,0.1)'
             }}
           >
             <Box

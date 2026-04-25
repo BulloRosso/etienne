@@ -1753,5 +1753,17 @@
   "reqViewer.quality.gaps": "缺失项",
   "reqViewer.quality.noDuplicates": "未检测到重复项。",
   "reqViewer.quality.noContradictions": "未检测到矛盾项。",
-  "reqViewer.quality.noGaps": "未发现缺失项。"
+  "reqViewer.quality.noGaps": "未发现缺失项。",
+
+  "sidebar.newChat": "新聊天",
+  "sidebar.settings": "设置",
+  "sidebar.projectsHeading": "项目",
+  "sidebar.moreProjects": "更多项目...",
+  "sidebar.chatsHeading": "最近聊天",
+  "sidebar.notificationsHeading": "通知",
+  "sidebar.allProjects": "所有项目",
+  "sidebar.noRecentChats": "暂无最近聊天",
+  "sidebar.noRecentProjects": "暂无最近项目",
+  "sidebar.moreSessions": "更多会话...",
+  "sidebar.untitledChat": "未命名聊天"
 }

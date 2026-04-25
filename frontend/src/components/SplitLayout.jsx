@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 
 export default function SplitLayout({ left, right }) {
   const { mode: themeMode } = useThemeMode();
+  const { isMinimalistic } = useUxMode();
   const [splitRatio, setSplitRatio] = useState(() => {
     const saved = localStorage.getItem('splitRatio');
     return saved ? parseFloat(saved) : 50;
@@ -65,7 +67,7 @@ export default function SplitLayout({ left, right }) {
       <Box
         onMouseDown={handleMouseDown}
         sx={{
-          width: '12px',
+          width: isMinimalistic ? '6px' : '12px',
           height: '100%',
           cursor: 'col-resize',
           display: 'flex',
@@ -79,12 +81,14 @@ export default function SplitLayout({ left, right }) {
           }
         }}
       >
+        {!isMinimalistic && (
         <Box sx={{
           height: '48px',
           flexShrink: 0,
           backgroundColor: themeMode === 'dark' ? '#383838' : '#fff',
           borderBottom: themeMode === 'dark' ? '1px solid #555' : '1px solid #e0e0e0',
         }} />
+        )}
         <Box sx={{
           flex: 1,
           display: 'flex',
@@ -94,7 +98,7 @@ export default function SplitLayout({ left, right }) {
           <Box sx={{
             width: '2px',
             height: '30px',
-            backgroundColor: '#ccc',
+            backgroundColor: themeMode === 'dark' ? '#555' : '#ccc',
             borderRadius: '1px'
           }} />
         </Box>

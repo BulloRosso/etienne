@@ -18,7 +18,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -186,9 +186,12 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f0eee6'
+      backgroundColor: hideHeader
+        ? (themeMode === 'dark' ? '#2c2c2c' : undefined)
+        : (themeMode === 'dark' ? '#2c2c2c' : '#f0eee6')
     }}>
-      {/* Header */}
+      {/* Header — hidden in minimalistic UX mode */}
+      {!hideHeader && (
       <Box sx={{
         height: '48px',
         backgroundColor: themeMode === 'dark' ? '#383838' : 'white',
@@ -325,20 +328,66 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           )}
         </Box>
       </Box>
+      )}
 
-      {/* Messages Area */}
+      {/* Project name bar — shown only in minimalistic UX mode */}
+      {hideHeader && projectName && (
       <Box sx={{
+        height: '48px',
+        minHeight: '48px',
+        backgroundColor: themeMode === 'dark' ? '#383838' : 'white',
+        display: 'flex',
+        alignItems: 'center',
+        px: 2,
+        borderBottom: themeMode === 'dark' ? '1px solid #555' : '1px solid #e0e0e0',
+      }}>
+        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+          {uiConfig?.appBar?.title || projectName}
+        </Typography>
+      </Box>
+      )}
+
+      {/* Minimal scrollbar styles injected as real CSS for Chrome compatibility */}
+      {hideHeader && (
+        <style>{`
+          .minimal-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: ${themeMode === 'dark' ? '#555' : '#ccc'} transparent;
+          }
+          .minimal-scrollbar::-webkit-scrollbar {
+            width: 3px !important;
+          }
+          .minimal-scrollbar::-webkit-scrollbar-track {
+            background: transparent !important;
+          }
+          .minimal-scrollbar::-webkit-scrollbar-thumb {
+            background-color: ${themeMode === 'dark' ? '#555' : '#ccc'} !important;
+            border-radius: 1.5px;
+          }
+          .minimal-scrollbar::-webkit-scrollbar-button {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+        `}</style>
+      )}
+      {/* Messages Area */}
+      <Box
+        className={hideHeader ? 'minimal-scrollbar' : undefined}
+        sx={{
         flex: 1,
         overflowY: 'auto',
         py: 2,
-        '&::-webkit-scrollbar': { width: '8px' },
-        '&::-webkit-scrollbar-track': { backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f5f5f0' },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: themeMode === 'dark' ? '#555' : '#ccc',
-          borderRadius: '4px',
-          '&:hover': { backgroundColor: themeMode === 'dark' ? '#777' : '#aaa' }
-        },
-        scrollbarColor: themeMode === 'dark' ? '#555 #2c2c2c' : '#ccc #f5f5f0',
+        ...(!hideHeader && {
+          '&::-webkit-scrollbar': { width: '8px' },
+          '&::-webkit-scrollbar-track': { backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#f5f5f0' },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: themeMode === 'dark' ? '#555' : '#ccc',
+            borderRadius: '4px',
+            '&:hover': { backgroundColor: themeMode === 'dark' ? '#777' : '#aaa' }
+          },
+          scrollbarColor: themeMode === 'dark' ? '#555 #2c2c2c' : '#ccc #f5f5f0',
+        }),
       }}>
         {/* Agent avatar before first message */}
         {agentAvatar && messages.length > 0 && (
@@ -378,6 +427,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               traceId={msg.traceId}
               source={msg.source}
               sourceMetadata={msg.sourceMetadata}
+              minimal={hideHeader}
             />
           );
         })}
@@ -397,7 +447,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       </Box>
 
       <Box sx={{ p: 0, pb: 0 }}>
-        <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} />
+        <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} />
       </Box>
 
       {/* Settings Modal */}

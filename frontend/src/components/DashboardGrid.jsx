@@ -6,7 +6,7 @@ import { VscServerProcess } from 'react-icons/vsc';
 import { RiRobot2Line } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 
-const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic' }) => {
+const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic', fluid = false }) => {
   const { t } = useTranslation();
   const dashboardItems = [
     // 1st row
@@ -118,7 +118,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
   };
 
   return (
-    <Box sx={{ width: '300px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ width: fluid ? '100%' : '300px', display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <Box
         sx={{
@@ -249,8 +249,8 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gridTemplateRows: 'repeat(5, 1fr)',
+          gridTemplateColumns: fluid ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(2, 1fr)',
+          ...(fluid ? {} : { gridTemplateRows: 'repeat(5, 1fr)' }),
           gap: 2,
           p: 2,
           pt: 1

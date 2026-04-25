@@ -1770,5 +1770,17 @@
   "reqViewer.quality.gaps": "Lacune",
   "reqViewer.quality.noDuplicates": "Nessun duplicato rilevato.",
   "reqViewer.quality.noContradictions": "Nessuna contraddizione rilevata.",
-  "reqViewer.quality.noGaps": "Nessuna lacuna identificata."
+  "reqViewer.quality.noGaps": "Nessuna lacuna identificata.",
+
+  "sidebar.newChat": "Nuova Chat",
+  "sidebar.settings": "Impostazioni",
+  "sidebar.projectsHeading": "Progetti",
+  "sidebar.moreProjects": "Altri progetti...",
+  "sidebar.chatsHeading": "Chat Recenti",
+  "sidebar.notificationsHeading": "Notifiche",
+  "sidebar.allProjects": "Tutti i Progetti",
+  "sidebar.noRecentChats": "Nessuna chat recente",
+  "sidebar.noRecentProjects": "Nessun progetto recente",
+  "sidebar.moreSessions": "Altre sessioni...",
+  "sidebar.untitledChat": "Chat senza titolo"
 }

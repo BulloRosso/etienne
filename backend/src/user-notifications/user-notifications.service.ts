@@ -4,6 +4,7 @@ import { SmtpService } from '../smtp-imap/smtp.service';
 import { SessionEventsService } from '../remote-sessions/session-events.service';
 import { RemoteSessionsStorageService } from '../remote-sessions/remote-sessions-storage.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
+import { RecentItemsService } from '../recent-items/recent-items.service';
 
 interface NotificationChannel {
   id: string;
@@ -27,6 +28,7 @@ export class UserNotificationsService {
     private readonly sessionEvents: SessionEventsService,
     private readonly remoteSessionsStorage: RemoteSessionsStorageService,
     private readonly mcpServerConfig: McpServerConfigService,
+    private readonly recentItemsService: RecentItemsService,
   ) {}
 
   /**
@@ -98,6 +100,15 @@ export class UserNotificationsService {
         this.logger.error(`Failed to send ${channel} notification: ${err.message}`);
         results.push({ channel, success: false, error: err.message });
       }
+    }
+
+    // Track notification in recent items if any channel succeeded
+    if (results.some((r) => r.success)) {
+      this.recentItemsService
+        .trackNotification(summary, projectName)
+        .catch((err) =>
+          this.logger.warn(`Failed to track notification: ${err.message}`),
+        );
     }
 
     return results;

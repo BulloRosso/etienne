@@ -7,11 +7,13 @@ import BackgroundInfo from './BackgroundInfo';
 import UserOrders from './UserOrders';
 import { VIEWER_COMPONENTS, buildExtensionMap, getViewerForFile } from './viewerRegistry.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { useTranslation } from 'react-i18next';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll, previewersConfig, autoFilePreviewExtensions }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
+  const { isMinimalistic } = useUxMode();
   const [activeTab, setActiveTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [visibleIndices, setVisibleIndices] = useState([]);
@@ -149,9 +151,9 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
         <Box sx={{ p: 2, pb: 0 }}>
           <BackgroundInfo infoId="live-changes" showBackgroundInfo={showBackgroundInfo} />
         </Box>
-        {/* Upper 50%: User Orders carousel */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0 }}>
-          <UserOrders />
+        {/* User Orders carousel — in minimalistic mode, only takes space when orders exist */}
+        <Box sx={{ flex: isMinimalistic ? 'none' : 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0 }}>
+          <UserOrders minimal={isMinimalistic} />
         </Box>
 
         {/* Lower 50%: Background image */}

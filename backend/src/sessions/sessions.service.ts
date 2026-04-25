@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import axios from 'axios';
 import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
+import { LlmService } from '../llm/llm.service';
 
 export interface ChatMessage {
   timestamp: string;
@@ -37,7 +37,10 @@ export interface SessionsData {
 
 @Injectable()
 export class SessionsService {
-  constructor(private readonly secretsManager: SecretsManagerService) {}
+  constructor(
+    private readonly secretsManager: SecretsManagerService,
+    private readonly llmService: LlmService,
+  ) {}
 
   /** Per-project write locks to prevent concurrent read-modify-write corruption */
   private writeLocks = new Map<string, Promise<void>>();
@@ -207,7 +210,7 @@ export class SessionsService {
   }
 
   /**
-   * Generate summary for a session using GPT
+   * Generate summary for a session using the LLM service
    */
   async generateSummary(projectRoot: string, sessionId: string): Promise<string> {
     try {
@@ -223,37 +226,13 @@ export class SessionsService {
         return `${role}: ${msg.message}`;
       }).join('\n\n');
 
-      // Call OpenAI GPT-4o-mini for summarization
-      const openaiApiKey = await this.secretsManager.getSecret('OPENAI_API_KEY');
-      if (!openaiApiKey) {
-        console.error('[SessionsService] OPENAI_API_KEY not set, cannot generate summary');
-        return 'Summary generation unavailable (API key not configured).';
-      }
+      const summary = await this.llmService.generateText({
+        tier: 'small',
+        prompt: `Summarize this chat session in exactly 6 words. No bullet points, no punctuation, just a plain 6-word phrase. The user is the user, the other part is called the agent. Session messages:\n\n${sessionContent}`,
+        maxOutputTokens: 100,
+      });
 
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'user',
-              content: `Summarize this chat session in maximum 3 bullet points. Each bullet point must have no more than 10 words. The user is the user, the other part is called the agent. Session messages:\n\n${sessionContent}`
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 100
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000
-        }
-      );
-
-      const summary = response.data.choices[0]?.message?.content?.trim() || 'Unable to generate summary.';
-      return summary;
+      return summary.trim() || 'Unable to generate summary.';
     } catch (error: any) {
       console.error(`[SessionsService] Error generating summary: ${error.message}`);
       return 'Error generating summary.';

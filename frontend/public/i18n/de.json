@@ -1682,5 +1682,17 @@
   "reqViewer.quality.gaps": "Lücken",
   "reqViewer.quality.noDuplicates": "Keine Duplikate erkannt.",
   "reqViewer.quality.noContradictions": "Keine Widersprüche erkannt.",
-  "reqViewer.quality.noGaps": "Keine Lücken identifiziert."
+  "reqViewer.quality.noGaps": "Keine Lücken identifiziert.",
+
+  "sidebar.newChat": "Neuer Chat",
+  "sidebar.settings": "Einstellungen",
+  "sidebar.projectsHeading": "Projekte",
+  "sidebar.moreProjects": "Weitere Projekte...",
+  "sidebar.chatsHeading": "Letzte Chats",
+  "sidebar.notificationsHeading": "Benachrichtigungen",
+  "sidebar.allProjects": "Alle Projekte",
+  "sidebar.noRecentChats": "Keine aktuellen Chats",
+  "sidebar.noRecentProjects": "Keine aktuellen Projekte",
+  "sidebar.moreSessions": "Weitere Sitzungen...",
+  "sidebar.untitledChat": "Unbenannter Chat"
 }

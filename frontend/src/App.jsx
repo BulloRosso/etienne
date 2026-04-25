@@ -29,12 +29,15 @@ import TechnologyRadarPage from './pages/TechnologyRadarPage';
 import { apiFetch } from './services/api';
 import useMultiplexSSE from './hooks/useMultiplexSSE';
 import { MuxSSEProvider } from './contexts/MuxSSEContext';
+import { useUxMode } from './contexts/UxModeContext.jsx';
+import MinimalisticSidebar from './components/MinimalisticSidebar';
 
 export default function App() {
   const { t, i18n } = useTranslation();
   const { currentProject, projectExists, setProject } = useProject();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { mode: themeMode, toggleMode } = useThemeMode();
+  const { isMinimalistic, uxType, toggleUxMode } = useUxMode();
 
   // Check required services (secrets-manager, oauth-server) before login
   const [servicesReady, setServicesReady] = useState(null); // null=checking, true/false
@@ -88,6 +91,7 @@ export default function App() {
   const [hashRoute, setHashRoute] = useState(window.location.hash.slice(1) || '');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [langToast, setLangToast] = useState({ open: false, language: '' });
+  const [uxToast, setUxToast] = useState({ open: false, mode: '' });
   const [knowledgeToast, setKnowledgeToast] = useState({ open: false, message: '' });
   const [activeContextId, setActiveContextId] = useState(null);
   const [contexts, setContexts] = useState([]);
@@ -150,6 +154,21 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [i18n]);
+
+  // Ctrl+U: toggle UX mode (verbose ↔ minimalistic)
+  useEffect(() => {
+    const UX_LABELS = { verbose: 'Verbose', minimalistic: 'Minimalistic' };
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        toggleUxMode();
+        const nextMode = uxType === 'verbose' ? 'minimalistic' : 'verbose';
+        setUxToast({ open: true, mode: UX_LABELS[nextMode] || nextMode });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [uxType, toggleUxMode]);
 
   // Register minimal service worker for desktop notifications
   useEffect(() => {
@@ -1630,6 +1649,17 @@ export default function App() {
 
       setMessages(loadedMessages);
       setStructuredMessages([]);
+
+      // Track recent chat access
+      if (isMinimalistic) {
+        const lastUserMsg = chatMessages.filter(m => !m.isAgent).pop();
+        const title = lastUserMsg ? lastUserMsg.message.split(/\s+/).slice(0, 5).join(' ') : 'Chat';
+        apiFetch('/api/recent-items/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectName: project, sessionId: newSessionId, title }),
+        }).catch(() => {});
+      }
     } catch (err) {
       console.error('Failed to load session history:', err);
     }
@@ -1716,6 +1746,15 @@ export default function App() {
     // Update project - this will trigger the useEffect that loads all project data
     setProject(newProject);
 
+    // Track recent project access
+    if (isMinimalistic) {
+      apiFetch('/api/recent-items/project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newProject }),
+      }).catch(() => {});
+    }
+
     // Restore workbench after a short delay to ensure project is loaded
     setTimeout(() => {
       restoreWorkbench(newProject);
@@ -1728,6 +1767,16 @@ export default function App() {
           fetchFile(docPath, newProject);
         });
       }, 1500);
+    }
+  };
+
+  const handleLoadChat = async (chatSessionId, projectName) => {
+    if (projectName && projectName !== currentProject) {
+      await handleProjectChange(projectName);
+      // Wait for project to load before switching session
+      setTimeout(() => handleSessionChange(chatSessionId, projectName), 500);
+    } else {
+      handleSessionChange(chatSessionId);
     }
   };
 
@@ -1781,7 +1830,31 @@ export default function App() {
 
   return (
     <MuxSSEProvider mux={mux}>
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: isMinimalistic ? 'row' : 'column' }}>
+      {isMinimalistic && (
+        <MinimalisticSidebar
+          onNewChat={() => handleSessionChange(null)}
+          onProjectChange={handleProjectChange}
+          onLoadChat={handleLoadChat}
+          currentProject={currentProject}
+          sessionId={sessionId}
+          onCopySessionId={handleCopySessionId}
+          budgetSettings={budgetSettings}
+          onBudgetSettingsChange={setBudgetSettings}
+          onTasksChange={refreshTaskCount}
+          showBackgroundInfo={showBackgroundInfo}
+          onUIConfigChange={(config) => {
+            setUiConfig(config);
+            if (config?.welcomePage && (config.welcomePage.message || config.welcomePage.quickActions?.length)) {
+              setShowWelcomePage(true);
+            }
+          }}
+          codingAgent={codingAgent}
+          allTags={allTags}
+        />
+      )}
+
+      {!isMinimalistic && (
       <AppBar
         position="static"
         sx={{
@@ -1911,6 +1984,7 @@ export default function App() {
           />
         </Toolbar>
       </AppBar>
+      )}
 
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         {hashRoute === 'techradar' ? (
@@ -1928,7 +2002,7 @@ export default function App() {
           />
         ) : (
           <SplitLayout
-            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} />}
+            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} />}
             right={<ArtifactsPane files={files} projectName={currentProject} sessionId={sessionId} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} previewersConfig={previewersConfig} autoFilePreviewExtensions={uiConfig?.autoFilePreviewExtensions} />}
           />
         )}
@@ -2043,6 +2117,23 @@ export default function App() {
           sx={{ width: '100%' }}
         >
           {langToast.language}
+        </Alert>
+      </Snackbar>
+
+      {/* UX mode switch toast */}
+      <Snackbar
+        open={uxToast.open}
+        autoHideDuration={2000}
+        onClose={() => setUxToast(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setUxToast(prev => ({ ...prev, open: false }))}
+          severity="info"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          UX: {uxToast.mode}
         </Alert>
       </Snackbar>
 
