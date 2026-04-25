@@ -8,12 +8,14 @@ import { Build } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import DonClippoModal from './DonClippoModal';
 
 export default function McpToolsIndicator({ projectName, sessionId }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
+  const { isMinimalistic } = useUxMode();
   const [mcpServers, setMcpServers] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
   const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);
@@ -101,12 +103,13 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: 20,
-            px: 0.5,
-            py: 0.25,
-            bgcolor: '#000000',
-            color: '#ffffff',
-            borderRadius: '10px',
+            width: 20,
+            height: 20,
+            bgcolor: isMinimalistic ? 'transparent' : '#000000',
+            color: isMinimalistic ? '#000000' : '#ffffff',
+            border: isMinimalistic ? '1px solid #000000' : 'none',
+            boxShadow: isMinimalistic ? '0 0 0 0.5px rgba(0,0,0,0.4)' : 'none',
+            borderRadius: '50%',
             fontWeight: 600,
             fontSize: '0.7rem'
           }}>

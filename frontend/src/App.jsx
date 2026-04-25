@@ -48,8 +48,9 @@ export default function App() {
       .catch(() => setServicesReady(false));
   }, []);
 
-  // Fetch agent name from personality config
+  // Fetch agent name and agent class from personality config
   const [agentName, setAgentName] = useState('Etienne');
+  const [agentClass, setAgentClass] = useState(null);
   useEffect(() => {
     if (!isAuthenticated) return;
     document.title = 'Etienne: AI Coworker';
@@ -59,6 +60,9 @@ export default function App() {
         if (data?.name) {
           setAgentName(data.name);
           document.title = `${data.name}: AI Coworker`;
+        }
+        if (data?.agentClass) {
+          setAgentClass(data.agentClass);
         }
       })
       .catch(() => {});
@@ -1838,6 +1842,7 @@ export default function App() {
           onLoadChat={handleLoadChat}
           currentProject={currentProject}
           sessionId={sessionId}
+          streaming={streaming}
           onCopySessionId={handleCopySessionId}
           budgetSettings={budgetSettings}
           onBudgetSettingsChange={setBudgetSettings}
@@ -1851,6 +1856,7 @@ export default function App() {
           }}
           codingAgent={codingAgent}
           allTags={allTags}
+          agentClass={agentClass}
         />
       )}
 

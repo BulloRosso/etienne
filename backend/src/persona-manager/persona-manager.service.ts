@@ -18,6 +18,7 @@ export interface PersonalityDto {
   personaType: string;
   name: string;
   avatarDescription?: string;
+  agentClass?: string;
   allowReviewNotificationsBetween?: string;
   communicationStyle?: string;
   contactChannels?: ContactChannels;
@@ -191,6 +192,18 @@ export class PersonaManagerService {
       return null;
     }
     const buffer = await fs.readFile(avatarPath);
+    return buffer.toString('base64');
+  }
+
+  /**
+   * Return existing agent class icon as base64 if it exists, otherwise null
+   */
+  async getAgentClassIcon(): Promise<string | null> {
+    const iconPath = path.join(this.workspaceDir, '.agent', 'agentclass.png');
+    if (!(await fs.pathExists(iconPath))) {
+      return null;
+    }
+    const buffer = await fs.readFile(iconPath);
     return buffer.toString('base64');
   }
 

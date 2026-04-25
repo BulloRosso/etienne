@@ -4,6 +4,7 @@ import { GiAtom } from 'react-icons/gi';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 import SkillsSettings from './SkillsSettings';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import DonClippoModal from './DonClippoModal';
@@ -11,6 +12,7 @@ import DonClippoModal from './DonClippoModal';
 export default function SkillIndicator({ projectName, sessionId }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
+  const { isMinimalistic } = useUxMode();
   const [skills, setSkills] = useState([]);
   const [skillsModalOpen, setSkillsModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -66,12 +68,13 @@ export default function SkillIndicator({ projectName, sessionId }) {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: 20,
-            px: 0.5,
-            py: 0.25,
-            bgcolor: '#ff9800',
-            color: '#ffffff',
-            borderRadius: '10px',
+            width: 20,
+            height: 20,
+            bgcolor: isMinimalistic ? 'transparent' : '#ff9800',
+            color: isMinimalistic ? '#ff9800' : '#ffffff',
+            border: isMinimalistic ? '1px solid #ff9800' : 'none',
+            boxShadow: isMinimalistic ? '0 0 0 0.5px rgba(255,152,0,0.4)' : 'none',
+            borderRadius: '50%',
             fontWeight: 600,
             fontSize: '0.7rem'
           }}>

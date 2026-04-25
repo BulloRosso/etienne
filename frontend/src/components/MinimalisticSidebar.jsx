@@ -14,6 +14,7 @@ import SettingsModal from './SettingsModal';
 import ProjectListModal from './ProjectListModal';
 import CreateProjectWizard from './CreateProjectWizard';
 import SessionPane from './SessionPane';
+import NotificationMenu from './NotificationMenu';
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -30,6 +31,7 @@ export default function MinimalisticSidebar({
   onLoadChat,
   currentProject,
   sessionId,
+  streaming,
   onCopySessionId,
   budgetSettings,
   onBudgetSettingsChange,
@@ -38,6 +40,7 @@ export default function MinimalisticSidebar({
   onUIConfigChange,
   codingAgent,
   allTags,
+  agentClass,
 }) {
   const { t } = useTranslation();
   const { mode: themeMode, toggleMode } = useThemeMode();
@@ -49,6 +52,19 @@ export default function MinimalisticSidebar({
   const [existingProjects, setExistingProjects] = useState([]);
   const [projectSessions, setProjectSessions] = useState([]);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
+  const [agentClassIcon, setAgentClassIcon] = useState(null);
+
+  // Fetch agent class icon
+  useEffect(() => {
+    apiFetch('/api/persona-manager/agentclass-icon')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.image) {
+          setAgentClassIcon(data.image);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Resizable width
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -146,6 +162,15 @@ export default function MinimalisticSidebar({
     fetchProjectSessions();
   }, [sessionId]);
 
+  // Re-fetch sessions when streaming ends (session metadata is persisted after stream completes)
+  const prevStreamingRef = useRef(streaming);
+  useEffect(() => {
+    if (prevStreamingRef.current && !streaming) {
+      fetchProjectSessions();
+    }
+    prevStreamingRef.current = streaming;
+  }, [streaming, fetchProjectSessions]);
+
   const handleNewProjectClick = () => {
     apiFetch('/api/claude/listProjects')
       .then(res => res.json())
@@ -187,6 +212,37 @@ export default function MinimalisticSidebar({
           },
         }}
       >
+        {/* Agent Class Header — shown if agentClass or agentClassIcon is available */}
+        {(agentClass || agentClassIcon) && (
+          <Box sx={{
+            height: '48px',
+            minHeight: '48px',
+            backgroundColor: isDark ? '#383838' : 'white',
+            display: 'flex',
+            alignItems: 'center',
+            px: 2,
+            borderBottom: isDark ? '1px solid #555' : '1px solid #e0e0e0',
+          }}>
+            {agentClassIcon && (
+              <Box
+                component="img"
+                src={`data:image/png;base64,${agentClassIcon}`}
+                alt="Agent Class"
+                sx={{ height: 24, width: 24, objectFit: 'contain', flexShrink: 0 }}
+              />
+            )}
+            {agentClass && (
+              <Typography variant="subtitle2" sx={{
+                color: 'text.secondary',
+                fontWeight: 600,
+                ml: agentClassIcon ? '10px' : 0,
+              }}>
+                {agentClass}
+              </Typography>
+            )}
+          </Box>
+        )}
+
         {/* Section 1: Menu */}
         <Box sx={{ px: 1, pt: 1, pb: 1 }}>
           <List disablePadding>
@@ -297,8 +353,8 @@ export default function MinimalisticSidebar({
           </>
         )}
 
-        {/* Dark mode toggle — pushed to bottom */}
-        <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'flex-start', py: 1.5, px: 1.5 }}>
+        {/* Dark mode toggle + notifications — pushed to bottom */}
+        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, px: 1.5 }}>
           <Box
             sx={{
               display: 'flex',
@@ -339,6 +395,7 @@ export default function MinimalisticSidebar({
               <IoMoonOutline size={14} />
             </Box>
           </Box>
+          <NotificationMenu projectName={currentProject} />
         </Box>
 
         {/* Modals */}
@@ -407,8 +464,7 @@ export default function MinimalisticSidebar({
         <Box sx={{
           width: '2px',
           height: '30px',
-          backgroundColor: isDark ? '#555' : '#ccc',
-          borderRadius: '1px',
+          borderLeft: isDark ? '2px dotted #555' : '2px dotted #ccc',
         }} />
       </Box>
     </Box>

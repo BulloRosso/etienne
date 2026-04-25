@@ -98,8 +98,7 @@ export default function SplitLayout({ left, right }) {
           <Box sx={{
             width: '2px',
             height: '30px',
-            backgroundColor: themeMode === 'dark' ? '#555' : '#ccc',
-            borderRadius: '1px'
+            borderLeft: themeMode === 'dark' ? '2px dotted #555' : '2px dotted #ccc',
           }} />
         </Box>
       </Box>

@@ -141,7 +141,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined }}>
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider', backgroundColor: themeMode === 'dark' ? '#383838' : undefined }}>
-        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1 }}>
+        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1, '& .MuiTab-root': { textTransform: 'none' } }}>
           <Tab label={t('artifacts.tabArtifacts')} />
           {projectExists && <Tab label={t('artifacts.tabRole')} />}
           {projectExists && isUser && <Tab label={t('artifacts.tabMission')} />}

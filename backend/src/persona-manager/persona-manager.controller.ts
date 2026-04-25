@@ -49,6 +49,16 @@ export class PersonaManagerController {
     return res.json({ image: base64 });
   }
 
+  @Get('agentclass-icon')
+  @Roles('user')
+  async getAgentClassIcon(@Res() res: Response) {
+    const base64 = await this.personaManagerService.getAgentClassIcon();
+    if (!base64) {
+      return res.status(HttpStatus.NO_CONTENT).send();
+    }
+    return res.json({ image: base64 });
+  }
+
   @Post('generate-avatar')
   @Roles('user')
   async generateAvatar(@Body() body: any) {
