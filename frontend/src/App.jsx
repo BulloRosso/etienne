@@ -589,6 +589,12 @@ export default function App() {
               } else {
                 new Notification(t('app.taskCompleted'), { body });
               }
+              // Track desktop notification in recent items so it appears in the sidebar
+              apiFetch('/api/recent-items/notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: body, projectName: currentProject }),
+              }).catch(() => {});
             }
           } catch { /* ignore */ }
         }

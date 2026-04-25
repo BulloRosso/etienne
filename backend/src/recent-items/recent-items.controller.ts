@@ -1,6 +1,8 @@
 import {
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Body,
   HttpException,
@@ -86,6 +88,27 @@ export class RecentItemsController {
         body.text,
         body.projectName,
       );
+      return { success: true };
+    } catch (error: any) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete('notification/:index')
+  async removeNotification(@Param('index') index: string) {
+    try {
+      const idx = parseInt(index, 10);
+      if (isNaN(idx) || idx < 0) {
+        throw new HttpException(
+          { success: false, message: 'Valid index is required' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      await this.recentItemsService.removeNotification(idx);
       return { success: true };
     } catch (error: any) {
       if (error instanceof HttpException) throw error;

@@ -62,10 +62,15 @@ export class RecentItemsService {
 
   async trackProject(name: string): Promise<void> {
     const items = await this.loadRecentItems();
-    const now = new Date().toISOString();
-    items.projects = items.projects.filter((p) => p.name !== name);
-    items.projects.unshift({ name, accessedAt: now });
-    items.projects = items.projects.slice(0, 10);
+    const existing = items.projects.find((p) => p.name === name);
+    if (existing) {
+      // Project already tracked — update timestamp but keep its position
+      existing.accessedAt = new Date().toISOString();
+    } else {
+      // New project — add to the top
+      items.projects.unshift({ name, accessedAt: new Date().toISOString() });
+      items.projects = items.projects.slice(0, 10);
+    }
     await this.save(items);
   }
 
@@ -91,5 +96,13 @@ export class RecentItemsService {
     items.notifications.unshift({ text, projectName, receivedAt: now });
     items.notifications = items.notifications.slice(0, 10);
     await this.save(items);
+  }
+
+  async removeNotification(index: number): Promise<void> {
+    const items = await this.loadRecentItems();
+    if (index >= 0 && index < items.notifications.length) {
+      items.notifications.splice(index, 1);
+      await this.save(items);
+    }
   }
 }

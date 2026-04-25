@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link } from '@mui/material';
-import { AddOutlined } from '@mui/icons-material';
+import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip } from '@mui/material';
+import { AddOutlined, Close as CloseIcon } from '@mui/icons-material';
 import { RiChatNewLine } from 'react-icons/ri';
 import { GiSettingsKnobs } from 'react-icons/gi';
-import { PiChatsThin } from 'react-icons/pi';
+import { GrChatOption } from 'react-icons/gr';
 import { PiBell } from 'react-icons/pi';
 import { FolderOutlined } from '@mui/icons-material';
 import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
@@ -23,6 +23,22 @@ const SIDEBAR_DEFAULT_WIDTH = 300;
 function truncateWords(text, maxWords = 5) {
   if (!text) return '';
   return text.split(/\s+/).slice(0, maxWords).join(' ');
+}
+
+function OverflowTooltip({ title, children, ...tooltipProps }) {
+  const [open, setOpen] = React.useState(false);
+  const handleOpen = (e) => {
+    const textEl = e.currentTarget.querySelector('.MuiListItemText-primary');
+    if (textEl && textEl.scrollWidth > textEl.clientWidth) setOpen(true);
+  };
+  const handleClose = () => setOpen(false);
+  return (
+    <Tooltip {...tooltipProps} title={title} open={open} onClose={handleClose}>
+      <span onMouseEnter={handleOpen} onMouseLeave={handleClose}>
+        {children}
+      </span>
+    </Tooltip>
+  );
 }
 
 export default function MinimalisticSidebar({
@@ -294,31 +310,66 @@ export default function MinimalisticSidebar({
 
         <Divider />
 
-        {/* Section 3: Chats — newest 3 sessions of the current project */}
+        {/* Section 3: Chats — up to 5 from current project, fill remaining with other projects */}
         <Box>
           <Typography sx={sectionHeadingSx}>{t('sidebar.chatsHeading')}</Typography>
           <List disablePadding sx={{ px: 1 }}>
-            {projectSessions.slice(0, 3).map((session) => (
-              <ListItemButton
-                key={session.sessionId}
-                onClick={() => onLoadChat(session.sessionId, currentProject)}
-                selected={session.sessionId === sessionId}
-                sx={{ borderRadius: 1, py: 0.5 }}
-              >
-                <ListItemIcon sx={{ minWidth: 36 }}><PiChatsThin size={18} /></ListItemIcon>
-                <ListItemText
-                  primary={truncateWords(session.summary) || truncateWords(session.sessionName) || t('sidebar.untitledChat')}
-                  primaryTypographyProps={{ fontSize: '0.875rem', noWrap: true }}
-                />
-              </ListItemButton>
-            ))}
-            {projectSessions.length === 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ px: 2, py: 1, display: 'block' }}>
-                {t('sidebar.noRecentChats')}
-              </Typography>
-            )}
+            {(() => {
+              const MAX_CHATS = 5;
+              const currentProjectChats = projectSessions.slice(0, MAX_CHATS).map((session) => ({
+                sessionId: session.sessionId,
+                title: session.summary || session.sessionName || t('sidebar.untitledChat'),
+                projectName: currentProject,
+                isCrossProject: false,
+              }));
+              const remaining = MAX_CHATS - currentProjectChats.length;
+              const currentSessionIds = new Set(projectSessions.map(s => s.sessionId));
+              const crossProjectChats = remaining > 0
+                ? recentItems.chats
+                    .filter(c => c.projectName !== currentProject && !currentSessionIds.has(c.sessionId))
+                    .slice(0, remaining)
+                    .map(c => ({
+                      sessionId: c.sessionId,
+                      title: c.title || t('sidebar.untitledChat'),
+                      projectName: c.projectName,
+                      isCrossProject: true,
+                    }))
+                : [];
+              const combinedChats = [...currentProjectChats, ...crossProjectChats];
+
+              if (combinedChats.length === 0) {
+                return (
+                  <Typography variant="caption" color="text.secondary" sx={{ px: 2, py: 1, display: 'block' }}>
+                    {t('sidebar.noRecentChats')}
+                  </Typography>
+                );
+              }
+
+              return combinedChats.map((chat) => (
+                <OverflowTooltip
+                  key={chat.sessionId}
+                  title={chat.isCrossProject ? `${chat.title} (${chat.projectName})` : chat.title}
+                  placement="right"
+                  arrow
+                >
+                  <ListItemButton
+                    onClick={() => onLoadChat(chat.sessionId, chat.projectName)}
+                    selected={chat.sessionId === sessionId}
+                    sx={{ borderRadius: 1, py: 0.5, opacity: chat.isCrossProject ? 0.7 : 1 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}><GrChatOption size={18} /></ListItemIcon>
+                    <ListItemText
+                      primary={truncateWords(chat.title)}
+                      secondary={chat.isCrossProject ? chat.projectName : undefined}
+                      primaryTypographyProps={{ fontSize: '0.875rem', noWrap: true }}
+                      slotProps={{ secondary: { sx: { fontSize: '0.7rem', noWrap: true, opacity: 0.6 } } }}
+                    />
+                  </ListItemButton>
+                </OverflowTooltip>
+              ));
+            })()}
           </List>
-          {projectSessions.length > 3 && (
+          {projectSessions.length > 5 && (
             <Box sx={{ px: 2, pb: 1 }}>
               <Link
                 component="button"
@@ -340,11 +391,34 @@ export default function MinimalisticSidebar({
               <Typography sx={sectionHeadingSx}>{t('sidebar.notificationsHeading')}</Typography>
               <List disablePadding sx={{ px: 1 }}>
                 {recentItems.notifications.slice(0, 5).map((notif, idx) => (
-                  <ListItemButton key={idx} sx={{ borderRadius: 1, py: 0.5 }} disabled>
+                  <ListItemButton
+                    key={idx}
+                    sx={{
+                      borderRadius: 1,
+                      py: 0.5,
+                      '& .notif-close': { opacity: 0 },
+                      '&:hover .notif-close': { opacity: 1 },
+                    }}
+                    onClick={() => {
+                      apiFetch(`/api/recent-items/notification/${idx}`, { method: 'DELETE' })
+                        .then(() => fetchRecentItems())
+                        .catch(() => {});
+                    }}
+                  >
                     <ListItemIcon sx={{ minWidth: 36 }}><PiBell size={18} /></ListItemIcon>
                     <ListItemText
                       primary={`${truncateWords(notif.text)} (${notif.projectName})`}
                       primaryTypographyProps={{ fontSize: '0.875rem', noWrap: true }}
+                    />
+                    <CloseIcon
+                      className="notif-close"
+                      sx={{
+                        fontSize: 16,
+                        color: 'error.main',
+                        ml: 0.5,
+                        flexShrink: 0,
+                        transition: 'opacity 0.15s',
+                      }}
                     />
                   </ListItemButton>
                 ))}
