@@ -6,6 +6,7 @@ import { GiSettingsKnobs } from "react-icons/gi";
 import { IoClose } from "react-icons/io5";
 import { RiChatNewLine } from "react-icons/ri";
 import { PiCaretCircleDownLight } from "react-icons/pi";
+import { GoSidebarExpand } from "react-icons/go";
 import { MdInfo } from "react-icons/md";
 import { useTranslation } from 'react-i18next';
 import ChatMessage from './ChatMessage';
@@ -18,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false }) {
+export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false, sidebarCollapsed = false, onExpandSidebar }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -341,6 +342,15 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         px: 2,
         borderBottom: themeMode === 'dark' ? '1px solid #555' : '1px solid #e0e0e0',
       }}>
+        {sidebarCollapsed && (
+          <IconButton
+            onClick={onExpandSidebar}
+            size="small"
+            sx={{ color: 'text.secondary', mr: 1 }}
+          >
+            <GoSidebarExpand size={18} />
+          </IconButton>
+        )}
         <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
           {uiConfig?.appBar?.title || projectName}
         </Typography>

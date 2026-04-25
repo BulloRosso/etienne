@@ -51,6 +51,7 @@ export default function App() {
   // Fetch agent name and agent class from personality config
   const [agentName, setAgentName] = useState('Etienne');
   const [agentClass, setAgentClass] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useEffect(() => {
     if (!isAuthenticated) return;
     document.title = 'Etienne: AI Coworker';
@@ -1841,7 +1842,7 @@ export default function App() {
   return (
     <MuxSSEProvider mux={mux}>
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: isMinimalistic ? 'row' : 'column' }}>
-      {isMinimalistic && (
+      {isMinimalistic && !sidebarCollapsed && (
         <MinimalisticSidebar
           onNewChat={() => handleSessionChange(null)}
           onProjectChange={handleProjectChange}
@@ -1863,6 +1864,7 @@ export default function App() {
           codingAgent={codingAgent}
           allTags={allTags}
           agentClass={agentClass}
+          onCollapse={() => setSidebarCollapsed(true)}
         />
       )}
 
@@ -2014,7 +2016,7 @@ export default function App() {
           />
         ) : (
           <SplitLayout
-            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} />}
+            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} sidebarCollapsed={sidebarCollapsed} onExpandSidebar={() => setSidebarCollapsed(false)} />}
             right={<ArtifactsPane files={files} projectName={currentProject} sessionId={sessionId} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} previewersConfig={previewersConfig} autoFilePreviewExtensions={uiConfig?.autoFilePreviewExtensions} />}
           />
         )}

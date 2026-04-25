@@ -7,6 +7,7 @@ import { GrChatOption } from 'react-icons/gr';
 import { PiBell } from 'react-icons/pi';
 import { FolderOutlined } from '@mui/icons-material';
 import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
+import { GoSidebarCollapse } from 'react-icons/go';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -57,6 +58,7 @@ export default function MinimalisticSidebar({
   codingAgent,
   allTags,
   agentClass,
+  onCollapse,
 }) {
   const { t } = useTranslation();
   const { mode: themeMode, toggleMode } = useThemeMode();
@@ -256,6 +258,13 @@ export default function MinimalisticSidebar({
                 {agentClass}
               </Typography>
             )}
+            <IconButton
+              onClick={onCollapse}
+              size="small"
+              sx={{ ml: 'auto', color: 'text.secondary' }}
+            >
+              <GoSidebarCollapse size={18} />
+            </IconButton>
           </Box>
         )}
 
@@ -296,12 +305,12 @@ export default function MinimalisticSidebar({
               </ListItemButton>
             ))}
           </List>
-          <Box sx={{ px: 2, pb: 1 }}>
+          <Box sx={{ px: 2, pb: 1, textAlign: 'right' }}>
             <Link
               component="button"
               variant="caption"
               onClick={() => setProjectListOpen(true)}
-              sx={{ cursor: 'pointer', color: 'primary.main' }}
+              sx={{ cursor: 'pointer', color: 'primary.main', textDecoration: 'none' }}
             >
               {t('sidebar.moreProjects')}
             </Link>
@@ -370,12 +379,12 @@ export default function MinimalisticSidebar({
             })()}
           </List>
           {projectSessions.length > 5 && (
-            <Box sx={{ px: 2, pb: 1 }}>
+            <Box sx={{ px: 2, pb: 1, textAlign: 'right' }}>
               <Link
                 component="button"
                 variant="caption"
                 onClick={() => setSessionPaneOpen(true)}
-                sx={{ cursor: 'pointer', color: 'primary.main' }}
+                sx={{ cursor: 'pointer', color: 'primary.main', textDecoration: 'none' }}
               >
                 {t('sidebar.moreSessions')}
               </Link>
