@@ -59,7 +59,8 @@ export default function SkillIndicator({ projectName, sessionId }) {
             alignItems: 'center',
             gap: 0.5,
             cursor: 'pointer',
-            fontSize: '0.75rem',
+            fontSize: isMinimalistic ? '0.9rem' : '0.75rem',
+            fontFamily: isMinimalistic ? '"Roboto", "Helvetica", "Arial", sans-serif' : undefined,
             mr: 1,
             '&:hover': { opacity: 0.8 }
           }}
@@ -80,7 +81,7 @@ export default function SkillIndicator({ projectName, sessionId }) {
           }}>
             {skillCount}
           </Box>
-          <Box component="span" sx={{ color: 'text.secondary' }}>{t('skillIndicator.label')}</Box>
+          <Box component="span" sx={{ color: 'text.secondary', ...(isMinimalistic && { ml: '10px', textTransform: 'capitalize' }) }}>{t('skillIndicator.label')}</Box>
         </Box>
       </Tooltip>
 

@@ -1773,6 +1773,7 @@
   "reqViewer.quality.noGaps": "No gaps identified.",
 
   "sidebar.newChat": "New Chat",
+  "sidebar.agentRole": "Agent Role",
   "sidebar.settings": "Settings",
   "sidebar.projectsHeading": "Projects",
   "sidebar.moreProjects": "More projects...",

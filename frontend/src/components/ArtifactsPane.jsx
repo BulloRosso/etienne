@@ -21,6 +21,7 @@ import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { apiFetch } from '../services/api';
 
 function TabPanel({ children, value, index }) {
@@ -39,6 +40,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
+  const { isMinimalistic } = useUxMode();
   const isAdmin = hasRole('admin');
   const isUser = hasRole('user');
   const [tabValue, setTabValue] = useState(0);
@@ -143,7 +145,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider', backgroundColor: themeMode === 'dark' ? '#383838' : undefined }}>
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1, '& .MuiTab-root': { textTransform: 'none' } }}>
           <Tab label={t('artifacts.tabArtifacts')} />
-          {projectExists && <Tab label={t('artifacts.tabRole')} />}
+          {projectExists && !isMinimalistic && <Tab label={t('artifacts.tabRole')} />}
           {projectExists && isUser && <Tab label={t('artifacts.tabMission')} />}
           {projectExists && isAdmin && <Tab label={t('artifacts.tabPermissions')} />}
           {projectExists && isAdmin && <Tab label={t('artifacts.tabConnectivity')} />}
@@ -169,7 +171,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
             </IconButton>
           </Tooltip>
         )}
-        {projectExists && (
+        {projectExists && !isMinimalistic && (
           <>
             <McpToolsIndicator projectName={projectName} sessionId={sessionId} />
             <SkillIndicator projectName={projectName} sessionId={sessionId} />
@@ -200,23 +202,25 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
       </TabPanel>
       {projectExists && (
         <>
-          <TabPanel value={tabValue} index={1}>
-            <Strategy projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
-          </TabPanel>
+          {!isMinimalistic && (
+            <TabPanel value={tabValue} index={1}>
+              <Strategy projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+            </TabPanel>
+          )}
           {isUser && (
-            <TabPanel value={tabValue} index={2}>
+            <TabPanel value={tabValue} index={isMinimalistic ? 1 : 2}>
               <Mission projectName={projectName} />
             </TabPanel>
           )}
           {isAdmin && (
             <>
-              <TabPanel value={tabValue} index={2}>
+              <TabPanel value={tabValue} index={isMinimalistic ? 1 : 2}>
                 <PermissionList projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
               </TabPanel>
-              <TabPanel value={tabValue} index={3}>
+              <TabPanel value={tabValue} index={isMinimalistic ? 2 : 3}>
                 <ConnectivitySettings projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
               </TabPanel>
-              <TabPanel value={tabValue} index={4}>
+              <TabPanel value={tabValue} index={isMinimalistic ? 3 : 4}>
                 <Interceptors projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
               </TabPanel>
             </>

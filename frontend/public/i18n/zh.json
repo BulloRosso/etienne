@@ -1756,6 +1756,7 @@
   "reqViewer.quality.noGaps": "未发现缺失项。",
 
   "sidebar.newChat": "新聊天",
+  "sidebar.agentRole": "代理角色",
   "sidebar.settings": "设置",
   "sidebar.projectsHeading": "项目",
   "sidebar.moreProjects": "更多项目...",

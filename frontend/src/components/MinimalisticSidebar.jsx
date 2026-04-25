@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer } from '@mui/material';
 import { AddOutlined, Close as CloseIcon } from '@mui/icons-material';
 import { RiChatNewLine } from 'react-icons/ri';
 import { GiSettingsKnobs } from 'react-icons/gi';
@@ -8,6 +8,7 @@ import { PiBell } from 'react-icons/pi';
 import { FolderOutlined } from '@mui/icons-material';
 import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
 import { GoSidebarCollapse } from 'react-icons/go';
+import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -16,6 +17,9 @@ import ProjectListModal from './ProjectListModal';
 import CreateProjectWizard from './CreateProjectWizard';
 import SessionPane from './SessionPane';
 import NotificationMenu from './NotificationMenu';
+import Strategy from './Strategy';
+import SkillIndicator from './SkillIndicator';
+import McpToolsIndicator from './McpToolsIndicator';
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -70,6 +74,7 @@ export default function MinimalisticSidebar({
   const [existingProjects, setExistingProjects] = useState([]);
   const [projectSessions, setProjectSessions] = useState([]);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
+  const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
   const [agentClassIcon, setAgentClassIcon] = useState(null);
 
   // Fetch agent class icon
@@ -275,6 +280,22 @@ export default function MinimalisticSidebar({
               <ListItemIcon sx={{ minWidth: 36 }}><RiChatNewLine size={18} /></ListItemIcon>
               <ListItemText primary={t('sidebar.newChat')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
             </ListItemButton>
+            {currentProject && (
+              <ListItemButton onClick={() => setRoleDrawerOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}><LiaHatCowboySideSolid size={21} /></ListItemIcon>
+                <ListItemText primary={t('sidebar.agentRole')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
+            {currentProject && (
+              <Box sx={{ ml: '50px', my: '8px' }}>
+                <SkillIndicator projectName={currentProject} sessionId={sessionId} />
+              </Box>
+            )}
+            {currentProject && (
+              <Box sx={{ ml: '50px', my: '8px' }}>
+                <McpToolsIndicator projectName={currentProject} sessionId={sessionId} />
+              </Box>
+            )}
             <ListItemButton onClick={() => setSettingsOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
               <ListItemIcon sx={{ minWidth: 36 }}><GiSettingsKnobs size={18} /></ListItemIcon>
               <ListItemText primary={t('sidebar.settings')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
@@ -523,6 +544,22 @@ export default function MinimalisticSidebar({
           onSessionSelect={(sid) => { onLoadChat(sid, currentProject); setSessionPaneOpen(false); fetchProjectSessions(); }}
           currentSessionId={sessionId}
         />
+
+        <Drawer
+          anchor="left"
+          open={roleDrawerOpen}
+          onClose={() => setRoleDrawerOpen(false)}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: '500px',
+              maxWidth: '90vw',
+            },
+          }}
+        >
+          <Box sx={{ height: '100%', overflow: 'auto' }}>
+            <Strategy projectName={currentProject} showBackgroundInfo={showBackgroundInfo} />
+          </Box>
+        </Drawer>
       </Box>
 
       {/* Resize handle */}

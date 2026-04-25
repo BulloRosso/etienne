@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
+import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import DonClippoModal from './DonClippoModal';
 
@@ -16,6 +17,8 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { isMinimalistic } = useUxMode();
+  const { mode: themeMode } = useThemeMode();
+  const isDark = themeMode === 'dark';
   const [mcpServers, setMcpServers] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
   const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);
@@ -94,7 +97,8 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
             alignItems: 'center',
             gap: 0.5,
             cursor: 'pointer',
-            fontSize: '0.75rem',
+            fontSize: isMinimalistic ? '0.9rem' : '0.75rem',
+            fontFamily: isMinimalistic ? '"Roboto", "Helvetica", "Arial", sans-serif' : undefined,
             mr: 1,
             '&:hover': { opacity: 0.8 }
           }}
@@ -106,16 +110,16 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
             width: 20,
             height: 20,
             bgcolor: isMinimalistic ? 'transparent' : '#000000',
-            color: isMinimalistic ? '#000000' : '#ffffff',
-            border: isMinimalistic ? '1px solid #000000' : 'none',
-            boxShadow: isMinimalistic ? '0 0 0 0.5px rgba(0,0,0,0.4)' : 'none',
+            color: isMinimalistic ? (isDark ? '#ffffff' : '#000000') : '#ffffff',
+            border: isMinimalistic ? (isDark ? '1px solid #ffffff' : '1px solid #000000') : 'none',
+            boxShadow: isMinimalistic ? (isDark ? '0 0 0 0.5px rgba(255,255,255,0.4)' : '0 0 0 0.5px rgba(0,0,0,0.4)') : 'none',
             borderRadius: '50%',
             fontWeight: 600,
             fontSize: '0.7rem'
           }}>
             {serverCount}
           </Box>
-          <Box component="span" sx={{ color: 'text.secondary' }}>{t('mcpToolsIndicator.label')}</Box>
+          <Box component="span" sx={{ color: 'text.secondary', ...(isMinimalistic && { ml: '10px', textTransform: 'capitalize' }) }}>{t('mcpToolsIndicator.label')}</Box>
         </Box>
       </Tooltip>
 
