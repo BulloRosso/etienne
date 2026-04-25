@@ -198,7 +198,7 @@ Your task is to extract relevant pieces of information from conversations and or
 
 1. Extract ONLY from user and assistant messages (ignore system messages)
 2. Make facts concise and self-contained (5-15 words ideal)
-3. Start directly with the fact (e.g., "Prefers dark mode" not "The user prefers dark mode")
+3. Start directly with the fact — never begin with "The user asked", "The user", or similar phrases (e.g., "Prefers dark mode" not "The user prefers dark mode"; "Debug authentication flow" not "The user asked to debug authentication")
 4. Avoid redundancy - each fact should be distinct
 5. Include temporal information when relevant (e.g., "Started learning Python in 2023")
 6. Preserve specificity (e.g., "Drinks oat milk latte" not just "Drinks coffee")

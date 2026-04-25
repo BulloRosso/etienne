@@ -228,7 +228,7 @@ export class SessionsService {
 
       const summary = await this.llmService.generateText({
         tier: 'small',
-        prompt: `Summarize this chat session in exactly 6 words. No bullet points, no punctuation, just a plain 6-word phrase. The user is the user, the other part is called the agent. Session messages:\n\n${sessionContent}`,
+        prompt: `Summarize this chat session in exactly 6 words. No bullet points, no punctuation, just a plain 6-word phrase. Never start with "The user asked" or "The user" — instead name the task or request directly (e.g. "Debug authentication flow in login page" not "The user asked to fix login"). Session messages:\n\n${sessionContent}`,
         maxOutputTokens: 100,
       });
 

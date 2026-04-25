@@ -35,7 +35,6 @@ import { GuardrailsService } from './input-guardrails/guardrails.service';
 import { OutputGuardrailsModule } from './output-guardrails/output-guardrails.module';
 import { OutputGuardrailsService } from './output-guardrails/output-guardrails.service';
 import { SessionsModule } from './sessions/sessions.module';
-import { SessionsService } from './sessions/sessions.service';
 import { SubagentsModule } from './subagents/subagents.module';
 import { ExternalEventsModule } from './external-events/external-events.module';
 import { DeepResearchModule } from './deep-research/deep-research.module';
@@ -101,7 +100,6 @@ import { EmbeddingsModule } from './embeddings';
     OpenCodePermissionService,
     GuardrailsService,
     OutputGuardrailsService,
-    SessionsService,
     CodingAgentConfigurationService,
     McpServerConfigService
   ],
