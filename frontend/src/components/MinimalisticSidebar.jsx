@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer } from '@mui/material';
+import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer, CircularProgress } from '@mui/material';
 import { AddOutlined, Close as CloseIcon } from '@mui/icons-material';
 import { RiChatNewLine } from 'react-icons/ri';
 import { GiSettingsKnobs } from 'react-icons/gi';
@@ -53,6 +53,7 @@ export default function MinimalisticSidebar({
   currentProject,
   sessionId,
   streaming,
+  streamingSessionIds = new Set(),
   onCopySessionId,
   budgetSettings,
   onBudgetSettingsChange,
@@ -387,7 +388,11 @@ export default function MinimalisticSidebar({
                     selected={chat.sessionId === sessionId}
                     sx={{ borderRadius: 1, py: 0.5, opacity: chat.isCrossProject ? 0.7 : 1 }}
                   >
-                    <ListItemIcon sx={{ minWidth: 36 }}><GrChatOption size={18} /></ListItemIcon>
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      {streamingSessionIds.has(chat.sessionId)
+                        ? <CircularProgress size={16} thickness={5} />
+                        : <GrChatOption size={18} />}
+                    </ListItemIcon>
                     <ListItemText
                       primary={truncateWords(chat.title)}
                       secondary={chat.isCrossProject ? chat.projectName : undefined}

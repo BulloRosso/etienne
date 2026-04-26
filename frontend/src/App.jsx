@@ -28,6 +28,7 @@ import Onboarding from './components/Onboarding';
 import TechnologyRadarPage from './pages/TechnologyRadarPage';
 import { apiFetch } from './services/api';
 import useMultiplexSSE from './hooks/useMultiplexSSE';
+import useStreamingSessions from './hooks/useStreamingSessions';
 import { MuxSSEProvider } from './contexts/MuxSSEContext';
 import { useUxMode } from './contexts/UxModeContext.jsx';
 import MinimalisticSidebar from './components/MinimalisticSidebar';
@@ -71,7 +72,7 @@ export default function App() {
 
   const formatGreeting = (text) => agentName ? `**${agentName}**: ${text}` : text;
 
-  const [streaming, setStreaming] = useState(false);
+  const streamSessions = useStreamingSessions();
   const [messages, setMessages] = useState([]);
   const [structuredMessages, setStructuredMessages] = useState([]);
   const [files, setFiles] = useState([]);
@@ -119,8 +120,14 @@ export default function App() {
   const currentSessionIdRef = useRef(null); // Ref to access current session ID in event listeners
   const handledRequestIdsRef = useRef(new Set()); // Track handled permission/question request IDs to prevent duplicates
 
+  // Derived streaming state: true when the currently viewed session has an active stream.
+  // Also matches 'pending_*' keys (stream registered but sessionId not yet known from backend).
+  const streaming = streamSessions.activeSessionIds.includes(sessionId)
+    || streamSessions.activeSessionIds.some(id => id.startsWith('pending_'));
+
   useEffect(() => () => {
     esRef.current?.close();
+    streamSessions.closeAll();
   }, []);
 
   // Handle hash routes
@@ -598,6 +605,22 @@ export default function App() {
               }).catch(() => {});
             }
           } catch { /* ignore */ }
+        }
+
+        // Track remote/external streaming sessions via interceptor events
+        // This handles streams started by Telegram, Teams, scheduled tasks, etc.
+        if (eventType === 'SessionStart' && eventData.session_id) {
+          // Only register if not already tracked (local streams register via handleSendMessage)
+          if (!streamSessions.isSessionStreaming(eventData.session_id)) {
+            streamSessions.startStream(eventData.session_id, null, null);
+          }
+        }
+        if (eventType === 'Stop' && eventData.session_id) {
+          // Remove from streaming if it was a remote session (no local EventSource)
+          const ctx = streamSessions.getStreamContext(eventData.session_id);
+          if (ctx && !ctx.eventSource) {
+            streamSessions.stopStream(eventData.session_id);
+          }
         }
       } else if (event.type === 'elicitation_request') {
         setPendingElicitation(event.data);
@@ -1136,8 +1159,10 @@ export default function App() {
       contextName: activeContext ? activeContext.name : null
     }]);
 
-    setStreaming(true);
-    currentMessageRef.current = { role: 'assistant', text: '', timestamp: formatTime() };
+    // Per-stream message object — captured in the SSE handler closures so each
+    // stream accumulates into its own object even when running in the background.
+    const streamMsg = { role: 'assistant', text: '', timestamp: formatTime() };
+    currentMessageRef.current = streamMsg; // sync shared ref while this session is viewed
     currentUsageRef.current = null;
     activeToolCallsRef.current.clear(); // Clear any pending tool calls
     // Persist current structured messages to the last assistant message, then clear
@@ -1199,29 +1224,58 @@ export default function App() {
     const es = new EventSource(url.toString());
     esRef.current = es;
 
-    // Track accumulated text before line breaks
-    let textBuffer = '';
-    let lastChunkTime = Date.now();
-    let assistantMessageAdded = false;
+    // Temporary key for the stream context until the real sessionId arrives
+    const pendingKey = `pending_${Date.now()}`;
+    let resolvedSessionId = pendingKey;
+
+    // Register the stream context with a temporary key; targetRef='state' means
+    // SSE handlers write directly to React state (the user is viewing this session).
+    streamSessions.startStream(pendingKey, es, null);
+    const ctx = streamSessions.getStreamContext(pendingKey);
+    ctx.streamMsg = streamMsg; // Store per-stream message object for restoration on session switch
+
+    // Helper: get or update messages depending on whether this session is in foreground
+    const updateMessages = (updater) => {
+      if (ctx.targetRef.current === 'state') {
+        setMessages(updater);
+      } else {
+        ctx.messages = updater(ctx.messages);
+      }
+    };
+    const updateStructuredMessages = (updater) => {
+      if (ctx.targetRef.current === 'state') {
+        setStructuredMessages(updater);
+      } else {
+        ctx.structuredMessages = updater(ctx.structuredMessages);
+      }
+    };
 
     // Ensure an empty assistant message exists so the elapsed timer shows
     const ensureAssistantMessage = () => {
-      if (assistantMessageAdded) return;
-      assistantMessageAdded = true;
-      setMessages(prev => {
+      if (ctx.assistantMessageAdded) return;
+      ctx.assistantMessageAdded = true;
+      updateMessages(prev => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') return prev;
-        return [...prev, { ...currentMessageRef.current }];
+        return [...prev, { ...streamMsg }];
       });
     };
 
     es.addEventListener('session', (e) => {
       const data = JSON.parse(e.data);
       if (data.session_id) {
-        setSessionId(data.session_id);
+        // Rekey the stream context from the temporary key to the real sessionId
+        streamSessions.rekey(resolvedSessionId, data.session_id);
+        resolvedSessionId = data.session_id;
+        if (ctx.targetRef.current === 'state') {
+          setSessionId(data.session_id);
+        }
       }
       if (data.process_id) {
-        setCurrentProcessId(data.process_id);
+        ctx.processId = data.process_id;
+        if (ctx.targetRef.current === 'state') {
+          setCurrentProcessId(data.process_id);
+        }
       }
     });
 
@@ -1231,24 +1285,24 @@ export default function App() {
       ensureAssistantMessage();
 
       // Update last chunk time immediately
-      lastChunkTime = chunkTime;
+      ctx.lastChunkTime = chunkTime;
 
       // Trim leading linebreaks only if this is the first chunk
-      const textToAdd = currentMessageRef.current.text === '' ? chunk.trimStart() : chunk;
+      const textToAdd = streamMsg.text === '' ? chunk.trimStart() : chunk;
       // Don't add extra line breaks - the chunk already contains proper formatting
-      currentMessageRef.current.text += textToAdd;
+      streamMsg.text += textToAdd;
+      ctx.currentMessageText = streamMsg.text;
 
       // Accumulate text in buffer
-      textBuffer += chunk;
+      ctx.textBuffer += chunk;
 
       // Check if buffer contains double line breaks (paragraph separators)
       // Split on \n\n but capture the delimiter to preserve it
-      const parts = textBuffer.split(/(\n\n+)/);
+      const parts = ctx.textBuffer.split(/(\n\n+)/);
 
       // If we have paragraph breaks (more than one part after split)
       if (parts.length > 1) {
         // Combine text with its following newlines to form complete segments
-        // e.g., ["text1", "\n\n", "text2", "\n\n", "text3"] -> ["text1\n\n", "text2\n\n"] with "text3" remaining
         let currentContent = '';
         const segments = [];
 
@@ -1278,22 +1332,22 @@ export default function App() {
             content: segment,
             timestamp: chunkTime
           };
-          setStructuredMessages(prev => [...prev, textChunk]);
+          updateStructuredMessages(prev => [...prev, textChunk]);
         });
 
         // Keep the last incomplete part in the buffer
-        textBuffer = parts[parts.length - 1];
+        ctx.textBuffer = parts[parts.length - 1];
       }
 
-      setMessages(prev => {
+      updateMessages(prev => {
         const newMessages = [...prev];
         const lastMsg = newMessages[newMessages.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
-          newMessages[newMessages.length - 1] = { ...currentMessageRef.current };
+          newMessages[newMessages.length - 1] = { ...streamMsg };
         } else {
           // Only add message to state if there's actual content
-          if (currentMessageRef.current.text.trim()) {
-            newMessages.push({ ...currentMessageRef.current });
+          if (streamMsg.text.trim()) {
+            newMessages.push({ ...streamMsg });
           }
         }
         return newMessages;
@@ -1303,12 +1357,13 @@ export default function App() {
     es.addEventListener('usage', (e) => {
       const usage = JSON.parse(e.data);
       currentUsageRef.current = usage;
-      setMessages(prev => {
+      ctx.currentUsage = usage;
+      updateMessages(prev => {
         const newMessages = [...prev];
         const lastMsg = newMessages[newMessages.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
           newMessages[newMessages.length - 1] = {
-            ...currentMessageRef.current,
+            ...streamMsg,
             usage
           };
         }
@@ -1320,14 +1375,14 @@ export default function App() {
       const data = JSON.parse(e.data);
       // Store spanId and traceId with the current assistant message for feedback
       if (data.span_id) {
-        currentMessageRef.current.spanId = data.span_id;
-        currentMessageRef.current.traceId = data.trace_id;
-        setMessages(prev => {
+        streamMsg.spanId = data.span_id;
+        streamMsg.traceId = data.trace_id;
+        updateMessages(prev => {
           const newMessages = [...prev];
           const lastMsg = newMessages[newMessages.length - 1];
           if (lastMsg && lastMsg.role === 'assistant') {
             newMessages[newMessages.length - 1] = {
-              ...currentMessageRef.current,
+              ...streamMsg,
               spanId: data.span_id,
               traceId: data.trace_id
             };
@@ -1386,7 +1441,7 @@ export default function App() {
 
     es.addEventListener('guardrails_triggered', (e) => {
       const { plugins, count, detections } = JSON.parse(e.data);
-      setStructuredMessages(prev => [...prev, {
+      updateStructuredMessages(prev => [...prev, {
         id: `guardrails_${Date.now()}`,
         type: 'guardrails_warning',
         plugins,
@@ -1397,7 +1452,7 @@ export default function App() {
 
     es.addEventListener('output_guardrails_triggered', (e) => {
       const { violations, count } = JSON.parse(e.data);
-      setStructuredMessages(prev => [...prev, {
+      updateStructuredMessages(prev => [...prev, {
         id: `output_guardrails_${Date.now()}`,
         type: 'output_guardrails_warning',
         violations,
@@ -1408,7 +1463,7 @@ export default function App() {
     es.addEventListener('api_error', (e) => {
       const { message, fullError, timestamp } = JSON.parse(e.data);
       console.error('API Error:', message, fullError);
-      setStructuredMessages(prev => [...prev, {
+      updateStructuredMessages(prev => [...prev, {
         id: `api_error_${Date.now()}`,
         type: 'api_error',
         message,
@@ -1422,24 +1477,25 @@ export default function App() {
       if (stopped) return;
       stopped = true;
       es.close();
-      setStreaming(false);
       setCurrentProcessId(null);
 
       // Flush remaining text buffer, mark running items complete, and capture
       // final structured messages in a single state update to avoid races.
       const finalStructuredMessages = [];
-      setStructuredMessages(prev => {
+
+      // Build final structured messages from whichever target is active
+      const flushStructured = (prev) => {
         let updated = [...prev];
 
         // Flush any remaining text buffer
-        if (textBuffer.trim()) {
+        if (ctx.textBuffer.trim()) {
           updated.push({
             id: `text_${Date.now()}_final`,
             type: 'text_chunk',
-            content: textBuffer,
-            timestamp: lastChunkTime
+            content: ctx.textBuffer,
+            timestamp: ctx.lastChunkTime
           });
-          textBuffer = '';
+          ctx.textBuffer = '';
         }
 
         // Mark all running items as complete
@@ -1449,23 +1505,38 @@ export default function App() {
 
         finalStructuredMessages.push(...updated);
         return updated;
-      });
+      };
+
+      if (ctx.targetRef.current === 'state') {
+        setStructuredMessages(flushStructured);
+      } else {
+        ctx.structuredMessages = flushStructured(ctx.structuredMessages);
+      }
 
       // Finalize message with reasoning steps attached
-      if (currentMessageRef.current.text) {
-        setMessages(prev => {
+      if (streamMsg.text) {
+        const finalizeMessages = (prev) => {
           const newMessages = [...prev];
           const lastMsg = newMessages[newMessages.length - 1];
           if (lastMsg && lastMsg.role === 'assistant') {
             newMessages[newMessages.length - 1] = {
-              ...currentMessageRef.current,
-              usage: currentUsageRef.current,
+              ...streamMsg,
+              usage: ctx.currentUsage,
               reasoningSteps: finalStructuredMessages.length > 0 ? finalStructuredMessages : undefined
             };
           }
           return newMessages;
-        });
+        };
+
+        if (ctx.targetRef.current === 'state') {
+          setMessages(finalizeMessages);
+        } else {
+          ctx.messages = finalizeMessages(ctx.messages);
+        }
       }
+
+      // Remove from active streaming sessions
+      streamSessions.stopStream(resolvedSessionId);
 
       // Refresh sessions list (a new session may have been created)
       if (currentProject) {
@@ -1488,20 +1559,20 @@ export default function App() {
 
       // Flush any buffered text before the tool call
       // Use a timestamp slightly before the tool call to ensure proper ordering
-      if (textBuffer.trim() && data.status === 'running') {
-        const bufferContent = textBuffer;
+      if (ctx.textBuffer.trim() && data.status === 'running') {
+        const bufferContent = ctx.textBuffer;
         const bufferTimestamp = receivedTime - 1; // 1ms before tool call
         console.log('Flushing text buffer before tool call:', { timestamp: bufferTimestamp, preview: bufferContent.substring(0, 50) });
-        setStructuredMessages(prev => [...prev, {
+        updateStructuredMessages(prev => [...prev, {
           id: `text_${receivedTime}_before_tool`,
           type: 'text_chunk',
           content: bufferContent,
           timestamp: bufferTimestamp
         }]);
-        textBuffer = '';
+        ctx.textBuffer = '';
       }
 
-      setStructuredMessages(prev => {
+      updateStructuredMessages(prev => {
         const existing = prev.find(msg => msg.id === data.callId);
         if (existing) {
           // Update existing tool call with new status
@@ -1520,7 +1591,6 @@ export default function App() {
           );
         } else {
           // Add new tool call with timestamp from when we received it
-          // Note: TodoWrite entries are now kept in chronological order (no longer deduplicated)
           console.log('Adding new tool call:', { callId: data.callId, tool: data.toolName, timestamp: receivedTime });
           return [...prev, {
             id: data.callId,
@@ -1540,7 +1610,7 @@ export default function App() {
       const data = JSON.parse(e.data);
       if (data.content) {
         const timestamp = Date.now();
-        setStructuredMessages(prev => [...prev, {
+        updateStructuredMessages(prev => [...prev, {
           id: `thinking_${timestamp}`,
           type: 'thinking',
           content: data.content,
@@ -1558,13 +1628,20 @@ export default function App() {
   };
 
   const handleAbort = async () => {
-    if (currentProcessId) {
+    // Look up the stream context for the currently viewed session
+    const ctx = streamSessions.getStreamContext(sessionId);
+    const pid = ctx?.processId || currentProcessId;
+    if (pid) {
       try {
-        await apiFetch(`/api/claude/abort/${currentProcessId}`, {
+        await apiFetch(`/api/claude/abort/${pid}`, {
           method: 'POST'
         });
-        esRef.current?.close();
-        setStreaming(false);
+        // Close the specific EventSource and remove from streaming sessions
+        if (ctx) {
+          streamSessions.stopStream(sessionId);
+        } else {
+          esRef.current?.close();
+        }
         setCurrentProcessId(null);
       } catch (error) {
         console.error('Failed to abort process:', error);
@@ -1574,6 +1651,25 @@ export default function App() {
 
   const handleSessionChange = async (newSessionId, targetProject) => {
     const project = targetProject || currentProject;
+
+    // --- Snapshot the departing session if it's currently streaming ---
+    const departingCtx = streamSessions.getStreamContext(sessionId);
+    if (departingCtx && departingCtx.targetRef.current === 'state') {
+      // Capture the latest React state into the stream context's buffers.
+      // We flip targetRef inside the updater so SSE handlers see 'buffer' only
+      // after the snapshot is taken, avoiding a race where handlers write to
+      // an empty ctx.messages before the snapshot populates it.
+      setMessages(prev => {
+        departingCtx.messages = [...prev];
+        return prev;
+      });
+      setStructuredMessages(prev => {
+        departingCtx.structuredMessages = [...prev];
+        departingCtx.targetRef.current = 'buffer';
+        return prev;
+      });
+    }
+
     // If newSessionId is null, start a new session (clear current session)
     if (newSessionId === null) {
       setCurrentSessionId(null);
@@ -1613,10 +1709,27 @@ export default function App() {
       return;
     }
 
-    // Load specific session
+    // --- Switch TO the target session ---
     setCurrentSessionId(newSessionId);
     setSessionId(newSessionId);
 
+    // Check if the target session has an active background stream
+    const targetCtx = streamSessions.getStreamContext(newSessionId);
+    if (targetCtx) {
+      // Restore buffered state from the background stream into React state
+      setMessages(targetCtx.messages);
+      setStructuredMessages(targetCtx.structuredMessages);
+      setCurrentProcessId(targetCtx.processId);
+      // Restore the per-stream message ref so the MuxSSE Stop handler reads the right text
+      if (targetCtx.streamMsg) {
+        currentMessageRef.current = targetCtx.streamMsg;
+      }
+      // Re-point SSE handlers to write to React state
+      targetCtx.targetRef.current = 'state';
+      return;
+    }
+
+    // No active stream — load session history from API (existing behavior)
     try {
       // Load session history
       const historyRes = await apiFetch(`/api/sessions/${encodeURIComponent(project)}/${newSessionId}/history`);
@@ -1752,7 +1865,7 @@ export default function App() {
     setCurrentSessionId(null);
     setHasSessions(false);
     esRef.current?.close();
-    setStreaming(false);
+    streamSessions.closeAll();
 
     // Update project - this will trigger the useEffect that loads all project data
     setProject(newProject);
@@ -1850,6 +1963,7 @@ export default function App() {
           currentProject={currentProject}
           sessionId={sessionId}
           streaming={streaming}
+          streamingSessionIds={new Set(streamSessions.activeSessionIds)}
           onCopySessionId={handleCopySessionId}
           budgetSettings={budgetSettings}
           onBudgetSettingsChange={setBudgetSettings}
