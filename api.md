@@ -309,6 +309,18 @@ Access is hierarchical: `admin` inherits all `user` permissions, `user` inherits
 |------|------|------|-------------|
 | `/api/agent-role-registry` | GET | guest, user, admin | Lists available agent role templates. |
 
+## HitlProtocolController (`/api/hitl`)
+| Path | Verb | RBAC | Description |
+|------|------|------|-------------|
+| `/api/hitl/verify` | POST | API key (`X-HITL-API-Key`) | Synchronous HITL verification — blocks until human decides or timeout. Body: `HITLVerificationRequest` + `project`. |
+| `/api/hitl/verify/async` | POST | API key (`X-HITL-API-Key`) | Async HITL verification — returns `request_id` immediately; decision delivered via inline submit to `submit_url`. |
+| `/api/hitl/verify/:requestId` | GET | API key (`X-HITL-API-Key`) | Polls the status of an async verification request. Returns `pending`, `approved`, `denied`, or `expired`. |
+| `/api/hitl/policy/:project` | GET | API key (`X-HITL-API-Key`) | Returns the full verification policy for a project. Used by agents for preflight / detection. |
+| `/api/hitl/policy/:project/:actionType` | GET | API key (`X-HITL-API-Key`) | Returns the effective policy for a specific action type. Optional query param: `requested_policy`. |
+| `/api/hitl/respond` | POST | user, admin | Handles human verification decision from the web frontend. Body: `{ request_id, decision, modified_payload? }`. |
+| `/api/hitl/submit` | POST | Submit token (`Authorization: Bearer`) | Inline submit from external agents authenticated via single-use JWT submit token. |
+| `/api/hitl/pending` | GET | user, admin | Lists all pending HITL verification requests (admin dashboard). |
+
 ## WorkflowsController (`/api/workspace/:projectName/workflows`)
 | Path | Verb | RBAC | Description |
 |------|------|------|-------------|
