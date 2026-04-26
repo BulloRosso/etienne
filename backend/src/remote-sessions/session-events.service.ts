@@ -124,6 +124,35 @@ export class SessionEventsService {
   }
 
   /**
+   * Emit a HITL Protocol verification request to a remote session provider.
+   * The provider (e.g. Telegram bot) renders the request with platform-native
+   * approval buttons and forwards the human decision back.
+   */
+  emitHITLVerification(
+    provider: string,
+    chatId: number,
+    renderedPayload: any,
+  ): void {
+    const subject = this.subjects.get(provider);
+    if (!subject) {
+      this.logger.warn(`No subscribers for provider: ${provider}`);
+      return;
+    }
+
+    const event: ProviderEvent = {
+      type: 'hitl_verification',
+      data: {
+        chatId,
+        ...renderedPayload,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    subject.next(event);
+    this.logger.log(`Emitted hitl_verification for chatId ${chatId}`);
+  }
+
+  /**
    * Check if a provider has active subscribers
    */
   hasSubscribers(provider: string): boolean {

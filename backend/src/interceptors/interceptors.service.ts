@@ -4,7 +4,7 @@ import { ReplaySubject, Subject } from 'rxjs';
 export interface InterceptorEvent {
   project: string;
   timestamp: string;
-  type: 'hook' | 'event' | 'elicitation_request' | 'permission_request' | 'ask_user_question' | 'plan_approval' | 'pairing_request' | 'chat_message';
+  type: 'hook' | 'event' | 'elicitation_request' | 'permission_request' | 'ask_user_question' | 'plan_approval' | 'pairing_request' | 'chat_message' | 'hitl_request';
   data: any;
 }
 
@@ -186,6 +186,32 @@ export class InterceptorsService {
       project,
       timestamp,
       type: 'pairing_request',
+      data
+    });
+  }
+
+  /**
+   * Emit a HITL Protocol verification request to the frontend via SSE
+   * This is called by HitlProtocolService when an external service requests human verification
+   */
+  emitHITLRequest(project: string, data: {
+    id: string;
+    service_id: string;
+    action_type: string;
+    action_description: string;
+    verification_policy: string;
+    payload: any;
+    timeout_ms: number;
+    metadata?: Record<string, any>;
+  }) {
+    const timestamp = new Date().toISOString();
+    this.logger.log(`Emitting HITL request for project "${project}": ${data.id} (service: ${data.service_id}, action: ${data.action_type})`);
+
+    const subject = this.getSubject(project);
+    subject.next({
+      project,
+      timestamp,
+      type: 'hitl_request',
       data
     });
   }

@@ -15,6 +15,7 @@ import PermissionModal from './components/PermissionModal';
 import AskUserQuestionModal from './components/AskUserQuestionModal';
 import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
+import HITLApprovalModal from './components/HITLApprovalModal';
 import LoginDialog from './components/LoginDialog';
 import ServiceHealthGate from './components/ServiceHealthGate';
 import { TbCalendarTime, TbPresentation, TbWorld } from 'react-icons/tb';
@@ -108,6 +109,7 @@ export default function App() {
   const [pendingPermission, setPendingPermission] = useState(null); // Current permission request from SDK canUseTool
   const [pendingQuestion, setPendingQuestion] = useState(null); // Current AskUserQuestion request
   const [pendingPlanApproval, setPendingPlanApproval] = useState(null); // Current ExitPlanMode request
+  const [pendingHITL, setPendingHITL] = useState(null); // Current HITL Protocol verification request
   const [pendingPairing, setPendingPairing] = useState(null); // Current Telegram pairing request
   const [codingAgent, setCodingAgent] = useState('anthropic'); // 'anthropic' or 'openai' — from CODING_AGENT env var
   const [previewersConfig, setPreviewersConfig] = useState([]);
@@ -642,6 +644,12 @@ export default function App() {
         handledRequestIdsRef.current.add(planId);
         console.log('Plan approval request received:', event.data);
         setPendingPlanApproval(event.data);
+      } else if (event.type === 'hitl_request') {
+        const hitlId = event.data?.id;
+        if (handledRequestIdsRef.current.has(hitlId)) return;
+        handledRequestIdsRef.current.add(hitlId);
+        console.log('HITL verification request received:', event.data);
+        setPendingHITL(event.data);
       } else if (event.type === 'chat_message') {
         const chatData = event.data;
         console.log('Remote chat message received:', chatData);
@@ -756,6 +764,28 @@ export default function App() {
       console.error('Error sending plan approval response:', err);
     } finally {
       setPendingPlanApproval(null);
+    }
+  };
+
+  // Handle HITL Protocol verification response from user
+  const handleHITLResponse = async (response) => {
+    console.log('Sending HITL response:', response);
+    try {
+      const res = await apiFetch('/api/hitl/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(response)
+      });
+
+      if (!res.ok) {
+        console.error('Failed to send HITL response:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error sending HITL response:', err);
+    } finally {
+      setPendingHITL(null);
     }
   };
 
@@ -2330,6 +2360,14 @@ export default function App() {
         pairing={pendingPairing}
         onRespond={handlePairingResponse}
         onClose={() => setPendingPairing(null)}
+      />
+
+      {/* HITL Protocol Verification Modal */}
+      <HITLApprovalModal
+        open={!!pendingHITL}
+        hitlRequest={pendingHITL}
+        onRespond={handleHITLResponse}
+        onClose={() => setPendingHITL(null)}
       />
     </Box>
     </MuxSSEProvider>

@@ -64,7 +64,7 @@ export interface MessageForwardResult {
 }
 
 export interface ProviderEvent {
-  type: 'pairing_approved' | 'pairing_denied' | 'etienne_response' | 'error';
+  type: 'pairing_approved' | 'pairing_denied' | 'etienne_response' | 'error' | 'hitl_verification';
   data: any;
   timestamp: string;
 }
