@@ -36,7 +36,7 @@ import MinimalisticSidebar from './components/MinimalisticSidebar';
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const { currentProject, projectExists, setProject } = useProject();
+  const { currentProject, projectExists, setProject, loading: projectLoading } = useProject();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { mode: themeMode, toggleMode } = useThemeMode();
   const { isMinimalistic, uxType, toggleUxMode } = useUxMode();
@@ -1980,6 +1980,15 @@ export default function App() {
   // Show onboarding wizard if configuration is required
   if (showConfigurationRequired) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  // Show loading while restoring project from localStorage
+  if (projectLoading) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
