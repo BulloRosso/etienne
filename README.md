@@ -107,6 +107,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [Supported Coding Models](#supported-coding-models)
 - [Multi-agent Orchestration](#multi-agent-orchestration)
 - [Managed Etienne](#managed-etienne)
+- [Azure Foundry Deployment](#azure-foundry-deployment)
 - [Memory](#memory)
 - [User Orders](#user-orders)
 - [The Web: searching, scraping and browsing](#the-web-searching-scraping-and-browsing)
@@ -559,6 +560,74 @@ You can install Etienne locally, deploy it using the Docker (after you have buil
 </div>
 
 [Managed Etienne Landing Page](https://etienne-agent.replit.app/)
+
+# Azure Foundry Deployment
+
+Etienne can be deployed as an **Azure Foundry hosted agent** — Microsoft's bring-your-own-container agent runtime (public preview April 2026). This is the recommended path for enterprise Azure environments.
+
+## Benefits
+
+* **Managed microVM isolation** — every user session runs in a dedicated hypervisor-isolated sandbox with persistent `$HOME` and `/files`; scales to zero after ~15 min idle and rehydrates state on resume
+* **Automatic Entra Agent ID** — Foundry provisions a Microsoft Entra service principal for the agent at deploy time; no client secrets or certificates required
+* **IQ grounding via MCP** — native access to Foundry IQ (Azure AI Search), Work IQ (Microsoft 365 / Graph), and Fabric IQ (Fabric data agents) through a single Toolbox MCP endpoint with OBO identity passthrough; per-document and per-row permissions are enforced automatically
+* **Multi-model support** — call Foundry-hosted Claude models (Sonnet, Opus, Haiku) at `https://{resource}.services.ai.azure.com/anthropic/v1/messages` authenticated via the agent's managed identity
+* **One-click distribution** — publish to Microsoft 365 Copilot, Teams, and the Entra Agent Registry
+
+## Prerequisites
+
+* Azure subscription with an Azure AI Foundry project
+* Azure Container Registry (ACR) — public endpoint required for image pull
+* Microsoft 365 Copilot license (required for Work IQ only)
+* `az` CLI with the `azure-ai-projects` extension
+
+## Setup Steps
+
+**1. Configure environment variables**
+
+Copy `backend/.env.template` and set the Foundry-specific variables:
+
+```env
+FOUNDRY_ENABLED=true
+AZURE_AI_ENDPOINT=https://<resource>.services.ai.azure.com
+FOUNDRY_TOOLBOX_MCP_ENDPOINT=<your-toolbox-url>
+FABRIC_IQ_MCP_ENDPOINT=<your-fabric-iq-url>
+AUTH_PROVIDER=azure-entraid
+SECRET_VAULT_PROVIDER=azure-keyvault
+AZURE_KEY_VAULT_URL=https://<vault>.vault.azure.net
+```
+
+**2. Build and push to ACR**
+
+```bash
+az acr build --registry <acr-name> --image etienne:v1 -f docker/Dockerfile .
+```
+
+**3. Create hosted agent version**
+
+```bash
+az ai project agent create-version \
+  --name etienne \
+  --image <acr-name>.azurecr.io/etienne:v1
+```
+
+Foundry creates the agent identity, provisions the microVM compute, and exposes the endpoint at `{project_endpoint}/agents/etienne/endpoint/protocols/responses`.
+
+**4. Verify readiness**
+
+```bash
+curl https://<endpoint>/readiness
+# → {"status":"ready"}
+```
+
+**5. (Optional) Publish to M365 Copilot / Teams**
+
+Publishing creates an Agent Application resource with a stable URL, dedicated blueprint, and one-click distribution to M365 Copilot and Teams via the Activity protocol.
+
+## MCP IQ Configuration
+
+The MCP server registry includes pre-configured entries for Foundry IQ, Work IQ, and Fabric IQ with `authType: "UserEntraToken"`. When `FOUNDRY_TOOLBOX_MCP_ENDPOINT` is set, these servers are automatically routed through the Foundry Toolbox endpoint with OBO identity passthrough — no manual MSAL plumbing required.
+
+See `agent.yaml` in the project root for the full Foundry deployment descriptor.
 
 # Memory
 

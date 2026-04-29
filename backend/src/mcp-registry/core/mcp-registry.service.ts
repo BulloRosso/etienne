@@ -96,6 +96,35 @@ export class McpRegistryService {
     return { mcpServers };
   }
 
+  /**
+   * Foundry Toolbox–aware config. Servers with `authType: 'UserEntraToken'`
+   * are routed through the single Foundry Toolbox MCP endpoint (OBO identity
+   * passthrough). All other servers are materialized in standard Claude format.
+   */
+  async toFoundryToolboxConfig(options: ListServersOptions = {}): Promise<ClaudeConfig> {
+    const toolboxEndpoint = process.env.FOUNDRY_TOOLBOX_MCP_ENDPOINT;
+    const entries = await this.listServersResolved(options);
+    const mcpServers: ClaudeConfig['mcpServers'] = {};
+    for (const e of entries) {
+      if (e.authType === 'UserEntraToken' && toolboxEndpoint) {
+        // Route through the Foundry Toolbox endpoint — auth handled by OBO
+        mcpServers[e.name] = { url: toolboxEndpoint };
+      } else if (e.transport === 'stdio') {
+        mcpServers[e.name] = {
+          command: e.command!,
+          args: e.args,
+          env: e.env,
+        };
+      } else {
+        mcpServers[e.name] = {
+          url: e.url!,
+          headers: e.headers,
+        };
+      }
+    }
+    return { mcpServers };
+  }
+
   /** OpenAI Responses API MCP tools array. */
   async toOpenAiTools(options: ListServersOptions = {}): Promise<OpenAiMcpTool[]> {
     const entries = await this.listServersResolved(options);

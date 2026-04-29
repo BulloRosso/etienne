@@ -29,6 +29,7 @@ import { Add, Delete, Edit as EditIcon, Check, Close, Key, MoreVert, Build } fro
 import { HiOutlineWrench } from 'react-icons/hi2';
 import { TfiWorld } from 'react-icons/tfi';
 import { GoShieldCheck } from 'react-icons/go';
+import Chip from '@mui/material/Chip';
 import { useTranslation } from 'react-i18next';
 import { apiAxios } from '../services/api';
 import BackgroundInfo from './BackgroundInfo';
@@ -50,6 +51,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     command: '',
     args: '',
     auth: 'test123',
+    authType: 'none',
     description: ''
   });
   const [hoveredKey, setHoveredKey] = useState(null);
@@ -151,12 +153,15 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     } else {
       serverConfig.type = newServer.transport;
       serverConfig.url = newServer.url;
-      if (newServer.auth) {
+      if (newServer.auth && newServer.authType !== 'UserEntraToken') {
         serverConfig.headers = { Authorization: newServer.auth };
       }
     }
     if (newServer.description) {
       serverConfig.description = newServer.description;
+    }
+    if (newServer.authType && newServer.authType !== 'none') {
+      serverConfig.authType = newServer.authType;
     }
 
     setServers({ ...servers, [trimmedName]: serverConfig });
@@ -167,6 +172,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       command: '',
       args: '',
       auth: 'Bearer test123',
+      authType: 'none',
       description: ''
     });
   };
@@ -188,6 +194,7 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
       command: server.command || '',
       args: Array.isArray(server.args) ? server.args.join(' ') : '',
       auth: server.headers?.Authorization || '',
+      authType: server.authType || 'none',
       description: server.description || ''
     });
   };
@@ -212,12 +219,15 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
     } else {
       serverConfig.type = editValue.transport;
       serverConfig.url = editValue.url;
-      if (editValue.auth) {
+      if (editValue.auth && editValue.authType !== 'UserEntraToken') {
         serverConfig.headers = { Authorization: editValue.auth };
       }
     }
     if (editValue.description) {
       serverConfig.description = editValue.description;
+    }
+    if (editValue.authType && editValue.authType !== 'none') {
+      serverConfig.authType = editValue.authType;
     }
 
     const updated = { ...servers };
@@ -374,14 +384,29 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                       />
                     </TableCell>
                     <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder={t('mcpServer.placeholderBearerToken')}
-                        value={editValue.auth}
-                        onChange={(e) => setEditValue({ ...editValue, auth: e.target.value })}
-                        sx={{ backgroundColor: 'white' }}
-                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <FormControl fullWidth size="small">
+                          <Select
+                            value={editValue.authType}
+                            onChange={(e) => setEditValue({ ...editValue, authType: e.target.value })}
+                            sx={{ backgroundColor: 'white' }}
+                          >
+                            <MenuItem value="none">None</MenuItem>
+                            <MenuItem value="bearer">Bearer</MenuItem>
+                            <MenuItem value="UserEntraToken">Entra ID (OBO)</MenuItem>
+                          </Select>
+                        </FormControl>
+                        {editValue.authType !== 'UserEntraToken' && (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            placeholder={t('mcpServer.placeholderBearerToken')}
+                            value={editValue.auth}
+                            onChange={(e) => setEditValue({ ...editValue, auth: e.target.value })}
+                            sx={{ backgroundColor: 'white' }}
+                          />
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell align="center" sx={{ width: 48, whiteSpace: 'nowrap' }}>
                       <IconButton size="small" color="primary" onClick={handleSaveEdit} sx={{ p: 0.5 }}>
@@ -422,11 +447,15 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                       sx={readOnly ? {} : { cursor: 'pointer' }}
                     >
                       {readOnly ? (
-                        server.headers?.Authorization
-                          ? <Tooltip title={t('mcpServer.protected')}><span><GoShieldCheck style={{ fontSize: 18, color: 'green' }} /></span></Tooltip>
-                          : <Tooltip title={t('mcpServer.public')}><span><TfiWorld style={{ fontSize: 16, color: 'black' }} /></span></Tooltip>
+                        server.authType === 'UserEntraToken'
+                          ? <Tooltip title="Foundry OBO identity passthrough"><Chip label="Entra ID" size="small" color="info" variant="outlined" sx={{ fontSize: '0.7rem' }} /></Tooltip>
+                          : server.headers?.Authorization
+                            ? <Tooltip title={t('mcpServer.protected')}><span><GoShieldCheck style={{ fontSize: 18, color: 'green' }} /></span></Tooltip>
+                            : <Tooltip title={t('mcpServer.public')}><span><TfiWorld style={{ fontSize: 16, color: 'black' }} /></span></Tooltip>
                       ) : (
-                        server.headers?.Authorization ? '***' : '-'
+                        server.authType === 'UserEntraToken'
+                          ? <Chip label="Entra ID" size="small" color="info" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                          : server.headers?.Authorization ? '***' : '-'
                       )}
                     </TableCell>
                     <TableCell align="center" sx={{ width: 48 }}>
@@ -512,13 +541,27 @@ export default function MCPServerConfiguration({ projectName, showBackgroundInfo
                   />
                 </TableCell>
                 <TableCell>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder={t('mcpServer.placeholderBearerToken')}
-                    value={newServer.auth}
-                    onChange={(e) => setNewServer({ ...newServer, auth: e.target.value })}
-                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={newServer.authType}
+                        onChange={(e) => setNewServer({ ...newServer, authType: e.target.value })}
+                      >
+                        <MenuItem value="none">None</MenuItem>
+                        <MenuItem value="bearer">Bearer</MenuItem>
+                        <MenuItem value="UserEntraToken">Entra ID (OBO)</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {newServer.authType !== 'UserEntraToken' && (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder={t('mcpServer.placeholderBearerToken')}
+                        value={newServer.auth}
+                        onChange={(e) => setNewServer({ ...newServer, auth: e.target.value })}
+                      />
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell align="center" sx={{ width: 48 }}>
                   <IconButton size="small" color="primary" onClick={handleAdd} disabled={!newServer.name.trim()} sx={{ p: 0.5 }}>

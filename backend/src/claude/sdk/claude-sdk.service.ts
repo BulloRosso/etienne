@@ -120,6 +120,20 @@ export class ClaudeSdkService {
         ANTHROPIC_API_KEY: altModelConfig?.token || await this.secretsManager.getSecret('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY
       };
 
+      // Foundry hosted agent — use managed identity token for model access
+      if (process.env.AZURE_FOUNDRY_AGENT_ID) {
+        const endpoint = process.env.AZURE_AI_ENDPOINT || process.env.ANTHROPIC_FOUNDRY_RESOURCE;
+        if (endpoint) {
+          queryOptions.env.ANTHROPIC_BASE_URL = endpoint.startsWith('http')
+            ? endpoint.replace(/\/messages$/, '')
+            : `https://${endpoint}.services.ai.azure.com/anthropic/v1`;
+        }
+        // The managed identity token is refreshed by LlmService and stored in env
+        if (process.env._FOUNDRY_MODEL_TOKEN) {
+          queryOptions.env.ANTHROPIC_API_KEY = process.env._FOUNDRY_MODEL_TOKEN;
+        }
+      }
+
       // Add alternative model configuration via environment variables if present
       if (altModelConfig) {
         queryOptions.env.ANTHROPIC_BASE_URL = altModelConfig.baseUrl;

@@ -51,6 +51,26 @@ fi
 echo "[backend] Started successfully (PID: $BACKEND_PID)"
 
 # ============================================
+# Foundry Protocol Adapter readiness check (port 8088)
+# ============================================
+if [ "$FOUNDRY_ENABLED" = "true" ]; then
+    echo "[foundry] Foundry protocol adapter enabled — checking readiness on port 8088..."
+    MAX_RETRIES=15
+    RETRY_COUNT=0
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if curl -s http://localhost:8088/readiness > /dev/null 2>&1; then
+            echo "[foundry] Readiness check passed"
+            break
+        fi
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        sleep 1
+    done
+    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+        echo "[foundry] WARNING: Foundry adapter not responding on port 8088"
+    fi
+fi
+
+# ============================================
 # Start Additional Services via Process Manager
 # ============================================
 if [ -n "$ADDITIONAL_SERVICES" ]; then

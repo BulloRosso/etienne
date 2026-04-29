@@ -167,8 +167,15 @@ ENV A2A_REGISTRY=""
 # Agent Role Registry: JSON file with predefined agent roles/system prompts
 ENV AGENT_ROLE_REGISTRY=""
 
+# Azure Foundry Agent Service integration
+ENV FOUNDRY_ENABLED=""
+ENV FOUNDRY_TOOLBOX_MCP_ENDPOINT=""
+ENV FABRIC_IQ_MCP_ENDPOINT=""
+ENV AZURE_AI_ENDPOINT=""
+
 # Expose port 80 (mapped from frontend's 5000)
-EXPOSE 80
+# Port 8088 is used by the Foundry protocol adapter when FOUNDRY_ENABLED=true
+EXPOSE 80 8088
 
 # Start all services
 CMD ["/bin/bash", "./start.sh"]

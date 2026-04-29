@@ -111,6 +111,27 @@
       "url": "http://localhost:6060/mcp/image-generation",
       "headers": { "Authorization": "test123" },
       "description": "AI image generation and editing via GPT Images 2.0 with thinking mode"
+    },
+    {
+      "name": "foundry-iq",
+      "transport": "http",
+      "url": "${env:FOUNDRY_TOOLBOX_MCP_ENDPOINT}",
+      "description": "Azure AI Search knowledge bases via Foundry IQ (OBO identity passthrough)",
+      "authType": "UserEntraToken"
+    },
+    {
+      "name": "work-iq",
+      "transport": "http",
+      "url": "${env:FOUNDRY_TOOLBOX_MCP_ENDPOINT}",
+      "description": "Microsoft 365 data (Mail, Calendar, Teams, SharePoint) via Work IQ (OBO)",
+      "authType": "UserEntraToken"
+    },
+    {
+      "name": "fabric-iq",
+      "transport": "http",
+      "url": "${env:FABRIC_IQ_MCP_ENDPOINT}",
+      "description": "Microsoft Fabric data agents via Fabric IQ (OBO)",
+      "authType": "UserEntraToken"
     }
   ]
 }

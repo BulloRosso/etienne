@@ -1,0 +1,27 @@
+# Azure Foundry Agent Service — hosted agent deployment descriptor
+# Reference: https://learn.microsoft.com/azure/ai-services/agents/hosted-agents
+
+name: etienne
+version: "1.0.0"
+description: "Etienne AI Coworker - Multi-tenant business collaborator agent"
+
+container:
+  cpu: 2
+  memory: 4
+
+  # Protocols this container implements on port 8088
+  container_protocol_versions:
+    responses: "2024-12-01"
+    invocations: "2024-12-01"
+
+  environment_variables:
+    - FOUNDRY_ENABLED=true
+    - NODE_ENV=production
+    - WORKSPACE_ROOT=/app/workspace
+    - AUTH_PROVIDER=azure-entraid
+    - SECRET_VAULT_PROVIDER=azure-keyvault
+    # Set these per deployment:
+    # - AZURE_AI_ENDPOINT=https://<resource>.services.ai.azure.com
+    # - FOUNDRY_TOOLBOX_MCP_ENDPOINT=<toolbox-url>
+    # - FABRIC_IQ_MCP_ENDPOINT=<fabric-iq-url>
+    # - AZURE_KEY_VAULT_URL=https://<vault>.vault.azure.net

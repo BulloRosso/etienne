@@ -126,6 +126,7 @@ export class JsonFileRegistryProvider
       args: raw.args,
       headers: raw.headers,
       env: raw.env,
+      authType: raw.authType,
       providerId: this.id,
       isStandard: raw.isStandard ?? undefined,
       metadata: {

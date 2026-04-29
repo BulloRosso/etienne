@@ -13,6 +13,7 @@ export class LlmService implements OnModuleInit {
   private readonly provider: 'anthropic' | 'openai';
   private readonly models: { small: string; regular: string };
   private providerInstance: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenAI>;
+  private managedIdentityToken: string | null = null;
 
   constructor(
     private readonly secretsManager: SecretsManagerService,
@@ -44,6 +45,21 @@ export class LlmService implements OnModuleInit {
     foundryApiKey?: string,
     directApiKey?: string,
   ): ReturnType<typeof createAnthropic> {
+    // Path 1: Foundry hosted agent — managed identity via DefaultAzureCredential
+    if (process.env.AZURE_FOUNDRY_AGENT_ID && this.managedIdentityToken) {
+      const endpoint = process.env.AZURE_AI_ENDPOINT || foundryResource;
+      const baseURL = endpoint?.startsWith('http')
+        ? endpoint.replace(/\/messages$/, '')
+        : `https://${endpoint}.services.ai.azure.com/anthropic/v1`;
+      this.logger.log(`Using Foundry managed identity endpoint: ${baseURL}`);
+      return createAnthropic({
+        baseURL,
+        apiKey: 'unused',
+        headers: { Authorization: `Bearer ${this.managedIdentityToken}` },
+      });
+    }
+
+    // Path 2: Azure AI Services with static API key
     if (process.env.CLAUDE_CODE_USE_FOUNDRY && foundryResource && foundryApiKey) {
       const baseURL = foundryResource.startsWith('http')
         ? foundryResource.replace(/\/messages$/, '')
@@ -55,6 +71,8 @@ export class LlmService implements OnModuleInit {
         headers: { Authorization: `Bearer ${foundryApiKey}` },
       });
     }
+
+    // Path 3: Direct Anthropic API
     return createAnthropic({ apiKey: directApiKey });
   }
 
@@ -65,6 +83,20 @@ export class LlmService implements OnModuleInit {
     if (this.provider === 'openai') {
       const key = await this.secretsManager.getSecret('OPENAI_API_KEY');
       if (key) this.providerInstance = createOpenAI({ apiKey: key });
+    } else if (process.env.AZURE_FOUNDRY_AGENT_ID) {
+      // Foundry hosted agent — acquire token via managed identity
+      await this.acquireManagedIdentityToken();
+      this.providerInstance = this.createAnthropicProvider(
+        process.env.ANTHROPIC_FOUNDRY_RESOURCE,
+      );
+      // Refresh the token periodically (tokens expire after ~1 hour)
+      setInterval(() => this.acquireManagedIdentityToken().then(() => {
+        this.providerInstance = this.createAnthropicProvider(
+          process.env.ANTHROPIC_FOUNDRY_RESOURCE,
+        );
+      }).catch(e => this.logger.warn(`Token refresh failed: ${e.message}`)),
+        45 * 60 * 1000, // every 45 minutes
+      );
     } else if (process.env.CLAUDE_CODE_USE_FOUNDRY) {
       const foundryResource = process.env.ANTHROPIC_FOUNDRY_RESOURCE;
       const foundryApiKey = process.env.ANTHROPIC_FOUNDRY_API_KEY
@@ -76,6 +108,20 @@ export class LlmService implements OnModuleInit {
     } else {
       const directApiKey = await this.secretsManager.getSecret('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY;
       this.providerInstance = this.createAnthropicProvider(undefined, undefined, directApiKey);
+    }
+  }
+
+  private async acquireManagedIdentityToken(): Promise<void> {
+    try {
+      const { DefaultAzureCredential } = await import('@azure/identity');
+      const credential = new DefaultAzureCredential();
+      const result = await credential.getToken('https://cognitiveservices.azure.com/.default');
+      this.managedIdentityToken = result.token;
+      // Make token available to Claude SDK subprocess via env passthrough
+      process.env._FOUNDRY_MODEL_TOKEN = result.token;
+      this.logger.log('Acquired managed identity token for Cognitive Services');
+    } catch (err: any) {
+      this.logger.error(`Failed to acquire managed identity token: ${err.message}`);
     }
   }
 
@@ -131,6 +177,9 @@ export class LlmService implements OnModuleInit {
     if (this.provider === 'openai') {
       const key = await this.secretsManager.getSecret('OPENAI_API_KEY');
       return !!key;
+    }
+    if (process.env.AZURE_FOUNDRY_AGENT_ID) {
+      return !!this.managedIdentityToken;
     }
     if (process.env.CLAUDE_CODE_USE_FOUNDRY) {
       const foundryKey = process.env.ANTHROPIC_FOUNDRY_API_KEY

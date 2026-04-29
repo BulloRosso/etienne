@@ -35,6 +35,14 @@ export interface McpServerEntry {
   /** Environment variables for stdio transports. Same placeholder rules. */
   env?: Record<string, string>;
 
+  /**
+   * Authentication type for this MCP server.
+   * - 'none'            — no auth required (default)
+   * - 'bearer'          — static bearer token (via headers/placeholder)
+   * - 'UserEntraToken'  — Foundry OBO identity passthrough via Toolbox
+   */
+  authType?: 'none' | 'bearer' | 'UserEntraToken';
+
   /** Which provider produced this entry. Useful for debugging and routing. */
   providerId?: string;
 
