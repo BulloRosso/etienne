@@ -25,7 +25,10 @@ Etienne is an **integration harness** around a **coding harness** to build user 
 > to interact with the agent using a refined UI.
 
 <br>
-### Classic UX (colorful)
+There are two user experiences available:
+<br>
+
+### Classic UX 
 
 <div align="center">
 <img src="/docs/images/ui-example.jpg" style="marginTop: 24px;marginBottom: 24px" alt="UI example" width="900">
