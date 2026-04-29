@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import * as express from 'express';
 import * as http from 'http';
+import * as url from 'url';
 import { v4 as uuid } from 'uuid';
 import { ClaudeSdkOrchestratorService } from '../claude/sdk/claude-sdk-orchestrator.service';
 import { FoundrySessionService } from './foundry-session.service';
@@ -8,6 +9,7 @@ import { ResponsesRequest } from './dto/responses.dto';
 import { InvocationsRequest } from './dto/invocations.dto';
 
 const FOUNDRY_PORT = 8088;
+const BACKEND_TARGET = 'http://localhost:6060';
 
 /**
  * Starts a lightweight Express server on port 8088 implementing the
@@ -28,7 +30,22 @@ export class FoundryAdapterService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     const app = express();
-    app.use(express.json({ limit: '10mb' }));
+
+    // ── CORS for externally hosted frontend ─────────────────────────
+    const allowedOrigin = process.env.FOUNDRY_FRONTEND_ORIGIN || '*';
+    app.use((req, res, next) => {
+      res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-session-id');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+      next();
+    });
+
+    // JSON body parsing only for Foundry protocol routes.
+    // Proxy routes need the raw request stream — express.json() would
+    // consume the body and leave req.pipe() with nothing to forward.
+    const jsonParser = express.json({ limit: '10mb' });
 
     // ── GET /readiness ──────────────────────────────────────────────
     app.get('/readiness', (_req, res) => {
@@ -36,10 +53,44 @@ export class FoundryAdapterService implements OnModuleInit, OnModuleDestroy {
     });
 
     // ── POST /responses  (OpenAI Responses API) ─────────────────────
-    app.post('/responses', (req, res) => this.handleResponses(req, res));
+    app.post('/responses', jsonParser, (req, res) => this.handleResponses(req, res));
 
     // ── POST /invocations ───────────────────────────────────────────
-    app.post('/invocations', (req, res) => this.handleInvocations(req, res));
+    app.post('/invocations', jsonParser, (req, res) => this.handleInvocations(req, res));
+
+    // ── Reverse proxy: forward /api, /auth, /mcp to backend ────────
+    // In Foundry mode the frontend is hosted externally and can only
+    // reach the container through port 8088. These proxy rules let the
+    // frontend talk to the NestJS backend transparently.
+    // The proxy pipes the raw request stream to the backend, so these
+    // routes must NOT go through express.json().
+    const proxyToBackend = (
+      req: express.Request,
+      res: express.Response,
+    ) => {
+      const target = url.parse(BACKEND_TARGET);
+      const proxyReq = http.request(
+        {
+          hostname: target.hostname,
+          port: target.port,
+          path: req.originalUrl,
+          method: req.method,
+          headers: { ...req.headers, host: `${target.hostname}:${target.port}` },
+        },
+        (proxyRes) => {
+          res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+          proxyRes.pipe(res, { end: true });
+        },
+      );
+      proxyReq.on('error', (err) => {
+        this.logger.error(`Proxy error: ${err.message}`);
+        if (!res.headersSent) res.status(502).json({ error: 'Backend unavailable' });
+      });
+      req.pipe(proxyReq, { end: true });
+    };
+    app.use('/api', proxyToBackend);
+    app.use('/auth', proxyToBackend);
+    app.use('/mcp', proxyToBackend);
 
     this.server = app.listen(FOUNDRY_PORT, () => {
       this.logger.log(

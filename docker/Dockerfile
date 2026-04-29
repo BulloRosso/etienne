@@ -172,6 +172,7 @@ ENV FOUNDRY_ENABLED=""
 ENV FOUNDRY_TOOLBOX_MCP_ENDPOINT=""
 ENV FABRIC_IQ_MCP_ENDPOINT=""
 ENV AZURE_AI_ENDPOINT=""
+ENV FOUNDRY_FRONTEND_ORIGIN=""
 
 # Expose port 80 (mapped from frontend's 5000)
 # Port 8088 is used by the Foundry protocol adapter when FOUNDRY_ENABLED=true

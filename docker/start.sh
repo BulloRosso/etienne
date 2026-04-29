@@ -111,13 +111,24 @@ fi
 # ============================================
 # Start Frontend (port 5000 -> external 80)
 # ============================================
-echo "[3/3] Starting Frontend on port 80..."
-cd /app/frontend
+if [ "$FOUNDRY_ENABLED" = "true" ]; then
+    # In Foundry mode the container only exposes port 8088.
+    # The frontend must be hosted externally (e.g. Azure Static Web Apps).
+    echo "[frontend] Skipped — FOUNDRY_ENABLED=true (frontend must be hosted externally)"
+    echo "=========================================="
+    echo "Etienne Foundry agent ready on port 8088"
+    echo "=========================================="
+    # Keep the container alive (backend + Foundry adapter run in background)
+    wait $BACKEND_PID
+else
+    echo "[3/3] Starting Frontend on port 80..."
+    cd /app/frontend
 
-# Run vite with host binding to allow external access
-# The --port 80 allows direct binding to the exposed port
-npx vite --host 0.0.0.0 --port 80 2>&1 | sed 's/^/[frontend] /'
+    # Run vite with host binding to allow external access
+    # The --port 80 allows direct binding to the exposed port
+    npx vite --host 0.0.0.0 --port 80 2>&1 | sed 's/^/[frontend] /'
 
-# If frontend exits, the container will stop
-echo "Frontend has stopped. Shutting down..."
-cleanup
+    # If frontend exits, the container will stop
+    echo "Frontend has stopped. Shutting down..."
+    cleanup
+fi

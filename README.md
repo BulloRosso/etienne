@@ -573,10 +573,45 @@ Etienne can be deployed as an **Azure Foundry hosted agent** — Microsoft's bri
 * **Multi-model support** — call Foundry-hosted Claude models (Sonnet, Opus, Haiku) at `https://{resource}.services.ai.azure.com/anthropic/v1/messages` authenticated via the agent's managed identity
 * **One-click distribution** — publish to Microsoft 365 Copilot, Teams, and the Entra Agent Registry
 
+## Architecture: External Frontend
+
+Foundry hosted agents expose **only port 8088** to the outside world. The Etienne container runs the backend (NestJS) and the Foundry protocol adapter internally, but **the React frontend must be hosted separately** — for example on Azure Static Web Apps, Azure App Service, or any static hosting.
+
+```
+┌─────────────────────────────────────────┐
+│  Foundry microVM (port 8088 only)       │
+│  ┌──────────────────────────────────┐   │
+│  │ Foundry Adapter (Express :8088)  │   │
+│  │  GET  /readiness                 │   │
+│  │  POST /responses                 │   │
+│  │  POST /invocations               │   │
+│  │  /api/* /auth/* /mcp/*  ──proxy──┼─┐ │
+│  └──────────────────────────────────┘ │ │
+│  ┌────────────────────────────────────┘ │
+│  │ NestJS Backend (:6060 internal)      │
+│  └──────────────────────────────────────│
+└─────────────────────────────────────────┘
+         ▲                       ▲
+         │ Foundry protocol      │ /api, /auth, /mcp
+         │ (M365 Copilot,        │ (proxied through 8088)
+         │  Teams, A2A)          │
+                           ┌─────────────┐
+                           │  Frontend   │
+                           │  (external) │
+                           │  Static     │
+                           │  Web App    │
+                           └─────────────┘
+```
+
+The Foundry adapter on port 8088 reverse-proxies `/api/*`, `/auth/*`, and `/mcp/*` to the internal NestJS backend on port 6060. The external frontend points its API calls at the Foundry agent endpoint URL (instead of `localhost:6060`).
+
+When `FOUNDRY_ENABLED=true`, the Docker startup script skips the in-container frontend. A separate `docker/Dockerfile.frontend` is provided to build and serve the frontend as a standalone nginx container (or deploy as static files to Azure Static Web Apps).
+
 ## Prerequisites
 
 * Azure subscription with an Azure AI Foundry project
 * Azure Container Registry (ACR) — public endpoint required for image pull
+* Hosting for the frontend (Azure Static Web Apps recommended)
 * Microsoft 365 Copilot license (required for Work IQ only)
 * `az` CLI with the `azure-ai-projects` extension
 
@@ -591,6 +626,7 @@ FOUNDRY_ENABLED=true
 AZURE_AI_ENDPOINT=https://<resource>.services.ai.azure.com
 FOUNDRY_TOOLBOX_MCP_ENDPOINT=<your-toolbox-url>
 FABRIC_IQ_MCP_ENDPOINT=<your-fabric-iq-url>
+FOUNDRY_FRONTEND_ORIGIN=https://<your-frontend>.azurestaticapps.net
 AUTH_PROVIDER=azure-entraid
 SECRET_VAULT_PROVIDER=azure-keyvault
 AZURE_KEY_VAULT_URL=https://<vault>.vault.azure.net
@@ -612,14 +648,35 @@ az ai project agent create-version \
 
 Foundry creates the agent identity, provisions the microVM compute, and exposes the endpoint at `{project_endpoint}/agents/etienne/endpoint/protocols/responses`.
 
-**4. Verify readiness**
+**4. Deploy the frontend**
+
+A separate Dockerfile is provided at `docker/Dockerfile.frontend` for the frontend. It builds the Vite app with the Foundry endpoint baked in and serves it via nginx.
+
+```bash
+# Build and push the frontend image
+az acr build --registry <acr-name> \
+  --image etienne-frontend:v1 \
+  --build-arg VITE_API_BASE_URL=https://<foundry-agent-endpoint> \
+  -f docker/Dockerfile.frontend .
+```
+
+Deploy this image to Azure Container Apps, App Service, or any container host. Alternatively, build locally and deploy the static files to Azure Static Web Apps:
+
+```bash
+cd frontend
+VITE_API_BASE_URL=https://<foundry-endpoint> npx vite build
+# Deploy dist/ to Azure Static Web Apps
+az staticwebapp create --name etienne-ui --source ./dist
+```
+
+**5. Verify readiness**
 
 ```bash
 curl https://<endpoint>/readiness
 # → {"status":"ready"}
 ```
 
-**5. (Optional) Publish to M365 Copilot / Teams**
+**6. (Optional) Publish to M365 Copilot / Teams**
 
 Publishing creates an Agent Application resource with a stable URL, dedicated blueprint, and one-click distribution to M365 Copilot and Teams via the Activity protocol.
 

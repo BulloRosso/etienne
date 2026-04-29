@@ -7,7 +7,13 @@ import axios from 'axios';
  *   apiFetch(url, options)  - drop-in replacement for fetch()
  *   apiAxios                - pre-configured axios instance
  *   authSSEUrl(url)         - appends ?token= for EventSource URLs
+ *   API_BASE               - base URL for API requests (empty in dev, Foundry endpoint URL in prod)
  */
+
+// In Foundry mode the frontend is hosted externally and API calls must
+// be routed through the Foundry agent endpoint URL. Set VITE_API_BASE_URL
+// at build time (e.g. VITE_API_BASE_URL=https://<endpoint> npm run build).
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 // ---------------------------------------------------------------------------
 // Token helpers
@@ -33,7 +39,7 @@ async function refreshAccessToken() {
   if (!refreshToken) return null;
 
   try {
-    const response = await fetch('/auth/refresh', {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -66,19 +72,20 @@ function handleAuthFailure() {
 
 export async function apiFetch(url, options = {}) {
   const token = getAccessToken();
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
 
   const headers = { ...options.headers };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let response = await fetch(url, { ...options, headers });
+  let response = await fetch(fullUrl, { ...options, headers });
 
   if (response.status === 401) {
     const newToken = await refreshAccessToken();
     if (newToken) {
       headers['Authorization'] = `Bearer ${newToken}`;
-      response = await fetch(url, { ...options, headers });
+      response = await fetch(fullUrl, { ...options, headers });
     } else {
       handleAuthFailure();
     }
@@ -91,7 +98,9 @@ export async function apiFetch(url, options = {}) {
 // apiAxios - pre-configured axios instance
 // ---------------------------------------------------------------------------
 
-export const apiAxios = axios.create();
+export const apiAxios = axios.create({
+  baseURL: API_BASE || undefined,
+});
 
 apiAxios.interceptors.request.use(
   (config) => {
@@ -163,9 +172,10 @@ apiAxios.interceptors.response.use(
 
 export function authSSEUrl(url) {
   const token = getAccessToken();
-  const separator = url.includes('?') ? '&' : '?';
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+  const separator = fullUrl.includes('?') ? '&' : '?';
   if (token) {
-    return `${url}${separator}token=${encodeURIComponent(token)}`;
+    return `${fullUrl}${separator}token=${encodeURIComponent(token)}`;
   }
-  return url;
+  return fullUrl;
 }

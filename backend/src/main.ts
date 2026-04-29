@@ -17,8 +17,14 @@ http.globalAgent.maxSockets = 50;
 https.globalAgent.maxSockets = 50;
 
 async function bootstrap() {
+  // In Foundry mode the backend is only reachable via the adapter proxy
+  // on localhost — CORS is handled by the adapter on port 8088. For
+  // standard mode the frontend dev server runs on localhost:5000.
+  const corsOrigin = process.env.FOUNDRY_ENABLED === 'true'
+    ? true   // allow any origin (only localhost can reach :6060)
+    : (process.env.FOUNDRY_FRONTEND_ORIGIN || 'http://localhost:5000');
   const app = await NestFactory.create(AppModule, {
-    cors: { origin: 'http://localhost:5000' },
+    cors: { origin: corsOrigin, credentials: true },
     bodyParser: false,
   });
   const bodyParser = require('body-parser');

@@ -360,13 +360,22 @@ GITEA_REPO=workspace-checkpoints
 
 ## Port Mapping
 
+**Standard mode:**
+
 | External | Internal | Service |
 |----------|----------|---------|
 | 80 | 80 | Frontend (Vite) |
 
+**Foundry mode** (`FOUNDRY_ENABLED=true`):
+
+| External | Internal | Service |
+|----------|----------|---------|
+| 8088 | 8088 | Foundry protocol adapter (also proxies /api, /auth, /mcp to backend) |
+
 Internal services communicate via localhost within the container:
 - Frontend → Backend: `http://localhost:6060`
 - Frontend → OAuth: `http://localhost:5950`
+- Foundry Adapter → Backend: `http://localhost:6060`
 
 ## Full Example
 
@@ -468,6 +477,102 @@ If services specified in `ADDITIONAL_SERVICES` don't start:
 
 4. You can also start services manually after boot via the UI (Process Manager section).
 
+## Azure Foundry Deployment
+
+When deploying to **Azure Foundry Agent Service**, the container only exposes port 8088 (the Foundry protocol adapter). The React frontend cannot run inside the agent container and must be hosted separately.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────┐
+│  Foundry microVM (port 8088 only)        │
+│                                          │
+│  Foundry Adapter (Express :8088)         │
+│    GET  /readiness                       │
+│    POST /responses                       │
+│    POST /invocations                     │
+│    /api/* /auth/* /mcp/*  → proxy :6060  │
+│                                          │
+│  NestJS Backend (:6060 internal)         │
+└──────────────────────────────────────────┘
+         ▲                        ▲
+         │ Foundry protocol       │ /api, /auth, /mcp
+         │                        │ (proxied through 8088)
+                            ┌───────────────┐
+                            │  Frontend     │
+                            │  (separate    │
+                            │  container    │
+                            │  or static)   │
+                            └───────────────┘
+```
+
+### Two Docker images
+
+| Image | Dockerfile | Purpose |
+|-------|-----------|---------|
+| `etienne` | `docker/Dockerfile` | Agent backend + Foundry adapter (port 8088) |
+| `etienne-frontend` | `docker/Dockerfile.frontend` | React frontend via nginx (port 80) |
+
+### Build the agent image
+
+```bash
+docker build -t etienne -f docker/Dockerfile .
+
+az acr build --registry <acr-name> --image etienne:v1 \
+  -f docker/Dockerfile .
+```
+
+### Build the frontend image
+
+The frontend image requires the Foundry agent endpoint URL at build time so Vite can bake it into the bundle:
+
+```bash
+docker build \
+  --build-arg VITE_API_BASE_URL=https://<foundry-agent-endpoint> \
+  -f docker/Dockerfile.frontend \
+  -t etienne-frontend .
+
+# Or push directly to ACR:
+az acr build --registry <acr-name> --image etienne-frontend:v1 \
+  --build-arg VITE_API_BASE_URL=https://<foundry-agent-endpoint> \
+  -f docker/Dockerfile.frontend .
+```
+
+### Run locally (Foundry mode)
+
+```bash
+# 1. Start the agent container (backend only, no frontend)
+docker run -p 8088:8088 \
+  -v /path/to/workspace:/app/workspace \
+  -v /path/to/backend/.env:/app/backend/.env:ro \
+  -e FOUNDRY_ENABLED=true \
+  etienne
+
+# 2. Start the frontend container separately
+docker run -p 80:80 etienne-frontend
+```
+
+### Foundry-specific environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `FOUNDRY_ENABLED` | Set to `true` to activate the Foundry adapter on port 8088 and skip the in-container frontend |
+| `FOUNDRY_TOOLBOX_MCP_ENDPOINT` | Single Toolbox URL for Foundry IQ / Work IQ / Fabric IQ MCP servers |
+| `AZURE_AI_ENDPOINT` | Azure AI Services endpoint for Foundry-hosted Claude models |
+| `FABRIC_IQ_MCP_ENDPOINT` | Microsoft Fabric data agent MCP endpoint |
+| `FOUNDRY_FRONTEND_ORIGIN` | CORS origin for the externally hosted frontend (e.g. `https://etienne-ui.azurestaticapps.net`) |
+| `FOUNDRY_DEFAULT_PROJECT` | Default project directory for Foundry sessions (default: `foundry`) |
+
+### Static file alternative
+
+Instead of a container, you can deploy the frontend as static files to Azure Static Web Apps:
+
+```bash
+cd frontend
+VITE_API_BASE_URL=https://<foundry-agent-endpoint> npx vite build
+az staticwebapp create --name etienne-ui --source ./dist
+```
+
 ## Development
 
 To modify the Dockerfile:
@@ -478,7 +583,7 @@ To modify the Dockerfile:
 
 ### Files
 
-- `Dockerfile` - Multi-stage build configuration
-- `.dockerignore` - Files excluded from the build context
-- `start.sh` - Service startup script
+- `Dockerfile` - Multi-service build (oauth-server, backend, frontend)
+- `Dockerfile.frontend` - Standalone frontend image for Azure Foundry deployments
+- `start.sh` - Service startup script (skips frontend when `FOUNDRY_ENABLED=true`)
 - `README.md` - This documentation
