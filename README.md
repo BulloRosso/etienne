@@ -565,6 +565,10 @@ You can install Etienne locally, deploy it using the Docker (after you have buil
 
 Etienne can be deployed as an **Azure Foundry hosted agent** — Microsoft's bring-your-own-container agent runtime (public preview April 2026). This is the recommended path for enterprise Azure environments.
 
+<div align="center">
+<img src="/docs/images/azure-foundry.jpg" alt="2026 Foundry Architecture" width="800">
+</div>
+
 ## Benefits
 
 * **Managed microVM isolation** — every user session runs in a dedicated hypervisor-isolated sandbox with persistent `$HOME` and `/files`; scales to zero after ~15 min idle and rehydrates state on resume
