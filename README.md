@@ -686,6 +686,23 @@ The MCP server registry includes pre-configured entries for Foundry IQ, Work IQ,
 
 See `agent.yaml` in the project root for the full Foundry deployment descriptor.
 
+## Scale-to-Zero Resilience
+
+Foundry scales the microVM to zero after ~15 minutes of inactivity and restarts it on the next request. This is by design — it reduces cost and is not something to work around. Etienne handles cold starts gracefully:
+
+**Survives restart** (persisted to Foundry's persistent filesystem):
+* Project data, chat history, and session metadata (JSONL files in `.etienne/`)
+* Claude SDK session ID (`data/session.id`) for conversation resumption
+* Foundry session-to-project mappings (`.foundry-sessions.json`)
+* Knowledge graphs, scrapbook notes, and all workspace files
+
+**Re-acquired on cold start** (in-memory, rebuilt automatically):
+* Managed identity token — `DefaultAzureCredential` re-acquires on `onModuleInit`
+* MCP server connections — re-established on first tool call
+* Active streaming sessions — the user simply retries the request
+
+The first request after a cold start takes a few extra seconds for NestJS initialization and token acquisition. Subsequent requests within the 15-minute idle window are instant.
+
 # Memory
 
 Etienne provides an exchangable endpoint to extract memories from a user prompt and store them inside the project.

@@ -573,6 +573,16 @@ VITE_API_BASE_URL=https://<foundry-agent-endpoint> npx vite build
 az staticwebapp create --name etienne-ui --source ./dist
 ```
 
+### Scale-to-zero behavior
+
+Foundry scales the agent microVM to zero after ~15 minutes of inactivity and cold-starts it on the next request. This is expected behavior, not a problem to solve. All critical state is persisted to Foundry's persistent filesystem:
+
+* Project data, chat history (`.etienne/` JSONL files)
+* Claude SDK session IDs (`data/session.id`) for conversation resumption
+* Foundry session-to-project mappings (`.foundry-sessions.json`)
+
+Ephemeral in-memory state (Entra tokens, MCP connections) is re-acquired automatically on cold start via `onModuleInit`. The first request after idle takes a few extra seconds for NestJS initialization.
+
 ## Development
 
 To modify the Dockerfile:
