@@ -1787,5 +1787,17 @@
   "sidebar.moreSessions": "Altre sessioni...",
   "sidebar.untitledChat": "Chat senza titolo",
   "sidebar.logout": "Disconnetti",
-  "sidebar.expand": "Espandi barra laterale"
+  "sidebar.expand": "Espandi barra laterale",
+  "sidebar.artifacts": "Artefatti",
+
+  "artifactsForSession.title": "Artefatti della sessione",
+  "artifactsForSession.empty": "Nessun artefatto creato in questa sessione.",
+  "artifactsForSession.noMatches": "Nessun artefatto corrisponde ai filtri attuali.",
+  "artifactsForSession.sortNewest": "Pi\u00f9 recenti",
+  "artifactsForSession.sortAlpha": "A-Z",
+  "artifactsForSession.filterPlaceholder": "Filtra...",
+  "artifactsForSession.filterCategories": "Filtra categorie",
+  "artifactsForSession.filterData": "File di dati",
+  "artifactsForSession.filterOffice": "Documenti Office",
+  "artifactsForSession.filterCode": "Codice"
 }

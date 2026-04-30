@@ -8,6 +8,7 @@ import { AiFillStar } from 'react-icons/ai';
 import { IoSearchOutline } from 'react-icons/io5';
 import ConversationSearch from './ConversationSearch';
 import { PiBell } from 'react-icons/pi';
+import { BsCollection } from 'react-icons/bs';
 import { FolderOutlined } from '@mui/icons-material';
 import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
@@ -27,6 +28,7 @@ import Strategy from './Strategy';
 import SkillIndicator from './SkillIndicator';
 import McpToolsIndicator from './McpToolsIndicator';
 import BudgetIndicator from './BudgetIndicator';
+import { filePreviewHandler } from '../services/FilePreviewHandler';
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -280,6 +282,17 @@ export default function MinimalisticSidebar({
             </IconButton>
           </Tooltip>
         )}
+        {currentProject && (
+          <Tooltip title={t('sidebar.artifacts')} placement="right">
+            <IconButton
+              onClick={() => filePreviewHandler.handlePreview('.etienne/.agent-created-files.artifacts.md', currentProject)}
+              size="small"
+              sx={{ color: 'text.secondary', mb: 0.5 }}
+            >
+              <BsCollection size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
         <Tooltip title={t('sidebar.settings')} placement="right">
           <IconButton onClick={() => setSettingsOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
             <GiSettingsKnobs size={18} />
@@ -514,6 +527,15 @@ export default function MinimalisticSidebar({
               >
                 <ListItemIcon sx={{ minWidth: 36 }}><TbWorld size={18} /></ListItemIcon>
                 <ListItemText primary={t('sidebar.website')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
+            {currentProject && (
+              <ListItemButton
+                onClick={() => filePreviewHandler.handlePreview('.etienne/.agent-created-files.artifacts.md', currentProject)}
+                sx={{ borderRadius: 1, py: 0.75 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}><BsCollection size={18} /></ListItemIcon>
+                <ListItemText primary={t('sidebar.artifacts')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
               </ListItemButton>
             )}
             <ListItemButton onClick={() => setSettingsOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>

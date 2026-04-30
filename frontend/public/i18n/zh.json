@@ -1770,5 +1770,17 @@
   "sidebar.moreSessions": "更多会话...",
   "sidebar.untitledChat": "未命名聊天",
   "sidebar.logout": "退出登录",
-  "sidebar.expand": "展开侧边栏"
+  "sidebar.expand": "展开侧边栏",
+  "sidebar.artifacts": "工件",
+
+  "artifactsForSession.title": "会话工件",
+  "artifactsForSession.empty": "此会话中尚未创建任何工件。",
+  "artifactsForSession.noMatches": "没有工件与当前过滤器匹配。",
+  "artifactsForSession.sortNewest": "最新优先",
+  "artifactsForSession.sortAlpha": "A-Z",
+  "artifactsForSession.filterPlaceholder": "过滤...",
+  "artifactsForSession.filterCategories": "过滤类别",
+  "artifactsForSession.filterData": "数据文件",
+  "artifactsForSession.filterOffice": "办公文档",
+  "artifactsForSession.filterCode": "代码"
 }

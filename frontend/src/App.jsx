@@ -1160,10 +1160,10 @@ export default function App() {
   useEffect(() => {
     const handleFilePreview = (data) => {
       if (data.action && data.action.endsWith('-preview') && data.filePath && data.projectName) {
-        // For viewers that handle their own data loading (e.g. RequirementsViewer),
+        // For viewers that handle their own data loading (e.g. RequirementsViewer, ArtifactsForSession),
         // add a placeholder entry immediately so the tab opens and the viewer mounts,
         // even if the file doesn't exist on disk yet.
-        if (data.filePath.endsWith('.requirements.json')) {
+        if (data.filePath.endsWith('.requirements.json') || data.filePath.endsWith('.artifacts.md')) {
           setFiles((arr) => {
             if (arr.some(x => x.path === data.filePath)) return arr;
             return arr.concat([{ path: data.filePath, content: '' }]);

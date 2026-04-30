@@ -41,6 +41,7 @@ export class PreviewersService {
       { viewer: 'scrapbook', extensions: ['.scbk'] },
       { viewer: 'pdf', extensions: ['.pdf'] },
       { viewer: 'docx', extensions: ['.docx', '.doc'] },
+      { viewer: 'artifacts', extensions: ['.artifacts.md'] },
     ];
   }
 }

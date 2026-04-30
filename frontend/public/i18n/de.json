@@ -1699,5 +1699,17 @@
   "sidebar.moreSessions": "Weitere Sitzungen...",
   "sidebar.untitledChat": "Unbenannter Chat",
   "sidebar.logout": "Abmelden",
-  "sidebar.expand": "Seitenleiste erweitern"
+  "sidebar.expand": "Seitenleiste erweitern",
+  "sidebar.artifacts": "Artefakte",
+
+  "artifactsForSession.title": "Sitzungs-Artefakte",
+  "artifactsForSession.empty": "In dieser Sitzung wurden noch keine Artefakte erstellt.",
+  "artifactsForSession.noMatches": "Keine Artefakte entsprechen den aktuellen Filtern.",
+  "artifactsForSession.sortNewest": "Neueste zuerst",
+  "artifactsForSession.sortAlpha": "A-Z",
+  "artifactsForSession.filterPlaceholder": "Filtern...",
+  "artifactsForSession.filterCategories": "Kategorien filtern",
+  "artifactsForSession.filterData": "Datendateien",
+  "artifactsForSession.filterOffice": "Office-Dokumente",
+  "artifactsForSession.filterCode": "Code"
 }

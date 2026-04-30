@@ -14,6 +14,7 @@ import KnowledgeViewer from './KnowledgeViewer';
 import PdfViewer from './PdfViewer';
 import DocxViewer from './DocxViewer';
 import RequirementsViewer from './RequirementsViewer';
+import ArtifactsForSession from './ArtifactsForSession';
 
 /**
  * Maps viewer names to their component render functions.
@@ -68,6 +69,9 @@ export const VIEWER_COMPONENTS = {
   requirements: (file, projectName) => (
     <RequirementsViewer filename={file.path} projectName={projectName} />
   ),
+  artifacts: (file, projectName) => (
+    <ArtifactsForSession filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -91,6 +95,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'pdf', extensions: ['.pdf'] },
   { viewer: 'docx', extensions: ['.docx', '.doc'] },
   { viewer: 'requirements', extensions: ['.requirements.json'] },
+  { viewer: 'artifacts', extensions: ['.artifacts.md'] },
 ];
 
 /**

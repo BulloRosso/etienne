@@ -1787,5 +1787,17 @@
   "sidebar.moreSessions": "More sessions...",
   "sidebar.untitledChat": "Untitled chat",
   "sidebar.logout": "Logout",
-  "sidebar.expand": "Expand sidebar"
+  "sidebar.expand": "Expand sidebar",
+  "sidebar.artifacts": "Artifacts",
+
+  "artifactsForSession.title": "Session Artifacts",
+  "artifactsForSession.empty": "No artifacts created in this session yet.",
+  "artifactsForSession.noMatches": "No artifacts match the current filters.",
+  "artifactsForSession.sortNewest": "Newest first",
+  "artifactsForSession.sortAlpha": "A-Z",
+  "artifactsForSession.filterPlaceholder": "Filter...",
+  "artifactsForSession.filterCategories": "Filter categories",
+  "artifactsForSession.filterData": "Data Files",
+  "artifactsForSession.filterOffice": "Office Documents",
+  "artifactsForSession.filterCode": "Code"
 }

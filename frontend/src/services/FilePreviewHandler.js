@@ -21,6 +21,12 @@ class FilePreviewHandler {
       return;
     }
 
+    // Handle compound extensions before simple extension matching
+    if (filePath.endsWith('.artifacts.md')) {
+      this.handleArtifactsPreview(filePath, projectName);
+      return;
+    }
+
     const extension = this.getFileExtension(filePath);
 
     // Handle HTML files
@@ -294,6 +300,15 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'text-preview'
+    });
+  }
+
+  handleArtifactsPreview(filePath, projectName) {
+    console.log('FilePreviewHandler: Opening Artifacts preview for', filePath);
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: 'artifacts-preview'
     });
   }
 

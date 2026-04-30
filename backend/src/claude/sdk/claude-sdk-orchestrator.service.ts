@@ -1,5 +1,7 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { promises as fs } from 'fs';
+import { join } from 'path';
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { ClaudeSdkService } from './claude-sdk.service';
@@ -139,6 +141,19 @@ export class ClaudeSdkOrchestratorService {
       // Check if this is a new session or resuming
       sessionId = await this.sessionManager.loadSessionId(projectDir);
       const isFirstRequest = !sessionId;
+
+      // Setup artifacts tracking file
+      try {
+        const projectRoot = safeRoot(this.config.hostRoot, projectDir);
+        const etienneDir = join(projectRoot, '.etienne');
+        const artifactsPath = join(etienneDir, '.agent-created-files.artifacts.md');
+        await fs.mkdir(etienneDir, { recursive: true });
+        if (isFirstRequest) {
+          await fs.writeFile(artifactsPath, '# Session Artifacts\n', 'utf8');
+        } else {
+          try { await fs.access(artifactsPath); } catch { await fs.writeFile(artifactsPath, '# Session Artifacts\n', 'utf8'); }
+        }
+      } catch (e) { this.logger.warn('Failed to init artifacts file', e); }
 
       // If resuming, load model from session
       if (sessionId) {
@@ -470,6 +485,22 @@ export class ClaudeSdkOrchestratorService {
           if (toolCall) {
             const { name, input: toolInput } = toolCall;
 
+            // Helper to append to artifacts tracking file
+            const appendArtifact = (filePath: string) => {
+              try {
+                const root = safeRoot(this.config.hostRoot, projectDir);
+                const artifactsPath = join(root, '.etienne', '.agent-created-files.artifacts.md');
+                // Convert absolute paths to relative
+                const normalizedRoot = root.replace(/\\/g, '/');
+                let relativePath = filePath.replace(/\\/g, '/');
+                if (relativePath.startsWith(normalizedRoot + '/')) {
+                  relativePath = relativePath.slice(normalizedRoot.length + 1);
+                }
+                const line = `- ${new Date().toISOString()} | ${relativePath}\n`;
+                fs.appendFile(artifactsPath, line, 'utf8').catch(() => void 0);
+              } catch { /* ignore */ }
+            };
+
             if (name === 'Write' && toolInput?.file_path) {
               this.hookEmitter.emitFileAdded(projectDir, {
                 path: toolInput.file_path,
@@ -480,6 +511,7 @@ export class ClaudeSdkOrchestratorService {
                 type: 'file_added',
                 data: { path: toolInput.file_path }
               });
+              appendArtifact(toolInput.file_path);
             } else if ((name === 'Edit' || name === 'MultiEdit') && toolInput?.file_path) {
               this.hookEmitter.emitFileChanged(projectDir, {
                 path: toolInput.file_path,
@@ -490,6 +522,7 @@ export class ClaudeSdkOrchestratorService {
                 type: 'file_changed',
                 data: { path: toolInput.file_path }
               });
+              appendArtifact(toolInput.file_path);
             } else if (name === 'NotebookEdit' && toolInput?.notebook_path) {
               this.hookEmitter.emitFileChanged(projectDir, {
                 path: toolInput.notebook_path,
@@ -500,6 +533,7 @@ export class ClaudeSdkOrchestratorService {
                 type: 'file_changed',
                 data: { path: toolInput.notebook_path }
               });
+              appendArtifact(toolInput.notebook_path);
             }
 
             // Clean up

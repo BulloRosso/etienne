@@ -485,15 +485,39 @@ project using the [Scrapbook](#scrapbook)
         // Only use --resume if we have a sessionId. For new sessions, don't pass any resume flag.
         const resumeArg = sessionId ? `--resume "$SESSION_ID"` : '';
 
-        // Setup file watcher
-        const watcher = chokidar.watch(join(projectRoot, 'out'), {
+        // Setup artifacts tracking file
+        const artifactsPath = join(projectRoot, '.etienne', '.agent-created-files.artifacts.md');
+        await fs.mkdir(join(projectRoot, '.etienne'), { recursive: true });
+        if (!sessionId) {
+          // New session — reset artifacts tracking
+          await fs.writeFile(artifactsPath, '# Session Artifacts\n', 'utf8');
+        } else {
+          // Resuming — ensure file exists (may be first run after feature added)
+          try { await fs.access(artifactsPath); } catch { await fs.writeFile(artifactsPath, '# Session Artifacts\n', 'utf8'); }
+        }
+        const appendArtifact = (relPath: string) => {
+          const line = `- ${new Date().toISOString()} | ${relPath}\n`;
+          fs.appendFile(artifactsPath, line, 'utf8').catch(() => void 0);
+        };
+
+        // Setup file watcher — watch entire project for model-created files
+        const watcher = chokidar.watch(projectRoot, {
           ignoreInitial: true,
           depth: 8,
+          ignored: ['**/.etienne/**', '**/.claude/**', '**/.git/**', '**/node_modules/**', '**/.attachments/**', '**/data/session.id'],
           awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
         });
         const rel = (abs: string) => abs.slice(projectRoot.length + 1).replace(/\\/g, '/');
-        watcher.on('add', (abs) => observer.next({ type: 'file_added', data: { path: rel(abs) } }));
-        watcher.on('change', (abs) => observer.next({ type: 'file_changed', data: { path: rel(abs) } }));
+        watcher.on('add', (abs) => {
+          const relPath = rel(abs);
+          observer.next({ type: 'file_added', data: { path: relPath } });
+          appendArtifact(relPath);
+        });
+        watcher.on('change', (abs) => {
+          const relPath = rel(abs);
+          observer.next({ type: 'file_changed', data: { path: relPath } });
+          appendArtifact(relPath);
+        });
 
         // Emit guardrails event if triggered
         if (guardrailsTriggered) {
