@@ -2018,6 +2018,8 @@ export default function App() {
           allTags={allTags}
           agentClass={agentClass}
           onCollapse={() => setSidebarCollapsed(true)}
+          hasPublicWebsite={hasPublicWebsite}
+          mux={mux}
         />
       )}
 

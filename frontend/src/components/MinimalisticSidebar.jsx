@@ -9,6 +9,7 @@ import { FolderOutlined } from '@mui/icons-material';
 import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
 import { GoSidebarCollapse } from 'react-icons/go';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
+import { TbWorld } from 'react-icons/tb';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -20,6 +21,7 @@ import NotificationMenu from './NotificationMenu';
 import Strategy from './Strategy';
 import SkillIndicator from './SkillIndicator';
 import McpToolsIndicator from './McpToolsIndicator';
+import BudgetIndicator from './BudgetIndicator';
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -64,6 +66,8 @@ export default function MinimalisticSidebar({
   allTags,
   agentClass,
   onCollapse,
+  hasPublicWebsite,
+  mux,
 }) {
   const { t } = useTranslation();
   const { mode: themeMode, toggleMode } = useThemeMode();
@@ -76,6 +80,7 @@ export default function MinimalisticSidebar({
   const [projectSessions, setProjectSessions] = useState([]);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
   const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
+  const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false);
   const [agentClassIcon, setAgentClassIcon] = useState(null);
 
   // Fetch agent class icon
@@ -296,6 +301,36 @@ export default function MinimalisticSidebar({
               <Box sx={{ ml: '50px', my: '8px' }}>
                 <McpToolsIndicator projectName={currentProject} sessionId={sessionId} />
               </Box>
+            )}
+            {currentProject && budgetSettings?.enabled && (
+              <ListItemButton
+                onClick={() => setBudgetDrawerOpen(true)}
+                sx={{ borderRadius: 1, py: 0.75 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <BudgetIndicator
+                    project={currentProject}
+                    budgetSettings={budgetSettings}
+                    onSettingsChange={onBudgetSettingsChange}
+                    showBackgroundInfo={showBackgroundInfo}
+                    mux={mux}
+                    iconOnly
+                  />
+                </ListItemIcon>
+                <ListItemText primary={t('sidebar.budget')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
+            {hasPublicWebsite && currentProject && (
+              <ListItemButton
+                onClick={() => {
+                  const url = `${window.location.protocol}//${window.location.host}/web/${encodeURIComponent(currentProject)}`;
+                  window.open(url, '_blank');
+                }}
+                sx={{ borderRadius: 1, py: 0.75 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}><TbWorld size={18} /></ListItemIcon>
+                <ListItemText primary={t('sidebar.website')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
             )}
             <ListItemButton onClick={() => setSettingsOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
               <ListItemIcon sx={{ minWidth: 36 }}><GiSettingsKnobs size={18} /></ListItemIcon>
@@ -565,6 +600,18 @@ export default function MinimalisticSidebar({
             <Strategy projectName={currentProject} showBackgroundInfo={showBackgroundInfo} />
           </Box>
         </Drawer>
+
+        {currentProject && budgetSettings?.enabled && (
+          <BudgetIndicator
+            project={currentProject}
+            budgetSettings={budgetSettings}
+            onSettingsChange={onBudgetSettingsChange}
+            showBackgroundInfo={showBackgroundInfo}
+            mux={mux}
+            externalOpen={budgetDrawerOpen}
+            onExternalClose={() => setBudgetDrawerOpen(false)}
+          />
+        )}
       </Box>
 
       {/* Resize handle */}

@@ -41,7 +41,7 @@ const percentageIcons = [
   TbPercentage100
 ];
 
-export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo, mux }) {
+export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo, mux, iconOnly = false, onIconClick, externalOpen, onExternalClose }) {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentCosts, setCurrentCosts] = useState(0);
@@ -145,22 +145,35 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
     setDrawerOpen(false);
   };
 
+  if (iconOnly) {
+    return <PercentageIcon style={{ fontSize: '18px', color: iconColor }} />;
+  }
+
+  // Externally controlled drawer mode — renders only the Drawer, no trigger button
+  const isExternallyControlled = externalOpen !== undefined;
+  const effectiveDrawerOpen = isExternallyControlled ? externalOpen : drawerOpen;
+  const effectiveDrawerClose = isExternallyControlled
+    ? () => { onExternalClose?.(); }
+    : handleDrawerClose;
+
   return (
     <>
-      <Tooltip title={tooltipText} arrow>
-        <IconButton
-          color="inherit"
-          onClick={handleDrawerOpen}
-          sx={{ ml: 2 }}
-        >
-          <PercentageIcon style={{ fontSize: '24px', color: iconColor }} />
-        </IconButton>
-      </Tooltip>
+      {!isExternallyControlled && (
+        <Tooltip title={tooltipText} arrow>
+          <IconButton
+            color="inherit"
+            onClick={onIconClick || handleDrawerOpen}
+            sx={{ ml: 2 }}
+          >
+            <PercentageIcon style={{ fontSize: '24px', color: iconColor }} />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <Drawer
         anchor="left"
-        open={drawerOpen}
-        onClose={handleDrawerClose}
+        open={effectiveDrawerOpen}
+        onClose={effectiveDrawerClose}
       >
         <BudgetOverview
           project={project}
@@ -174,7 +187,7 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
           globalInputTokens={globalInputTokens}
           globalOutputTokens={globalOutputTokens}
           budgetSettings={budgetSettings}
-          onClose={handleDrawerClose}
+          onClose={effectiveDrawerClose}
           onSettingsChange={(settings) => {
             onSettingsChange(settings);
             // If counters were reset, re-fetch everything

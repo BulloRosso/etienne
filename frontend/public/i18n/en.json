@@ -1774,6 +1774,8 @@
 
   "sidebar.newChat": "New Chat",
   "sidebar.agentRole": "Agent Role",
+  "sidebar.budget": "Budget",
+  "sidebar.website": "Website",
   "sidebar.settings": "Settings",
   "sidebar.projectsHeading": "Projects",
   "sidebar.moreProjects": "More projects...",
