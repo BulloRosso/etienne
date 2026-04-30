@@ -1785,5 +1785,7 @@
   "sidebar.noRecentChats": "Nessuna chat recente",
   "sidebar.noRecentProjects": "Nessun progetto recente",
   "sidebar.moreSessions": "Altre sessioni...",
-  "sidebar.untitledChat": "Chat senza titolo"
+  "sidebar.untitledChat": "Chat senza titolo",
+  "sidebar.logout": "Disconnetti",
+  "sidebar.expand": "Espandi barra laterale"
 }

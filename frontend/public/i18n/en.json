@@ -1785,5 +1785,7 @@
   "sidebar.noRecentChats": "No recent chats",
   "sidebar.noRecentProjects": "No recent projects",
   "sidebar.moreSessions": "More sessions...",
-  "sidebar.untitledChat": "Untitled chat"
+  "sidebar.untitledChat": "Untitled chat",
+  "sidebar.logout": "Logout",
+  "sidebar.expand": "Expand sidebar"
 }

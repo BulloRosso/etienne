@@ -7,9 +7,11 @@ import { GrChatOption } from 'react-icons/gr';
 import { PiBell } from 'react-icons/pi';
 import { FolderOutlined } from '@mui/icons-material';
 import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
-import { GoSidebarCollapse } from 'react-icons/go';
+import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import { TbWorld } from 'react-icons/tb';
+import { Logout } from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -66,11 +68,14 @@ export default function MinimalisticSidebar({
   allTags,
   agentClass,
   onCollapse,
+  onExpand,
+  collapsed,
   hasPublicWebsite,
   mux,
 }) {
   const { t } = useTranslation();
   const { mode: themeMode, toggleMode } = useThemeMode();
+  const { user, logout } = useAuth();
 
   const [recentItems, setRecentItems] = useState({ projects: [], chats: [], notifications: [] });
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -220,6 +225,176 @@ export default function MinimalisticSidebar({
     pb: 0.5,
   };
 
+  // Collapsed sidebar — icon-only narrow strip
+  if (collapsed) {
+    return (
+      <Box sx={{
+        width: '44px',
+        minWidth: '44px',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        bgcolor: isDark ? '#2c2c2c' : '#fafafa',
+        borderRight: isDark ? '1px solid #555' : '1px solid #e0e0e0',
+        flexShrink: 0,
+        py: 1,
+      }}>
+        {/* Expand button at top */}
+        <Tooltip title={t('sidebar.expand') || 'Expand'} placement="right">
+          <IconButton onClick={onExpand} size="small" sx={{ color: 'text.secondary', mt: '3px', mb: 1 }}>
+            <GoSidebarExpand size={18} />
+          </IconButton>
+        </Tooltip>
+
+        <Divider sx={{ width: '70%', mb: 1 }} />
+
+        {/* Icon-only menu items */}
+        <Tooltip title={t('sidebar.newChat')} placement="right">
+          <IconButton onClick={onNewChat} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+            <RiChatNewLine size={18} />
+          </IconButton>
+        </Tooltip>
+        {currentProject && (
+          <Tooltip title={t('sidebar.agentRole')} placement="right">
+            <IconButton onClick={() => setRoleDrawerOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+              <LiaHatCowboySideSolid size={20} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {hasPublicWebsite && currentProject && (
+          <Tooltip title={t('sidebar.website')} placement="right">
+            <IconButton
+              onClick={() => {
+                const url = `${window.location.protocol}//${window.location.host}/web/${encodeURIComponent(currentProject)}`;
+                window.open(url, '_blank');
+              }}
+              size="small"
+              sx={{ color: 'text.secondary', mb: 0.5 }}
+            >
+              <TbWorld size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Tooltip title={t('sidebar.settings')} placement="right">
+          <IconButton onClick={() => setSettingsOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+            <GiSettingsKnobs size={18} />
+          </IconButton>
+        </Tooltip>
+
+        <Divider sx={{ width: '70%', my: 1 }} />
+
+        {/* Projects icon */}
+        <Tooltip title={t('sidebar.projectsHeading')} placement="right">
+          <IconButton onClick={() => setProjectListOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+            <FolderOutlined fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        {/* Chats icon */}
+        <Tooltip title={t('sidebar.chatsHeading')} placement="right">
+          <IconButton onClick={() => setSessionPaneOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+            <GrChatOption size={18} />
+          </IconButton>
+        </Tooltip>
+
+        {/* Spacer to push bottom items down */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* Dark mode toggle */}
+        <Tooltip title={themeMode === 'dark' ? 'Light mode' : 'Dark mode'} placement="right">
+          <IconButton onClick={toggleMode} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+            {themeMode === 'dark' ? <IoSunnyOutline size={16} /> : <IoMoonOutline size={16} />}
+          </IconButton>
+        </Tooltip>
+
+        {/* User avatar / logout */}
+        {user && (
+          <Tooltip title={`${user.displayName || user.username} (${user.role}) — ${t('sidebar.logout') || 'Logout'}`} placement="right">
+            <IconButton
+              onClick={logout}
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                mt: 0.5,
+                width: 32,
+                height: 32,
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                borderRadius: '50%',
+                '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' },
+              }}
+            >
+              {(user.displayName || user.username || '?').charAt(0).toUpperCase()}
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {/* Modals (still need to be rendered) */}
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          currentProject={currentProject}
+          sessionId={sessionId}
+          onCopySessionId={onCopySessionId}
+          budgetSettings={budgetSettings}
+          onBudgetSettingsChange={onBudgetSettingsChange}
+          onTasksChange={onTasksChange}
+          showBackgroundInfo={showBackgroundInfo}
+          onUIConfigChange={onUIConfigChange}
+          onProjectChange={onProjectChange}
+          codingAgent={codingAgent}
+          allTags={allTags}
+        />
+        <ProjectListModal
+          open={projectListOpen}
+          onClose={() => setProjectListOpen(false)}
+          currentProject={currentProject}
+          onProjectChange={(name) => { onProjectChange(name); setProjectListOpen(false); }}
+        />
+        <CreateProjectWizard
+          open={createProjectOpen}
+          onClose={() => setCreateProjectOpen(false)}
+          existingProjects={existingProjects}
+          onProjectCreated={async (projectName, guidanceDocuments) => {
+            setCreateProjectOpen(false);
+            onProjectChange(projectName, guidanceDocuments);
+            fetchRecentItems();
+          }}
+        />
+        <SessionPane
+          open={sessionPaneOpen}
+          onClose={() => { setSessionPaneOpen(false); fetchProjectSessions(); }}
+          projectName={currentProject}
+          onSessionSelect={(sid) => { onLoadChat(sid, currentProject); setSessionPaneOpen(false); fetchProjectSessions(); }}
+          currentSessionId={sessionId}
+        />
+        <Drawer
+          anchor="left"
+          open={roleDrawerOpen}
+          onClose={() => setRoleDrawerOpen(false)}
+          sx={{ '& .MuiDrawer-paper': { width: '500px', maxWidth: '90vw' } }}
+        >
+          <Box sx={{ height: '100%', overflow: 'auto' }}>
+            <Strategy projectName={currentProject} showBackgroundInfo={showBackgroundInfo} />
+          </Box>
+        </Drawer>
+        {currentProject && budgetSettings?.enabled && (
+          <BudgetIndicator
+            project={currentProject}
+            budgetSettings={budgetSettings}
+            onSettingsChange={onBudgetSettingsChange}
+            showBackgroundInfo={showBackgroundInfo}
+            mux={mux}
+            externalOpen={budgetDrawerOpen}
+            onExternalClose={() => setBudgetDrawerOpen(false)}
+          />
+        )}
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', flexShrink: 0 }}>
       {/* Sidebar content */}
@@ -232,15 +407,20 @@ export default function MinimalisticSidebar({
           display: 'flex',
           flexDirection: 'column',
           bgcolor: isDark ? '#2c2c2c' : '#fafafa',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          '&::-webkit-scrollbar': { width: '6px' },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: isDark ? '#555' : '#ccc',
-            borderRadius: '3px',
-          },
+          overflow: 'hidden',
         }}
       >
+      {/* Scrollable content area */}
+      <Box sx={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        '&::-webkit-scrollbar': { width: '6px' },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: isDark ? '#555' : '#ccc',
+          borderRadius: '3px',
+        },
+      }}>
         {/* Agent Class Header — shown if agentClass or agentClassIcon is available */}
         {(agentClass || agentClassIcon) && (
           <Box sx={{
@@ -497,49 +677,104 @@ export default function MinimalisticSidebar({
           </>
         )}
 
-        {/* Dark mode toggle + notifications — pushed to bottom */}
-        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, px: 1.5 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-              borderRadius: '50px',
-              padding: '2px',
-              cursor: 'pointer',
-            }}
-            onClick={toggleMode}
-          >
-            <Box sx={{
-              width: 29,
-              height: 29,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: themeMode === 'light' ? 'rgba(25,118,210,0.12)' : 'transparent',
-              border: themeMode === 'light' ? '1px solid rgba(25,118,210,0.3)' : '1px solid transparent',
-              color: themeMode === 'light' ? '#1976d2' : 'rgba(255,255,255,0.35)',
-              transition: 'all 0.2s ease',
-            }}>
-              <IoSunnyOutline size={14} />
+      </Box>
+      {/* End scrollable content area */}
+
+        {/* User section + dark mode toggle + notifications — sticky bottom */}
+        <Box sx={{ flexShrink: 0, bgcolor: isDark ? '#2c2c2c' : '#fafafa' }}>
+          {/* User info & logout */}
+          {user && (
+            <>
+              <Divider />
+              <Box
+                onClick={logout}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  px: 1.5,
+                  py: 1.5,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    '& .sidebar-logout-icon': { opacity: 1 },
+                  },
+                }}
+              >
+                {/* User initial avatar */}
+                <Box sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: 'text.primary',
+                  flexShrink: 0,
+                }}>
+                  {(user.displayName || user.username || '?').charAt(0).toUpperCase()}
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', lineHeight: 1.3 }} noWrap>
+                    {user.displayName || user.username}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'capitalize', fontSize: '0.7rem', lineHeight: 1.2 }}>
+                    {user.role}
+                  </Typography>
+                </Box>
+                <Logout className="sidebar-logout-icon" sx={{ fontSize: 18, color: 'text.secondary', opacity: 0.4, transition: 'opacity 0.15s', flexShrink: 0 }} />
+              </Box>
+            </>
+          )}
+
+          {/* Dark mode toggle + notifications */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, px: 1.5 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                borderRadius: '50px',
+                padding: '2px',
+                cursor: 'pointer',
+              }}
+              onClick={toggleMode}
+            >
+              <Box sx={{
+                width: 29,
+                height: 29,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: themeMode === 'light' ? 'rgba(25,118,210,0.12)' : 'transparent',
+                border: themeMode === 'light' ? '1px solid rgba(25,118,210,0.3)' : '1px solid transparent',
+                color: themeMode === 'light' ? '#1976d2' : 'rgba(255,255,255,0.35)',
+                transition: 'all 0.2s ease',
+              }}>
+                <IoSunnyOutline size={14} />
+              </Box>
+              <Box sx={{
+                width: 29,
+                height: 29,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: themeMode === 'dark' ? 'rgba(255,215,0,0.12)' : 'transparent',
+                border: themeMode === 'dark' ? '1px solid rgba(255,215,0,0.3)' : '1px solid transparent',
+                color: themeMode === 'dark' ? 'gold' : 'rgba(0,0,0,0.3)',
+                transition: 'all 0.2s ease',
+              }}>
+                <IoMoonOutline size={14} />
+              </Box>
             </Box>
-            <Box sx={{
-              width: 29,
-              height: 29,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: themeMode === 'dark' ? 'rgba(255,215,0,0.12)' : 'transparent',
-              border: themeMode === 'dark' ? '1px solid rgba(255,215,0,0.3)' : '1px solid transparent',
-              color: themeMode === 'dark' ? 'gold' : 'rgba(0,0,0,0.3)',
-              transition: 'all 0.2s ease',
-            }}>
-              <IoMoonOutline size={14} />
-            </Box>
+            <NotificationMenu projectName={currentProject} />
           </Box>
-          <NotificationMenu projectName={currentProject} />
         </Box>
 
         {/* Modals */}

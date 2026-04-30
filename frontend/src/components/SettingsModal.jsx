@@ -18,7 +18,7 @@ import {
 import { Close, AddOutlined } from '@mui/icons-material';
 import { PiGraphLight } from 'react-icons/pi';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext.jsx';
+
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
@@ -56,7 +56,6 @@ export default function SettingsModal({
   allTags = [],
 }) {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
   const { mode: themeMode } = useThemeMode();
 
   // Sub-dialog states
@@ -183,8 +182,8 @@ export default function SettingsModal({
             onItemClick={handleDashboardItemClick}
             onClose={onClose}
             onAboutClick={() => { onClose(); setAboutOpen(true); }}
-            user={user}
-            onLogout={() => { onClose(); logout(); }}
+            user={null}
+            onLogout={() => {}}
             onSettingsClick={() => { onClose(); setChangePasswordOpen(true); }}
             onServiceControlClick={() => closeSettingsAndOpen(setServiceControlOpen)}
             onAgentPersonaClick={() => closeSettingsAndOpen(setPersonaDialogOpen)}

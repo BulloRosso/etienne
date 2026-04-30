@@ -1768,5 +1768,7 @@
   "sidebar.noRecentChats": "暂无最近聊天",
   "sidebar.noRecentProjects": "暂无最近项目",
   "sidebar.moreSessions": "更多会话...",
-  "sidebar.untitledChat": "未命名聊天"
+  "sidebar.untitledChat": "未命名聊天",
+  "sidebar.logout": "退出登录",
+  "sidebar.expand": "展开侧边栏"
 }

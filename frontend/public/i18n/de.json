@@ -1697,5 +1697,7 @@
   "sidebar.noRecentChats": "Keine aktuellen Chats",
   "sidebar.noRecentProjects": "Keine aktuellen Projekte",
   "sidebar.moreSessions": "Weitere Sitzungen...",
-  "sidebar.untitledChat": "Unbenannter Chat"
+  "sidebar.untitledChat": "Unbenannter Chat",
+  "sidebar.logout": "Abmelden",
+  "sidebar.expand": "Seitenleiste erweitern"
 }
