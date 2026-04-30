@@ -11,7 +11,7 @@ import { GoArrowUp } from "react-icons/go";
 import { GoPlus } from "react-icons/go";
 import { CiFileOn } from "react-icons/ci";
 
-export default function ChatInput({ onSend, onAbort, streaming, disabled, minimal = false }) {
+export default function ChatInput({ onSend, onAbort, streaming, disabled, minimal = false, initialMessage, onInitialMessageConsumed }) {
   const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -26,6 +26,19 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
   const suggestionRefs = useRef([]);
   const { currentProject } = useProject();
   const { mode: themeMode } = useThemeMode();
+
+  // Handle "Edit & resubmit" from message actions
+  useEffect(() => {
+    if (initialMessage) {
+      setMessage(initialMessage);
+      if (onInitialMessageConsumed) onInitialMessageConsumed();
+      // Focus the text field
+      setTimeout(() => {
+        const input = textFieldRef.current?.querySelector('textarea') || textFieldRef.current?.querySelector('input');
+        if (input) input.focus();
+      }, 50);
+    }
+  }, [initialMessage]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -216,7 +229,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
   };
 
   return (
-    <Paper elevation={minimal ? 0 : 3} sx={{ p: 1, pr: 0, pl: 1, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined, backgroundImage: themeMode === 'dark' ? 'none' : undefined, ...(minimal && { boxShadow: 'none' }) }}>
+    <Paper data-chat-input elevation={minimal ? 0 : 3} sx={{ p: 1, pr: 0, pl: 1, borderRadius: 0, pb: 2.5, pt: 2, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined, backgroundImage: themeMode === 'dark' ? 'none' : undefined, ...(minimal && { boxShadow: 'none' }) }}>
       <style>
         {`
           @keyframes rotateIcon {

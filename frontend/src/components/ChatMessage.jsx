@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Box, Typography, Paper, IconButton, Collapse, Chip } from '@mui/material';
-import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups } from '@mui/icons-material';
+import { Box, Typography, Paper, IconButton, Collapse, Chip, Menu, MenuItem, ListItemIcon as MenuItemIcon } from '@mui/material';
+import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups, MoreVert, ContentCopy, Code, EditOutlined } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
@@ -11,7 +11,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, traceId = null, source = null, sourceMetadata = null, minimal = false }) {
+export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, traceId = null, source = null, sourceMetadata = null, minimal = false, onEditMessage }) {
   const { t } = useTranslation();
   const isUser = role === 'user';
   const { mode: themeMode } = useThemeMode();
@@ -19,6 +19,8 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [feedback, setFeedback] = useState(null); // 'up', 'down', or null
   const [feedbackSending, setFeedbackSending] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [hovered, setHovered] = useState(false);
   const { currentProject } = useProject();
   const contentRef = useRef(null);
   const streamStartTimeRef = useRef(null);
@@ -76,6 +78,21 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}m ${secs}s`;
+  };
+
+  const handleCopyText = () => {
+    navigator.clipboard.writeText(text);
+    setMenuAnchorEl(null);
+  };
+
+  const handleCopyMarkdown = () => {
+    navigator.clipboard.writeText(text);
+    setMenuAnchorEl(null);
+  };
+
+  const handleEditResubmit = () => {
+    setMenuAnchorEl(null);
+    if (onEditMessage) onEditMessage(text);
   };
 
   // Parse markdown for all messages
@@ -230,22 +247,72 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
     });
   }, [renderedContent, isUser, currentProject]);
 
+  // Shared menu component
+  const actionsMenu = (
+    <Menu
+      anchorEl={menuAnchorEl}
+      open={Boolean(menuAnchorEl)}
+      onClose={() => setMenuAnchorEl(null)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      slotProps={{ paper: { sx: { minWidth: 180 } } }}
+    >
+      <MenuItem onClick={handleCopyText} dense>
+        <MenuItemIcon sx={{ minWidth: 32 }}><ContentCopy sx={{ fontSize: 16 }} /></MenuItemIcon>
+        {t('chatMessage.copyText', 'Copy text')}
+      </MenuItem>
+      <MenuItem onClick={handleCopyMarkdown} dense>
+        <MenuItemIcon sx={{ minWidth: 32 }}><Code sx={{ fontSize: 16 }} /></MenuItemIcon>
+        {t('chatMessage.copyMarkdown', 'Copy as Markdown')}
+      </MenuItem>
+      {isUser && onEditMessage && (
+        <MenuItem onClick={handleEditResubmit} dense>
+          <MenuItemIcon sx={{ minWidth: 32 }}><EditOutlined sx={{ fontSize: 16 }} /></MenuItemIcon>
+          {t('chatMessage.editResubmit', 'Edit & resubmit')}
+        </MenuItem>
+      )}
+    </Menu>
+  );
+
   // User messages - render with bubble
   if (isUser) {
     return (
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'flex-start',
-        mb: 2,
-        px: 2
-      }}>
-        <Box sx={{ maxWidth: '70%' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+          mb: 2,
+          px: 2,
+          position: 'relative',
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <Box sx={{ maxWidth: '70%', position: 'relative' }}>
+          {hovered && !isStreaming && (
+            <IconButton
+              size="small"
+              onClick={(e) => setMenuAnchorEl(e.currentTarget)}
+              sx={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                zIndex: 1,
+                p: 0.25,
+                backgroundColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+                '&:hover': { backgroundColor: themeMode === 'dark' ? '#666' : '#d0d0d0' },
+              }}
+            >
+              <MoreVert sx={{ fontSize: 16 }} />
+            </IconButton>
+          )}
+          {actionsMenu}
           <Paper
             elevation={minimal ? 0 : 2}
             sx={{
               p: 2,
               backgroundColor: minimal ? (themeMode === 'dark' ? 'transparent' : '#fafafa') : (themeMode === 'dark' ? 'gold' : '#fff'),
-              color: themeMode === 'dark' ? '#000' : 'inherit',
+              color: themeMode === 'dark' ? (minimal ? '#fff' : '#000') : 'inherit',
               borderRadius: 2,
               boxShadow: minimal ? 'none' : '0 2px 4px rgba(0,0,0,0.1)'
             }}
@@ -347,13 +414,36 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   const useTimelineFormat = reasoningSteps.length > 0 && textChunks.length > 0;
 
   return (
-    <Box sx={{
-      display: 'flex',
-      justifyContent: 'flex-start',
-      mb: 2,
-      px: 2
-    }}>
-      <Box sx={{ width: '100%' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'flex-start',
+        mb: 2,
+        px: 2,
+        position: 'relative',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {hovered && !isStreaming && (
+          <IconButton
+            size="small"
+            onClick={(e) => setMenuAnchorEl(e.currentTarget)}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              zIndex: 1,
+              p: 0.25,
+              backgroundColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
+              '&:hover': { backgroundColor: themeMode === 'dark' ? '#666' : '#d0d0d0' },
+            }}
+          >
+            <MoreVert sx={{ fontSize: 16 }} />
+          </IconButton>
+        )}
+        {actionsMenu}
         {/* Timeline format: use StreamingTimeline for unified rendering */}
         {useTimelineFormat && (
           <StreamingTimeline

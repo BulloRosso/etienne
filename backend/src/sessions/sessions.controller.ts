@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Patch, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Param, Body, Query } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { safeRoot } from '../claude/utils/path.utils';
 import { Roles } from '../auth/roles.decorator';
@@ -15,13 +15,15 @@ export class SessionsController {
       const projectRoot = safeRoot(this.hostRoot, projectname);
       const sessionsData = await this.sessionsService.getSessionsWithSummaries(projectRoot);
 
-      // Pinned sessions first (alphabetically by name), then by timestamp desc
+      // Pinned first (alphabetical), then starred (by timestamp desc), then regular (by timestamp desc)
       const sorted = sessionsData.sessions.sort((a, b) => {
         if (a.pinned && !b.pinned) return -1;
         if (!a.pinned && b.pinned) return 1;
         if (a.pinned && b.pinned) {
           return (a.sessionName || '').localeCompare(b.sessionName || '');
         }
+        if (a.starred && !b.starred) return -1;
+        if (!a.starred && b.starred) return 1;
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
 
@@ -34,6 +36,30 @@ export class SessionsController {
         success: false,
         error: error.message,
         sessions: []
+      };
+    }
+  }
+
+  @Get(':projectname/search')
+  async searchConversations(
+    @Param('projectname') projectname: string,
+    @Query('q') query: string,
+    @Query('sessionId') sessionId?: string
+  ): Promise<any> {
+    try {
+      if (!query || !query.trim()) {
+        return { success: false, error: 'Query parameter "q" is required', results: [] };
+      }
+
+      const projectRoot = safeRoot(this.hostRoot, projectname);
+      const results = await this.sessionsService.searchConversations(projectRoot, query.trim(), 50, sessionId);
+
+      return { success: true, results };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        results: []
       };
     }
   }
@@ -102,6 +128,25 @@ export class SessionsController {
       await this.sessionsService.updateSessionSummary(projectRoot, sessionId, summary);
 
       return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  @Roles('user')
+  @Patch(':projectname/:sessionId/star')
+  async toggleStar(
+    @Param('projectname') projectname: string,
+    @Param('sessionId') sessionId: string
+  ): Promise<any> {
+    try {
+      const projectRoot = safeRoot(this.hostRoot, projectname);
+      const starred = await this.sessionsService.toggleStar(projectRoot, sessionId);
+
+      return { success: true, starred };
     } catch (error: any) {
       return {
         success: false,

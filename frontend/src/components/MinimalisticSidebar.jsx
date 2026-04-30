@@ -4,6 +4,9 @@ import { AddOutlined, Close as CloseIcon } from '@mui/icons-material';
 import { RiChatNewLine } from 'react-icons/ri';
 import { GiSettingsKnobs } from 'react-icons/gi';
 import { GrChatOption } from 'react-icons/gr';
+import { AiFillStar } from 'react-icons/ai';
+import { IoSearchOutline } from 'react-icons/io5';
+import ConversationSearch from './ConversationSearch';
 import { PiBell } from 'react-icons/pi';
 import { FolderOutlined } from '@mui/icons-material';
 import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
@@ -84,6 +87,7 @@ export default function MinimalisticSidebar({
   const [existingProjects, setExistingProjects] = useState([]);
   const [projectSessions, setProjectSessions] = useState([]);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false);
   const [agentClassIcon, setAgentClassIcon] = useState(null);
@@ -558,7 +562,21 @@ export default function MinimalisticSidebar({
 
         {/* Section 3: Chats — up to 5 from current project, fill remaining with other projects */}
         <Box>
-          <Typography sx={sectionHeadingSx}>{t('sidebar.chatsHeading')}</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, pt: 1 }}>
+            <Typography sx={{ ...sectionHeadingSx, px: 0, pt: 0 }}>{t('sidebar.chatsHeading')}</Typography>
+            <Tooltip title={t('conversationSearch.title', 'Search chats')} placement="right">
+              <IconButton size="small" onClick={() => setSearchOpen(true)} sx={{ p: 0.25 }}>
+                <IoSearchOutline size={16} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <ConversationSearch
+            open={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            projectName={currentProject}
+            sessionId={sessionId}
+            onSessionSelect={(sid) => { onLoadChat(sid, currentProject); setSearchOpen(false); }}
+          />
           <List disablePadding sx={{ px: 1 }}>
             {(() => {
               const MAX_CHATS = 5;
@@ -567,6 +585,7 @@ export default function MinimalisticSidebar({
                 title: session.summary || session.sessionName || t('sidebar.untitledChat'),
                 projectName: currentProject,
                 isCrossProject: false,
+                starred: !!session.starred,
               }));
               const remaining = MAX_CHATS - currentProjectChats.length;
               const currentSessionIds = new Set(projectSessions.map(s => s.sessionId));
@@ -606,7 +625,9 @@ export default function MinimalisticSidebar({
                     <ListItemIcon sx={{ minWidth: 36 }}>
                       {streamingSessionIds.has(chat.sessionId)
                         ? <CircularProgress size={16} thickness={5} />
-                        : <GrChatOption size={18} />}
+                        : chat.starred
+                          ? <AiFillStar size={18} color="#f5a623" />
+                          : <GrChatOption size={18} />}
                     </ListItemIcon>
                     <ListItemText
                       primary={truncateWords(chat.title)}

@@ -33,6 +33,8 @@ import useStreamingSessions from './hooks/useStreamingSessions';
 import { MuxSSEProvider } from './contexts/MuxSSEContext';
 import { useUxMode } from './contexts/UxModeContext.jsx';
 import MinimalisticSidebar from './components/MinimalisticSidebar';
+import KeyboardShortcutsOverlay from './components/KeyboardShortcutsOverlay';
+import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -99,6 +101,7 @@ export default function App() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [langToast, setLangToast] = useState({ open: false, language: '' });
   const [uxToast, setUxToast] = useState({ open: false, mode: '' });
+  const [shortcutsOverlayOpen, setShortcutsOverlayOpen] = useState(false);
   const [knowledgeToast, setKnowledgeToast] = useState({ open: false, message: '' });
   const [activeContextId, setActiveContextId] = useState(null);
   const [contexts, setContexts] = useState([]);
@@ -150,39 +153,59 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Ctrl+L: cycle UI language
-  useEffect(() => {
-    const SUPPORTED_LANGS = ['en', 'de', 'it', 'zh'];
-    const LANG_LABELS = { en: 'English', de: 'Deutsch', it: 'Italiano', zh: '中文' };
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.key === 'l') {
-        e.preventDefault();
+  // Centralized keyboard shortcuts
+  const SUPPORTED_LANGS = useMemo(() => ['en', 'de', 'it', 'zh'], []);
+  const LANG_LABELS = useMemo(() => ({ en: 'English', de: 'Deutsch', it: 'Italiano', zh: '中文' }), []);
+  const UX_LABELS = useMemo(() => ({ verbose: 'Verbose', minimalistic: 'Minimalistic' }), []);
+
+  const keyboardShortcuts = useMemo(() => ({
+    'ctrl+l': {
+      handler: () => {
         const currentIdx = SUPPORTED_LANGS.indexOf(i18n.language);
         const nextIdx = (currentIdx + 1) % SUPPORTED_LANGS.length;
         const nextLang = SUPPORTED_LANGS[nextIdx];
         localStorage.setItem('i18nLanguageOverride', nextLang);
         i18n.changeLanguage(nextLang);
         setLangToast({ open: true, language: LANG_LABELS[nextLang] || nextLang });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [i18n]);
-
-  // Ctrl+U: toggle UX mode (verbose ↔ minimalistic)
-  useEffect(() => {
-    const UX_LABELS = { verbose: 'Verbose', minimalistic: 'Minimalistic' };
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.key === 'u') {
-        e.preventDefault();
+      },
+      description: t('shortcuts.cycleLanguage', 'Cycle UI language'),
+      category: t('shortcuts.categoryDisplay', 'Display'),
+    },
+    'ctrl+u': {
+      handler: () => {
         toggleUxMode();
         const nextMode = uxType === 'verbose' ? 'minimalistic' : 'verbose';
         setUxToast({ open: true, mode: UX_LABELS[nextMode] || nextMode });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [uxType, toggleUxMode]);
+      },
+      description: t('shortcuts.toggleUxMode', 'Toggle UX mode'),
+      category: t('shortcuts.categoryDisplay', 'Display'),
+    },
+    'ctrl+n': {
+      handler: () => handleSessionChange(null),
+      description: t('shortcuts.newChat', 'New chat'),
+      category: t('shortcuts.categoryChat', 'Chat'),
+    },
+    'ctrl+/': {
+      handler: () => {
+        const input = document.querySelector('[data-chat-input] textarea, [data-chat-input] input');
+        if (input) input.focus();
+      },
+      description: t('shortcuts.focusInput', 'Focus chat input'),
+      category: t('shortcuts.categoryChat', 'Chat'),
+    },
+    'ctrl+shift+s': {
+      handler: () => setSidebarCollapsed(prev => !prev),
+      description: t('shortcuts.toggleSidebar', 'Toggle sidebar'),
+      category: t('shortcuts.categoryNavigation', 'Navigation'),
+    },
+    '?': {
+      handler: () => setShortcutsOverlayOpen(prev => !prev),
+      description: t('shortcuts.showShortcuts', 'Show keyboard shortcuts'),
+      category: t('shortcuts.categoryNavigation', 'Navigation'),
+    },
+  }), [i18n, uxType, toggleUxMode, t, SUPPORTED_LANGS, LANG_LABELS, UX_LABELS]);
+
+  useKeyboardShortcuts(keyboardShortcuts);
 
   // Register minimal service worker for desktop notifications
   useEffect(() => {
@@ -2332,6 +2355,13 @@ export default function App() {
         projectName={currentProject}
         allTags={allTags}
         onContextChange={handleContextChange}
+      />
+
+      {/* Keyboard Shortcuts Overlay */}
+      <KeyboardShortcutsOverlay
+        open={shortcutsOverlayOpen}
+        onClose={() => setShortcutsOverlayOpen(false)}
+        shortcuts={keyboardShortcuts}
       />
 
       {/* MCP Elicitation Modal */}

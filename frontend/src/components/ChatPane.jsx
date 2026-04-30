@@ -37,6 +37,13 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
     return saved ? parseInt(saved, 10) : 5;
   });
 
+  // Edit & resubmit: when user clicks "Edit & resubmit" on a message
+  const [editingMessage, setEditingMessage] = useState(null);
+
+  const handleEditMessage = (text) => {
+    setEditingMessage(text);
+  };
+
   // Alternative AI model configuration
   const [altModelName, setAltModelName] = useState('');
   const [altModelBaseUrl, setAltModelBaseUrl] = useState('');
@@ -429,6 +436,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               source={msg.source}
               sourceMetadata={msg.sourceMetadata}
               minimal={hideHeader}
+              onEditMessage={msg.role === 'user' ? handleEditMessage : undefined}
             />
           );
         })}
@@ -448,7 +456,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       </Box>
 
       <Box sx={{ p: 0, pb: 0 }}>
-        <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} />
+        <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} initialMessage={editingMessage} onInitialMessageConsumed={() => setEditingMessage(null)} />
       </Box>
 
       {/* Settings Modal */}

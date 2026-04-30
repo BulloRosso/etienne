@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Drawer, Typography, IconButton, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert, TextField, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { PiChatsThin, PiRobotThin } from 'react-icons/pi';
-import { AiOutlineDelete, AiOutlineEdit } from 'react-icons/ai';
+import { AiOutlineDelete, AiOutlineEdit, AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -139,6 +139,36 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
     }
   };
 
+  const handleStarClick = async (e, session) => {
+    e.stopPropagation();
+    try {
+      const response = await apiFetch(
+        `/api/sessions/${encodeURIComponent(projectName)}/${session.sessionId}/star`,
+        { method: 'PATCH' }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setSessions(prev => {
+          const updated = prev.map(s =>
+            s.sessionId === session.sessionId ? { ...s, starred: data.starred } : s
+          );
+          // Re-sort: pinned first, then starred, then regular by timestamp desc
+          return updated.sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            if (a.pinned && b.pinned) return (a.sessionName || '').localeCompare(b.sessionName || '');
+            if (a.starred && !b.starred) return -1;
+            if (!a.starred && b.starred) return 1;
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          });
+        });
+      }
+    } catch (err) {
+      console.error('Failed to toggle star:', err);
+    }
+  };
+
   const formatTimestamp = (timestamp) => {
     try {
       const date = new Date(timestamp);
@@ -211,6 +241,7 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
             <List sx={{ p: 2 }}>
               {sessions.map((session, index) => {
                 const isPinned = !!session.pinned;
+                const isStarred = !!session.starred;
 
                 return (
                   <ListItem
@@ -220,13 +251,15 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                     sx={{
                       border: '1px solid',
                       borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0',
-                      borderLeft: isPinned ? '3px solid #1976d2' : '1px solid',
-                      borderLeftColor: isPinned ? '#1976d2' : (themeMode === 'dark' ? '#555' : '#e0e0e0'),
+                      borderLeft: isPinned ? '3px solid #1976d2' : isStarred ? '3px solid #f5a623' : '1px solid',
+                      borderLeftColor: isPinned ? '#1976d2' : isStarred ? '#f5a623' : (themeMode === 'dark' ? '#555' : '#e0e0e0'),
                       borderRadius: 1,
                       mb: 1,
                       backgroundColor: isPinned
                         ? (themeMode === 'dark' ? '#1a2332' : '#f0f6ff')
-                        : (themeMode === 'dark' ? '#383838' : '#fafafa'),
+                        : isStarred
+                          ? (themeMode === 'dark' ? '#2a2518' : '#fffbf0')
+                          : (themeMode === 'dark' ? '#383838' : '#fafafa'),
                       '&:hover': {
                         backgroundColor: themeMode === 'dark' ? '#444' : '#f5f5f5',
                         '& .session-actions': { opacity: 1 }
@@ -284,10 +317,17 @@ export default function SessionPane({ open, onClose, projectName, onSessionSelec
                           top: 8,
                           display: 'flex',
                           gap: 0.25,
-                          opacity: 0,
+                          opacity: isStarred ? 1 : 0,
                           transition: 'opacity 0.2s',
                         }}
                       >
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleStarClick(e, session)}
+                          sx={{ p: 0.5, color: isStarred ? '#f5a623' : undefined }}
+                        >
+                          {isStarred ? <AiFillStar size={16} /> : <AiOutlineStar size={16} />}
+                        </IconButton>
                         <IconButton
                           size="small"
                           onClick={(e) => handleEditClick(e, session)}

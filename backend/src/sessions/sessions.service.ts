@@ -27,7 +27,8 @@ export interface SessionMetadata {
   summary?: string;
   activeContextId?: string | null;
   sessionName?: string;    // Fixed name for named sessions (e.g. "Scheduled Tasks")
-  pinned?: boolean;        // Pins session to top of session list
+  pinned?: boolean;        // Pins session to top of session list (system-managed)
+  starred?: boolean;       // User-controlled star for quick access
   sessionType?: string;    // 'scheduler' | 'condition-monitor' | 'workflow'
 }
 
@@ -170,6 +171,24 @@ export class SessionsService {
       } catch (err: any) {
         if (err.code !== 'ENOENT') throw err;
       }
+    });
+  }
+
+  /**
+   * Toggle the starred state of a session
+   */
+  async toggleStar(projectRoot: string, sessionId: string): Promise<boolean> {
+    return this.withLock(projectRoot, async () => {
+      const data = await this.loadSessions(projectRoot);
+      const session = data.sessions.find(s => s.sessionId === sessionId);
+
+      if (!session) {
+        throw new Error(`Session not found: ${sessionId}`);
+      }
+
+      session.starred = !session.starred;
+      await this.saveSessions(projectRoot, data);
+      return session.starred;
     });
   }
 
@@ -379,5 +398,64 @@ export class SessionsService {
       await this.saveSessions(projectRoot, data);
       console.log(`[SessionsService] Set active context to ${contextId} for session ${sessionId}`);
     });
+  }
+
+  /**
+   * Search across all conversation history (JSONL chat messages) for a query string.
+   * Returns matching message excerpts with session context.
+   */
+  async searchConversations(projectRoot: string, query: string, maxResults = 50, filterSessionId?: string): Promise<any[]> {
+    const data = await this.loadSessions(projectRoot);
+    const lowerQuery = query.toLowerCase();
+    const results: any[] = [];
+
+    // Sort sessions by timestamp desc so we search newest first
+    let sorted = [...data.sessions].sort((a, b) =>
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    // If filtering to a specific session, only search that one
+    if (filterSessionId) {
+      sorted = sorted.filter(s => s.sessionId === filterSessionId);
+    }
+
+    for (const session of sorted) {
+      if (results.length >= maxResults) break;
+
+      try {
+        const messages = await this.loadSessionHistory(projectRoot, session.sessionId);
+
+        for (const msg of messages) {
+          if (results.length >= maxResults) break;
+          if (!msg.message) continue;
+
+          const idx = msg.message.toLowerCase().indexOf(lowerQuery);
+          if (idx === -1) continue;
+
+          // Extract excerpt around the match (~150 chars)
+          const start = Math.max(0, idx - 60);
+          const end = Math.min(msg.message.length, idx + query.length + 90);
+          let excerpt = msg.message.substring(start, end).trim();
+          if (start > 0) excerpt = '...' + excerpt;
+          if (end < msg.message.length) excerpt = excerpt + '...';
+
+          results.push({
+            sessionId: session.sessionId,
+            sessionSummary: session.pinned
+              ? (session.sessionName || session.summary)
+              : (session.summary || 'Untitled'),
+            timestamp: session.timestamp,
+            excerpt,
+            isAgent: msg.isAgent,
+            messageTimestamp: msg.timestamp,
+          });
+        }
+      } catch (err: any) {
+        // Skip sessions with unreadable history
+        continue;
+      }
+    }
+
+    return results;
   }
 }
