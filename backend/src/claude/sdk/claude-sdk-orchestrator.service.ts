@@ -75,7 +75,8 @@ export class ClaudeSdkOrchestratorService {
     skipChatPersistence?: boolean,
     maxTurns?: number,
     notificationChannels?: string,
-    notificationEmail?: string
+    notificationEmail?: string,
+    viewerState?: any[]
   ): Observable<MessageEvent> {
     // Generate process ID for abort tracking
     const processId = `sdk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -97,7 +98,8 @@ export class ClaudeSdkOrchestratorService {
         maxTurns,
         processId,
         notificationChannels,
-        notificationEmail
+        notificationEmail,
+        viewerState
       ).catch((error) => {
         this.logger.error(`Stream prompt failed: ${error.message}`, error.stack);
         observer.error(error);
@@ -122,7 +124,8 @@ export class ClaudeSdkOrchestratorService {
     maxTurns?: number,
     processId?: string,
     notificationChannels?: string,
-    notificationEmail?: string
+    notificationEmail?: string,
+    viewerState?: any[]
   ): Promise<void> {
     const userId = 'user'; // Default user ID
     let sessionId: string | undefined;
@@ -257,6 +260,27 @@ export class ClaudeSdkOrchestratorService {
           if (contextInjection) {
             finalPrompt = `${contextInjection}\n\n${enhancedPrompt}`;
             this.logger.log(`🏷️ Injected context scope into prompt for session ${sessionId}`);
+          }
+
+          // Viewer state injection — selected items from open previewers
+          if (viewerState && viewerState.length > 0) {
+            const stateBlocks = viewerState.map((vs: any) => {
+              const lines: string[] = [];
+              lines.push(`<viewer-selection file="${vs.path}" viewer="${vs.viewerName || 'unknown'}">`);
+              if (vs.selectedItems?.length > 0) {
+                lines.push(`The user has SELECTED the following ${vs.selectedItems.length} item(s) in the UI:`);
+                vs.selectedItems.forEach((i: any, idx: number) => {
+                  lines.push(`  ${idx + 1}. "${i.item}" — ${i.amount} ${i.currency}`);
+                });
+                lines.push(`These are the ONLY items the user is referring to when they say "selected items". Do NOT treat unselected items as selected.`);
+              } else {
+                lines.push(`No items are currently selected.`);
+              }
+              lines.push(`</viewer-selection>`);
+              return lines.join('\n');
+            }).join('\n\n');
+            finalPrompt = `${stateBlocks}\n\n${finalPrompt}`;
+            this.logger.log(`🖱️ Injected viewer state: ${viewerState.length} viewer(s) with selections`);
           }
         } catch (error: any) {
           this.logger.error('Failed to inject context:', error.message);

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { AppBar, Toolbar, Typography, Box, IconButton, Modal, TextField, Tooltip, Snackbar, Alert, CircularProgress, Drawer } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ChatPane from './components/ChatPane';
@@ -127,6 +127,22 @@ export default function App() {
   const activeToolCallsRef = useRef(new Map());
   const currentSessionIdRef = useRef(null); // Ref to access current session ID in event listeners
   const handledRequestIdsRef = useRef(new Set()); // Track handled permission/question request IDs to prevent duplicates
+
+  // Shared viewer state: viewers (e.g. budget donut chart) report selection state here.
+  // Attached to chat submissions so the LLM knows what's selected in open previewers.
+  const viewerStatesRef = useRef({});
+  const updateViewerState = useCallback((filePath, state) => {
+    if (state && Object.keys(state).length > 0) {
+      viewerStatesRef.current[filePath] = state;
+    } else {
+      delete viewerStatesRef.current[filePath];
+    }
+  }, []);
+  const getViewerStates = useCallback(() => {
+    return Object.entries(viewerStatesRef.current)
+      .filter(([_, s]) => s && Object.keys(s).length > 0)
+      .map(([path, state]) => ({ path, ...state }));
+  }, []);
 
   // Derived streaming state: true when the currently viewed session has an active stream.
   // Also matches 'pending_*' keys (stream registered but sessionId not yet known from backend).
@@ -263,7 +279,6 @@ export default function App() {
         const response = await apiFetch('/api/previewers/configuration');
         if (response.ok) {
           const data = await response.json();
-          console.log('[App] previewers from API:', JSON.stringify(data.previewers?.map(p => ({ v: p.viewer, t: p.type, ext: p.extensions?.length, mcp: p.mcpGroup }))));
           setPreviewersConfig(data.previewers || []);
         }
       } catch (err) {
@@ -1293,6 +1308,12 @@ export default function App() {
       }
     } catch { /* ignore parse errors */ }
 
+    // Attach shared viewer state (selections from open previewers)
+    const viewerStates = getViewerStates();
+    if (viewerStates.length > 0) {
+      url.searchParams.set('viewerState', JSON.stringify(viewerStates));
+    }
+
     const token = localStorage.getItem('auth_accessToken') || sessionStorage.getItem('auth_accessToken');
     if (token) url.searchParams.set('token', token);
     const es = new EventSource(url.toString());
@@ -2218,7 +2239,7 @@ export default function App() {
         ) : (
           <SplitLayout
             left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} />}
-            right={<ArtifactsPane files={files} projectName={currentProject} sessionId={sessionId} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} previewersConfig={previewersConfig} autoFilePreviewExtensions={uiConfig?.autoFilePreviewExtensions} />}
+            right={<ArtifactsPane files={files} projectName={currentProject} sessionId={sessionId} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} previewersConfig={previewersConfig} autoFilePreviewExtensions={uiConfig?.autoFilePreviewExtensions} onUpdateViewerState={updateViewerState} />}
           />
         )}
       </Box>

@@ -17,6 +17,34 @@
   gap: 1.25rem;
 }
 
+.selectionBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #1d4ed8;
+  background: light-dark(#eff6ff, #1e3a5f);
+  border: 1px solid light-dark(#bfdbfe, #2563eb);
+}
+
+.clearBtn {
+  margin-left: auto;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid light-dark(#93c5fd, #3b82f6);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.clearBtn:hover {
+  background: light-dark(#dbeafe, #1e40af);
+}
+
 .donutWrapper {
   display: flex;
   justify-content: center;
@@ -30,21 +58,34 @@
 .legend {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .legendItem {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 4px;
   transition: background 0.1s;
-  cursor: default;
+  cursor: pointer;
+  user-select: none;
 }
 
 .legendItemHover {
   background: var(--color-background-secondary);
+}
+
+.legendItemSelected {
+  background: light-dark(#eff6ff, #1e3a5f);
+}
+
+.legendCheck {
+  width: 16px;
+  font-size: 0.75rem;
+  color: #2563eb;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .legendDot {
@@ -52,12 +93,14 @@
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  transition: opacity 0.15s;
 }
 
 .legendLabel {
   flex: 1;
   color: var(--color-text-primary);
   font-weight: 500;
+  transition: opacity 0.15s;
 }
 
 .legendAmount {

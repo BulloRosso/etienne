@@ -121,10 +121,15 @@ export class ClaudeController {
     @Query('memoryEnabled') memoryEnabled?: string,
     @Query('maxTurns') maxTurns?: string,
     @Query('notificationChannels') notificationChannels?: string,
-    @Query('notificationEmail') notificationEmail?: string
+    @Query('notificationEmail') notificationEmail?: string,
+    @Query('viewerState') viewerState?: string
   ): Observable<MessageEvent> {
     const memoryEnabledBool = memoryEnabled === 'true';
     const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
+    let parsedViewerState: any[] | undefined;
+    try {
+      if (viewerState) parsedViewerState = JSON.parse(viewerState);
+    } catch { /* ignore parse errors */ }
 
     if (this.activeCodingAgent === 'open-code') {
       return this.openCodeOrchestrator.streamPrompt(
@@ -178,7 +183,8 @@ export class ClaudeController {
       false,
       maxTurnsNum,
       notificationChannels,
-      notificationEmail
+      notificationEmail,
+      parsedViewerState
     );
   }
 

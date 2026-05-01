@@ -21,7 +21,7 @@ const SANDBOX_PROXY_URL = new URL('/sandbox-proxy', window.location.origin);
  * @param {string} mcpToolName - Tool to call (e.g. 'render_budget')
  * @param {string} projectName - Current project name
  */
-export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName, projectName }) {
+export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName, projectName, onViewerStateChange }) {
   const { t } = useTranslation();
   const [client, setClient] = useState(null);
   const [toolResult, setToolResult] = useState(null);
@@ -96,6 +96,17 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
       }
     };
   }, [mcpGroup, mcpToolName, filename, content]);
+
+  // Listen for viewer state updates from the MCP App iframe (via postMessage)
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.data?.type === 'viewer-state-update' && onViewerStateChange) {
+        onViewerStateChange(event.data.state);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [onViewerStateChange]);
 
   const handleSizeChanged = useCallback((params) => {
     if (params.height) {

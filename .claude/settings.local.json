@@ -118,7 +118,8 @@
       "WebFetch(domain:api.github.com)",
       "Bash(agent-browser install)",
       "Bash(wc -l /c/Data/GitHub/claude-multitenant/frontend/public/i18n/*.json)",
-      "WebFetch(domain:opencode.ai)"
+      "WebFetch(domain:opencode.ai)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

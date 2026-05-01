@@ -11,7 +11,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { useTranslation } from 'react-i18next';
 
-export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll, previewersConfig, autoFilePreviewExtensions }) {
+export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll, previewersConfig, autoFilePreviewExtensions, onUpdateViewerState }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const { isMinimalistic } = useUxMode();
@@ -122,12 +122,8 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
 
     const viewerName = getViewerForFile(file.path, extensionMap);
 
-    // DEBUG: trace viewer resolution
-    console.log('[FilesPanel] file.path:', file.path, '→ viewerName:', viewerName, '| extensionMap has .budget.json:', extensionMap?.get('.budget.json'), '| extensionMap size:', extensionMap?.size);
-
     // MCP UI previewers: render via McpUIPreview instead of a local component
     const previewerConfig = previewersConfig?.find(p => p.viewer === viewerName);
-    console.log('[FilesPanel] previewerConfig:', previewerConfig?.viewer, 'type:', previewerConfig?.type, 'mcpGroup:', previewerConfig?.mcpGroup);
     if (previewerConfig?.type === 'mcpui' && previewerConfig.mcpGroup) {
       return (
         <Box sx={{ width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -137,6 +133,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
             mcpGroup={previewerConfig.mcpGroup}
             mcpToolName={previewerConfig.mcpToolName || 'render_file'}
             projectName={projectName}
+            onViewerStateChange={(state) => onUpdateViewerState?.(file.path, {
+              viewerName: previewerConfig.viewer,
+              ...state,
+            })}
           />
         </Box>
       );
