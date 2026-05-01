@@ -95,6 +95,10 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   // Step 1: Project Name
   const [projectName, setProjectName] = useState('');
 
+  // Step 1: Project Template
+  const [availableTemplates, setAvailableTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+
   // Step 1: Feature toggles (checkboxes)
   const [useSpecializedRole, setUseSpecializedRole] = useState(false);
   const [connectDataSources, setConnectDataSources] = useState(false);
@@ -140,12 +144,14 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       fetchMcpRegistry();
       fetchA2ARegistry();
       fetchProjectsWithUI();
+      fetchAvailableTemplates();
     }
   }, [open]);
 
   const resetWizard = () => {
     setActiveStep(0);
     setProjectName('');
+    setSelectedTemplate('');
     setUseSpecializedRole(false);
     setConnectDataSources(false);
     setUseExternalAgents(false);
@@ -237,6 +243,16 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     }
   };
 
+  const fetchAvailableTemplates = async () => {
+    try {
+      const response = await apiAxios.get('/api/projects/templates');
+      setAvailableTemplates(response.data.templates || []);
+    } catch (error) {
+      console.error('Failed to fetch project templates:', error);
+      setAvailableTemplates([]);
+    }
+  };
+
   const ALL_STEPS = useMemo(() => getAllWizardSteps(t), [t]);
 
   const visibleSteps = useMemo(() => {
@@ -310,6 +326,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       const dto = {
         projectName,
         missionBrief,
+        templateName: selectedTemplate || undefined,
         agentRole: !useSpecializedRole
           ? { type: 'registry', roleId: 'general-assistant' }
           : roleType === 'registry' && selectedRoleId
@@ -359,6 +376,25 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
               error={!!nameError}
               helperText={nameError || t('wizard.projectNameHelperText')}
             />
+            {availableTemplates.length > 0 && (
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>{t('wizard.templateLabel')}</InputLabel>
+                <Select
+                  value={selectedTemplate}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  label={t('wizard.templateLabel')}
+                >
+                  <MenuItem value="">
+                    <em>{t('wizard.templateNoneOption')}</em>
+                  </MenuItem>
+                  {availableTemplates.map(tmpl => (
+                    <MenuItem key={tmpl} value={tmpl}>
+                      {tmpl}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <FormControlLabel
                 control={

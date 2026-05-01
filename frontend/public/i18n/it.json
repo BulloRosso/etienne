@@ -308,6 +308,8 @@
   "wizard.checkboxSpecializedRole": "Usa ruolo specializzato",
   "wizard.checkboxConnectDataSources": "Collega sorgente/i dati (MCP)",
   "wizard.checkboxExternalAgents": "Usa agenti esterni (protocollo A2A)",
+  "wizard.templateLabel": "Usa modello di progetto",
+  "wizard.templateNoneOption": "[nessuno]",
   "wizard.errorCreateDefault": "Creazione del progetto fallita",
 
   "dashboard.headerTitle": "Etienne",

@@ -8,6 +8,15 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   /**
+   * Get list of available project templates
+   */
+  @Get('templates')
+  async getAvailableTemplates() {
+    const templates = await this.projectsService.getAvailableTemplates();
+    return { templates };
+  }
+
+  /**
    * Get list of projects that have UI customization
    */
   @Get('with-ui-config')

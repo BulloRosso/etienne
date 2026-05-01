@@ -50,6 +50,10 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @IsOptional()
+  @IsString()
+  templateName?: string;
 }
 
 export interface CreateProjectResult {

@@ -307,6 +307,8 @@
   "wizard.checkboxSpecializedRole": "使用专业角色",
   "wizard.checkboxConnectDataSources": "连接数据源 (MCP)",
   "wizard.checkboxExternalAgents": "使用外部代理 (A2A 协议)",
+  "wizard.templateLabel": "使用项目模板",
+  "wizard.templateNoneOption": "[无]",
   "wizard.errorCreateDefault": "创建项目失败",
 
   "dashboard.headerTitle": "Etienne",

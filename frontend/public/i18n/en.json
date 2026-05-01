@@ -308,6 +308,8 @@
   "wizard.checkboxSpecializedRole": "Use specialized Role",
   "wizard.checkboxConnectDataSources": "Connect Data Source(s) (MCP)",
   "wizard.checkboxExternalAgents": "Use External Agents (A2A protocol)",
+  "wizard.templateLabel": "Use Project Template",
+  "wizard.templateNoneOption": "[none]",
   "wizard.errorCreateDefault": "Failed to create project",
 
   "dashboard.headerTitle": "Etienne",

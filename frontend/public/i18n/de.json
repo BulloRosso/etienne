@@ -296,6 +296,8 @@
   "wizard.checkboxSpecializedRole": "Spezialisierte Rolle verwenden",
   "wizard.checkboxConnectDataSources": "Datenquelle(n) verbinden (MCP)",
   "wizard.checkboxExternalAgents": "Externe Agenten verwenden (A2A-Protokoll)",
+  "wizard.templateLabel": "Projektvorlage verwenden",
+  "wizard.templateNoneOption": "[keine]",
   "wizard.errorCreateDefault": "Projekt konnte nicht erstellt werden",
   "dashboard.headerTitle": "Etienne",
   "dashboard.changePasswordTooltip": "Passwort ändern",

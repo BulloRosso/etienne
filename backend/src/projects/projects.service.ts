@@ -15,6 +15,7 @@ import { McpRegistryService } from '../mcp-registry/core/mcp-registry.service';
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
   private readonly workspaceDir = process.env.WORKSPACE_ROOT || '/workspace';
+  private readonly templateRepositoryDir = path.resolve(process.cwd(), '..', 'project-template-repository');
 
   private static readonly LANGUAGE_NAMES: Record<string, string> = {
     en: 'English',
@@ -54,6 +55,17 @@ export class ProjectsService {
       // 2. Create project directory structure
       await this.createProjectStructure(projectPath);
       this.logger.log(`Created project structure for ${dto.projectName}`);
+
+      // 2b. Apply project template if selected
+      let templatePreviewDocs: string[] = [];
+      if (dto.templateName) {
+        try {
+          templatePreviewDocs = await this.applyProjectTemplate(projectPath, dto.templateName);
+          this.logger.log(`Applied template '${dto.templateName}' to ${dto.projectName}`);
+        } catch (error: any) {
+          warnings.push(`Failed to apply template '${dto.templateName}': ${error.message}`);
+        }
+      }
 
       // 3. Write mission brief and agent role using agent-appropriate filenames
       const missionFileName = this.codingAgentConfigService.getMissionFileName();
@@ -156,7 +168,7 @@ export class ProjectsService {
 
       // 9. Create or copy UI config with agent name
       try {
-        await this.createUIConfig(dto, projectPath);
+        await this.createUIConfig(dto, projectPath, templatePreviewDocs);
         this.logger.log(`Created UI config for ${dto.projectName}`);
       } catch (error: any) {
         warnings.push(`Failed to create UI config: ${error.message}`);
@@ -301,7 +313,7 @@ export class ProjectsService {
    * Create UI configuration for the new project
    * Either copies from another project or creates a new one with the agent name
    */
-  private async createUIConfig(dto: CreateProjectDto, projectPath: string): Promise<void> {
+  private async createUIConfig(dto: CreateProjectDto, projectPath: string, templatePreviewDocs: string[] = []): Promise<void> {
     const etienneDir = path.join(projectPath, '.etienne');
     await fs.ensureDir(etienneDir);
     const uiConfigPath = path.join(etienneDir, 'user-interface.json');
@@ -319,6 +331,11 @@ export class ProjectsService {
         const previewDocs: string[] = existingConfig.previewDocuments || [];
         if (!previewDocs.includes('intro.videos')) {
           previewDocs.push('intro.videos');
+        }
+        for (const doc of templatePreviewDocs) {
+          if (!previewDocs.includes(doc)) {
+            previewDocs.push(doc);
+          }
         }
         existingConfig.previewDocuments = previewDocs;
         await fs.writeJson(uiConfigPath, existingConfig, { spaces: 2 });
@@ -339,7 +356,7 @@ export class ProjectsService {
         quickActions: [],
         showWelcomeMessage: true,
       },
-      previewDocuments: ['intro.videos'],
+      previewDocuments: ['intro.videos', ...templatePreviewDocs],
       autoFilePreviewExtensions: [],
     };
 
@@ -424,6 +441,74 @@ export class ProjectsService {
     }
 
     return projectsWithUI.sort();
+  }
+
+  /**
+   * Get list of available project templates from the template repository
+   */
+  async getAvailableTemplates(): Promise<string[]> {
+    try {
+      if (!(await fs.pathExists(this.templateRepositoryDir))) {
+        return [];
+      }
+
+      const entries = await fs.readdir(this.templateRepositoryDir, { withFileTypes: true });
+      return entries
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+        .map((entry) => entry.name)
+        .sort();
+    } catch (error: any) {
+      this.logger.error(`Failed to list project templates: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Apply a project template by copying its directory structure and files.
+   * - Files starting with '.' are skipped
+   * - Files ending with '.docu' are copied without the extension and returned for auto-open
+   * - All other files are copied as-is
+   * Returns an array of relative paths for .docu files (to be added to previewDocuments)
+   */
+  private async applyProjectTemplate(projectPath: string, templateName: string): Promise<string[]> {
+    const templateSourcePath = path.join(this.templateRepositoryDir, templateName);
+    if (!(await fs.pathExists(templateSourcePath))) {
+      throw new Error(`Template '${templateName}' not found`);
+    }
+
+    const previewDocs: string[] = [];
+
+    const copyRecursive = async (srcDir: string, destDir: string): Promise<void> => {
+      const entries = await fs.readdir(srcDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const srcPath = path.join(srcDir, entry.name);
+
+        if (entry.isDirectory()) {
+          const destPath = path.join(destDir, entry.name);
+          await fs.ensureDir(destPath);
+          await copyRecursive(srcPath, destPath);
+        } else if (!entry.name.startsWith('.')) {
+          if (entry.name.endsWith('.docu')) {
+            const destFileName = entry.name.slice(0, -5); // strip '.docu'
+            const destPath = path.join(destDir, destFileName);
+            if (!(await fs.pathExists(destPath))) {
+              await fs.copy(srcPath, destPath);
+            }
+            const relativePath = path.relative(projectPath, destPath).replace(/\\/g, '/');
+            previewDocs.push(relativePath);
+          } else {
+            const destPath = path.join(destDir, entry.name);
+            if (!(await fs.pathExists(destPath))) {
+              await fs.copy(srcPath, destPath);
+            }
+          }
+        }
+      }
+    };
+
+    await copyRecursive(templateSourcePath, projectPath);
+    return previewDocs;
   }
 
   /**
