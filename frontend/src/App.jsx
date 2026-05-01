@@ -1168,10 +1168,17 @@ export default function App() {
     const handleFilePreview = (data) => {
       if (data.action && data.action.endsWith('-preview') && data.filePath && data.projectName) {
         // For viewers that handle their own data loading (e.g. RequirementsViewer, ArtifactsForSession),
+        // or service viewers (paths starting with #, e.g. #imap/inbox),
         // add a placeholder entry immediately so the tab opens and the viewer mounts,
         // even if the file doesn't exist on disk yet.
-        if (data.filePath.endsWith('.requirements.json') || data.filePath.endsWith('.artifacts.md')) {
+        if (data.filePath.endsWith('.requirements.json') || data.filePath.endsWith('.artifacts.md') || data.filePath.startsWith('#')) {
           setFiles((arr) => {
+            // For service viewers, replace existing entry with same service prefix to update the path
+            if (data.filePath.startsWith('#')) {
+              const servicePrefix = '#' + data.filePath.substring(1).split('/')[0];
+              const filtered = arr.filter(x => !x.path.startsWith(servicePrefix));
+              return filtered.concat([{ path: data.filePath, content: '' }]);
+            }
             if (arr.some(x => x.path === data.filePath)) return arr;
             return arr.concat([{ path: data.filePath, content: '' }]);
           });

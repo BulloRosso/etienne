@@ -21,6 +21,12 @@ class FilePreviewHandler {
       return;
     }
 
+    // Handle service viewers (paths starting with #)
+    if (filePath.startsWith('#')) {
+      this.handleServicePreview(filePath, projectName);
+      return;
+    }
+
     // Handle compound extensions before simple extension matching
     if (filePath.endsWith('.artifacts.md')) {
       this.handleArtifactsPreview(filePath, projectName);
@@ -300,6 +306,24 @@ class FilePreviewHandler {
       filePath,
       projectName,
       action: 'text-preview'
+    });
+  }
+
+  /**
+   * Handle service preview (paths starting with #, e.g. #imap/inbox)
+   * @param {string} filePath - The service path (e.g. #imap/inbox)
+   * @param {string} projectName - The project name
+   */
+  handleServicePreview(filePath, projectName) {
+    // Extract service name from #serviceName or #serviceName/path
+    const withoutHash = filePath.substring(1);
+    const serviceName = withoutHash.split('/')[0];
+    console.log(`FilePreviewHandler: Opening service preview for ${serviceName}`, filePath);
+
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      filePath,
+      projectName,
+      action: `${serviceName}-preview`
     });
   }
 

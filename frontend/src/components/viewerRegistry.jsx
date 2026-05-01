@@ -15,6 +15,7 @@ import PdfViewer from './PdfViewer';
 import DocxViewer from './DocxViewer';
 import RequirementsViewer from './RequirementsViewer';
 import ArtifactsForSession from './ArtifactsForSession';
+import IMAPInboxViewer from './IMAPInboxViewer';
 
 /**
  * Maps viewer names to their component render functions.
@@ -71,6 +72,9 @@ export const VIEWER_COMPONENTS = {
   ),
   artifacts: (file, projectName) => (
     <ArtifactsForSession filename={file.path} projectName={projectName} />
+  ),
+  imap: (file, projectName) => (
+    <IMAPInboxViewer servicePath={file.path} projectName={projectName} />
   ),
 };
 
@@ -133,6 +137,13 @@ export function buildExtensionMap(systemPreviewers = [], projectOverrides = []) 
  */
 export function getViewerForFile(filePath, extensionMap) {
   if (!filePath) return null;
+
+  // Service viewer paths start with # (e.g. #imap/inbox)
+  if (filePath.startsWith('#')) {
+    const serviceName = filePath.substring(1).split('/')[0];
+    return VIEWER_COMPONENTS[serviceName] ? serviceName : null;
+  }
+
   const lowerPath = filePath.toLowerCase();
 
   const sortedEntries = [...extensionMap.entries()].sort(

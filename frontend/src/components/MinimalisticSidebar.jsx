@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer, CircularProgress } from '@mui/material';
+import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer, CircularProgress, Collapse } from '@mui/material';
+import { ExpandMore, ExpandLess } from '@mui/icons-material';
 import { AddOutlined, Close as CloseIcon } from '@mui/icons-material';
 import { RiChatNewLine } from 'react-icons/ri';
 import { GiSettingsKnobs } from 'react-icons/gi';
 import { GrChatOption } from 'react-icons/gr';
-import { AiFillStar } from 'react-icons/ai';
+import { AiFillStar, AiOutlineMail } from 'react-icons/ai';
 import { IoSearchOutline } from 'react-icons/io5';
 import ConversationSearch from './ConversationSearch';
 import { PiBell } from 'react-icons/pi';
@@ -92,8 +93,22 @@ export default function MinimalisticSidebar({
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
+  const [roleSubOpen, setRoleSubOpen] = useState(false);
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false);
   const [agentClassIcon, setAgentClassIcon] = useState(null);
+  const [imapAvailable, setImapAvailable] = useState(false);
+
+  // Check IMAP availability
+  useEffect(() => {
+    apiFetch('/api/email/status')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.available) {
+          setImapAvailable(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch agent class icon
   useEffect(() => {
@@ -294,6 +309,13 @@ export default function MinimalisticSidebar({
             </IconButton>
           </Tooltip>
         )}
+        {imapAvailable && currentProject && (
+          <Tooltip title={t('sidebar.inbox')} placement="right">
+            <IconButton onClick={() => filePreviewHandler.handlePreview('#imap/inbox', currentProject)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+              <AiOutlineMail size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
         <Tooltip title={t('sidebar.settings')} placement="right">
           <IconButton onClick={() => setSettingsOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
             <GiSettingsKnobs size={18} />
@@ -486,20 +508,27 @@ export default function MinimalisticSidebar({
               <ListItemText primary={t('sidebar.newChat')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
             </ListItemButton>
             {currentProject && (
-              <ListItemButton onClick={() => setRoleDrawerOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
-                <ListItemIcon sx={{ minWidth: 36 }}><LiaHatCowboySideSolid size={21} /></ListItemIcon>
-                <ListItemText primary={t('sidebar.agentRole')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
-              </ListItemButton>
-            )}
-            {currentProject && (
-              <Box sx={{ ml: '50px', my: '8px' }}>
-                <SkillIndicator projectName={currentProject} sessionId={sessionId} />
-              </Box>
-            )}
-            {currentProject && (
-              <Box sx={{ ml: '50px', my: '8px' }}>
-                <McpToolsIndicator projectName={currentProject} sessionId={sessionId} />
-              </Box>
+              <>
+                <ListItemButton onClick={() => setRoleDrawerOpen(true)} sx={{ borderRadius: 1, py: 0.75, pr: 0.5 }}>
+                  <ListItemIcon sx={{ minWidth: 36 }}><LiaHatCowboySideSolid size={21} /></ListItemIcon>
+                  <ListItemText primary={t('sidebar.agentRole')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+                  <IconButton
+                    size="small"
+                    onClick={(e) => { e.stopPropagation(); setRoleSubOpen(prev => !prev); }}
+                    sx={{ p: 0.25, color: 'text.secondary' }}
+                  >
+                    {roleSubOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+                  </IconButton>
+                </ListItemButton>
+                <Collapse in={roleSubOpen} timeout="auto" unmountOnExit>
+                  <Box sx={{ ml: '50px', my: '8px' }}>
+                    <SkillIndicator projectName={currentProject} sessionId={sessionId} />
+                  </Box>
+                  <Box sx={{ ml: '50px', my: '8px' }}>
+                    <McpToolsIndicator projectName={currentProject} sessionId={sessionId} />
+                  </Box>
+                </Collapse>
+              </>
             )}
             {currentProject && budgetSettings?.enabled && (
               <ListItemButton
@@ -538,6 +567,12 @@ export default function MinimalisticSidebar({
               >
                 <ListItemIcon sx={{ minWidth: 36 }}><BsCollection size={18} /></ListItemIcon>
                 <ListItemText primary={t('sidebar.artifacts')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
+            {imapAvailable && currentProject && (
+              <ListItemButton onClick={() => filePreviewHandler.handlePreview('#imap/inbox', currentProject)} sx={{ borderRadius: 1, py: 0.75 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}><AiOutlineMail size={18} /></ListItemIcon>
+                <ListItemText primary={t('sidebar.inbox')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
               </ListItemButton>
             )}
             <ListItemButton onClick={() => setSettingsOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
@@ -893,6 +928,7 @@ export default function MinimalisticSidebar({
             onExternalClose={() => setBudgetDrawerOpen(false)}
           />
         )}
+
       </Box>
 
       {/* Resize handle */}

@@ -64,6 +64,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const getFilename = (path) => {
     if (!path) return '';
     if (path.endsWith('.agent-created-files.artifacts.md')) return t('sidebar.artifacts');
+    if (path.startsWith('#imap')) return t('imapInbox.title');
     return path.split(/[/\\]/).pop();
   };
 
