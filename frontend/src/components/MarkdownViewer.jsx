@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Box, CircularProgress, IconButton, Tooltip,
-  Switch, FormControlLabel, Button
+  Box, CircularProgress, IconButton, Tooltip, Button
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
@@ -217,45 +216,10 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
 
   return (
     <Box className={className} height="100%" width="100%" position="relative" display="flex" flexDirection="column">
-      {/* Header controls */}
-      <Box sx={{ position: 'absolute', top: 8, right: 18, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={editMode}
-              onChange={(e) => setEditMode(e.target.checked)}
-              size="small"
-            />
-          }
-          label={t('markdownViewer.editMode')}
-          sx={{
-            mr: 0,
-          }}
-        />
-        {!editMode && (
-          <Tooltip title={t('markdownViewer.reloadFile')}>
-            <IconButton
-              onClick={handleReload}
-              disabled={loading}
-              sx={{
-                bgcolor: 'background.paper',
-                boxShadow: 1,
-                '&:hover': {
-                  bgcolor: 'action.hover'
-                }
-              }}
-              size="small"
-            >
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-        )}
-      </Box>
-
       {editMode ? (
         <>
           {/* Monaco Editor */}
-          <Box sx={{ flex: 1, overflow: 'hidden', mt: '34px' }}>
+          <Box sx={{ flex: 1, overflow: 'hidden' }}>
             <Editor
               height="100%"
               language="markdown"
@@ -300,15 +264,24 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
                 </Button>
               )}
             </Box>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<SaveIcon />}
-              onClick={handleSave}
-              disabled={!isDirty || saving}
-            >
-              {saving ? t('markdownViewer.saving') : t('markdownViewer.save')}
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => { setRawContent(savedContent); setEditMode(false); }}
+              >
+                {t('common.cancel', 'Cancel')}
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<SaveIcon />}
+                onClick={handleSave}
+                disabled={!isDirty || saving}
+              >
+                {saving ? t('markdownViewer.saving') : t('markdownViewer.save')}
+              </Button>
+            </Box>
           </Box>
 
           {/* Image Gallery Modal */}
@@ -321,13 +294,19 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
           />
         </>
       ) : (
-        /* Rendered markdown view */
+        <>
+        {/* Rendered markdown view */}
         <Box
           sx={{
             flex: 1,
             overflow: 'auto',
-            p: 3,
+            pt: 0,
+            px: 3,
+            pb: 3,
             color: isDark ? '#c9d1d9' : 'inherit',
+            '& > *:first-child': {
+              marginTop: 0
+            },
             '& h1': {
               fontSize: '2em',
               fontWeight: 'bold',
@@ -446,6 +425,35 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
           }}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
+
+        {/* Footer controls */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            px: 2,
+            mb: '20px',
+          }}
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setEditMode(true)}
+          >
+            {t('markdownViewer.editMode')}
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Tooltip title={t('markdownViewer.reloadFile')}>
+            <IconButton
+              onClick={handleReload}
+              disabled={loading}
+              size="small"
+            >
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        </>
       )}
     </Box>
   );

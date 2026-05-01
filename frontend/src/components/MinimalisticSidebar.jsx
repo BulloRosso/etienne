@@ -812,7 +812,7 @@ export default function MinimalisticSidebar({
           )}
 
           {/* Dark mode toggle + notifications */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, px: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: '4px', pb: 1.5, px: 1.5, mb: '8px' }}>
             <Box
               sx={{
                 display: 'flex',
