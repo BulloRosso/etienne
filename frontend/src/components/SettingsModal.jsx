@@ -13,7 +13,9 @@ import {
   Drawer,
   MenuItem,
   ListItemText,
-  TextField
+  TextField,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { Close, AddOutlined } from '@mui/icons-material';
 import { PiGraphLight } from 'react-icons/pi';
@@ -54,6 +56,7 @@ export default function SettingsModal({
   onProjectChange,
   codingAgent = 'anthropic',
   allTags = [],
+  keyboardShortcuts = {},
 }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
@@ -83,6 +86,7 @@ export default function SettingsModal({
   const [teamUpOpen, setTeamUpOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
+  const [shortcutsTab, setShortcutsTab] = useState(0);
 
   const closeSettingsAndOpen = (setter) => {
     onClose();
@@ -172,9 +176,10 @@ export default function SettingsModal({
           {t('sidebar.settings')}
           <IconButton onClick={onClose} size="small"><Close /></IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: 0 }}>
           <DashboardGrid
             fluid
+            hideHeader
             currentProject={currentProject}
             sessionId={sessionId}
             codingAgent={codingAgent}
@@ -188,6 +193,88 @@ export default function SettingsModal({
             onServiceControlClick={() => closeSettingsAndOpen(setServiceControlOpen)}
             onAgentPersonaClick={() => closeSettingsAndOpen(setPersonaDialogOpen)}
           />
+
+          {/* Keyboard Shortcuts */}
+          {Object.keys(keyboardShortcuts).length > 0 && (() => {
+            const grouped = {};
+            for (const [combo, shortcut] of Object.entries(keyboardShortcuts)) {
+              const category = shortcut.category || t('shortcuts.categoryGeneral', 'General');
+              if (!grouped[category]) grouped[category] = [];
+              grouped[category].push({ combo, ...shortcut });
+            }
+            const categories = Object.keys(grouped);
+            const activeCategory = categories[shortcutsTab] || categories[0];
+            const activeItems = grouped[activeCategory] || [];
+            return (
+              <Box sx={{ mt: 3, px: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
+                  {t('shortcuts.title', 'Keyboard Shortcuts')}
+                </Typography>
+                <Tabs
+                  value={shortcutsTab < categories.length ? shortcutsTab : 0}
+                  onChange={(_, v) => setShortcutsTab(v)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{ minHeight: 36, mb: 1, '& .MuiTab-root': { minHeight: 36, py: 0.5, textTransform: 'none', fontSize: '0.82rem' } }}
+                >
+                  {categories.map((cat) => (
+                    <Tab key={cat} label={cat} />
+                  ))}
+                </Tabs>
+                {activeItems.map(({ combo, description }) => (
+                  <Box
+                    key={combo}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      py: 0.5,
+                      borderBottom: '1px solid',
+                      borderColor: themeMode === 'dark' ? '#444' : '#f0f0f0',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                      {description}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, ml: 2 }}>
+                      {combo.split('+').map((part, i) => (
+                        <React.Fragment key={i}>
+                          {i > 0 && (
+                            <Typography variant="body2" sx={{ mx: 0.25, color: 'text.secondary', fontSize: '0.7rem' }}>
+                              +
+                            </Typography>
+                          )}
+                          <Box
+                            component="kbd"
+                            sx={{
+                              display: 'inline-block',
+                              px: 0.75,
+                              py: 0.25,
+                              mx: 0.25,
+                              fontSize: '0.75rem',
+                              fontFamily: 'monospace',
+                              lineHeight: 1.4,
+                              color: themeMode === 'dark' ? '#e0e0e0' : '#333',
+                              backgroundColor: themeMode === 'dark' ? '#444' : '#f5f5f5',
+                              border: '1px solid',
+                              borderColor: themeMode === 'dark' ? '#666' : '#ccc',
+                              borderRadius: '4px',
+                              boxShadow: themeMode === 'dark' ? '0 1px 0 #333' : '0 1px 0 #bbb',
+                              minWidth: '22px',
+                              textAlign: 'center',
+                              textTransform: part.toLowerCase() === 'ctrl' ? 'none' : 'uppercase',
+                            }}
+                          >
+                            {part.toLowerCase() === 'ctrl' ? 'Ctrl' : part.toLowerCase() === 'shift' ? 'Shift' : part.toLowerCase() === 'alt' ? 'Alt' : part}
+                          </Box>
+                        </React.Fragment>
+                      ))}
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

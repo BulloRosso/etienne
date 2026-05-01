@@ -34,6 +34,7 @@ import { MuxSSEProvider } from './contexts/MuxSSEContext';
 import { useUxMode } from './contexts/UxModeContext.jsx';
 import MinimalisticSidebar from './components/MinimalisticSidebar';
 import KeyboardShortcutsOverlay from './components/KeyboardShortcutsOverlay';
+import ServiceControlDrawer from './components/ServiceControlDrawer';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 
 export default function App() {
@@ -102,6 +103,7 @@ export default function App() {
   const [langToast, setLangToast] = useState({ open: false, language: '' });
   const [uxToast, setUxToast] = useState({ open: false, mode: '' });
   const [shortcutsOverlayOpen, setShortcutsOverlayOpen] = useState(false);
+  const [serviceControlOpen, setServiceControlOpen] = useState(false);
   const [knowledgeToast, setKnowledgeToast] = useState({ open: false, message: '' });
   const [activeContextId, setActiveContextId] = useState(null);
   const [contexts, setContexts] = useState([]);
@@ -192,6 +194,11 @@ export default function App() {
       },
       description: t('shortcuts.focusInput', 'Focus chat input'),
       category: t('shortcuts.categoryChat', 'Chat'),
+    },
+    'ctrl+s': {
+      handler: () => setServiceControlOpen(prev => !prev),
+      description: t('shortcuts.serviceControl', 'Service control'),
+      category: t('shortcuts.categoryNavigation', 'Navigation'),
     },
     'ctrl+shift+s': {
       handler: () => setSidebarCollapsed(prev => !prev),
@@ -2040,6 +2047,7 @@ export default function App() {
           codingAgent={codingAgent}
           allTags={allTags}
           agentClass={agentClass}
+          keyboardShortcuts={keyboardShortcuts}
           collapsed={sidebarCollapsed}
           onCollapse={() => setSidebarCollapsed(true)}
           onExpand={() => setSidebarCollapsed(false)}
@@ -2362,6 +2370,12 @@ export default function App() {
         open={shortcutsOverlayOpen}
         onClose={() => setShortcutsOverlayOpen(false)}
         shortcuts={keyboardShortcuts}
+      />
+
+      {/* Service Control Drawer */}
+      <ServiceControlDrawer
+        open={serviceControlOpen}
+        onClose={() => setServiceControlOpen(false)}
       />
 
       {/* MCP Elicitation Modal */}

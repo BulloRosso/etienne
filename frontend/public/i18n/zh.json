@@ -1782,5 +1782,18 @@
   "artifactsForSession.filterCategories": "过滤类别",
   "artifactsForSession.filterData": "数据文件",
   "artifactsForSession.filterOffice": "办公文档",
-  "artifactsForSession.filterCode": "代码"
+  "artifactsForSession.filterCode": "代码",
+
+  "shortcuts.title": "键盘快捷键",
+  "shortcuts.categoryDisplay": "显示",
+  "shortcuts.categoryChat": "聊天",
+  "shortcuts.categoryNavigation": "导航",
+  "shortcuts.categoryGeneral": "通用",
+  "shortcuts.cycleLanguage": "切换界面语言",
+  "shortcuts.toggleUxMode": "切换UX模式",
+  "shortcuts.newChat": "新聊天",
+  "shortcuts.focusInput": "聚焦聊天输入",
+  "shortcuts.serviceControl": "服务控制",
+  "shortcuts.toggleSidebar": "切换侧边栏",
+  "shortcuts.showShortcuts": "显示键盘快捷键"
 }

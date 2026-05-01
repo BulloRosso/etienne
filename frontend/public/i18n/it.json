@@ -1799,5 +1799,18 @@
   "artifactsForSession.filterCategories": "Filtra categorie",
   "artifactsForSession.filterData": "File di dati",
   "artifactsForSession.filterOffice": "Documenti Office",
-  "artifactsForSession.filterCode": "Codice"
+  "artifactsForSession.filterCode": "Codice",
+
+  "shortcuts.title": "Scorciatoie da tastiera",
+  "shortcuts.categoryDisplay": "Visualizzazione",
+  "shortcuts.categoryChat": "Chat",
+  "shortcuts.categoryNavigation": "Navigazione",
+  "shortcuts.categoryGeneral": "Generale",
+  "shortcuts.cycleLanguage": "Cambia lingua UI",
+  "shortcuts.toggleUxMode": "Cambia modalità UX",
+  "shortcuts.newChat": "Nuova chat",
+  "shortcuts.focusInput": "Focus input chat",
+  "shortcuts.serviceControl": "Controllo servizi",
+  "shortcuts.toggleSidebar": "Mostra/nascondi barra laterale",
+  "shortcuts.showShortcuts": "Mostra scorciatoie da tastiera"
 }

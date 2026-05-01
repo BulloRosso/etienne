@@ -1711,5 +1711,18 @@
   "artifactsForSession.filterCategories": "Kategorien filtern",
   "artifactsForSession.filterData": "Datendateien",
   "artifactsForSession.filterOffice": "Office-Dokumente",
-  "artifactsForSession.filterCode": "Code"
+  "artifactsForSession.filterCode": "Code",
+
+  "shortcuts.title": "Tastaturkürzel",
+  "shortcuts.categoryDisplay": "Anzeige",
+  "shortcuts.categoryChat": "Chat",
+  "shortcuts.categoryNavigation": "Navigation",
+  "shortcuts.categoryGeneral": "Allgemein",
+  "shortcuts.cycleLanguage": "UI-Sprache wechseln",
+  "shortcuts.toggleUxMode": "UX-Modus umschalten",
+  "shortcuts.newChat": "Neuer Chat",
+  "shortcuts.focusInput": "Chat-Eingabe fokussieren",
+  "shortcuts.serviceControl": "Dienstverwaltung",
+  "shortcuts.toggleSidebar": "Seitenleiste umschalten",
+  "shortcuts.showShortcuts": "Tastaturkürzel anzeigen"
 }

@@ -72,6 +72,7 @@ export default function MinimalisticSidebar({
   codingAgent,
   allTags,
   agentClass,
+  keyboardShortcuts,
   onCollapse,
   onExpand,
   collapsed,
@@ -363,6 +364,7 @@ export default function MinimalisticSidebar({
           onProjectChange={onProjectChange}
           codingAgent={codingAgent}
           allTags={allTags}
+          keyboardShortcuts={keyboardShortcuts}
         />
         <ProjectListModal
           open={projectListOpen}
@@ -835,6 +837,7 @@ export default function MinimalisticSidebar({
           onProjectChange={onProjectChange}
           codingAgent={codingAgent}
           allTags={allTags}
+          keyboardShortcuts={keyboardShortcuts}
         />
 
         <ProjectListModal

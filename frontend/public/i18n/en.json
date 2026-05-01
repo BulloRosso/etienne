@@ -1799,5 +1799,18 @@
   "artifactsForSession.filterCategories": "Filter categories",
   "artifactsForSession.filterData": "Data Files",
   "artifactsForSession.filterOffice": "Office Documents",
-  "artifactsForSession.filterCode": "Code"
+  "artifactsForSession.filterCode": "Code",
+
+  "shortcuts.title": "Keyboard Shortcuts",
+  "shortcuts.categoryDisplay": "Display",
+  "shortcuts.categoryChat": "Chat",
+  "shortcuts.categoryNavigation": "Navigation",
+  "shortcuts.categoryGeneral": "General",
+  "shortcuts.cycleLanguage": "Cycle UI language",
+  "shortcuts.toggleUxMode": "Toggle UX mode",
+  "shortcuts.newChat": "New chat",
+  "shortcuts.focusInput": "Focus chat input",
+  "shortcuts.serviceControl": "Service control",
+  "shortcuts.toggleSidebar": "Toggle sidebar",
+  "shortcuts.showShortcuts": "Show keyboard shortcuts"
 }

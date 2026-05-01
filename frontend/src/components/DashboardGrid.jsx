@@ -6,7 +6,7 @@ import { VscServerProcess } from 'react-icons/vsc';
 import { RiRobot2Line } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 
-const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic', fluid = false }) => {
+const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic', fluid = false, hideHeader = false }) => {
   const { t } = useTranslation();
   const dashboardItems = [
     // 1st row
@@ -120,6 +120,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
   return (
     <Box sx={{ width: fluid ? '100%' : '300px', display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
+      {!hideHeader && (
       <Box
         sx={{
           p: 2,
@@ -162,7 +163,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
           <Tooltip title={t('app.sessionIdTooltip', { sessionId })} arrow>
             <IconButton
               size="small"
-              
+
               onClick={(e) => {
                 e.stopPropagation();
                 if (onCopySessionId) onCopySessionId();
@@ -177,6 +178,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
           </Tooltip>
         )}
       </Box>
+      )}
 
       {/* Logout Tile */}
       {user && (
