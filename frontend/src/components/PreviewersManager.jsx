@@ -20,6 +20,8 @@ import {
   Select,
   MenuItem,
   Collapse,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import { TbPlus, TbTrash, TbEdit, TbChevronDown, TbChevronUp } from 'react-icons/tb';
 import { BsWindow } from 'react-icons/bs';
@@ -59,7 +61,11 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
 
   // Add new previewer dialog
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newPreviewerType, setNewPreviewerType] = useState('file');
   const [newViewerName, setNewViewerName] = useState('');
+  const [newMcpGroup, setNewMcpGroup] = useState('');
+  const [newMcpToolName, setNewMcpToolName] = useState('render_file');
+  const [newServiceDisplayName, setNewServiceDisplayName] = useState('');
   const [newFunction, setNewFunction] = useState('');
 
   // Info alert fade-out
@@ -97,9 +103,11 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
       items.push({
         id: p.viewer,
         name: p.viewer,
-        type: 'file',
+        type: p.type || 'file',
         extensions: p.extensions,
         contextMenuActions: p.contextMenuActions || [],
+        mcpGroup: p.mcpGroup,
+        mcpToolName: p.mcpToolName,
       });
     }
 
@@ -236,14 +244,39 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
   const handleAddPreviewer = () => {
     if (!newViewerName.trim()) return;
     const name = newViewerName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-    if (previewers.some(p => p.viewer === name)) {
+    if (previewers.some(p => p.viewer === name) || servicePreviewers.some(sp => sp.viewerName === name)) {
       setSnackbar({ open: true, message: t('previewersManager.duplicateViewer'), severity: 'warning' });
       return;
     }
-    setPreviewers(prev => [...prev, { viewer: name, extensions: [], contextMenuActions: [] }]);
+
+    if (newPreviewerType === 'file') {
+      setPreviewers(prev => [...prev, { viewer: name, type: 'file', extensions: [], contextMenuActions: [] }]);
+    } else if (newPreviewerType === 'service') {
+      setServicePreviewers(prev => [...prev, {
+        serviceName: name,
+        viewerName: name,
+        functions: [],
+        displayName: newServiceDisplayName.trim() || name,
+        requiresService: '',
+      }]);
+    } else if (newPreviewerType === 'mcpui') {
+      setPreviewers(prev => [...prev, {
+        viewer: name,
+        type: 'mcpui',
+        extensions: [],
+        mcpGroup: newMcpGroup.trim(),
+        mcpToolName: newMcpToolName.trim() || 'render_file',
+        contextMenuActions: [],
+      }]);
+    }
+
     setSelectedViewer(name);
     setAddDialogOpen(false);
     setNewViewerName('');
+    setNewPreviewerType('file');
+    setNewMcpGroup('');
+    setNewMcpToolName('render_file');
+    setNewServiceDisplayName('');
   };
 
   // ── Save ──
@@ -513,6 +546,8 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                       >
                         {item.type === 'service'
                           ? t('previewersManager.serviceViewer')
+                          : item.type === 'mcpui'
+                          ? t('previewersManager.typeMcpUI')
                           : t('previewersManager.mappedExtensions', { count: extCount })}
                       </Typography>
                     </Box>
@@ -571,10 +606,12 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
                       <GoFileCode size={16} style={{ flexShrink: 0, color: 'inherit', opacity: 0.6 }} />
                       <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }} noWrap>
-                        /components/<Box component="span" sx={{ color: 'text.primary', fontWeight: 600 }}>{VIEWER_COMPONENT_NAMES[selectedItem.id] || selectedItem.id}</Box>.jsx
+                        /components/<Box component="span" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                          {selectedPreviewer?.type === 'mcpui' ? 'McpUIPreview' : (VIEWER_COMPONENT_NAMES[selectedItem.id] || selectedItem.id)}
+                        </Box>.jsx
                       </Typography>
                     </Box>
-                    {selectedItem.type === 'file' && (
+                    {(selectedItem.type === 'file' || selectedPreviewer?.type === 'mcpui') && (
                       <Tooltip title={t('previewersManager.removePreviewer')}>
                         <IconButton size="small" color="error" onClick={() => handleRemovePreviewer(selectedViewer)} sx={{ flexShrink: 0 }}>
                           <TbTrash size={16} />
@@ -583,8 +620,37 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                     )}
                   </Box>
 
-                  {selectedItem.type === 'file' && (
+                  {(selectedItem.type === 'file' || selectedItem.type === 'mcpui') && (
                     <>
+                      {/* MCP UI-specific fields */}
+                      {selectedItem.type === 'mcpui' && selectedPreviewer && (
+                        <>
+                          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                            <TextField
+                              size="small"
+                              label={t('previewersManager.mcpGroup')}
+                              value={selectedPreviewer.mcpGroup || ''}
+                              onChange={(e) => setPreviewers(prev => prev.map(p =>
+                                p.viewer === selectedViewer ? { ...p, mcpGroup: e.target.value } : p
+                              ))}
+                              placeholder="e.g. budget"
+                              sx={{ flex: 1 }}
+                            />
+                            <TextField
+                              size="small"
+                              label={t('previewersManager.mcpToolName')}
+                              value={selectedPreviewer.mcpToolName || ''}
+                              onChange={(e) => setPreviewers(prev => prev.map(p =>
+                                p.viewer === selectedViewer ? { ...p, mcpToolName: e.target.value } : p
+                              ))}
+                              placeholder="render_file"
+                              sx={{ flex: 1 }}
+                            />
+                          </Box>
+                          <Divider sx={{ mb: 2 }} />
+                        </>
+                      )}
+
                       {/* Assigned Extensions */}
                       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                         {t('previewersManager.assignedExtensions')}
@@ -781,30 +847,93 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
       </Dialog>
 
       {/* ── Add Previewer Dialog ── */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{t('previewersManager.addPreviewer')}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('previewersManager.addPreviewerHint')}
+          {/* Type selector */}
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+            {t('previewersManager.previewerType')}
           </Typography>
+          <ToggleButtonGroup
+            value={newPreviewerType}
+            exclusive
+            onChange={(_, val) => { if (val) setNewPreviewerType(val); }}
+            size="small"
+            sx={{ mb: 2.5 }}
+            fullWidth
+          >
+            <ToggleButton value="file">{t('previewersManager.typeFileMapping')}</ToggleButton>
+            <ToggleButton value="service">{t('previewersManager.typeServiceFunction')}</ToggleButton>
+            <ToggleButton value="mcpui">{t('previewersManager.typeMcpUI')}</ToggleButton>
+          </ToggleButtonGroup>
+
+          {/* Hint per type */}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {newPreviewerType === 'file' && t('previewersManager.addPreviewerHint')}
+            {newPreviewerType === 'service' && t('previewersManager.serviceHint')}
+            {newPreviewerType === 'mcpui' && t('previewersManager.mcpUIHint')}
+          </Typography>
+
+          {/* Common: viewer name */}
           <TextField
             autoFocus
             fullWidth
             size="small"
-            label={t('previewersManager.componentName')}
+            label={t('previewersManager.viewerName')}
             value={newViewerName}
             onChange={(e) => setNewViewerName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleAddPreviewer(); }}
-            placeholder="e.g. csv"
-            helperText={newViewerName && !hasComponent(newViewerName.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''))
+            onKeyDown={(e) => { if (e.key === 'Enter' && newViewerName.trim()) handleAddPreviewer(); }}
+            placeholder={newPreviewerType === 'file' ? 'e.g. csv' : newPreviewerType === 'mcpui' ? 'e.g. budget' : 'e.g. imap'}
+            sx={{ mb: 2 }}
+            helperText={newPreviewerType === 'file' && newViewerName && !hasComponent(newViewerName.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''))
               ? t('previewersManager.componentNotRegistered')
               : ' '
             }
           />
+
+          {/* Service-specific fields */}
+          {newPreviewerType === 'service' && (
+            <TextField
+              fullWidth
+              size="small"
+              label={t('previewersManager.displayName')}
+              value={newServiceDisplayName}
+              onChange={(e) => setNewServiceDisplayName(e.target.value)}
+              placeholder="e.g. Email Inbox"
+              sx={{ mb: 2 }}
+            />
+          )}
+
+          {/* MCP UI-specific fields */}
+          {newPreviewerType === 'mcpui' && (
+            <>
+              <TextField
+                fullWidth
+                size="small"
+                label={t('previewersManager.mcpGroup')}
+                value={newMcpGroup}
+                onChange={(e) => setNewMcpGroup(e.target.value)}
+                placeholder="e.g. budget"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label={t('previewersManager.mcpToolName')}
+                value={newMcpToolName}
+                onChange={(e) => setNewMcpToolName(e.target.value)}
+                placeholder="render_file"
+              />
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddDialogOpen(false)}>{t('common.cancel')}</Button>
-          <Button variant="contained" onClick={handleAddPreviewer} disabled={!newViewerName.trim()}>
+          <Button
+            variant="contained"
+            onClick={handleAddPreviewer}
+            disabled={!newViewerName.trim() || (newPreviewerType === 'mcpui' && !newMcpGroup.trim())}
+          >
             {t('common.create')}
           </Button>
         </DialogActions>

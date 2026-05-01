@@ -6,6 +6,7 @@ import { CiFileOn } from 'react-icons/ci';
 import BackgroundInfo from './BackgroundInfo';
 import UserOrders from './UserOrders';
 import { VIEWER_COMPONENTS, buildExtensionMap, getViewerForFile } from './viewerRegistry.jsx';
+import McpUIPreview from './McpUIPreview';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { useTranslation } from 'react-i18next';
@@ -120,6 +121,27 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
     if (!file) return null;
 
     const viewerName = getViewerForFile(file.path, extensionMap);
+
+    // DEBUG: trace viewer resolution
+    console.log('[FilesPanel] file.path:', file.path, '→ viewerName:', viewerName, '| extensionMap has .budget.json:', extensionMap?.get('.budget.json'), '| extensionMap size:', extensionMap?.size);
+
+    // MCP UI previewers: render via McpUIPreview instead of a local component
+    const previewerConfig = previewersConfig?.find(p => p.viewer === viewerName);
+    console.log('[FilesPanel] previewerConfig:', previewerConfig?.viewer, 'type:', previewerConfig?.type, 'mcpGroup:', previewerConfig?.mcpGroup);
+    if (previewerConfig?.type === 'mcpui' && previewerConfig.mcpGroup) {
+      return (
+        <Box sx={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+          <McpUIPreview
+            filename={file.path}
+            content={file.content}
+            mcpGroup={previewerConfig.mcpGroup}
+            mcpToolName={previewerConfig.mcpToolName || 'render_file'}
+            projectName={projectName}
+          />
+        </Box>
+      );
+    }
+
     const renderFn = viewerName ? VIEWER_COMPONENTS[viewerName] : null;
 
     if (renderFn) {

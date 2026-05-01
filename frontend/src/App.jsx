@@ -263,6 +263,7 @@ export default function App() {
         const response = await apiFetch('/api/previewers/configuration');
         if (response.ok) {
           const data = await response.json();
+          console.log('[App] previewers from API:', JSON.stringify(data.previewers?.map(p => ({ v: p.viewer, t: p.type, ext: p.extensions?.length, mcp: p.mcpGroup }))));
           setPreviewersConfig(data.previewers || []);
         }
       } catch (err) {

@@ -1,0 +1,14 @@
+{
+  "budget": [
+    { "item": "Household", "amount": 1200.00, "currency": "EUR" },
+    { "item": "Car & Transport", "amount": 454.40, "currency": "EUR" },
+    { "item": "Groceries", "amount": 680.00, "currency": "EUR" },
+    { "item": "Insurance", "amount": 320.50, "currency": "EUR" },
+    { "item": "Entertainment", "amount": 150.00, "currency": "EUR" },
+    { "item": "Savings", "amount": 500.00, "currency": "EUR" },
+    { "item": "Utilities", "amount": 210.00, "currency": "EUR" },
+    { "item": "Clothing", "amount": 95.00, "currency": "EUR" },
+    { "item": "Healthcare", "amount": 175.00, "currency": "EUR" },
+    { "item": "Subscriptions", "amount": 64.90, "currency": "EUR" }
+  ]
+}

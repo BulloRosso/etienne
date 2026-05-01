@@ -137,6 +137,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'docx', extensions: ['.docx', '.doc'] },
   { viewer: 'requirements', extensions: ['.requirements.json'] },
   { viewer: 'artifacts', extensions: ['.artifacts.md'] },
+  { viewer: 'budget', extensions: ['.budget.json'] },
 ];
 
 /**

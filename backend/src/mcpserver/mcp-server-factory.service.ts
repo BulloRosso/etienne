@@ -49,6 +49,12 @@ import {
   ETIENNE_CONFIG_RESOURCE_URI,
   ETIENNE_CONFIG_RESOURCE_MIME,
 } from './etienne-configuration-tools';
+import {
+  createBudgetToolsService,
+  loadBudgetResourceHtml,
+  BUDGET_RESOURCE_URI,
+  BUDGET_RESOURCE_MIME,
+} from './budget-tools';
 import { ProcessManagerService } from '../process-manager/process-manager.service';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
@@ -155,6 +161,18 @@ export class McpServerFactoryService implements OnModuleInit {
             description: 'Interactive dashboard for managing platform services and backend configuration',
             mimeType: ETIENNE_CONFIG_RESOURCE_MIME,
             loadContent: loadEtienneConfigResourceHtml,
+          },
+        ],
+      },
+      'budget': {
+        toolServices: [createBudgetToolsService()],
+        resources: [
+          {
+            uri: BUDGET_RESOURCE_URI,
+            name: 'Budget Donut Chart',
+            description: 'Interactive donut chart for .budget.json files',
+            mimeType: BUDGET_RESOURCE_MIME,
+            loadContent: loadBudgetResourceHtml,
           },
         ],
       },

@@ -27,8 +27,11 @@ export interface ContextMenuAction {
 
 export interface PreviewerMapping {
   viewer: string;
+  type?: 'file' | 'service' | 'mcpui';   // defaults to 'file' for backward compat
   extensions: string[];
   contextMenuActions?: ContextMenuAction[];
+  mcpGroup?: string;                       // MCP server group name (e.g. 'budget')
+  mcpToolName?: string;                    // MCP tool to call (e.g. 'render_budget')
 }
 
 export interface ServicePreviewerInfo {
@@ -37,6 +40,15 @@ export interface ServicePreviewerInfo {
   functions: string[];
   displayName: string;
   requiresService?: string;
+}
+
+export interface PreviewerMetadataEntry {
+  viewer: string;
+  type?: 'file' | 'service' | 'mcpui';
+  mcpGroup?: string;
+  mcpToolName?: string;
+  extensions?: string[];
+  actions?: ContextMenuAction[];
 }
 
 export interface PreviewersConfiguration {
@@ -48,7 +60,7 @@ export interface PreviewersConfiguration {
 
 @Injectable()
 export class PreviewersService {
-  private readonly contextActionsPath = join(__dirname, 'previewer-context-actions.json');
+  private readonly metadataPath = join(__dirname, 'previewer-metadata.json');
 
   constructor(private readonly configurationService: ConfigurationService) {}
 
@@ -58,13 +70,21 @@ export class PreviewersService {
    */
   async getFullConfiguration(): Promise<PreviewersConfiguration> {
     const previewers = this.getExtensionMappings();
-    const contextActions = await this.loadContextActions();
+    const metadata = await this.loadMetadata();
 
-    // Merge context actions into previewers
-    for (const entry of contextActions) {
-      const previewer = previewers.find(p => p.viewer === entry.viewer);
+    // Merge metadata (type, mcpGroup, mcpToolName, contextMenuActions) into previewers
+    for (const entry of metadata) {
+      let previewer = previewers.find(p => p.viewer === entry.viewer);
+      if (!previewer && entry.type === 'mcpui') {
+        // MCP UI previewers may not be in REGISTERED_PREVIEWERS env — add them
+        previewer = { viewer: entry.viewer, extensions: entry.extensions || [] };
+        previewers.push(previewer);
+      }
       if (previewer) {
-        previewer.contextMenuActions = entry.actions;
+        if (entry.type) previewer.type = entry.type;
+        if (entry.mcpGroup) previewer.mcpGroup = entry.mcpGroup;
+        if (entry.mcpToolName) previewer.mcpToolName = entry.mcpToolName;
+        if (entry.actions) previewer.contextMenuActions = entry.actions;
       }
     }
 
@@ -133,44 +153,57 @@ export class PreviewersService {
   }
 
   /**
-   * Updates context menu actions by writing the JSON config file.
+   * Saves metadata (type, mcpGroup, mcpToolName, contextMenuActions, extensions for MCP UI) to JSON file.
    */
-  async updateContextActions(actions: { viewer: string; actions: ContextMenuAction[] }[]): Promise<void> {
-    await fs.writeFile(this.contextActionsPath, JSON.stringify(actions, null, 2), 'utf8');
+  async saveMetadata(entries: PreviewerMetadataEntry[]): Promise<void> {
+    await fs.writeFile(this.metadataPath, JSON.stringify(entries, null, 2), 'utf8');
   }
 
   /**
-   * Saves both extension mappings and context menu actions.
+   * Saves both extension mappings and metadata.
    */
   async updateConfiguration(previewers: PreviewerMapping[]): Promise<void> {
-    // Separate context actions from extension data
-    const contextActions: { viewer: string; actions: ContextMenuAction[] }[] = [];
+    const metadata: PreviewerMetadataEntry[] = [];
     const extensionOnly: PreviewerMapping[] = [];
 
     for (const p of previewers) {
-      if (p.contextMenuActions && p.contextMenuActions.length > 0) {
-        contextActions.push({ viewer: p.viewer, actions: p.contextMenuActions });
+      const hasMetadata = p.type === 'mcpui' || p.mcpGroup || p.mcpToolName
+        || (p.contextMenuActions && p.contextMenuActions.length > 0);
+
+      if (hasMetadata) {
+        const entry: PreviewerMetadataEntry = { viewer: p.viewer };
+        if (p.type) entry.type = p.type;
+        if (p.mcpGroup) entry.mcpGroup = p.mcpGroup;
+        if (p.mcpToolName) entry.mcpToolName = p.mcpToolName;
+        if (p.type === 'mcpui') entry.extensions = p.extensions;
+        if (p.contextMenuActions && p.contextMenuActions.length > 0) {
+          entry.actions = p.contextMenuActions;
+        }
+        metadata.push(entry);
       }
-      extensionOnly.push({ viewer: p.viewer, extensions: p.extensions });
+
+      // MCP UI previewers store extensions in metadata, not in env var
+      if (p.type !== 'mcpui') {
+        extensionOnly.push({ viewer: p.viewer, extensions: p.extensions });
+      }
     }
 
     await this.updateExtensionMappings(extensionOnly);
-    await this.updateContextActions(contextActions);
+    await this.saveMetadata(metadata);
   }
 
   // ── Private ──
 
-  private async loadContextActions(): Promise<{ viewer: string; actions: ContextMenuAction[] }[]> {
+  private async loadMetadata(): Promise<PreviewerMetadataEntry[]> {
     try {
-      const content = await fs.readFile(this.contextActionsPath, 'utf8');
+      const content = await fs.readFile(this.metadataPath, 'utf8');
       return JSON.parse(content);
     } catch {
-      // File doesn't exist yet or is invalid — return defaults
-      return this.getDefaultContextActions();
+      return this.getDefaultMetadata();
     }
   }
 
-  private getDefaultContextActions(): { viewer: string; actions: ContextMenuAction[] }[] {
+  private getDefaultMetadata(): PreviewerMetadataEntry[] {
     return [
       {
         viewer: 'requirements',
@@ -215,6 +248,13 @@ export class PreviewersService {
           },
         ],
       },
+      {
+        viewer: 'budget',
+        type: 'mcpui',
+        extensions: ['.budget.json'],
+        mcpGroup: 'budget',
+        mcpToolName: 'render_budget',
+      },
     ];
   }
 
@@ -237,6 +277,7 @@ export class PreviewersService {
       { viewer: 'docx', extensions: ['.docx', '.doc'] },
       { viewer: 'requirements', extensions: ['.requirements.json'] },
       { viewer: 'artifacts', extensions: ['.artifacts.md'] },
+      { viewer: 'budget', extensions: ['.budget.json'] },
     ];
   }
 }
