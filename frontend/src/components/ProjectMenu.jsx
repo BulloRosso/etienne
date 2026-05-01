@@ -47,6 +47,7 @@ import TeamUpDialog from './TeamUpDialog';
 import AgentPersonaPersonality from './AgentPersonaPersonality';
 import ServiceControlDrawer from './ServiceControlDrawer';
 import IssueManager from './IssueManager';
+import PreviewersManager from './PreviewersManager';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
@@ -82,6 +83,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   const [serviceControlOpen, setServiceControlOpen] = useState(false);
   const [personaDialogOpen, setPersonaDialogOpen] = useState(false);
   const [teamUpOpen, setTeamUpOpen] = useState(false);
+  const [previewersManagerOpen, setPreviewersManagerOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [customizeUI, setCustomizeUI] = useState(false);
@@ -184,6 +186,9 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
         break;
       case 'skillstore':
         handleSkillCatalogOpen();
+        break;
+      case 'previewers':
+        setPreviewersManagerOpen(true);
         break;
       default:
         break;
@@ -914,6 +919,8 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
         onClose={handleIssuesClose}
         currentProject={currentProject}
       />
+
+      <PreviewersManager open={previewersManagerOpen} onClose={() => setPreviewersManagerOpen(false)} />
 
       <Dialog
         open={scrapbookListOpen}

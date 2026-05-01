@@ -18,6 +18,43 @@ import ArtifactsForSession from './ArtifactsForSession';
 import IMAPInboxViewer from './IMAPInboxViewer';
 
 /**
+ * Service previewers — activated by running services, not file extensions.
+ * Triggered via service paths: #<serviceName>/<function> (e.g. #imap/inbox).
+ */
+export const SERVICE_PREVIEWERS = {
+  imap: {
+    viewerName: 'imap',
+    functions: ['/inbox'],
+    displayName: 'Email Inbox',
+  },
+};
+
+/**
+ * Maps viewer registry keys to their actual React component file names.
+ * Used by PreviewersManager to display the real component path.
+ */
+export const VIEWER_COMPONENT_NAMES = {
+  html: 'LiveHTMLPreview',
+  json: 'JSONViewer',
+  jsonl: 'JSONViewer',
+  markdown: 'MarkdownViewer',
+  mermaid: 'MermaidViewer',
+  research: 'ResearchDocument',
+  image: 'ImageViewer',
+  excel: 'ExcelViewer',
+  prompt: 'PromptEditor',
+  workflow: 'WorkflowVisualizer',
+  scrapbook: 'ScrapbookViewer',
+  video: 'VideoViewer',
+  knowledge: 'KnowledgeViewer',
+  pdf: 'PdfViewer',
+  docx: 'DocxViewer',
+  requirements: 'RequirementsViewer',
+  artifacts: 'ArtifactsForSession',
+  imap: 'IMAPInboxViewer',
+};
+
+/**
  * Maps viewer names to their component render functions.
  * Each function receives (file, projectName) and returns JSX.
  */
@@ -141,7 +178,8 @@ export function getViewerForFile(filePath, extensionMap) {
   // Service viewer paths start with # (e.g. #imap/inbox)
   if (filePath.startsWith('#')) {
     const serviceName = filePath.substring(1).split('/')[0];
-    return VIEWER_COMPONENTS[serviceName] ? serviceName : null;
+    const svc = SERVICE_PREVIEWERS[serviceName];
+    return svc ? svc.viewerName : null;
   }
 
   const lowerPath = filePath.toLowerCase();
@@ -157,4 +195,55 @@ export function getViewerForFile(filePath, extensionMap) {
   }
 
   return null;
+}
+
+/**
+ * Returns context menu actions applicable to a file, based on previewer config.
+ * Evaluates conditions against the file row and filters by user role.
+ *
+ * @param {object} row - File row from the file tree ({ path, type, ... })
+ * @param {Array} previewersConfig - Previewer config from backend (with contextMenuActions)
+ * @param {Map} extensionMap - Current extension map
+ * @param {object} user - Current user ({ role, ... })
+ * @returns {Array} Matching context menu actions
+ */
+export function getContextMenuActions(row, previewersConfig, extensionMap, user) {
+  if (!row || row.type === 'folder' || !previewersConfig || !extensionMap) return [];
+
+  const viewerName = getViewerForFile(row.path, extensionMap);
+  if (!viewerName) return [];
+
+  const previewer = previewersConfig.find(p => p.viewer === viewerName);
+  if (!previewer?.contextMenuActions) return [];
+
+  return previewer.contextMenuActions.filter(action => {
+    // Role check
+    if (action.minRole && user) {
+      if (action.minRole === 'user' && user.role === 'guest') return false;
+      if (action.minRole === 'admin' && user.role !== 'admin') return false;
+    } else if (action.minRole && !user) {
+      return false;
+    }
+
+    // Condition check
+    if (action.condition) {
+      const filePath = row.path || '';
+      const fileName = filePath.split('/').pop() || '';
+      switch (action.condition.type) {
+        case 'filename':
+          if (fileName !== action.condition.value) return false;
+          break;
+        case 'extension':
+          if (!filePath.toLowerCase().endsWith(action.condition.value.toLowerCase())) return false;
+          break;
+        case 'pathContains':
+          if (!filePath.toLowerCase().split('/').some(seg => seg === action.condition.value.toLowerCase())) return false;
+          break;
+        default:
+          break;
+      }
+    }
+
+    return true;
+  });
 }

@@ -22,6 +22,7 @@ import { PiGraphLight } from 'react-icons/pi';
 import { useTranslation } from 'react-i18next';
 
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { apiFetch } from '../services/api';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 import DashboardGrid from './DashboardGrid';
@@ -41,6 +42,7 @@ import TeamUpDialog from './TeamUpDialog';
 import AgentPersonaPersonality from './AgentPersonaPersonality';
 import ServiceControlDrawer from './ServiceControlDrawer';
 import IssueManager from './IssueManager';
+import PreviewersManager from './PreviewersManager';
 
 export default function SettingsModal({
   open,
@@ -60,6 +62,7 @@ export default function SettingsModal({
 }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
+  const { user } = useAuth();
 
   // Sub-dialog states
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -84,6 +87,7 @@ export default function SettingsModal({
   const [serviceControlOpen, setServiceControlOpen] = useState(false);
   const [personaDialogOpen, setPersonaDialogOpen] = useState(false);
   const [teamUpOpen, setTeamUpOpen] = useState(false);
+  const [previewersManagerOpen, setPreviewersManagerOpen] = useState(false);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
   const [shortcutsTab, setShortcutsTab] = useState(0);
@@ -110,6 +114,7 @@ export default function SettingsModal({
       case 'scrapbook': fetchScrapbooks(); closeSettingsAndOpen(setScrapbookListOpen); break;
       case 'a2a': closeSettingsAndOpen(setTeamUpOpen); break;
       case 'skillstore': closeSettingsAndOpen(setSkillCatalogOpen); break;
+      case 'previewers': closeSettingsAndOpen(setPreviewersManagerOpen); break;
       default: break;
     }
   };
@@ -187,7 +192,7 @@ export default function SettingsModal({
             onItemClick={handleDashboardItemClick}
             onClose={onClose}
             onAboutClick={() => { onClose(); setAboutOpen(true); }}
-            user={null}
+            user={user}
             onLogout={() => {}}
             onSettingsClick={() => { onClose(); setChangePasswordOpen(true); }}
             onServiceControlClick={() => closeSettingsAndOpen(setServiceControlOpen)}
@@ -392,6 +397,8 @@ export default function SettingsModal({
       </Dialog>
 
       <IssueManager open={issuesOpen} onClose={() => setIssuesOpen(false)} currentProject={currentProject} />
+
+      <PreviewersManager open={previewersManagerOpen} onClose={() => setPreviewersManagerOpen(false)} />
 
       <Dialog open={scrapbookListOpen} onClose={() => setScrapbookListOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

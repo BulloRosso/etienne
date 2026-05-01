@@ -1,19 +1,31 @@
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import { buildExtensionMap, getViewerForFile } from '../components/viewerRegistry';
 
 /**
- * FilePreviewHandler - Decides what to do with a file based on its extension
+ * FilePreviewHandler - Routes file/service preview requests to the preview pane.
  *
- * This service handles file preview requests from the filesystem explorer.
- * It checks the file extension and publishes appropriate events to:
- * - Close the filesystem drawer
- * - Activate the Live Changes tab
- * - Add or update the file in the files list
+ * Uses the viewer registry to determine the correct viewer for a file path,
+ * then publishes a FILE_PREVIEW_REQUEST event. The extension map is injected
+ * from App.jsx (kept in sync with backend config + project overrides).
+ * Falls back to built-in defaults when no map has been set yet.
  */
 class FilePreviewHandler {
+  constructor() {
+    this._extensionMap = null;
+  }
+
   /**
-   * Handle a file preview request
-   * @param {string} filePath - The path to the file
-   * @param {string} projectName - The name of the project
+   * Inject the current extension map (call from App.jsx whenever it changes).
+   * @param {Map<string, string>} extensionMap
+   */
+  setExtensionMap(extensionMap) {
+    this._extensionMap = extensionMap;
+  }
+
+  /**
+   * Handle a file or service preview request.
+   * @param {string} filePath - File path or service path (e.g. '#imap/inbox')
+   * @param {string} projectName - The current project name
    */
   handlePreview(filePath, projectName) {
     if (!filePath || !projectName) {
@@ -21,332 +33,19 @@ class FilePreviewHandler {
       return;
     }
 
-    // Handle service viewers (paths starting with #)
-    if (filePath.startsWith('#')) {
-      this.handleServicePreview(filePath, projectName);
+    const map = this._extensionMap || buildExtensionMap();
+    const viewerName = getViewerForFile(filePath, map);
+
+    if (!viewerName) {
+      console.log(`FilePreviewHandler: No viewer registered for "${filePath}"`);
       return;
     }
 
-    // Handle compound extensions before simple extension matching
-    if (filePath.endsWith('.artifacts.md')) {
-      this.handleArtifactsPreview(filePath, projectName);
-      return;
-    }
-
-    const extension = this.getFileExtension(filePath);
-
-    // Handle HTML files
-    if (extension === 'html' || extension === 'htm') {
-      this.handleHtmlPreview(filePath, projectName);
-    } else if (extension === 'json' || extension === 'jsonl' || extension === 'csv' || extension === 'txt') {
-      this.handleJsonPreview(filePath, projectName);
-    } else if (extension === 'py') {
-      this.handleTextPreview(filePath, projectName);
-    } else if (extension === 'md') {
-      this.handleMarkdownPreview(filePath, projectName);
-    } else if (extension === 'mermaid') {
-      this.handleMermaidPreview(filePath, projectName);
-    } else if (extension === 'research') {
-      this.handleResearchPreview(filePath, projectName);
-    } else if (extension === 'prompt') {
-      this.handlePromptPreview(filePath, projectName);
-    } else if (extension === 'jpg' || extension === 'jpeg' || extension === 'png' || extension === 'gif') {
-      this.handleImagePreview(filePath, projectName);
-    } else if (extension === 'xls' || extension === 'xlsx') {
-      this.handleExcelPreview(filePath, projectName);
-    } else if (extension === 'scbk') {
-      this.handleScrapbookPreview(filePath, projectName);
-    } else if (extension === 'youtube' || extension === 'videos' || extension === 'mp4') {
-      this.handleVideoPreview(filePath, projectName);
-    } else if (extension === 'knowledge') {
-      this.handleKnowledgePreview(filePath, projectName);
-    } else if (extension === 'pdf') {
-      this.handlePdfPreview(filePath, projectName);
-    } else if (extension === 'docx' || extension === 'doc') {
-      this.handleDocxPreview(filePath, projectName);
-    } else {
-      // Future: Handle other file types
-      console.log(`FilePreviewHandler: No preview handler for .${extension} files yet`);
-    }
-  }
-
-  /**
-   * Handle HTML file preview
-   * @param {string} filePath - The path to the HTML file
-   * @param {string} projectName - The project name
-   */
-  handleHtmlPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening HTML preview for', filePath);
-
-    // Publish event to:
-    // 1. Close the filesystem drawer
-    // 2. Activate the Live Changes tab (tab 0)
-    // 3. Add/update the file in the files list
     claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
       filePath,
       projectName,
-      action: 'html-preview'
+      action: `${viewerName}-preview`
     });
-  }
-
-  /**
-   * Handle JSON file preview
-   * @param {string} filePath - The path to the JSON file
-   * @param {string} projectName - The project name
-   */
-  handleJsonPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening JSON preview for', filePath);
-
-    // Publish event to:
-    // 1. Close the filesystem drawer
-    // 2. Activate the Live Changes tab (tab 0)
-    // 3. Add/update the file in the files list
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'json-preview'
-    });
-  }
-
-  /**
-   * Handle Markdown file preview
-   * @param {string} filePath - The path to the Markdown file
-   * @param {string} projectName - The project name
-   */
-  handleMarkdownPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Markdown preview for', filePath);
-
-    // Publish event to:
-    // 1. Close the filesystem drawer
-    // 2. Activate the Live Changes tab (tab 0)
-    // 3. Add/update the file in the files list
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'markdown-preview'
-    });
-  }
-
-  /**
-   * Handle Mermaid file preview
-   * @param {string} filePath - The path to the Mermaid file
-   * @param {string} projectName - The project name
-   */
-  handleMermaidPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Mermaid preview for', filePath);
-
-    // Publish event to:
-    // 1. Close the filesystem drawer
-    // 2. Activate the Live Changes tab (tab 0)
-    // 3. Add/update the file in the files list
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'mermaid-preview'
-    });
-  }
-
-  /**
-   * Handle Research file preview
-   * @param {string} filePath - The path to the Research file
-   * @param {string} projectName - The project name
-   */
-  handleResearchPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Research preview for', filePath);
-
-    // Publish event to:
-    // 1. Close the filesystem drawer
-    // 2. Activate the Live Changes tab (tab 0)
-    // 3. Add/update the file in the files list
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'research-preview'
-    });
-  }
-
-  /**
-   * Handle Prompt file preview
-   * @param {string} filePath - The path to the Prompt file
-   * @param {string} projectName - The project name
-   */
-  handlePromptPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Prompt preview for', filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'prompt-preview'
-    });
-  }
-
-  /**
-   * Handle Image file preview
-   * @param {string} filePath - The path to the Image file
-   * @param {string} projectName - The project name
-   */
-  handleImagePreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Image preview for', filePath);
-
-    // Publish event to:
-    // 1. Close the filesystem drawer
-    // 2. Activate the Live Changes tab (tab 0)
-    // 3. Add/update the file in the files list
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'image-preview'
-    });
-  }
-
-  /**
-   * Handle Excel file preview
-   * @param {string} filePath - The path to the Excel file
-   * @param {string} projectName - The project name
-   */
-  handleExcelPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Excel preview for', filePath);
-
-    // Publish event to:
-    // 1. Close the filesystem drawer
-    // 2. Activate the Live Changes tab (tab 0)
-    // 3. Add/update the file in the files list
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'excel-preview'
-    });
-  }
-
-  /**
-   * Handle Scrapbook file preview
-   * @param {string} filePath - The path to the .scbk file
-   * @param {string} projectName - The project name
-   */
-  handleScrapbookPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Scrapbook preview for', filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'scrapbook-preview'
-    });
-  }
-
-  /**
-   * Handle Video file preview
-   * @param {string} filePath - The path to the video file
-   * @param {string} projectName - The project name
-   */
-  handleVideoPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Video preview for', filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'video-preview'
-    });
-  }
-
-  /**
-   * Handle Knowledge file preview
-   * @param {string} filePath - The path to the .knowledge file
-   * @param {string} projectName - The project name
-   */
-  handleKnowledgePreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Knowledge preview for', filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'knowledge-preview'
-    });
-  }
-
-  /**
-   * Handle PDF file preview
-   * @param {string} filePath - The path to the PDF file
-   * @param {string} projectName - The project name
-   */
-  handlePdfPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening PDF preview for', filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'pdf-preview'
-    });
-  }
-
-  /**
-   * Handle DOCX file preview
-   * @param {string} filePath - The path to the DOCX file
-   * @param {string} projectName - The project name
-   */
-  handleDocxPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening DOCX preview for', filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'docx-preview'
-    });
-  }
-
-  /**
-   * Handle plain-text source file preview (e.g. .py)
-   * Renders via FilesPanel's <pre> fallback since no dedicated viewer is registered.
-   * @param {string} filePath - The path to the text file
-   * @param {string} projectName - The project name
-   */
-  handleTextPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening text preview for', filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'text-preview'
-    });
-  }
-
-  /**
-   * Handle service preview (paths starting with #, e.g. #imap/inbox)
-   * @param {string} filePath - The service path (e.g. #imap/inbox)
-   * @param {string} projectName - The project name
-   */
-  handleServicePreview(filePath, projectName) {
-    // Extract service name from #serviceName or #serviceName/path
-    const withoutHash = filePath.substring(1);
-    const serviceName = withoutHash.split('/')[0];
-    console.log(`FilePreviewHandler: Opening service preview for ${serviceName}`, filePath);
-
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: `${serviceName}-preview`
-    });
-  }
-
-  handleArtifactsPreview(filePath, projectName) {
-    console.log('FilePreviewHandler: Opening Artifacts preview for', filePath);
-    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
-      filePath,
-      projectName,
-      action: 'artifacts-preview'
-    });
-  }
-
-  /**
-   * Get file extension from path
-   * @param {string} filePath - The file path
-   * @returns {string} The file extension (lowercase, without dot)
-   */
-  getFileExtension(filePath) {
-    const parts = filePath.split('.');
-    if (parts.length > 1) {
-      return parts[parts.length - 1].toLowerCase();
-    }
-    return '';
   }
 }
 

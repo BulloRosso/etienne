@@ -109,6 +109,13 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       label: t('dashboard.itemSkillStore'),
       disabled: false,
       adminOnly: true
+    },
+    {
+      id: 'previewers',
+      image: '/previewers.png',
+      label: t('dashboard.itemPreviewers'),
+      disabled: false,
+      adminOnly: true
     }
   ];
 
@@ -252,10 +259,11 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
         sx={{
           display: 'grid',
           gridTemplateColumns: fluid ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(2, 1fr)',
-          ...(fluid ? {} : { gridTemplateRows: 'repeat(5, 1fr)' }),
           gap: 2,
           p: 2,
-          pt: 1
+          pt: 1,
+          overflow: 'auto',
+          flex: 1
         }}
       >
         {dashboardItems.filter((item) => {

@@ -39,9 +39,19 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import FileTreeVirtualList from './FileTreeVirtualList';
 import { flattenTree, getTagColor } from './fileTreeModel';
 import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import OfferGeneratorModal from './OfferGeneratorModal';
+import { getContextMenuActions, buildExtensionMap } from './viewerRegistry';
 
-export default function Filesystem({ projectName, showBackgroundInfo }) {
+/**
+ * Registry of modal components that can be opened from context menu actions.
+ * To add a new context menu modal, import it and register it here.
+ */
+const CONTEXT_MENU_MODALS = {
+  OfferGeneratorModal,
+};
+
+export default function Filesystem({ projectName, showBackgroundInfo, previewersConfig = [] }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
@@ -75,7 +85,7 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
   const [allTags, setAllTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, row: null, filePath: '' });
-  const [offerGeneratorOpen, setOfferGeneratorOpen] = useState(false);
+  const [contextMenuModal, setContextMenuModal] = useState({ open: false, component: null, props: {} });
 
   // ── Copy-to-project selection mode ──
   const [selectionMode, setSelectionMode] = useState(false);
@@ -280,48 +290,67 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
     loadReleaseData();
   };
 
-  // ── Extract Requirements (EARS) ──
-
-  /**
-   * Returns true when the context-menu row is a PDF inside an "inbox" folder.
-   */
-  const isInboxPdf = useCallback((row) => {
-    if (!row || row.type === 'folder') return false;
-    const p = row.path.toLowerCase();
-    return p.endsWith('.pdf') && p.split('/').slice(0, -1).some(seg => seg === 'inbox');
-  }, []);
+  // ── Data-driven context menu actions ──
 
   /**
    * Returns true when the context-menu row is a file inside an "inbox" folder.
+   * (Kept for the RAG "Add to Index" action which calls a REST API, not a modal.)
    */
   const isInboxFile = useCallback((row) => {
     if (!row || row.type === 'folder') return false;
     return row.path.toLowerCase().split('/').slice(0, -1).some(seg => seg === 'inbox');
   }, []);
 
-  const isSelectedRequirementsMd = useCallback((row) => {
-    if (!row || row.type === 'folder') return false;
-    const name = row.path.split('/').pop();
-    return name === 'selected-requirements.md';
-  }, []);
+  const extensionMap = useMemo(() => buildExtensionMap(previewersConfig), [previewersConfig]);
 
-  const handleOpenOfferGenerator = () => {
-    handleCloseContextMenu();
-    setOfferGeneratorOpen(true);
-  };
+  /**
+   * Resolve a param source to a value from the file context.
+   */
+  const resolveParamValue = useCallback((source, row) => {
+    switch (source) {
+      case 'filePath': return row.path;
+      case 'fileName': return row.path.split('/').pop();
+      case 'fileNameWithoutExt': {
+        const name = row.path.split('/').pop();
+        const dotIdx = name.lastIndexOf('.');
+        return dotIdx > 0 ? name.substring(0, dotIdx) : name;
+      }
+      case 'projectName': return projectName;
+      case 'folderPath': return row.path.split('/').slice(0, -1).join('/');
+      default:
+        // Template string: 'out/requirements-analysis/${fileNameWithoutExt}.requirements.json'
+        return source.replace(/\$\{(\w+)\}/g, (_, key) => resolveParamValue(key, row));
+    }
+  }, [projectName]);
 
-  const handleExtractRequirements = () => {
+  /**
+   * Generic handler for context menu actions from previewer config.
+   */
+  const handleContextMenuAction = useCallback((action) => {
     const row = contextMenu?.row;
     handleCloseContextMenu();
     if (!row) return;
 
-    // Compute the requirements output path and open the viewer.
-    // The RequirementsViewer will check whether the file already exists
-    // and trigger MCP extraction if needed.
-    const pdfName = row.path.split('/').pop().replace(/\.pdf$/i, '');
-    const outputPath = `out/requirements-analysis/${pdfName}.requirements.json`;
-    filePreviewHandler.handlePreview(outputPath, projectName);
-  };
+    // Special action type: '__preview__' opens a file preview instead of a modal
+    if (action.modalComponent === '__preview__') {
+      const resolved = {};
+      for (const param of action.params) {
+        resolved[param.name] = resolveParamValue(param.source, row);
+      }
+      filePreviewHandler.handlePreview(resolved.filePath, projectName);
+      return;
+    }
+
+    // Resolve params and open the named modal
+    const props = {};
+    for (const param of action.params) {
+      props[param.name] = resolveParamValue(param.source, row);
+    }
+    props.open = true;
+    props.onClose = () => setContextMenuModal({ open: false, component: null, props: {} });
+
+    setContextMenuModal({ open: true, component: action.modalComponent, props });
+  }, [contextMenu, projectName, resolveParamValue]);
 
   // ── RAG index ──
   const handleAddToIndex = async () => {
@@ -719,18 +748,13 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
             {t('filesystem.openPreview')}
           </MenuItem>
         )}
-        {isSelectedRequirementsMd(contextMenu?.row) && !isGuest && (
-          <MenuItem onClick={handleOpenOfferGenerator}>
-            <i className="codicon codicon-notebook" style={{ fontSize: 16, marginRight: 8 }} />
-            Generate Offer Paragraphs
+        {/* Dynamic context menu actions from previewer config */}
+        {getContextMenuActions(contextMenu?.row, previewersConfig, extensionMap, { role: isGuest ? 'guest' : isAdmin ? 'admin' : 'user' }).map(action => (
+          <MenuItem key={action.id} onClick={() => handleContextMenuAction(action)}>
+            {action.icon && <i className={action.icon} style={{ fontSize: 16, marginRight: 8 }} />}
+            {action.labels[i18n.language] || action.labels.en}
           </MenuItem>
-        )}
-        {isInboxPdf(contextMenu?.row) && !isGuest && (
-          <MenuItem onClick={handleExtractRequirements}>
-            <i className="codicon codicon-checklist" style={{ fontSize: 16, marginRight: 8 }} />
-            {t('filesystem.extractRequirements')}
-          </MenuItem>
-        )}
+        ))}
         {isInboxFile(contextMenu?.row) && !isGuest && (
           <MenuItem onClick={handleAddToIndex} disabled={indexing}>
             <i className="codicon codicon-database" style={{ fontSize: 16, marginRight: 8 }} />
@@ -852,12 +876,10 @@ export default function Filesystem({ projectName, showBackgroundInfo }) {
         onReleaseCommentSaved={loadReleaseData}
       />
 
-      {/* ── Offer Generator Modal ── */}
-      <OfferGeneratorModal
-        open={offerGeneratorOpen}
-        onClose={() => setOfferGeneratorOpen(false)}
-        projectName={projectName}
-      />
+      {/* ── Dynamic Context Menu Modal ── */}
+      {contextMenuModal.open && CONTEXT_MENU_MODALS[contextMenuModal.component] &&
+        React.createElement(CONTEXT_MENU_MODALS[contextMenuModal.component], contextMenuModal.props)
+      }
 
       {/* ── Copy to Project Dialog ── */}
       <Dialog open={copyDialogOpen} onClose={() => setCopyDialogOpen(false)} maxWidth="xs" fullWidth>

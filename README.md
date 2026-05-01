@@ -161,8 +161,11 @@ Here are the guiding principles for Etienne, and why I believe it matters:
   - [Complementary Features (to the agentic cycle)](#complementary-features-to-the-agentic-cycle)
   - [Other](#other)
 - [File Type Previewers](#file-type-previewers)
+  - [Architecture Overview](#architecture-overview)
   - [Supported File Types](#supported-file-types)
-  - [How It Works](#how-it-works)
+  - [Adding a New File-Extension Previewer](#adding-a-new-file-extension-previewer)
+  - [Adding a New Service Previewer](#adding-a-new-service-previewer)
+  - [Adding a Context Menu Action to a Previewer](#adding-a-context-menu-action-to-a-previewer)
 - [Messenger Integration](#messenger-integration)
   - [Architecture](#architecture-1)
   - [Configuration](#configuration-1)
@@ -1943,26 +1946,119 @@ If LibreOffice is missing and the user needs to parse Office documents, the skil
 
 # File Type Previewers
 
-The frontend includes specialized preview components for various file types through the [FilePreviewHandler](frontend/src/services/FilePreviewHandler.js) service. When files are selected in the filesystem browser, they are automatically opened in the appropriate viewer component within the Artifacts pane.
+The previewer system routes file opens and service activations to specialized React viewer components. It uses a three-layer extension mapping and a separate service previewer registry, with configurable context menu actions per file type.
+
+## Architecture Overview
+
+```
+User Action (context menu / sidebar icon / link click)
+  → FilePreviewHandler.handlePreview(filePath, projectName)
+  → getViewerForFile() determines viewer name
+  → publishes FILE_PREVIEW_REQUEST event
+  → App.jsx fetches file content (or creates placeholder for services)
+  → FilesPanel renders via VIEWER_COMPONENTS[viewerName]
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| [viewerRegistry.jsx](frontend/src/components/viewerRegistry.jsx) | Central registry: `VIEWER_COMPONENTS`, `SERVICE_PREVIEWERS`, `buildExtensionMap()`, `getViewerForFile()`, `getContextMenuActions()` |
+| [FilePreviewHandler.js](frontend/src/services/FilePreviewHandler.js) | Event publisher: resolves viewer name and publishes `FILE_PREVIEW_REQUEST` |
+| [FilesPanel.jsx](frontend/src/components/FilesPanel.jsx) | Tab manager: renders active file using viewerRegistry |
+| [PreviewersManager.jsx](frontend/src/components/PreviewersManager.jsx) | Admin UI: manages system-level extension mappings and context menu actions |
+| [Filesystem.jsx](frontend/src/components/Filesystem.jsx) | File explorer: renders data-driven context menu actions via `CONTEXT_MENU_MODALS` registry |
+| [previewers.service.ts](backend/src/previewers/previewers.service.ts) | Backend: reads/writes `REGISTERED_PREVIEWERS` env var and context actions JSON |
+| [previewers.controller.ts](backend/src/previewers/previewers.controller.ts) | API: `GET`/`PUT` `/api/previewers/configuration` |
+| [previewer-context-actions.json](backend/src/previewers/previewer-context-actions.json) | Context menu action definitions per viewer |
+
+### Two Classes of Previewers
+
+**File-Extension Previewers** map file extensions to viewer components:
+- Configured via `REGISTERED_PREVIEWERS` env var (format: `viewer:.ext1,.ext2|viewer2:.ext3`)
+- Compound extensions (e.g., `.workflow.json`, `.artifacts.md`) are matched before simple extensions
+- Project-level overrides can remap or disable extensions per project
+
+**Service Previewers** are activated by running services, not file extensions:
+- Triggered via service paths: `#<serviceName>/<function>` (e.g., `#imap/inbox`)
+- Registered in `SERVICE_PREVIEWERS` in viewerRegistry.jsx
+- Typically shown as sidebar icons when their backing service is running
+
+### Extension Mapping Priority
+
+1. **Built-in defaults** (`BUILTIN_DEFAULTS` in viewerRegistry.jsx) — fallback
+2. **System configuration** (`REGISTERED_PREVIEWERS` via backend) — admin-managed
+3. **Project overrides** (`autoFilePreviewExtensions` in project config) — per-project
+
+### Context Menu Actions
+
+Previewers can define additional context menu actions that appear when right-clicking matching files in the file explorer. Actions are stored in `previewer-context-actions.json` and support:
+- **Multi-language labels** (en, de, it, zh)
+- **Conditions**: `filename` (exact match), `extension`, `pathContains` (folder segment)
+- **Modal dialogs** or **preview navigation** (`__preview__` pseudo-component)
+- **Template parameters**: `${filePath}`, `${fileName}`, `${fileNameWithoutExt}`, `${projectName}`, `${folderPath}`
 
 ## Supported File Types
 
-| File Extension | Viewer Component | Description |
-|----------------|------------------|-------------|
-| `.html`, `.htm` | [LiveHTMLPreview](frontend/src/components/LiveHTMLPreview.jsx) | Renders HTML files in a sandboxed iframe with automatic refresh on file changes |
-| `.json` | [JSONViewer](frontend/src/components/JSONViewer.jsx) | Displays JSON data with syntax highlighting and formatting |
-| `.md` | [MarkdownViewer](frontend/src/components/MarkdownViewer.jsx) | Renders Markdown files with full formatting support |
-| `.mermaid` | [MermaidViewer](frontend/src/components/MermaidViewer.jsx) | Renders Mermaid diagrams (flowcharts, sequence diagrams, etc.) |
-| `.research` | [ResearchDocument](frontend/src/components/ResearchDocument.jsx) | Specialized viewer for research documents with structured content |
-| `.jpg`, `.jpeg`, `.png`, `.gif` | [ImageViewer](frontend/src/components/ImageViewer.jsx) | Displays images at original size with extracted header metadata (dimensions, bit depth, color type, compression) |
-| `.xls`, `.xlsx` | [ExcelViewer](frontend/src/components/ExcelViewer.jsx) | Interactive Excel spreadsheet viewer using SheetJS and wolf-table with multi-sheet support, scrollable/resizable cells, Roboto font, and read-only mode |
+| File Extension | Viewer | Component |
+|----------------|--------|-----------|
+| `.html`, `.htm` | html | [LiveHTMLPreview](frontend/src/components/LiveHTMLPreview.jsx) |
+| `.json` | json | [JSONViewer](frontend/src/components/JSONViewer.jsx) |
+| `.jsonl` | jsonl | [JSONViewer](frontend/src/components/JSONViewer.jsx) (JSONL mode) |
+| `.md` | markdown | [MarkdownViewer](frontend/src/components/MarkdownViewer.jsx) |
+| `.mermaid` | mermaid | [MermaidViewer](frontend/src/components/MermaidViewer.jsx) |
+| `.research` | research | [ResearchDocument](frontend/src/components/ResearchDocument.jsx) |
+| `.jpg`, `.jpeg`, `.png`, `.gif` | image | [ImageViewer](frontend/src/components/ImageViewer.jsx) |
+| `.xls`, `.xlsx` | excel | [ExcelViewer](frontend/src/components/ExcelViewer.jsx) |
+| `.prompt` | prompt | [PromptEditor](frontend/src/components/PromptEditor.jsx) |
+| `.workflow.json` | workflow | [WorkflowVisualizer](frontend/src/components/WorkflowVisualizer.jsx) |
+| `.scbk` | scrapbook | [ScrapbookViewer](frontend/src/components/ScrapbookViewer.jsx) |
+| `.youtube`, `.videos`, `.mp4` | video | [VideoViewer](frontend/src/components/VideoViewer.jsx) |
+| `.knowledge` | knowledge | [KnowledgeViewer](frontend/src/components/KnowledgeViewer.jsx) |
+| `.pdf` | pdf | [PdfViewer](frontend/src/components/PdfViewer.jsx) |
+| `.docx`, `.doc` | docx | [DocxViewer](frontend/src/components/DocxViewer.jsx) |
+| `.requirements.json` | requirements | [RequirementsViewer](frontend/src/components/RequirementsViewer.jsx) |
+| `.artifacts.md` | artifacts | [ArtifactsForSession](frontend/src/components/ArtifactsForSession.jsx) |
+| `#imap/*` (service) | imap | [IMAPInboxViewer](frontend/src/components/IMAPInboxViewer.jsx) |
 
-## How It Works
+## Adding a New File-Extension Previewer
 
-1. **FilePreviewHandler** detects file extensions and publishes `FILE_PREVIEW_REQUEST` events to the event bus
-2. **ArtifactsPane** listens for these events, closes the filesystem drawer, and switches to the "Artifacts" tab
-3. **FilesPanel** renders the appropriate viewer component based on the file extension
-4. For unsupported file types, content is displayed as plain text with monospace formatting
+**Steps:**
+1. Create a viewer component in `frontend/src/components/` (e.g., `MyFormatViewer.jsx`)
+2. Register it in `VIEWER_COMPONENTS` in `frontend/src/components/viewerRegistry.jsx`
+3. Add default extension mappings in `BUILTIN_DEFAULTS` in `viewerRegistry.jsx`
+4. Add default extension mappings in `getDefaults()` in `backend/src/previewers/previewers.service.ts`
+5. The FilePreviewHandler and event routing work automatically — no changes needed there
+
+**Agent prompt:**
+> Add a new file previewer for `.<ext>` files:
+> 1. Create `frontend/src/components/MyViewer.jsx` with props `{ filename, projectName }`
+> 2. Register it in `VIEWER_COMPONENTS` in `frontend/src/components/viewerRegistry.jsx`
+> 3. Add to `BUILTIN_DEFAULTS` in `viewerRegistry.jsx`
+> 4. Add to `getDefaults()` in `backend/src/previewers/previewers.service.ts`
+> 5. FilePreviewHandler and routing work automatically.
+
+## Adding a New Service Previewer
+
+**Steps:**
+1. Create a viewer component in `frontend/src/components/` (e.g., `MyServiceViewer.jsx`)
+2. Register it in `VIEWER_COMPONENTS` in `viewerRegistry.jsx`
+3. Register it in `SERVICE_PREVIEWERS` in `viewerRegistry.jsx` with `viewerName`, `functions`, `displayName`
+4. Add a sidebar icon in `MinimalisticSidebar.jsx` that calls `filePreviewHandler.handlePreview('#myservice/function', currentProject)`
+5. Ensure the backing service is registered in `backend/services.json`
+
+## Adding a Context Menu Action to a Previewer
+
+**Steps:**
+1. If the action opens a modal: create the modal component and register it in `CONTEXT_MENU_MODALS` in `Filesystem.jsx`
+2. Add a `contextMenuActions` entry to the viewer in `backend/src/previewers/previewer-context-actions.json` with labels, icon, `modalComponent` name (or `__preview__` to open a file preview), params, and optional condition
+3. The context menu rendering is automatic
+
+**Agent prompt:**
+> Add a context menu action "Analyze Document" for `.pdf` files in inbox folders:
+> 1. Create `frontend/src/components/DocumentAnalysisModal.jsx` with props `{ open, onClose, filePath, projectName }`
+> 2. Register it in `CONTEXT_MENU_MODALS` in `frontend/src/components/Filesystem.jsx`
+> 3. Add a `contextMenuActions` entry to the `pdf` viewer in `backend/src/previewers/previewer-context-actions.json`
 
 The preview system is integrated with the [Interceptors](requirements-docs/prd-interceptors.md) feature to automatically refresh previews when files are modified by Claude Code.
 

@@ -250,7 +250,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
           </Tabs>
           <Box sx={{ flex: 1, overflow: 'auto' }}>
             {filesystemTabValue === 0 && (
-              <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+              <Filesystem projectName={projectName} showBackgroundInfo={showBackgroundInfo} previewersConfig={previewersConfig} />
             )}
             {checkpointsEnabled && filesystemTabValue === 1 && (
               <CheckpointsPane

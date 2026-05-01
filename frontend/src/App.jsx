@@ -28,6 +28,7 @@ import { buildExtensionMap, getViewerForFile } from './components/viewerRegistry
 import Onboarding from './components/Onboarding';
 import TechnologyRadarPage from './pages/TechnologyRadarPage';
 import { apiFetch } from './services/api';
+import { filePreviewHandler } from './services/FilePreviewHandler';
 import useMultiplexSSE from './hooks/useMultiplexSSE';
 import useStreamingSessions from './hooks/useStreamingSessions';
 import { MuxSSEProvider } from './contexts/MuxSSEContext';
@@ -1100,6 +1101,11 @@ export default function App() {
     );
   }, [previewersConfig, uiConfig?.autoFilePreviewExtensions]);
 
+  // Keep the FilePreviewHandler singleton in sync with the current extension map
+  useEffect(() => {
+    filePreviewHandler.setExtensionMap(autoPreviewExtensionMap);
+  }, [autoPreviewExtensionMap]);
+
   // Check if a file path ends with a supported preview extension
   const hasPreviewExtension = (filePath) => {
     if (!filePath) return false;
@@ -1910,7 +1916,6 @@ export default function App() {
             // Use filePreviewHandler to trigger the preview
             // This will be tolerant - if file doesn't exist, it will fail silently
             try {
-              const { filePreviewHandler } = await import('./services/FilePreviewHandler');
               filePreviewHandler.handlePreview(filePath, projectName);
             } catch (err) {
               console.warn(`Failed to restore tab for ${filePath}:`, err);
