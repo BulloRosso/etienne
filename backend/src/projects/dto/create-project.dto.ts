@@ -48,10 +48,6 @@ export class CreateProjectDto {
   agentName?: string;
 
   @IsOptional()
-  @IsArray()
-  autoFilePreviewExtensions?: Array<{ extension: string; viewer: string }>;
-
-  @IsOptional()
   @IsString()
   language?: string;
 }

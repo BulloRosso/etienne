@@ -305,6 +305,9 @@
   "wizard.copyUIDescription": "Copia impostazioni aggiuntive dell'interfaccia da un progetto esistente (opzionale):",
   "wizard.copyFromLabel": "Copia da",
   "wizard.copyFromNoneOption": "Nessuno (usa predefinito)",
+  "wizard.checkboxSpecializedRole": "Usa ruolo specializzato",
+  "wizard.checkboxConnectDataSources": "Collega sorgente/i dati (MCP)",
+  "wizard.checkboxExternalAgents": "Usa agenti esterni (protocollo A2A)",
   "wizard.errorCreateDefault": "Creazione del progetto fallita",
 
   "dashboard.headerTitle": "Etienne",

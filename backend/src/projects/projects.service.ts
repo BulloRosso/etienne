@@ -315,9 +315,6 @@ export class ProjectsService {
         if (dto.agentName && existingConfig.appBar) {
           existingConfig.appBar.title = dto.agentName;
         }
-        if (dto.autoFilePreviewExtensions && dto.autoFilePreviewExtensions.length > 0) {
-          existingConfig.autoFilePreviewExtensions = dto.autoFilePreviewExtensions;
-        }
         // Ensure intro.videos is in the auto-open documents
         const previewDocs: string[] = existingConfig.previewDocuments || [];
         if (!previewDocs.includes('intro.videos')) {
@@ -343,7 +340,7 @@ export class ProjectsService {
         showWelcomeMessage: true,
       },
       previewDocuments: ['intro.videos'],
-      autoFilePreviewExtensions: dto.autoFilePreviewExtensions || [],
+      autoFilePreviewExtensions: [],
     };
 
     await fs.writeJson(uiConfigPath, uiConfig, { spaces: 2 });

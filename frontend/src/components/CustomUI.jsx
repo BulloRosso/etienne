@@ -27,7 +27,6 @@ import {
 import { TbPlus, TbTrash, TbFolder, TbFolderOpen } from 'react-icons/tb';
 import { PiFile } from 'react-icons/pi';
 import { useTranslation } from 'react-i18next';
-import AutoFilePreviewExtensions from './AutoFilePreviewExtensions';
 import { apiFetch } from '../services/api';
 
 const CustomUI = ({ project, onSave }) => {
@@ -45,11 +44,9 @@ const CustomUI = ({ project, onSave }) => {
       showWelcomeMessage: true,
     },
     previewDocuments: [],
-    autoFilePreviewExtensions: [],
   });
 
   const [loading, setLoading] = useState(true);
-  const [registeredPreviewers, setRegisteredPreviewers] = useState([]);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [welcomeChatMessage, setWelcomeChatMessage] = useState('');
@@ -86,24 +83,12 @@ const CustomUI = ({ project, onSave }) => {
               showWelcomeMessage: data.welcomePage?.showWelcomeMessage !== false,
             },
             previewDocuments: data.previewDocuments || [],
-            autoFilePreviewExtensions: data.autoFilePreviewExtensions || [],
           });
         }
       } else {
         // If file doesn't exist (404 or other non-OK status), just use default config
         // Don't show error for missing config file
         console.log('No UI configuration found, using defaults');
-      }
-
-      // Load registered previewers
-      try {
-        const previewersRes = await apiFetch('/api/previewers/configuration');
-        if (previewersRes.ok) {
-          const previewersData = await previewersRes.json();
-          setRegisteredPreviewers(previewersData.previewers || []);
-        }
-      } catch (err) {
-        console.error('Failed to load previewers:', err);
       }
 
       // Load welcome chat message from assistant.json
@@ -584,15 +569,6 @@ const CustomUI = ({ project, onSave }) => {
           </Paper>
         ))}
       </Box>
-
-      <Divider sx={{ my: 3 }} />
-
-      {/* Auto File Preview Extensions Section */}
-      <AutoFilePreviewExtensions
-        value={config.autoFilePreviewExtensions}
-        onChange={(updated) => setConfig({ ...config, autoFilePreviewExtensions: updated })}
-        registeredPreviewers={registeredPreviewers}
-      />
 
       <Divider sx={{ my: 3 }} />
 

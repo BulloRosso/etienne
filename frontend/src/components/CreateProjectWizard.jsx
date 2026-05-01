@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,6 +15,7 @@ import {
   RadioGroup,
   FormControlLabel,
   FormControl,
+  Checkbox,
   Select,
   MenuItem,
   InputLabel,
@@ -26,50 +27,56 @@ import { apiAxios } from '../services/api';
 import SkillsSelector from './SkillsSelector';
 import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
-import AutoFilePreviewExtensions from './AutoFilePreviewExtensions';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
-const getWizardSteps = (t) => [
+const getAllWizardSteps = (t) => [
   {
+    id: 'projectName',
     label: t('wizard.stepProjectName'),
     image: '/project-wizard-step-1.png',
     benefitTitle: t('wizard.benefitTitleStep1'),
     benefitDescription: t('wizard.benefitDescStep1')
   },
   {
+    id: 'missionBrief',
     label: t('wizard.stepMissionBrief'),
     image: '/project-wizard-step-2.png',
     benefitTitle: t('wizard.benefitTitleStep2'),
     benefitDescription: t('wizard.benefitDescStep2')
   },
   {
+    id: 'agentRole',
     label: t('wizard.stepAgentRole'),
     image: '/project-wizard-step-3.png',
     benefitTitle: t('wizard.benefitTitleStep3'),
     benefitDescription: t('wizard.benefitDescStep3')
   },
   {
+    id: 'skills',
     label: t('wizard.stepSkills'),
     image: '/project-wizard-step-4.png',
     benefitTitle: t('wizard.benefitTitleStep4'),
     benefitDescription: t('wizard.benefitDescStep4')
   },
   {
+    id: 'tools',
     label: t('wizard.stepTools'),
     image: '/project-wizard-step-5.png',
     benefitTitle: t('wizard.benefitTitleStep5'),
     benefitDescription: t('wizard.benefitDescStep5')
   },
   {
+    id: 'externalAgents',
     label: t('wizard.stepExternalAgents'),
     image: '/project-wizard-step-6.png',
     benefitTitle: t('wizard.benefitTitleStep6'),
     benefitDescription: t('wizard.benefitDescStep6')
   },
   {
+    id: 'customizeUI',
     label: t('wizard.stepCustomizeUI'),
     image: '/project-wizard-step-7.png',
     benefitTitle: t('wizard.benefitTitleStep7'),
@@ -87,6 +94,11 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
 
   // Step 1: Project Name
   const [projectName, setProjectName] = useState('');
+
+  // Step 1: Feature toggles (checkboxes)
+  const [useSpecializedRole, setUseSpecializedRole] = useState(false);
+  const [connectDataSources, setConnectDataSources] = useState(false);
+  const [useExternalAgents, setUseExternalAgents] = useState(false);
 
   // Step 2: Mission Brief
   const [missionBrief, setMissionBrief] = useState('');
@@ -118,8 +130,6 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   const [projectsWithUI, setProjectsWithUI] = useState([]);
   const [agentName, setAgentName] = useState('Etienne');
   const [agentNameLoading, setAgentNameLoading] = useState(false);
-  const [registeredPreviewers, setRegisteredPreviewers] = useState([]);
-  const [autoFilePreviewExtensions, setAutoFilePreviewExtensions] = useState([]);
 
   // Load data when dialog opens
   useEffect(() => {
@@ -130,13 +140,15 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       fetchMcpRegistry();
       fetchA2ARegistry();
       fetchProjectsWithUI();
-      fetchPreviewers();
     }
   }, [open]);
 
   const resetWizard = () => {
     setActiveStep(0);
     setProjectName('');
+    setUseSpecializedRole(false);
+    setConnectDataSources(false);
+    setUseExternalAgents(false);
     setMissionBrief('');
     setRoleType('registry');
     setSelectedRoleId('');
@@ -146,7 +158,6 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     setSelectedAgents([]);
     setCopyFromProject('');
     setAgentName('Etienne');
-    setAutoFilePreviewExtensions([]);
     setError(null);
   };
 
@@ -216,15 +227,6 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     }
   };
 
-  const fetchPreviewers = async () => {
-    try {
-      const response = await apiAxios.get('/api/previewers/configuration');
-      setRegisteredPreviewers(response.data.previewers || []);
-    } catch (error) {
-      console.error('Failed to fetch previewers:', error);
-    }
-  };
-
   const fetchProjectsWithUI = async () => {
     try {
       const response = await apiAxios.get('/api/projects/with-ui-config');
@@ -235,7 +237,23 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     }
   };
 
-  const WIZARD_STEPS = getWizardSteps(t);
+  const ALL_STEPS = useMemo(() => getAllWizardSteps(t), [t]);
+
+  const visibleSteps = useMemo(() => {
+    return ALL_STEPS.filter(step => {
+      if (step.id === 'agentRole' && !useSpecializedRole) return false;
+      if (step.id === 'tools' && !connectDataSources) return false;
+      if (step.id === 'externalAgents' && !useExternalAgents) return false;
+      return true;
+    });
+  }, [ALL_STEPS, useSpecializedRole, connectDataSources, useExternalAgents]);
+
+  // Clamp activeStep when visible steps shrink (e.g. user unchecks a checkbox)
+  useEffect(() => {
+    if (activeStep >= visibleSteps.length) {
+      setActiveStep(visibleSteps.length - 1);
+    }
+  }, [visibleSteps.length]);
 
   const validateProjectName = (name) => {
     if (!name) return t('wizard.validationRequired');
@@ -271,17 +289,18 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   };
 
   const canProceed = () => {
-    switch (activeStep) {
-      case 0:
+    const currentStepId = visibleSteps[activeStep]?.id;
+    switch (currentStepId) {
+      case 'projectName':
         return !validateProjectName(projectName);
-      case 1:
+      case 'missionBrief':
         return missionBrief.trim().length > 0;
       default:
         return true;
     }
   };
 
-  const isLastStep = activeStep === WIZARD_STEPS.length - 1;
+  const isLastStep = activeStep === visibleSteps.length - 1;
 
   const handleCreate = async () => {
     setCreating(true);
@@ -291,17 +310,18 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       const dto = {
         projectName,
         missionBrief,
-        agentRole: roleType === 'registry' && selectedRoleId
-          ? { type: 'registry', roleId: selectedRoleId }
-          : roleType === 'custom' && customRoleContent.trim()
-            ? { type: 'custom', customContent: customRoleContent }
-            : undefined,
+        agentRole: !useSpecializedRole
+          ? { type: 'registry', roleId: 'general-assistant' }
+          : roleType === 'registry' && selectedRoleId
+            ? { type: 'registry', roleId: selectedRoleId }
+            : roleType === 'custom' && customRoleContent.trim()
+              ? { type: 'custom', customContent: customRoleContent }
+              : { type: 'registry', roleId: 'general-assistant' },
         selectedSkills: selectedOptionalSkills,
         mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
-        a2aAgents: selectedAgents.length > 0 ? selectedAgents : undefined,
+        a2aAgents: useExternalAgents && selectedAgents.length > 0 ? selectedAgents : undefined,
         copyUIFrom: copyFromProject || undefined,
         agentName: agentName || 'Etienne',
-        autoFilePreviewExtensions: autoFilePreviewExtensions.length > 0 ? autoFilePreviewExtensions : undefined,
         language: i18n.language,
       };
 
@@ -319,9 +339,9 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     }
   };
 
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0: // Project Name
+  const renderStepContent = (stepId) => {
+    switch (stepId) {
+      case 'projectName': {
         const nameError = projectName ? validateProjectName(projectName) : null;
         return (
           <Box sx={{ mt: 2 }}>
@@ -339,10 +359,40 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
               error={!!nameError}
               helperText={nameError || t('wizard.projectNameHelperText')}
             />
+            <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={useSpecializedRole}
+                    onChange={(e) => setUseSpecializedRole(e.target.checked)}
+                  />
+                }
+                label={t('wizard.checkboxSpecializedRole')}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={connectDataSources}
+                    onChange={(e) => setConnectDataSources(e.target.checked)}
+                  />
+                }
+                label={t('wizard.checkboxConnectDataSources')}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={useExternalAgents}
+                    onChange={(e) => setUseExternalAgents(e.target.checked)}
+                  />
+                }
+                label={t('wizard.checkboxExternalAgents')}
+              />
+            </Box>
           </Box>
         );
+      }
 
-      case 1: // Mission Brief
+      case 'missionBrief':
         return (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', mt: 2 }}>
             <Box sx={{ flex: 1, border: '1px solid #ddd', borderRadius: 1 }}>
@@ -364,7 +414,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           </Box>
         );
 
-      case 2: // Agent Role
+      case 'agentRole':
         return (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', mt: 2 }}>
             <FormControl component="fieldset" sx={{ mb: 2 }}>
@@ -428,7 +478,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           </Box>
         );
 
-      case 3: // Skills
+      case 'skills':
         return (
           <Box sx={{ mt: 2 }}>
             {skillsLoading ? (
@@ -444,7 +494,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           </Box>
         );
 
-      case 4: // MCP Tools
+      case 'tools':
         return (
           <Box sx={{ mt: 2 }}>
             {mcpLoading ? (
@@ -460,7 +510,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           </Box>
         );
 
-      case 5: // External Agents
+      case 'externalAgents':
         return (
           <Box sx={{ mt: 2 }}>
             {agentsLoading ? (
@@ -475,7 +525,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           </Box>
         );
 
-      case 6: // Customize UI
+      case 'customizeUI':
         return (
           <Box sx={{ mt: 2 }}>
             <Box sx={{ mb: 3 }}>
@@ -518,14 +568,6 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 </FormControl>
               </Box>
             )}
-
-            <Box sx={{ mt: 3 }}>
-              <AutoFilePreviewExtensions
-                value={autoFilePreviewExtensions}
-                onChange={setAutoFilePreviewExtensions}
-                registeredPreviewers={registeredPreviewers}
-              />
-            </Box>
           </Box>
         );
 
@@ -539,14 +581,14 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {t('wizard.dialogTitle')}
         <Typography variant="body2" color="text.secondary">
-          {t('wizard.stepIndicator', { current: activeStep + 1, total: WIZARD_STEPS.length })}
+          {t('wizard.stepIndicator', { current: activeStep + 1, total: visibleSteps.length })}
         </Typography>
       </DialogTitle>
 
       <DialogContent>
         <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
-          {WIZARD_STEPS.map((step) => (
-            <Step key={step.label}>
+          {visibleSteps.map((step) => (
+            <Step key={step.id}>
               <StepLabel>{step.label}</StepLabel>
             </Step>
           ))}
@@ -562,8 +604,8 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           {/* Left: Image */}
           <Box sx={{ width: 400, flexShrink: 0, display: 'flex', alignItems: 'center' }}>
             <img
-              src={WIZARD_STEPS[activeStep].image}
-              alt={WIZARD_STEPS[activeStep].label}
+              src={visibleSteps[activeStep].image}
+              alt={visibleSteps[activeStep].label}
               style={{
                 width: '100%',
                 height: 'auto',
@@ -577,14 +619,14 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           {/* Right: Benefit + Controls */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
-              {WIZARD_STEPS[activeStep].benefitTitle}
+              {visibleSteps[activeStep].benefitTitle}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {WIZARD_STEPS[activeStep].benefitDescription}
+              {visibleSteps[activeStep].benefitDescription}
             </Typography>
 
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-              {renderStepContent(activeStep)}
+              {renderStepContent(visibleSteps[activeStep].id)}
             </Box>
           </Box>
         </Box>
@@ -610,8 +652,8 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 handleCreate();
               } else {
                 const nextStep = activeStep + 1;
-                // When entering step 7 (index 6), generate agent name
-                if (nextStep === 6) {
+                // When entering the Customize UI step, generate agent name
+                if (visibleSteps[nextStep]?.id === 'customizeUI') {
                   await generateAgentNameForStep7();
                 }
                 setActiveStep(nextStep);

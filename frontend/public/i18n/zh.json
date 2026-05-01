@@ -304,6 +304,9 @@
   "wizard.copyUIDescription": "从现有项目复制其他界面设置（可选）：",
   "wizard.copyFromLabel": "复制自",
   "wizard.copyFromNoneOption": "无（使用默认值）",
+  "wizard.checkboxSpecializedRole": "使用专业角色",
+  "wizard.checkboxConnectDataSources": "连接数据源 (MCP)",
+  "wizard.checkboxExternalAgents": "使用外部代理 (A2A 协议)",
   "wizard.errorCreateDefault": "创建项目失败",
 
   "dashboard.headerTitle": "Etienne",
