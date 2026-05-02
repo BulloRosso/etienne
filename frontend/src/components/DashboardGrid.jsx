@@ -5,9 +5,11 @@ import { TbDeviceAirtag } from 'react-icons/tb';
 import { VscServerProcess } from 'react-icons/vsc';
 import { RiRobot2Line } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 
 const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic', fluid = false, hideHeader = false }) => {
   const { t } = useTranslation(["dashboard","common"]);
+  const { isMinimalistic } = useUxMode();
   const dashboardItems = [
     // 1st row
     {
@@ -188,7 +190,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       )}
 
       {/* Logout Tile */}
-      {user && (
+      {user && !isMinimalistic && (
         <Box sx={{ px: 2, pb: 1 }}>
           <Paper
             elevation={3}
@@ -339,7 +341,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: isMinimalistic ? 'flex-start' : 'center',
             gap: 3,
             px: 2,
             py: 1.5,
