@@ -576,9 +576,9 @@ export default function IMAPInboxViewer({ servicePath, projectName }) {
                     sx={{
                       fontSize: '0.75rem',
                       cursor: 'pointer',
-                      bgcolor: '#fff',
+                      bgcolor: isDark ? '#444' : '#fff',
                       '& .MuiChip-icon': { ml: '8px' },
-                      '&:hover': { borderColor: '#1976d2', backgroundColor: '#e3f2fd !important' },
+                      '&:hover': { borderColor: '#1976d2', backgroundColor: isDark ? '#1a3a5c !important' : '#e3f2fd !important' },
                     }}
                   />
                 ))}
@@ -596,9 +596,9 @@ export default function IMAPInboxViewer({ servicePath, projectName }) {
                       fontSize: '0.75rem',
                       cursor: 'pointer',
                       fontWeight: 600,
-                      bgcolor: '#fff',
+                      bgcolor: isDark ? '#444' : '#fff',
                       '& .MuiChip-icon': { ml: '8px' },
-                      '&:hover': { borderColor: '#1976d2', backgroundColor: '#e3f2fd !important' },
+                      '&:hover': { borderColor: '#1976d2', backgroundColor: isDark ? '#1a3a5c !important' : '#e3f2fd !important' },
                     }}
                   />
                 )}
@@ -609,14 +609,17 @@ export default function IMAPInboxViewer({ servicePath, projectName }) {
             {selectedMessage.html ? (
               <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
                 <iframe
-                  srcDoc={selectedMessage.html}
+                  srcDoc={isDark
+                    ? `<style>html,body{background:#2c2c2c;color:#e0e0e0}a{color:#6ab0f3}</style>${selectedMessage.html}`
+                    : selectedMessage.html
+                  }
                   sandbox=""
                   title="Email preview"
                   style={{
                     width: '100%',
                     height: '100%',
                     border: 'none',
-                    backgroundColor: '#fff',
+                    backgroundColor: isDark ? '#2c2c2c' : '#f0eee6',
                   }}
                 />
               </Box>
