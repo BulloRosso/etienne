@@ -16,9 +16,20 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const { t } = useTranslation(["filesPanel","common"]);
   const { mode: themeMode } = useThemeMode();
   const { isMinimalistic } = useUxMode();
-  const [activeTab, setActiveTab] = useState(0);
+  const { getActiveTab, setActiveTab: storeSetActiveTab, getVisibleIndices, setVisibleIndices: storeSetVisibleIndices } = useTabStore();
+  const [activeTab, setActiveTabLocal] = useState(() => getActiveTab(projectName));
   const [anchorEl, setAnchorEl] = useState(null);
-  const [visibleIndices, setVisibleIndices] = useState([]);
+  const [visibleIndices, setVisibleIndicesLocal] = useState(() => getVisibleIndices(projectName));
+
+  const setActiveTab = (val) => {
+    setActiveTabLocal(val);
+    storeSetActiveTab(projectName, val);
+  };
+
+  const setVisibleIndices = (val) => {
+    setVisibleIndicesLocal(val);
+    storeSetVisibleIndices(projectName, val);
+  };
   const prevFilesRef = React.useRef([]);
   const MAX_VISIBLE_TABS = 6;
 
