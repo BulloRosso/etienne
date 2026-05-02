@@ -48,6 +48,7 @@ i18n
       'webHooksTab', 'welcome', 'wizard', 'workflowVisualizer',
     ],
     defaultNS: 'common',
+    fallbackNS: 'common',
     backend: {
       loadPath: '/i18n/{{lng}}/{{ns}}.json',
     },
