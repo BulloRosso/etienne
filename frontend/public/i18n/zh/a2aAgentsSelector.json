@@ -1,0 +1,6 @@
+{
+  "agentsSelected": "已选择 {{count}} 个智能体",
+  "description": "选择要在此项目中使用的外部 A2A 智能体。",
+  "moreSkills": "+{{count}} 更多",
+  "noAgentsAvailable": "注册表中暂无可用的外部智能体。"
+}

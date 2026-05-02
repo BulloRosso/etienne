@@ -1,0 +1,12 @@
+{
+  "empty": "此会话中尚未创建任何工件。",
+  "filterCategories": "过滤类别",
+  "filterCode": "代码",
+  "filterData": "数据文件",
+  "filterOffice": "办公文档",
+  "filterPlaceholder": "过滤...",
+  "noMatches": "没有工件与当前过滤器匹配。",
+  "sortAlpha": "A-Z",
+  "sortNewest": "最新优先",
+  "title": "会话工件"
+}

@@ -1,0 +1,9 @@
+{
+  "description": "Mappa le estensioni dei file ai visualizzatori di anteprima. I valori predefiniti del sistema sono mostrati sotto. Clicca su un chip per modificarlo, o eliminalo per disabilitare quell'estensione per questo progetto.",
+  "extension": "Estensione",
+  "extensionLabel": "Estensione",
+  "extensionPlaceholder": ".csv",
+  "title": "Estensioni file per anteprima automatica",
+  "viewer": "Visualizzatore",
+  "viewerLabel": "Visualizzatore"
+}

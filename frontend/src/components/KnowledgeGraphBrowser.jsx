@@ -235,7 +235,7 @@ Now, please extract entities and relationships from the following text:
 [INPUT_TEXT_PLACEHOLDER]`;
 
 export default function KnowledgeGraphBrowser({ project, useGraphLayer }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["knowledgeGraph","common"]);
   const { mode: themeMode } = useThemeMode();
   const [currentTab, setCurrentTab] = useState(0);
   const [similaritySearchQuery, setSimilaritySearchQuery] = useState('');
@@ -712,7 +712,7 @@ SELECT ?document WHERE {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <Typography color="text.secondary">
-          {t('knowledgeGraph.noProject')}
+          {t('knowledgeGraph:noProject')}
         </Typography>
       </Box>
     );
@@ -723,12 +723,12 @@ SELECT ?document WHERE {
 
       {/* Tabs */}
       <Tabs value={currentTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tab label={t('knowledgeGraph.tabSimilaritySearch')} />
-        {useGraphLayer && <Tab label={t('knowledgeGraph.tabNaturalLanguage')} />}
-        {useGraphLayer && <Tab label={t('knowledgeGraph.tabSparql')} />}
-        <Tab label={t('knowledgeGraph.tabUploadData')} />
-        <Tab label={t('knowledgeGraph.tabKnowledgeStatistics')} />
-        {useGraphLayer && <Tab label={t('knowledgeGraph.tabEntities')} />}
+        <Tab label={t('knowledgeGraph:tabSimilaritySearch')} />
+        {useGraphLayer && <Tab label={t('knowledgeGraph:tabNaturalLanguage')} />}
+        {useGraphLayer && <Tab label={t('knowledgeGraph:tabSparql')} />}
+        <Tab label={t('knowledgeGraph:tabUploadData')} />
+        <Tab label={t('knowledgeGraph:tabKnowledgeStatistics')} />
+        {useGraphLayer && <Tab label={t('knowledgeGraph:tabEntities')} />}
       </Tabs>
 
       {/* Tab Content */}
@@ -737,14 +737,14 @@ SELECT ?document WHERE {
         {currentTab === 0 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('knowledgeGraph.similarityDescription')}
+              {t('knowledgeGraph:similarityDescription')}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
               <TextField
                 size="small"
                 fullWidth
-                placeholder={t('knowledgeGraph.similarityPlaceholder')}
+                placeholder={t('knowledgeGraph:similarityPlaceholder')}
                 value={similaritySearchQuery}
                 onChange={(e) => setSimilaritySearchQuery(e.target.value)}
                 onKeyPress={(e) => {
@@ -770,16 +770,16 @@ SELECT ?document WHERE {
               return (
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 2 }}>
-                    {t('knowledgeGraph.similarityResultsTitle', { count: filteredResults.length })}
+                    {t('knowledgeGraph:similarityResultsTitle', { count: filteredResults.length })}
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table>
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph.columnDocumentId')}</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph.columnContentPreview')}</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph.columnSimilarity')}</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph.columnGraphLayer')}</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph:columnDocumentId')}</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph:columnContentPreview')}</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph:columnSimilarity')}</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>{t('knowledgeGraph:columnGraphLayer')}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -830,14 +830,14 @@ SELECT ?document WHERE {
         {useGraphLayer && currentTab === 1 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('knowledgeGraph.naturalLanguageDescription')}
+              {t('knowledgeGraph:naturalLanguageDescription')}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
               <TextField
                 size="small"
                 fullWidth
-                placeholder={t('knowledgeGraph.naturalLanguagePlaceholder')}
+                placeholder={t('knowledgeGraph:naturalLanguagePlaceholder')}
                 value={naturalLanguageQuery}
                 onChange={(e) => setNaturalLanguageQuery(e.target.value)}
                 onKeyPress={(e) => {
@@ -868,23 +868,23 @@ SELECT ?document WHERE {
             {/* Example queries */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                {t('knowledgeGraph.exampleQueries')}
+                {t('knowledgeGraph:exampleQueries')}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 <Chip
-                  label={t('knowledgeGraph.example1')}
+                  label={t('knowledgeGraph:example1')}
                   size="small"
-                  onClick={() => setNaturalLanguageQuery(t('knowledgeGraph.example1'))}
+                  onClick={() => setNaturalLanguageQuery(t('knowledgeGraph:example1'))}
                 />
                 <Chip
-                  label={t('knowledgeGraph.example2')}
+                  label={t('knowledgeGraph:example2')}
                   size="small"
-                  onClick={() => setNaturalLanguageQuery(t('knowledgeGraph.example2'))}
+                  onClick={() => setNaturalLanguageQuery(t('knowledgeGraph:example2'))}
                 />
                 <Chip
-                  label={t('knowledgeGraph.example3')}
+                  label={t('knowledgeGraph:example3')}
                   size="small"
-                  onClick={() => setNaturalLanguageQuery(t('knowledgeGraph.example3'))}
+                  onClick={() => setNaturalLanguageQuery(t('knowledgeGraph:example3'))}
                 />
               </Box>
             </Box>
@@ -895,7 +895,7 @@ SELECT ?document WHERE {
         {useGraphLayer && currentTab === 2 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('knowledgeGraph.sparqlDescription')}
+              {t('knowledgeGraph:sparqlDescription')}
             </Typography>
 
             <Box sx={{ mb: 2, height: '300px', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
@@ -920,7 +920,7 @@ SELECT ?document WHERE {
               disabled={loading || !sparqlQuery.trim()}
               startIcon={loading ? <CircularProgress size={16} /> : <PlayArrow />}
             >
-              {t('knowledgeGraph.executeQuery')}
+              {t('knowledgeGraph:executeQuery')}
             </Button>
           </Box>
         )}
@@ -929,7 +929,7 @@ SELECT ?document WHERE {
         {currentTab === (useGraphLayer ? 3 : 1) && (
           <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('knowledgeGraph.uploadDescription')}
+              {t('knowledgeGraph:uploadDescription')}
             </Typography>
 
             {!uploadSuccess ? (
@@ -957,7 +957,7 @@ SELECT ?document WHERE {
                     onClick={() => setMarkdownContent('')}
                     startIcon={<Close />}
                   >
-                    {t('knowledgeGraph.clearContent')}
+                    {t('knowledgeGraph:clearContent')}
                   </Button>
                   <Button
                     variant="contained"
@@ -965,28 +965,28 @@ SELECT ?document WHERE {
                     disabled={loading || !markdownContent.trim()}
                     startIcon={loading ? <CircularProgress size={16} /> : <Upload />}
                   >
-                    {t('knowledgeGraph.uploadToVectorStore')}
+                    {t('knowledgeGraph:uploadToVectorStore')}
                   </Button>
                 </Box>
               </>
             ) : (
               <Box>
                 <Alert severity="success" sx={{ mb: 3 }}>
-                  {t('knowledgeGraph.uploadSuccess')}
+                  {t('knowledgeGraph:uploadSuccess')}
                 </Alert>
 
                 {extractedEntities && (
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Typography variant="h6" sx={{ mb: 2 }}>
-                      {t('knowledgeGraph.extractedEntities')}
+                      {t('knowledgeGraph:extractedEntities')}
                     </Typography>
                     <TableContainer>
                       <Table size="small">
                         <TableHead>
                           <TableRow>
-                            <TableCell>{t('knowledgeGraph.entityType')}</TableCell>
-                            <TableCell align="right">{t('knowledgeGraph.count')}</TableCell>
-                            <TableCell>{t('knowledgeGraph.examples')}</TableCell>
+                            <TableCell>{t('knowledgeGraph:entityType')}</TableCell>
+                            <TableCell align="right">{t('knowledgeGraph:count')}</TableCell>
+                            <TableCell>{t('knowledgeGraph:examples')}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -1008,7 +1008,7 @@ SELECT ?document WHERE {
                   onClick={handleResetUpload}
                   startIcon={<Close />}
                 >
-                  {t('knowledgeGraph.uploadAnother')}
+                  {t('knowledgeGraph:uploadAnother')}
                 </Button>
               </Box>
             )}
@@ -1022,7 +1022,7 @@ SELECT ?document WHERE {
               <Grid item xs={12} md={useGraphLayer ? 6 : 12}>
                 <Paper sx={{ p: 3 }}>
                   <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-                    {t('knowledgeGraph.statsVectorStore')}
+                    {t('knowledgeGraph:statsVectorStore')}
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Box>
@@ -1030,7 +1030,7 @@ SELECT ?document WHERE {
                         {stats.vectorStore?.documentCount || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {t('knowledgeGraph.statsDocuments')}
+                        {t('knowledgeGraph:statsDocuments')}
                       </Typography>
                     </Box>
                     <Box>
@@ -1038,7 +1038,7 @@ SELECT ?document WHERE {
                         {stats.vectorStore?.dimension || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {t('knowledgeGraph.statsEmbeddingDimensions')}
+                        {t('knowledgeGraph:statsEmbeddingDimensions')}
                       </Typography>
                     </Box>
                   </Box>
@@ -1049,7 +1049,7 @@ SELECT ?document WHERE {
                 <Grid item xs={12} md={6}>
                   <Paper sx={{ p: 3 }}>
                     <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-                      {t('knowledgeGraph.statsKnowledgeGraph')}
+                      {t('knowledgeGraph:statsKnowledgeGraph')}
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <Box>
@@ -1057,7 +1057,7 @@ SELECT ?document WHERE {
                           {stats.knowledgeGraph?.totalQuads || 0}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {t('knowledgeGraph.statsRdfTriples')}
+                          {t('knowledgeGraph:statsRdfTriples')}
                         </Typography>
                       </Box>
                       <Box>
@@ -1065,7 +1065,7 @@ SELECT ?document WHERE {
                           {stats.knowledgeGraph?.entityCount || 0}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {t('knowledgeGraph.statsTotalEntities')}
+                          {t('knowledgeGraph:statsTotalEntities')}
                         </Typography>
                       </Box>
                     </Box>
@@ -1077,14 +1077,14 @@ SELECT ?document WHERE {
                 <Grid item xs={12}>
                   <Paper sx={{ p: 3 }}>
                     <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                      {t('knowledgeGraph.statsEntityTypes')}
+                      {t('knowledgeGraph:statsEntityTypes')}
                     </Typography>
                     <TableContainer>
                       <Table>
                         <TableHead>
                           <TableRow>
-                            <TableCell>{t('knowledgeGraph.entityType')}</TableCell>
-                            <TableCell align="right">{t('knowledgeGraph.count')}</TableCell>
+                            <TableCell>{t('knowledgeGraph:entityType')}</TableCell>
+                            <TableCell align="right">{t('knowledgeGraph:count')}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -1109,7 +1109,7 @@ SELECT ?document WHERE {
               <Grid item xs={12}>
                 <Paper sx={{ p: 3 }}>
                   <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                    {t('knowledgeGraph.statsVectorStoreDocuments')}
+                    {t('knowledgeGraph:statsVectorStoreDocuments')}
                   </Typography>
                   <VectorStoreItems project={project} />
                 </Paper>
@@ -1123,28 +1123,28 @@ SELECT ?document WHERE {
           <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="body2" color="text.secondary">
-                {t('knowledgeGraph.entitiesDescription')}
+                {t('knowledgeGraph:entitiesDescription')}
               </Typography>
               <Button
                 variant="outlined"
                 size="small"
                 onClick={handleUseSampleSchema}
               >
-                {t('knowledgeGraph.useSampleSchema')}
+                {t('knowledgeGraph:useSampleSchema')}
               </Button>
             </Box>
 
             {/* Sub-tabs for Schema and Extraction Prompt */}
             <Tabs value={entitiesSubTab} onChange={(e, v) => setEntitiesSubTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-              <Tab label={t('knowledgeGraph.tabEntitySchema')} />
-              <Tab label={t('knowledgeGraph.tabExtractionPrompt')} />
+              <Tab label={t('knowledgeGraph:tabEntitySchema')} />
+              <Tab label={t('knowledgeGraph:tabExtractionPrompt')} />
             </Tabs>
 
             {/* Entity Schema Editor */}
             {entitiesSubTab === 0 && (
               <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {t('knowledgeGraph.schemaDescription')}
+                  {t('knowledgeGraph:schemaDescription')}
                 </Typography>
 
                 <Box sx={{ mb: 2, flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, minHeight: 0 }}>
@@ -1171,11 +1171,11 @@ SELECT ?document WHERE {
                     disabled={savingSchema}
                     startIcon={savingSchema ? <CircularProgress size={16} /> : null}
                   >
-                    {t('knowledgeGraph.saveSchema')}
+                    {t('knowledgeGraph:saveSchema')}
                   </Button>
                   {schemaSuccess && (
                     <Alert severity="success" sx={{ py: 0 }}>
-                      {t('knowledgeGraph.schemaSaved')}
+                      {t('knowledgeGraph:schemaSaved')}
                     </Alert>
                   )}
                 </Box>
@@ -1186,7 +1186,7 @@ SELECT ?document WHERE {
             {entitiesSubTab === 1 && (
               <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {t('knowledgeGraph.promptDescription')}
+                  {t('knowledgeGraph:promptDescription')}
                 </Typography>
 
                 <Box sx={{ mb: 2, flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, minHeight: 0 }}>
@@ -1213,11 +1213,11 @@ SELECT ?document WHERE {
                     disabled={savingSchema}
                     startIcon={savingSchema ? <CircularProgress size={16} /> : null}
                   >
-                    {t('knowledgeGraph.savePrompt')}
+                    {t('knowledgeGraph:savePrompt')}
                   </Button>
                   {schemaSuccess && (
                     <Alert severity="success" sx={{ py: 0 }}>
-                      {t('knowledgeGraph.promptSaved')}
+                      {t('knowledgeGraph:promptSaved')}
                     </Alert>
                   )}
                 </Box>
@@ -1253,10 +1253,10 @@ SELECT ?document WHERE {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Description />
                     <Typography variant="h6">
-                      {t('knowledgeGraph.sourceDocument', { entity: `${selectedDocument.entityType}/${selectedDocument.entityId}` })}
+                      {t('knowledgeGraph:sourceDocument', { entity: `${selectedDocument.entityType}/${selectedDocument.entityId}` })}
                     </Typography>
                   </Box>
-                  <IconButton size="small" onClick={() => setSelectedDocument(null)} title={t('knowledgeGraph.closeDocumentView')}>
+                  <IconButton size="small" onClick={() => setSelectedDocument(null)} title={t('knowledgeGraph:closeDocumentView')}>
                     <Close />
                   </IconButton>
                 </Box>
@@ -1289,9 +1289,9 @@ SELECT ?document WHERE {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #ddd' }}>
-                      <th style={{ padding: '8px', textAlign: 'left' }}>{t('knowledgeGraph.columnSubject')}</th>
-                      <th style={{ padding: '8px', textAlign: 'left' }}>{t('knowledgeGraph.columnPredicate')}</th>
-                      <th style={{ padding: '8px', textAlign: 'left' }}>{t('knowledgeGraph.columnObject')}</th>
+                      <th style={{ padding: '8px', textAlign: 'left' }}>{t('knowledgeGraph:columnSubject')}</th>
+                      <th style={{ padding: '8px', textAlign: 'left' }}>{t('knowledgeGraph:columnPredicate')}</th>
+                      <th style={{ padding: '8px', textAlign: 'left' }}>{t('knowledgeGraph:columnObject')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1317,7 +1317,7 @@ SELECT ?document WHERE {
 
         {useGraphLayer && (currentTab === 1 || currentTab === 2) && results && results.length === 0 && (
           <Alert severity="info" sx={{ mt: 3 }}>
-            {t('knowledgeGraph.noResults')}
+            {t('knowledgeGraph:noResults')}
           </Alert>
         )}
       </Box>

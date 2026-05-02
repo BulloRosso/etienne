@@ -97,7 +97,7 @@ const getGroupStyle = (group) => EVENT_GROUP_CONFIG[group] || {
 };
 
 const EventHandling = ({ selectedProject, onClose }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["eventHandling","common"]);
   const mux = useMuxSSE();
   const [rules, setRules] = useState([]);
   const [liveEvents, setLiveEvents] = useState([]);
@@ -157,12 +157,12 @@ const EventHandling = ({ selectedProject, onClose }) => {
   const eventGroups = ['Filesystem', 'MQTT', 'Scheduling', 'Claude Code', 'Webhook', 'Email'];
 
   const eventGroupLabels = {
-    'Filesystem': t('eventHandling.eventGroupFilesystem'),
-    'MQTT': t('eventHandling.eventGroupMQTT'),
-    'Scheduling': t('eventHandling.eventGroupScheduling'),
-    'Claude Code': t('eventHandling.eventGroupClaudeCode'),
-    'Webhook': t('eventHandling.eventGroupWebhook'),
-    'Email': t('eventHandling.eventGroupEmail'),
+    'Filesystem': t('eventHandling:eventGroupFilesystem'),
+    'MQTT': t('eventHandling:eventGroupMQTT'),
+    'Scheduling': t('eventHandling:eventGroupScheduling'),
+    'Claude Code': t('eventHandling:eventGroupClaudeCode'),
+    'Webhook': t('eventHandling:eventGroupWebhook'),
+    'Email': t('eventHandling:eventGroupEmail'),
   };
 
   // Define supported event names per group
@@ -176,22 +176,22 @@ const EventHandling = ({ selectedProject, onClose }) => {
   };
 
   const eventNameLabels = {
-    'File Created': t('eventHandling.eventFileCreated'),
-    'File Modified': t('eventHandling.eventFileModified'),
-    'File Deleted': t('eventHandling.eventFileDeleted'),
-    'Directory Created': t('eventHandling.eventDirectoryCreated'),
-    'Directory Deleted': t('eventHandling.eventDirectoryDeleted'),
-    'Message Received': t('eventHandling.eventMessageReceived'),
-    'Connection Established': t('eventHandling.eventConnectionEstablished'),
-    'Connection Lost': t('eventHandling.eventConnectionLost'),
-    'Task Scheduled': t('eventHandling.eventTaskScheduled'),
-    'Task Executed': t('eventHandling.eventTaskExecuted'),
-    'Task Failed': t('eventHandling.eventTaskFailed'),
-    'Session Started': t('eventHandling.eventSessionStarted'),
-    'Session Ended': t('eventHandling.eventSessionEnded'),
-    'Tool Executed': t('eventHandling.eventToolExecuted'),
-    'Webhook Received': t('eventHandling.eventWebhookReceived'),
-    'Email Received': t('eventHandling.eventEmailReceived'),
+    'File Created': t('eventHandling:eventFileCreated'),
+    'File Modified': t('eventHandling:eventFileModified'),
+    'File Deleted': t('eventHandling:eventFileDeleted'),
+    'Directory Created': t('eventHandling:eventDirectoryCreated'),
+    'Directory Deleted': t('eventHandling:eventDirectoryDeleted'),
+    'Message Received': t('eventHandling:eventMessageReceived'),
+    'Connection Established': t('eventHandling:eventConnectionEstablished'),
+    'Connection Lost': t('eventHandling:eventConnectionLost'),
+    'Task Scheduled': t('eventHandling:eventTaskScheduled'),
+    'Task Executed': t('eventHandling:eventTaskExecuted'),
+    'Task Failed': t('eventHandling:eventTaskFailed'),
+    'Session Started': t('eventHandling:eventSessionStarted'),
+    'Session Ended': t('eventHandling:eventSessionEnded'),
+    'Tool Executed': t('eventHandling:eventToolExecuted'),
+    'Webhook Received': t('eventHandling:eventWebhookReceived'),
+    'Email Received': t('eventHandling:eventEmailReceived'),
   };
 
   // Load rules from API
@@ -487,7 +487,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
   };
 
   const handleDeleteRule = async (ruleId) => {
-    if (!confirm(t('eventHandling.confirmDeleteRule'))) return;
+    if (!confirm(t('eventHandling:confirmDeleteRule'))) return;
 
     try {
       await apiAxios.delete(`http://localhost:6060/api/rules/${selectedProject}/${ruleId}`);
@@ -545,7 +545,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
   };
 
   const handleDeletePrompt = async (promptId) => {
-    if (!confirm(t('eventHandling.confirmDeletePrompt'))) return;
+    if (!confirm(t('eventHandling:confirmDeletePrompt'))) return;
 
     try {
       await apiAxios.delete(`http://localhost:6060/api/prompts/${selectedProject}/${promptId}`);
@@ -559,7 +559,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
         <Typography color="text.secondary">
-          {t('eventHandling.selectProject')}
+          {t('eventHandling:selectProject')}
         </Typography>
       </Box>
     );
@@ -611,7 +611,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
               <PiSecurityCameraFill style={{ fontSize: 26, color: '#667eea', position: 'relative', zIndex: 2 }} />
             </Box>
             <Typography variant="h5" fontWeight={600}>
-              {t('eventHandling.pageTitle')}
+              {t('eventHandling:pageTitle')}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -621,7 +621,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
               onClick={() => handleOpenRuleDialog()}
               sx={{ textTransform: 'none' }}
             >
-              {t('eventHandling.newRule')}
+              {t('eventHandling:newRule')}
             </Button>
             <IconButton onClick={onClose}>
               <CloseIcon />
@@ -630,18 +630,18 @@ const EventHandling = ({ selectedProject, onClose }) => {
         </Box>
 
         <Tabs value={currentTab} onChange={(e, v) => setCurrentTab(v)} sx={{ px: 3 }}>
-          <Tab label={t('eventHandling.tabAction')} icon={<BiMessageEdit style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label={t('eventHandling.tabRules')} icon={<IoMdNotificationsOutline style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label={t('eventHandling:tabAction')} icon={<BiMessageEdit style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label={t('eventHandling:tabRules')} icon={<IoMdNotificationsOutline style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
           <Tab
-            label={t('eventHandling.tabLiveEvents', { indicator: eventStream ? '●' : '' })}
+            label={t('eventHandling:tabLiveEvents', { indicator: eventStream ? '●' : '' })}
             icon={<PiHeartbeat style={{ fontSize: 20 }} />}
             iconPosition="start"
             sx={{ textTransform: 'none' }}
           />
-          <Tab label={t('eventHandling.tabEventLog')} icon={<HistoryIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label={t('eventHandling.tabWebHooks')} icon={<WebhookIcon sx={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label={t('eventHandling.tabExamples')} icon={<BiHelpCircle style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
-          <Tab label={t('eventHandling.tabUseCases')} icon={<FcWorkflow style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label={t('eventHandling:tabEventLog')} icon={<HistoryIcon />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label={t('eventHandling:tabWebHooks')} icon={<WebhookIcon sx={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label={t('eventHandling:tabExamples')} icon={<BiHelpCircle style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
+          <Tab label={t('eventHandling:tabUseCases')} icon={<FcWorkflow style={{ fontSize: 20 }} />} iconPosition="start" sx={{ textTransform: 'none' }} />
         </Tabs>
       </Paper>
 
@@ -712,7 +712,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="h6">
-              {editingRule ? t('eventHandling.editRuleTitle') : t('eventHandling.createRuleTitle')}
+              {editingRule ? t('eventHandling:editRuleTitle') : t('eventHandling:createRuleTitle')}
             </Typography>
             <IconButton onClick={handleCloseRuleDialog} size="small">
               <CloseIcon />
@@ -723,7 +723,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
           <Stack spacing={2}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <TextField
-                label={t('eventHandling.ruleNameLabel')}
+                label={t('eventHandling:ruleNameLabel')}
                 fullWidth
                 size="small"
                 value={ruleName}
@@ -744,12 +744,12 @@ const EventHandling = ({ selectedProject, onClose }) => {
             </Box>
 
             <Divider>
-              <Chip label={t('eventHandling.conditionDivider')} size="small" />
+              <Chip label={t('eventHandling:conditionDivider')} size="small" />
             </Divider>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
               <FormControl sx={{ flex: 1 }} size="small">
-                <InputLabel>{t('eventHandling.eventGroupLabel')}</InputLabel>
+                <InputLabel>{t('eventHandling:eventGroupLabel')}</InputLabel>
                 <Select
                   value={eventGroup}
                   onChange={(e) => {
@@ -763,7 +763,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
                       setConditionType('simple');
                     }
                   }}
-                  label={t('eventHandling.eventGroupLabel')}
+                  label={t('eventHandling:eventGroupLabel')}
                   renderValue={(selected) => {
                     const style = getGroupStyle(selected);
                     const GroupIcon = style.icon;
@@ -792,23 +792,23 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
               {eventGroup !== 'Email' && (
                 <FormControl sx={{ flex: 1 }} size="small">
-                  <InputLabel>{t('eventHandling.conditionTypeLabel')}</InputLabel>
+                  <InputLabel>{t('eventHandling:conditionTypeLabel')}</InputLabel>
                   <Select
                     value={conditionType}
                     onChange={(e) => setConditionType(e.target.value)}
-                    label={t('eventHandling.conditionTypeLabel')}
+                    label={t('eventHandling:conditionTypeLabel')}
                   >
-                    <MenuItem value="simple">{t('eventHandling.conditionSimple')}</MenuItem>
-                    <MenuItem value="semantic">{t('eventHandling.conditionSemantic')}</MenuItem>
-                    <MenuItem value="compound">{t('eventHandling.conditionCompound')}</MenuItem>
-                    <MenuItem value="temporal">{t('eventHandling.conditionTemporal')}</MenuItem>
+                    <MenuItem value="simple">{t('eventHandling:conditionSimple')}</MenuItem>
+                    <MenuItem value="semantic">{t('eventHandling:conditionSemantic')}</MenuItem>
+                    <MenuItem value="compound">{t('eventHandling:conditionCompound')}</MenuItem>
+                    <MenuItem value="temporal">{t('eventHandling:conditionTemporal')}</MenuItem>
                   </Select>
                 </FormControl>
               )}
 
               {eventGroup === 'Email' && (
                 <Chip
-                  label={t('eventHandling.semanticAi')}
+                  label={t('eventHandling:semanticAi')}
                   size="small"
                   sx={{ alignSelf: 'center', backgroundColor: '#fce4ec', color: '#e91e63' }}
                 />
@@ -818,20 +818,20 @@ const EventHandling = ({ selectedProject, onClose }) => {
             {eventGroup === 'Email' && (
               <>
                 <TextField
-                  label={t('eventHandling.emailCriteriaLabel')}
+                  label={t('eventHandling:emailCriteriaLabel')}
                   fullWidth
                   size="small"
                   multiline
                   rows={3}
                   value={payloadPath}
                   onChange={(e) => setPayloadPath(e.target.value)}
-                  placeholder={t('eventHandling.emailCriteriaPlaceholder')}
-                  helperText={t('eventHandling.emailCriteriaHelper')}
+                  placeholder={t('eventHandling:emailCriteriaPlaceholder')}
+                  helperText={t('eventHandling:emailCriteriaHelper')}
                   required
                 />
                 <Alert severity="info" icon={<InfoIcon fontSize="small" />} sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
                   <Typography variant="caption" component="div">
-                    <strong>{t('eventHandling.emailDataStructure')}</strong>
+                    <strong>{t('eventHandling:emailDataStructure')}</strong>
                     <pre style={{ margin: '4px 0', fontSize: '0.7rem', whiteSpace: 'pre-wrap' }}>
 {`{
   From: "sender@example.com",
@@ -850,15 +850,15 @@ const EventHandling = ({ selectedProject, onClose }) => {
             {conditionType === 'simple' && eventGroup !== 'Email' && (
               <>
                 <FormControl fullWidth size="small">
-                  <InputLabel>{t('eventHandling.eventNameLabel')}</InputLabel>
+                  <InputLabel>{t('eventHandling:eventNameLabel')}</InputLabel>
                   <Select
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
-                    label={t('eventHandling.eventNameLabel')}
+                    label={t('eventHandling:eventNameLabel')}
                     disabled={!eventGroup}
                   >
                     <MenuItem value="">
-                      <em>{t('eventHandling.anyEvent')}</em>
+                      <em>{t('eventHandling:anyEvent')}</em>
                     </MenuItem>
                     {eventGroup && eventNamesByGroup[eventGroup]?.map((name) => (
                       <MenuItem key={name} value={name}>{eventNameLabels[name] || name}</MenuItem>
@@ -867,71 +867,71 @@ const EventHandling = ({ selectedProject, onClose }) => {
                 </FormControl>
 
                 <TextField
-                  label={t('eventHandling.topicPatternLabel')}
+                  label={t('eventHandling:topicPatternLabel')}
                   fullWidth
                   size="small"
                   value={eventTopic}
                   onChange={(e) => setEventTopic(e.target.value)}
-                  placeholder={t('eventHandling.topicPatternPlaceholder')}
-                  helperText={t('eventHandling.topicPatternHelper')}
+                  placeholder={t('eventHandling:topicPatternPlaceholder')}
+                  helperText={t('eventHandling:topicPatternHelper')}
                 />
 
                 <TextField
-                  label={t('eventHandling.payloadMatcherLabel')}
+                  label={t('eventHandling:payloadMatcherLabel')}
                   fullWidth
                   size="small"
                   value={payloadPath}
                   onChange={(e) => setPayloadPath(e.target.value)}
-                  placeholder={t('eventHandling.payloadMatcherPlaceholder')}
-                  helperText={t('eventHandling.payloadMatcherHelper')}
+                  placeholder={t('eventHandling:payloadMatcherPlaceholder')}
+                  helperText={t('eventHandling:payloadMatcherHelper')}
                 />
               </>
             )}
 
             {conditionType === 'semantic' && eventGroup !== 'Email' && (
               <TextField
-                label={t('eventHandling.semanticQueryLabel')}
+                label={t('eventHandling:semanticQueryLabel')}
                 fullWidth
                 size="small"
                 multiline
                 rows={3}
                 value={payloadPath}
                 onChange={(e) => setPayloadPath(e.target.value)}
-                placeholder={t('eventHandling.semanticQueryPlaceholder')}
-                helperText={t('eventHandling.semanticQueryHelper')}
+                placeholder={t('eventHandling:semanticQueryPlaceholder')}
+                helperText={t('eventHandling:semanticQueryHelper')}
                 required
               />
             )}
 
             <Alert severity="info" icon={<InfoIcon fontSize="small" />} sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
-              {conditionType === 'simple' && eventGroup !== 'Email' && t('eventHandling.simpleConditionInfo')}
-              {conditionType === 'semantic' && eventGroup !== 'Email' && t('eventHandling.semanticConditionInfo')}
-              {conditionType === 'compound' && t('eventHandling.compoundConditionInfo')}
-              {conditionType === 'temporal' && t('eventHandling.temporalConditionInfo')}
-              {eventGroup === 'Email' && t('eventHandling.emailConditionInfo')}
+              {conditionType === 'simple' && eventGroup !== 'Email' && t('eventHandling:simpleConditionInfo')}
+              {conditionType === 'semantic' && eventGroup !== 'Email' && t('eventHandling:semanticConditionInfo')}
+              {conditionType === 'compound' && t('eventHandling:compoundConditionInfo')}
+              {conditionType === 'temporal' && t('eventHandling:temporalConditionInfo')}
+              {eventGroup === 'Email' && t('eventHandling:emailConditionInfo')}
             </Alert>
 
             <Divider>
-              <Chip label={t('eventHandling.actionDivider')} size="small" />
+              <Chip label={t('eventHandling:actionDivider')} size="small" />
             </Divider>
 
             <FormControl fullWidth size="small">
-              <InputLabel>{t('eventHandling.actionTypeLabel')}</InputLabel>
+              <InputLabel>{t('eventHandling:actionTypeLabel')}</InputLabel>
               <Select
                 value={actionType}
                 onChange={(e) => setActionType(e.target.value)}
-                label={t('eventHandling.actionTypeLabel')}
+                label={t('eventHandling:actionTypeLabel')}
               >
                 <MenuItem value="prompt">
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <BiMessageEdit style={{ fontSize: 16, color: '#9c27b0' }} />
-                    {t('eventHandling.executePrompt')}
+                    {t('eventHandling:executePrompt')}
                   </Box>
                 </MenuItem>
                 <MenuItem value="workflow_event">
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <WorkflowIcon sx={{ fontSize: 16, color: '#ff9800' }} />
-                    {t('eventHandling.sendWorkflowEvent')}
+                    {t('eventHandling:sendWorkflowEvent')}
                   </Box>
                 </MenuItem>
               </Select>
@@ -939,15 +939,15 @@ const EventHandling = ({ selectedProject, onClose }) => {
 
             {actionType === 'prompt' && (
               <FormControl fullWidth size="small" required>
-                <InputLabel>{t('eventHandling.promptLabel')}</InputLabel>
+                <InputLabel>{t('eventHandling:promptLabel')}</InputLabel>
                 <Select
                   value={actionPromptId}
                   onChange={(e) => setActionPromptId(e.target.value)}
-                  label={t('eventHandling.promptLabel')}
+                  label={t('eventHandling:promptLabel')}
                 >
                   {prompts.length === 0 ? (
                     <MenuItem value="" disabled>
-                      <em>{t('eventHandling.noPromptsAvailable')}</em>
+                      <em>{t('eventHandling:noPromptsAvailable')}</em>
                     </MenuItem>
                   ) : (
                     prompts.map((prompt) => (
@@ -958,7 +958,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
                   )}
                 </Select>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
-                  {t('eventHandling.promptHelper')}
+                  {t('eventHandling:promptHelper')}
                 </Typography>
               </FormControl>
             )}
@@ -968,11 +968,11 @@ const EventHandling = ({ selectedProject, onClose }) => {
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   {workflows.length > 0 ? (
                     <FormControl sx={{ flex: 1 }} size="small" required>
-                      <InputLabel>{t('eventHandling.workflowLabel')}</InputLabel>
+                      <InputLabel>{t('eventHandling:workflowLabel')}</InputLabel>
                       <Select
                         value={actionWorkflowId}
                         onChange={(e) => setActionWorkflowId(e.target.value)}
-                        label={t('eventHandling.workflowLabel')}
+                        label={t('eventHandling:workflowLabel')}
                       >
                         {workflows.map((wf) => (
                           <MenuItem key={wf.id} value={wf.id}>
@@ -987,24 +987,24 @@ const EventHandling = ({ selectedProject, onClose }) => {
                     </FormControl>
                   ) : (
                     <TextField
-                      label={t('eventHandling.workflowIdLabel')}
+                      label={t('eventHandling:workflowIdLabel')}
                       sx={{ flex: 1 }}
                       size="small"
                       value={actionWorkflowId}
                       onChange={(e) => setActionWorkflowId(e.target.value)}
-                      placeholder={t('eventHandling.workflowIdPlaceholder')}
-                      helperText={t('eventHandling.workflowIdHelper')}
+                      placeholder={t('eventHandling:workflowIdPlaceholder')}
+                      helperText={t('eventHandling:workflowIdHelper')}
                       required
                     />
                   )}
                   <TextField
-                    label={t('eventHandling.eventNameActionLabel')}
+                    label={t('eventHandling:eventNameActionLabel')}
                     sx={{ flex: 1 }}
                     size="small"
                     value={actionWorkflowEvent}
                     onChange={(e) => setActionWorkflowEvent(e.target.value.toUpperCase())}
-                    placeholder={t('eventHandling.eventNameActionPlaceholder')}
-                    helperText={t('eventHandling.eventNameActionHelper')}
+                    placeholder={t('eventHandling:eventNameActionPlaceholder')}
+                    helperText={t('eventHandling:eventNameActionHelper')}
                     required
                   />
                 </Box>
@@ -1018,13 +1018,13 @@ const EventHandling = ({ selectedProject, onClose }) => {
                   }
                   label={
                     <Typography variant="body2" color="text.secondary">
-                      {t('eventHandling.passPayloadToWorkflow')}
+                      {t('eventHandling:passPayloadToWorkflow')}
                     </Typography>
                   }
                 />
                 {actionWorkflowId && (
                   <Alert severity="info" icon={<WorkflowIcon fontSize="small" />} sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
-                    {t('eventHandling.workflowTriggerInfo', { event: actionWorkflowEvent || '...', workflow: actionWorkflowId })}
+                    {t('eventHandling:workflowTriggerInfo', { event: actionWorkflowEvent || '...', workflow: actionWorkflowId })}
                   </Alert>
                 )}
               </>
@@ -1041,7 +1041,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
             disabled={!ruleName || (actionType === 'prompt' ? !actionPromptId : (!actionWorkflowId || !actionWorkflowEvent))}
             sx={{ textTransform: 'none' }}
           >
-            {editingRule ? t('eventHandling.updateRule') : t('eventHandling.createRule')}
+            {editingRule ? t('eventHandling:updateRule') : t('eventHandling:createRule')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1056,7 +1056,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="h6">
-              {editingPrompt ? t('eventHandling.editPromptTitle') : t('eventHandling.createPromptTitle')}
+              {editingPrompt ? t('eventHandling:editPromptTitle') : t('eventHandling:createPromptTitle')}
             </Typography>
             <IconButton onClick={handleClosePromptDialog} size="small">
               <CloseIcon />
@@ -1066,18 +1066,18 @@ const EventHandling = ({ selectedProject, onClose }) => {
         <DialogContent dividers>
           <Stack spacing={2}>
             <TextField
-              label={t('eventHandling.promptTitleLabel')}
+              label={t('eventHandling:promptTitleLabel')}
               fullWidth
               size="small"
               value={promptTitle}
               onChange={(e) => setPromptTitle(e.target.value)}
               required
-              placeholder={t('eventHandling.promptTitlePlaceholder')}
-              helperText={t('eventHandling.promptTitleHelper')}
+              placeholder={t('eventHandling:promptTitlePlaceholder')}
+              helperText={t('eventHandling:promptTitleHelper')}
             />
 
             <TextField
-              label={t('eventHandling.promptContentLabel')}
+              label={t('eventHandling:promptContentLabel')}
               fullWidth
               size="small"
               multiline
@@ -1085,13 +1085,13 @@ const EventHandling = ({ selectedProject, onClose }) => {
               value={promptContent}
               onChange={(e) => setPromptContent(e.target.value)}
               required
-              placeholder={t('eventHandling.promptContentPlaceholder')}
-              helperText={t('eventHandling.promptContentHelper')}
+              placeholder={t('eventHandling:promptContentPlaceholder')}
+              helperText={t('eventHandling:promptContentHelper')}
             />
 
             {editingPrompt && (
               <Alert severity="info" sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
-                {t('eventHandling.promptIdInfo', { id: editingPrompt.id })}
+                {t('eventHandling:promptIdInfo', { id: editingPrompt.id })}
               </Alert>
             )}
           </Stack>
@@ -1106,7 +1106,7 @@ const EventHandling = ({ selectedProject, onClose }) => {
             disabled={!promptTitle || !promptContent}
             sx={{ textTransform: 'none' }}
           >
-            {editingPrompt ? t('eventHandling.updatePrompt') : t('eventHandling.createPrompt')}
+            {editingPrompt ? t('eventHandling:updatePrompt') : t('eventHandling:createPrompt')}
           </Button>
         </DialogActions>
       </Dialog>

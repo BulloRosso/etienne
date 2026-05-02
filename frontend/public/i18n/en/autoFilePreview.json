@@ -1,0 +1,9 @@
+{
+  "description": "Map file extensions to preview viewers. System defaults are shown below. Click a chip to edit it, or delete it to disable that extension for this project.",
+  "extension": "Extension",
+  "extensionLabel": "Extension",
+  "extensionPlaceholder": ".csv",
+  "title": "Auto-Preview File Extensions",
+  "viewer": "Viewer",
+  "viewerLabel": "Viewer"
+}

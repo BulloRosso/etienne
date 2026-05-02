@@ -1,0 +1,12 @@
+{
+  "noFieldsMessage": "Nessun campo di input richiesto. Clicca Accetta per procedere o Rifiuta per annullare.",
+  "title": "Input richiesto",
+  "validationInvalidEmail": "Formato email non valido",
+  "validationInvalidUrl": "Formato URL non valido",
+  "validationMaxLength": "Massimo {{maxLength}} caratteri consentiti",
+  "validationMaximumValue": "Il valore massimo è {{maximum}}",
+  "validationMinLength": "Minimo {{minLength}} caratteri richiesti",
+  "validationMinimumValue": "Il valore minimo è {{minimum}}",
+  "validationMustBeNumber": "Deve essere un numero",
+  "validationRequired": "Questo campo è obbligatorio"
+}

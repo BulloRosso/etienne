@@ -1,0 +1,23 @@
+{
+  "contextAddSubcategory": "添加子分类",
+  "contextDelete": "删除",
+  "contextEdit": "编辑",
+  "deleteChildWarning": "这也将删除所有 {{count}} 个子节点。",
+  "deleteMessage": "确定要删除\"{{label}}\"吗？",
+  "deleteTitle": "确认删除",
+  "emptyLoadExample": "加载示例数据",
+  "emptyTitle": "暂无剪贴簿数据",
+  "legendAlternativeOption": "替代选项（已分组）",
+  "legendDefault": "默认",
+  "legendHighPriority": "高优先级和关注",
+  "legendLowAttention": "低关注（<30%）",
+  "legendSelectedActive": "已选择 / 活跃",
+  "legendTitle": "颜色图例",
+  "menuAddStickyNote": "添加便签",
+  "menuAutoLayout": "自动布局",
+  "menuCreateFromText": "从文本创建",
+  "menuExportAgenticView": "导出智能体视图",
+  "menuUseExampleData": "使用示例数据",
+  "tabMindmap": "思维导图",
+  "tabTopics": "所选元素的主题"
+}

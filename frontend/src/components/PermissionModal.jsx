@@ -27,7 +27,7 @@ import { useTranslation } from 'react-i18next';
  * - onClose: () => void - Callback when modal is closed without response
  */
 export default function PermissionModal({ open, permission, onRespond, onClose }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["permission","common"]);
   if (!permission) return null;
 
   const { id, toolName, toolInput } = permission;
@@ -36,23 +36,23 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
   const getToolDescription = () => {
     switch (toolName) {
       case 'Write':
-        return t('permission.toolWrite', { filePath: toolInput?.file_path || 'unknown' });
+        return t('permission:toolWrite', { filePath: toolInput?.file_path || 'unknown' });
       case 'Edit':
-        return t('permission.toolEdit', { filePath: toolInput?.file_path || 'unknown' });
+        return t('permission:toolEdit', { filePath: toolInput?.file_path || 'unknown' });
       case 'MultiEdit':
-        return t('permission.toolMultiEdit', { filePath: toolInput?.file_path || 'unknown' });
+        return t('permission:toolMultiEdit', { filePath: toolInput?.file_path || 'unknown' });
       case 'Bash':
         const cmd = toolInput?.command || '';
         const truncatedCmd = cmd.length > 100 ? cmd.substring(0, 100) + '...' : cmd;
-        return t('permission.toolBash', { command: truncatedCmd });
+        return t('permission:toolBash', { command: truncatedCmd });
       case 'Read':
-        return t('permission.toolRead', { filePath: toolInput?.file_path || 'unknown' });
+        return t('permission:toolRead', { filePath: toolInput?.file_path || 'unknown' });
       case 'Glob':
-        return t('permission.toolGlob', { pattern: toolInput?.pattern || 'unknown' });
+        return t('permission:toolGlob', { pattern: toolInput?.pattern || 'unknown' });
       case 'Grep':
-        return t('permission.toolGrep', { pattern: toolInput?.pattern || 'unknown' });
+        return t('permission:toolGrep', { pattern: toolInput?.pattern || 'unknown' });
       default:
-        return t('permission.toolDefault', { toolName });
+        return t('permission:toolDefault', { toolName });
     }
   };
 
@@ -96,7 +96,7 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SecurityIcon sx={{ color: '#2196f3' }} />
-          <Typography variant="h6">{t('permission.title')}</Typography>
+          <Typography variant="h6">{t('permission:title')}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip
@@ -114,7 +114,7 @@ export default function PermissionModal({ open, permission, onRespond, onClose }
 
       <DialogContent dividers>
         <Alert severity="info" sx={{ mb: 2 }}>
-          {t('permission.actionAlert')}
+          {t('permission:actionAlert')}
         </Alert>
 
         <Box sx={{

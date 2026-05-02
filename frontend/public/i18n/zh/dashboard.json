@@ -1,0 +1,21 @@
+{
+  "changePasswordTooltip": "修改密码",
+  "headerTitle": "Etienne",
+  "itemBudgetSettings": "预算设置",
+  "itemConditionMonitoring": "状态监控",
+  "itemContextTagging": "上下文/标签",
+  "itemCustomizeUI": "自定义界面",
+  "itemDecisionSupport": "决策支持",
+  "itemExternalEvents": "外部事件",
+  "itemGuardrails": "安全护栏",
+  "itemIssues": "问题",
+  "itemKnowledgeBase": "知识库",
+  "itemPreviewers": "预览器",
+  "itemScheduling": "任务调度",
+  "itemScrapbook": "剪贴簿",
+  "itemSkillStore": "技能商店",
+  "itemSkills": "技能",
+  "itemSubagents": "子智能体",
+  "serviceControl": "服务控制",
+  "subagentsUnsupportedPiMono": "pi-mono 编码智能体不支持子智能体。"
+}

@@ -1,0 +1,18 @@
+{
+  "creditCardDescription": "检测并脱敏信用卡号",
+  "creditCardLabel": "信用卡号",
+  "emailDescription": "检测并脱敏电子邮件地址",
+  "emailLabel": "电子邮件地址",
+  "enablePostProcessing": "启用后处理",
+  "ibanDescription": "检测并脱敏国际银行账号",
+  "ibanLabel": "IBAN",
+  "ipAddressDescription": "检测并脱敏 IPv4 和 IPv6 地址",
+  "ipAddressLabel": "IP 地址",
+  "postProcessingDescription": "选择在 AI 模型返回输出后，应自动检测和脱敏的敏感信息类型。使用此功能将关闭响应流式传输。",
+  "preProcessingDescription": "选择在将用户输入发送到 AI 模型之前，应自动检测和脱敏的敏感信息类型。",
+  "tabPostProcessing": "后处理",
+  "tabPreProcessing": "预处理",
+  "title": "安全护栏",
+  "urlDescription": "检测并脱敏 HTTP/HTTPS URL",
+  "urlLabel": "URL"
+}

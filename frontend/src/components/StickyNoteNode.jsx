@@ -16,7 +16,7 @@ const STICKY_COLORS = {
 };
 
 const StickyNoteNode = ({ data, selected }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["stickyNote","common"]);
   const {
     content,
     onContentChange,
@@ -231,7 +231,7 @@ const StickyNoteNode = ({ data, selected }) => {
                 margin: 0,
                 cursor: 'text',
               }}
-              placeholder={t('stickyNote.placeholder')}
+              placeholder={t('stickyNote:placeholder')}
             />
           ) : (
             <Box
@@ -272,7 +272,7 @@ const StickyNoteNode = ({ data, selected }) => {
                 <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
               ) : (
                 <Box sx={{ color: '#999', fontStyle: 'italic' }}>
-                  {t('stickyNote.clickToEdit')}
+                  {t('stickyNote:clickToEdit')}
                 </Box>
               )}
             </Box>
@@ -305,7 +305,7 @@ const StickyNoteNode = ({ data, selected }) => {
               }}
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              title={t('stickyNote.cancelEsc')}
+              title={t('stickyNote:cancelEsc')}
               sx={{
                 padding: '4px',
                 opacity: 0.7,
@@ -351,7 +351,7 @@ const StickyNoteNode = ({ data, selected }) => {
           sx: { borderRadius: 2 }
         }}
       >
-        <DialogTitle sx={{ pb: 1, fontSize: '14px' }}>{t('stickyNote.colorTitle')}</DialogTitle>
+        <DialogTitle sx={{ pb: 1, fontSize: '14px' }}>{t('stickyNote:colorTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', gap: 1.5, p: 1 }}>
             {Object.entries(STICKY_COLORS).map(([key, colorValue]) => (

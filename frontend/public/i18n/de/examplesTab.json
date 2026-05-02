@@ -1,0 +1,22 @@
+{
+  "compoundAlert": "Zusammengesetzte Bedingungen unterstützen UND-, ODER- und NICHT-Operatoren mit optionalen Zeitfenstern (in Millisekunden)",
+  "compoundChip": "Zusammengesetzt",
+  "compoundCondition": "Zusammengesetzte Bedingung",
+  "compoundDescription": "Verwenden Sie zusammengesetzte Bedingungen, um mehrere Bedingungen mit logischen Operatoren (UND, ODER, NICHT) zu kombinieren. Ideal für komplexe Szenarien, die mehrere Kriterien erfordern.",
+  "compoundExample": "Beispiel: Testdatei-Änderungen UND Konfigurationsänderungen überwachen",
+  "semanticAlert": "Semantischer Abgleich verwendet Vektoreinbettungen mit einem Standardschwellenwert von 0,86",
+  "semanticChip": "Semantisch",
+  "semanticCondition": "Semantische Bedingung",
+  "semanticDescription": "Verwenden Sie semantische Bedingungen für KI-gestützten Ähnlichkeitsabgleich. Ideal zum Finden verwandter Inhalte oder Erkennen semantisch ähnlicher Ereignisse, auch wenn die exakte Formulierung abweicht.",
+  "semanticExample": "Beispiel: Authentifizierungsbezogene Code-Änderungen finden",
+  "simpleAlert": "Einfache Bedingungen unterstützen Platzhalter-Abgleich mit * in Zeichenkettenwerten",
+  "simpleChip": "Einfach",
+  "simpleCondition": "Einfache Bedingung",
+  "simpleDescription": "Verwenden Sie einfache Bedingungen für exakte Übereinstimmung von Ereigniseigenschaften. Perfekt für unkomplizierte Auslöser wie \"wenn eine Python-Datei erstellt wird\" oder \"wenn ein bestimmtes MQTT-Thema eine Nachricht erhält\".",
+  "simpleExample": "Beispiel: Python-Dateierstellung überwachen",
+  "temporalAlert": "Wochentag: 0=Sonntag, 1=Montag, ..., 6=Samstag. Zeiten im 24-Stunden-Format (HH:MM)",
+  "temporalChip": "Zeitlich",
+  "temporalConstraint": "Zeitliche Einschränkung",
+  "temporalDescription": "Verwenden Sie zeitliche Einschränkungen, um Ereignisse nach Tageszeit oder Wochentag zu filtern. Perfekt für Geschäftszeiten-Überwachung oder geplante Wartungsfenster.",
+  "temporalExample": "Beispiel: Nur während der Geschäftszeiten überwachen"
+}

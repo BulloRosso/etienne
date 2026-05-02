@@ -21,15 +21,15 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 const getGuardrailOptions = (t) => [
-  { id: 'creditCard', label: t('guardrails.creditCardLabel'), description: t('guardrails.creditCardDescription') },
-  { id: 'ipAddress', label: t('guardrails.ipAddressLabel'), description: t('guardrails.ipAddressDescription') },
-  { id: 'email', label: t('guardrails.emailLabel'), description: t('guardrails.emailDescription') },
-  { id: 'url', label: t('guardrails.urlLabel'), description: t('guardrails.urlDescription') },
-  { id: 'iban', label: t('guardrails.ibanLabel'), description: t('guardrails.ibanDescription') },
+  { id: 'creditCard', label: t('guardrails:creditCardLabel'), description: t('guardrails:creditCardDescription') },
+  { id: 'ipAddress', label: t('guardrails:ipAddressLabel'), description: t('guardrails:ipAddressDescription') },
+  { id: 'email', label: t('guardrails:emailLabel'), description: t('guardrails:emailDescription') },
+  { id: 'url', label: t('guardrails:urlLabel'), description: t('guardrails:urlDescription') },
+  { id: 'iban', label: t('guardrails:ibanLabel'), description: t('guardrails:ibanDescription') },
 ];
 
 export default function GuardrailsSettings({ open, onClose, project, showBackgroundInfo }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["guardrails","common"]);
   const { mode: themeMode } = useThemeMode();
   const [activeTab, setActiveTab] = useState(0);
   const [enabledGuardrails, setEnabledGuardrails] = useState([]);
@@ -116,7 +116,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {t('guardrails.title')}
+        {t('guardrails:title')}
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
@@ -125,14 +125,14 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
         <BackgroundInfo infoId="input-guardrails" showBackgroundInfo={showBackgroundInfo} />
 
         <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
-          <Tab label={t('guardrails.tabPreProcessing')} />
-          <Tab label={t('guardrails.tabPostProcessing')} />
+          <Tab label={t('guardrails:tabPreProcessing')} />
+          <Tab label={t('guardrails:tabPostProcessing')} />
         </Tabs>
 
         {activeTab === 0 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t('guardrails.preProcessingDescription')}
+              {t('guardrails:preProcessingDescription')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {getGuardrailOptions(t).map((option) => (
@@ -158,7 +158,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
         {activeTab === 1 && (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('guardrails.postProcessingDescription')}
+              {t('guardrails:postProcessingDescription')}
             </Typography>
             <FormControlLabel
               control={
@@ -167,7 +167,7 @@ export default function GuardrailsSettings({ open, onClose, project, showBackgro
                   onChange={(e) => setOutputGuardrailsEnabled(e.target.checked)}
                 />
               }
-              label={t('guardrails.enablePostProcessing')}
+              label={t('guardrails:enablePostProcessing')}
               sx={{ mb: 2 }}
             />
             <Box sx={{ border: '1px solid #ddd', borderRadius: 1, overflow: 'hidden', height: '400px' }}>

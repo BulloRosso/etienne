@@ -1,0 +1,18 @@
+{
+  "creditCardDescription": "Detects and redacts credit card numbers",
+  "creditCardLabel": "Credit Card Numbers",
+  "emailDescription": "Detects and redacts email addresses",
+  "emailLabel": "Email Addresses",
+  "enablePostProcessing": "Enable post-processing",
+  "ibanDescription": "Detects and redacts international bank account numbers",
+  "ibanLabel": "IBAN",
+  "ipAddressDescription": "Detects and redacts IPv4 and IPv6 addresses",
+  "ipAddressLabel": "IP Addresses",
+  "postProcessingDescription": "Select which types of sensitive information should be automatically detected and redacted from model output after it is returned from the AI model. Using this feature turns off response streaming.",
+  "preProcessingDescription": "Select which types of sensitive information should be automatically detected and redacted from user input before being sent to the AI model.",
+  "tabPostProcessing": "Post-processing",
+  "tabPreProcessing": "Pre-processing",
+  "title": "Guardrails",
+  "urlDescription": "Detects and redacts HTTP/HTTPS URLs",
+  "urlLabel": "URLs"
+}

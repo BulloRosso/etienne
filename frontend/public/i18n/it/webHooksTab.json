@@ -1,0 +1,21 @@
+{
+  "curlExample": "Esempio cURL",
+  "dedicatedEndpoint": "Endpoint webhook dedicato (consigliato)",
+  "dedicatedEndpointDesc": "Invia qualsiasi payload JSON tramite POST - verrà automaticamente incapsulato come evento webhook:",
+  "description": "Invia dati/file a questo progetto tramite POST da sistemi esterni. Nella versione base l'endpoint è aperto, si consiglia di aggiungere l'autenticazione tramite header.",
+  "fileStorageDesc": "I file caricati vengono salvati nella directory <code>webhook/</code> del progetto, sovrascrivendo eventuali file esistenti con lo stesso nome:",
+  "fileStorageLocation": "Posizione di archiviazione file",
+  "fileUploadTitle": "Formato di upload file webhook",
+  "generalEndpoint": "Endpoint eventi generico",
+  "generalEndpointDesc": "Invia un evento strutturato tramite POST con gruppo e nome espliciti:",
+  "jsonFormatTitle": "Formato JSON dei webhook",
+  "matchFieldsAlert": "Abbina i campi usando <code>payload.command:remove</code> o <code>payload.priority:high</code>",
+  "matchFilesAlert": "Abbina i file usando <code>payload.fileCount:2</code> o controlla file specifici nel tuo prompt",
+  "multipartFormData": "Multipart Form Data con file",
+  "multipartFormDataDesc": "Carica file insieme a metadati JSON usando <code>multipart/form-data</code>:",
+  "promptContextDesc": "Quando un evento webhook attiva una regola, l'intero payload JSON viene preposto al prompt dell'azione:",
+  "promptContextInjection": "Iniezione di contesto nel prompt",
+  "resultingPayload": "Payload evento risultante",
+  "resultingPayloadDesc": "Il payload dell'evento combina la tua descrizione JSON con i metadati dei file:",
+  "webhookUrl": "URL Webhook"
+}

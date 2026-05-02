@@ -1,0 +1,13 @@
+{
+  "tabArtifacts": "Area di lavoro",
+  "tabCheckpoints": "Checkpoint",
+  "tabConnectivity": "Connettività",
+  "tabFiles": "File",
+  "tabMission": "Missione",
+  "tabObservability": "Osservabilità",
+  "tabPermissions": "Permessi",
+  "tabRole": "Ruolo",
+  "tooltipFilesystem": "Esploratore filesystem",
+  "tooltipGuardrails": "Guardrails di ingresso attivi",
+  "tooltipMemory": "Memoria dell'agente abilitata"
+}

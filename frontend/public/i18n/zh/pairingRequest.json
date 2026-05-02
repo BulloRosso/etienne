@@ -1,0 +1,9 @@
+{
+  "approvalWarning": "批准此请求将允许该用户通过 {{provider}} 与您的 Claude Code 项目进行交互。",
+  "chatId": "聊天 ID：",
+  "expiresIn": "{{minutes}} 分钟后过期",
+  "pairingCode": "配对码：",
+  "sessionDetails": "会话详情",
+  "title": "新的配对请求",
+  "userId": "用户 ID："
+}

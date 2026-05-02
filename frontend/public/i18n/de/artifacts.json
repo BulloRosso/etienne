@@ -1,0 +1,13 @@
+{
+  "tabArtifacts": "Arbeitsbereich",
+  "tabCheckpoints": "Prüfpunkte",
+  "tabConnectivity": "Konnektivität",
+  "tabFiles": "Dateien",
+  "tabMission": "Mission",
+  "tabObservability": "Beobachtbarkeit",
+  "tabPermissions": "Berechtigungen",
+  "tabRole": "Rolle",
+  "tooltipFilesystem": "Dateisystem-Browser",
+  "tooltipGuardrails": "Eingabe-Leitplanken aktiv",
+  "tooltipMemory": "Agenten-Gedächtnis aktiviert"
+}

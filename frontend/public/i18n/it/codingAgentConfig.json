@@ -1,0 +1,13 @@
+{
+  "configSaved": "Configurazione salvata",
+  "customOverrideActive": "Override personalizzato attivo",
+  "defaultsRestored": "Predefiniti ripristinati",
+  "dialogTitle": "Configurazione agente di codifica",
+  "failedToLoadConfigs": "Caricamento delle configurazioni fallito",
+  "failedToLoadDefaults": "Caricamento dei predefiniti fallito",
+  "failedToSaveConfig": "Salvataggio della configurazione fallito",
+  "loadDefaults": "Carica predefiniti",
+  "tabClaude": "Claude",
+  "tabCodex": "Codex",
+  "usingDefaultTemplate": "Uso del template predefinito"
+}

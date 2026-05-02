@@ -9,13 +9,13 @@ type Props = {
 };
 
 export default function ResponsePane({ streaming, text, sessionId }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["responsePane"]);
   return (
     <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'navy', color: 'white', fontFamily: 'Roboto' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ color: 'white', fontFamily: 'Roboto', fontWeight: 'bold' }}>{t('responsePane.modelResponse')}</Typography>
+        <Typography variant="subtitle2" sx={{ color: 'white', fontFamily: 'Roboto', fontWeight: 'bold' }}>{t('responsePane:modelResponse')}</Typography>
         <Typography variant="caption" sx={{ color: 'gold', fontFamily: 'Roboto' }}>
-          {sessionId ? t('responsePane.session', { sessionId }) : t('responsePane.noSession')}
+          {sessionId ? t('responsePane:session', { sessionId }) : t('responsePane:noSession')}
         </Typography>
       </Box>
       {streaming && <LinearProgress sx={{ mb: 2 }} />}

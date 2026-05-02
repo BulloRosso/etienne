@@ -29,6 +29,7 @@ import Onboarding from './components/Onboarding';
 import TechnologyRadarPage from './pages/TechnologyRadarPage';
 import { apiFetch } from './services/api';
 import { filePreviewHandler } from './services/FilePreviewHandler';
+import useTabStore from './stores/useTabStore';
 import useMultiplexSSE from './hooks/useMultiplexSSE';
 import useStreamingSessions from './hooks/useStreamingSessions';
 import { MuxSSEProvider } from './contexts/MuxSSEContext';
@@ -81,6 +82,7 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [structuredMessages, setStructuredMessages] = useState([]);
   const [files, setFiles] = useState([]);
+  const { getTabPaths, setTabPaths } = useTabStore();
   const [sessionId, setSessionId] = useState('');
   const [currentSessionId, setCurrentSessionId] = useState(null); // Track which session we're viewing
   const [hasSessions, setHasSessions] = useState(false); // Track if sessions exist
@@ -1924,6 +1926,35 @@ export default function App() {
     const timeoutId = setTimeout(saveWorkbench, 500);
     return () => clearTimeout(timeoutId);
   }, [currentProject, files]);
+
+  // Sync open tabs to Zustand store (sessionStorage persistence for reload survival)
+  useEffect(() => {
+    if (!currentProject) return;
+    setTabPaths(currentProject, files.map(f => f.path));
+  }, [currentProject, files]);
+
+  // Restore tabs from sessionStorage on initial page load
+  useEffect(() => {
+    if (!currentProject || files.length > 0) return;
+
+    const savedPaths = getTabPaths(currentProject);
+    if (savedPaths.length === 0) return;
+
+    for (const filePath of savedPaths) {
+      if (filePath.startsWith('#') || filePath.endsWith('.requirements.json') || filePath.endsWith('.artifacts.md')) {
+        setFiles(arr => {
+          if (arr.some(x => x.path === filePath)) return arr;
+          return arr.concat([{ path: filePath, content: '' }]);
+        });
+      } else {
+        try {
+          filePreviewHandler.handlePreview(filePath, currentProject);
+        } catch (err) {
+          console.warn(`Failed to restore tab for ${filePath}:`, err);
+        }
+      }
+    }
+  }, [currentProject]);
 
   // Restore open tabs from workbench.json when project loads
   const restoreWorkbench = async (projectName) => {

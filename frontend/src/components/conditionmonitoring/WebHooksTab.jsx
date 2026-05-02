@@ -23,28 +23,28 @@ const WebHooksTab = ({
   copySuccess,
   onCopyWebhookUrl
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["webHooksTab","common"]);
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, ml: '20px', display: 'block' }}>
-        {t('webHooksTab.description')}
+        {t('webHooksTab:description')}
       </Typography>
 
       {/* Webhook JSON Format Documentation */}
       <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="subtitle2" fontWeight={600}>
-            {t('webHooksTab.jsonFormatTitle')}
+            {t('webHooksTab:jsonFormatTitle')}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                {t('webHooksTab.dedicatedEndpoint')}
+                {t('webHooksTab:dedicatedEndpoint')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('webHooksTab.dedicatedEndpointDesc')}
+                {t('webHooksTab:dedicatedEndpointDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}/webhook</Box>
@@ -55,7 +55,7 @@ const WebHooksTab = ({
 }`}
               </Paper>
               <Alert severity="info" sx={{ mt: 1, py: 0.5, '& .MuiAlert-message': { fontSize: '0.75rem' } }}>
-                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.matchFieldsAlert') }} />
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab:matchFieldsAlert') }} />
               </Alert>
             </Box>
 
@@ -63,10 +63,10 @@ const WebHooksTab = ({
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                {t('webHooksTab.generalEndpoint')}
+                {t('webHooksTab:generalEndpoint')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('webHooksTab.generalEndpointDesc')}
+                {t('webHooksTab:generalEndpointDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}</Box>
@@ -86,10 +86,10 @@ const WebHooksTab = ({
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                {t('webHooksTab.promptContextInjection')}
+                {t('webHooksTab:promptContextInjection')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {t('webHooksTab.promptContextDesc')}
+                {t('webHooksTab:promptContextDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
                 {`The agent received this information via webhook:
@@ -111,17 +111,17 @@ const WebHooksTab = ({
       <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="subtitle2" fontWeight={600}>
-            {t('webHooksTab.fileUploadTitle')}
+            {t('webHooksTab:fileUploadTitle')}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                {t('webHooksTab.multipartFormData')}
+                {t('webHooksTab:multipartFormData')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.multipartFormDataDesc') }} />
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab:multipartFormDataDesc') }} />
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <Box sx={{ color: 'text.secondary', mb: 0.5 }}>POST /api/events/{selectedProject}/webhook</Box>
@@ -144,7 +144,7 @@ Content-Type: image/jpeg
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                {t('webHooksTab.curlExample')}
+                {t('webHooksTab:curlExample')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 {`curl -X POST http://localhost:6060/api/events/${selectedProject}/webhook \\
@@ -158,10 +158,10 @@ Content-Type: image/jpeg
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                {t('webHooksTab.fileStorageLocation')}
+                {t('webHooksTab:fileStorageLocation')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.fileStorageDesc') }} />
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab:fileStorageDesc') }} />
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.75rem', mt: 1 }}>
                 {`workspace/${selectedProject}/webhook/
@@ -175,10 +175,10 @@ Content-Type: image/jpeg
 
             <Box>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                {t('webHooksTab.resultingPayload')}
+                {t('webHooksTab:resultingPayload')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {t('webHooksTab.resultingPayloadDesc')}
+                {t('webHooksTab:resultingPayloadDesc')}
               </Typography>
               <Paper sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.8rem', mt: 1 }}>
                 {`{
@@ -190,7 +190,7 @@ Content-Type: image/jpeg
 }`}
               </Paper>
               <Alert severity="info" sx={{ mt: 1, py: 0.5, '& .MuiAlert-message': { fontSize: '0.75rem' } }}>
-                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab.matchFilesAlert') }} />
+                <span dangerouslySetInnerHTML={{ __html: t('webHooksTab:matchFilesAlert') }} />
               </Alert>
             </Box>
           </Stack>
@@ -200,7 +200,7 @@ Content-Type: image/jpeg
       {/* Webhook URL Display */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-          {t('webHooksTab.webhookUrl')}
+          {t('webHooksTab:webhookUrl')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <TextField

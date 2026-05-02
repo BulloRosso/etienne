@@ -1,0 +1,8 @@
+{
+  "errorDefault": "Accesso fallito. Controlla le tue credenziali.",
+  "password": "Password",
+  "rememberMe": "Ricordami su questo computer",
+  "subtitle": "Inserisci le tue credenziali per accedere all'applicazione",
+  "title": "Accedi",
+  "username": "Nome utente"
+}

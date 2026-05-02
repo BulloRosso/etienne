@@ -1,0 +1,7 @@
+{
+  "backendNotResponding": "**Backend does not respond**\n\nThe backend is not responding. Please ensure the backend is running on port 6060.",
+  "clickToViewDetails": "System Health Error - Click to view details",
+  "healthCheckFailed": "System health check failed",
+  "tooltip": "System Health Error - Click to view details",
+  "unknownError": "Unknown error occurred"
+}

@@ -1,0 +1,19 @@
+{
+  "addTags": "Add Tags",
+  "availableTags": "Available Tags",
+  "currentTags": "Current Tags ({{count}})",
+  "dialogTitle": "Manage Tags",
+  "failedToAddTag": "Failed to add tag: {{message}}",
+  "failedToDeleteReleaseComment": "Failed to delete release comment: {{message}}",
+  "failedToRemoveTag": "Failed to remove tag: {{message}}",
+  "failedToSaveReleaseComment": "Failed to save release comment: {{message}}",
+  "inputHelper": "Press Enter or select from dropdown to add tag",
+  "inputPlaceholder": "Type to create new tag or select existing",
+  "noTagsAssigned": "No tags assigned",
+  "releaseCommentHelper": "Release comments are compiled into the diff protocol on the next update release.",
+  "releaseCommentPlaceholder": "Describe what changed in this file for the next release",
+  "releaseCommentTitle": "Release Comment",
+  "saveComment": "Save Comment",
+  "tagAlreadyAdded": "Tag already added",
+  "tagWithCount": "{{tag}} ({{count}})"
+}

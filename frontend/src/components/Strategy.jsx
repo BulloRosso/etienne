@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 const roleTemplates = import.meta.glob('../role-templates/*.md', { as: 'raw', eager: true });
 
 export default function Strategy({ projectName, showBackgroundInfo }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["strategy","common"]);
   const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
       });
       setContent(response.data.content || '');
     } catch (err) {
-      setError(t('strategy.errorLoadFailed'));
+      setError(t('strategy:errorLoadFailed'));
       console.error('Load strategy error:', err);
     } finally {
       setLoading(false);
@@ -75,7 +75,7 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(t('strategy.errorSaveFailed'));
+      setError(t('strategy:errorSaveFailed'));
       console.error('Save strategy error:', err);
     } finally {
       setSaving(false);
@@ -100,18 +100,18 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          {t('strategy.successSaved')}
+          {t('strategy:successSaved')}
         </Alert>
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <img
           src="/project-wizard-step-3.png"
-          alt={t('strategy.altImage')}
+          alt={t('strategy:altImage')}
           style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain', borderRadius: 4 }}
         />
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {t('strategy.description')}
+          {t('strategy:description')}
         </Typography>
       </Box>
 
@@ -135,16 +135,16 @@ export default function Strategy({ projectName, showBackgroundInfo }) {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
         <FormControl sx={{ minWidth: 200 }} size="small">
-          <InputLabel id="predefined-role-label">{t('strategy.predefinedRole')}</InputLabel>
+          <InputLabel id="predefined-role-label">{t('strategy:predefinedRole')}</InputLabel>
           <Select
             labelId="predefined-role-label"
             id="predefined-role-select"
             value={selectedRole}
-            label={t('strategy.predefinedRole')}
+            label={t('strategy:predefinedRole')}
             onChange={handleRoleChange}
           >
             <MenuItem value="">
-              <em>{t('strategy.predefinedRoleNone')}</em>
+              <em>{t('strategy:predefinedRoleNone')}</em>
             </MenuItem>
             {getRoleOptions().map(role => (
               <MenuItem key={role.value} value={role.value}>

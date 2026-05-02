@@ -1,0 +1,6 @@
+{
+  "errorLoadFile": "Caricamento del file fallito",
+  "errorLoading": "Errore nel caricamento del file prompt: {{error}}",
+  "errorSaveFile": "Salvataggio del file fallito",
+  "reloadFile": "Ricarica file"
+}

@@ -10,7 +10,7 @@ import { apiFetch } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
 export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, isOpen }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["memoryPanel","common"]);
   const { mode: themeMode } = useThemeMode();
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Memory API error:', response.status, errorText);
-        throw new Error(t('memoryPanel.errorLoadMemories'));
+        throw new Error(t('memoryPanel:errorLoadMemories'));
       }
 
       const data = await response.json();
@@ -79,7 +79,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       const response = await apiFetch(url);
 
       if (!response.ok) {
-        throw new Error(t('memoryPanel.errorLoadExtractionPrompt'));
+        throw new Error(t('memoryPanel:errorLoadExtractionPrompt'));
       }
 
       const data = await response.json();
@@ -107,7 +107,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       });
 
       if (!response.ok) {
-        throw new Error(t('memoryPanel.errorSaveExtractionPrompt'));
+        throw new Error(t('memoryPanel:errorSaveExtractionPrompt'));
       }
 
       setOriginalPrompt(extractionPrompt);
@@ -129,7 +129,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       const response = await apiFetch(url, { method: 'DELETE' });
 
       if (!response.ok) {
-        throw new Error(t('memoryPanel.errorResetExtractionPrompt'));
+        throw new Error(t('memoryPanel:errorResetExtractionPrompt'));
       }
 
       const data = await response.json();
@@ -153,7 +153,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       const response = await apiFetch(url);
 
       if (!response.ok) {
-        throw new Error(t('memoryPanel.errorLoadSettings'));
+        throw new Error(t('memoryPanel:errorLoadSettings'));
       }
 
       const data = await response.json();
@@ -180,7 +180,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       });
 
       if (!response.ok) {
-        throw new Error(t('memoryPanel.errorSaveSettings'));
+        throw new Error(t('memoryPanel:errorSaveSettings'));
       }
 
       setOriginalSettings(JSON.stringify(settings));
@@ -205,7 +205,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
       });
 
       if (!response.ok) {
-        throw new Error(t('memoryPanel.errorDeleteMemory'));
+        throw new Error(t('memoryPanel:errorDeleteMemory'));
       }
 
       // Refresh the list
@@ -251,7 +251,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: '14px' }}>
           <BiMemoryCard size={22} color={themeMode === 'dark' ? '#fff' : '#000'} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            {t('memoryPanel.title')}
+            {t('memoryPanel:title')}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
@@ -266,9 +266,9 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
         sx={{ borderBottom: '1px solid', borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0', px: 1, minHeight: 40 }}
         TabIndicatorProps={{ sx: { height: 2 } }}
       >
-        <Tab label={t('memoryPanel.tabMemories')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
-        <Tab label={t('memoryPanel.tabExtractionPrompt')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
-        <Tab label={t('memoryPanel.tabSettings')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+        <Tab label={t('memoryPanel:tabMemories')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+        <Tab label={t('memoryPanel:tabExtractionPrompt')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
+        <Tab label={t('memoryPanel:tabSettings')} sx={{ textTransform: 'none', minHeight: 40, py: 0 }} />
       </Tabs>
 
       {/* Tab 0: Memories */}
@@ -314,10 +314,10 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
             {!loading && !error && memories.length === 0 && (
               <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                 <Typography variant="body1">
-                  {t('memoryPanel.emptyTitle')}
+                  {t('memoryPanel:emptyTitle')}
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  {t('memoryPanel.emptyDescription')}
+                  {t('memoryPanel:emptyDescription')}
                 </Typography>
               </Box>
             )}
@@ -354,11 +354,11 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                         secondary={
                           <Box sx={{ mt: 0.5 }}>
                             <Typography variant="caption" sx={{ color: themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>
-                              {t('memoryPanel.memoryCreated', { date: formatDate(memory.created_at) })}
+                              {t('memoryPanel:memoryCreated', { date: formatDate(memory.created_at) })}
                             </Typography>
                             {memory.updated_at && memory.updated_at !== memory.created_at && (
                               <Typography variant="caption" sx={{ color: themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'text.secondary', ml: 2 }}>
-                                {t('memoryPanel.memoryUpdated', { date: formatDate(memory.updated_at) })}
+                                {t('memoryPanel:memoryUpdated', { date: formatDate(memory.updated_at) })}
                               </Typography>
                             )}
                           </Box>
@@ -405,10 +405,10 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
               justifyContent: 'space-between'
             }}>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {t('memoryPanel.memoriesStored', { count: memories.length })}
+                {t('memoryPanel:memoriesStored', { count: memories.length })}
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {t('memoryPanel.filePath')}
+                {t('memoryPanel:filePath')}
               </Typography>
             </Box>
           )}
@@ -435,7 +435,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
               <>
                 {isCustomPrompt && (
                   <Alert severity="info" sx={{ mb: 2 }}>
-                    {t('memoryPanel.customPromptAlert')}
+                    {t('memoryPanel:customPromptAlert')}
                   </Alert>
                 )}
                 <Box sx={{ flex: 1, border: '1px solid', borderColor: themeMode === 'dark' ? '#555' : '#e0e0e0', borderRadius: 1, overflow: 'hidden' }}>
@@ -476,11 +476,11 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                 onClick={handleResetPrompt}
                 disabled={promptSaving || !isCustomPrompt}
               >
-                {t('memoryPanel.resetToDefault')}
+                {t('memoryPanel:resetToDefault')}
               </Button>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {t('memoryPanel.extractionPromptFilePath')}
+                  {t('memoryPanel:extractionPromptFilePath')}
                 </Typography>
                 <Button
                   variant="contained"
@@ -521,27 +521,27 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
                       onChange={(e) => setSettings({ ...settings, memoryEnabled: e.target.checked })}
                     />
                   }
-                  label={t('memoryPanel.memoryEnabled')}
+                  label={t('memoryPanel:memoryEnabled')}
                 />
 
                 <TextField
-                  label={t('memoryPanel.decayDaysLabel')}
+                  label={t('memoryPanel:decayDaysLabel')}
                   type="number"
                   size="small"
                   value={settings.decayDays}
                   onChange={(e) => setSettings({ ...settings, decayDays: parseInt(e.target.value, 10) || 0 })}
-                  helperText={t('memoryPanel.decayDaysHelper')}
+                  helperText={t('memoryPanel:decayDaysHelper')}
                   inputProps={{ min: 0 }}
                   sx={{ maxWidth: 300 }}
                 />
 
                 <TextField
-                  label={t('memoryPanel.searchLimitLabel')}
+                  label={t('memoryPanel:searchLimitLabel')}
                   type="number"
                   size="small"
                   value={settings.searchLimit}
                   onChange={(e) => setSettings({ ...settings, searchLimit: parseInt(e.target.value, 10) || 0 })}
-                  helperText={t('memoryPanel.searchLimitHelper')}
+                  helperText={t('memoryPanel:searchLimitHelper')}
                   inputProps={{ min: 0 }}
                   sx={{ maxWidth: 300 }}
                 />
@@ -561,7 +561,7 @@ export default function MemoryPanel({ projectName, onClose, showBackgroundInfo, 
               alignItems: 'center',
             }}>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {t('memoryPanel.settingsFilePath')}
+                {t('memoryPanel:settingsFilePath')}
               </Typography>
               <Button
                 variant="contained"

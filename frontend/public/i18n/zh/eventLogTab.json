@@ -1,0 +1,10 @@
+{
+  "columnEventName": "事件名称",
+  "columnGroup": "分组",
+  "columnPayload": "负载",
+  "columnSource": "来源",
+  "columnTimestamp": "时间戳",
+  "columnTriggeredRules": "触发的规则",
+  "eventsWillAppear": "触发规则的事件将在此显示",
+  "noEventsLogged": "暂无已记录的事件"
+}

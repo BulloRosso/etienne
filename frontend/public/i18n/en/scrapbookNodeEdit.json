@@ -1,0 +1,17 @@
+{
+  "attentionWeight": "Attention Weight: {{value}}%",
+  "clearIcon": "Clear Icon",
+  "clickToSelectIcon": "Click to select an icon",
+  "describeImage": "Describe image",
+  "dialogTitleAdd": "Add New Node",
+  "dialogTitleEdit": "Edit Node",
+  "icon": "Icon",
+  "images": "Images",
+  "noIconsFound": "No icons found. Try a different search term.",
+  "priority": "Priority: {{value}}",
+  "searchIconsPlaceholder": "Search icons...",
+  "selectIconTitle": "Select Icon",
+  "title": "Title",
+  "uploadImage": "Upload Image",
+  "uploading": "Uploading..."
+}

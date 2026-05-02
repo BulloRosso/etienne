@@ -10,7 +10,7 @@ import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import DonClippoModal from './DonClippoModal';
 
 export default function SkillIndicator({ projectName, sessionId }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["skillIndicator","common"]);
   const { hasRole } = useAuth();
   const { isMinimalistic } = useUxMode();
   const [skills, setSkills] = useState([]);
@@ -51,7 +51,7 @@ export default function SkillIndicator({ projectName, sessionId }) {
 
   return (
     <>
-      <Tooltip title={t('skillIndicator.tooltip')}>
+      <Tooltip title={t('skillIndicator:tooltip')}>
         <Box
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
@@ -81,7 +81,7 @@ export default function SkillIndicator({ projectName, sessionId }) {
           }}>
             {skillCount}
           </Box>
-          <Box component="span" sx={{ color: 'text.secondary', ...(isMinimalistic && { ml: '10px', textTransform: 'capitalize' }) }}>{t('skillIndicator.label')}</Box>
+          <Box component="span" sx={{ color: 'text.secondary', ...(isMinimalistic && { ml: '10px', textTransform: 'capitalize' }) }}>{t('skillIndicator:label')}</Box>
         </Box>
       </Tooltip>
 

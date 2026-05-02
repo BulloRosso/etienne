@@ -1,0 +1,6 @@
+{
+  "errorLoadFile": "加载文件失败",
+  "errorLoading": "加载提示词文件出错：{{error}}",
+  "errorSaveFile": "保存文件失败",
+  "reloadFile": "重新加载文件"
+}

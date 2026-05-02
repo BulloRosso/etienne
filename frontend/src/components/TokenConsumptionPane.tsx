@@ -7,7 +7,7 @@ type Usage = { input_tokens?: number; output_tokens?: number; total_tokens?: num
 type Props = { usage?: Usage };
 
 export default function TokenConsumptionPane({ usage }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["tokenConsumption"]);
   const inputTokens = usage?.input_tokens ?? 0;
   const outputTokens = usage?.output_tokens ?? 0;
   const totalTokens = usage?.total_tokens ?? (inputTokens + outputTokens);
@@ -16,10 +16,10 @@ export default function TokenConsumptionPane({ usage }: Props) {
   return (
     <Box sx={{ p: 2, backgroundColor: '#efefef', fontFamily: 'Roboto', mb: 1 }}>
       <Typography sx={{ fontFamily: 'Roboto', fontSize: '80%' }}>
-        <strong>{t('tokenConsumption.model')}:</strong> {model}
+        <strong>{t('tokenConsumption:model')}:</strong> {model}
       </Typography>
       <Typography sx={{ fontFamily: 'Roboto', fontSize: '80%' }}>
-        {t('tokenConsumption.tokenSummary', { inputTokens, outputTokens, totalTokens })}
+        {t('tokenConsumption:tokenSummary', { inputTokens, outputTokens, totalTokens })}
       </Typography>
     </Box>
   );

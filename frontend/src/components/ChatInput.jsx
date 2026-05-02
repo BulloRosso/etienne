@@ -12,7 +12,7 @@ import { GoPlus } from "react-icons/go";
 import { CiFileOn } from "react-icons/ci";
 
 export default function ChatInput({ onSend, onAbort, streaming, disabled, minimal = false, initialMessage, onInitialMessageConsumed }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["chatInput"]);
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -163,7 +163,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
 
       if (uploadedFiles.length > 0) {
         const fileList = uploadedFiles.join(', ');
-        const appendText = t('chatInput.uploadPrompt', { fileList });
+        const appendText = t('chatInput:uploadPrompt', { fileList });
         setMessage((prev) => prev ? `${prev}\n\n${appendText}` : appendText);
       }
     } catch (error) {
@@ -176,7 +176,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
 
   const toggleSpeechRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert(t('chatInput.speechNotSupported'));
+      alert(t('chatInput:speechNotSupported'));
       return;
     }
 
@@ -279,7 +279,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
               justifyContent: 'space-between',
             }}
           >
-            <span>{t('chatInput.fileSuggestionHeader')}</span>
+            <span>{t('chatInput:fileSuggestionHeader')}</span>
             <IconButton
               size="small"
               onClick={() => {
@@ -361,7 +361,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
           onChange={handleFileUpload}
         />
         <label htmlFor="file-upload" style={{ marginRight: '5px' }}>
-          <Tooltip title={t('chatInput.addFileAttachments')}>
+          <Tooltip title={t('chatInput:addFileAttachments')}>
             <IconButton component="span" disabled={disabled || uploading || streaming}>
               <GoPlus />
             </IconButton>
@@ -400,7 +400,7 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
               return;
             }
           }}
-          placeholder={t('chatInput.placeholder')}
+          placeholder={t('chatInput:placeholder')}
           disabled={disabled || streaming}
           variant="outlined"
           size="small"

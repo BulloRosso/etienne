@@ -1,0 +1,7 @@
+{
+  "events": "Ereignisse",
+  "filter": "Filter",
+  "hooks": "Hooks",
+  "noItemsYet": "Noch keine {{mode}}.",
+  "waitingForActivity": "Warte auf Claude-Code-Aktivität..."
+}

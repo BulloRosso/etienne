@@ -1,0 +1,9 @@
+{
+  "description": "Ordnen Sie Dateiendungen Vorschau-Betrachtern zu. Systemstandards werden unten angezeigt. Klicken Sie auf ein Chip, um es zu bearbeiten, oder löschen Sie es, um diese Endung für dieses Projekt zu deaktivieren.",
+  "extension": "Endung",
+  "extensionLabel": "Endung",
+  "extensionPlaceholder": ".csv",
+  "title": "Auto-Vorschau Dateiendungen",
+  "viewer": "Betrachter",
+  "viewerLabel": "Betrachter"
+}

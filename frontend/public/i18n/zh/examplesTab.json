@@ -1,0 +1,22 @@
+{
+  "compoundAlert": "复合条件支持 AND、OR 和 NOT 运算符，以及可选的时间窗口（以毫秒为单位）",
+  "compoundChip": "复合",
+  "compoundCondition": "复合条件",
+  "compoundDescription": "使用复合条件通过逻辑运算符（AND、OR、NOT）组合多个条件。适用于需要多个标准的复杂场景。",
+  "compoundExample": "示例：监控测试文件更改和配置更改",
+  "semanticAlert": "语义匹配使用向量嵌入，默认阈值为 0.86",
+  "semanticChip": "语义",
+  "semanticCondition": "语义条件",
+  "semanticDescription": "使用语义条件进行 AI 驱动的相似性匹配。非常适合查找相关内容或检测语义相似的事件，即使措辞不同。",
+  "semanticExample": "示例：查找与认证相关的代码更改",
+  "simpleAlert": "简单条件支持在字符串值中使用 * 进行通配符匹配",
+  "simpleChip": "简单",
+  "simpleCondition": "简单条件",
+  "simpleDescription": "使用简单条件进行事件属性的精确匹配。适用于简单的触发器，如\"当创建 Python 文件时\"或\"当特定 MQTT 主题收到消息时\"。",
+  "simpleExample": "示例：监控 Python 文件创建",
+  "temporalAlert": "星期几：0=星期日，1=星期一，...，6=星期六。时间使用 24 小时制（HH:MM）",
+  "temporalChip": "时间",
+  "temporalConstraint": "时间约束",
+  "temporalDescription": "使用时间约束按时间段或星期几过滤事件。适用于工作时间监控或计划维护窗口。",
+  "temporalExample": "示例：仅在工作时间内监控"
+}

@@ -1,0 +1,22 @@
+{
+  "columnAttention": "关注度",
+  "columnCreated": "创建时间",
+  "columnDescription": "描述",
+  "columnGroup": "分组",
+  "columnIcon": "图标",
+  "columnImages": "图片",
+  "columnPriority": "优先级",
+  "columnSettings": "列设置",
+  "columnTitle": "标题",
+  "contextDelete": "删除",
+  "contextEdit": "编辑",
+  "contextRemoveFromGroup": "从分组中移除",
+  "dragDropImages": "拖放图片到此处",
+  "emptyState": "暂无主题。点击\"添加\"来创建一个。",
+  "export": "导出",
+  "groupLabel": "替代选项组",
+  "headerTopics": "{{label}} - 主题",
+  "itemsSelected": "已选择 {{count}} 个项目",
+  "moreImages": "还有 {{count}} 张图片",
+  "set": "设置"
+}

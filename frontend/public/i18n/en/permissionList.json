@@ -1,0 +1,7 @@
+{
+  "addPlaceholder": "Add new tool...",
+  "columnAllowedTool": "Allowed Tool",
+  "errorLoadFailed": "Failed to load permissions",
+  "errorSaveFailed": "Failed to save permissions",
+  "successSaved": "Permissions saved successfully"
+}

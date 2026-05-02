@@ -23,7 +23,7 @@ export default function ContextSwitcher({
   onManageContexts,
   sx
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["contextSwitcher","common"]);
   const [contexts, setContexts] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -90,7 +90,7 @@ export default function ContextSwitcher({
 
   return (
     <Box sx={sx}>
-      <Tooltip title={t('contextSwitcher.tooltip')} arrow>
+      <Tooltip title={t('contextSwitcher:tooltip')} arrow>
         <Button
           variant="outlined"
           size="small"
@@ -108,7 +108,7 @@ export default function ContextSwitcher({
             }
           }}
         >
-          {activeContext ? activeContext.name : t('contextSwitcher.defaultAll')}
+          {activeContext ? activeContext.name : t('contextSwitcher:defaultAll')}
         </Button>
       </Tooltip>
 
@@ -126,7 +126,7 @@ export default function ContextSwitcher({
           disabled={loading}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-            <Typography variant="body2">{t('contextSwitcher.defaultAll')}</Typography>
+            <Typography variant="body2">{t('contextSwitcher:defaultAll')}</Typography>
             {!activeContextId && (
               <Chip
                 label={t('common.active')}
@@ -143,7 +143,7 @@ export default function ContextSwitcher({
         {contexts.length === 0 ? (
           <MenuItem disabled>
             <Typography variant="body2" color="text.secondary">
-              {t('contextSwitcher.noContextsDefined')}
+              {t('contextSwitcher:noContextsDefined')}
             </Typography>
           </MenuItem>
         ) : (
@@ -184,7 +184,7 @@ export default function ContextSwitcher({
 
         <MenuItem onClick={handleManageContexts}>
           <Settings fontSize="small" sx={{ mr: 1 }} />
-          <Typography variant="body2">{t('contextSwitcher.manageContexts')}</Typography>
+          <Typography variant="body2">{t('contextSwitcher:manageContexts')}</Typography>
         </MenuItem>
       </Menu>
     </Box>

@@ -33,7 +33,7 @@ export default function BudgetSettings({
   currency,
   onSettingsChange
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["budgetSettings","common"]);
   const [limit, setLimit] = useState('0');
   const [resetCounters, setResetCounters] = useState(true);
   const [notificationEmail, setNotificationEmail] = useState('');
@@ -83,7 +83,7 @@ export default function BudgetSettings({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {t('budgetSettings.title')}
+        {t('budgetSettings:title')}
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
@@ -92,12 +92,12 @@ export default function BudgetSettings({
         <TextField
           autoFocus
           margin="dense"
-          label={t('budgetSettings.budgetLimitLabel', { currencySymbol })}
+          label={t('budgetSettings:budgetLimitLabel', { currencySymbol })}
           type="number"
           fullWidth
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
-          helperText={t('budgetSettings.budgetLimitHelperText')}
+          helperText={t('budgetSettings:budgetLimitHelperText')}
           inputProps={{
             step: '0.01',
             min: '0'
@@ -112,19 +112,19 @@ export default function BudgetSettings({
           }
           label={
             <Typography variant="body2">
-              {t('budgetSettings.resetCounters')}
+              {t('budgetSettings:resetCounters')}
             </Typography>
           }
           sx={{ mt: 1 }}
         />
         <TextField
           margin="dense"
-          label={t('budgetSettings.notificationEmailLabel')}
+          label={t('budgetSettings:notificationEmailLabel')}
           type="email"
           fullWidth
           value={notificationEmail}
           onChange={(e) => setNotificationEmail(e.target.value)}
-          helperText={t('budgetSettings.notificationEmailHelperText')}
+          helperText={t('budgetSettings:notificationEmailHelperText')}
           sx={{ mt: 2 }}
         />
       </DialogContent>

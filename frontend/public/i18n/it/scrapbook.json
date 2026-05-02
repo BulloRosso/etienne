@@ -1,0 +1,23 @@
+{
+  "contextAddSubcategory": "Aggiungi sottocategoria",
+  "contextDelete": "Elimina",
+  "contextEdit": "Modifica",
+  "deleteChildWarning": "Questo eliminerà anche tutti i {{count}} nodi figli.",
+  "deleteMessage": "Sei sicuro di voler eliminare \"{{label}}\"?",
+  "deleteTitle": "Conferma eliminazione",
+  "emptyLoadExample": "Carica dati di esempio",
+  "emptyTitle": "Nessun dato nel taccuino ancora",
+  "legendAlternativeOption": "Opzione alternativa (raggruppata)",
+  "legendDefault": "Predefinito",
+  "legendHighPriority": "Alta priorità e attenzione",
+  "legendLowAttention": "Bassa attenzione (<30%)",
+  "legendSelectedActive": "Selezionato / Attivo",
+  "legendTitle": "Legenda colori",
+  "menuAddStickyNote": "Aggiungi nota adesiva",
+  "menuAutoLayout": "Layout automatico",
+  "menuCreateFromText": "Crea da testo",
+  "menuExportAgenticView": "Esporta vista agentica",
+  "menuUseExampleData": "Usa dati di esempio",
+  "tabMindmap": "Mappa mentale",
+  "tabTopics": "Argomenti per l'elemento selezionato"
+}

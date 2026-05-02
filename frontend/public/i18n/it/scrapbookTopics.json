@@ -1,0 +1,22 @@
+{
+  "columnAttention": "Attenzione",
+  "columnCreated": "Creato",
+  "columnDescription": "Descrizione",
+  "columnGroup": "Gruppo",
+  "columnIcon": "Icona",
+  "columnImages": "Immagini",
+  "columnPriority": "Priorità",
+  "columnSettings": "Impostazioni colonne",
+  "columnTitle": "Titolo",
+  "contextDelete": "Elimina",
+  "contextEdit": "Modifica",
+  "contextRemoveFromGroup": "Rimuovi dal gruppo",
+  "dragDropImages": "Trascina e rilascia le immagini qui",
+  "emptyState": "Nessun argomento ancora. Clicca \"Aggiungi\" per crearne uno.",
+  "export": "Esporta",
+  "groupLabel": "Gruppo di alternative",
+  "headerTopics": "{{label}} - Argomenti",
+  "itemsSelected": "{{count}} elementi selezionati",
+  "moreImages": "{{count}} altre immagini",
+  "set": "Imposta"
+}

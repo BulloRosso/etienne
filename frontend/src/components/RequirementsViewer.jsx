@@ -41,7 +41,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
  *  - Clicking a TOC item opens the content pane; checkbox is unaffected
  */
 export default function RequirementsViewer({ filename, projectName }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["reqViewer"]);
   const { mode: themeMode } = useThemeMode();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -337,7 +337,7 @@ export default function RequirementsViewer({ filename, projectName }) {
 
   const displayName = filename
     ? filename.split('/').pop().replace(/\.requirements\.json$/i, '')
-    : t('reqViewer.fallbackTitle');
+    : t('reqViewer:fallbackTitle');
 
   // Must be before early returns so hook count is stable across renders
   const summary = data?.quality_analysis?.executive_summary || '';
@@ -391,7 +391,7 @@ export default function RequirementsViewer({ filename, projectName }) {
               sx={{ width: '80%', height: 8, borderRadius: 4 }}
             />
             <Typography variant="body2" color="text.secondary">
-              {progress.message || t('reqViewer.processingPage', { current: progress.progress, total: progress.total })} — {pct}%
+              {progress.message || t('reqViewer:processingPage', { current: progress.progress, total: progress.total })} — {pct}%
             </Typography>
           </>
         ) : (
@@ -399,14 +399,14 @@ export default function RequirementsViewer({ filename, projectName }) {
             <CircularProgress />
             {extracting && (
               <Typography variant="body2" color="text.secondary">
-                {t('reqViewer.extracting', { name: pdfBaseName })}
+                {t('reqViewer:extracting', { name: pdfBaseName })}
               </Typography>
             )}
           </>
         )}
         {extracting && (
           <Typography variant="caption" color="text.secondary">
-            {t('reqViewer.elapsed', { time: `${Math.floor(elapsedSeconds / 60)}:${String(elapsedSeconds % 60).padStart(2, '0')}` })}
+            {t('reqViewer:elapsed', { time: `${Math.floor(elapsedSeconds / 60)}:${String(elapsedSeconds % 60).padStart(2, '0')}` })}
           </Typography>
         )}
       </Box>
@@ -466,13 +466,13 @@ export default function RequirementsViewer({ filename, projectName }) {
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            {t('reqViewer.reqCount', { count: reqCount })}
-            {language ? ` · ${t('reqViewer.sourceLanguage', { language })}` : ''}
+            {t('reqViewer:reqCount', { count: reqCount })}
+            {language ? ` · ${t('reqViewer:sourceLanguage', { language })}` : ''}
           </Typography>
           <Box sx={{ flex: 1 }} />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Typography variant="body2" color="text.secondary">
-              {t('reqViewer.showTranslations')}
+              {t('reqViewer:showTranslations')}
             </Typography>
             <Checkbox
               size="small"
@@ -492,9 +492,9 @@ export default function RequirementsViewer({ filename, projectName }) {
           variant="standard"
           sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5, textTransform: 'none' } }}
         >
-          <Tab label={t('reqViewer.tab.summary')} />
-          <Tab label={t('reqViewer.tab.toc')} />
-          <Tab label={t('reqViewer.tab.qualityAnalysis')} />
+          <Tab label={t('reqViewer:tab.summary')} />
+          <Tab label={t('reqViewer:tab.toc')} />
+          <Tab label={t('reqViewer:tab.qualityAnalysis')} />
         </Tabs>
       </Box>
 
@@ -519,7 +519,7 @@ export default function RequirementsViewer({ filename, projectName }) {
               />
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                {t('reqViewer.summary.empty')}
+                {t('reqViewer:summary.empty')}
               </Typography>
             )}
           </Box>
@@ -834,7 +834,7 @@ function TocNode({ node, checkedSections, onToggleCheck, selectedSection, onSele
  * Content pane showing details for the selected section.
  */
 function SectionContentPane({ section, subsections, requirements, selectedReqs, docName, onToggleReq, showTranslations, trackingStatus, onSetTrackingStatus }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["reqViewer"]);
   if (!section) return null;
 
   const priorityColor = {
@@ -851,7 +851,7 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
       </Typography>
       {section.page_start != null && (
         <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-          {t('reqViewer.section.page', { page: section.page_start })}
+          {t('reqViewer:section.page', { page: section.page_start })}
         </Typography>
       )}
 
@@ -859,7 +859,7 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
       {subsections.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'text.secondary' }}>
-            {t('reqViewer.section.subsections')}
+            {t('reqViewer:section.subsections')}
           </Typography>
           {subsections.map((sub) => (
             <Typography key={sub.section_number} variant="body2" sx={{ pl: 1, py: 0.25 }}>
@@ -909,7 +909,7 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
                 )}
                 {req.ambiguity_flag && (
                   <Chip
-                    label={t('reqViewer.section.ambiguous')}
+                    label={t('reqViewer:section.ambiguous')}
                     size="small"
                     color="warning"
                     sx={{ height: 20, fontSize: '0.7rem' }}
@@ -941,17 +941,17 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
               <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap' }}>
                 {req.actor && (
                   <Typography variant="caption" color="text.secondary">
-                    {t('reqViewer.section.actor', { value: req.actor })}
+                    {t('reqViewer:section.actor', { value: req.actor })}
                   </Typography>
                 )}
                 {req.verification && (
                   <Typography variant="caption" color="text.secondary">
-                    {t('reqViewer.section.verification', { value: req.verification })}
+                    {t('reqViewer:section.verification', { value: req.verification })}
                   </Typography>
                 )}
                 {req.source_page != null && (
                   <Typography variant="caption" color="text.secondary">
-                    {t('reqViewer.section.pageMeta', { value: req.source_page })}
+                    {t('reqViewer:section.pageMeta', { value: req.source_page })}
                   </Typography>
                 )}
               </Box>
@@ -986,7 +986,7 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
         </Box>
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-          {t('reqViewer.section.noRequirements')}
+          {t('reqViewer:section.noRequirements')}
         </Typography>
       )}
     </Box>
@@ -998,7 +998,7 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
  * with a left-side section navigation.
  */
 function QualityAnalysisPane({ qualityAnalysis, requirements }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["reqViewer"]);
   const duplicates = qualityAnalysis.duplicates || [];
   const contradictions = qualityAnalysis.contradictions || [];
   const gaps = qualityAnalysis.gaps || [];
@@ -1011,9 +1011,9 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
   const [activeSection, setActiveSection] = useState('duplicates');
 
   const sections = [
-    { key: 'duplicates', label: t('reqViewer.quality.duplicates'), count: duplicates.length, icon: <DuplicateIcon fontSize="small" color="warning" />, ref: duplicatesRef },
-    { key: 'contradictions', label: t('reqViewer.quality.contradictions'), count: contradictions.length, icon: <ErrorIcon fontSize="small" color="error" />, ref: contradictionsRef },
-    { key: 'gaps', label: t('reqViewer.quality.gaps'), count: gaps.length, icon: <WarningIcon fontSize="small" color="info" />, ref: gapsRef },
+    { key: 'duplicates', label: t('reqViewer:quality.duplicates'), count: duplicates.length, icon: <DuplicateIcon fontSize="small" color="warning" />, ref: duplicatesRef },
+    { key: 'contradictions', label: t('reqViewer:quality.contradictions'), count: contradictions.length, icon: <ErrorIcon fontSize="small" color="error" />, ref: contradictionsRef },
+    { key: 'gaps', label: t('reqViewer:quality.gaps'), count: gaps.length, icon: <WarningIcon fontSize="small" color="info" />, ref: gapsRef },
   ];
 
   const handleNavClick = (key, ref) => {
@@ -1078,7 +1078,7 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
             <DuplicateIcon fontSize="small" color="warning" />
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              {t('reqViewer.quality.duplicates')}
+              {t('reqViewer:quality.duplicates')}
             </Typography>
             <Chip label={duplicates.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
           </Box>
@@ -1117,7 +1117,7 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
             ))
           ) : (
             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
-              {t('reqViewer.quality.noDuplicates')}
+              {t('reqViewer:quality.noDuplicates')}
             </Typography>
           )}
         </Box>
@@ -1127,7 +1127,7 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
             <ErrorIcon fontSize="small" color="error" />
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              {t('reqViewer.quality.contradictions')}
+              {t('reqViewer:quality.contradictions')}
             </Typography>
             <Chip label={contradictions.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
           </Box>
@@ -1156,7 +1156,7 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
             ))
           ) : (
             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
-              {t('reqViewer.quality.noContradictions')}
+              {t('reqViewer:quality.noContradictions')}
             </Typography>
           )}
         </Box>
@@ -1166,7 +1166,7 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
             <WarningIcon fontSize="small" color="info" />
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              {t('reqViewer.quality.gaps')}
+              {t('reqViewer:quality.gaps')}
             </Typography>
             <Chip label={gaps.length} size="small" sx={{ height: 20, fontSize: '0.75rem' }} />
           </Box>
@@ -1193,7 +1193,7 @@ function QualityAnalysisPane({ qualityAnalysis, requirements }) {
             ))
           ) : (
             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
-              {t('reqViewer.quality.noGaps')}
+              {t('reqViewer:quality.noGaps')}
             </Typography>
           )}
         </Box>

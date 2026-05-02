@@ -47,7 +47,7 @@ const emptyAction = () => ({
 });
 
 export default function PreviewersManager({ open, onClose, onConfigChanged }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["previewersManager","common"]);
 
   const [previewers, setPreviewers] = useState([]);
   const [servicePreviewers, setServicePreviewers] = useState([]);
@@ -245,7 +245,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
     if (!newViewerName.trim()) return;
     const name = newViewerName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
     if (previewers.some(p => p.viewer === name) || servicePreviewers.some(sp => sp.viewerName === name)) {
-      setSnackbar({ open: true, message: t('previewersManager.duplicateViewer'), severity: 'warning' });
+      setSnackbar({ open: true, message: t('previewersManager:duplicateViewer'), severity: 'warning' });
       return;
     }
 
@@ -291,13 +291,13 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
       });
 
       if (response.ok) {
-        setSnackbar({ open: true, message: t('previewersManager.saveSuccess'), severity: 'success' });
+        setSnackbar({ open: true, message: t('previewersManager:saveSuccess'), severity: 'success' });
         if (onConfigChanged) onConfigChanged();
       } else {
         throw new Error('Save failed');
       }
     } catch (err) {
-      setSnackbar({ open: true, message: t('previewersManager.saveError'), severity: 'error' });
+      setSnackbar({ open: true, message: t('previewersManager:saveError'), severity: 'error' });
     } finally {
       setSaving(false);
     }
@@ -329,7 +329,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
           {action.icon && <i className={action.icon} style={{ fontSize: 16, flexShrink: 0 }} />}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
-              {action.labels?.[i18n.language] || action.labels?.en || t('previewersManager.newAction')}
+              {action.labels?.[i18n.language] || action.labels?.en || t('previewersManager:newAction')}
             </Typography>
             {action.condition && (
               <Typography variant="caption" color="text.secondary">
@@ -354,7 +354,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
           <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {/* Labels */}
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-              {t('previewersManager.actionLabels')}
+              {t('previewersManager:actionLabels')}
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
               {SUPPORTED_LANGUAGES.map(lang => (
@@ -372,7 +372,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             <Box sx={{ display: 'flex', gap: 1 }}>
               <TextField
                 size="small"
-                label={t('previewersManager.actionIcon')}
+                label={t('previewersManager:actionIcon')}
                 value={action.icon || ''}
                 onChange={(e) => handleUpdateAction(idx, 'icon', e.target.value)}
                 placeholder="codicon codicon-notebook"
@@ -380,7 +380,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
               />
               <TextField
                 size="small"
-                label={t('previewersManager.actionModal')}
+                label={t('previewersManager:actionModal')}
                 value={action.modalComponent || ''}
                 onChange={(e) => handleUpdateAction(idx, 'modalComponent', e.target.value)}
                 placeholder="OfferGeneratorModal or __preview__"
@@ -390,13 +390,13 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
 
             {/* Min Role */}
             <FormControl size="small" sx={{ width: 150 }}>
-              <InputLabel>{t('previewersManager.actionMinRole')}</InputLabel>
+              <InputLabel>{t('previewersManager:actionMinRole')}</InputLabel>
               <Select
                 value={action.minRole || ''}
                 onChange={(e) => handleUpdateAction(idx, 'minRole', e.target.value)}
-                label={t('previewersManager.actionMinRole')}
+                label={t('previewersManager:actionMinRole')}
               >
-                <MenuItem value="">({t('previewersManager.noRestriction')})</MenuItem>
+                <MenuItem value="">({t('previewersManager:noRestriction')})</MenuItem>
                 <MenuItem value="user">user</MenuItem>
                 <MenuItem value="admin">admin</MenuItem>
               </Select>
@@ -405,20 +405,20 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             {/* Condition */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                {t('previewersManager.actionCondition')}
+                {t('previewersManager:actionCondition')}
               </Typography>
               <Button size="small" variant="text" onClick={() => handleToggleCondition(idx)} sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
-                {action.condition ? t('previewersManager.removeCondition') : t('previewersManager.addCondition')}
+                {action.condition ? t('previewersManager:removeCondition') : t('previewersManager:addCondition')}
               </Button>
             </Box>
             {action.condition && (
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <FormControl size="small" sx={{ width: 160 }}>
-                  <InputLabel>{t('previewersManager.conditionType')}</InputLabel>
+                  <InputLabel>{t('previewersManager:conditionType')}</InputLabel>
                   <Select
                     value={action.condition.type || 'filename'}
                     onChange={(e) => handleUpdateAction(idx, 'condition.type', e.target.value)}
-                    label={t('previewersManager.conditionType')}
+                    label={t('previewersManager:conditionType')}
                   >
                     {CONDITION_TYPES.map(ct => (
                       <MenuItem key={ct} value={ct}>{ct}</MenuItem>
@@ -427,7 +427,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                 </FormControl>
                 <TextField
                   size="small"
-                  label={t('previewersManager.conditionValue')}
+                  label={t('previewersManager:conditionValue')}
                   value={action.condition.value || ''}
                   onChange={(e) => handleUpdateAction(idx, 'condition.value', e.target.value)}
                   placeholder="e.g. inbox"
@@ -439,7 +439,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             {/* Params */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                {t('previewersManager.actionParams')}
+                {t('previewersManager:actionParams')}
               </Typography>
               <Button size="small" variant="text" onClick={() => handleAddParam(idx)} startIcon={<TbPlus size={12} />} sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
                 {t('common.add')}
@@ -449,7 +449,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
               <Box key={pi} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <TextField
                   size="small"
-                  label={t('previewersManager.paramName')}
+                  label={t('previewersManager:paramName')}
                   value={param.name}
                   onChange={(e) => handleUpdateParam(idx, pi, 'name', e.target.value)}
                   placeholder="filePath"
@@ -457,7 +457,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                 />
                 <TextField
                   size="small"
-                  label={t('previewersManager.paramSource')}
+                  label={t('previewersManager:paramSource')}
                   value={param.source}
                   onChange={(e) => handleUpdateParam(idx, pi, 'source', e.target.value)}
                   placeholder="filePath or template ${fileNameWithoutExt}"
@@ -478,10 +478,10 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle sx={{ pb: 0 }}>
-          {t('previewersManager.title')}{selectedItem ? ` — ${ucFirst(selectedItem.name)}` : ''}
+          {t('previewersManager:title')}{selectedItem ? ` — ${ucFirst(selectedItem.name)}` : ''}
         </DialogTitle>
         <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 1.5, pt: 0.5 }}>
-          {t('previewersManager.description')}
+          {t('previewersManager:description')}
         </Typography>
         <DialogContent sx={{ p: 0 }}>
           <Box sx={{ display: 'flex', height: 500 }}>
@@ -545,14 +545,14 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                         sx={{ color: isSelected ? 'primary.contrastText' : 'text.secondary', opacity: isSelected ? 0.85 : 1 }}
                       >
                         {item.type === 'service'
-                          ? t('previewersManager.serviceViewer')
+                          ? t('previewersManager:serviceViewer')
                           : item.type === 'mcpui'
-                          ? t('previewersManager.typeMcpUI')
-                          : t('previewersManager.mappedExtensions', { count: extCount })}
+                          ? t('previewersManager:typeMcpUI')
+                          : t('previewersManager:mappedExtensions', { count: extCount })}
                       </Typography>
                     </Box>
                     {!hasComponent(item.id) && (
-                      <Tooltip title={t('previewersManager.noComponent')}>
+                      <Tooltip title={t('previewersManager:noComponent')}>
                         <Typography variant="caption" sx={{ color: isSelected ? 'warning.light' : 'warning.main', mt: 0.25 }}>!</Typography>
                       </Tooltip>
                     )}
@@ -581,7 +581,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
               >
                 <TbPlus size={16} />
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {t('previewersManager.addPreviewer')}
+                  {t('previewersManager:addPreviewer')}
                 </Typography>
               </Paper>
             </Box>
@@ -612,7 +612,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                       </Typography>
                     </Box>
                     {(selectedItem.type === 'file' || selectedPreviewer?.type === 'mcpui') && (
-                      <Tooltip title={t('previewersManager.removePreviewer')}>
+                      <Tooltip title={t('previewersManager:removePreviewer')}>
                         <IconButton size="small" color="error" onClick={() => handleRemovePreviewer(selectedViewer)} sx={{ flexShrink: 0 }}>
                           <TbTrash size={16} />
                         </IconButton>
@@ -628,7 +628,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                             <TextField
                               size="small"
-                              label={t('previewersManager.mcpGroup')}
+                              label={t('previewersManager:mcpGroup')}
                               value={selectedPreviewer.mcpGroup || ''}
                               onChange={(e) => setPreviewers(prev => prev.map(p =>
                                 p.viewer === selectedViewer ? { ...p, mcpGroup: e.target.value } : p
@@ -638,7 +638,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                             />
                             <TextField
                               size="small"
-                              label={t('previewersManager.mcpToolName')}
+                              label={t('previewersManager:mcpToolName')}
                               value={selectedPreviewer.mcpToolName || ''}
                               onChange={(e) => setPreviewers(prev => prev.map(p =>
                                 p.viewer === selectedViewer ? { ...p, mcpToolName: e.target.value } : p
@@ -653,7 +653,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
 
                       {/* Assigned Extensions */}
                       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                        {t('previewersManager.assignedExtensions')}
+                        {t('previewersManager:assignedExtensions')}
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
                         {selectedPreviewer?.extensions?.length > 0 ? (
@@ -667,7 +667,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                           ))
                         ) : (
                           <Typography variant="body2" color="text.secondary">
-                            {t('previewersManager.noExtensions')}
+                            {t('previewersManager:noExtensions')}
                           </Typography>
                         )}
                       </Box>
@@ -676,7 +676,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
                         <TextField
                           size="small"
-                          label={t('previewersManager.addExtension')}
+                          label={t('previewersManager:addExtension')}
                           value={newExtension}
                           onChange={(e) => setNewExtension(e.target.value.toLowerCase())}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleAddExtension(); }}
@@ -699,7 +699,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                       {/* Context Menu Actions */}
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="subtitle2" color="text.secondary">
-                          {t('previewersManager.contextMenuActions')}
+                          {t('previewersManager:contextMenuActions')}
                         </Typography>
                         <Button
                           size="small"
@@ -720,7 +720,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                         </Box>
                       ) : (
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          {t('previewersManager.noContextActions')}
+                          {t('previewersManager:noContextActions')}
                         </Typography>
                       )}
 
@@ -732,13 +732,13 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <VscServerProcess size={18} />
                         <Typography variant="body2">
-                          {t('previewersManager.serviceViewer')}
+                          {t('previewersManager:serviceViewer')}
                         </Typography>
                       </Box>
 
                       {/* Functions */}
                       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                        {t('previewersManager.serviceFunctions')}
+                        {t('previewersManager:serviceFunctions')}
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
                         {(selectedItem.functions || []).map(fn => (
@@ -759,7 +759,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
                         <TextField
                           size="small"
-                          label={t('previewersManager.addFunction')}
+                          label={t('previewersManager:addFunction')}
                           value={newFunction}
                           onChange={(e) => setNewFunction(e.target.value)}
                           onKeyDown={(e) => {
@@ -801,7 +801,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                       {/* Required service */}
                       <TextField
                         size="small"
-                        label={t('previewersManager.requiresService')}
+                        label={t('previewersManager:requiresService')}
                         value={selectedItem.requiresService || ''}
                         onChange={(e) => {
                           setServicePreviewers(prev => prev.map(sp =>
@@ -822,7 +822,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                   <Box sx={{ mt: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Collapse in={infoVisible}>
                       <Alert severity="info" sx={{ transition: 'opacity 0.5s', opacity: infoVisible ? 1 : 0 }}>
-                        {t('previewersManager.systemLevelNote')}
+                        {t('previewersManager:systemLevelNote')}
                       </Alert>
                     </Collapse>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -838,7 +838,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                 </>
               ) : (
                 <Typography color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>
-                  {t('previewersManager.selectPreviewer')}
+                  {t('previewersManager:selectPreviewer')}
                 </Typography>
               )}
             </Box>
@@ -848,11 +848,11 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
 
       {/* ── Add Previewer Dialog ── */}
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('previewersManager.addPreviewer')}</DialogTitle>
+        <DialogTitle>{t('previewersManager:addPreviewer')}</DialogTitle>
         <DialogContent>
           {/* Type selector */}
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-            {t('previewersManager.previewerType')}
+            {t('previewersManager:previewerType')}
           </Typography>
           <ToggleButtonGroup
             value={newPreviewerType}
@@ -862,16 +862,16 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             sx={{ mb: 2.5 }}
             fullWidth
           >
-            <ToggleButton value="file">{t('previewersManager.typeFileMapping')}</ToggleButton>
-            <ToggleButton value="service">{t('previewersManager.typeServiceFunction')}</ToggleButton>
-            <ToggleButton value="mcpui">{t('previewersManager.typeMcpUI')}</ToggleButton>
+            <ToggleButton value="file">{t('previewersManager:typeFileMapping')}</ToggleButton>
+            <ToggleButton value="service">{t('previewersManager:typeServiceFunction')}</ToggleButton>
+            <ToggleButton value="mcpui">{t('previewersManager:typeMcpUI')}</ToggleButton>
           </ToggleButtonGroup>
 
           {/* Hint per type */}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {newPreviewerType === 'file' && t('previewersManager.addPreviewerHint')}
-            {newPreviewerType === 'service' && t('previewersManager.serviceHint')}
-            {newPreviewerType === 'mcpui' && t('previewersManager.mcpUIHint')}
+            {newPreviewerType === 'file' && t('previewersManager:addPreviewerHint')}
+            {newPreviewerType === 'service' && t('previewersManager:serviceHint')}
+            {newPreviewerType === 'mcpui' && t('previewersManager:mcpUIHint')}
           </Typography>
 
           {/* Common: viewer name */}
@@ -879,14 +879,14 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             autoFocus
             fullWidth
             size="small"
-            label={t('previewersManager.viewerName')}
+            label={t('previewersManager:viewerName')}
             value={newViewerName}
             onChange={(e) => setNewViewerName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && newViewerName.trim()) handleAddPreviewer(); }}
             placeholder={newPreviewerType === 'file' ? 'e.g. csv' : newPreviewerType === 'mcpui' ? 'e.g. budget' : 'e.g. imap'}
             sx={{ mb: 2 }}
             helperText={newPreviewerType === 'file' && newViewerName && !hasComponent(newViewerName.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''))
-              ? t('previewersManager.componentNotRegistered')
+              ? t('previewersManager:componentNotRegistered')
               : ' '
             }
           />
@@ -896,7 +896,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             <TextField
               fullWidth
               size="small"
-              label={t('previewersManager.displayName')}
+              label={t('previewersManager:displayName')}
               value={newServiceDisplayName}
               onChange={(e) => setNewServiceDisplayName(e.target.value)}
               placeholder="e.g. Email Inbox"
@@ -910,7 +910,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
               <TextField
                 fullWidth
                 size="small"
-                label={t('previewersManager.mcpGroup')}
+                label={t('previewersManager:mcpGroup')}
                 value={newMcpGroup}
                 onChange={(e) => setNewMcpGroup(e.target.value)}
                 placeholder="e.g. budget"
@@ -919,7 +919,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
               <TextField
                 fullWidth
                 size="small"
-                label={t('previewersManager.mcpToolName')}
+                label={t('previewersManager:mcpToolName')}
                 value={newMcpToolName}
                 onChange={(e) => setNewMcpToolName(e.target.value)}
                 placeholder="render_file"

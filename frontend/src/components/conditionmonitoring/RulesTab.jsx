@@ -40,13 +40,13 @@ const RulesTab = ({
   selectedRuleForMenu,
   setSelectedRuleForMenu
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["rulesTab","common"]);
   return (
     <Box>
       {rules.length > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="body2" sx={{ marginLeft: '20px' }} color="text.secondary">
-            {t('rulesTab.manageRules')}
+            {t('rulesTab:manageRules')}
           </Typography>
           <Button
             variant="outlined"
@@ -54,7 +54,7 @@ const RulesTab = ({
             onClick={() => onOpenRuleDialog()}
             sx={{ textTransform: 'none' }}
           >
-            {t('rulesTab.newRule')}
+            {t('rulesTab:newRule')}
           </Button>
         </Box>
       )}
@@ -63,10 +63,10 @@ const RulesTab = ({
         <Box sx={{ py: 6, textAlign: 'center' }}>
           <IoMdNotificationsOff style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            {t('rulesTab.noRulesConfigured')}
+            {t('rulesTab:noRulesConfigured')}
           </Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-            {t('rulesTab.createFirstRuleHint')}
+            {t('rulesTab:createFirstRuleHint')}
           </Typography>
           <Button
             variant="outlined"
@@ -75,7 +75,7 @@ const RulesTab = ({
             onClick={() => onOpenRuleDialog()}
             sx={{ textTransform: 'none' }}
           >
-            {t('rulesTab.createFirstRule')}
+            {t('rulesTab:createFirstRule')}
           </Button>
         </Box>
       ) : (
@@ -85,10 +85,10 @@ const RulesTab = ({
               <TableHead>
                 <TableRow sx={{ bgcolor: 'background.paper' }}>
                   <TableCell sx={{ width: 50 }}></TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnName')}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnType')}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnEventGroup')}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab.columnAction')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab:columnName')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab:columnType')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab:columnEventGroup')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('rulesTab:columnAction')}</TableCell>
                   <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}></TableCell>
                 </TableRow>
               </TableHead>

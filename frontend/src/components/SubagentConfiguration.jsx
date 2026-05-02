@@ -34,7 +34,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useTranslation } from 'react-i18next';
 
 export default function SubagentConfiguration({ project, codingAgent = 'anthropic' }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["subagent","common"]);
   const { mode: themeMode } = useThemeMode();
   const [subagents, setSubagents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +74,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
       const response = await apiAxios.get(`/api/subagents/${project}`);
       setSubagents(response.data.subagents || []);
     } catch (err) {
-      setError(t('subagent.errorLoadFailed'));
+      setError(t('subagent:errorLoadFailed'));
       console.error('Load subagents error:', err);
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
       });
       await loadSubagents();
     } catch (err) {
-      setError(t('subagent.errorProvisionFailed'));
+      setError(t('subagent:errorProvisionFailed'));
       console.error('Provision subagent error:', err);
     }
   };
@@ -173,18 +173,18 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError(t('subagent.errorNameRequired'));
+      setError(t('subagent:errorNameRequired'));
       return;
     }
 
     if (!description.trim()) {
-      setError(t('subagent.errorDescriptionRequired'));
+      setError(t('subagent:errorDescriptionRequired'));
       return;
     }
 
     // Validate name format
     if (!/^[a-z0-9-]+$/.test(name)) {
-      setError(t('subagent.errorNameFormat'));
+      setError(t('subagent:errorNameFormat'));
       return;
     }
 
@@ -216,7 +216,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
 
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(t('subagent.errorSaveFailed'));
+      setError(t('subagent:errorSaveFailed'));
       console.error('Save subagent error:', err);
     } finally {
       setSaving(false);
@@ -243,7 +243,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
 
       await loadSubagents();
     } catch (err) {
-      setError(t('subagent.errorDeleteFailed'));
+      setError(t('subagent:errorDeleteFailed'));
       console.error('Delete subagent error:', err);
     }
   };
@@ -283,7 +283,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          {t('subagent.savedSuccess')}
+          {t('subagent:savedSuccess')}
         </Alert>
       )}
 
@@ -299,7 +299,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
             />
             <Box sx={{ flex: 1 }} />
             <Typography variant="body2" sx={{ color: 'text.disabled', mt: 2, px: 1 }}>
-              {t('subagent.infoHint')}
+              {t('subagent:infoHint')}
             </Typography>
           </Box>
 
@@ -309,7 +309,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
               {subagents.length === 0 && availableRepoSubagents.length === 0 && (
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Typography color="text.secondary">
-                    {t('subagent.emptyState')}
+                    {t('subagent:emptyState')}
                   </Typography>
                 </Paper>
               )}
@@ -355,7 +355,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
                     <ListItemIcon sx={{ minWidth: 40 }}>
                       <Add />
                     </ListItemIcon>
-                    <ListItemText primary={t('subagent.addPredefined')} />
+                    <ListItemText primary={t('subagent:addPredefined')} />
                   </ListItemButton>
                 </ListItem>
               )}
@@ -395,7 +395,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
                 startIcon={<Add />}
                 onClick={handleNewSubagent}
               >
-                {t('subagent.newSubagent')}
+                {t('subagent:newSubagent')}
               </Button>
             </Box>
           </Box>
@@ -408,7 +408,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
                 <ArrowBack />
               </IconButton>
               <Typography variant="h6">
-                {originalName === '' ? t('subagent.newSubagent') : name}
+                {originalName === '' ? t('subagent:newSubagent') : name}
               </Typography>
             </Box>
             <Box>
@@ -445,45 +445,45 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
           <Paper sx={{ flex: 1, p: 2, overflow: 'auto' }}>
             <Stack spacing={2}>
               <TextField
-                label={t('subagent.formName')}
+                label={t('subagent:formName')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={!editMode}
                 fullWidth
-                helperText={t('subagent.formNameHelper')}
+                helperText={t('subagent:formNameHelper')}
               />
 
               <TextField
-                label={t('subagent.formDescription')}
+                label={t('subagent:formDescription')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={!editMode}
                 fullWidth
                 multiline
                 rows={2}
-                helperText={t('subagent.formDescriptionHelper')}
+                helperText={t('subagent:formDescriptionHelper')}
               />
 
               <FormControl fullWidth>
-                <InputLabel>{t('subagent.formModel')}</InputLabel>
+                <InputLabel>{t('subagent:formModel')}</InputLabel>
                 <Select
                   value={model}
-                  label={t('subagent.formModel')}
+                  label={t('subagent:formModel')}
                   onChange={(e) => setModel(e.target.value)}
                   disabled={!editMode}
                 >
-                  <MenuItem value="">{t('subagent.formModelDefault')}</MenuItem>
-                  <MenuItem value="haiku">{t('subagent.formModelHaiku')}</MenuItem>
-                  <MenuItem value="sonnet">{t('subagent.formModelSonnet')}</MenuItem>
-                  <MenuItem value="opus">{t('subagent.formModelOpus')}</MenuItem>
-                  <MenuItem value="inherit">{t('subagent.formModelInherit')}</MenuItem>
+                  <MenuItem value="">{t('subagent:formModelDefault')}</MenuItem>
+                  <MenuItem value="haiku">{t('subagent:formModelHaiku')}</MenuItem>
+                  <MenuItem value="sonnet">{t('subagent:formModelSonnet')}</MenuItem>
+                  <MenuItem value="opus">{t('subagent:formModelOpus')}</MenuItem>
+                  <MenuItem value="inherit">{t('subagent:formModelInherit')}</MenuItem>
                 </Select>
               </FormControl>
 
               {codingAgent !== 'openai' && (
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {t('subagent.formToolsHelp')}
+                  {t('subagent:formToolsHelp')}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {availableTools.map((tool) => {
@@ -508,7 +508,7 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
 
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {t('subagent.formSystemPrompt')}
+                  {t('subagent:formSystemPrompt')}
                 </Typography>
                 <Box sx={{ border: '1px solid #ddd', borderRadius: 1, height: '300px' }}>
                   <Editor
@@ -536,10 +536,10 @@ export default function SubagentConfiguration({ project, codingAgent = 'anthropi
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>{t('subagent.deleteTitle')}</DialogTitle>
+        <DialogTitle>{t('subagent:deleteTitle')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {t('subagent.deleteMessage', { name: subagentToDelete?.name })}
+            {t('subagent:deleteMessage', { name: subagentToDelete?.name })}
           </DialogContentText>
         </DialogContent>
         <DialogActions>

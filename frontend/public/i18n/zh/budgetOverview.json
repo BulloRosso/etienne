@@ -1,0 +1,19 @@
+{
+  "avgCostPerSession": "平均每次会话费用",
+  "barTooltip": "当前项目：{{projectCosts}} {{currencySymbol}} | 其他项目：{{otherCosts}} {{currencySymbol}}",
+  "columnCost": "费用",
+  "columnDate": "日期",
+  "columnInputTokens": "输入令牌数",
+  "columnOutputTokens": "输出令牌数",
+  "globalTokenBudget": "全局令牌预算",
+  "legendAllProjects": "所有项目",
+  "legendCurrentProject": "当前项目",
+  "noCostData": "暂无费用数据",
+  "recentActivity": "近期活动",
+  "sessionsCompleted": "已完成会话数",
+  "settingsButton": "预算设置",
+  "title": "预算概览",
+  "tokensRemaining": "剩余令牌数（预估）",
+  "tokensUsed": "已使用令牌数",
+  "totalCosts": "总费用"
+}

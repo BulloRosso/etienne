@@ -213,7 +213,7 @@ const EventCard = ({ event, isDark }) => {
 
 // Event source column component
 const EventSourceColumn = ({ sourceName, sourceConfig, events, isActive, isConnected = true, showConnectionStatus = false, isDark = false }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["liveEvents"]);
   const Icon = sourceConfig.icon;
   const isDisabled = showConnectionStatus && !isConnected;
 
@@ -285,13 +285,13 @@ const EventSourceColumn = ({ sourceName, sourceConfig, events, isActive, isConne
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <DisconnectedIcon sx={{ fontSize: 24, color: 'text.disabled', mb: 0.5 }} />
             <Typography variant="caption" color="text.disabled" display="block">
-              {t('liveEvents.notConnected')}
+              {t('liveEvents:notConnected')}
             </Typography>
           </Box>
         ) : events.length === 0 ? (
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="caption" color="text.disabled">
-              {t('liveEvents.noEvents')}
+              {t('liveEvents:noEvents')}
             </Typography>
           </Box>
         ) : (
@@ -425,7 +425,7 @@ const PromptExecutionCard = ({ execution, isDark }) => {
 
 // Prompt executions column component
 const PromptExecutionsColumn = ({ executions, isDark }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["liveEvents"]);
   const hasActiveExecution = executions.some(e => e.status === 'started');
 
   return (
@@ -465,7 +465,7 @@ const PromptExecutionsColumn = ({ executions, isDark }) => {
             whiteSpace: 'nowrap'
           }}
         >
-          {t('liveEvents.promptExecutions')}
+          {t('liveEvents:promptExecutions')}
         </Typography>
       </Box>
 
@@ -486,7 +486,7 @@ const PromptExecutionsColumn = ({ executions, isDark }) => {
         {executions.length === 0 ? (
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="caption" color="text.disabled">
-              {t('liveEvents.noExecutions')}
+              {t('liveEvents:noExecutions')}
             </Typography>
           </Box>
         ) : (
@@ -633,7 +633,7 @@ const WorkflowExecutionCard = ({ execution, isDark }) => {
 
 // Workflow executions column component
 const WorkflowExecutionsColumn = ({ executions, isDark }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["liveEvents"]);
   const hasActiveExecution = executions.some(e => e.status === 'started');
 
   return (
@@ -673,7 +673,7 @@ const WorkflowExecutionsColumn = ({ executions, isDark }) => {
             whiteSpace: 'nowrap'
           }}
         >
-          {t('liveEvents.workflowEvents')}
+          {t('liveEvents:workflowEvents')}
         </Typography>
       </Box>
 
@@ -694,7 +694,7 @@ const WorkflowExecutionsColumn = ({ executions, isDark }) => {
         {executions.length === 0 ? (
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="caption" color="text.disabled">
-              {t('liveEvents.noWorkflowEvents')}
+              {t('liveEvents:noWorkflowEvents')}
             </Typography>
           </Box>
         ) : (
@@ -837,7 +837,7 @@ const ScriptExecutionCard = ({ execution, isDark }) => {
 
 // Script executions column component
 const ScriptExecutionsColumn = ({ executions, isDark }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["liveEvents"]);
   const hasActiveExecution = executions.some(e => e.status === 'started');
 
   return (
@@ -877,7 +877,7 @@ const ScriptExecutionsColumn = ({ executions, isDark }) => {
             whiteSpace: 'nowrap'
           }}
         >
-          {t('liveEvents.scriptExecutions')}
+          {t('liveEvents:scriptExecutions')}
         </Typography>
       </Box>
 
@@ -898,7 +898,7 @@ const ScriptExecutionsColumn = ({ executions, isDark }) => {
         {executions.length === 0 ? (
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="caption" color="text.disabled">
-              {t('liveEvents.noScriptExecutions')}
+              {t('liveEvents:noScriptExecutions')}
             </Typography>
           </Box>
         ) : (
@@ -935,7 +935,7 @@ const saveHiddenColumns = (hidden) => {
 };
 
 const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflowExecutions = [], scriptExecutions = [], serviceStatus = {} }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["liveEvents"]);
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -1037,7 +1037,7 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
     return (
       <Paper sx={{ p: 6, textAlign: 'center' }}>
         <Typography variant="h6" color="text.secondary" gutterBottom>
-          {t('liveEvents.connecting')}
+          {t('liveEvents:connecting')}
         </Typography>
       </Paper>
     );
@@ -1125,7 +1125,7 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
             }}
           />
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-            {eventStream ? t('liveEvents.eventStreamConnected') : t('liveEvents.disconnected')}
+            {eventStream ? t('liveEvents:eventStreamConnected') : t('liveEvents:disconnected')}
           </Typography>
         </Box>
 
@@ -1141,7 +1141,7 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
             }}
           />
           <Typography variant="caption" color={mqttConnected ? 'text.secondary' : 'text.disabled'} sx={{ fontSize: '0.7rem' }}>
-            {mqttConnected ? t('liveEvents.mqttConnected') : t('liveEvents.mqttNotConnected')}
+            {mqttConnected ? t('liveEvents:mqttConnected') : t('liveEvents:mqttNotConnected')}
           </Typography>
         </Box>
 
@@ -1154,7 +1154,7 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
             onClick={(e) => setVisibilityAnchor(e.currentTarget)}
             sx={{ fontSize: '0.7rem', cursor: 'pointer' }}
           >
-            {hiddenColumns.length > 0 ? t('liveEvents.hideShowSourcesCount', { count: hiddenColumns.length }) : t('liveEvents.hideShowSources')}
+            {hiddenColumns.length > 0 ? t('liveEvents:hideShowSourcesCount', { count: hiddenColumns.length }) : t('liveEvents:hideShowSources')}
           </Link>
           <Menu
             anchorEl={visibilityAnchor}
@@ -1182,7 +1182,7 @@ const LiveEventsTab = ({ liveEvents, eventStream, promptExecutions = [], workflo
         </Box>
 
         <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.7rem' }}>
-          {t('liveEvents.totalEvents', { count: liveEvents.length })}
+          {t('liveEvents:totalEvents', { count: liveEvents.length })}
         </Typography>
       </Box>
     </Box>

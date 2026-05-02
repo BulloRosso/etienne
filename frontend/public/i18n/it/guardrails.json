@@ -1,0 +1,18 @@
+{
+  "creditCardDescription": "Rileva e oscura i numeri di carta di credito",
+  "creditCardLabel": "Numeri di carta di credito",
+  "emailDescription": "Rileva e oscura gli indirizzi email",
+  "emailLabel": "Indirizzi email",
+  "enablePostProcessing": "Abilita post-elaborazione",
+  "ibanDescription": "Rileva e oscura i numeri di conto bancario internazionali",
+  "ibanLabel": "IBAN",
+  "ipAddressDescription": "Rileva e oscura gli indirizzi IPv4 e IPv6",
+  "ipAddressLabel": "Indirizzi IP",
+  "postProcessingDescription": "Seleziona quali tipi di informazioni sensibili devono essere automaticamente rilevati e oscurati dall'output del modello dopo essere stati restituiti dal modello AI. L'uso di questa funzionalità disattiva lo streaming delle risposte.",
+  "preProcessingDescription": "Seleziona quali tipi di informazioni sensibili devono essere automaticamente rilevati e oscurati dall'input dell'utente prima di essere inviati al modello AI.",
+  "tabPostProcessing": "Post-elaborazione",
+  "tabPreProcessing": "Pre-elaborazione",
+  "title": "Guardrails",
+  "urlDescription": "Rileva e oscura gli URL HTTP/HTTPS",
+  "urlLabel": "URL"
+}

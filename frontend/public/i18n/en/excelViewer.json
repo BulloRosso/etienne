@@ -1,0 +1,6 @@
+{
+  "columnCount": "{{count}} column(s)",
+  "errorTitle": "Error Loading Excel File",
+  "rowCount": "{{count}} row(s)",
+  "sheetCount": "{{count}} sheet(s)"
+}

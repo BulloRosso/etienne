@@ -1,0 +1,12 @@
+{
+  "empty": "In dieser Sitzung wurden noch keine Artefakte erstellt.",
+  "filterCategories": "Kategorien filtern",
+  "filterCode": "Code",
+  "filterData": "Datendateien",
+  "filterOffice": "Office-Dokumente",
+  "filterPlaceholder": "Filtern...",
+  "noMatches": "Keine Artefakte entsprechen den aktuellen Filtern.",
+  "sortAlpha": "A-Z",
+  "sortNewest": "Neueste zuerst",
+  "title": "Sitzungs-Artefakte"
+}

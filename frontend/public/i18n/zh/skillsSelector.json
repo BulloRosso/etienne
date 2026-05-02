@@ -1,0 +1,11 @@
+{
+  "chooseAdditionalSkill": "+ 选择额外技能",
+  "chooseDialogTitle": "选择可选技能",
+  "noOptionalSkills": "仓库中暂无可用的可选技能。",
+  "noOptionalSkillsDialog": "暂无可用的可选技能。",
+  "noStandardSkills": "仓库中暂无可用的标准技能。",
+  "optionalChip": "可选",
+  "optionalSkillsTitle": "可选技能",
+  "standardChip": "标准",
+  "standardSkillsTitle": "标准技能（自动包含）"
+}

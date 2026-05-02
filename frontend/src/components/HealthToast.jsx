@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function HealthToast() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["healthToast"]);
   const [error, setError] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -35,7 +35,7 @@ export default function HealthToast() {
         }
       }
     } catch (err) {
-      setError(t('healthToast.backendNotResponding'));
+      setError(t('healthToast:backendNotResponding'));
     }
   };
 
@@ -58,7 +58,7 @@ export default function HealthToast() {
   // If toast is not open, show just the icon button
   if (!isOpen) {
     return (
-      <Tooltip title={t('healthToast.clickToViewDetails')}>
+      <Tooltip title={t('healthToast:clickToViewDetails')}>
         <IconButton
           onClick={() => setIsOpen(true)}
           sx={{

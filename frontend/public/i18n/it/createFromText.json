@@ -1,0 +1,7 @@
+{
+  "creating": "Creazione...",
+  "description": "Incolla o digita il testo qui sotto. Il contenuto verrà analizzato per estrarre argomenti, categorie ed elementi che verranno organizzati in una struttura a mappa mentale.",
+  "dialogTitle": "Crea taccuino da testo",
+  "emptyError": "Inserisci del testo per creare un taccuino.",
+  "failedError": "Creazione del taccuino da testo fallita"
+}

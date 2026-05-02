@@ -1,0 +1,9 @@
+{
+  "approvalWarning": "Approving this request will allow this user to interact with your Claude Code projects via {{provider}}.",
+  "chatId": "Chat ID:",
+  "expiresIn": "Expires in {{minutes}} min",
+  "pairingCode": "Pairing Code:",
+  "sessionDetails": "Session Details",
+  "title": "New Pairing Request",
+  "userId": "User ID:"
+}

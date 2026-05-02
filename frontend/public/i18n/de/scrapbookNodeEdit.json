@@ -1,0 +1,17 @@
+{
+  "attentionWeight": "Aufmerksamkeitsgewicht: {{value}}%",
+  "clearIcon": "Symbol entfernen",
+  "clickToSelectIcon": "Klicken, um ein Symbol auszuwählen",
+  "describeImage": "Bild beschreiben",
+  "dialogTitleAdd": "Neuen Knoten hinzufügen",
+  "dialogTitleEdit": "Knoten bearbeiten",
+  "icon": "Symbol",
+  "images": "Bilder",
+  "noIconsFound": "Keine Symbole gefunden. Versuchen Sie einen anderen Suchbegriff.",
+  "priority": "Priorität: {{value}}",
+  "searchIconsPlaceholder": "Symbole suchen...",
+  "selectIconTitle": "Symbol auswählen",
+  "title": "Titel",
+  "uploadImage": "Bild hochladen",
+  "uploading": "Wird hochgeladen..."
+}

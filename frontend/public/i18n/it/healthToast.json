@@ -1,0 +1,7 @@
+{
+  "backendNotResponding": "**Il backend non risponde**\n\nIl backend non risponde. Assicurati che il backend sia in esecuzione sulla porta 6060.",
+  "clickToViewDetails": "Errore di salute del sistema - Clicca per vedere i dettagli",
+  "healthCheckFailed": "Controllo di salute del sistema fallito",
+  "tooltip": "Errore di salute del sistema - Clicca per vedere i dettagli",
+  "unknownError": "Si è verificato un errore sconosciuto"
+}

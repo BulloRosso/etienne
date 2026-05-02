@@ -1,0 +1,21 @@
+{
+  "changePasswordTooltip": "Change Password",
+  "headerTitle": "Etienne",
+  "itemBudgetSettings": "Budget Settings",
+  "itemConditionMonitoring": "Condition Monitoring",
+  "itemContextTagging": "Context/Tagging",
+  "itemCustomizeUI": "Customize UI",
+  "itemDecisionSupport": "Decision Support",
+  "itemExternalEvents": "External Events",
+  "itemGuardrails": "Guardrails",
+  "itemIssues": "Issues",
+  "itemKnowledgeBase": "Knowledge Base",
+  "itemPreviewers": "Previewers",
+  "itemScheduling": "Scheduling",
+  "itemScrapbook": "Scrapbook",
+  "itemSkillStore": "Skill Store",
+  "itemSkills": "Skills",
+  "itemSubagents": "Subagents",
+  "serviceControl": "Service Control",
+  "subagentsUnsupportedPiMono": "Subagents are not supported by the pi-mono coding agent."
+}

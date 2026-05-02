@@ -1,0 +1,12 @@
+{
+  "empty": "Nessun artefatto creato in questa sessione.",
+  "filterCategories": "Filtra categorie",
+  "filterCode": "Codice",
+  "filterData": "File di dati",
+  "filterOffice": "Documenti Office",
+  "filterPlaceholder": "Filtra...",
+  "noMatches": "Nessun artefatto corrisponde ai filtri attuali.",
+  "sortAlpha": "A-Z",
+  "sortNewest": "Più recenti",
+  "title": "Artefatti della sessione"
+}

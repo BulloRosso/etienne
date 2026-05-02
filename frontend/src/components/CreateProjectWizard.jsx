@@ -35,57 +35,57 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 const getAllWizardSteps = (t) => [
   {
     id: 'projectName',
-    label: t('wizard.stepProjectName'),
+    label: t('wizard:stepProjectName'),
     image: '/project-wizard-step-1.png',
-    benefitTitle: t('wizard.benefitTitleStep1'),
-    benefitDescription: t('wizard.benefitDescStep1')
+    benefitTitle: t('wizard:benefitTitleStep1'),
+    benefitDescription: t('wizard:benefitDescStep1')
   },
   {
     id: 'missionBrief',
-    label: t('wizard.stepMissionBrief'),
+    label: t('wizard:stepMissionBrief'),
     image: '/project-wizard-step-2.png',
-    benefitTitle: t('wizard.benefitTitleStep2'),
-    benefitDescription: t('wizard.benefitDescStep2')
+    benefitTitle: t('wizard:benefitTitleStep2'),
+    benefitDescription: t('wizard:benefitDescStep2')
   },
   {
     id: 'agentRole',
-    label: t('wizard.stepAgentRole'),
+    label: t('wizard:stepAgentRole'),
     image: '/project-wizard-step-3.png',
-    benefitTitle: t('wizard.benefitTitleStep3'),
-    benefitDescription: t('wizard.benefitDescStep3')
+    benefitTitle: t('wizard:benefitTitleStep3'),
+    benefitDescription: t('wizard:benefitDescStep3')
   },
   {
     id: 'skills',
-    label: t('wizard.stepSkills'),
+    label: t('wizard:stepSkills'),
     image: '/project-wizard-step-4.png',
-    benefitTitle: t('wizard.benefitTitleStep4'),
-    benefitDescription: t('wizard.benefitDescStep4')
+    benefitTitle: t('wizard:benefitTitleStep4'),
+    benefitDescription: t('wizard:benefitDescStep4')
   },
   {
     id: 'tools',
-    label: t('wizard.stepTools'),
+    label: t('wizard:stepTools'),
     image: '/project-wizard-step-5.png',
-    benefitTitle: t('wizard.benefitTitleStep5'),
-    benefitDescription: t('wizard.benefitDescStep5')
+    benefitTitle: t('wizard:benefitTitleStep5'),
+    benefitDescription: t('wizard:benefitDescStep5')
   },
   {
     id: 'externalAgents',
-    label: t('wizard.stepExternalAgents'),
+    label: t('wizard:stepExternalAgents'),
     image: '/project-wizard-step-6.png',
-    benefitTitle: t('wizard.benefitTitleStep6'),
-    benefitDescription: t('wizard.benefitDescStep6')
+    benefitTitle: t('wizard:benefitTitleStep6'),
+    benefitDescription: t('wizard:benefitDescStep6')
   },
   {
     id: 'customizeUI',
-    label: t('wizard.stepCustomizeUI'),
+    label: t('wizard:stepCustomizeUI'),
     image: '/project-wizard-step-7.png',
-    benefitTitle: t('wizard.benefitTitleStep7'),
-    benefitDescription: t('wizard.benefitDescStep7')
+    benefitTitle: t('wizard:benefitTitleStep7'),
+    benefitDescription: t('wizard:benefitDescStep7')
   }
 ];
 
 export default function CreateProjectWizard({ open, onClose, onProjectCreated, existingProjects = [] }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["wizard","common"]);
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const [activeStep, setActiveStep] = useState(0);
@@ -272,10 +272,10 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   }, [visibleSteps.length]);
 
   const validateProjectName = (name) => {
-    if (!name) return t('wizard.validationRequired');
-    if (!/^[a-z0-9-]+$/.test(name)) return t('wizard.validationFormat');
-    if (name.length > 30) return t('wizard.validationMaxLength');
-    if (existingProjects.includes(name)) return t('wizard.validationDuplicate');
+    if (!name) return t('wizard:validationRequired');
+    if (!/^[a-z0-9-]+$/.test(name)) return t('wizard:validationFormat');
+    if (name.length > 30) return t('wizard:validationMaxLength');
+    if (existingProjects.includes(name)) return t('wizard:validationDuplicate');
     return null;
   };
 
@@ -347,10 +347,10 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       if (response.data.success) {
         onProjectCreated(projectName, response.data.guidanceDocuments);
       } else {
-        setError(response.data.errors?.[0] || t('wizard.errorCreateDefault'));
+        setError(response.data.errors?.[0] || t('wizard:errorCreateDefault'));
       }
     } catch (error) {
-      setError(error.response?.data?.message || error.message || t('wizard.errorCreateDefault'));
+      setError(error.response?.data?.message || error.message || t('wizard:errorCreateDefault'));
     } finally {
       setCreating(false);
     }
@@ -365,7 +365,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
             <TextField
               autoFocus
               fullWidth
-              label={t('wizard.projectNameLabel')}
+              label={t('wizard:projectNameLabel')}
               value={projectName}
               onChange={(e) => {
                 const value = e.target.value.toLowerCase();
@@ -374,18 +374,18 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 }
               }}
               error={!!nameError}
-              helperText={nameError || t('wizard.projectNameHelperText')}
+              helperText={nameError || t('wizard:projectNameHelperText')}
             />
             {availableTemplates.length > 0 && (
               <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>{t('wizard.templateLabel')}</InputLabel>
+                <InputLabel>{t('wizard:templateLabel')}</InputLabel>
                 <Select
                   value={selectedTemplate}
                   onChange={(e) => setSelectedTemplate(e.target.value)}
-                  label={t('wizard.templateLabel')}
+                  label={t('wizard:templateLabel')}
                 >
                   <MenuItem value="">
-                    <em>{t('wizard.templateNoneOption')}</em>
+                    <em>{t('wizard:templateNoneOption')}</em>
                   </MenuItem>
                   {availableTemplates.map(tmpl => (
                     <MenuItem key={tmpl} value={tmpl}>
@@ -403,7 +403,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                     onChange={(e) => setUseSpecializedRole(e.target.checked)}
                   />
                 }
-                label={t('wizard.checkboxSpecializedRole')}
+                label={t('wizard:checkboxSpecializedRole')}
               />
               <FormControlLabel
                 control={
@@ -412,7 +412,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                     onChange={(e) => setConnectDataSources(e.target.checked)}
                   />
                 }
-                label={t('wizard.checkboxConnectDataSources')}
+                label={t('wizard:checkboxConnectDataSources')}
               />
               <FormControlLabel
                 control={
@@ -421,7 +421,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                     onChange={(e) => setUseExternalAgents(e.target.checked)}
                   />
                 }
-                label={t('wizard.checkboxExternalAgents')}
+                label={t('wizard:checkboxExternalAgents')}
               />
             </Box>
           </Box>
@@ -459,8 +459,8 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 value={roleType}
                 onChange={(e) => setRoleType(e.target.value)}
               >
-                <FormControlLabel value="registry" control={<Radio />} label={t('wizard.roleSelectFromRegistry')} />
-                <FormControlLabel value="custom" control={<Radio />} label={t('wizard.roleDefineCustom')} />
+                <FormControlLabel value="registry" control={<Radio />} label={t('wizard:roleSelectFromRegistry')} />
+                <FormControlLabel value="custom" control={<Radio />} label={t('wizard:roleDefineCustom')} />
               </RadioGroup>
             </FormControl>
 
@@ -471,14 +471,14 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                 ) : (
                   <>
                     <FormControl fullWidth sx={{ mb: 2 }}>
-                      <InputLabel>{t('wizard.roleLabel')}</InputLabel>
+                      <InputLabel>{t('wizard:roleLabel')}</InputLabel>
                       <Select
                         value={selectedRoleId}
                         onChange={(e) => setSelectedRoleId(e.target.value)}
-                        label={t('wizard.roleLabel')}
+                        label={t('wizard:roleLabel')}
                       >
                         <MenuItem value="">
-                          <em>{t('wizard.roleNoneOption')}</em>
+                          <em>{t('wizard:roleNoneOption')}</em>
                         </MenuItem>
                         {availableRoles.map(role => (
                           <MenuItem key={role.id} value={role.id}>
@@ -566,13 +566,13 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
           <Box sx={{ mt: 2 }}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                {t('wizard.agentNameDescription')}
+                {t('wizard:agentNameDescription')}
               </Typography>
               <TextField
                 fullWidth
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
-                placeholder={t('wizard.agentNamePlaceholder')}
+                placeholder={t('wizard:agentNamePlaceholder')}
                 disabled={agentNameLoading}
                 InputProps={{
                   endAdornment: agentNameLoading ? <CircularProgress size={20} /> : null
@@ -583,17 +583,17 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
             {projectsWithUI.length > 0 && (
               <Box>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  {t('wizard.copyUIDescription')}
+                  {t('wizard:copyUIDescription')}
                 </Typography>
                 <FormControl fullWidth>
-                  <InputLabel>{t('wizard.copyFromLabel')}</InputLabel>
+                  <InputLabel>{t('wizard:copyFromLabel')}</InputLabel>
                   <Select
                     value={copyFromProject}
                     onChange={(e) => setCopyFromProject(e.target.value)}
-                    label={t('wizard.copyFromLabel')}
+                    label={t('wizard:copyFromLabel')}
                   >
                     <MenuItem value="">
-                      <em>{t('wizard.copyFromNoneOption')}</em>
+                      <em>{t('wizard:copyFromNoneOption')}</em>
                     </MenuItem>
                     {projectsWithUI.map(proj => (
                       <MenuItem key={proj} value={proj}>
@@ -615,9 +615,9 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {t('wizard.dialogTitle')}
+        {t('wizard:dialogTitle')}
         <Typography variant="body2" color="text.secondary">
-          {t('wizard.stepIndicator', { current: activeStep + 1, total: visibleSteps.length })}
+          {t('wizard:stepIndicator', { current: activeStep + 1, total: visibleSteps.length })}
         </Typography>
       </DialogTitle>
 

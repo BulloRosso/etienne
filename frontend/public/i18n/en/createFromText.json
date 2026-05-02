@@ -1,0 +1,7 @@
+{
+  "creating": "Creating...",
+  "description": "Paste or type text below. The content will be analyzed to extract topics, categories, and items which will be organized into a mindmap structure.",
+  "dialogTitle": "Create Scrapbook from Text",
+  "emptyError": "Please enter some text to create a scrapbook from.",
+  "failedError": "Failed to create scrapbook from text"
+}

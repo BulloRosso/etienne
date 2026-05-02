@@ -7,7 +7,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useTranslation } from 'react-i18next';
 
 export default function Mission({ projectName }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["mission","common"]);
   const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,7 @@ export default function Mission({ projectName }) {
       });
       setContent(response.data.content || '');
     } catch (err) {
-      setError(t('mission.errorLoadFailed'));
+      setError(t('mission:errorLoadFailed'));
       console.error('Load mission error:', err);
     } finally {
       setLoading(false);
@@ -47,7 +47,7 @@ export default function Mission({ projectName }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(t('mission.errorSaveFailed'));
+      setError(t('mission:errorSaveFailed'));
       console.error('Save mission error:', err);
     } finally {
       setSaving(false);
@@ -71,18 +71,18 @@ export default function Mission({ projectName }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          {t('mission.successSaved')}
+          {t('mission:successSaved')}
         </Alert>
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <img
           src="/project-wizard-step-2.png"
-          alt={t('mission.altImage')}
+          alt={t('mission:altImage')}
           style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain', borderRadius: 4 }}
         />
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {t('mission.description')}
+          {t('mission:description')}
         </Typography>
       </Box>
 

@@ -1,0 +1,9 @@
+{
+  "approvalWarning": "Das Genehmigen dieser Anfrage ermöglicht diesem Benutzer die Interaktion mit Ihren Claude Code-Projekten über {{provider}}.",
+  "chatId": "Chat-ID:",
+  "expiresIn": "Läuft ab in {{minutes}} Min.",
+  "pairingCode": "Kopplungscode:",
+  "sessionDetails": "Sitzungsdetails",
+  "title": "Neue Kopplungsanfrage",
+  "userId": "Benutzer-ID:"
+}

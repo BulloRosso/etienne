@@ -22,40 +22,40 @@ marked.setOptions({
 
 const getSteps = (t) => [
   {
-    name: t('onboarding.step1Name'),
+    name: t('onboarding:step1Name'),
     image: '/etienne-waving-color.png',
-    explanation: t('onboarding.step1Explanation'),
-    nextStepName: t('onboarding.step1Next')
+    explanation: t('onboarding:step1Explanation'),
+    nextStepName: t('onboarding:step1Next')
   },
   {
-    name: t('onboarding.step2Name'),
+    name: t('onboarding:step2Name'),
     image: '/claude-needs-charging-color.png',
-    explanation: t('onboarding.step2Explanation'),
-    nextStepName: t('onboarding.step2Next')
+    explanation: t('onboarding:step2Explanation'),
+    nextStepName: t('onboarding:step2Next')
   },
   {
-    name: t('onboarding.step3Name'),
+    name: t('onboarding:step3Name'),
     image: '/claude-is-charged-color.png',
-    explanation: t('onboarding.step3Explanation'),
-    nextStepName: t('onboarding.step3Next')
+    explanation: t('onboarding:step3Explanation'),
+    nextStepName: t('onboarding:step3Next')
   },
   {
-    name: t('onboarding.step4Name'),
+    name: t('onboarding:step4Name'),
     image: '/claude-is-walking-color.png',
-    explanation: t('onboarding.step4Explanation'),
-    nextStepName: t('onboarding.step4Next')
+    explanation: t('onboarding:step4Explanation'),
+    nextStepName: t('onboarding:step4Next')
   }
 ];
 
 const getServiceDefinitions = (t) => [
-  { id: 'rdf-store', name: t('onboarding.serviceKnowledgeGraph'), port: 7000, description: t('onboarding.serviceKnowledgeGraphDesc') },
-  { id: 'vector-store', name: t('onboarding.serviceVectorStore'), port: 7100, description: t('onboarding.serviceVectorStoreDesc') },
-  { id: 'a2a-server', name: t('onboarding.serviceA2ARegistry'), port: 5600, description: t('onboarding.serviceA2ARegistryDesc') },
-  { id: 'webserver', name: t('onboarding.serviceWebServer'), port: 4000, description: t('onboarding.serviceWebServerDesc') }
+  { id: 'rdf-store', name: t('onboarding:serviceKnowledgeGraph'), port: 7000, description: t('onboarding:serviceKnowledgeGraphDesc') },
+  { id: 'vector-store', name: t('onboarding:serviceVectorStore'), port: 7100, description: t('onboarding:serviceVectorStoreDesc') },
+  { id: 'a2a-server', name: t('onboarding:serviceA2ARegistry'), port: 5600, description: t('onboarding:serviceA2ARegistryDesc') },
+  { id: 'webserver', name: t('onboarding:serviceWebServer'), port: 4000, description: t('onboarding:serviceWebServerDesc') }
 ];
 
 export default function Onboarding({ onComplete }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["onboarding"]);
   const [currentStep, setCurrentStep] = useState(0);
   const [workspacePath, setWorkspacePath] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -114,7 +114,7 @@ export default function Onboarding({ onComplete }) {
               body: JSON.stringify({ WORKSPACE_ROOT: workspacePath })
             });
             if (!wsResponse.ok) {
-              throw new Error(t('onboarding.failedToSaveConfig'));
+              throw new Error(t('onboarding:failedToSaveConfig'));
             }
             setCurrentStep(2);
           } else {
@@ -134,7 +134,7 @@ export default function Onboarding({ onComplete }) {
           });
 
           if (!saveResponse.ok) {
-            throw new Error(t('onboarding.failedToSaveConfig'));
+            throw new Error(t('onboarding:failedToSaveConfig'));
           }
 
           // Validate the API key
@@ -142,7 +142,7 @@ export default function Onboarding({ onComplete }) {
           const healthData = await healthResponse.json();
 
           if (!healthData.healthy) {
-            throw new Error(healthData.reason || t('onboarding.apiKeyValidationFailed'));
+            throw new Error(healthData.reason || t('onboarding:apiKeyValidationFailed'));
           }
 
           setCurrentStep(2);
@@ -218,7 +218,7 @@ export default function Onboarding({ onComplete }) {
             for (const serviceId of servicesToStart) {
               if (finalStatuses[serviceId] !== 'running') {
                 const service = SERVICE_DEFINITIONS.find(s => s.id === serviceId);
-                finalErrors[serviceId] = t('onboarding.serviceFailedToStart', { port: service?.port });
+                finalErrors[serviceId] = t('onboarding:serviceFailedToStart', { port: service?.port });
               }
             }
           }
@@ -230,7 +230,7 @@ export default function Onboarding({ onComplete }) {
           if (!hasErrors) {
             setCurrentStep(3);
           } else {
-            setError(t('onboarding.someServicesFailed'));
+            setError(t('onboarding:someServicesFailed'));
           }
           break;
 
@@ -247,7 +247,7 @@ export default function Onboarding({ onComplete }) {
           });
 
           if (!createResponse.ok) {
-            throw new Error(t('onboarding.failedToCreateProject'));
+            throw new Error(t('onboarding:failedToCreateProject'));
           }
 
           // Set as current project in localStorage
@@ -286,15 +286,15 @@ export default function Onboarding({ onComplete }) {
           <Box sx={{ width: '100%' }}>
             <TextField
               fullWidth
-              label={t('onboarding.workspacePathLabel')}
-              placeholder={t('onboarding.workspacePathPlaceholder')}
+              label={t('onboarding:workspacePathLabel')}
+              placeholder={t('onboarding:workspacePathPlaceholder')}
               value={workspacePath}
               onChange={(e) => setWorkspacePath(e.target.value)}
               variant="outlined"
               sx={{ mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary">
-              {t('onboarding.workspacePathHint')}
+              {t('onboarding:workspacePathHint')}
             </Typography>
           </Box>
         );
@@ -304,8 +304,8 @@ export default function Onboarding({ onComplete }) {
           <Box sx={{ width: '100%' }}>
             <TextField
               fullWidth
-              label={t('onboarding.apiKeyLabel')}
-              placeholder={t('onboarding.apiKeyPlaceholder')}
+              label={t('onboarding:apiKeyLabel')}
+              placeholder={t('onboarding:apiKeyPlaceholder')}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               variant="outlined"
@@ -313,9 +313,9 @@ export default function Onboarding({ onComplete }) {
               sx={{ mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary">
-              {t('onboarding.apiKeyHint')}{' '}
+              {t('onboarding:apiKeyHint')}{' '}
               <Link href="https://console.anthropic.com" target="_blank" rel="noopener">
-                {t('onboarding.apiKeyLinkText')}
+                {t('onboarding:apiKeyLinkText')}
               </Link>
             </Typography>
           </Box>
@@ -340,7 +340,7 @@ export default function Onboarding({ onComplete }) {
                         {service.name} <small>(:{service.port})</small>
                         {serviceStatuses[service.id] === 'running' && (
                           <Typography component="span" sx={{ ml: 1, color: 'success.main', fontSize: '0.875rem' }}>
-                            {t('onboarding.serviceRunning')}
+                            {t('onboarding:serviceRunning')}
                           </Typography>
                         )}
                       </Typography>
@@ -366,15 +366,15 @@ export default function Onboarding({ onComplete }) {
           <Box sx={{ width: '100%' }}>
             <TextField
               fullWidth
-              label={t('onboarding.projectNameLabel')}
-              placeholder={t('onboarding.projectNamePlaceholder')}
+              label={t('onboarding:projectNameLabel')}
+              placeholder={t('onboarding:projectNamePlaceholder')}
               value={projectName}
               onChange={(e) => setProjectName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
               variant="outlined"
               sx={{ mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary">
-              {t('onboarding.projectNameHint')}
+              {t('onboarding:projectNameHint')}
             </Typography>
           </Box>
         );
@@ -525,7 +525,7 @@ export default function Onboarding({ onComplete }) {
               onClick={() => setCurrentStep(3)}
               sx={{ mb: 1 }}
             >
-              {t('onboarding.skipAndContinue')}
+              {t('onboarding:skipAndContinue')}
             </Button>
           )}
 

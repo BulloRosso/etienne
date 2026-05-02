@@ -13,7 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 const ExamplesTab = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["examplesTab"]);
   return (
     <Box>
       <Stack spacing={3}>
@@ -21,15 +21,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label={t('examplesTab.simpleChip')} color="primary" size="small" />
-              {t('examplesTab.simpleCondition')}
+              <Chip label={t('examplesTab:simpleChip')} color="primary" size="small" />
+              {t('examplesTab:simpleCondition')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              {t('examplesTab.simpleDescription')}
+              {t('examplesTab:simpleDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              {t('examplesTab.simpleExample')}
+              {t('examplesTab:simpleExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -42,7 +42,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              {t('examplesTab.simpleAlert')}
+              {t('examplesTab:simpleAlert')}
             </Alert>
           </CardContent>
         </Card>
@@ -51,15 +51,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label={t('examplesTab.semanticChip')} color="secondary" size="small" />
-              {t('examplesTab.semanticCondition')}
+              <Chip label={t('examplesTab:semanticChip')} color="secondary" size="small" />
+              {t('examplesTab:semanticCondition')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              {t('examplesTab.semanticDescription')}
+              {t('examplesTab:semanticDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              {t('examplesTab.semanticExample')}
+              {t('examplesTab:semanticExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -76,7 +76,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              {t('examplesTab.semanticAlert')}
+              {t('examplesTab:semanticAlert')}
             </Alert>
           </CardContent>
         </Card>
@@ -85,15 +85,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label={t('examplesTab.compoundChip')} color="warning" size="small" />
-              {t('examplesTab.compoundCondition')}
+              <Chip label={t('examplesTab:compoundChip')} color="warning" size="small" />
+              {t('examplesTab:compoundCondition')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              {t('examplesTab.compoundDescription')}
+              {t('examplesTab:compoundDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              {t('examplesTab.compoundExample')}
+              {t('examplesTab:compoundExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -113,7 +113,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              {t('examplesTab.compoundAlert')}
+              {t('examplesTab:compoundAlert')}
             </Alert>
           </CardContent>
         </Card>
@@ -122,15 +122,15 @@ const ExamplesTab = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label={t('examplesTab.temporalChip')} color="success" size="small" />
-              {t('examplesTab.temporalConstraint')}
+              <Chip label={t('examplesTab:temporalChip')} color="success" size="small" />
+              {t('examplesTab:temporalConstraint')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              {t('examplesTab.temporalDescription')}
+              {t('examplesTab:temporalDescription')}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              {t('examplesTab.temporalExample')}
+              {t('examplesTab:temporalExample')}
             </Typography>
             <Paper sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {`{
@@ -143,7 +143,7 @@ const ExamplesTab = () => {
 }`}
             </Paper>
             <Alert severity="info" sx={{ mt: 2 }}>
-              {t('examplesTab.temporalAlert')}
+              {t('examplesTab:temporalAlert')}
             </Alert>
           </CardContent>
         </Card>

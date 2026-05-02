@@ -1,0 +1,17 @@
+{
+  "actions": "Aktionen",
+  "columnContentPreview": "Inhaltsvorschau",
+  "columnDocId": "Dok-ID",
+  "columnGraphLayer": "Graph-Schicht",
+  "columnUploadedAt": "Hochgeladen am",
+  "confirmDelete": "Sind Sie sicher, dass Sie dieses Dokument löschen möchten?",
+  "contentPreview": "Inhaltsvorschau",
+  "deleteError": "Fehler beim Löschen des Dokuments",
+  "deleteFailed": "Dokument konnte nicht gelöscht werden",
+  "docId": "Dok-ID",
+  "errorDeleting": "Fehler beim Löschen des Dokuments",
+  "failedToDelete": "Dokument konnte nicht gelöscht werden",
+  "graphLayer": "Graph-Schicht",
+  "noDocuments": "Keine Dokumente im Vektorspeicher gefunden",
+  "uploadedAt": "Hochgeladen am"
+}

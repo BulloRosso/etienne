@@ -1,0 +1,21 @@
+{
+  "curlExample": "cURL Example",
+  "dedicatedEndpoint": "Dedicated Webhook Endpoint (Recommended)",
+  "dedicatedEndpointDesc": "POST any JSON payload directly - it will be automatically wrapped as a Webhook event:",
+  "description": "POST data/files to this project from external systems. In the base version the endpoint is open, adding header authentication is recommended.",
+  "fileStorageDesc": "Uploaded files are saved to the project's <code>webhook/</code> directory, overwriting any existing files with the same name:",
+  "fileStorageLocation": "File Storage Location",
+  "fileUploadTitle": "Webhook File Upload Format",
+  "generalEndpoint": "General Event Endpoint",
+  "generalEndpointDesc": "POST a structured event with explicit group and name:",
+  "jsonFormatTitle": "Webhook JSON Format",
+  "matchFieldsAlert": "Match fields using <code>payload.command:remove</code> or <code>payload.priority:high</code>",
+  "matchFilesAlert": "Match files using <code>payload.fileCount:2</code> or check for specific files in your prompt",
+  "multipartFormData": "Multipart Form Data with Files",
+  "multipartFormDataDesc": "Upload files along with JSON metadata using <code>multipart/form-data</code>:",
+  "promptContextDesc": "When a Webhook event triggers a rule, the full JSON payload is prepended to your action prompt:",
+  "promptContextInjection": "Prompt Context Injection",
+  "resultingPayload": "Resulting Event Payload",
+  "resultingPayloadDesc": "The event payload combines your JSON description with file metadata:",
+  "webhookUrl": "Webhook URL"
+}

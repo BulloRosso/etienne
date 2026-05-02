@@ -1,0 +1,7 @@
+{
+  "backendNotResponding": "**后端无响应**\n\n后端未响应。请确保后端正在端口 6060 上运行。",
+  "clickToViewDetails": "系统健康错误 - 点击查看详情",
+  "healthCheckFailed": "系统健康检查失败",
+  "tooltip": "系统健康错误 - 点击查看详情",
+  "unknownError": "发生未知错误"
+}

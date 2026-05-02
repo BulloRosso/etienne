@@ -32,13 +32,13 @@ const ActionsTab = ({
   selectedPromptForMenu,
   setSelectedPromptForMenu
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["actionsTab","common"]);
   return (
     <Box>
       {prompts.length > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="body2" sx={{ marginLeft: '20px' }} color="text.secondary">
-            {t('actionsTab.manageActions')}
+            {t('actionsTab:manageActions')}
           </Typography>
           <Button
             variant="outlined"
@@ -46,7 +46,7 @@ const ActionsTab = ({
             onClick={() => onOpenPromptDialog()}
             sx={{ textTransform: 'none' }}
           >
-            {t('actionsTab.newAction')}
+            {t('actionsTab:newAction')}
           </Button>
         </Box>
       )}
@@ -55,10 +55,10 @@ const ActionsTab = ({
         <Box sx={{ py: 6, textAlign: 'center' }}>
           <BiMessageEdit style={{ fontSize: 48, color: '#ccc', marginBottom: 12, opacity: 0.5 }} />
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            {t('actionsTab.noActionsDefined')}
+            {t('actionsTab:noActionsDefined')}
           </Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-            {t('actionsTab.createFirstActionHint')}
+            {t('actionsTab:createFirstActionHint')}
           </Typography>
           <Button
             variant="outlined"
@@ -67,7 +67,7 @@ const ActionsTab = ({
             onClick={() => onOpenPromptDialog()}
             sx={{ textTransform: 'none' }}
           >
-            {t('actionsTab.createFirstAction')}
+            {t('actionsTab:createFirstAction')}
           </Button>
         </Box>
       ) : (
@@ -77,9 +77,9 @@ const ActionsTab = ({
               <TableHead>
                 <TableRow sx={{ bgcolor: 'background.paper' }}>
                   <TableCell sx={{ width: 50 }}></TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('actionsTab.columnTitle')}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('actionsTab.columnPrompt')}</TableCell>
-                  <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}>{t('actionsTab.columnActions')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('actionsTab:columnTitle')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t('actionsTab:columnPrompt')}</TableCell>
+                  <TableCell sx={{ width: 60, textAlign: 'center', fontWeight: 600 }}>{t('actionsTab:columnActions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

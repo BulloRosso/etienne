@@ -1,0 +1,19 @@
+{
+  "avgCostPerSession": "Costo medio per sessione",
+  "barTooltip": "Progetto corrente: {{projectCosts}} {{currencySymbol}} | Altri progetti: {{otherCosts}} {{currencySymbol}}",
+  "columnCost": "Costo",
+  "columnDate": "Data",
+  "columnInputTokens": "Token in ingresso",
+  "columnOutputTokens": "Token in uscita",
+  "globalTokenBudget": "Budget token globale",
+  "legendAllProjects": "Tutti i progetti",
+  "legendCurrentProject": "Progetto corrente",
+  "noCostData": "Nessun dato sui costi ancora disponibile",
+  "recentActivity": "Attività recente",
+  "sessionsCompleted": "Sessioni completate",
+  "settingsButton": "Impostazioni budget",
+  "title": "Panoramica del budget",
+  "tokensRemaining": "Token rimanenti (stima)",
+  "tokensUsed": "Token utilizzati",
+  "totalCosts": "Costi totali"
+}

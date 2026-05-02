@@ -30,7 +30,7 @@ import { useTranslation } from 'react-i18next';
  * - currentProject: string - Current project name for API calls
  */
 export default function PlanApprovalModal({ open, plan, onRespond, onClose, currentProject }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["planApproval","common"]);
   const [htmlContent, setHtmlContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -48,7 +48,7 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
           return res.json();
         })
         .then(async (data) => {
-          const markdownText = data.content || t('planApproval.noContent');
+          const markdownText = data.content || t('planApproval:noContent');
           // Parse markdown to HTML
           const rawHtml = await marked.parse(markdownText);
           // Sanitize HTML to prevent XSS
@@ -113,7 +113,7 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <PlanIcon sx={{ color: '#4caf50' }} />
-          <Typography variant="h6">{t('planApproval.title')}</Typography>
+          <Typography variant="h6">{t('planApproval:title')}</Typography>
         </Box>
         <IconButton onClick={handleCancel} size="small">
           <CloseIcon />
@@ -207,7 +207,7 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
           variant="outlined"
           sx={{ textTransform: 'none' }}
         >
-          {t('planApproval.rejectPlan')}
+          {t('planApproval:rejectPlan')}
         </Button>
         <Box sx={{ flex: 1 }} />
         <Button
@@ -223,7 +223,7 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
           disabled={loading || !!error}
           sx={{ textTransform: 'none' }}
         >
-          {t('planApproval.approvePlan')}
+          {t('planApproval:approvePlan')}
         </Button>
       </DialogActions>
     </Dialog>

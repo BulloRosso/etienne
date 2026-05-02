@@ -1,0 +1,9 @@
+{
+  "description": "将文件扩展名映射到预览查看器。系统默认值如下所示。点击标签进行编辑，或删除以禁用该项目的扩展名。",
+  "extension": "扩展名",
+  "extensionLabel": "扩展名",
+  "extensionPlaceholder": ".csv",
+  "title": "自动预览文件扩展名",
+  "viewer": "查看器",
+  "viewerLabel": "查看器"
+}

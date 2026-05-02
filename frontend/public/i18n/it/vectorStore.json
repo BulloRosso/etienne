@@ -1,0 +1,17 @@
+{
+  "actions": "Azioni",
+  "columnContentPreview": "Anteprima contenuto",
+  "columnDocId": "DocID",
+  "columnGraphLayer": "Livello grafo",
+  "columnUploadedAt": "Caricato il",
+  "confirmDelete": "Sei sicuro di voler eliminare questo documento?",
+  "contentPreview": "Anteprima contenuto",
+  "deleteError": "Errore nell'eliminazione del documento",
+  "deleteFailed": "Eliminazione del documento fallita",
+  "docId": "DocID",
+  "errorDeleting": "Errore nell'eliminazione del documento",
+  "failedToDelete": "Eliminazione del documento fallita",
+  "graphLayer": "Livello grafo",
+  "noDocuments": "Nessun documento trovato nel vector store",
+  "uploadedAt": "Caricato il"
+}

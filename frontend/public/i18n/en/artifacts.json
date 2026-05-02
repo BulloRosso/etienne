@@ -1,0 +1,13 @@
+{
+  "tabArtifacts": "Workspace",
+  "tabCheckpoints": "Checkpoints",
+  "tabConnectivity": "Connectivity",
+  "tabFiles": "Files",
+  "tabMission": "Mission",
+  "tabObservability": "Observability",
+  "tabPermissions": "Permissions",
+  "tabRole": "Role",
+  "tooltipFilesystem": "Filesystem Browser",
+  "tooltipGuardrails": "Input Guardrails Active",
+  "tooltipMemory": "Agent Memory Enabled"
+}

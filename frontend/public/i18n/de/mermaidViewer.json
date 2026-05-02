@@ -1,0 +1,8 @@
+{
+  "errorLoading": "Fehler beim Laden der Mermaid-Datei:",
+  "failedToRender": "Diagramm konnte nicht gerendert werden: {{message}}",
+  "reloadFile": "Datei neu laden",
+  "resetZoom": "Zoom zurücksetzen ({{percent}}%)",
+  "zoomIn": "Vergrößern",
+  "zoomOut": "Verkleinern"
+}

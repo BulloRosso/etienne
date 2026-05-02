@@ -1,0 +1,23 @@
+{
+  "addAgent": "添加智能体",
+  "availableFromRegistry": "从注册表中可用（{{count}}）",
+  "configuredAgentsTitle": "已配置的智能体（{{count}}）",
+  "failedToAdd": "添加智能体失败",
+  "failedToFetchRegistry": "获取注册表失败：{{message}}",
+  "failedToLoad": "加载 A2A 设置失败",
+  "failedToRemove": "移除智能体失败",
+  "failedToSave": "保存 A2A 设置失败",
+  "failedToToggle": "切换智能体失败",
+  "filterPlaceholder": "筛选智能体...",
+  "noAgentsConfigured": "暂无已配置的智能体。连接注册表并在下方添加智能体。",
+  "noAgentsLoaded": "暂无已加载的智能体。点击\"连接\"从注册表获取智能体。",
+  "pushNotifications": "推送通知",
+  "registryTitle": "A2A 智能体注册表",
+  "registryUrlPlaceholder": "输入 A2A 注册表 URL...",
+  "removeAgent": "移除智能体",
+  "savedSuccessfully": "A2A 设置保存成功",
+  "skillsLabel": "技能：",
+  "stateHistory": "状态历史",
+  "streaming": "流式传输",
+  "testConnection": "测试连接"
+}

@@ -1,0 +1,7 @@
+{
+  "altImage": "Mission Brief",
+  "description": "The mission brief guides your AI assistant's behavior. A detailed description ensures better, more focused results aligned with your objectives.",
+  "errorLoadFailed": "Failed to load mission",
+  "errorSaveFailed": "Failed to save mission",
+  "successSaved": "Mission saved successfully"
+}

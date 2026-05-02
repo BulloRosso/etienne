@@ -1,0 +1,18 @@
+{
+  "creditCardDescription": "Erkennt und entfernt Kreditkartennummern",
+  "creditCardLabel": "Kreditkartennummern",
+  "emailDescription": "Erkennt und entfernt E-Mail-Adressen",
+  "emailLabel": "E-Mail-Adressen",
+  "enablePostProcessing": "Nachverarbeitung aktivieren",
+  "ibanDescription": "Erkennt und entfernt internationale Bankkontonummern",
+  "ibanLabel": "IBAN",
+  "ipAddressDescription": "Erkennt und entfernt IPv4- und IPv6-Adressen",
+  "ipAddressLabel": "IP-Adressen",
+  "postProcessingDescription": "Wählen Sie, welche Arten sensibler Informationen automatisch erkannt und aus der Modellausgabe entfernt werden sollen, nachdem sie vom KI-Modell zurückgegeben wurde. Die Nutzung dieser Funktion deaktiviert das Antwort-Streaming.",
+  "preProcessingDescription": "Wählen Sie, welche Arten sensibler Informationen automatisch erkannt und aus Benutzereingaben entfernt werden sollen, bevor sie an das KI-Modell gesendet werden.",
+  "tabPostProcessing": "Nachverarbeitung",
+  "tabPreProcessing": "Vorverarbeitung",
+  "title": "Leitplanken",
+  "urlDescription": "Erkennt und entfernt HTTP/HTTPS-URLs",
+  "urlLabel": "URLs"
+}

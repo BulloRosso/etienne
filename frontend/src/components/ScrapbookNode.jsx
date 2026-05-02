@@ -24,7 +24,7 @@ const getIcon = (iconName) => {
 };
 
 const ScrapbookNode = memo(({ data, selected, id }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["scrapbookNode"]);
   const {
     label,
     description,
@@ -234,7 +234,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
 
         {/* Row 3: Icon Badge (overlapping bottom border) */}
         {IconComponent && (
-          <Tooltip title={iconName || t('scrapbookNode.clickToSetIcon')}>
+          <Tooltip title={iconName || t('scrapbookNode:clickToSetIcon')}>
             <Box
               sx={{
                 position: 'absolute',

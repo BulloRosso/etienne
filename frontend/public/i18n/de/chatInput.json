@@ -1,0 +1,7 @@
+{
+  "addFileAttachments": "Dateianhänge hinzufügen",
+  "fileSuggestionHeader": "Dateien in diesem Projektdateisystem gefunden:",
+  "placeholder": "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen...",
+  "speechNotSupported": "Spracherkennung wird in diesem Browser nicht unterstützt",
+  "uploadPrompt": "Bitte schauen Sie sich {{fileList}} im Ordner .attachments an. Ich möchte "
+}

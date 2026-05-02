@@ -1,0 +1,18 @@
+{
+  "addCustomProperty": "Add Custom Property",
+  "columnOrderHelperText": "Use arrows to reorder columns, toggle visibility to show/hide.",
+  "columnOrderVisibility": "Column Order & Visibility",
+  "customProperties": "Custom Properties",
+  "dialogTitle": "Column Settings",
+  "hideColumn": "Hide Column",
+  "moveDown": "Move Down",
+  "moveUp": "Move Up",
+  "propertyName": "Property Name",
+  "showColumn": "Show Column",
+  "type": "Type",
+  "typeCurrency": "Currency",
+  "typeNumeric": "Numeric",
+  "typeText": "Text",
+  "unitPlaceholder": "e.g., $, kg, cm",
+  "unitSymbol": "Unit/Symbol"
+}

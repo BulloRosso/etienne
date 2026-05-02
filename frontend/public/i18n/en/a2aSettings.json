@@ -1,0 +1,23 @@
+{
+  "addAgent": "Add Agent",
+  "availableFromRegistry": "Available from Registry ({{count}})",
+  "configuredAgentsTitle": "Configured Agents ({{count}})",
+  "failedToAdd": "Failed to add agent",
+  "failedToFetchRegistry": "Failed to fetch registry: {{message}}",
+  "failedToLoad": "Failed to load A2A settings",
+  "failedToRemove": "Failed to remove agent",
+  "failedToSave": "Failed to save A2A settings",
+  "failedToToggle": "Failed to toggle agent",
+  "filterPlaceholder": "Filter agents...",
+  "noAgentsConfigured": "No agents configured. Connect to a registry and add agents below.",
+  "noAgentsLoaded": "No agents loaded. Click \"Connect\" to fetch agents from the registry.",
+  "pushNotifications": "Push Notifications",
+  "registryTitle": "A2A Agent Registry",
+  "registryUrlPlaceholder": "Enter A2A registry URL...",
+  "removeAgent": "Remove Agent",
+  "savedSuccessfully": "A2A settings saved successfully",
+  "skillsLabel": "Skills:",
+  "stateHistory": "State History",
+  "streaming": "Streaming",
+  "testConnection": "Test Connection"
+}

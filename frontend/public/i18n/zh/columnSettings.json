@@ -1,0 +1,18 @@
+{
+  "addCustomProperty": "添加自定义属性",
+  "columnOrderHelperText": "使用箭头重新排序列，切换可见性以显示/隐藏。",
+  "columnOrderVisibility": "列顺序和可见性",
+  "customProperties": "自定义属性",
+  "dialogTitle": "列设置",
+  "hideColumn": "隐藏列",
+  "moveDown": "下移",
+  "moveUp": "上移",
+  "propertyName": "属性名称",
+  "showColumn": "显示列",
+  "type": "类型",
+  "typeCurrency": "货币",
+  "typeNumeric": "数值",
+  "typeText": "文本",
+  "unitPlaceholder": "例如 $、kg、cm",
+  "unitSymbol": "单位/符号"
+}

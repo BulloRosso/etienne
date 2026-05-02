@@ -1,0 +1,7 @@
+{
+  "altImage": "Briefing della missione",
+  "description": "Il briefing della missione guida il comportamento del tuo assistente AI. Una descrizione dettagliata garantisce risultati migliori, più focalizzati e allineati ai tuoi obiettivi.",
+  "errorLoadFailed": "Caricamento della missione fallito",
+  "errorSaveFailed": "Salvataggio della missione fallito",
+  "successSaved": "Missione salvata con successo"
+}

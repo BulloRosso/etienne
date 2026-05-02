@@ -33,7 +33,7 @@ export default function SkillsSelector({
   selectedOptionalSkills = [],
   onSelectionChange
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["skillsSelector"]);
 
   const isSelected = (skillName) => selectedOptionalSkills.includes(skillName);
 
@@ -118,10 +118,10 @@ export default function SkillsSelector({
               {skill.name.charAt(0).toUpperCase() + skill.name.slice(1)}
             </Typography>
             {isConfigured && isStandard && (
-              <Chip size="small" label={t('skillsSelector.standardChip', 'Standard')} sx={{ fontSize: '0.65rem', height: 18, mt: 0.25, bgcolor: '#616161', color: '#fff' }} />
+              <Chip size="small" label={t('skillsSelector:standardChip', 'Standard')} sx={{ fontSize: '0.65rem', height: 18, mt: 0.25, bgcolor: '#616161', color: '#fff' }} />
             )}
             {isConfigured && !isStandard && (
-              <Chip size="small" label={t('skillsSelector.optionalChip', 'Optional')} color="primary" sx={{ fontSize: '0.65rem', height: 18, mt: 0.25 }} />
+              <Chip size="small" label={t('skillsSelector:optionalChip', 'Optional')} color="primary" sx={{ fontSize: '0.65rem', height: 18, mt: 0.25 }} />
             )}
           </CardContent>
         </Card>
@@ -159,7 +159,7 @@ export default function SkillsSelector({
         <>
           <Divider sx={{ my: 1.5 }} />
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            {t('skillsSelector.optionalSkillsTitle')}
+            {t('skillsSelector:optionalSkillsTitle')}
           </Typography>
           <Box sx={{ ...gridSx, mb: 2 }}>
             {availableCards.map(({ skill, isConfigured, isStandard }) =>
@@ -171,7 +171,7 @@ export default function SkillsSelector({
 
       {selectedCards.length === 0 && availableCards.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {t('skillsSelector.noStandardSkills')}
+          {t('skillsSelector:noStandardSkills')}
         </Typography>
       )}
     </Box>

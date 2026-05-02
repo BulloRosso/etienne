@@ -1,0 +1,22 @@
+{
+  "columnAttention": "Aufmerksamkeit",
+  "columnCreated": "Erstellt",
+  "columnDescription": "Beschreibung",
+  "columnGroup": "Gruppe",
+  "columnIcon": "Symbol",
+  "columnImages": "Bilder",
+  "columnPriority": "Priorität",
+  "columnSettings": "Spalteneinstellungen",
+  "columnTitle": "Titel",
+  "contextDelete": "Löschen",
+  "contextEdit": "Bearbeiten",
+  "contextRemoveFromGroup": "Aus Gruppe entfernen",
+  "dragDropImages": "Bilder hierher ziehen",
+  "emptyState": "Noch keine Themen. Klicken Sie auf \"Hinzufügen\", um eines zu erstellen.",
+  "export": "Exportieren",
+  "groupLabel": "Alternativengruppe",
+  "headerTopics": "{{label}} – Themen",
+  "itemsSelected": "{{count}} Elemente ausgewählt",
+  "moreImages": "{{count}} weitere Bilder",
+  "set": "Setzen"
+}

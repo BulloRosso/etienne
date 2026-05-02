@@ -1,0 +1,6 @@
+{
+  "agentsSelected": "{{count}} agent(s) selected",
+  "description": "Select external A2A agents to be available in this project.",
+  "moreSkills": "+{{count}} more",
+  "noAgentsAvailable": "No external agents available in the registry."
+}

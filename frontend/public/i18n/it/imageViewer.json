@@ -1,0 +1,10 @@
+{
+  "bitDepth": "Profondità di bit:",
+  "colorType": "Tipo di colore:",
+  "compression": "Compressione:",
+  "dimensions": "Dimensioni:",
+  "dimensionsValue": "{{width}} × {{height}} pixel",
+  "fileSize": "Dimensione file:",
+  "format": "Formato:",
+  "imageInformation": "Informazioni sull'immagine"
+}

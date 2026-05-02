@@ -1,0 +1,18 @@
+{
+  "addCustomProperty": "Benutzerdefinierte Eigenschaft hinzufügen",
+  "columnOrderHelperText": "Verwenden Sie die Pfeile, um Spalten umzuordnen, und schalten Sie die Sichtbarkeit ein/aus.",
+  "columnOrderVisibility": "Spaltenreihenfolge & Sichtbarkeit",
+  "customProperties": "Benutzerdefinierte Eigenschaften",
+  "dialogTitle": "Spalteneinstellungen",
+  "hideColumn": "Spalte ausblenden",
+  "moveDown": "Nach unten",
+  "moveUp": "Nach oben",
+  "propertyName": "Eigenschaftsname",
+  "showColumn": "Spalte einblenden",
+  "type": "Typ",
+  "typeCurrency": "Währung",
+  "typeNumeric": "Numerisch",
+  "typeText": "Text",
+  "unitPlaceholder": "z. B. €, kg, cm",
+  "unitSymbol": "Einheit/Symbol"
+}

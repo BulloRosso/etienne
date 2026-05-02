@@ -1,0 +1,6 @@
+{
+  "columnCount": "{{count}} 列",
+  "errorTitle": "加载 Excel 文件出错",
+  "rowCount": "{{count}} 行",
+  "sheetCount": "{{count}} 个工作表"
+}

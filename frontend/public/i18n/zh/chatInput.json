@@ -1,0 +1,7 @@
+{
+  "addFileAttachments": "添加文件附件",
+  "fileSuggestionHeader": "在此项目文件系统中找到的文件：",
+  "placeholder": "输入您的消息，使用 @ 提及文件...",
+  "speechNotSupported": "此浏览器不支持语音识别",
+  "uploadPrompt": "请查看 .attachments 文件夹中的 {{fileList}}。我想"
+}

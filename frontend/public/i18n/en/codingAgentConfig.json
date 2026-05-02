@@ -1,0 +1,13 @@
+{
+  "configSaved": "Configuration saved",
+  "customOverrideActive": "Custom override active",
+  "defaultsRestored": "Defaults restored",
+  "dialogTitle": "Coding Agent Configuration",
+  "failedToLoadConfigs": "Failed to load configurations",
+  "failedToLoadDefaults": "Failed to load defaults",
+  "failedToSaveConfig": "Failed to save configuration",
+  "loadDefaults": "Load Defaults",
+  "tabClaude": "Claude",
+  "tabCodex": "Codex",
+  "usingDefaultTemplate": "Using default template"
+}

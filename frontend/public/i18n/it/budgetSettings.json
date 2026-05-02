@@ -1,0 +1,8 @@
+{
+  "budgetLimitHelperText": "Imposta a 0 per nessun limite. Il limite si applica globalmente a tutti i progetti.",
+  "budgetLimitLabel": "Limite budget ({{currencySymbol}})",
+  "notificationEmailHelperText": "Indirizzo email per gli avvisi di soglia budget (50%, 80%, 100%). Lascia vuoto per disabilitare.",
+  "notificationEmailLabel": "Email di notifica",
+  "resetCounters": "Azzera i contatori token per tutti i progetti",
+  "title": "Impostazioni budget"
+}

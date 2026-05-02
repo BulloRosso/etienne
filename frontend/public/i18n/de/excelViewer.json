@@ -1,0 +1,6 @@
+{
+  "columnCount": "{{count}} Spalte(n)",
+  "errorTitle": "Fehler beim Laden der Excel-Datei",
+  "rowCount": "{{count}} Zeile(n)",
+  "sheetCount": "{{count}} Blatt/Blätter"
+}

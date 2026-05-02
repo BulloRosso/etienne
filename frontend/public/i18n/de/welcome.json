@@ -1,0 +1,10 @@
+{
+  "fileUploadAppend": "Bitte schauen Sie sich {{fileList}} im Ordner .attachments an. Ich möchte ",
+  "filesSelected": "{{count}} Datei(en) ausgewählt",
+  "greetingAfternoon": "Guten Tag, Benutzer",
+  "greetingEvening": "Guten Abend, Benutzer",
+  "greetingMorning": "Guten Morgen, Benutzer",
+  "inputPlaceholder": "Bitte beschreiben Sie so genau wie möglich, was wir in unserer Sitzung erreichen wollen. Das ist entscheidend für hochwertige Antworten!",
+  "previousConversations": "Vorherige Gespräche / Einstellungen",
+  "speechNotSupported": "Spracherkennung wird in diesem Browser nicht unterstützt"
+}

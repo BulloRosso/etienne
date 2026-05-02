@@ -1,0 +1,7 @@
+{
+  "addFileAttachments": "Aggiungi allegati",
+  "fileSuggestionHeader": "File trovati nel filesystem di questo progetto:",
+  "placeholder": "Scrivi il tuo messaggio e usa @ per menzionare file...",
+  "speechNotSupported": "Il riconoscimento vocale non è supportato in questo browser",
+  "uploadPrompt": "Per favore dai un'occhiata a {{fileList}} nella cartella .attachments. Voglio "
+}

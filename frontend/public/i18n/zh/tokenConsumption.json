@@ -1,0 +1,4 @@
+{
+  "model": "模型",
+  "tokenSummary": "{{inputTokens}} 输入 + {{outputTokens}} 输出 = {{totalTokens}} 总令牌数"
+}

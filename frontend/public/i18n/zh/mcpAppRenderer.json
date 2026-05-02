@@ -1,0 +1,5 @@
+{
+  "connecting": "正在连接 MCP 服务器...",
+  "error": "MCP 应用错误：",
+  "errorPrefix": "MCP 应用错误：{{message}}"
+}

@@ -99,7 +99,7 @@ function parseArtifactsFile(text, projectName) {
 
 // ── Component ──
 export default function ArtifactsForSession({ filename, projectName }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["artifactsForSession"]);
   const { mode: themeMode } = useThemeMode();
   const isDark = themeMode === 'dark';
 
@@ -217,10 +217,10 @@ export default function ArtifactsForSession({ filename, projectName }) {
           size="small"
         >
           <ToggleButton value="newest" sx={{ textTransform: 'none', px: 1.5, py: 0.5, fontSize: '0.8rem' }}>
-            {t('artifactsForSession.sortNewest')}
+            {t('artifactsForSession:sortNewest')}
           </ToggleButton>
           <ToggleButton value="alpha" sx={{ textTransform: 'none', px: 1.5, py: 0.5, fontSize: '0.8rem' }}>
-            {t('artifactsForSession.sortAlpha')}
+            {t('artifactsForSession:sortAlpha')}
           </ToggleButton>
         </ToggleButtonGroup>
 
@@ -229,12 +229,12 @@ export default function ArtifactsForSession({ filename, projectName }) {
         {/* Right: text filter + ellipsis menu */}
         <TextField
           size="small"
-          placeholder={t('artifactsForSession.filterPlaceholder')}
+          placeholder={t('artifactsForSession:filterPlaceholder')}
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
           sx={{ width: 160, '& .MuiInputBase-input': { py: 0.75, fontSize: '0.85rem' } }}
         />
-        <Tooltip title={t('artifactsForSession.filterCategories') || 'Filter categories'}>
+        <Tooltip title={t('artifactsForSession:filterCategories') || 'Filter categories'}>
           <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
             <BsThreeDotsVertical size={16} />
           </IconButton>
@@ -258,8 +258,8 @@ export default function ArtifactsForSession({ filename, projectName }) {
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, opacity: 0.5 }}>
           <Typography variant="body2" color="text.secondary">
             {dedupedArtifacts.length === 0
-              ? t('artifactsForSession.empty')
-              : t('artifactsForSession.noMatches')}
+              ? t('artifactsForSession:empty')
+              : t('artifactsForSession:noMatches')}
           </Typography>
         </Box>
       ) : (

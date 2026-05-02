@@ -1,0 +1,9 @@
+{
+  "backendConfiguration": "Backend Configuration",
+  "codingAgentConfig": "Coding Agent Config",
+  "configurationSettings": "Configuration Settings",
+  "failedToAction": "Failed to {{action}} {{displayName}}: {{message}}",
+  "start": "Start",
+  "stop": "Stop",
+  "title": "Service Control"
+}

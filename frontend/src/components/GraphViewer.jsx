@@ -5,7 +5,7 @@ import { ZoomIn, ZoomOut, CenterFocusStrong } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
 const GraphViewer = ({ data, width = '100%', height = 600, onNodeClick, onEdgeClick, tripleCount }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["graphViewer"]);
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
@@ -275,21 +275,21 @@ const GraphViewer = ({ data, width = '100%', height = 600, onNodeClick, onEdgeCl
       <Paper sx={{ p: 2, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
         {tripleCount !== undefined && (
           <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-            {t('graphViewer.visualization', { count: tripleCount })}
+            {t('graphViewer:visualization', { count: tripleCount })}
           </Box>
         )}
         <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
-          <Tooltip title={t('graphViewer.zoomIn')}>
+          <Tooltip title={t('graphViewer:zoomIn')}>
             <IconButton size="small" onClick={handleZoomIn}>
               <ZoomIn />
             </IconButton>
           </Tooltip>
-          <Tooltip title={t('graphViewer.zoomOut')}>
+          <Tooltip title={t('graphViewer:zoomOut')}>
             <IconButton size="small" onClick={handleZoomOut}>
               <ZoomOut />
             </IconButton>
           </Tooltip>
-          <Tooltip title={t('graphViewer.resetView')}>
+          <Tooltip title={t('graphViewer:resetView')}>
             <IconButton size="small" onClick={handleResetView}>
               <CenterFocusStrong />
             </IconButton>

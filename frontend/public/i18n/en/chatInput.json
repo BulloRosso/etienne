@@ -1,0 +1,7 @@
+{
+  "addFileAttachments": "Add file attachments",
+  "fileSuggestionHeader": "Files found in this project's filesystem:",
+  "placeholder": "Type your message and use @ to mention files...",
+  "speechNotSupported": "Speech recognition is not supported in this browser",
+  "uploadPrompt": "Please have a look at {{fileList}} in the .attachments folder. I want to "
+}

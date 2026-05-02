@@ -46,7 +46,7 @@ export default function WorkflowVisualizer({ projectName, workflowFile }) {
 }
 
 function WorkflowVisualizerInner({ projectName, workflowFile }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["workflowVisualizer"]);
   const [workflows, setWorkflows] = useState([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
   const [graphData, setGraphData] = useState(null);
@@ -188,7 +188,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1 }}>
         <CircularProgress size={24} />
-        <Typography variant="body2">{t('workflowVisualizer.loading')}</Typography>
+        <Typography variant="body2">{t('workflowVisualizer:loading')}</Typography>
       </Box>
     );
   }
@@ -205,7 +205,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 1 }}>
         <AccountTree sx={{ fontSize: 48, color: 'text.secondary' }} />
-        <Typography variant="body2" color="text.secondary">{t('workflowVisualizer.noWorkflows')}</Typography>
+        <Typography variant="body2" color="text.secondary">{t('workflowVisualizer:noWorkflows')}</Typography>
       </Box>
     );
   }
@@ -255,7 +255,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
                 />
                 {statusData.isWaiting && (
                   <Typography variant="caption" color="warning.main">
-                    {t('workflowVisualizer.waitingFor', { target: statusData.waitingFor })}
+                    {t('workflowVisualizer:waitingFor', { target: statusData.waitingFor })}
                   </Typography>
                 )}
                 <Typography variant="caption" color="text.secondary">

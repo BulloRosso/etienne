@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function ChangePasswordDialog({ open, onClose }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["changePassword","common"]);
   const { token } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -44,22 +44,22 @@ export default function ChangePasswordDialog({ open, onClose }) {
 
     // Validate inputs
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError(t('changePassword.errorAllRequired'));
+      setError(t('changePassword:errorAllRequired'));
       return;
     }
 
     if (newPassword.length < 6) {
-      setError(t('changePassword.errorMinLength'));
+      setError(t('changePassword:errorMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError(t('changePassword.errorMismatch'));
+      setError(t('changePassword:errorMismatch'));
       return;
     }
 
     if (currentPassword === newPassword) {
-      setError(t('changePassword.errorSamePassword'));
+      setError(t('changePassword:errorSamePassword'));
       return;
     }
 
@@ -81,7 +81,7 @@ export default function ChangePasswordDialog({ open, onClose }) {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || t('changePassword.errorDefault'));
+        setError(data.error || t('changePassword:errorDefault'));
         return;
       }
 
@@ -95,7 +95,7 @@ export default function ChangePasswordDialog({ open, onClose }) {
         handleClose();
       }, 1500);
     } catch (err) {
-      setError(t('changePassword.errorConnection'));
+      setError(t('changePassword:errorConnection'));
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export default function ChangePasswordDialog({ open, onClose }) {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {t('changePassword.title')}
+        {t('changePassword:title')}
         <IconButton onClick={handleClose} size="small">
           <Close />
         </IconButton>
@@ -124,13 +124,13 @@ export default function ChangePasswordDialog({ open, onClose }) {
           )}
           {success && (
             <Alert severity="success" sx={{ mb: 2 }}>
-              {t('changePassword.success')}
+              {t('changePassword:success')}
             </Alert>
           )}
 
           <TextField
             fullWidth
-            label={t('changePassword.currentPasswordLabel')}
+            label={t('changePassword:currentPasswordLabel')}
             type={showCurrentPassword ? 'text' : 'password'}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -154,14 +154,14 @@ export default function ChangePasswordDialog({ open, onClose }) {
 
           <TextField
             fullWidth
-            label={t('changePassword.newPasswordLabel')}
+            label={t('changePassword:newPasswordLabel')}
             type={showNewPassword ? 'text' : 'password'}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             onKeyDown={handleKeyDown}
             margin="normal"
             disabled={loading || success}
-            helperText={t('changePassword.newPasswordHelperText')}
+            helperText={t('changePassword:newPasswordHelperText')}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -179,7 +179,7 @@ export default function ChangePasswordDialog({ open, onClose }) {
 
           <TextField
             fullWidth
-            label={t('changePassword.confirmPasswordLabel')}
+            label={t('changePassword:confirmPasswordLabel')}
             type={showConfirmPassword ? 'text' : 'password'}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -211,7 +211,7 @@ export default function ChangePasswordDialog({ open, onClose }) {
           variant="contained"
           disabled={loading || success}
         >
-          {loading ? t('changePassword.buttonSubmitting') : t('changePassword.buttonSubmit')}
+          {loading ? t('changePassword:buttonSubmitting') : t('changePassword:buttonSubmit')}
         </Button>
       </DialogActions>
     </Dialog>

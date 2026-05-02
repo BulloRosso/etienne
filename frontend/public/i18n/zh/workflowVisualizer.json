@@ -1,0 +1,7 @@
+{
+  "loading": "正在加载工作流...",
+  "loadingWorkflows": "正在加载工作流...",
+  "noWorkflows": "此项目未找到工作流",
+  "waitingFor": "等待 {{target}}",
+  "workflowLabel": "工作流"
+}

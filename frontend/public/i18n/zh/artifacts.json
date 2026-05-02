@@ -1,0 +1,13 @@
+{
+  "tabArtifacts": "工作区",
+  "tabCheckpoints": "检查点",
+  "tabConnectivity": "连接",
+  "tabFiles": "文件",
+  "tabMission": "任务",
+  "tabObservability": "可观测性",
+  "tabPermissions": "权限",
+  "tabRole": "角色",
+  "tooltipFilesystem": "文件系统浏览器",
+  "tooltipGuardrails": "输入安全护栏已启用",
+  "tooltipMemory": "智能体记忆已启用"
+}

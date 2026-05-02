@@ -1,0 +1,9 @@
+{
+  "approvalWarning": "Approvando questa richiesta consentirai a questo utente di interagire con i tuoi progetti Claude Code tramite {{provider}}.",
+  "chatId": "ID Chat:",
+  "expiresIn": "Scade tra {{minutes}} min",
+  "pairingCode": "Codice di abbinamento:",
+  "sessionDetails": "Dettagli sessione",
+  "title": "Nuova richiesta di abbinamento",
+  "userId": "ID Utente:"
+}

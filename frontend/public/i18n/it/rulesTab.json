@@ -1,0 +1,11 @@
+{
+  "columnAction": "Azione",
+  "columnEventGroup": "Gruppo eventi",
+  "columnName": "Nome",
+  "columnType": "Tipo",
+  "createFirstRule": "Crea prima regola",
+  "createFirstRuleHint": "Crea la tua prima regola per iniziare il monitoraggio delle condizioni",
+  "manageRules": "Gestisci regole di monitoraggio delle condizioni",
+  "newRule": "Nuova regola",
+  "noRulesConfigured": "Nessuna regola configurata"
+}

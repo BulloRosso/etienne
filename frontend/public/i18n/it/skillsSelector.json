@@ -1,0 +1,11 @@
+{
+  "chooseAdditionalSkill": "+ Scegli skill aggiuntiva",
+  "chooseDialogTitle": "Scegli skill opzionali",
+  "noOptionalSkills": "Nessuna skill opzionale disponibile nel repository.",
+  "noOptionalSkillsDialog": "Nessuna skill opzionale disponibile.",
+  "noStandardSkills": "Nessuna skill standard disponibile nel repository.",
+  "optionalChip": "Opzionale",
+  "optionalSkillsTitle": "Skill opzionali",
+  "standardChip": "Standard",
+  "standardSkillsTitle": "Skill standard (incluse automaticamente)"
+}

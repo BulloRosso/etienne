@@ -1,0 +1,6 @@
+{
+  "columnCount": "{{count}} colonna/e",
+  "errorTitle": "Errore nel caricamento del file Excel",
+  "rowCount": "{{count}} riga/e",
+  "sheetCount": "{{count}} foglio/i"
+}

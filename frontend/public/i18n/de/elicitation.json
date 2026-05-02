@@ -1,0 +1,12 @@
+{
+  "noFieldsMessage": "Keine Eingabefelder erforderlich. Klicken Sie auf Akzeptieren, um fortzufahren, oder auf Ablehnen, um abzubrechen.",
+  "title": "Eingabe erforderlich",
+  "validationInvalidEmail": "Ungültiges E-Mail-Format",
+  "validationInvalidUrl": "Ungültiges URL-Format",
+  "validationMaxLength": "Maximal {{maxLength}} Zeichen erlaubt",
+  "validationMaximumValue": "Maximalwert ist {{maximum}}",
+  "validationMinLength": "Mindestens {{minLength}} Zeichen erforderlich",
+  "validationMinimumValue": "Mindestwert ist {{minimum}}",
+  "validationMustBeNumber": "Muss eine Zahl sein",
+  "validationRequired": "Dieses Feld ist erforderlich"
+}

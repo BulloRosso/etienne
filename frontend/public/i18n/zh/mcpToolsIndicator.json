@@ -1,0 +1,7 @@
+{
+  "drawerTitle": "提供的工具",
+  "label": "个工具可用",
+  "noToolsAvailable": "此服务器暂无可用工具。",
+  "toolsAvailableCount": "{{count}} 个可用工具",
+  "tooltip": "MCP 工具可用"
+}

@@ -74,7 +74,7 @@ function PlaceholderCard({ themeMode }) {
 }
 
 function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNavigate }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["userOrders"]);
   const [anchorEl, setAnchorEl] = useState(null);
   const Icon = TYPE_ICONS[order.type] || TbSearch;
   const isCanceled = order.status.startsWith('canceled-');
@@ -147,16 +147,16 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
         >
           {!isFinished && (
             <MenuItem onClick={() => { setAnchorEl(null); onCancel(order); }}>
-              {t('userOrders.cancel', 'Cancel')}
+              {t('userOrders:cancel', 'Cancel')}
             </MenuItem>
           )}
           {isFinished && (
             <MenuItem onClick={() => { setAnchorEl(null); onNavigate(order); }}>
-              {t('userOrders.gotoChat', 'Goto chat')}
+              {t('userOrders:gotoChat', 'Goto chat')}
             </MenuItem>
           )}
           <MenuItem onClick={() => { setAnchorEl(null); onRemove(order); }}>
-            {t('userOrders.remove', 'Remove')}
+            {t('userOrders:remove', 'Remove')}
           </MenuItem>
         </Menu>
       </Box>
@@ -184,7 +184,7 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
             sx={{ mt: 0.25, fontSize: '0.65rem', py: 0, textTransform: 'none' }}
             onClick={() => onInputRequired(order)}
           >
-            {t('userOrders.inputRequired', 'Your input is required')}
+            {t('userOrders:inputRequired', 'Your input is required')}
           </Button>
         )}
       </Box>
@@ -215,7 +215,7 @@ function OrderCard({ order, themeMode, onCancel, onRemove, onInputRequired, onNa
 }
 
 export default function UserOrders({ minimal = false }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["userOrders"]);
   const { mode: themeMode } = useThemeMode();
   const { setProject } = useProject();
   const [orders, setOrders] = useState([]);
@@ -348,7 +348,7 @@ export default function UserOrders({ minimal = false }) {
           textAlign: 'center'
         }}
       >
-        {t('userOrders.recentOrders')}
+        {t('userOrders:recentOrders')}
       </Typography>
 
       {/* Cancel dialog */}
@@ -360,7 +360,7 @@ export default function UserOrders({ minimal = false }) {
         PaperProps={{ sx: { borderTop: '4px solid #f57c00' } }}
       >
         <DialogTitle>
-          {t('userOrders.cancelTitle', 'Cancel Order')}
+          {t('userOrders:cancelTitle', 'Cancel Order')}
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
@@ -371,14 +371,14 @@ export default function UserOrders({ minimal = false }) {
             fullWidth
             multiline
             rows={3}
-            label={t('userOrders.cancelReason', 'Reason for cancellation')}
+            label={t('userOrders:cancelReason', 'Reason for cancellation')}
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCancelDialog(null)}>
-            {t('userOrders.cancelDialogClose', 'Close')}
+            {t('userOrders:cancelDialogClose', 'Close')}
           </Button>
           <Button
             variant="contained"
@@ -386,7 +386,7 @@ export default function UserOrders({ minimal = false }) {
             disabled={!cancelReason.trim()}
             onClick={handleConfirmCancel}
           >
-            {t('userOrders.cancelDialogConfirm', 'Cancel Order')}
+            {t('userOrders:cancelDialogConfirm', 'Cancel Order')}
           </Button>
         </DialogActions>
       </Dialog>

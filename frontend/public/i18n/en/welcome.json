@@ -1,0 +1,10 @@
+{
+  "fileUploadAppend": "Please have a look at {{fileList}} in the .attachments folder. I want to ",
+  "filesSelected": "{{count}} file(s) selected",
+  "greetingAfternoon": "Good afternoon, User",
+  "greetingEvening": "Good evening, User",
+  "greetingMorning": "Good morning, User",
+  "inputPlaceholder": "Please describe as precise as possible what we want to achieve in our session. This is essential for me to give high-quality responses!",
+  "previousConversations": "Previous Conversations / Settings",
+  "speechNotSupported": "Speech recognition is not supported in this browser"
+}

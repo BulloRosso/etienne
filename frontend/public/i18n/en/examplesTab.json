@@ -1,0 +1,22 @@
+{
+  "compoundAlert": "Compound conditions support AND, OR, and NOT operators with optional time windows (in milliseconds)",
+  "compoundChip": "Compound",
+  "compoundCondition": "Compound Condition",
+  "compoundDescription": "Use compound conditions to combine multiple conditions with logical operators (AND, OR, NOT). Ideal for complex scenarios requiring multiple criteria.",
+  "compoundExample": "Example: Monitor test file changes AND config changes",
+  "semanticAlert": "Semantic matching uses vector embeddings with a default threshold of 0.86",
+  "semanticChip": "Semantic",
+  "semanticCondition": "Semantic Condition",
+  "semanticDescription": "Use semantic conditions for AI-powered similarity matching. Great for finding related content or detecting semantically similar events even when exact wording differs.",
+  "semanticExample": "Example: Find authentication-related code changes",
+  "simpleAlert": "Simple conditions support wildcard matching with * in string values",
+  "simpleChip": "Simple",
+  "simpleCondition": "Simple Condition",
+  "simpleDescription": "Use simple conditions for exact matching of event properties. Perfect for straightforward triggers like \"when a Python file is created\" or \"when a specific MQTT topic receives a message\".",
+  "simpleExample": "Example: Monitor Python file creation",
+  "temporalAlert": "Day of week: 0=Sunday, 1=Monday, ..., 6=Saturday. Times use 24-hour format (HH:MM)",
+  "temporalChip": "Temporal",
+  "temporalConstraint": "Temporal Constraint",
+  "temporalDescription": "Use temporal constraints to filter events by time of day or day of week. Perfect for business hours monitoring or scheduled maintenance windows.",
+  "temporalExample": "Example: Monitor during business hours only"
+}

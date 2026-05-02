@@ -43,7 +43,7 @@ const serviceIcons = {
 };
 
 export default function ServiceControlDrawer({ open, onClose }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["serviceControl","common"]);
   const { mode: themeMode } = useThemeMode();
   const [services, setServices] = useState([]);
   const [statuses, setStatuses] = useState({});
@@ -193,7 +193,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
             borderColor: 'divider',
             flexShrink: 0
           }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('serviceControl.title')}</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('serviceControl:title')}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <IconButton
                 onClick={(e) => setSettingsMenuAnchor(e.currentTarget)}
@@ -304,14 +304,14 @@ export default function ServiceControlDrawer({ open, onClose }) {
             <ListItemIcon>
               <Stop sx={{ color: '#d32f2f' }} />
             </ListItemIcon>
-            <ListItemText>{t('serviceControl.stop')}</ListItemText>
+            <ListItemText>{t('serviceControl:stop')}</ListItemText>
           </MenuItem>
         ) : (
           <MenuItem onClick={() => handleAction('start')}>
             <ListItemIcon>
               <PlayArrow sx={{ color: '#4caf50' }} />
             </ListItemIcon>
-            <ListItemText>{t('serviceControl.start')}</ListItemText>
+            <ListItemText>{t('serviceControl:start')}</ListItemText>
           </MenuItem>
         )}
         {selectedService && hasEnvSettings(selectedService.name) && (
@@ -324,7 +324,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>
-            <ListItemText>{t('serviceControl.configurationSettings')}</ListItemText>
+            <ListItemText>{t('serviceControl:configurationSettings')}</ListItemText>
           </MenuItem>
         )}
       </Menu>
@@ -339,7 +339,7 @@ export default function ServiceControlDrawer({ open, onClose }) {
           setSettingsMenuAnchor(null);
           setCodingAgentConfigOpen(true);
         }}>
-          <ListItemText>{t('serviceControl.codingAgentConfig')}</ListItemText>
+          <ListItemText>{t('serviceControl:codingAgentConfig')}</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => {
           setSettingsMenuAnchor(null);
@@ -350,13 +350,13 @@ export default function ServiceControlDrawer({ open, onClose }) {
           const unmappedVars = ALL_ENV_KEYS.filter(k => !mappedVars.has(k));
           setSettingsService({
             name: '_backend',
-            displayName: t('serviceControl.backendConfiguration'),
+            displayName: t('serviceControl:backendConfiguration'),
             description: t('serviceSettings.backendDescription'),
           });
           setBackendAllowedVars(unmappedVars);
           setServiceSettingsOpen(true);
         }}>
-          <ListItemText>{t('serviceControl.backendConfiguration')}</ListItemText>
+          <ListItemText>{t('serviceControl:backendConfiguration')}</ListItemText>
         </MenuItem>
       </Menu>
 

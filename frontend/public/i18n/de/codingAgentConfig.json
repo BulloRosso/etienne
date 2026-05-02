@@ -1,0 +1,13 @@
+{
+  "configSaved": "Konfiguration gespeichert",
+  "customOverrideActive": "Benutzerdefinierte Überschreibung aktiv",
+  "defaultsRestored": "Standards wiederhergestellt",
+  "dialogTitle": "Coding-Agent-Konfiguration",
+  "failedToLoadConfigs": "Konfigurationen konnten nicht geladen werden",
+  "failedToLoadDefaults": "Standards konnten nicht geladen werden",
+  "failedToSaveConfig": "Konfiguration konnte nicht gespeichert werden",
+  "loadDefaults": "Standards laden",
+  "tabClaude": "Claude",
+  "tabCodex": "Codex",
+  "usingDefaultTemplate": "Standardvorlage wird verwendet"
+}

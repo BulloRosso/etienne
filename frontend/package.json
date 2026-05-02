@@ -35,7 +35,8 @@
     "react-icons": "^5.5.0",
     "vis-network": "^10.0.2",
     "x-data-spreadsheet": "^1.1.9",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/dompurify": "^3.2.0",

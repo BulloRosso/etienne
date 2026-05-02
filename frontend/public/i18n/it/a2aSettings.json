@@ -1,0 +1,23 @@
+{
+  "addAgent": "Aggiungi agente",
+  "availableFromRegistry": "Disponibili dal registro ({{count}})",
+  "configuredAgentsTitle": "Agenti configurati ({{count}})",
+  "failedToAdd": "Aggiunta dell'agente fallita",
+  "failedToFetchRegistry": "Recupero del registro fallito: {{message}}",
+  "failedToLoad": "Caricamento delle impostazioni A2A fallito",
+  "failedToRemove": "Rimozione dell'agente fallita",
+  "failedToSave": "Salvataggio delle impostazioni A2A fallito",
+  "failedToToggle": "Attivazione/disattivazione dell'agente fallita",
+  "filterPlaceholder": "Filtra agenti...",
+  "noAgentsConfigured": "Nessun agente configurato. Connettiti a un registro e aggiungi agenti qui sotto.",
+  "noAgentsLoaded": "Nessun agente caricato. Clicca \"Connetti\" per recuperare gli agenti dal registro.",
+  "pushNotifications": "Notifiche push",
+  "registryTitle": "Registro agenti A2A",
+  "registryUrlPlaceholder": "Inserisci URL del registro A2A...",
+  "removeAgent": "Rimuovi agente",
+  "savedSuccessfully": "Impostazioni A2A salvate con successo",
+  "skillsLabel": "Skill:",
+  "stateHistory": "Cronologia degli stati",
+  "streaming": "Streaming",
+  "testConnection": "Testa connessione"
+}

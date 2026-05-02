@@ -1,0 +1,3 @@
+{
+  "tooltipSpent": "{{formattedCosts}}{{currencySymbol}} spent globally ({{percentage}}%)"
+}

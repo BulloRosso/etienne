@@ -1,0 +1,10 @@
+{
+  "columnActions": "Azioni",
+  "columnPrompt": "Prompt",
+  "columnTitle": "Titolo",
+  "createFirstAction": "Crea prima azione",
+  "createFirstActionHint": "Crea template di azione riutilizzabili da usare nelle tue regole",
+  "manageActions": "Gestisci template di azione riutilizzabili per le azioni delle tue regole",
+  "newAction": "Nuova azione",
+  "noActionsDefined": "Nessuna azione definita"
+}

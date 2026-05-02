@@ -1,0 +1,11 @@
+{
+  "columnAction": "操作",
+  "columnEventGroup": "事件组",
+  "columnName": "名称",
+  "columnType": "类型",
+  "createFirstRule": "创建第一条规则",
+  "createFirstRuleHint": "创建您的第一条规则以开始监控状态",
+  "manageRules": "管理状态监控规则",
+  "newRule": "新建规则",
+  "noRulesConfigured": "暂无配置的规则"
+}

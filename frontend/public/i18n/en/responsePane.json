@@ -1,0 +1,6 @@
+{
+  "modelResponse": "Model Response",
+  "noSession": "no session",
+  "session": "session: {{sessionId}}",
+  "title": "Model Response"
+}

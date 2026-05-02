@@ -1,0 +1,19 @@
+{
+  "addTags": "Aggiungi etichette",
+  "availableTags": "Etichette disponibili",
+  "currentTags": "Etichette attuali ({{count}})",
+  "dialogTitle": "Gestisci etichette",
+  "failedToAddTag": "Aggiunta dell'etichetta fallita: {{message}}",
+  "failedToDeleteReleaseComment": "Eliminazione del commento di rilascio fallita: {{message}}",
+  "failedToRemoveTag": "Rimozione dell'etichetta fallita: {{message}}",
+  "failedToSaveReleaseComment": "Salvataggio del commento di rilascio fallito: {{message}}",
+  "inputHelper": "Premi Invio o seleziona dal menu a tendina per aggiungere l'etichetta",
+  "inputPlaceholder": "Digita per creare una nuova etichetta o seleziona una esistente",
+  "noTagsAssigned": "Nessuna etichetta assegnata",
+  "releaseCommentHelper": "I commenti di rilascio vengono compilati nel protocollo diff al prossimo aggiornamento.",
+  "releaseCommentPlaceholder": "Descrivi cosa è cambiato in questo file per il prossimo rilascio",
+  "releaseCommentTitle": "Commento di rilascio",
+  "saveComment": "Salva commento",
+  "tagAlreadyAdded": "Etichetta già aggiunta",
+  "tagWithCount": "{{tag}} ({{count}})"
+}

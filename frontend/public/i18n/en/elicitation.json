@@ -1,0 +1,12 @@
+{
+  "noFieldsMessage": "No input fields required. Click Accept to proceed or Decline to cancel.",
+  "title": "Input Required",
+  "validationInvalidEmail": "Invalid email format",
+  "validationInvalidUrl": "Invalid URL format",
+  "validationMaxLength": "Maximum {{maxLength}} characters allowed",
+  "validationMaximumValue": "Maximum value is {{maximum}}",
+  "validationMinLength": "Minimum {{minLength}} characters required",
+  "validationMinimumValue": "Minimum value is {{minimum}}",
+  "validationMustBeNumber": "Must be a number",
+  "validationRequired": "This field is required"
+}

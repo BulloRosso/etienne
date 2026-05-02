@@ -1,0 +1,12 @@
+{
+  "noFieldsMessage": "无需输入字段。点击接受继续，或点击拒绝取消。",
+  "title": "需要输入",
+  "validationInvalidEmail": "电子邮件格式无效",
+  "validationInvalidUrl": "URL 格式无效",
+  "validationMaxLength": "最多允许 {{maxLength}} 个字符",
+  "validationMaximumValue": "最大值为 {{maximum}}",
+  "validationMinLength": "至少需要 {{minLength}} 个字符",
+  "validationMinimumValue": "最小值为 {{minimum}}",
+  "validationMustBeNumber": "必须是数字",
+  "validationRequired": "此字段为必填项"
+}

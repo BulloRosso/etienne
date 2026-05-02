@@ -1,0 +1,12 @@
+{
+  "actionAlert": "Claude 想要执行以下操作：",
+  "title": "需要权限",
+  "toolBash": "执行命令：{{command}}",
+  "toolDefault": "使用工具：{{toolName}}",
+  "toolEdit": "编辑文件：{{filePath}}",
+  "toolGlob": "搜索文件：{{pattern}}",
+  "toolGrep": "搜索内容：{{pattern}}",
+  "toolMultiEdit": "编辑多个部分：{{filePath}}",
+  "toolRead": "读取文件：{{filePath}}",
+  "toolWrite": "写入文件：{{filePath}}"
+}

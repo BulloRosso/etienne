@@ -50,7 +50,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   onDropRow,
   onDragLeaveRow,
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["fileTreeVirtualList"]);
   const nodeTags = fileTags[row.path] || [];
   const hasReleaseComment = releaseComments && !!releaseComments[row.path];
   const isIndexed = indexedPaths && indexedPaths.has(row.path);
@@ -209,7 +209,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
             borderRadius: '50%',
             backgroundColor: '#1976d2',
           }}
-          title={t('fileTreeVirtualList.releaseComment')}
+          title={t('fileTreeVirtualList:releaseComment')}
         />
       )}
 
@@ -218,7 +218,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
         <i
           className="codicon codicon-check"
           style={{ fontSize: 14, color: '#4caf50', marginLeft: 4, flexShrink: 0 }}
-          title={t('fileTreeVirtualList.ragIndexed')}
+          title={t('fileTreeVirtualList:ragIndexed')}
         />
       )}
 
@@ -259,7 +259,7 @@ export default function FileTreeVirtualList({
   onDropExternal,
   onDropToRoot,
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["fileTreeVirtualList"]);
   const containerRef = useRef(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);

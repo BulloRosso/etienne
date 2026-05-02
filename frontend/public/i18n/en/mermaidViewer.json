@@ -1,0 +1,8 @@
+{
+  "errorLoading": "Error loading mermaid file:",
+  "failedToRender": "Failed to render diagram: {{message}}",
+  "reloadFile": "Reload file",
+  "resetZoom": "Reset zoom ({{percent}}%)",
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out"
+}

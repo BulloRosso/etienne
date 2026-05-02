@@ -7,45 +7,45 @@ import { RiRobot2Line } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 
 const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic', fluid = false, hideHeader = false }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["dashboard","common"]);
   const dashboardItems = [
     // 1st row
     {
       id: 'subagents',
       image: '/subagents.png',
-      label: t('dashboard.itemSubagents'),
+      label: t('dashboard:itemSubagents'),
       disabled: !currentProject
     },
     {
       id: 'skills',
       image: '/skills.png',
-      label: t('dashboard.itemSkills'),
+      label: t('dashboard:itemSkills'),
       disabled: !currentProject
     },
     // 2nd row
     {
       id: 'knowledge',
       image: '/knowledge.png',
-      label: t('dashboard.itemKnowledgeBase'),
+      label: t('dashboard:itemKnowledgeBase'),
       disabled: !currentProject
     },
     {
       id: 'externalevents',
       image: '/externalevents.png',
-      label: t('dashboard.itemExternalEvents'),
+      label: t('dashboard:itemExternalEvents'),
       disabled: !currentProject
     },
     // 3rd row
     {
       id: 'scheduling',
       image: '/scheduling.png',
-      label: t('dashboard.itemScheduling'),
+      label: t('dashboard:itemScheduling'),
       disabled: !currentProject
     },
     {
       id: 'guardrails',
       image: '/guardrails.png',
-      label: t('dashboard.itemGuardrails'),
+      label: t('dashboard:itemGuardrails'),
       disabled: !currentProject,
       adminOnly: true
     },
@@ -53,47 +53,47 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     {
       id: 'budget',
       image: '/budget.png',
-      label: t('dashboard.itemBudgetSettings'),
+      label: t('dashboard:itemBudgetSettings'),
       disabled: !currentProject
     },
     // 5th row
     {
       id: 'customui',
       image: '/customui.png',
-      label: t('dashboard.itemCustomizeUI'),
+      label: t('dashboard:itemCustomizeUI'),
       disabled: !currentProject
     },
     {
       id: 'contexts',
       image: '/contextmanager.png',
-      label: t('dashboard.itemContextTagging'),
+      label: t('dashboard:itemContextTagging'),
       disabled: !currentProject
     },
     // 6th row
     {
       id: 'conditionmonitoring',
       image: '/conditionmonitoring.png',
-      label: t('dashboard.itemConditionMonitoring'),
+      label: t('dashboard:itemConditionMonitoring'),
       disabled: !currentProject
     },
     {
       id: 'scrapbook',
       image: '/scrapbook.png',
-      label: t('dashboard.itemScrapbook'),
+      label: t('dashboard:itemScrapbook'),
       disabled: !currentProject
     },
     // 7th row
     {
       id: 'issues',
       image: '/issues.png',
-      label: t('dashboard.itemIssues'),
+      label: t('dashboard:itemIssues'),
       disabled: !currentProject,
       minRole: 'user'
     },
     {
       id: 'ontologycore',
       image: '/decision-support.png',
-      label: t('dashboard.itemDecisionSupport'),
+      label: t('dashboard:itemDecisionSupport'),
       disabled: !currentProject
     },
     // 8th row
@@ -106,14 +106,14 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     {
       id: 'skillstore',
       image: '/skills.png',
-      label: t('dashboard.itemSkillStore'),
+      label: t('dashboard:itemSkillStore'),
       disabled: false,
       adminOnly: true
     },
     {
       id: 'previewers',
       image: '/previewers.png',
-      label: t('dashboard.itemPreviewers'),
+      label: t('dashboard:itemPreviewers'),
       disabled: false,
       adminOnly: true
     }
@@ -148,7 +148,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
               color: 'primary.main'
             }}
           >
-            {t('dashboard.headerTitle')}
+            {t('dashboard:headerTitle')}
           </Typography>
           <IconButton
             size="small"
@@ -217,7 +217,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Tooltip title={t('dashboard.changePasswordTooltip')}>
+              <Tooltip title={t('dashboard:changePasswordTooltip')}>
                 <IconButton
                   size="small"
                   onClick={(e) => {
@@ -364,7 +364,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
           >
             <VscServerProcess size={16} />
             <Typography variant="caption" sx={{ fontWeight: 500 }}>
-              {t('dashboard.serviceControl')}
+              {t('dashboard:serviceControl')}
             </Typography>
           </Box>
           <Box

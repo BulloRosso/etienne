@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function JSONViewer({ filename, projectName, className = '', isJsonl = false }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["jsonViewer"]);
   const { mode: themeMode } = useThemeMode();
   const [jsonContent, setJsonContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -131,14 +131,14 @@ export default function JSONViewer({ filename, projectName, className = '', isJs
         p={2}
         color="error.main"
       >
-        {t('jsonViewer.errorLoading')} {error}
+        {t('jsonViewer:errorLoading')} {error}
       </Box>
     );
   }
 
   return (
     <Box className={className} height="100%" width="100%" position="relative">
-      <Tooltip title={t('jsonViewer.reloadFile')}>
+      <Tooltip title={t('jsonViewer:reloadFile')}>
         <IconButton
           onClick={handleReload}
           disabled={loading}

@@ -145,7 +145,7 @@ const getFirstLines = (text, numLines = 3) => {
  * Tool call displayed in timeline format with IN/OUT sections
  */
 export default function ToolCallTimeline({ toolName, args, result, description, showBullet = true, hideConnectorLine = false }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["toolCallTimeline","common"]);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [inExpanded, setInExpanded] = useState(false);
   const [outExpanded, setOutExpanded] = useState(false);
@@ -358,7 +358,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                   fontSize: '0.7rem'
                 }}
               >
-                {t('toolCallTimeline.in')}
+                {t('toolCallTimeline:in')}
               </Typography>
               {hasMoreInput && (
                 <IconButton
@@ -410,7 +410,7 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
                   fontSize: '0.7rem'
                 }}
               >
-                {t('toolCallTimeline.out')}
+                {t('toolCallTimeline:out')}
               </Typography>
               {hasMoreOutput && (
                 <IconButton

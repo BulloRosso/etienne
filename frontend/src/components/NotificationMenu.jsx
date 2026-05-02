@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function NotificationMenu({ projectName }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["notificationMenu"]);
   const { mode: themeMode } = useThemeMode();
   const [anchorEl, setAnchorEl] = useState(null);
   const [channels, setChannels] = useState([]);
@@ -72,7 +72,7 @@ export default function NotificationMenu({ projectName }) {
     <>
       <IconButton
         onClick={handleClick}
-        title={t('notificationMenu.title')}
+        title={t('notificationMenu:title')}
         sx={{ color: iconColor }}
       >
         {hasActiveChannels ? <PiBellRinging size={20} /> : <PiBell size={20} />}
@@ -91,7 +91,7 @@ export default function NotificationMenu({ projectName }) {
       >
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            {t('notificationMenu.heading')}
+            {t('notificationMenu:heading')}
           </Typography>
         </Box>
         <Divider />
@@ -114,7 +114,7 @@ export default function NotificationMenu({ projectName }) {
                 />
                 <ListItemText
                   primary={channel.name}
-                  secondary={!isAvailable ? t('notificationMenu.serviceNotRunning') : undefined}
+                  secondary={!isAvailable ? t('notificationMenu:serviceNotRunning') : undefined}
                   primaryTypographyProps={{
                     sx: { color: !isAvailable ? 'text.disabled' : 'inherit' }
                   }}
@@ -127,7 +127,7 @@ export default function NotificationMenu({ projectName }) {
                 <Box sx={{ px: 2, pb: 1 }}>
                   <TextField
                     size="small"
-                    placeholder={t('notificationMenu.emailPlaceholder')}
+                    placeholder={t('notificationMenu:emailPlaceholder')}
                     value={notificationEmail}
                     onChange={handleEmailChange}
                     onClick={(e) => e.stopPropagation()}

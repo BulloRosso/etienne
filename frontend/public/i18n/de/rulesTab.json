@@ -1,0 +1,11 @@
+{
+  "columnAction": "Aktion",
+  "columnEventGroup": "Ereignisgruppe",
+  "columnName": "Name",
+  "columnType": "Typ",
+  "createFirstRule": "Erste Regel erstellen",
+  "createFirstRuleHint": "Erstellen Sie Ihre erste Regel, um mit der Zustandsüberwachung zu beginnen",
+  "manageRules": "Zustandsüberwachungsregeln verwalten",
+  "newRule": "Neue Regel",
+  "noRulesConfigured": "Keine Regeln konfiguriert"
+}

@@ -1,0 +1,6 @@
+{
+  "modelResponse": "模型响应",
+  "noSession": "无会话",
+  "session": "会话：{{sessionId}}",
+  "title": "模型响应"
+}

@@ -1,0 +1,9 @@
+{
+  "altImage": "智能体角色",
+  "description": "选择与您的项目需求匹配的预定义角色，或创建自定义角色定义。智能体角色决定了助手的个性、知识焦点和工作方式。",
+  "errorLoadFailed": "加载策略失败",
+  "errorSaveFailed": "保存策略失败",
+  "predefinedRole": "预定义角色",
+  "predefinedRoleNone": "无",
+  "successSaved": "策略保存成功"
+}

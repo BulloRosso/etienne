@@ -11,7 +11,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
  * TodoWrite displayed in timeline format - shows the full todo list inline
  */
 export default function TodoWriteTimeline({ args, showBullet = true }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["todoWriteTimeline"]);
   const { mode: themeMode } = useThemeMode();
   const todos = args?.todos || args?.newTodos || args?.oldTodos || [];
 
@@ -71,7 +71,7 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
             flex: 1
           }}
         >
-          {t('todoWriteTimeline.taskListUpdated')}
+          {t('todoWriteTimeline:taskListUpdated')}
         </Typography>
       </Box>
 
@@ -80,7 +80,7 @@ export default function TodoWriteTimeline({ args, showBullet = true }) {
         {todos.length === 0 ? (
           <Paper sx={{ p: 1.5, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
             <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
-              {t('todoWriteTimeline.noTasks')}
+              {t('todoWriteTimeline:noTasks')}
             </Typography>
           </Paper>
         ) : (

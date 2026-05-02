@@ -1,0 +1,10 @@
+{
+  "columnEventName": "Ereignisname",
+  "columnGroup": "Gruppe",
+  "columnPayload": "Payload",
+  "columnSource": "Quelle",
+  "columnTimestamp": "Zeitstempel",
+  "columnTriggeredRules": "Ausgelöste Regeln",
+  "eventsWillAppear": "Ereignisse, die Regeln auslösen, erscheinen hier",
+  "noEventsLogged": "Noch keine Ereignisse protokolliert"
+}

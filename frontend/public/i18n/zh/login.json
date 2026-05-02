@@ -1,0 +1,8 @@
+{
+  "errorDefault": "登录失败。请检查您的凭据。",
+  "password": "密码",
+  "rememberMe": "在此计算机上记住我",
+  "subtitle": "输入您的凭据以访问应用程序",
+  "title": "登录",
+  "username": "用户名"
+}

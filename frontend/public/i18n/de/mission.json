@@ -1,0 +1,7 @@
+{
+  "altImage": "Missionsbeschreibung",
+  "description": "Die Missionsbeschreibung steuert das Verhalten Ihres KI-Assistenten. Eine detaillierte Beschreibung sorgt für bessere, fokussiertere Ergebnisse im Einklang mit Ihren Zielen.",
+  "errorLoadFailed": "Mission konnte nicht geladen werden",
+  "errorSaveFailed": "Mission konnte nicht gespeichert werden",
+  "successSaved": "Mission erfolgreich gespeichert"
+}

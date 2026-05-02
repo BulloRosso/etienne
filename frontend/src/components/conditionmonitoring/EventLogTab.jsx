@@ -16,7 +16,7 @@ import { History as HistoryIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
 const EventLogTab = ({ eventLog, loadingEventLog, getGroupStyle }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["eventLogTab"]);
   if (loadingEventLog) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -30,10 +30,10 @@ const EventLogTab = ({ eventLog, loadingEventLog, getGroupStyle }) => {
       <Box sx={{ py: 6, textAlign: 'center' }}>
         <HistoryIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5, opacity: 0.5 }} />
         <Typography variant="body1" color="text.secondary" gutterBottom>
-          {t('eventLogTab.noEventsLogged')}
+          {t('eventLogTab:noEventsLogged')}
         </Typography>
         <Typography variant="body2" color="text.disabled">
-          {t('eventLogTab.eventsWillAppear')}
+          {t('eventLogTab:eventsWillAppear')}
         </Typography>
       </Box>
     );
@@ -44,12 +44,12 @@ const EventLogTab = ({ eventLog, loadingEventLog, getGroupStyle }) => {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell><strong>{t('eventLogTab.columnTimestamp')}</strong></TableCell>
-            <TableCell><strong>{t('eventLogTab.columnEventName')}</strong></TableCell>
-            <TableCell><strong>{t('eventLogTab.columnGroup')}</strong></TableCell>
-            <TableCell><strong>{t('eventLogTab.columnSource')}</strong></TableCell>
-            <TableCell><strong>{t('eventLogTab.columnTriggeredRules')}</strong></TableCell>
-            <TableCell><strong>{t('eventLogTab.columnPayload')}</strong></TableCell>
+            <TableCell><strong>{t('eventLogTab:columnTimestamp')}</strong></TableCell>
+            <TableCell><strong>{t('eventLogTab:columnEventName')}</strong></TableCell>
+            <TableCell><strong>{t('eventLogTab:columnGroup')}</strong></TableCell>
+            <TableCell><strong>{t('eventLogTab:columnSource')}</strong></TableCell>
+            <TableCell><strong>{t('eventLogTab:columnTriggeredRules')}</strong></TableCell>
+            <TableCell><strong>{t('eventLogTab:columnPayload')}</strong></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

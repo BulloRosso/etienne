@@ -62,7 +62,7 @@ export default function Scrapbook(props) {
 }
 
 function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded = false }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["scrapbook","common"]);
   const [tabValue, setTabValue] = useState(0);
   const [tree, setTree] = useState(null);
   const [allNodes, setAllNodes] = useState([]);
@@ -1333,8 +1333,8 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2 }}>
         <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ flex: 1 }}>
-          <Tab label={t('scrapbook.tabMindmap')} />
-          <Tab label={t('scrapbook.tabTopics')} disabled={!selectedNode} />
+          <Tab label={t('scrapbook:tabMindmap')} />
+          <Tab label={t('scrapbook:tabTopics')} disabled={!selectedNode} />
         </Tabs>
         <IconButton onClick={(e) => setOptionsAnchor(e.currentTarget)} size="small">
           <MoreVert />
@@ -1346,23 +1346,23 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
         >
           <MenuItem onClick={() => { handleInitializeExample(); setOptionsAnchor(null); }}>
             <ListItemIcon><DataObject fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('scrapbook.menuUseExampleData')}</ListItemText>
+            <ListItemText>{t('scrapbook:menuUseExampleData')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => { setCreateFromTextOpen(true); setOptionsAnchor(null); }}>
             <ListItemIcon><TextFields fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('scrapbook.menuCreateFromText')}</ListItemText>
+            <ListItemText>{t('scrapbook:menuCreateFromText')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleAutoLayout} disabled={!tree}>
             <ListItemIcon><AccountTree fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('scrapbook.menuAutoLayout')}</ListItemText>
+            <ListItemText>{t('scrapbook:menuAutoLayout')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleAddStickyNote}>
             <ListItemIcon><NoteAdd fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('scrapbook.menuAddStickyNote')}</ListItemText>
+            <ListItemText>{t('scrapbook:menuAddStickyNote')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleExportAgenticView} disabled={!selectedNode}>
             <ListItemIcon><Download fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('scrapbook.menuExportAgenticView')}</ListItemText>
+            <ListItemText>{t('scrapbook:menuExportAgenticView')}</ListItemText>
           </MenuItem>
         </Menu>
       </Box>
@@ -1492,28 +1492,28 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
                 <Panel position="bottom-right">
                   <Paper sx={{ p: 1.5, backgroundColor: 'rgba(255,255,255,0.95)' }}>
                     <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                      {t('scrapbook.legendTitle')}
+                      {t('scrapbook:legendTitle')}
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: 'rgba(0, 100, 255, 0.1)', border: '2px solid rgb(0, 100, 255)' }} />
-                        <Typography variant="caption">{t('scrapbook.legendHighPriority')}</Typography>
+                        <Typography variant="caption">{t('scrapbook:legendHighPriority')}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: '#ffb74d', border: '2px solid #e65100' }} />
-                        <Typography variant="caption">{t('scrapbook.legendAlternativeOption')}</Typography>
+                        <Typography variant="caption">{t('scrapbook:legendAlternativeOption')}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: '#fffde7', border: '2px solid gold' }} />
-                        <Typography variant="caption">{t('scrapbook.legendSelectedActive')}</Typography>
+                        <Typography variant="caption">{t('scrapbook:legendSelectedActive')}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: '#fafafa', border: '2px solid #9e9e9e' }} />
-                        <Typography variant="caption">{t('scrapbook.legendLowAttention')}</Typography>
+                        <Typography variant="caption">{t('scrapbook:legendLowAttention')}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: 1, backgroundColor: '#ffffff', border: '2px solid #000000' }} />
-                        <Typography variant="caption">{t('scrapbook.legendDefault')}</Typography>
+                        <Typography variant="caption">{t('scrapbook:legendDefault')}</Typography>
                       </Box>
                     </Box>
                   </Paper>
@@ -1522,10 +1522,10 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 2 }}>
                 <Typography variant="h6" color="text.secondary">
-                  {t('scrapbook.emptyTitle')}
+                  {t('scrapbook:emptyTitle')}
                 </Typography>
                 <Button variant="contained" onClick={handleInitializeExample}>
-                  {t('scrapbook.emptyLoadExample')}
+                  {t('scrapbook:emptyLoadExample')}
                 </Button>
               </Box>
             )}
@@ -1569,14 +1569,14 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
       {/* Context Menu */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={handleEdit}>
-          <ListItemText>{t('scrapbook.contextEdit')}</ListItemText>
+          <ListItemText>{t('scrapbook:contextEdit')}</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleAddSubcategory}>
-          <ListItemText>{t('scrapbook.contextAddSubcategory')}</ListItemText>
+          <ListItemText>{t('scrapbook:contextAddSubcategory')}</ListItemText>
         </MenuItem>
         {editNode?.type !== 'ProjectTheme' && (
           <MenuItem onClick={handleDelete}>
-            <ListItemText>{t('scrapbook.contextDelete')}</ListItemText>
+            <ListItemText>{t('scrapbook:contextDelete')}</ListItemText>
           </MenuItem>
         )}
       </Menu>
@@ -1595,13 +1595,13 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-        <DialogTitle>{t('scrapbook.deleteTitle')}</DialogTitle>
+        <DialogTitle>{t('scrapbook:deleteTitle')}</DialogTitle>
         <DialogContent>
           <Typography>
-            {t('scrapbook.deleteMessage', { label: nodeToDelete?.label })}
+            {t('scrapbook:deleteMessage', { label: nodeToDelete?.label })}
             {nodeToDelete?.children?.length > 0 && (
               <Typography color="error" sx={{ mt: 1 }}>
-                {t('scrapbook.deleteChildWarning', { count: nodeToDelete.children.length })}
+                {t('scrapbook:deleteChildWarning', { count: nodeToDelete.children.length })}
               </Typography>
             )}
           </Typography>

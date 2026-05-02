@@ -1,0 +1,23 @@
+{
+  "addAgent": "Agent hinzufügen",
+  "availableFromRegistry": "Verfügbar aus der Registry ({{count}})",
+  "configuredAgentsTitle": "Konfigurierte Agenten ({{count}})",
+  "failedToAdd": "Agent konnte nicht hinzugefügt werden",
+  "failedToFetchRegistry": "Registry konnte nicht abgerufen werden: {{message}}",
+  "failedToLoad": "A2A-Einstellungen konnten nicht geladen werden",
+  "failedToRemove": "Agent konnte nicht entfernt werden",
+  "failedToSave": "A2A-Einstellungen konnten nicht gespeichert werden",
+  "failedToToggle": "Agent konnte nicht umgeschaltet werden",
+  "filterPlaceholder": "Agenten filtern...",
+  "noAgentsConfigured": "Keine Agenten konfiguriert. Verbinden Sie sich mit einer Registry und fügen Sie unten Agenten hinzu.",
+  "noAgentsLoaded": "Keine Agenten geladen. Klicken Sie auf \"Verbinden\", um Agenten aus der Registry abzurufen.",
+  "pushNotifications": "Push-Benachrichtigungen",
+  "registryTitle": "A2A-Agenten-Registry",
+  "registryUrlPlaceholder": "A2A-Registry-URL eingeben...",
+  "removeAgent": "Agent entfernen",
+  "savedSuccessfully": "A2A-Einstellungen erfolgreich gespeichert",
+  "skillsLabel": "Skills:",
+  "stateHistory": "Zustandsverlauf",
+  "streaming": "Streaming",
+  "testConnection": "Verbindung testen"
+}

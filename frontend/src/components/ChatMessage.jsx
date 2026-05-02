@@ -12,7 +12,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
 export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, traceId = null, source = null, sourceMetadata = null, minimal = false, onEditMessage }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["chatMessage"]);
   const isUser = role === 'user';
   const { mode: themeMode } = useThemeMode();
   const [tokenPaneExpanded, setTokenPaneExpanded] = useState(false);
@@ -112,7 +112,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         teams: <Groups sx={{ fontSize: '14px' }} />,
       };
       const icon = sourceMetadata?.provider ? providerIcons[sourceMetadata.provider] : <Cloud sx={{ fontSize: '14px' }} />;
-      const label = sourceMetadata?.username || t('chatMessage.remote');
+      const label = sourceMetadata?.username || t('chatMessage:remote');
 
       return (
         <Chip
@@ -134,7 +134,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
       return (
         <Chip
           icon={<Schedule sx={{ fontSize: '14px' }} />}
-          label={t('chatMessage.scheduled')}
+          label={t('chatMessage:scheduled')}
           size="small"
           sx={{
             height: '20px',
@@ -259,16 +259,16 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
     >
       <MenuItem onClick={handleCopyText} dense>
         <MenuItemIcon sx={{ minWidth: 32 }}><ContentCopy sx={{ fontSize: 16 }} /></MenuItemIcon>
-        {t('chatMessage.copyText', 'Copy text')}
+        {t('chatMessage:copyText', 'Copy text')}
       </MenuItem>
       <MenuItem onClick={handleCopyMarkdown} dense>
         <MenuItemIcon sx={{ minWidth: 32 }}><Code sx={{ fontSize: 16 }} /></MenuItemIcon>
-        {t('chatMessage.copyMarkdown', 'Copy as Markdown')}
+        {t('chatMessage:copyMarkdown', 'Copy as Markdown')}
       </MenuItem>
       {isUser && onEditMessage && (
         <MenuItem onClick={handleEditResubmit} dense>
           <MenuItemIcon sx={{ minWidth: 32 }}><EditOutlined sx={{ fontSize: 16 }} /></MenuItemIcon>
-          {t('chatMessage.editResubmit', 'Edit & resubmit')}
+          {t('chatMessage:editResubmit', 'Edit & resubmit')}
         </MenuItem>
       )}
     </Menu>
@@ -519,7 +519,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               {/* Left side: Costs label + expand button */}
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Typography variant="caption" sx={{ color: '#999', fontSize: '11px', mr: 0.5 }}>
-                  {t('chatMessage.costs')}
+                  {t('chatMessage:costs')}
                 </Typography>
                 <IconButton
                   size="small"
@@ -542,7 +542,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                       color: feedback === 'up' ? '#4caf50' : '#999',
                       '&:hover': { color: feedback === 'up' ? '#4caf50' : '#666' }
                     }}
-                    title={t('chatMessage.goodResponse')}
+                    title={t('chatMessage:goodResponse')}
                   >
                     <ThumbUp sx={{ fontSize: '16px' }} />
                   </IconButton>
@@ -555,7 +555,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
                       color: feedback === 'down' ? '#f44336' : '#999',
                       '&:hover': { color: feedback === 'down' ? '#f44336' : '#666' }
                     }}
-                    title={t('chatMessage.poorResponse')}
+                    title={t('chatMessage:poorResponse')}
                   >
                     <ThumbDown sx={{ fontSize: '16px' }} />
                   </IconButton>
@@ -579,7 +579,7 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               fontWeight: isStreaming ? 500 : 400
             }}
           >
-            {isStreaming ? t('chatMessage.elapsed', { time: formatElapsedTime(elapsedSeconds) }) : timestamp}
+            {isStreaming ? t('chatMessage:elapsed', { time: formatElapsedTime(elapsedSeconds) }) : timestamp}
           </Typography>
         </Box>
       </Box>

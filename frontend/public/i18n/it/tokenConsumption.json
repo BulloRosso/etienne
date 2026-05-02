@@ -1,0 +1,4 @@
+{
+  "model": "Modello",
+  "tokenSummary": "{{inputTokens}} Input + {{outputTokens}} Output = {{totalTokens}} Token totali"
+}

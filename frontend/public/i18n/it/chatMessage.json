@@ -1,0 +1,8 @@
+{
+  "costs": "Costi",
+  "elapsed": "Trascorso: {{time}}",
+  "goodResponse": "Buona risposta",
+  "poorResponse": "Risposta scarsa",
+  "remote": "Remoto",
+  "scheduled": "Pianificato"
+}

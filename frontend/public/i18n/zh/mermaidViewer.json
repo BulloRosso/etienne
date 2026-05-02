@@ -1,0 +1,8 @@
+{
+  "errorLoading": "加载 Mermaid 文件出错：",
+  "failedToRender": "渲染图表失败：{{message}}",
+  "reloadFile": "重新加载文件",
+  "resetZoom": "重置缩放（{{percent}}%）",
+  "zoomIn": "放大",
+  "zoomOut": "缩小"
+}

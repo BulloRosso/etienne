@@ -1,0 +1,7 @@
+{
+  "events": "事件",
+  "filter": "筛选",
+  "hooks": "钩子",
+  "noItemsYet": "暂无{{mode}}。",
+  "waitingForActivity": "等待 Claude Code 活动..."
+}

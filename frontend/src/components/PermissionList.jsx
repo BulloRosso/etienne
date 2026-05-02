@@ -20,7 +20,7 @@ import BackgroundInfo from './BackgroundInfo';
 import { useTranslation } from 'react-i18next';
 
 export default function PermissionList({ projectName, showBackgroundInfo }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["permissionList","common"]);
   const [allowedTools, setAllowedTools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,7 +44,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
       });
       setAllowedTools(response.data.allowedTools || []);
     } catch (err) {
-      setError(t('permissionList.errorLoadFailed'));
+      setError(t('permissionList:errorLoadFailed'));
       console.error('Load permissions error:', err);
     } finally {
       setLoading(false);
@@ -63,7 +63,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(t('permissionList.errorSaveFailed'));
+      setError(t('permissionList:errorSaveFailed'));
       console.error('Save permissions error:', err);
     } finally {
       setSaving(false);
@@ -119,7 +119,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          {t('permissionList.successSaved')}
+          {t('permissionList:successSaved')}
         </Alert>
       )}
 
@@ -127,7 +127,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell><strong>{t('permissionList.columnAllowedTool')}</strong></TableCell>
+              <TableCell><strong>{t('permissionList:columnAllowedTool')}</strong></TableCell>
               <TableCell align="right">{t('common.actions')}</TableCell>
             </TableRow>
           </TableHead>
@@ -187,7 +187,7 @@ export default function PermissionList({ projectName, showBackgroundInfo }) {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder={t('permissionList.addPlaceholder')}
+                  placeholder={t('permissionList:addPlaceholder')}
                   value={newTool}
                   onChange={(e) => setNewTool(e.target.value)}
                   onKeyPress={(e) => {

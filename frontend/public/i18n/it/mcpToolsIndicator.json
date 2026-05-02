@@ -1,0 +1,7 @@
+{
+  "drawerTitle": "Strumenti forniti",
+  "label": "strumenti disponibili",
+  "noToolsAvailable": "Nessuno strumento disponibile da questo server.",
+  "toolsAvailableCount": "{{count}} strumento/i disponibile/i",
+  "tooltip": "Strumenti MCP disponibili"
+}

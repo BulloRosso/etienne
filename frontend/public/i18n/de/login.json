@@ -1,0 +1,8 @@
+{
+  "errorDefault": "Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Zugangsdaten.",
+  "password": "Passwort",
+  "rememberMe": "Auf diesem Computer angemeldet bleiben",
+  "subtitle": "Geben Sie Ihre Zugangsdaten ein, um auf die Anwendung zuzugreifen",
+  "title": "Anmelden",
+  "username": "Benutzername"
+}

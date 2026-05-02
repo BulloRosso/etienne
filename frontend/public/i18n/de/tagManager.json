@@ -1,0 +1,19 @@
+{
+  "addTags": "Tags hinzufügen",
+  "availableTags": "Verfügbare Tags",
+  "currentTags": "Aktuelle Tags ({{count}})",
+  "dialogTitle": "Tags verwalten",
+  "failedToAddTag": "Tag konnte nicht hinzugefügt werden: {{message}}",
+  "failedToDeleteReleaseComment": "Release-Kommentar konnte nicht gelöscht werden: {{message}}",
+  "failedToRemoveTag": "Tag konnte nicht entfernt werden: {{message}}",
+  "failedToSaveReleaseComment": "Release-Kommentar konnte nicht gespeichert werden: {{message}}",
+  "inputHelper": "Enter drücken oder aus Dropdown auswählen, um Tag hinzuzufügen",
+  "inputPlaceholder": "Tippen, um neuen Tag zu erstellen oder bestehenden auszuwählen",
+  "noTagsAssigned": "Keine Tags zugewiesen",
+  "releaseCommentHelper": "Release-Kommentare werden beim nächsten Update-Release in das Diff-Protokoll kompiliert.",
+  "releaseCommentPlaceholder": "Beschreiben Sie, was sich in dieser Datei für das nächste Release geändert hat",
+  "releaseCommentTitle": "Release-Kommentar",
+  "saveComment": "Kommentar speichern",
+  "tagAlreadyAdded": "Tag bereits hinzugefügt",
+  "tagWithCount": "{{tag}} ({{count}})"
+}

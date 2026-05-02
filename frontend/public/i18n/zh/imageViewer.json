@@ -1,0 +1,10 @@
+{
+  "bitDepth": "位深度：",
+  "colorType": "颜色类型：",
+  "compression": "压缩：",
+  "dimensions": "尺寸：",
+  "dimensionsValue": "{{width}} × {{height}} 像素",
+  "fileSize": "文件大小：",
+  "format": "格式：",
+  "imageInformation": "图片信息"
+}

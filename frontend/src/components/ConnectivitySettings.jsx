@@ -17,7 +17,7 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function ConnectivitySettings({ projectName, showBackgroundInfo }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["connectivity"]);
   const [tabValue, setTabValue] = useState(0);
 
   return (
@@ -29,11 +29,11 @@ export default function ConnectivitySettings({ projectName, showBackgroundInfo }
         TabIndicatorProps={{ sx: { height: 3 } }}
       >
         <Tab
-          label={t('connectivity.tabMcp')}
+          label={t('connectivity:tabMcp')}
           sx={{ minHeight: 42, textTransform: 'none' }}
         />
         <Tab
-          label={t('connectivity.tabA2a')}
+          label={t('connectivity:tabA2a')}
           sx={{ minHeight: 42, textTransform: 'none' }}
         />
       </Tabs>

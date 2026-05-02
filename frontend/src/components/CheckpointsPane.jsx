@@ -47,7 +47,7 @@ const statusLabels = {
 };
 
 export default function CheckpointsPane({ projectName, showBackgroundInfo, onRestoreComplete }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["checkpoints","common"]);
   const [checkpoints, setCheckpoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -94,10 +94,10 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
       if (response.data.success) {
         setCheckpoints(response.data.checkpoints || []);
       } else {
-        setError(response.data.message || t('checkpoints.errorLoadFailed'));
+        setError(response.data.message || t('checkpoints:errorLoadFailed'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || t('checkpoints.errorLoadFailed'));
+      setError(err.response?.data?.message || err.message || t('checkpoints:errorLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -137,10 +137,10 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         await loadCheckpoints();
         await loadChanges();
       } else {
-        setError(response.data.message || t('checkpoints.errorCreateFailed'));
+        setError(response.data.message || t('checkpoints:errorCreateFailed'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || t('checkpoints.errorCreateFailed'));
+      setError(err.response?.data?.message || err.message || t('checkpoints:errorCreateFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -165,10 +165,10 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
           onRestoreComplete();
         }
       } else {
-        setError(response.data.message || t('checkpoints.errorRestoreFailed'));
+        setError(response.data.message || t('checkpoints:errorRestoreFailed'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || t('checkpoints.errorRestoreFailed'));
+      setError(err.response?.data?.message || err.message || t('checkpoints:errorRestoreFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -190,10 +190,10 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         setSelectedCheckpoint(null);
         await loadCheckpoints();
       } else {
-        setError(response.data.message || t('checkpoints.errorDeleteFailed'));
+        setError(response.data.message || t('checkpoints:errorDeleteFailed'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || t('checkpoints.errorDeleteFailed'));
+      setError(err.response?.data?.message || err.message || t('checkpoints:errorDeleteFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -214,10 +214,10 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         setDiscardConfirm(null);
         await loadChanges();
       } else {
-        setError(response.data.message || t('checkpoints.errorDiscardFailed'));
+        setError(response.data.message || t('checkpoints:errorDiscardFailed'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || t('checkpoints.errorDiscardFailed'));
+      setError(err.response?.data?.message || err.message || t('checkpoints:errorDiscardFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -260,7 +260,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
       setComplianceStatus(response.data);
       setComplianceWizardOpen(true);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || t('checkpoints.errorComplianceFailed'));
+      setError(err.response?.data?.message || err.message || t('checkpoints:errorComplianceFailed'));
     } finally {
       setComplianceLoading(false);
     }
@@ -282,7 +282,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         connected: false,
         url: '',
         username: '',
-        error: err.response?.data?.message || err.message || t('checkpoints.errorConnectionFailed'),
+        error: err.response?.data?.message || err.message || t('checkpoints:errorConnectionFailed'),
       });
     } finally {
       setConnectionLoading(false);
@@ -292,7 +292,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
   if (!projectName) {
     return (
       <Box sx={{ p: 2, textAlign: 'center', color: '#999' }}>
-        <Typography>{t('checkpoints.noProject')}</Typography>
+        <Typography>{t('checkpoints:noProject')}</Typography>
       </Box>
     );
   }
@@ -308,7 +308,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         <TextField
           fullWidth
           size="small"
-          placeholder={t('checkpoints.placeholder')}
+          placeholder={t('checkpoints:placeholder')}
           value={newCheckpointMessage}
           onChange={(e) => setNewCheckpointMessage(e.target.value)}
           onKeyPress={(e) => {
@@ -348,7 +348,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         >
           {changesExpanded ? <MdExpandLess size={18} /> : <MdExpandMore size={18} />}
           <Typography variant="subtitle2" sx={{ ml: 0.5, flex: 1 }}>
-            {t('checkpoints.uncommittedChanges')}
+            {t('checkpoints:uncommittedChanges')}
           </Typography>
           {changesLoading ? (
             <CircularProgress size={14} />
@@ -367,7 +367,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         <Collapse in={changesExpanded}>
           {!hasChanges && !changesLoading ? (
             <Typography variant="body2" color="text.secondary" sx={{ pl: 3, py: 1 }}>
-              {t('checkpoints.noUncommittedChanges')}
+              {t('checkpoints:noUncommittedChanges')}
             </Typography>
           ) : (
             <List dense sx={{ maxHeight: 200, overflowY: 'auto', py: 0 }}>
@@ -381,7 +381,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
                       size="small"
                       onClick={() => setDiscardConfirm(change)}
                       disabled={actionLoading}
-                      title={t('checkpoints.discardChanges')}
+                      title={t('checkpoints:discardChanges')}
                     >
                       <VscDiscard size={14} />
                     </IconButton>
@@ -424,13 +424,13 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         ) : checkpoints.length === 0 ? (
           <Box sx={{ textAlign: 'center', color: '#999', p: 4 }}>
             <MdOutlineRestorePage size={48} />
-            <Typography sx={{ mt: 2 }}>{t('checkpoints.noCheckpointsYet')}</Typography>
-            <Typography variant="body2">{t('checkpoints.createFirstCheckpoint')}</Typography>
+            <Typography sx={{ mt: 2 }}>{t('checkpoints:noCheckpointsYet')}</Typography>
+            <Typography variant="body2">{t('checkpoints:createFirstCheckpoint')}</Typography>
           </Box>
         ) : (
           <>
           <Typography variant="subtitle2" sx={{ px: 1, pt: 1, pb: 0.5 }}>
-            {t('checkpoints.previousCheckpoints')}
+            {t('checkpoints:previousCheckpoints')}
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {checkpoints.map((checkpoint) => (
@@ -459,13 +459,13 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
           sx={{ mb: 1, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
         >
           {connectionStatus.connected ? (
-            t('checkpoints.connectedTo', { url: connectionStatus.url, username: connectionStatus.username })
+            t('checkpoints:connectedTo', { url: connectionStatus.url, username: connectionStatus.username })
           ) : (
             <>
               {connectionStatus.error}
               {connectionStatus.url && (
                 <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                  {t('checkpoints.connectionUrl', { url: connectionStatus.url })}
+                  {t('checkpoints:connectionUrl', { url: connectionStatus.url })}
                 </Typography>
               )}
             </>
@@ -481,9 +481,9 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
           onClick={openComplianceWizard}
           disabled={complianceLoading || actionLoading}
         >
-          {t('checkpoints.createRelease')}
+          {t('checkpoints:createRelease')}
         </Button>
-        <Tooltip title={t('checkpoints.checkGitConnection')}>
+        <Tooltip title={t('checkpoints:checkGitConnection')}>
           <span>
             <Button
               variant="outlined"
@@ -493,7 +493,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
               disabled={connectionLoading}
               sx={{ whiteSpace: 'nowrap' }}
             >
-              {t('checkpoints.testConnection')}
+              {t('checkpoints:testConnection')}
             </Button>
           </span>
         </Tooltip>
@@ -524,7 +524,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}>
-            {t('checkpoints.dialogTitle', { commit: selectedCheckpoint?.commit })}
+            {t('checkpoints:dialogTitle', { commit: selectedCheckpoint?.commit })}
           </Box>
           <IconButton
             edge="end"
@@ -544,16 +544,16 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
             </Alert>
           )}
           <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
-            {t('checkpoints.dialogCreated', { date: selectedCheckpoint ? new Date(selectedCheckpoint.timestamp_created).toLocaleString() : '' })}
+            {t('checkpoints:dialogCreated', { date: selectedCheckpoint ? new Date(selectedCheckpoint.timestamp_created).toLocaleString() : '' })}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1, wordBreak: 'break-all' }}>
-            {t('checkpoints.dialogHash', { hash: selectedCheckpoint?.gitId?.substring(0, 8) })}
+            {t('checkpoints:dialogHash', { hash: selectedCheckpoint?.gitId?.substring(0, 8) })}
           </Typography>
 
           {/* Files changed in this commit */}
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {t('checkpoints.dialogFilesChanged')}
+              {t('checkpoints:dialogFilesChanged')}
             </Typography>
             {commitFilesLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
@@ -561,7 +561,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
               </Box>
             ) : commitFiles.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                {t('checkpoints.dialogNoFileInfo')}
+                {t('checkpoints:dialogNoFileInfo')}
               </Typography>
             ) : (
               <List dense sx={{ maxHeight: 200, overflowY: 'auto', py: 0 }}>
@@ -599,7 +599,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
             onClick={deleteCheckpoint}
             disabled={actionLoading}
             color="error"
-            aria-label={t('checkpoints.deleteCheckpointAriaLabel')}
+            aria-label={t('checkpoints:deleteCheckpointAriaLabel')}
           >
             <RiDeleteBinLine />
           </IconButton>
@@ -608,7 +608,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
             variant="contained"
             disabled={actionLoading}
           >
-            {actionLoading ? <CircularProgress size={20} /> : t('checkpoints.dialogRestoreNow')}
+            {actionLoading ? <CircularProgress size={20} /> : t('checkpoints:dialogRestoreNow')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -620,15 +620,15 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>{t('checkpoints.discardTitle')}</DialogTitle>
+        <DialogTitle>{t('checkpoints:discardTitle')}</DialogTitle>
         <DialogContent>
           <Typography>
-            {t('checkpoints.discardMessage', { path: discardConfirm?.path })}
+            {t('checkpoints:discardMessage', { path: discardConfirm?.path })}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             {discardConfirm?.status === 'untracked'
-              ? t('checkpoints.discardUntrackedWarning')
-              : t('checkpoints.discardRevertWarning')}
+              ? t('checkpoints:discardUntrackedWarning')
+              : t('checkpoints:discardRevertWarning')}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -639,7 +639,7 @@ export default function CheckpointsPane({ projectName, showBackgroundInfo, onRes
             variant="contained"
             disabled={actionLoading}
           >
-            {actionLoading ? <CircularProgress size={20} /> : t('checkpoints.discardButton')}
+            {actionLoading ? <CircularProgress size={20} /> : t('checkpoints:discardButton')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -8,7 +8,7 @@ import { apiFetch } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
 export default function PromptEditor({ filename, projectName, className = '' }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["promptEditor","common"]);
   const { mode: themeMode } = useThemeMode();
   const [content, setContent] = useState('');
   const [savedContent, setSavedContent] = useState('');
@@ -29,7 +29,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
       );
 
       if (!response.ok) {
-        throw new Error(t('promptEditor.errorLoadFile'));
+        throw new Error(t('promptEditor:errorLoadFile'));
       }
 
       const text = await response.text();
@@ -64,7 +64,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
       );
 
       if (!response.ok) {
-        throw new Error(t('promptEditor.errorSaveFile'));
+        throw new Error(t('promptEditor:errorSaveFile'));
       }
 
       setSavedContent(content);
@@ -108,7 +108,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
   if (error) {
     return (
       <Box className={className} p={2} color="error.main">
-        {t('promptEditor.errorLoading', { error })}
+        {t('promptEditor:errorLoading', { error })}
       </Box>
     );
   }
@@ -116,7 +116,7 @@ export default function PromptEditor({ filename, projectName, className = '' }) 
   return (
     <Box className={className} height="100%" width="100%" display="flex" flexDirection="column" position="relative">
       {/* Reload button */}
-      <Tooltip title={t('promptEditor.reloadFile')}>
+      <Tooltip title={t('promptEditor:reloadFile')}>
         <IconButton
           onClick={handleReload}
           disabled={loading}

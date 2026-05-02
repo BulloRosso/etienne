@@ -1,0 +1,7 @@
+{
+  "creating": "Wird erstellt...",
+  "description": "Fügen Sie Text unten ein oder geben Sie ihn ein. Der Inhalt wird analysiert, um Themen, Kategorien und Elemente zu extrahieren, die in eine Mindmap-Struktur organisiert werden.",
+  "dialogTitle": "Notizbuch aus Text erstellen",
+  "emptyError": "Bitte geben Sie Text ein, aus dem ein Notizbuch erstellt werden soll.",
+  "failedError": "Notizbuch konnte nicht aus Text erstellt werden"
+}

@@ -1,0 +1,23 @@
+{
+  "contextAddSubcategory": "Add Subcategory",
+  "contextDelete": "Delete",
+  "contextEdit": "Edit",
+  "deleteChildWarning": "This will also delete all {{count}} child nodes.",
+  "deleteMessage": "Are you sure you want to delete \"{{label}}\"?",
+  "deleteTitle": "Confirm Delete",
+  "emptyLoadExample": "Load Example Data",
+  "emptyTitle": "No scrapbook data yet",
+  "legendAlternativeOption": "Alternative option (grouped)",
+  "legendDefault": "Default",
+  "legendHighPriority": "High priority & attention",
+  "legendLowAttention": "Low attention (<30%)",
+  "legendSelectedActive": "Selected / Active",
+  "legendTitle": "Color Legend",
+  "menuAddStickyNote": "Add sticky note",
+  "menuAutoLayout": "Auto-layout",
+  "menuCreateFromText": "Create from text",
+  "menuExportAgenticView": "Export Agentic View",
+  "menuUseExampleData": "Use example data",
+  "tabMindmap": "Mindmap",
+  "tabTopics": "Topics for selected Element"
+}

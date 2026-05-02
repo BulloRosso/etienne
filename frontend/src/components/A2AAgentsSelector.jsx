@@ -17,7 +17,7 @@ export default function A2AAgentsSelector({
   selectedAgents = [],
   onSelectionChange
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["a2aAgentsSelector"]);
   const isSelected = (agentUrl) =>
     selectedAgents.some(a => a.url === agentUrl);
 
@@ -33,7 +33,7 @@ export default function A2AAgentsSelector({
     return (
       <Box>
         <Typography variant="body2" color="text.secondary">
-          {t('a2aAgentsSelector.noAgentsAvailable')}
+          {t('a2aAgentsSelector:noAgentsAvailable')}
         </Typography>
       </Box>
     );
@@ -42,7 +42,7 @@ export default function A2AAgentsSelector({
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {t('a2aAgentsSelector.description')}
+        {t('a2aAgentsSelector:description')}
       </Typography>
 
       <List dense sx={{ bgcolor: '#f5f5f5', borderRadius: 1, color: '#000' }}>
@@ -91,7 +91,7 @@ export default function A2AAgentsSelector({
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={t('a2aAgentsSelector.moreSkills', { count: agent.skills.length - 3 })}
+                          label={t('a2aAgentsSelector:moreSkills', { count: agent.skills.length - 3 })}
                           sx={{ fontSize: '0.65rem', height: 20, color: '#000', borderColor: '#000' }}
                         />
                       )}
@@ -106,7 +106,7 @@ export default function A2AAgentsSelector({
 
       {selectedAgents.length > 0 && (
         <Typography variant="body2" sx={{ mt: 2 }}>
-          {t('a2aAgentsSelector.agentsSelected', { count: selectedAgents.length })}
+          {t('a2aAgentsSelector:agentsSelected', { count: selectedAgents.length })}
         </Typography>
       )}
     </Box>

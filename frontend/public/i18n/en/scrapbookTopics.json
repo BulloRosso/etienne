@@ -1,0 +1,22 @@
+{
+  "columnAttention": "Attention",
+  "columnCreated": "Created",
+  "columnDescription": "Description",
+  "columnGroup": "Group",
+  "columnIcon": "Icon",
+  "columnImages": "Images",
+  "columnPriority": "Priority",
+  "columnSettings": "Column Settings",
+  "columnTitle": "Title",
+  "contextDelete": "Delete",
+  "contextEdit": "Edit",
+  "contextRemoveFromGroup": "Remove from group",
+  "dragDropImages": "Drag & drop images here",
+  "emptyState": "No topics yet. Click \"Add\" to create one.",
+  "export": "Export",
+  "groupLabel": "Group of alternatives",
+  "headerTopics": "{{label}} - Topics",
+  "itemsSelected": "{{count}} items selected",
+  "moreImages": "{{count}} more images",
+  "set": "Set"
+}

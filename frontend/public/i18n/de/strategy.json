@@ -1,0 +1,9 @@
+{
+  "altImage": "Agentenrolle",
+  "description": "Wählen Sie eine vordefinierte Rolle, die zu den Anforderungen Ihres Projekts passt, oder erstellen Sie eine benutzerdefinierte Rollendefinition. Die Agentenrolle bestimmt Persönlichkeit, Wissensfokus und Arbeitsstil des Assistenten.",
+  "errorLoadFailed": "Strategie konnte nicht geladen werden",
+  "errorSaveFailed": "Strategie konnte nicht gespeichert werden",
+  "predefinedRole": "Vordefinierte Rolle",
+  "predefinedRoleNone": "Keine",
+  "successSaved": "Strategie erfolgreich gespeichert"
+}

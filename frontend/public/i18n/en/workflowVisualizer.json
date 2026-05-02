@@ -1,0 +1,7 @@
+{
+  "loading": "Loading workflows...",
+  "loadingWorkflows": "Loading workflows...",
+  "noWorkflows": "No workflows found for this project",
+  "waitingFor": "Waiting for {{target}}",
+  "workflowLabel": "Workflow"
+}

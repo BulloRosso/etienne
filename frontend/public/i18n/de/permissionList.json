@@ -1,0 +1,7 @@
+{
+  "addPlaceholder": "Neues Tool hinzufügen...",
+  "columnAllowedTool": "Erlaubtes Tool",
+  "errorLoadFailed": "Berechtigungen konnten nicht geladen werden",
+  "errorSaveFailed": "Berechtigungen konnten nicht gespeichert werden",
+  "successSaved": "Berechtigungen erfolgreich gespeichert"
+}

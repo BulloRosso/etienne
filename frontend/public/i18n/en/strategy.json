@@ -1,0 +1,9 @@
+{
+  "altImage": "Agent Role",
+  "description": "Select a predefined role that matches your project's needs, or create a custom role definition. The agent role determines the assistant's personality, knowledge focus, and working style.",
+  "errorLoadFailed": "Failed to load strategy",
+  "errorSaveFailed": "Failed to save strategy",
+  "predefinedRole": "Predefined Role",
+  "predefinedRoleNone": "None",
+  "successSaved": "Strategy saved successfully"
+}

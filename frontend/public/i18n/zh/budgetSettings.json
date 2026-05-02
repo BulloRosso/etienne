@@ -1,0 +1,8 @@
+{
+  "budgetLimitHelperText": "设为 0 表示不限制。该上限在所有项目中全局生效。",
+  "budgetLimitLabel": "预算上限（{{currencySymbol}}）",
+  "notificationEmailHelperText": "用于预算阈值提醒（50%、80%、100%）的电子邮件地址。留空则禁用。",
+  "notificationEmailLabel": "通知邮箱",
+  "resetCounters": "重置所有项目的令牌计数器",
+  "title": "预算设置"
+}

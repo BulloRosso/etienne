@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function LoginDialog({ onSuccess }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["login","common"]);
   const { login, loginWithProvider, authProvider } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +34,7 @@ export default function LoginDialog({ onSuccess }) {
         onSuccess();
       }
     } catch (err) {
-      setError(err.message || t('login.errorDefault'));
+      setError(err.message || t('login:errorDefault'));
     } finally {
       setLoading(false);
     }
@@ -87,11 +87,11 @@ export default function LoginDialog({ onSuccess }) {
         }}
       >
         <Typography variant="h5" component="h1" sx={{ textAlign: 'center', mb: 2 }}>
-          {t('login.title')}
+          {t('login:title')}
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 2 }}>
-          {t('login.subtitle')}
+          {t('login:subtitle')}
         </Typography>
 
         {error && (
@@ -125,7 +125,7 @@ export default function LoginDialog({ onSuccess }) {
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
-              label={t('login.username')}
+              label={t('login:username')}
               variant="outlined"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -137,7 +137,7 @@ export default function LoginDialog({ onSuccess }) {
 
             <TextField
               fullWidth
-              label={t('login.password')}
+              label={t('login:password')}
               type="password"
               variant="outlined"
               value={password}
@@ -155,7 +155,7 @@ export default function LoginDialog({ onSuccess }) {
                   disabled={loading}
                 />
               }
-              label={t('login.rememberMe')}
+              label={t('login:rememberMe')}
               sx={{ mb: 2 }}
             />
 

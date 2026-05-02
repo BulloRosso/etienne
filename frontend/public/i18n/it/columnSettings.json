@@ -1,0 +1,18 @@
+{
+  "addCustomProperty": "Aggiungi proprietà personalizzata",
+  "columnOrderHelperText": "Usa le frecce per riordinare le colonne, attiva/disattiva la visibilità per mostrare/nascondere.",
+  "columnOrderVisibility": "Ordine e visibilità delle colonne",
+  "customProperties": "Proprietà personalizzate",
+  "dialogTitle": "Impostazioni colonne",
+  "hideColumn": "Nascondi colonna",
+  "moveDown": "Sposta giù",
+  "moveUp": "Sposta su",
+  "propertyName": "Nome proprietà",
+  "showColumn": "Mostra colonna",
+  "type": "Tipo",
+  "typeCurrency": "Valuta",
+  "typeNumeric": "Numerico",
+  "typeText": "Testo",
+  "unitPlaceholder": "es., $, kg, cm",
+  "unitSymbol": "Unità/Simbolo"
+}

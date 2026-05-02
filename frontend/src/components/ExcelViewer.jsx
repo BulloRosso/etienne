@@ -32,7 +32,7 @@ if (!document.getElementById('wolf-table-custom-font')) {
  * - Scrollable, resizable, and selectable cells
  */
 export default function ExcelViewer({ filename, projectName }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["excelViewer"]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [metadata, setMetadata] = useState(null);
@@ -258,7 +258,7 @@ export default function ExcelViewer({ filename, projectName }) {
     return (
       <Box sx={{ p: 4 }}>
         <Alert severity="error">
-          <Typography variant="h6" gutterBottom>{t('excelViewer.errorLoading')}</Typography>
+          <Typography variant="h6" gutterBottom>{t('excelViewer:errorLoading')}</Typography>
           <Typography>{error}</Typography>
         </Alert>
       </Box>

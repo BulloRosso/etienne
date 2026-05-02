@@ -14,7 +14,7 @@ import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import DonClippoModal from './DonClippoModal';
 
 export default function McpToolsIndicator({ projectName, sessionId }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["mcpToolsIndicator","common"]);
   const { hasRole } = useAuth();
   const { isMinimalistic } = useUxMode();
   const { mode: themeMode } = useThemeMode();
@@ -89,7 +89,7 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
 
   return (
     <>
-      <Tooltip title={t('mcpToolsIndicator.tooltip')}>
+      <Tooltip title={t('mcpToolsIndicator:tooltip')}>
         <Box
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
@@ -119,7 +119,7 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
           }}>
             {serverCount}
           </Box>
-          <Box component="span" sx={{ color: 'text.secondary', ...(isMinimalistic && { ml: '10px', textTransform: 'capitalize' }) }}>{t('mcpToolsIndicator.label')}</Box>
+          <Box component="span" sx={{ color: 'text.secondary', ...(isMinimalistic && { ml: '10px', textTransform: 'capitalize' }) }}>{t('mcpToolsIndicator:label')}</Box>
         </Box>
       </Tooltip>
 
@@ -148,7 +148,7 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
       >
         <Box sx={{ width: 420, p: 3 }}>
           <Typography variant="h6" sx={{ mb: 0.5 }}>
-            {t('mcpToolsIndicator.drawerTitle')}
+            {t('mcpToolsIndicator:drawerTitle')}
           </Typography>
           {toolsDrawerServer && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -170,14 +170,14 @@ export default function McpToolsIndicator({ projectName, sessionId }) {
 
           {!toolsLoading && !toolsError && toolsList.length === 0 && (
             <Typography variant="body2" color="text.secondary">
-              {t('mcpToolsIndicator.noToolsAvailable')}
+              {t('mcpToolsIndicator:noToolsAvailable')}
             </Typography>
           )}
 
           {!toolsLoading && toolsList.length > 0 && (
             <>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('mcpToolsIndicator.toolsAvailableCount', { count: toolsList.length })}
+                {t('mcpToolsIndicator:toolsAvailableCount', { count: toolsList.length })}
               </Typography>
               <List dense>
                 {toolsList.map((tool, index) => (

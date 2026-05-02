@@ -1,0 +1,10 @@
+{
+  "fileUploadAppend": "请查看 .attachments 文件夹中的 {{fileList}}。我想",
+  "filesSelected": "已选择 {{count}} 个文件",
+  "greetingAfternoon": "下午好，用户",
+  "greetingEvening": "晚上好，用户",
+  "greetingMorning": "早上好，用户",
+  "inputPlaceholder": "请尽可能精确地描述我们在本次会话中想要实现的目标。这对于我提供高质量回复至关重要！",
+  "previousConversations": "历史对话 / 设置",
+  "speechNotSupported": "此浏览器不支持语音识别"
+}

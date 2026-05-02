@@ -1,0 +1,6 @@
+{
+  "errorLoadFile": "Failed to load file",
+  "errorLoading": "Error loading prompt file: {{error}}",
+  "errorSaveFile": "Failed to save file",
+  "reloadFile": "Reload file"
+}

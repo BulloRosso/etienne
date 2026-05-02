@@ -1,0 +1,17 @@
+{
+  "actions": "Actions",
+  "columnContentPreview": "Content Preview",
+  "columnDocId": "DocID",
+  "columnGraphLayer": "Graph Layer",
+  "columnUploadedAt": "Uploaded At",
+  "confirmDelete": "Are you sure you want to delete this document?",
+  "contentPreview": "Content Preview",
+  "deleteError": "Error deleting document",
+  "deleteFailed": "Failed to delete document",
+  "docId": "DocID",
+  "errorDeleting": "Error deleting document",
+  "failedToDelete": "Failed to delete document",
+  "graphLayer": "Graph Layer",
+  "noDocuments": "No documents found in vector store",
+  "uploadedAt": "Uploaded At"
+}

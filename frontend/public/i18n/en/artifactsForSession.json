@@ -1,0 +1,12 @@
+{
+  "empty": "No artifacts created in this session yet.",
+  "filterCategories": "Filter categories",
+  "filterCode": "Code",
+  "filterData": "Data Files",
+  "filterOffice": "Office Documents",
+  "filterPlaceholder": "Filter...",
+  "noMatches": "No artifacts match the current filters.",
+  "sortAlpha": "A-Z",
+  "sortNewest": "Newest first",
+  "title": "Session Artifacts"
+}

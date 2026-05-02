@@ -1,0 +1,23 @@
+{
+  "contextAddSubcategory": "Unterkategorie hinzufügen",
+  "contextDelete": "Löschen",
+  "contextEdit": "Bearbeiten",
+  "deleteChildWarning": "Dies löscht auch alle {{count}} untergeordneten Knoten.",
+  "deleteMessage": "Sind Sie sicher, dass Sie \"{{label}}\" löschen möchten?",
+  "deleteTitle": "Löschen bestätigen",
+  "emptyLoadExample": "Beispieldaten laden",
+  "emptyTitle": "Noch keine Notizbuch-Daten",
+  "legendAlternativeOption": "Alternative Option (gruppiert)",
+  "legendDefault": "Standard",
+  "legendHighPriority": "Hohe Priorität & Aufmerksamkeit",
+  "legendLowAttention": "Geringe Aufmerksamkeit (<30%)",
+  "legendSelectedActive": "Ausgewählt / Aktiv",
+  "legendTitle": "Farblegende",
+  "menuAddStickyNote": "Haftnotiz hinzufügen",
+  "menuAutoLayout": "Auto-Layout",
+  "menuCreateFromText": "Aus Text erstellen",
+  "menuExportAgenticView": "Agentische Ansicht exportieren",
+  "menuUseExampleData": "Beispieldaten verwenden",
+  "tabMindmap": "Mindmap",
+  "tabTopics": "Themen für ausgewähltes Element"
+}

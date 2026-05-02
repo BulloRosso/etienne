@@ -1,0 +1,7 @@
+{
+  "altImage": "任务简报",
+  "description": "任务简报指导 AI 助手的行为。详细的描述可确保获得更好、更专注的结果，与您的目标保持一致。",
+  "errorLoadFailed": "加载任务失败",
+  "errorSaveFailed": "保存任务失败",
+  "successSaved": "任务保存成功"
+}

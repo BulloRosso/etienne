@@ -52,7 +52,7 @@ const CONTEXT_MENU_MODALS = {
 };
 
 export default function Filesystem({ projectName, showBackgroundInfo, previewersConfig = [] }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["filesystem","common"]);
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
   const isGuest = hasRole('guest');
@@ -122,7 +122,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       const response = await apiAxios.post('/api/claude/filesystem', { projectName });
       setTree(response.data.tree || []);
     } catch (err) {
-      setError(t('filesystem.errorLoadFailed'));
+      setError(t('filesystem:errorLoadFailed'));
       console.error('Load filesystem error:', err);
     } finally {
       setLoading(false);
@@ -249,7 +249,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       await loadFilesystem();
       setRenameDialog({ open: false, row: null, newName: '' });
     } catch (err) {
-      setError(t('filesystem.errorRenameFailed', { message: err.response?.data?.message || err.message }));
+      setError(t('filesystem:errorRenameFailed', { message: err.response?.data?.message || err.message }));
       setRenameDialog({ open: false, row: null, newName: '' });
     }
   };
@@ -269,7 +269,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       await loadFilesystem();
       setDeleteDialog({ open: false, row: null });
     } catch (err) {
-      setError(t('filesystem.errorDeleteFailed', { message: err.response?.data?.message || err.message }));
+      setError(t('filesystem:errorDeleteFailed', { message: err.response?.data?.message || err.message }));
       setDeleteDialog({ open: false, row: null });
     }
   };
@@ -366,10 +366,10 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
         `/api/workspace/${projectName}/rag/index-document`,
         { documentPath: row.path }
       );
-      setRagSuccess(t('filesystem.ragIndexSuccess', { chunks: response.data.chunkCount }));
+      setRagSuccess(t('filesystem:ragIndexSuccess', { chunks: response.data.chunkCount }));
       loadIndexedPaths();
     } catch (err) {
-      setError(t('filesystem.ragIndexFailed', {
+      setError(t('filesystem:ragIndexFailed', {
         message: err.response?.data?.message || err.message,
       }));
     } finally {
@@ -395,7 +395,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       await loadFilesystem();
       setNewFolderDialog({ open: false, folderName: '' });
     } catch (err) {
-      setError(t('filesystem.errorCreateFolderFailed', { message: err.response?.data?.message || err.message }));
+      setError(t('filesystem:errorCreateFolderFailed', { message: err.response?.data?.message || err.message }));
       setNewFolderDialog({ open: false, folderName: '' });
     }
   };
@@ -428,7 +428,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       }
       await loadFilesystem();
     } catch (err) {
-      setError(t('filesystem.errorUploadFailed', { message: err.response?.data?.message || err.message }));
+      setError(t('filesystem:errorUploadFailed', { message: err.response?.data?.message || err.message }));
     }
     event.target.value = '';
   };
@@ -450,7 +450,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       });
       await loadFilesystem();
     } catch (err) {
-      setError(t('filesystem.errorMoveFailed', { message: err.response?.data?.message || err.message }));
+      setError(t('filesystem:errorMoveFailed', { message: err.response?.data?.message || err.message }));
     }
   };
 
@@ -523,7 +523,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       }
       await loadFilesystem();
     } catch (err) {
-      setError(t('filesystem.errorUploadFailed', { message: err.response?.data?.message || err.message }));
+      setError(t('filesystem:errorUploadFailed', { message: err.response?.data?.message || err.message }));
     }
   };
 
@@ -559,7 +559,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       setDestinationProject('');
       setCopyDialogOpen(true);
     } catch (err) {
-      setError(t('filesystem.errorLoadProjectsFailed', { message: err.message }));
+      setError(t('filesystem:errorLoadProjectsFailed', { message: err.message }));
     }
   };
 
@@ -576,7 +576,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       setSelectionMode(false);
       setSelectedPaths(new Set());
     } catch (err) {
-      setError(t('filesystem.errorCopyFailed', { message: err.response?.data?.message || err.message }));
+      setError(t('filesystem:errorCopyFailed', { message: err.response?.data?.message || err.message }));
     } finally {
       setCopying(false);
     }
@@ -616,7 +616,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
             value={selectedTags}
             onChange={(event, newValue) => setSelectedTags(newValue)}
             renderInput={(params) => (
-              <TextField {...params} label={t('filesystem.filterByTags')} placeholder={t('filesystem.filterByTags')} />
+              <TextField {...params} label={t('filesystem:filterByTags')} placeholder={t('filesystem:filterByTags')} />
             )}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
@@ -661,7 +661,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
                 onChange={(e) => setShowSystemFiles(e.target.checked)}
               />
             }
-            label={t('filesystem.showSystemFiles')}
+            label={t('filesystem:showSystemFiles')}
             sx={{ ml: 2 }}
           />
         )}
@@ -669,7 +669,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
         {selectionMode ? (
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 'auto' }}>
             <Typography variant="body2" sx={{ mr: 1 }}>
-              {t('filesystem.selectedCount', { count: selectedPaths.size })}
+              {t('filesystem:selectedCount', { count: selectedPaths.size })}
             </Typography>
             <Button onClick={handleCancelSelectionMode} size="small">
               {t('common.cancel')}
@@ -680,19 +680,19 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
               size="small"
               disabled={selectedPaths.size === 0}
             >
-              {t('filesystem.copyToButton')}
+              {t('filesystem:copyToButton')}
             </Button>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title={isGuest ? t('filesystem.copyToProjectGuestTooltip') : t('filesystem.copyToProject')}>
+            <Tooltip title={isGuest ? t('filesystem:copyToProjectGuestTooltip') : t('filesystem:copyToProject')}>
               <span>
                 <IconButton onClick={handleEnterSelectionMode} disabled={isGuest}>
                   <i className="codicon codicon-files" style={{ fontSize: 20 }} />
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={isGuest ? t('filesystem.uploadGuestTooltip') : t('common.upload')}>
+            <Tooltip title={isGuest ? t('filesystem:uploadGuestTooltip') : t('common.upload')}>
               <span>
                 <IconButton
                   onClick={() => {
@@ -706,7 +706,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={isGuest ? t('filesystem.newFolderGuestTooltip') : t('filesystem.newFolder')}>
+            <Tooltip title={isGuest ? t('filesystem:newFolderGuestTooltip') : t('filesystem:newFolder')}>
               <span>
                 <IconButton onClick={handleNewFolderClick} disabled={isGuest}>
                   <i className="codicon codicon-new-folder" style={{ fontSize: 20 }} />
@@ -745,7 +745,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
         {contextMenu?.row?.type !== 'folder' && (
           <MenuItem onClick={handlePreviewClick}>
             <i className="codicon codicon-eye" style={{ fontSize: 16, marginRight: 8 }} />
-            {t('filesystem.openPreview')}
+            {t('filesystem:openPreview')}
           </MenuItem>
         )}
         {/* Dynamic context menu actions from previewer config */}
@@ -758,7 +758,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
         {isInboxFile(contextMenu?.row) && !isGuest && (
           <MenuItem onClick={handleAddToIndex} disabled={indexing}>
             <i className="codicon codicon-database" style={{ fontSize: 16, marginRight: 8 }} />
-            {indexing ? t('filesystem.ragIndexing') : t('filesystem.ragAddToIndex')}
+            {indexing ? t('filesystem:ragIndexing') : t('filesystem:ragAddToIndex')}
           </MenuItem>
         )}
         {!isGuest && (
@@ -770,7 +770,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
         {contextMenu?.row?.type === 'folder' && !isGuest && (
           <MenuItem onClick={() => handleUploadClick(contextMenu.row)}>
             <i className="codicon codicon-cloud-upload" style={{ fontSize: 16, marginRight: 8 }} />
-            {t('filesystem.uploadToFolder')}
+            {t('filesystem:uploadToFolder')}
           </MenuItem>
         )}
         {!isGuest && (
@@ -781,24 +781,24 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
         )}
         <MenuItem onClick={handleManageTagsClick}>
           <i className="codicon codicon-tag" style={{ fontSize: 16, marginRight: 8 }} />
-          {t('filesystem.manageTags')}
+          {t('filesystem:manageTags')}
         </MenuItem>
         {contextMenu?.row?.type !== 'folder' && (
           <MenuItem onClick={handleDownloadClick}>
             <MdOutlineFileDownload style={{ fontSize: 18, marginRight: 8 }} />
-            {t('filesystem.download')}
+            {t('filesystem:download')}
           </MenuItem>
         )}
       </Menu>
 
       {/* ── Rename Dialog ── */}
       <Dialog open={renameDialog.open} onClose={handleRenameCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('filesystem.renameTitle')}</DialogTitle>
+        <DialogTitle>{t('filesystem:renameTitle')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label={t('filesystem.renameLabel')}
+            label={t('filesystem:renameLabel')}
             fullWidth
             value={renameDialog.newName}
             onChange={(e) => setRenameDialog({ ...renameDialog, newName: e.target.value })}
@@ -818,12 +818,12 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
 
       {/* ── New Folder Dialog ── */}
       <Dialog open={newFolderDialog.open} onClose={handleNewFolderCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('filesystem.newFolderTitle')}</DialogTitle>
+        <DialogTitle>{t('filesystem:newFolderTitle')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label={t('filesystem.newFolderLabel')}
+            label={t('filesystem:newFolderLabel')}
             fullWidth
             value={newFolderDialog.folderName}
             onChange={(e) => setNewFolderDialog({ ...newFolderDialog, folderName: e.target.value })}
@@ -843,13 +843,13 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
 
       {/* ── Delete Confirmation Dialog ── */}
       <Dialog open={deleteDialog.open} onClose={handleDeleteCancel}>
-        <DialogTitle>{t('filesystem.deleteTitle')}</DialogTitle>
+        <DialogTitle>{t('filesystem:deleteTitle')}</DialogTitle>
         <DialogContent>
           <Typography>
-            {t('filesystem.deleteMessage', { label: deleteDialog.row?.label })}
+            {t('filesystem:deleteMessage', { label: deleteDialog.row?.label })}
             {deleteDialog.row?.type === 'folder' && (
               <Box component="span" sx={{ display: 'block', mt: 1, color: 'error.main' }}>
-                {t('filesystem.deleteFolderWarning')}
+                {t('filesystem:deleteFolderWarning')}
               </Box>
             )}
           </Typography>
@@ -883,10 +883,10 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
 
       {/* ── Copy to Project Dialog ── */}
       <Dialog open={copyDialogOpen} onClose={() => setCopyDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('filesystem.copyToProjectTitle')}</DialogTitle>
+        <DialogTitle>{t('filesystem:copyToProjectTitle')}</DialogTitle>
         <DialogContent>
           {availableProjects.length === 0 ? (
-            <Typography color="text.secondary">{t('filesystem.noOtherProjects')}</Typography>
+            <Typography color="text.secondary">{t('filesystem:noOtherProjects')}</Typography>
           ) : (
             <RadioGroup value={destinationProject} onChange={(e) => setDestinationProject(e.target.value)}>
               {availableProjects.map((proj) => (
@@ -902,7 +902,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
             variant="contained"
             disabled={!destinationProject || copying}
           >
-            {copying ? t('filesystem.copying') : t('common.copy')}
+            {copying ? t('filesystem:copying') : t('common.copy')}
           </Button>
         </DialogActions>
       </Dialog>

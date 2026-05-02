@@ -39,7 +39,7 @@ import BackgroundInfo from './BackgroundInfo';
 const DEFAULT_REGISTRY_URL = 'http://localhost:5600/directory';
 
 export default function A2ASettings({ projectName, showBackgroundInfo }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["a2aSettings","common"]);
   const [settings, setSettings] = useState({ registryUrl: DEFAULT_REGISTRY_URL, agents: [] });
   const [registryAgents, setRegistryAgents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
       setSettings(response.data);
       setRegistryUrl(response.data.registryUrl || DEFAULT_REGISTRY_URL);
     } catch (err) {
-      setError(t('a2aSettings.failedToLoad'));
+      setError(t('a2aSettings:failedToLoad'));
       console.error('Load A2A settings error:', err);
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
       const response = await apiAxios.get(`/api/a2a-settings/registry/fetch?url=${encodeURIComponent(registryUrl)}`);
       setRegistryAgents(response.data.agents || []);
     } catch (err) {
-      setError(t('a2aSettings.failedToFetchRegistry', { message: err.response?.data?.message || err.message }));
+      setError(t('a2aSettings:failedToFetchRegistry', { message: err.response?.data?.message || err.message }));
       console.error('Fetch registry error:', err);
     } finally {
       setRegistryLoading(false);
@@ -98,7 +98,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(t('a2aSettings.failedToSave'));
+      setError(t('a2aSettings:failedToSave'));
       console.error('Save A2A settings error:', err);
     } finally {
       setSaving(false);
@@ -113,7 +113,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
       });
       setSettings(response.data);
     } catch (err) {
-      setError(t('a2aSettings.failedToToggle'));
+      setError(t('a2aSettings:failedToToggle'));
       console.error('Toggle agent error:', err);
     }
   };
@@ -125,7 +125,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(t('a2aSettings.failedToAdd'));
+      setError(t('a2aSettings:failedToAdd'));
       console.error('Add agent error:', err);
     }
   };
@@ -137,7 +137,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
       });
       setSettings(response.data);
     } catch (err) {
-      setError(t('a2aSettings.failedToRemove'));
+      setError(t('a2aSettings:failedToRemove'));
       console.error('Remove agent error:', err);
     }
   };
@@ -200,20 +200,20 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
-          {t('a2aSettings.savedSuccessfully')}
+          {t('a2aSettings:savedSuccessfully')}
         </Alert>
       )}
 
       {/* Registry URL Configuration */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-          {t('a2aSettings.registryTitle')}
+          {t('a2aSettings:registryTitle')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <TextField
             fullWidth
             size="small"
-            placeholder={t('a2aSettings.registryUrlPlaceholder')}
+            placeholder={t('a2aSettings:registryUrlPlaceholder')}
             value={registryUrl}
             onChange={(e) => setRegistryUrl(e.target.value)}
             InputProps={{
@@ -239,12 +239,12 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
 
       {/* Configured Agents */}
       <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>
-        {t('a2aSettings.configuredAgentsTitle', { count: settings.agents.length })}
+        {t('a2aSettings:configuredAgentsTitle', { count: settings.agents.length })}
       </Typography>
 
       {settings.agents.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {t('a2aSettings.noAgentsConfigured')}
+          {t('a2aSettings:noAgentsConfigured')}
         </Typography>
       ) : (
         <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1, maxHeight: '30vh', overflow: 'auto' }}>
@@ -274,7 +274,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
                     }
                     label=""
                   />
-                  <Tooltip title={t('a2aSettings.testConnection')}>
+                  <Tooltip title={t('a2aSettings:testConnection')}>
                     <IconButton
                       size="small"
                       onClick={() => handleTestConnection(agent.url)}
@@ -291,7 +291,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
                       )}
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title={t('a2aSettings.removeAgent')}>
+                  <Tooltip title={t('a2aSettings:removeAgent')}>
                     <IconButton
                       size="small"
                       color="error"
@@ -313,13 +313,13 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
                     {agent.capabilities && (
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1 }}>
                         {agent.capabilities.streaming && (
-                          <Chip size="small" icon={<Speed />} label={t('a2aSettings.streaming')} variant="outlined" />
+                          <Chip size="small" icon={<Speed />} label={t('a2aSettings:streaming')} variant="outlined" />
                         )}
                         {agent.capabilities.pushNotifications && (
-                          <Chip size="small" icon={<Notifications />} label={t('a2aSettings.pushNotifications')} variant="outlined" />
+                          <Chip size="small" icon={<Notifications />} label={t('a2aSettings:pushNotifications')} variant="outlined" />
                         )}
                         {agent.capabilities.stateTransitionHistory && (
-                          <Chip size="small" icon={<History />} label={t('a2aSettings.stateHistory')} variant="outlined" />
+                          <Chip size="small" icon={<History />} label={t('a2aSettings:stateHistory')} variant="outlined" />
                         )}
                       </Box>
                     )}
@@ -327,7 +327,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
                     {/* Skills */}
                     {agent.skills && agent.skills.length > 0 && (
                       <Box>
-                        <Typography variant="caption" color="text.secondary">{t('a2aSettings.skillsLabel')}</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('a2aSettings:skillsLabel')}</Typography>
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
                           {agent.skills.map((skill) => (
                             <Tooltip key={skill.id} title={skill.description}>
@@ -358,14 +358,14 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
 
       {/* Registry Agents */}
       <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>
-        {t('a2aSettings.availableFromRegistry', { count: filteredRegistryAgents.length })}
+        {t('a2aSettings:availableFromRegistry', { count: filteredRegistryAgents.length })}
       </Typography>
 
       {registryAgents.length > 3 && (
         <TextField
           fullWidth
           size="small"
-          placeholder={t('a2aSettings.filterPlaceholder')}
+          placeholder={t('a2aSettings:filterPlaceholder')}
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
           sx={{ mb: 2 }}
@@ -381,7 +381,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
 
       {registryAgents.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          {t('a2aSettings.noAgentsLoaded')}
+          {t('a2aSettings:noAgentsLoaded')}
         </Typography>
       ) : (
         <Box sx={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -427,7 +427,7 @@ export default function A2ASettings({ projectName, showBackgroundInfo }) {
                   {isAgentAdded(agent.url) ? (
                     <Chip size="small" label={t('skills.added')} color="success" variant="outlined" />
                   ) : (
-                    <Tooltip title={t('a2aSettings.addAgent')}>
+                    <Tooltip title={t('a2aSettings:addAgent')}>
                       <IconButton
                         size="small"
                         color="primary"

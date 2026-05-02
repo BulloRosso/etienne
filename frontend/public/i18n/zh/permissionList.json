@@ -1,0 +1,7 @@
+{
+  "addPlaceholder": "添加新工具...",
+  "columnAllowedTool": "允许的工具",
+  "errorLoadFailed": "加载权限失败",
+  "errorSaveFailed": "保存权限失败",
+  "successSaved": "权限保存成功"
+}

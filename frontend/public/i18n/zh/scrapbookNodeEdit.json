@@ -1,0 +1,17 @@
+{
+  "attentionWeight": "关注权重：{{value}}%",
+  "clearIcon": "清除图标",
+  "clickToSelectIcon": "点击选择图标",
+  "describeImage": "描述图片",
+  "dialogTitleAdd": "添加新节点",
+  "dialogTitleEdit": "编辑节点",
+  "icon": "图标",
+  "images": "图片",
+  "noIconsFound": "未找到图标。请尝试其他搜索词。",
+  "priority": "优先级：{{value}}",
+  "searchIconsPlaceholder": "搜索图标...",
+  "selectIconTitle": "选择图标",
+  "title": "标题",
+  "uploadImage": "上传图片",
+  "uploading": "上传中..."
+}

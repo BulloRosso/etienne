@@ -1,0 +1,7 @@
+{
+  "addPlaceholder": "Aggiungi nuovo strumento...",
+  "columnAllowedTool": "Strumento consentito",
+  "errorLoadFailed": "Caricamento dei permessi fallito",
+  "errorSaveFailed": "Salvataggio dei permessi fallito",
+  "successSaved": "Permessi salvati con successo"
+}

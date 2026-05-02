@@ -1,0 +1,22 @@
+{
+  "compoundAlert": "Le condizioni composte supportano gli operatori AND, OR e NOT con finestre temporali opzionali (in millisecondi)",
+  "compoundChip": "Composta",
+  "compoundCondition": "Condizione composta",
+  "compoundDescription": "Usa condizioni composte per combinare più condizioni con operatori logici (AND, OR, NOT). Ideali per scenari complessi che richiedono criteri multipli.",
+  "compoundExample": "Esempio: monitorare modifiche ai file di test E modifiche alla configurazione",
+  "semanticAlert": "Il matching semantico usa embeddings vettoriali con una soglia predefinita di 0.86",
+  "semanticChip": "Semantica",
+  "semanticCondition": "Condizione semantica",
+  "semanticDescription": "Usa condizioni semantiche per il matching basato su similarità AI. Ottime per trovare contenuti correlati o rilevare eventi semanticamente simili anche quando la formulazione esatta differisce.",
+  "semanticExample": "Esempio: trovare modifiche al codice relative all'autenticazione",
+  "simpleAlert": "Le condizioni semplici supportano il matching con caratteri jolly usando * nei valori stringa",
+  "simpleChip": "Semplice",
+  "simpleCondition": "Condizione semplice",
+  "simpleDescription": "Usa condizioni semplici per il matching esatto delle proprietà degli eventi. Perfette per trigger diretti come \"quando viene creato un file Python\" o \"quando un topic MQTT specifico riceve un messaggio\".",
+  "simpleExample": "Esempio: monitorare la creazione di file Python",
+  "temporalAlert": "Giorno della settimana: 0=Domenica, 1=Lunedì, ..., 6=Sabato. Gli orari usano il formato 24 ore (HH:MM)",
+  "temporalChip": "Temporale",
+  "temporalConstraint": "Vincolo temporale",
+  "temporalDescription": "Usa vincoli temporali per filtrare eventi per ora del giorno o giorno della settimana. Perfetti per il monitoraggio negli orari lavorativi o le finestre di manutenzione pianificate.",
+  "temporalExample": "Esempio: monitorare solo durante gli orari lavorativi"
+}

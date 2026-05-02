@@ -30,7 +30,7 @@ const EMPTY_PERSONALITY = {
 };
 
 export default function AgentPersonaPersonality({ open, onClose, onInstalled }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["agentPersona","common"]);
   const [personaTypes, setPersonaTypes] = useState([]);
   const [personality, setPersonality] = useState({ ...EMPTY_PERSONALITY });
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -148,7 +148,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.type !== 'image/png') {
-      setError(t('agentPersona.uploadPngOnly'));
+      setError(t('agentPersona:uploadPngOnly'));
       return;
     }
     setError(null);
@@ -171,14 +171,14 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6">{t('agentPersona.title')}</Typography>
+        <Typography variant="h6">{t('agentPersona:title')}</Typography>
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
       </DialogTitle>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mx: 3, mt: 1, mb: '10px', p: '14px', bgcolor: '#fffde7', borderRadius: 1 }}>
         <MdOutlineTipsAndUpdates color="#1976d2" size={20} />
         <Typography variant="body2" color="text.secondary">
-          {t('agentPersona.description')}
+          {t('agentPersona:description')}
         </Typography>
       </Box>
 
@@ -187,8 +187,8 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
         onChange={(e, v) => setActiveTab(v)}
         sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}
       >
-        <Tab label={t('agentPersona.tabIdentity')} />
-        <Tab label={t('agentPersona.tabPreferences')} />
+        <Tab label={t('agentPersona:tabIdentity')} />
+        <Tab label={t('agentPersona:tabPreferences')} />
       </Tabs>
 
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2, minHeight: 450 }}>
@@ -199,10 +199,10 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
           <>
             {/* Persona Type */}
             <FormControl fullWidth size="small">
-              <InputLabel>{t('agentPersona.personaType')}</InputLabel>
+              <InputLabel>{t('agentPersona:personaType')}</InputLabel>
               <Select
                 value={personality.personaType}
-                label={t('agentPersona.personaType')}
+                label={t('agentPersona:personaType')}
                 onChange={(e) => updateField('personaType', e.target.value)}
               >
                 {personaTypes.map((pt) => (
@@ -215,8 +215,8 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
 
             {/* Name */}
             <TextField
-              label={t('agentPersona.name')}
-              helperText={t('agentPersona.nameHelper')}
+              label={t('agentPersona:name')}
+              helperText={t('agentPersona:nameHelper')}
               value={personality.name}
               onChange={(e) => updateField('name', e.target.value)}
               inputProps={{ minLength: 3, maxLength: 35 }}
@@ -243,7 +243,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                   />
                 ) : (
                   <Typography color="text.secondary" variant="body2">
-                    {t('agentPersona.avatarPlaceholder')}
+                    {t('agentPersona:avatarPlaceholder')}
                   </Typography>
                 )}
               </Box>
@@ -251,7 +251,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
               {/* Avatar Description + Generate */}
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <TextField
-                  label={t('agentPersona.avatarDescription')}
+                  label={t('agentPersona:avatarDescription')}
                   value={personality.avatarDescription}
                   onChange={(e) => updateField('avatarDescription', e.target.value)}
                   multiline
@@ -265,14 +265,14 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                     onClick={handleGenerateAvatar}
                     disabled={generating || !personality.avatarDescription?.trim()}
                   >
-                    {generating ? t('agentPersona.generating') : t('agentPersona.generateAvatar')}
+                    {generating ? t('agentPersona:generating') : t('agentPersona:generateAvatar')}
                   </Button>
                   <Button
                     variant="outlined"
                     component="label"
                     startIcon={<UploadFile />}
                   >
-                    {t('agentPersona.uploadPng')}
+                    {t('agentPersona:uploadPng')}
                     <input type="file" accept="image/png" hidden onChange={handleUploadAvatar} />
                   </Button>
                 </Box>
@@ -287,8 +287,8 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
             {/* Communication Style */}
             <TextField
               sx={{ mt: '10px' }}
-              label={t('agentPersona.communicationStyle')}
-              placeholder={t('agentPersona.communicationStylePlaceholder')}
+              label={t('agentPersona:communicationStyle')}
+              placeholder={t('agentPersona:communicationStylePlaceholder')}
               value={personality.communicationStyle}
               onChange={(e) => updateField('communicationStyle', e.target.value)}
               multiline
@@ -301,8 +301,8 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
             {/* Quiet Hours */}
             <TextField
               sx={{ mt: '10px' }}
-              label={t('agentPersona.notifications')}
-              placeholder={t('agentPersona.notificationsPlaceholder')}
+              label={t('agentPersona:notifications')}
+              placeholder={t('agentPersona:notificationsPlaceholder')}
               value={personality.allowReviewNotificationsBetween}
               onChange={(e) => updateField('allowReviewNotificationsBetween', e.target.value)}
               size="small"
@@ -313,11 +313,11 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
             {/* Contact Channels */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Typography variant="subtitle2" color="text.secondary">
-                {t('agentPersona.contactChannels')}
+                {t('agentPersona:contactChannels')}
               </Typography>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
-                  label={t('agentPersona.contactEmail')}
+                  label={t('agentPersona:contactEmail')}
                   value={personality.contactChannels.email}
                   onChange={(e) => updateContactChannel('email', e.target.value)}
                   size="small"
@@ -325,7 +325,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                   slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><AiOutlineMail color="#1976d2" /></InputAdornment> } }}
                 />
                 <TextField
-                  label={t('agentPersona.contactTeams')}
+                  label={t('agentPersona:contactTeams')}
                   value={personality.contactChannels.teamsAccount}
                   onChange={(e) => updateContactChannel('teamsAccount', e.target.value)}
                   size="small"
@@ -333,7 +333,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
                   slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ mt: '8px', alignSelf: 'flex-start' }}><PiMicrosoftTeamsLogoLight color="#1976d2" /></InputAdornment> } }}
                 />
                 <TextField
-                  label={t('agentPersona.contactTelegram')}
+                  label={t('agentPersona:contactTelegram')}
                   value={personality.contactChannels.telegramHandle}
                   onChange={(e) => updateContactChannel('telegramHandle', e.target.value)}
                   size="small"
@@ -343,24 +343,24 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
               </Box>
               <FormControl component="fieldset">
                 <FormLabel component="legend" sx={{ fontSize: '0.85rem' }}>
-                  {t('agentPersona.preferredChannel')}
+                  {t('agentPersona:preferredChannel')}
                 </FormLabel>
                 <RadioGroup
                   row
                   value={personality.contactChannels.preferredChannel}
                   onChange={(e) => updateContactChannel('preferredChannel', e.target.value)}
                 >
-                  <FormControlLabel value="email" control={<Radio size="small" />} label={t('agentPersona.contactEmail')} />
-                  <FormControlLabel value="teamsAccount" control={<Radio size="small" />} label={t('agentPersona.contactTeams')} />
-                  <FormControlLabel value="telegramHandle" control={<Radio size="small" />} label={t('agentPersona.contactTelegram')} />
+                  <FormControlLabel value="email" control={<Radio size="small" />} label={t('agentPersona:contactEmail')} />
+                  <FormControlLabel value="teamsAccount" control={<Radio size="small" />} label={t('agentPersona:contactTeams')} />
+                  <FormControlLabel value="telegramHandle" control={<Radio size="small" />} label={t('agentPersona:contactTelegram')} />
                 </RadioGroup>
               </FormControl>
             </Box>
 
             {/* Avoid At All Costs */}
             <TextField
-              label={t('agentPersona.avoidAtAllCosts')}
-              placeholder={t('agentPersona.avoidPlaceholder')}
+              label={t('agentPersona:avoidAtAllCosts')}
+              placeholder={t('agentPersona:avoidPlaceholder')}
               value={personality.avoidAtAllCosts}
               onChange={(e) => updateField('avoidAtAllCosts', e.target.value)}
               multiline
@@ -381,7 +381,7 @@ export default function AgentPersonaPersonality({ open, onClose, onInstalled }) 
           disabled={!isValid || installing}
           sx={{ minWidth: 100 }}
         >
-          {installing ? <CircularProgress size={20} /> : personality.personaType ? t('agentPersona.go') : t('common.save')}
+          {installing ? <CircularProgress size={20} /> : personality.personaType ? t('agentPersona:go') : t('common.save')}
         </Button>
       </DialogActions>
     </Dialog>

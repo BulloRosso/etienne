@@ -1,0 +1,17 @@
+{
+  "actions": "操作",
+  "columnContentPreview": "内容预览",
+  "columnDocId": "文档 ID",
+  "columnGraphLayer": "图层",
+  "columnUploadedAt": "上传时间",
+  "confirmDelete": "确定要删除此文档吗？",
+  "contentPreview": "内容预览",
+  "deleteError": "删除文档出错",
+  "deleteFailed": "删除文档失败",
+  "docId": "文档 ID",
+  "errorDeleting": "删除文档出错",
+  "failedToDelete": "删除文档失败",
+  "graphLayer": "图层",
+  "noDocuments": "向量存储中未找到文档",
+  "uploadedAt": "上传时间"
+}

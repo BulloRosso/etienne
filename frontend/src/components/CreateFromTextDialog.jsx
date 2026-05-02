@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 export default function CreateFromTextDialog({ open, onClose, projectName, graphName = 'default', onCreated }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["createFromText","common"]);
   const { mode: themeMode } = useThemeMode();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -76,14 +76,14 @@ export default function CreateFromTextDialog({ open, onClose, projectName, graph
       }}
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {t('createFromText.title')}
+        {t('createFromText:title')}
         <IconButton onClick={handleClose} size="small" disabled={loading}>
           <Close />
         </IconButton>
       </DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          {t('createFromText.description')}
+          {t('createFromText:description')}
         </Typography>
 
         <Box sx={{ height: 350, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
@@ -124,7 +124,7 @@ export default function CreateFromTextDialog({ open, onClose, projectName, graph
           disabled={loading || !text.trim()}
           startIcon={loading && <CircularProgress size={16} color="inherit" />}
         >
-          {loading ? t('createFromText.creating') : t('common.create')}
+          {loading ? t('createFromText:creating') : t('common.create')}
         </Button>
       </DialogActions>
     </Dialog>

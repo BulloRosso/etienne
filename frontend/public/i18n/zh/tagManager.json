@@ -1,0 +1,19 @@
+{
+  "addTags": "添加标签",
+  "availableTags": "可用标签",
+  "currentTags": "当前标签（{{count}}）",
+  "dialogTitle": "管理标签",
+  "failedToAddTag": "添加标签失败：{{message}}",
+  "failedToDeleteReleaseComment": "删除发布备注失败：{{message}}",
+  "failedToRemoveTag": "移除标签失败：{{message}}",
+  "failedToSaveReleaseComment": "保存发布备注失败：{{message}}",
+  "inputHelper": "按 Enter 或从下拉列表中选择以添加标签",
+  "inputPlaceholder": "输入以创建新标签或选择现有标签",
+  "noTagsAssigned": "暂无已分配的标签",
+  "releaseCommentHelper": "发布备注将在下次更新发布时编入差异协议。",
+  "releaseCommentPlaceholder": "描述此文件在下一次发布中的变更内容",
+  "releaseCommentTitle": "发布备注",
+  "saveComment": "保存备注",
+  "tagAlreadyAdded": "标签已添加",
+  "tagWithCount": "{{tag}}（{{count}}）"
+}

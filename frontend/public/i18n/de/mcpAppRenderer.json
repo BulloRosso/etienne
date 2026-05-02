@@ -1,0 +1,5 @@
+{
+  "connecting": "Verbindung zum MCP-Server wird hergestellt...",
+  "error": "MCP-App-Fehler:",
+  "errorPrefix": "MCP-App-Fehler: {{message}}"
+}

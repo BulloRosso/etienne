@@ -9,10 +9,11 @@ import { VIEWER_COMPONENTS, buildExtensionMap, getViewerForFile } from './viewer
 import McpUIPreview from './McpUIPreview';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
+import useTabStore from '../stores/useTabStore';
 import { useTranslation } from 'react-i18next';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll, previewersConfig, autoFilePreviewExtensions, onUpdateViewerState }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["filesPanel","common"]);
   const { mode: themeMode } = useThemeMode();
   const { isMinimalistic } = useUxMode();
   const [activeTab, setActiveTab] = useState(0);
@@ -194,7 +195,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
         >
           <img
             src="/workspace-placeholder.png"
-            alt={t('filesPanel.workspacePlaceholderAlt')}
+            alt={t('filesPanel:workspacePlaceholderAlt')}
             style={{
               maxWidth: '60%',
               maxHeight: '60%',
@@ -212,7 +213,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
               textAlign: 'center'
             }}
           >
-            {t('filesPanel.workspacePlaceholder')}
+            {t('filesPanel:workspacePlaceholder')}
           </Typography>
         </Box>
       </Box>
@@ -316,7 +317,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
               ))}
               <Divider />
               <MenuItem onClick={handleCloseAll} sx={{ fontSize: '0.875rem', color: 'error.main' }}>
-                {t('filesPanel.closeAll')}
+                {t('filesPanel:closeAll')}
               </MenuItem>
             </Menu>
           </>

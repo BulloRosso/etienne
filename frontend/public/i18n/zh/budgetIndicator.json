@@ -1,0 +1,3 @@
+{
+  "tooltipSpent": "全局已花费 {{formattedCosts}}{{currencySymbol}}（{{percentage}}%）"
+}

@@ -1,0 +1,21 @@
+{
+  "curlExample": "cURL-Beispiel",
+  "dedicatedEndpoint": "Dedizierter Webhook-Endpunkt (Empfohlen)",
+  "dedicatedEndpointDesc": "Senden Sie beliebige JSON-Payload direkt per POST – sie wird automatisch als Webhook-Ereignis verpackt:",
+  "description": "Senden Sie Daten/Dateien per POST von externen Systemen an dieses Projekt. In der Basisversion ist der Endpunkt offen, Header-Authentifizierung wird empfohlen.",
+  "fileStorageDesc": "Hochgeladene Dateien werden im <code>webhook/</code>-Verzeichnis des Projekts gespeichert und überschreiben vorhandene Dateien mit gleichem Namen:",
+  "fileStorageLocation": "Dateispeicherort",
+  "fileUploadTitle": "Webhook-Dateiupload-Format",
+  "generalEndpoint": "Allgemeiner Ereignis-Endpunkt",
+  "generalEndpointDesc": "Senden Sie ein strukturiertes Ereignis mit expliziter Gruppe und Name per POST:",
+  "jsonFormatTitle": "Webhook-JSON-Format",
+  "matchFieldsAlert": "Felder abgleichen mit <code>payload.command:remove</code> oder <code>payload.priority:high</code>",
+  "matchFilesAlert": "Dateien abgleichen mit <code>payload.fileCount:2</code> oder in Ihrem Prompt nach bestimmten Dateien suchen",
+  "multipartFormData": "Multipart-Formulardaten mit Dateien",
+  "multipartFormDataDesc": "Laden Sie Dateien zusammen mit JSON-Metadaten per <code>multipart/form-data</code> hoch:",
+  "promptContextDesc": "Wenn ein Webhook-Ereignis eine Regel auslöst, wird die vollständige JSON-Payload Ihrem Aktions-Prompt vorangestellt:",
+  "promptContextInjection": "Prompt-Kontext-Injektion",
+  "resultingPayload": "Resultierender Ereignis-Payload",
+  "resultingPayloadDesc": "Der Ereignis-Payload kombiniert Ihre JSON-Beschreibung mit Datei-Metadaten:",
+  "webhookUrl": "Webhook-URL"
+}

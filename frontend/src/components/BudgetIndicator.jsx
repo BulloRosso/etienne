@@ -42,7 +42,7 @@ const percentageIcons = [
 ];
 
 export default function BudgetIndicator({ project, budgetSettings, onSettingsChange, showBackgroundInfo, mux, iconOnly = false, onIconClick, externalOpen, onExternalClose }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["budgetIndicator"]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentCosts, setCurrentCosts] = useState(0);
   const [numberOfSessions, setNumberOfSessions] = useState(0);
@@ -134,7 +134,7 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
   // Format tooltip text
   const currencySymbol = getCurrencySymbol(currency);
   const formattedCosts = globalCosts.toFixed(2);
-  const tooltipText = t('budgetIndicator.tooltipSpent', { formattedCosts, currencySymbol, percentage });
+  const tooltipText = t('budgetIndicator:tooltipSpent', { formattedCosts, currencySymbol, percentage });
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);

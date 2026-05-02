@@ -30,7 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
 const CustomUI = ({ project, onSave }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["customUI","common"]);
   const [config, setConfig] = useState({
     appBar: {
       title: '',
@@ -106,7 +106,7 @@ const CustomUI = ({ project, onSave }) => {
         console.error('Failed to load welcome chat message:', err);
       }
     } catch (err) {
-      setError(t('customUI.failedToLoadConfig'));
+      setError(t('customUI:failedToLoadConfig'));
       console.error('Error loading UI config:', err);
     } finally {
       setLoading(false);
@@ -153,10 +153,10 @@ const CustomUI = ({ project, onSave }) => {
         }
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(t('customUI.failedToSaveConfig'));
+        setError(t('customUI:failedToSaveConfig'));
       }
     } catch (err) {
-      setError(t('customUI.failedToSaveConfig'));
+      setError(t('customUI:failedToSaveConfig'));
       console.error(err);
     }
   };
@@ -284,19 +284,19 @@ const CustomUI = ({ project, onSave }) => {
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          {t('customUI.savedSuccessfully')}
+          {t('customUI:savedSuccessfully')}
         </Alert>
       )}
 
       {/* AppBar Section */}
       <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('customUI.appBarTitle')}
+        {t('customUI:appBarTitle')}
       </Typography>
       <Box sx={{ mb: 3 }}>
         <TextField
           size="small"
           fullWidth
-          label={t('customUI.titleLabel')}
+          label={t('customUI:titleLabel')}
           value={config.appBar.title}
           onChange={(e) =>
             setConfig({
@@ -308,7 +308,7 @@ const CustomUI = ({ project, onSave }) => {
         />
 
         <FormControl component="fieldset" size="small" sx={{ mb: 2 }}>
-          <FormLabel component="legend">{t('customUI.fontColorLabel')}</FormLabel>
+          <FormLabel component="legend">{t('customUI:fontColorLabel')}</FormLabel>
           <RadioGroup
             row
             value={config.appBar.fontColor}
@@ -319,15 +319,15 @@ const CustomUI = ({ project, onSave }) => {
               })
             }
           >
-            <FormControlLabel value="white" control={<Radio size="small" />} label={t('customUI.fontColorWhite')} />
-            <FormControlLabel value="black" control={<Radio size="small" />} label={t('customUI.fontColorBlack')} />
+            <FormControlLabel value="white" control={<Radio size="small" />} label={t('customUI:fontColorWhite')} />
+            <FormControlLabel value="black" control={<Radio size="small" />} label={t('customUI:fontColorBlack')} />
           </RadioGroup>
         </FormControl>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <TextField
             size="small"
-            label={t('customUI.backgroundColorLabel')}
+            label={t('customUI:backgroundColorLabel')}
             value={config.appBar.backgroundColor}
             onChange={(e) =>
               setConfig({
@@ -355,7 +355,7 @@ const CustomUI = ({ project, onSave }) => {
 
       {/* Welcome Chat Message Section */}
       <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('customUI.welcomeChatTitle')}
+        {t('customUI:welcomeChatTitle')}
       </Typography>
       <Box sx={{ mb: 3 }}>
         <TextField
@@ -363,11 +363,11 @@ const CustomUI = ({ project, onSave }) => {
           fullWidth
           multiline
           rows={3}
-          label={t('customUI.chatGreetingLabel')}
+          label={t('customUI:chatGreetingLabel')}
           value={welcomeChatMessage}
           onChange={(e) => setWelcomeChatMessage(e.target.value)}
-          placeholder={t('customUI.chatGreetingPlaceholder')}
-          helperText={t('customUI.chatGreetingHelper')}
+          placeholder={t('customUI:chatGreetingPlaceholder')}
+          helperText={t('customUI:chatGreetingHelper')}
         />
       </Box>
 
@@ -375,13 +375,13 @@ const CustomUI = ({ project, onSave }) => {
 
       {/* Welcome Page Section */}
       <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('customUI.welcomePageTitle')}
+        {t('customUI:welcomePageTitle')}
       </Typography>
       <Box sx={{ mb: 3 }}>
         <TextField
           size="small"
           fullWidth
-          label={t('customUI.welcomeMessageLabel')}
+          label={t('customUI:welcomeMessageLabel')}
           value={config.welcomePage.message}
           onChange={(e) =>
             setConfig({
@@ -395,7 +395,7 @@ const CustomUI = ({ project, onSave }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
           <TextField
             size="small"
-            label={t('customUI.backgroundColorLabel')}
+            label={t('customUI:backgroundColorLabel')}
             value={config.welcomePage.backgroundColor}
             onChange={(e) =>
               setConfig({
@@ -420,14 +420,14 @@ const CustomUI = ({ project, onSave }) => {
 
         {/* Quick Actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="subtitle1">{t('customUI.quickActionsTitle')}</Typography>
+          <Typography variant="subtitle1">{t('customUI:quickActionsTitle')}</Typography>
           <Button
             size="small"
             startIcon={<TbPlus />}
             onClick={addQuickAction}
             variant="outlined"
           >
-            {t('customUI.addAction')}
+            {t('customUI:addAction')}
           </Button>
         </Box>
 
@@ -438,7 +438,7 @@ const CustomUI = ({ project, onSave }) => {
                 <TextField
                   size="small"
                   fullWidth
-                  label={t('customUI.titleLabel')}
+                  label={t('customUI:titleLabel')}
                   value={action.title}
                   onChange={(e) => updateQuickAction(index, 'title', e.target.value)}
                   sx={{ mb: 2 }}
@@ -448,7 +448,7 @@ const CustomUI = ({ project, onSave }) => {
                   fullWidth
                   multiline
                   rows={3}
-                  label={t('customUI.promptMarkdownLabel')}
+                  label={t('customUI:promptMarkdownLabel')}
                   value={action.prompt}
                   onChange={(e) => updateQuickAction(index, 'prompt', e.target.value)}
                   sx={{ mb: 2 }}
@@ -456,7 +456,7 @@ const CustomUI = ({ project, onSave }) => {
                 <TextField
                   size="small"
                   type="number"
-                  label={t('customUI.sortOrderLabel')}
+                  label={t('customUI:sortOrderLabel')}
                   value={action.sortOrder}
                   onChange={(e) => updateQuickAction(index, 'sortOrder', parseInt(e.target.value) || 0)}
                   sx={{ width: 120 }}
@@ -487,7 +487,7 @@ const CustomUI = ({ project, onSave }) => {
                 }
               />
             }
-            label={t('customUI.showWelcomeMessage')}
+            label={t('customUI:showWelcomeMessage')}
           />
           <FormControlLabel
             control={
@@ -501,7 +501,7 @@ const CustomUI = ({ project, onSave }) => {
                 }
               />
             }
-            label={t('customUI.dontShowWelcomeMessage')}
+            label={t('customUI:dontShowWelcomeMessage')}
           />
         </Box>
       </Box>
@@ -510,15 +510,15 @@ const CustomUI = ({ project, onSave }) => {
 
       {/* Preview Documents Section */}
       <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('customUI.previewDocumentsTitle')}
+        {t('customUI:previewDocumentsTitle')}
       </Typography>
       <Box sx={{ mb: 3 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {t('customUI.previewDocumentsDescription')}
+          {t('customUI:previewDocumentsDescription')}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="subtitle1">{t('customUI.documentsSubtitle')}</Typography>
+          <Typography variant="subtitle1">{t('customUI:documentsSubtitle')}</Typography>
           <Button
             size="small"
             startIcon={<TbPlus />}
@@ -528,7 +528,7 @@ const CustomUI = ({ project, onSave }) => {
             })}
             variant="outlined"
           >
-            {t('customUI.addDocument')}
+            {t('customUI:addDocument')}
           </Button>
         </Box>
 
@@ -538,20 +538,20 @@ const CustomUI = ({ project, onSave }) => {
               <TextField
                 size="small"
                 fullWidth
-                label={t('customUI.filePathLabel')}
+                label={t('customUI:filePathLabel')}
                 value={doc}
                 onChange={(e) => {
                   const newDocs = [...config.previewDocuments];
                   newDocs[index] = e.target.value;
                   setConfig({ ...config, previewDocuments: newDocs });
                 }}
-                placeholder={t('customUI.filePathPlaceholder')}
+                placeholder={t('customUI:filePathPlaceholder')}
               />
               <IconButton
                 size="small"
                 color="primary"
                 onClick={() => openFilePicker(index)}
-                title={t('customUI.browseFiles')}
+                title={t('customUI:browseFiles')}
               >
                 <TbFolderOpen />
               </IconButton>
@@ -575,7 +575,7 @@ const CustomUI = ({ project, onSave }) => {
       {/* Save Button */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Button variant="contained" onClick={handleSave}>
-          {t('customUI.saveConfiguration')}
+          {t('customUI:saveConfiguration')}
         </Button>
       </Box>
 
@@ -587,7 +587,7 @@ const CustomUI = ({ project, onSave }) => {
         fullWidth
       >
         <DialogTitle>
-          {t('customUI.selectFileTitle')}
+          {t('customUI:selectFileTitle')}
           <Breadcrumbs sx={{ mt: 1, fontSize: '0.875rem' }}>
             <Link
               component="button"
@@ -595,7 +595,7 @@ const CustomUI = ({ project, onSave }) => {
               color="inherit"
               onClick={() => handleBreadcrumbClick('')}
             >
-              {t('customUI.rootBreadcrumb')}
+              {t('customUI:rootBreadcrumb')}
             </Link>
             {currentPath.split('/').filter(Boolean).map((part, index, arr) => {
               const path = arr.slice(0, index + 1).join('/');
@@ -617,7 +617,7 @@ const CustomUI = ({ project, onSave }) => {
           <List sx={{ maxHeight: 400, overflow: 'auto' }}>
             {filesAndFolders.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
-                {t('customUI.noFilesOrFolders')}
+                {t('customUI:noFilesOrFolders')}
               </Typography>
             ) : (
               filesAndFolders.map((item) => (

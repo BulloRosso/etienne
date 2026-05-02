@@ -1,0 +1,6 @@
+{
+  "errorLoadFile": "Datei konnte nicht geladen werden",
+  "errorLoading": "Fehler beim Laden der Prompt-Datei: {{error}}",
+  "errorSaveFile": "Datei konnte nicht gespeichert werden",
+  "reloadFile": "Datei neu laden"
+}

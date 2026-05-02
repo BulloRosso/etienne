@@ -1,0 +1,10 @@
+{
+  "columnEventName": "Event Name",
+  "columnGroup": "Group",
+  "columnPayload": "Payload",
+  "columnSource": "Source",
+  "columnTimestamp": "Timestamp",
+  "columnTriggeredRules": "Triggered Rules",
+  "eventsWillAppear": "Events that trigger rules will appear here",
+  "noEventsLogged": "No events logged yet"
+}

@@ -33,7 +33,7 @@ import { useTranslation } from 'react-i18next';
  * - onClose: () => void - Callback when modal is closed without response
  */
 export default function PairingRequestModal({ open, pairing, onRespond, onClose }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["pairingRequest","common"]);
   if (!pairing) return null;
 
   const { id, code, provider, remoteSession, expires_at } = pairing;
@@ -97,7 +97,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {getProviderIcon()}
-          <Typography variant="h6">{t('pairingRequest.title')}</Typography>
+          <Typography variant="h6">{t('pairingRequest:title')}</Typography>
         </Box>
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
@@ -117,7 +117,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
             />
             {timeLeft > 0 && (
               <Typography variant="caption" color="text.secondary">
-                {t('pairingRequest.expiresIn', { minutes: timeLeft })}
+                {t('pairingRequest:expiresIn', { minutes: timeLeft })}
               </Typography>
             )}
           </Box>
@@ -142,24 +142,24 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
           {/* Details */}
           <Box sx={{ bgcolor: 'grey.50', borderRadius: 1, p: 2 }}>
             <Typography variant="subtitle2" gutterBottom sx={{ color: 'text.secondary' }}>
-              {t('pairingRequest.sessionDetails')}
+              {t('pairingRequest:sessionDetails')}
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">{t('pairingRequest.chatId')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('pairingRequest:chatId')}</Typography>
                 <Typography variant="body2" fontFamily="monospace">{chatId}</Typography>
               </Box>
 
               {userId && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">{t('pairingRequest.userId')}</Typography>
+                  <Typography variant="body2" color="text.secondary">{t('pairingRequest:userId')}</Typography>
                   <Typography variant="body2" fontFamily="monospace">{userId}</Typography>
                 </Box>
               )}
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">{t('pairingRequest.pairingCode')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('pairingRequest:pairingCode')}</Typography>
                 <Chip
                   label={code}
                   size="small"
@@ -171,7 +171,7 @@ export default function PairingRequestModal({ open, pairing, onRespond, onClose 
 
           {/* Warning */}
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            {t('pairingRequest.approvalWarning', { provider })}
+            {t('pairingRequest:approvalWarning', { provider })}
           </Typography>
         </Box>
       </DialogContent>

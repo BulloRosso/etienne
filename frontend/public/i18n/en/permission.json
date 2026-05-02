@@ -1,0 +1,12 @@
+{
+  "actionAlert": "Claude wants to perform the following action:",
+  "title": "Permission Required",
+  "toolBash": "Execute command: {{command}}",
+  "toolDefault": "Use tool: {{toolName}}",
+  "toolEdit": "Edit file: {{filePath}}",
+  "toolGlob": "Search files: {{pattern}}",
+  "toolGrep": "Search content: {{pattern}}",
+  "toolMultiEdit": "Edit multiple sections in: {{filePath}}",
+  "toolRead": "Read file: {{filePath}}",
+  "toolWrite": "Write to file: {{filePath}}"
+}

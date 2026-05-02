@@ -1,0 +1,10 @@
+{
+  "columnActions": "操作",
+  "columnPrompt": "提示词",
+  "columnTitle": "标题",
+  "createFirstAction": "创建第一个操作",
+  "createFirstActionHint": "创建可重用的操作模板以在规则中使用",
+  "manageActions": "管理用于规则操作的可重用操作模板",
+  "newAction": "新建操作",
+  "noActionsDefined": "暂无已定义的操作"
+}

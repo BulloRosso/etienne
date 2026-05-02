@@ -43,7 +43,7 @@ const allIcons = {
 const iconNames = Object.keys(allIcons);
 
 export default function ScrapbookNodeEdit({ open, onClose, projectName, graphName = 'default', node, parentNode, onSaved, onNodeUpdated }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["scrapbookNodeEdit","common"]);
   const isEdit = Boolean(node?.id);
 
   const [label, setLabel] = useState('');
@@ -198,7 +198,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {isEdit ? t('scrapbookNodeEdit.dialogTitleEdit') : t('scrapbookNodeEdit.dialogTitleAdd')}
+          {isEdit ? t('scrapbookNodeEdit:dialogTitleEdit') : t('scrapbookNodeEdit:dialogTitleAdd')}
           <IconButton onClick={onClose} size="small">
             <Close />
           </IconButton>
@@ -207,7 +207,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             {/* Label */}
             <TextField
-              label={t('scrapbookNodeEdit.title')}
+              label={t('scrapbookNodeEdit:title')}
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               fullWidth
@@ -227,7 +227,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
 
             {/* Priority */}
             <Box>
-              <Typography gutterBottom>{t('scrapbookNodeEdit.priority', { value: priority })}</Typography>
+              <Typography gutterBottom>{t('scrapbookNodeEdit:priority', { value: priority })}</Typography>
               <Slider
                 value={priority}
                 onChange={(e, v) => setPriority(v)}
@@ -241,7 +241,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
 
             {/* Attention Weight */}
             <Box>
-              <Typography gutterBottom>{t('scrapbookNodeEdit.attentionWeight', { value: (attentionWeight * 100).toFixed(0) })}</Typography>
+              <Typography gutterBottom>{t('scrapbookNodeEdit:attentionWeight', { value: (attentionWeight * 100).toFixed(0) })}</Typography>
               <Slider
                 value={attentionWeight}
                 onChange={(e, v) => setAttentionWeight(v)}
@@ -255,7 +255,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
 
             {/* Icon Selector */}
             <Box>
-              <Typography gutterBottom>{t('scrapbookNodeEdit.icon')}</Typography>
+              <Typography gutterBottom>{t('scrapbookNodeEdit:icon')}</Typography>
               <Paper
                 variant="outlined"
                 sx={{
@@ -274,7 +274,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
                     <Typography variant="body2">{iconName}</Typography>
                   </Box>
                 ) : (
-                  <Typography color="text.secondary">{t('scrapbookNodeEdit.clickToSelectIcon')}</Typography>
+                  <Typography color="text.secondary">{t('scrapbookNodeEdit:clickToSelectIcon')}</Typography>
                 )}
               </Paper>
             </Box>
@@ -282,7 +282,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
             {/* Image Upload (only for edit mode) */}
             {isEdit && (
               <Box>
-                <Typography gutterBottom>{t('scrapbookNodeEdit.images')}</Typography>
+                <Typography gutterBottom>{t('scrapbookNodeEdit:images')}</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
                   {images.map((filename) => (
                     <Box
@@ -330,7 +330,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
                         size="small"
                       />
                     }
-                    label={t('scrapbookNodeEdit.describeImage')}
+                    label={t('scrapbookNodeEdit:describeImage')}
                   />
                   <Button
                     variant="outlined"
@@ -339,7 +339,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
                     disabled={uploading}
                     size="small"
                   >
-                    {uploading ? t('scrapbookNodeEdit.uploading') : t('scrapbookNodeEdit.uploadImage')}
+                    {uploading ? t('scrapbookNodeEdit:uploading') : t('scrapbookNodeEdit:uploadImage')}
                     <input
                       type="file"
                       hidden
@@ -371,10 +371,10 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{t('scrapbookNodeEdit.selectIconTitle')}</DialogTitle>
+        <DialogTitle>{t('scrapbookNodeEdit:selectIconTitle')}</DialogTitle>
         <DialogContent>
           <TextField
-            placeholder={t('scrapbookNodeEdit.searchIconsPlaceholder')}
+            placeholder={t('scrapbookNodeEdit:searchIconsPlaceholder')}
             value={iconSearch}
             onChange={(e) => setIconSearch(e.target.value)}
             fullWidth
@@ -419,7 +419,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
           </Grid>
           {filteredIcons.length === 0 && (
             <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
-              {t('scrapbookNodeEdit.noIconsFound')}
+              {t('scrapbookNodeEdit:noIconsFound')}
             </Typography>
           )}
         </DialogContent>
@@ -432,7 +432,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
               }}
               color="error"
             >
-              {t('scrapbookNodeEdit.clearIcon')}
+              {t('scrapbookNodeEdit:clearIcon')}
             </Button>
           )}
           <Button onClick={() => setIconSelectorOpen(false)}>{t('common.cancel')}</Button>

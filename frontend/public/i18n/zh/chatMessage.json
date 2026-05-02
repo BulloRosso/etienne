@@ -1,0 +1,8 @@
+{
+  "costs": "费用",
+  "elapsed": "用时：{{time}}",
+  "goodResponse": "好的回复",
+  "poorResponse": "差的回复",
+  "remote": "远程",
+  "scheduled": "已计划"
+}

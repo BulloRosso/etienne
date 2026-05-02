@@ -1,0 +1,9 @@
+{
+  "altImage": "Ruolo dell'agente",
+  "description": "Seleziona un ruolo predefinito che corrisponda alle esigenze del tuo progetto, oppure crea una definizione di ruolo personalizzata. Il ruolo dell'agente determina la personalità dell'assistente, il focus della conoscenza e lo stile di lavoro.",
+  "errorLoadFailed": "Caricamento della strategia fallito",
+  "errorSaveFailed": "Salvataggio della strategia fallito",
+  "predefinedRole": "Ruolo predefinito",
+  "predefinedRoleNone": "Nessuno",
+  "successSaved": "Strategia salvata con successo"
+}

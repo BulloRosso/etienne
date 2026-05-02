@@ -20,7 +20,7 @@ import BackgroundInfo from './BackgroundInfo';
 import { useMuxSSE } from '../contexts/MuxSSEContext';
 
 export default function Interceptors({ projectName, showBackgroundInfo }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["interceptors"]);
   const mux = useMuxSSE();
   const [mode, setMode] = useState('events'); // 'events' or 'hooks'
   const [items, setItems] = useState([]);
@@ -143,15 +143,15 @@ export default function Interceptors({ projectName, showBackgroundInfo }) {
           onChange={handleModeChange}
           color="primary"
         >
-          <ToggleButton value="events">{t('interceptors.events')}</ToggleButton>
-          <ToggleButton value="hooks">{t('interceptors.hooks')}</ToggleButton>
+          <ToggleButton value="events">{t('interceptors:events')}</ToggleButton>
+          <ToggleButton value="hooks">{t('interceptors:hooks')}</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {items.length === 0 ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            {t('interceptors.noItemsYet', { mode })} {t('interceptors.waitingForActivity')}
+            {t('interceptors:noItemsYet', { mode })} {t('interceptors:waitingForActivity')}
           </Typography>
         </Box>
       ) : (
@@ -163,7 +163,7 @@ export default function Interceptors({ projectName, showBackgroundInfo }) {
                   <TableCell key={field} sx={{ verticalAlign: 'top' }}>
                     <TextField
                       size="small"
-                      placeholder={t('interceptors.filter')}
+                      placeholder={t('interceptors:filter')}
                       value={filters[field] || ''}
                       onChange={(e) => handleFilterChange(field, e.target.value)}
                       sx={{ width: '100%', mb: 1 }}

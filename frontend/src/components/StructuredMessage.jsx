@@ -25,13 +25,13 @@ const TOOL_ICONS = {
 
 // TodoList Display Component - shows full todo list with icons
 export const TodoListDisplay = ({ todos }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   if (!todos || !Array.isArray(todos) || todos.length === 0) {
     return (
       <Box sx={{ mb: 1 }}>
         <Paper sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
           <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
-            {t('structuredMessage.noTasks')}
+            {t('structuredMessage:noTasks')}
           </Typography>
         </Paper>
       </Box>
@@ -108,7 +108,7 @@ export const TodoListDisplay = ({ todos }) => {
 
 // Tool call component - compact version
 export const ToolCallMessage = ({ toolName, args, status, result, projectName }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   // Special handling for TodoWrite
   const formatTodoWriteArgs = (args) => {
     if (!args) return '';
@@ -134,7 +134,7 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
     if (lastCompleted) displayTodos.push({ ...lastCompleted, isLast: true });
     displayTodos.push(...activeTodos);
 
-    if (displayTodos.length === 0) return t('structuredMessage.noActiveTasks');
+    if (displayTodos.length === 0) return t('structuredMessage:noActiveTasks');
 
     return displayTodos.map(td => {
       const icon = td.status === 'completed' ? '✓' : '⋯';
@@ -276,7 +276,7 @@ export const ToolCallMessage = ({ toolName, args, status, result, projectName })
 
 // Permission request component with callback
 export const PermissionRequestMessage = ({ id, message, onResponse }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   const [responding, setResponding] = useState(false);
   const [responded, setResponded] = useState(false);
 
@@ -291,7 +291,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#e8f5e9', borderLeft: '4px solid #4caf50' }}>
         <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
-          {t('structuredMessage.permissionGranted')}
+          {t('structuredMessage:permissionGranted')}
         </Typography>
         <Typography variant="body2" sx={{ color: '#555', mt: 1 }}>
           {message}
@@ -303,7 +303,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
   return (
     <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#fff3e0', borderLeft: '4px solid #ff9800' }}>
       <Typography variant="subtitle2" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
-        {t('structuredMessage.permissionRequired')}
+        {t('structuredMessage:permissionRequired')}
       </Typography>
       <Typography variant="body2" sx={{ color: '#555', mb: 2 }}>
         {message}
@@ -316,7 +316,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
           color="success"
           size="small"
         >
-          {t('structuredMessage.approve')}
+          {t('structuredMessage:approve')}
         </Button>
         <Button
           onClick={() => handleResponse(false)}
@@ -325,7 +325,7 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
           color="error"
           size="small"
         >
-          {t('structuredMessage.deny')}
+          {t('structuredMessage:deny')}
         </Button>
       </Box>
     </Paper>
@@ -334,11 +334,11 @@ export const PermissionRequestMessage = ({ id, message, onResponse }) => {
 
 // Error message component
 export const ErrorMessageComponent = ({ message, details }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   return (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#ffebee', borderLeft: '4px solid #f44336' }}>
     <Typography variant="subtitle2" sx={{ color: '#c62828', fontWeight: 'bold', mb: 1 }}>
-      {t('structuredMessage.error')}
+      {t('structuredMessage:error')}
     </Typography>
     <Typography variant="body2" sx={{ color: '#555', mb: details ? 1 : 0 }}>
       {message}
@@ -354,11 +354,11 @@ export const ErrorMessageComponent = ({ message, details }) => {
 
 // API Error message component (for rate limits, API errors, etc.)
 export const ApiErrorMessageComponent = ({ message, fullError }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   return (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#fff3e0', borderLeft: '4px solid #ff9800' }}>
     <Typography variant="subtitle2" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
-      {t('structuredMessage.apiError')}
+      {t('structuredMessage:apiError')}
     </Typography>
     <Typography variant="body2" sx={{ color: '#555', mb: fullError ? 1 : 0 }}>
       {message}
@@ -396,11 +396,11 @@ export const SubagentActivityMessage = ({ name, status, content }) => (
 
 // Thinking block component
 export const ThinkingMessage = ({ content }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   return (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#fce4ec', borderLeft: '4px solid #e91e63' }}>
     <Typography variant="subtitle2" sx={{ color: '#880e4f', fontWeight: 'bold', mb: 1 }}>
-      {t('structuredMessage.thinking')}
+      {t('structuredMessage:thinking')}
     </Typography>
     <Typography variant="body2" sx={{ color: '#555', fontStyle: 'italic' }}>
       {content}
@@ -411,16 +411,16 @@ export const ThinkingMessage = ({ content }) => {
 
 // Guardrails warning component (supports both input and output)
 export const GuardrailsWarningMessage = ({ plugins, count, detections, violations, type = 'input' }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   const isOutputGuardrail = type === 'output';
   const itemsList = isOutputGuardrail
     ? (violations || []).join(', ')
     : (plugins || []).join(', ');
 
-  const title = isOutputGuardrail ? t('structuredMessage.outputGuardrailsTriggered') : t('structuredMessage.inputGuardrailsTriggered');
+  const title = isOutputGuardrail ? t('structuredMessage:outputGuardrailsTriggered') : t('structuredMessage:inputGuardrailsTriggered');
   const message = isOutputGuardrail
-    ? t('structuredMessage.outputGuardrailsMessage')
-    : t('structuredMessage.inputGuardrailsMessage');
+    ? t('structuredMessage:outputGuardrailsMessage')
+    : t('structuredMessage:inputGuardrailsMessage');
 
   const bgColor = isOutputGuardrail ? '#fff3e0' : '#ffebee';
   const borderColor = isOutputGuardrail ? '#f57c00' : '#c62828';
@@ -447,10 +447,10 @@ export const GuardrailsWarningMessage = ({ plugins, count, detections, violation
       </Typography>
       <Box sx={{ mt: 1.5 }}>
         <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>
-          {t('structuredMessage.detected')} {itemsList}
+          {t('structuredMessage:detected')} {itemsList}
         </Typography>
         <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-          {t('structuredMessage.itemsRedacted', { count })}
+          {t('structuredMessage:itemsRedacted', { count })}
         </Typography>
       </Box>
     </Paper>
@@ -459,7 +459,7 @@ export const GuardrailsWarningMessage = ({ plugins, count, detections, violation
 
 // Memory extracted component
 export const MemoryExtractedMessage = ({ facts, count }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   const displayFacts = facts && facts.length > 0 ? facts.slice(0, 3) : [];
   const hasMore = facts && facts.length > 3;
 
@@ -476,11 +476,11 @@ export const MemoryExtractedMessage = ({ facts, count }) => {
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
         <Typography variant="subtitle2" sx={{ color: '#1565c0', fontWeight: 'bold' }}>
-          {t('structuredMessage.memoryExtracted')}
+          {t('structuredMessage:memoryExtracted')}
         </Typography>
       </Box>
       <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-        {t('structuredMessage.extractedFacts', { count })}
+        {t('structuredMessage:extractedFacts', { count })}
       </Typography>
       {displayFacts.length > 0 && (
         <Box sx={{ mt: 1.5 }}>
@@ -491,7 +491,7 @@ export const MemoryExtractedMessage = ({ facts, count }) => {
           ))}
           {hasMore && (
             <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5, fontStyle: 'italic' }}>
-              {t('structuredMessage.andMore', { count: facts.length - 3 })}
+              {t('structuredMessage:andMore', { count: facts.length - 3 })}
             </Typography>
           )}
         </Box>
@@ -502,7 +502,7 @@ export const MemoryExtractedMessage = ({ facts, count }) => {
 
 // Research started component
 export const ResearchStartedMessage = ({ inputFile, outputFile, sessionId }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   return (
   <Paper
     variant="outlined"
@@ -516,18 +516,18 @@ export const ResearchStartedMessage = ({ inputFile, outputFile, sessionId }) => 
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
       <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
-        {t('structuredMessage.deepResearchStarted')}
+        {t('structuredMessage:deepResearchStarted')}
       </Typography>
     </Box>
     <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-      {t('structuredMessage.startingResearch')}
+      {t('structuredMessage:startingResearch')}
     </Typography>
     <Box sx={{ mt: 1.5 }}>
       <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
-        {t('structuredMessage.input')}: {inputFile}
+        {t('structuredMessage:input')}: {inputFile}
       </Typography>
       <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-        {t('structuredMessage.output')}: {outputFile}
+        {t('structuredMessage:output')}: {outputFile}
       </Typography>
     </Box>
   </Paper>
@@ -536,7 +536,7 @@ export const ResearchStartedMessage = ({ inputFile, outputFile, sessionId }) => 
 
 // Research completed component
 export const ResearchCompletedMessage = ({ outputFile, citations }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   return (
   <Paper
     variant="outlined"
@@ -550,19 +550,19 @@ export const ResearchCompletedMessage = ({ outputFile, citations }) => {
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
       <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
-        {t('structuredMessage.researchCompleted')}
+        {t('structuredMessage:researchCompleted')}
       </Typography>
     </Box>
     <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-      {t('structuredMessage.researchFinished')}
+      {t('structuredMessage:researchFinished')}
     </Typography>
     <Box sx={{ mt: 1.5 }}>
       <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
-        {t('structuredMessage.results')}: {outputFile}
+        {t('structuredMessage:results')}: {outputFile}
       </Typography>
       {citations && citations.length > 0 && (
         <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-          {t('structuredMessage.citationsIncluded', { count: citations.length })}
+          {t('structuredMessage:citationsIncluded', { count: citations.length })}
         </Typography>
       )}
     </Box>
@@ -572,7 +572,7 @@ export const ResearchCompletedMessage = ({ outputFile, citations }) => {
 
 // Research error component
 export const ResearchErrorMessage = ({ outputFile, error }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["structuredMessage","common"]);
   return (
   <Paper
     variant="outlined"
@@ -586,15 +586,15 @@ export const ResearchErrorMessage = ({ outputFile, error }) => {
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
       <Typography variant="subtitle2" sx={{ color: '#c62828', fontWeight: 'bold' }}>
-        {t('structuredMessage.researchFailed')}
+        {t('structuredMessage:researchFailed')}
       </Typography>
     </Box>
     <Typography variant="body2" sx={{ color: '#555', mb: 1 }}>
-      {error || t('structuredMessage.researchError')}
+      {error || t('structuredMessage:researchError')}
     </Typography>
     <Box sx={{ mt: 1.5 }}>
       <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
-        {t('structuredMessage.outputFile')}: {outputFile}
+        {t('structuredMessage:outputFile')}: {outputFile}
       </Typography>
     </Box>
   </Paper>

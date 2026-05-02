@@ -73,7 +73,7 @@ const ACTIVE_STATUSES = ['OPEN', 'APPROVED', 'DIAGNOSING', 'DIAGNOSED', 'PATCH_P
 const HISTORY_STATUSES = ['RESOLVED', 'FAILED', 'REJECTED', 'ESCALATED'];
 
 export default function IssueManager({ open, onClose, currentProject }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["issues"]);
   const { user, hasRole } = useAuth();
   const isAdmin = hasRole('admin');
 
@@ -156,7 +156,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
       });
       const data = await response.json();
       if (data.success) {
-        showToast(t('issues.issueCreated'));
+        showToast(t('issues:issueCreated'));
         setReportTitle('');
         setReportDescription('');
         setReportSteps('');
@@ -181,7 +181,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
       });
       const data = await response.json();
       if (data.success) {
-        showToast(t('issues.issueApproved'));
+        showToast(t('issues:issueApproved'));
         fetchIssues();
       }
     } catch (error) {
@@ -199,7 +199,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
       });
       const data = await response.json();
       if (data.success) {
-        showToast(t('issues.issueRejected'));
+        showToast(t('issues:issueRejected'));
         setRejectingIssueId(null);
         setRejectReason('');
         fetchIssues();
@@ -295,26 +295,26 @@ export default function IssueManager({ open, onClose, currentProject }) {
         <TableCell colSpan={7} sx={{ py: 0, border: expandedIssue === issue.id ? undefined : 'none' }}>
           <Collapse in={expandedIssue === issue.id} timeout="auto" unmountOnExit>
             <Box sx={{ p: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>{t('issues.description')}</Typography>
+              <Typography variant="subtitle2" gutterBottom>{t('issues:description')}</Typography>
               <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap' }}>{issue.description}</Typography>
 
               {issue.stepsToReproduce && (
                 <>
-                  <Typography variant="subtitle2" gutterBottom>{t('issues.stepsToReproduce')}</Typography>
+                  <Typography variant="subtitle2" gutterBottom>{t('issues:stepsToReproduce')}</Typography>
                   <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap' }}>{issue.stepsToReproduce}</Typography>
                 </>
               )}
 
               {issue.expectedBehavior && (
                 <>
-                  <Typography variant="subtitle2" gutterBottom>{t('issues.expectedBehavior')}</Typography>
+                  <Typography variant="subtitle2" gutterBottom>{t('issues:expectedBehavior')}</Typography>
                   <Typography variant="body2" sx={{ mb: 1 }}>{issue.expectedBehavior}</Typography>
                 </>
               )}
 
               {issue.actualBehavior && (
                 <>
-                  <Typography variant="subtitle2" gutterBottom>{t('issues.actualBehavior')}</Typography>
+                  <Typography variant="subtitle2" gutterBottom>{t('issues:actualBehavior')}</Typography>
                   <Typography variant="body2" sx={{ mb: 1 }}>{issue.actualBehavior}</Typography>
                 </>
               )}
@@ -322,11 +322,11 @@ export default function IssueManager({ open, onClose, currentProject }) {
               {issue.rootCause && (
                 <>
                   <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle2" gutterBottom>{t('issues.rootCause')}</Typography>
+                  <Typography variant="subtitle2" gutterBottom>{t('issues:rootCause')}</Typography>
                   <Typography variant="body2" sx={{ mb: 1 }}>{issue.rootCause}</Typography>
                   {issue.confidenceScore != null && (
                     <Typography variant="caption" color="text.secondary">
-                      {t('issues.confidence')}: {(issue.confidenceScore * 100).toFixed(0)}%
+                      {t('issues:confidence')}: {(issue.confidenceScore * 100).toFixed(0)}%
                     </Typography>
                   )}
                 </>
@@ -335,14 +335,14 @@ export default function IssueManager({ open, onClose, currentProject }) {
               {issue.rejectionReason && (
                 <>
                   <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle2" color="error" gutterBottom>{t('issues.rejectionReason')}</Typography>
+                  <Typography variant="subtitle2" color="error" gutterBottom>{t('issues:rejectionReason')}</Typography>
                   <Typography variant="body2">{issue.rejectionReason}</Typography>
                 </>
               )}
 
               {issue.resolvedAt && (
                 <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 1 }}>
-                  {t('issues.resolvedAt')}: {new Date(issue.resolvedAt).toLocaleString()}
+                  {t('issues:resolvedAt')}: {new Date(issue.resolvedAt).toLocaleString()}
                   {issue.timeToResolve && ` (${Math.round(issue.timeToResolve / 60000)} min)`}
                 </Typography>
               )}
@@ -351,7 +351,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
               {issue.comments && issue.comments.length > 0 && (
                 <>
                   <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle2" gutterBottom>{t('issues.comments')}</Typography>
+                  <Typography variant="subtitle2" gutterBottom>{t('issues:comments')}</Typography>
                   {issue.comments.map((c) => (
                     <Box key={c.id} sx={{ mb: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
                       <Typography variant="caption" color="text.secondary">
@@ -368,13 +368,13 @@ export default function IssueManager({ open, onClose, currentProject }) {
                 <TextField
                   size="small"
                   fullWidth
-                  placeholder={t('issues.addComment')}
+                  placeholder={t('issues:addComment')}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(issue.id); } }}
                 />
                 <Button size="small" variant="text" onClick={() => handleAddComment(issue.id)}>
-                  {t('issues.submitIssue')}
+                  {t('issues:submitIssue')}
                 </Button>
               </Box>
 
@@ -388,7 +388,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
                     startIcon={<CheckCircleOutline />}
                     onClick={(e) => { e.stopPropagation(); handleApprove(issue.id); }}
                   >
-                    {t('issues.approve')}
+                    {t('issues:approve')}
                   </Button>
 
                   {rejectingIssueId === issue.id ? (
@@ -396,15 +396,15 @@ export default function IssueManager({ open, onClose, currentProject }) {
                       <TextField
                         size="small"
                         fullWidth
-                        placeholder={t('issues.rejectReasonPlaceholder')}
+                        placeholder={t('issues:rejectReasonPlaceholder')}
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
                       />
                       <Button size="small" variant="contained" color="error" onClick={() => handleReject(issue.id)}>
-                        {t('issues.confirmReject')}
+                        {t('issues:confirmReject')}
                       </Button>
                       <Button size="small" onClick={() => { setRejectingIssueId(null); setRejectReason(''); }}>
-                        {t('issues.cancel')}
+                        {t('issues:cancel')}
                       </Button>
                     </Box>
                   ) : (
@@ -415,15 +415,15 @@ export default function IssueManager({ open, onClose, currentProject }) {
                       startIcon={<CancelOutlined />}
                       onClick={(e) => { e.stopPropagation(); setRejectingIssueId(issue.id); }}
                     >
-                      {t('issues.reject')}
+                      {t('issues:reject')}
                     </Button>
                   )}
 
                   <FormControl size="small" sx={{ minWidth: 100 }}>
-                    <InputLabel>{t('issues.severity')}</InputLabel>
+                    <InputLabel>{t('issues:severity')}</InputLabel>
                     <Select
                       value={issue.severity}
-                      label={t('issues.severity')}
+                      label={t('issues:severity')}
                       onChange={(e) => handleUpdatePriority(issue.id, 'severity', e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -435,10 +435,10 @@ export default function IssueManager({ open, onClose, currentProject }) {
                   </FormControl>
 
                   <FormControl size="small" sx={{ minWidth: 80 }}>
-                    <InputLabel>{t('issues.priority')}</InputLabel>
+                    <InputLabel>{t('issues:priority')}</InputLabel>
                     <Select
                       value={issue.priority}
-                      label={t('issues.priority')}
+                      label={t('issues:priority')}
                       onChange={(e) => handleUpdatePriority(issue.id, 'priority', e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -463,11 +463,11 @@ export default function IssueManager({ open, onClose, currentProject }) {
         <TableHead>
           <TableRow>
             <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>{t('issues.title')}</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>{t('issues.status')}</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>{t('issues.severity')}</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>{t('issues.priority')}</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>{t('issues.date')}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t('issues:title')}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t('issues:status')}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t('issues:severity')}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t('issues:priority')}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t('issues:date')}</TableCell>
             <TableCell sx={{ width: 40 }} />
           </TableRow>
         </TableHead>
@@ -475,7 +475,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
           {issueList.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                {t('issues.noIssues')}
+                {t('issues:noIssues')}
               </TableCell>
             </TableRow>
           ) : (
@@ -490,9 +490,9 @@ export default function IssueManager({ open, onClose, currentProject }) {
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderTop: '4px solid #ff9800' } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6">{t('issues.dialogTitle')}</Typography>
+          <Typography variant="h6">{t('issues:dialogTitle')}</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title={t('issues.refresh')}>
+            <Tooltip title={t('issues:refresh')}>
               <IconButton size="small" onClick={fetchIssues}>
                 <Refresh />
               </IconButton>
@@ -505,9 +505,9 @@ export default function IssueManager({ open, onClose, currentProject }) {
 
         <DialogContent dividers sx={{ p: 0 }}>
           <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Tab label={`${t('issues.tabOpen')} (${activeIssues.length})`} />
-            <Tab label={t('issues.tabReport')} />
-            <Tab label={`${t('issues.tabHistory')} (${historyIssues.length})`} />
+            <Tab label={`${t('issues:tabOpen')} (${activeIssues.length})`} />
+            <Tab label={t('issues:tabReport')} />
+            <Tab label={`${t('issues:tabHistory')} (${historyIssues.length})`} />
           </Tabs>
 
           {loading ? (
@@ -523,35 +523,35 @@ export default function IssueManager({ open, onClose, currentProject }) {
               {tabValue === 1 && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <TextField
-                    label={t('issues.titleLabel')}
+                    label={t('issues:titleLabel')}
                     required
                     fullWidth
                     value={reportTitle}
                     onChange={(e) => setReportTitle(e.target.value)}
-                    placeholder={t('issues.titlePlaceholder')}
+                    placeholder={t('issues:titlePlaceholder')}
                   />
                   <TextField
-                    label={t('issues.descriptionLabel')}
+                    label={t('issues:descriptionLabel')}
                     required
                     fullWidth
                     multiline
                     rows={3}
                     value={reportDescription}
                     onChange={(e) => setReportDescription(e.target.value)}
-                    placeholder={t('issues.descriptionPlaceholder')}
+                    placeholder={t('issues:descriptionPlaceholder')}
                   />
                   <TextField
-                    label={t('issues.stepsLabel')}
+                    label={t('issues:stepsLabel')}
                     fullWidth
                     multiline
                     rows={2}
                     value={reportSteps}
                     onChange={(e) => setReportSteps(e.target.value)}
-                    placeholder={t('issues.stepsPlaceholder')}
+                    placeholder={t('issues:stepsPlaceholder')}
                   />
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <TextField
-                      label={t('issues.expectedLabel')}
+                      label={t('issues:expectedLabel')}
                       fullWidth
                       multiline
                       rows={2}
@@ -559,7 +559,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
                       onChange={(e) => setReportExpected(e.target.value)}
                     />
                     <TextField
-                      label={t('issues.actualLabel')}
+                      label={t('issues:actualLabel')}
                       fullWidth
                       multiline
                       rows={2}
@@ -574,7 +574,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
                       disabled={!reportTitle.trim() || !reportDescription.trim() || submitting}
                       onClick={handleSubmitIssue}
                     >
-                      {t('issues.submitIssue')}
+                      {t('issues:submitIssue')}
                     </Button>
                   </Box>
                 </Box>
@@ -589,7 +589,7 @@ export default function IssueManager({ open, onClose, currentProject }) {
           {isAdmin && (
             <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
               <Typography variant="subtitle2" gutterBottom>
-                {t('issues.autonomyLevel')}
+                {t('issues:autonomyLevel')}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 {AUTONOMY_LABELS.map((al) => (

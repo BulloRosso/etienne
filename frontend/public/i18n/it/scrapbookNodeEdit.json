@@ -1,0 +1,17 @@
+{
+  "attentionWeight": "Peso attenzione: {{value}}%",
+  "clearIcon": "Rimuovi icona",
+  "clickToSelectIcon": "Clicca per selezionare un'icona",
+  "describeImage": "Descrivi immagine",
+  "dialogTitleAdd": "Aggiungi nuovo nodo",
+  "dialogTitleEdit": "Modifica nodo",
+  "icon": "Icona",
+  "images": "Immagini",
+  "noIconsFound": "Nessuna icona trovata. Prova un termine di ricerca diverso.",
+  "priority": "Priorità: {{value}}",
+  "searchIconsPlaceholder": "Cerca icone...",
+  "selectIconTitle": "Seleziona icona",
+  "title": "Titolo",
+  "uploadImage": "Carica immagine",
+  "uploading": "Caricamento..."
+}

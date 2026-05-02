@@ -20,7 +20,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
 
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["chatPane","common"]);
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const isAdmin = hasRole('admin');
@@ -212,7 +212,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         {/* Left: New Conversation Button */}
         <IconButton
           onClick={handleNewSession}
-          title={t('chatPane.startNewSession')}
+          title={t('chatPane:startNewSession')}
           sx={{ color: themeMode === 'dark' ? 'gold' : '#1976d2' }}
         >
           <RiChatNewLine size={19} />
@@ -243,7 +243,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           >
             <Box
               onClick={() => !isGuest && handleModeChange(null, 'plan')}
-              title={isGuest ? t('chatPane.planningModeGuestTooltip') : t('chatPane.planningMode')}
+              title={isGuest ? t('chatPane:planningModeGuestTooltip') : t('chatPane:planningMode')}
               sx={{
                 width: 29,
                 height: 29,
@@ -273,7 +273,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             </Box>
             <Box
               onClick={() => !isGuest && handleModeChange(null, 'work')}
-              title={isGuest ? t('chatPane.workModeGuestTooltip') : t('chatPane.workMode')}
+              title={isGuest ? t('chatPane:workModeGuestTooltip') : t('chatPane:workMode')}
               sx={{
                 width: 29,
                 height: 29,
@@ -303,7 +303,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             </Box>
           </Box>
           <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-            {mode === 'work' ? t('chatPane.workMode') : t('chatPane.planningMode')}
+            {mode === 'work' ? t('chatPane:workMode') : t('chatPane:planningMode')}
           </Box>
         </Box>
         )}
@@ -317,7 +317,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           {hasSessions && (
             <IconButton
               onClick={handleResumeSession}
-              title={t('chatPane.resumeSession')}
+              title={t('chatPane:resumeSession')}
               sx={{ color: themeMode === 'dark' ? '#fff' : '#333' }}
             >
               <PiCaretCircleDownLight size={24} />
@@ -328,7 +328,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           {isAdmin && (
             <IconButton
               onClick={() => setSettingsOpen(true)}
-              title={t('chatPane.settings')}
+              title={t('chatPane:settings')}
               sx={{ color: '#333' }}
             >
               <GiSettingsKnobs size={24} />
@@ -480,7 +480,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             p: 2,
             borderBottom: '1px solid #e0e0e0'
           }}>
-            <Typography variant="h6">{t('chatPane.settingsTitle')}</Typography>
+            <Typography variant="h6">{t('chatPane:settingsTitle')}</Typography>
             <IconButton onClick={() => setSettingsOpen(false)} size="small">
               <IoClose size={20} />
             </IconButton>
@@ -489,7 +489,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           {/* Modal Content */}
           <Box sx={{ p: 3 }}>
             <Typography variant="body1" sx={{ mb: 1 }}>
-              {t('chatPane.aiModel')}
+              {t('chatPane:aiModel')}
             </Typography>
             <ToggleButtonGroup
               value={aiModel}
@@ -511,10 +511,10 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
               }}
             >
               <ToggleButton value="anthropic">
-                {t('chatPane.anthropicClaude')}
+                {t('chatPane:anthropicClaude')}
               </ToggleButton>
               <ToggleButton value="alternative">
-                {t('chatPane.otherAiModel')}
+                {t('chatPane:otherAiModel')}
               </ToggleButton>
             </ToggleButtonGroup>
 
@@ -522,34 +522,34 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
             {aiModel === 'alternative' && (
               <Box sx={{ mb: 0, p: 0, borderRadius: 1 }}>
                 <TextField
-                  label={t('chatPane.modelName')}
+                  label={t('chatPane:modelName')}
                   value={altModelName}
                   onChange={(e) => setAltModelName(e.target.value)}
                   fullWidth
                   size="small"
                   sx={{ mb: 2 }}
-                  placeholder={t('chatPane.modelNamePlaceholder')}
+                  placeholder={t('chatPane:modelNamePlaceholder')}
                   InputLabelProps={{ shrink: true }}
                 />
                 <TextField
-                  label={t('chatPane.apiBaseUrl')}
+                  label={t('chatPane:apiBaseUrl')}
                   value={altModelBaseUrl}
                   onChange={(e) => setAltModelBaseUrl(e.target.value)}
                   fullWidth
                   size="small"
                   sx={{ mb: 2 }}
-                  placeholder={t('chatPane.apiBaseUrlPlaceholder')}
+                  placeholder={t('chatPane:apiBaseUrlPlaceholder')}
                   InputLabelProps={{ shrink: true }}
                 />
                 <TextField
-                  label={t('chatPane.tokenApiKey')}
+                  label={t('chatPane:tokenApiKey')}
                   value={altModelToken}
                   onChange={(e) => setAltModelToken(e.target.value)}
                   fullWidth
                   size="small"
                   type="password"
                   sx={{ mb: 2 }}
-                  placeholder={t('chatPane.tokenApiKeyPlaceholder')}
+                  placeholder={t('chatPane:tokenApiKeyPlaceholder')}
                   InputLabelProps={{ shrink: true }}
                 />
                 <Alert
@@ -561,13 +561,13 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                     '& .MuiAlert-icon': { color: '#856404' }
                   }}
                 >
-                  {t('chatPane.modelCompatibility')}
+                  {t('chatPane:modelCompatibility')}
                 </Alert>
               </Box>
             )}
 
             <Typography variant="body1" sx={{ mt:2, mb: 1 }}>
-              {t('chatPane.features')}
+              {t('chatPane:features')}
             </Typography>
             <FormControlLabel
               control={
@@ -583,13 +583,13 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                   }}
                 />
               }
-              label={t('chatPane.longTermMemory')}
+              label={t('chatPane:longTermMemory')}
               sx={{ mb: 1 }}
             />
 
             <Box sx={{ mb: 2, mt: 2 }}>
               <Typography variant="body1" sx={{ mb: 1 }}>
-                {t('chatPane.maxAgenticLoops')}
+                {t('chatPane:maxAgenticLoops')}
               </Typography>
               <TextField
                 type="number"
@@ -602,12 +602,12 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                 size="small"
                 sx={{ width: "180px" }}
                 inputProps={{ min: 0, step: 1 }}
-                helperText={t('chatPane.maxTurnsHelper')}
+                helperText={t('chatPane:maxTurnsHelper')}
               />
             </Box>
 
             <Typography variant="body1" sx={{ mb: 1, mt: 2 }}>
-              {t('chatPane.displayOptions')}
+              {t('chatPane:displayOptions')}
             </Typography>
             <FormControlLabel
               control={
@@ -620,7 +620,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
                   }}
                 />
               }
-              label={t('chatPane.showBackgroundInfo')}
+              label={t('chatPane:showBackgroundInfo')}
             />
           </Box>
 

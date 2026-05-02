@@ -1,0 +1,21 @@
+{
+  "curlExample": "cURL 示例",
+  "dedicatedEndpoint": "专用 Webhook 端点（推荐）",
+  "dedicatedEndpointDesc": "直接 POST 任意 JSON 负载——将自动包装为 Webhook 事件：",
+  "description": "从外部系统向此项目 POST 数据/文件。在基础版本中端点是开放的，建议添加请求头身份验证。",
+  "fileStorageDesc": "上传的文件保存到项目的 <code>webhook/</code> 目录中，同名文件将被覆盖：",
+  "fileStorageLocation": "文件存储位置",
+  "fileUploadTitle": "Webhook 文件上传格式",
+  "generalEndpoint": "通用事件端点",
+  "generalEndpointDesc": "POST 带有明确分组和名称的结构化事件：",
+  "jsonFormatTitle": "Webhook JSON 格式",
+  "matchFieldsAlert": "使用 <code>payload.command:remove</code> 或 <code>payload.priority:high</code> 匹配字段",
+  "matchFilesAlert": "使用 <code>payload.fileCount:2</code> 匹配文件或在提示词中检查特定文件",
+  "multipartFormData": "包含文件的 Multipart 表单数据",
+  "multipartFormDataDesc": "使用 <code>multipart/form-data</code> 上传文件和 JSON 元数据：",
+  "promptContextDesc": "当 Webhook 事件触发规则时，完整的 JSON 负载将被添加到您的操作提示词前面：",
+  "promptContextInjection": "提示词上下文注入",
+  "resultingPayload": "生成的事件负载",
+  "resultingPayloadDesc": "事件负载结合了您的 JSON 描述和文件元数据：",
+  "webhookUrl": "Webhook URL"
+}

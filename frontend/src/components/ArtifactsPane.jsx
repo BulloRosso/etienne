@@ -37,7 +37,7 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function ArtifactsPane({ files, projectName, sessionId, showBackgroundInfo, projectExists = true, onClearPreview, onCloseTab, previewersConfig, autoFilePreviewExtensions, onUpdateViewerState }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["artifacts"]);
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
   const { isMinimalistic } = useUxMode();
@@ -144,15 +144,15 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : undefined }}>
       <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider', backgroundColor: themeMode === 'dark' ? '#383838' : undefined }}>
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ flex: 1, '& .MuiTab-root': { textTransform: 'none' } }}>
-          <Tab label={t('artifacts.tabArtifacts')} />
-          {projectExists && !isMinimalistic && <Tab label={t('artifacts.tabRole')} />}
-          {projectExists && isUser && <Tab label={t('artifacts.tabMission')} />}
-          {projectExists && isAdmin && <Tab label={t('artifacts.tabPermissions')} />}
-          {projectExists && isAdmin && <Tab label={t('artifacts.tabConnectivity')} />}
-          {projectExists && isAdmin && <Tab label={t('artifacts.tabObservability')} />}
+          <Tab label={t('artifacts:tabArtifacts')} />
+          {projectExists && !isMinimalistic && <Tab label={t('artifacts:tabRole')} />}
+          {projectExists && isUser && <Tab label={t('artifacts:tabMission')} />}
+          {projectExists && isAdmin && <Tab label={t('artifacts:tabPermissions')} />}
+          {projectExists && isAdmin && <Tab label={t('artifacts:tabConnectivity')} />}
+          {projectExists && isAdmin && <Tab label={t('artifacts:tabObservability')} />}
         </Tabs>
         {guardrailsEnabled && projectExists && (
-          <Tooltip title={t('artifacts.tooltipGuardrails')}>
+          <Tooltip title={t('artifacts:tooltipGuardrails')}>
             <IconButton
               onClick={() => setGuardrailsModalOpen(true)}
               sx={{ mr: 1, color: '#c62828' }}
@@ -162,7 +162,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
           </Tooltip>
         )}
         {memoryEnabled && projectExists && (
-          <Tooltip title={t('artifacts.tooltipMemory')}>
+          <Tooltip title={t('artifacts:tooltipMemory')}>
             <IconButton
               onClick={() => setMemoryDrawerOpen(true)}
               sx={{ mr: 1, color: '#4caf50' }}
@@ -179,7 +179,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
           </>
         )}
         {projectExists && (
-          <Tooltip title={t('artifacts.tooltipFilesystem')}>
+          <Tooltip title={t('artifacts:tooltipFilesystem')}>
             <IconButton
               onClick={() => setFilesystemDrawerOpen(true)}
               sx={{ mr: '12px' }}
@@ -246,8 +246,8 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
             onChange={(e, newValue) => setFilesystemTabValue(newValue)}
             sx={{ borderBottom: 1, borderColor: 'divider' }}
           >
-            <Tab label={t('artifacts.tabFiles')} />
-            {checkpointsEnabled && <Tab label={t('artifacts.tabCheckpoints')} />}
+            <Tab label={t('artifacts:tabFiles')} />
+            {checkpointsEnabled && <Tab label={t('artifacts:tabCheckpoints')} />}
           </Tabs>
           <Box sx={{ flex: 1, overflow: 'auto' }}>
             {filesystemTabValue === 0 && (

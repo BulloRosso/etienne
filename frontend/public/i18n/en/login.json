@@ -1,0 +1,8 @@
+{
+  "errorDefault": "Login failed. Please check your credentials.",
+  "password": "Password",
+  "rememberMe": "Remember me on this computer",
+  "subtitle": "Enter your credentials to access the application",
+  "title": "Sign In",
+  "username": "Username"
+}

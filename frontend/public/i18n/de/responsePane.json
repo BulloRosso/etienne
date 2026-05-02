@@ -1,0 +1,6 @@
+{
+  "modelResponse": "Modellantwort",
+  "noSession": "Keine Sitzung",
+  "session": "Sitzung: {{sessionId}}",
+  "title": "Modellantwort"
+}

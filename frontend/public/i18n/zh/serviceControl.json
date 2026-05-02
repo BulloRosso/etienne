@@ -1,0 +1,9 @@
+{
+  "backendConfiguration": "后端配置",
+  "codingAgentConfig": "编码智能体配置",
+  "configurationSettings": "配置设置",
+  "failedToAction": "{{action}} {{displayName}} 失败：{{message}}",
+  "start": "启动",
+  "stop": "停止",
+  "title": "服务控制"
+}
