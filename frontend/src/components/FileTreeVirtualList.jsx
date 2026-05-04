@@ -44,6 +44,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   onToggleExpand,
   onToggleSelection,
   onContextMenu,
+  onFileDoubleClick,
   onDragStartRow,
   onDragEnterRow,
   onDragOverRow,
@@ -51,6 +52,7 @@ const FileTreeRow = React.memo(function FileTreeRow({
   onDragLeaveRow,
 }) {
   const { t } = useTranslation(["fileTreeVirtualList"]);
+  const clickTimerRef = useRef(null);
   const nodeTags = fileTags[row.path] || [];
   const hasReleaseComment = releaseComments && !!releaseComments[row.path];
   const isIndexed = indexedPaths && indexedPaths.has(row.path);
@@ -91,13 +93,30 @@ const FileTreeRow = React.memo(function FileTreeRow({
         e.stopPropagation();
         if (selectionMode) {
           onToggleSelection(row.path);
+          return;
+        }
+        // For files with a double-click handler, delay the context menu
+        // so a quick double-click opens the preview without flashing the menu
+        if (row.type !== 'folder' && onFileDoubleClick) {
+          const coords = { clientX: e.clientX, clientY: e.clientY };
+          clearTimeout(clickTimerRef.current);
+          clickTimerRef.current = setTimeout(() => {
+            const evt = { ...coords, preventDefault() {}, stopPropagation() {} };
+            onContextMenu(evt, row);
+          }, 250);
         } else {
           onContextMenu(e, row);
         }
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        if (row.type === 'folder') onToggleExpand(row.id);
+        if (selectionMode) return;
+        clearTimeout(clickTimerRef.current);
+        if (row.type === 'folder') {
+          onToggleExpand(row.id);
+        } else if (onFileDoubleClick) {
+          onFileDoubleClick(row);
+        }
       }}
       onDragStart={(e) => onDragStartRow(e, row)}
       onDragEnter={(e) => onDragEnterRow(e, row)}
@@ -255,6 +274,7 @@ export default function FileTreeVirtualList({
   onToggleExpand,
   onToggleSelection,
   onContextMenu,
+  onFileDoubleClick,
   onDrop,
   onDropExternal,
   onDropToRoot,
@@ -446,6 +466,7 @@ export default function FileTreeVirtualList({
             onToggleExpand={onToggleExpand}
             onToggleSelection={onToggleSelection}
             onContextMenu={onContextMenu}
+            onFileDoubleClick={onFileDoubleClick}
             onDragStartRow={handleDragStartRow}
             onDragEnterRow={handleDragEnterRow}
             onDragOverRow={handleDragOverRow}

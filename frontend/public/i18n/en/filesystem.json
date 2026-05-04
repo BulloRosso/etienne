@@ -36,5 +36,7 @@
   "selectedCount": "{{count}} selected",
   "showSystemFiles": "Show System Files",
   "uploadGuestTooltip": "Upload (Not available for guests)",
-  "uploadToFolder": "Upload to folder"
+  "uploadToFolder": "Upload to folder",
+  "noPreviewerTitle": "No Previewer Available",
+  "noPreviewerMessage": "No previewer configured. Please use the previewer manager as admin."
 }

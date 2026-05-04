@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography, IconButton, Tooltip, Dialog, DialogTitle, DialogContent } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { AppRenderer } from '@mcp-ui/client';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { UI_EXTENSION_CAPABILITIES } from '@mcp-ui/client';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { BiTransfer } from 'react-icons/bi';
+import { IoClose } from 'react-icons/io5';
+import { JSONTree } from 'react-json-tree';
 
 const SANDBOX_PROXY_URL = new URL('/sandbox-proxy', window.location.origin);
 
@@ -28,6 +31,8 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
   const [error, setError] = useState(null);
   const [connecting, setConnecting] = useState(true);
   const [iframeHeight, setIframeHeight] = useState(500);
+  const [viewerState, setViewerState] = useState(null);
+  const [statusOpen, setStatusOpen] = useState(false);
   const { mode: themeMode } = useThemeMode();
   const clientRef = useRef(null);
 
@@ -97,16 +102,67 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
     };
   }, [mcpGroup, mcpToolName, filename, content]);
 
+  // Register this viewer immediately so the model knows it's open (even without selection)
+  useEffect(() => {
+    if (toolResult && onViewerStateChange) {
+      onViewerStateChange({ selectedItems: [] });
+    }
+    // On unmount, clear the viewer state
+    return () => { onViewerStateChange?.(null); };
+  }, [toolResult]);
+
   // Listen for viewer state updates from the MCP App iframe (via postMessage)
   useEffect(() => {
     const handler = (event) => {
-      if (event.data?.type === 'viewer-state-update' && onViewerStateChange) {
-        onViewerStateChange(event.data.state);
+      if (event.data?.type === 'viewer-state-update') {
+        setViewerState(event.data.state);
+        onViewerStateChange?.(event.data.state);
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [onViewerStateChange]);
+
+  // Listen for viewer commands from the model (dispatched by App.jsx when a tool
+  // with _action in its result completes). Forward these to the MCP App iframe
+  // so the running UI can react (e.g. change selection state).
+  const iframeRef = useRef(null);
+  useEffect(() => {
+    const handler = (event) => {
+      const { toolName, action, payload } = event.detail || {};
+      // Only forward commands that target this viewer's MCP group
+      if (!toolName) return;
+      const isOurTool = toolName.startsWith(`mcp__${mcpGroup}__`);
+      if (!isOurTool) return;
+
+      // Find the iframe rendered by AppRenderer and post the command
+      const iframe = iframeRef.current?.querySelector('iframe');
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'viewer-command',
+          action,
+          payload,
+        }, '*');
+      }
+    };
+    window.addEventListener('mcp-viewer-command', handler);
+    return () => window.removeEventListener('mcp-viewer-command', handler);
+  }, [mcpGroup, mcpToolName]);
+
+  // Style the AppRenderer iframe for minimal scrollbar once it appears
+  useEffect(() => {
+    if (!iframeRef.current) return;
+    const observer = new MutationObserver(() => {
+      const iframe = iframeRef.current?.querySelector('iframe');
+      if (iframe) {
+        iframe.style.scrollbarWidth = 'none';
+        iframe.style.overflow = 'hidden';
+        observer.disconnect();
+      }
+    });
+    observer.observe(iframeRef.current, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [client]);
 
   const handleSizeChanged = useCallback((params) => {
     if (params.height) {
@@ -155,18 +211,32 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
 
   if (!client) return null;
 
+  const debugState = {
+    mcpGroup,
+    mcpToolName,
+    filename,
+    connecting,
+    sessionId: clientRef.current?.transport?.sessionId ?? null,
+    hasClient: !!client,
+    hasToolResult: !!toolResult,
+    toolResult,
+    viewerState,
+    error: error ? (error.message || String(error)) : null,
+    iframeHeight,
+  };
+
+  const jsonTreeTheme = themeMode === 'dark'
+    ? { scheme: 'monokai', base00: 'transparent' }
+    : { scheme: 'rjv-default', base00: 'transparent', base0B: '#2e7d32', base0D: '#1565c0', base09: '#c62828', base03: '#666' };
+
   // Find the resource URI from the tool's metadata
   // We pass it as toolResourceUri so AppRenderer knows which resource to fetch
   return (
-    <Box sx={{
+    <Box ref={iframeRef} sx={{
       width: '100%',
-      height: `${iframeHeight}px`,
-      minHeight: '200px',
-      maxHeight: '800px',
-      border: '1px solid',
-      borderColor: themeMode === 'dark' ? '#555' : '#eee',
-      borderRadius: '8px',
+      height: '100%',
       overflow: 'hidden',
+      position: 'relative',
     }}>
       <AppRenderer
         client={client}
@@ -182,6 +252,44 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
           platform: 'web',
         }}
       />
+      <Tooltip title="MCP UI Status">
+        <IconButton
+          size="small"
+          onClick={() => setStatusOpen(true)}
+          sx={{
+            position: 'absolute',
+            bottom: 4,
+            left: 4,
+            bgcolor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+            '&:hover': { bgcolor: themeMode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)' },
+            zIndex: 1,
+          }}
+        >
+          <BiTransfer size={16} />
+        </IconButton>
+      </Tooltip>
+      <Dialog open={statusOpen} onClose={() => setStatusOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+          MCP UI Status
+          <IconButton size="small" onClick={() => setStatusOpen(false)}>
+            <IoClose size={18} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{
+          overflow: 'auto',
+          maxHeight: 450,
+          '& ul > li > ul > li': { borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '4px' },
+          '& ul > li > ul > li:last-child': { borderBottom: 'none', mb: 0, pb: 0 },
+        }}>
+          <JSONTree
+            data={debugState}
+            theme={jsonTreeTheme}
+            invertTheme={false}
+            hideRoot
+            shouldExpandNodeInitially={(keyPath, data, level) => level < 2}
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

@@ -36,5 +36,7 @@
   "selectedCount": "{{count}} selezionati",
   "showSystemFiles": "Mostra file di sistema",
   "uploadGuestTooltip": "Carica (Non disponibile per gli ospiti)",
-  "uploadToFolder": "Carica nella cartella"
+  "uploadToFolder": "Carica nella cartella",
+  "noPreviewerTitle": "Nessun previewer disponibile",
+  "noPreviewerMessage": "Nessun previewer configurato. Utilizzare il gestore dei previewer come amministratore."
 }

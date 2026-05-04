@@ -33,6 +33,7 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^16.5.4",
     "react-icons": "^5.5.0",
+    "react-json-tree": "^0.20.0",
     "vis-network": "^10.0.2",
     "x-data-spreadsheet": "^1.1.9",
     "xlsx": "^0.18.5",

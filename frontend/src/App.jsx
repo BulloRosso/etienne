@@ -1700,6 +1700,27 @@ export default function App() {
           }];
         }
       });
+
+      // Forward UI action commands to active viewer iframes via custom event.
+      // Tools with _action in their result (e.g. select_budget_items) are meant
+      // to manipulate the state of a running MCP App viewer.
+      if (data.status === 'complete' && data.result) {
+        try {
+          let resultObj = data.result;
+          // Unwrap MCP CallToolResult format: { content: [{ type: 'text', text: '...' }] }
+          if (resultObj?.content && Array.isArray(resultObj.content)) {
+            const textBlock = resultObj.content.find(c => c.type === 'text');
+            if (textBlock?.text) resultObj = JSON.parse(textBlock.text);
+          }
+          // Also handle plain string result
+          if (typeof resultObj === 'string') resultObj = JSON.parse(resultObj);
+          if (resultObj?._action) {
+            window.dispatchEvent(new CustomEvent('mcp-viewer-command', {
+              detail: { toolName: data.toolName, action: resultObj._action, payload: resultObj },
+            }));
+          }
+        } catch { /* ignore parse errors */ }
+      }
     });
 
     // Listen for thinking/reasoning events (Codex reasoning items)

@@ -36,5 +36,7 @@
   "selectedCount": "{{count}} ausgewählt",
   "showSystemFiles": "Systemdateien anzeigen",
   "uploadGuestTooltip": "Hochladen (Für Gäste nicht verfügbar)",
-  "uploadToFolder": "In Ordner hochladen"
+  "uploadToFolder": "In Ordner hochladen",
+  "noPreviewerTitle": "Kein Previewer verfügbar",
+  "noPreviewerMessage": "Kein Previewer konfiguriert. Bitte verwenden Sie den Previewer-Manager als Administrator."
 }

@@ -24,7 +24,7 @@ async function bootstrap() {
     ? true   // allow any origin (only localhost can reach :6060)
     : (process.env.FOUNDRY_FRONTEND_ORIGIN || 'http://localhost:5000');
   const app = await NestFactory.create(AppModule, {
-    cors: { origin: corsOrigin, credentials: true },
+    cors: { origin: corsOrigin, credentials: true, exposedHeaders: ['mcp-session-id'] },
     bodyParser: false,
   });
   const bodyParser = require('body-parser');

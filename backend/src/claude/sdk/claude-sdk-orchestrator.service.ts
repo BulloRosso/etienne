@@ -262,11 +262,13 @@ export class ClaudeSdkOrchestratorService {
             this.logger.log(`🏷️ Injected context scope into prompt for session ${sessionId}`);
           }
 
-          // Viewer state injection — selected items from open previewers
+          // Viewer state injection — open previewers and their selection state
           if (viewerState && viewerState.length > 0) {
             const stateBlocks = viewerState.map((vs: any) => {
               const lines: string[] = [];
               lines.push(`<viewer-selection file="${vs.path}" viewer="${vs.viewerName || 'unknown'}">`);
+              lines.push(`An interactive "${vs.viewerName || 'unknown'}" viewer is currently open for this file.`);
+              lines.push(`You can manipulate this viewer using tools prefixed with mcp__${vs.viewerName}__ (e.g. select items, highlight, filter).`);
               if (vs.selectedItems?.length > 0) {
                 lines.push(`The user has SELECTED the following ${vs.selectedItems.length} item(s) in the UI:`);
                 vs.selectedItems.forEach((i: any, idx: number) => {
@@ -274,13 +276,13 @@ export class ClaudeSdkOrchestratorService {
                 });
                 lines.push(`These are the ONLY items the user is referring to when they say "selected items". Do NOT treat unselected items as selected.`);
               } else {
-                lines.push(`No items are currently selected.`);
+                lines.push(`No items are currently selected in the viewer.`);
               }
               lines.push(`</viewer-selection>`);
               return lines.join('\n');
             }).join('\n\n');
             finalPrompt = `${stateBlocks}\n\n${finalPrompt}`;
-            this.logger.log(`🖱️ Injected viewer state: ${viewerState.length} viewer(s) with selections`);
+            this.logger.log(`🖱️ Injected viewer state: ${viewerState.length} viewer(s)`);
           }
         } catch (error: any) {
           this.logger.error('Failed to inject context:', error.message);

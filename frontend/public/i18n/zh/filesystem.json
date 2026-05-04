@@ -36,5 +36,7 @@
   "selectedCount": "已选择 {{count}} 项",
   "showSystemFiles": "显示系统文件",
   "uploadGuestTooltip": "上传（访客不可用）",
-  "uploadToFolder": "上传到文件夹"
+  "uploadToFolder": "上传到文件夹",
+  "noPreviewerTitle": "没有可用的预览器",
+  "noPreviewerMessage": "未配置预览器。请以管理员身份使用预览器管理器。"
 }

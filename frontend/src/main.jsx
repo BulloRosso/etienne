@@ -1,3 +1,12 @@
+// Suppress noisy "Ignoring message from unknown source" console.error from
+// @mcp-ui/client's PostMessageClientTransport — triggered by browser extensions
+// (e.g. React DevTools) sending postMessage events on the window.
+const _origConsoleError = console.error;
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0] === 'Ignoring message from unknown source') return;
+  _origConsoleError.apply(console, args);
+};
+
 import { Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';

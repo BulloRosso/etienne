@@ -15,8 +15,12 @@ export class McpAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers.authorization;
 
-    // Check if Authorization header exists
+    // Allow unauthenticated requests from localhost (internal SDK calls)
     if (!authHeader) {
+      const host = request.hostname || request.headers.host || '';
+      if (host === 'localhost' || host.startsWith('127.0.0.1') || host.startsWith('::1')) {
+        return true;
+      }
       throw new UnauthorizedException('Missing Authorization header');
     }
 

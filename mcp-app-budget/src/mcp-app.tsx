@@ -38,7 +38,12 @@ const COLORS = [
 function extractJson<T>(result: CallToolResult): T {
   const textContent = result.content?.find((c) => c.type === "text");
   if (!textContent || textContent.type !== "text") throw new Error("No text in result");
-  return JSON.parse(textContent.text) as T;
+  let parsed = JSON.parse(textContent.text);
+  // Unwrap double-wrapped MCP format: [{ type: 'text', text: '...' }]
+  if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.type === 'text' && parsed[0]?.text) {
+    parsed = JSON.parse(parsed[0].text);
+  }
+  return parsed as T;
 }
 
 function formatAmount(amount: number, currency: string): string {
@@ -67,22 +72,15 @@ function postSelectionToHost(items: BudgetItem[], selectedIndices: Set<number>) 
 
 // ─── Donut Chart ─────────────────────────────────────────────────────────────
 
-function DonutChart({ items }: { items: BudgetItem[] }) {
+function DonutChart({ items, selectedSet, onToggleSelect, onSetSelection }: {
+  items: BudgetItem[];
+  selectedSet: Set<number>;
+  onToggleSelect: (idx: number) => void;
+  onSetSelection: (indices: Set<number>) => void;
+}) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [selectedSet, setSelectedSet] = useState<Set<number>>(new Set());
   const total = items.reduce((sum, i) => sum + i.amount, 0);
   const currency = items[0]?.currency || "EUR";
-
-  const toggleSelect = useCallback((idx: number) => {
-    setSelectedSet(prev => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      // Report selection change to host
-      postSelectionToHost(items, next);
-      return next;
-    });
-  }, [items]);
 
   // Build arc segments
   const cx = 100, cy = 100, r = 70, strokeWidth = 30;
@@ -113,7 +111,7 @@ function DonutChart({ items }: { items: BudgetItem[] }) {
       {selectedCount > 0 && (
         <div className={s.selectionBar}>
           {selectedCount} item{selectedCount > 1 ? "s" : ""} selected — {formatAmount(selectedTotal, currency)}
-          <button className={s.clearBtn} onClick={() => { setSelectedSet(new Set()); postSelectionToHost(items, new Set()); }}>
+          <button className={s.clearBtn} onClick={() => { onSetSelection(new Set()); postSelectionToHost(items, new Set()); }}>
             Clear
           </button>
         </div>
@@ -144,8 +142,10 @@ function DonutChart({ items }: { items: BudgetItem[] }) {
                 style={{ transition: "stroke-width 0.15s, opacity 0.15s", cursor: "pointer" }}
                 onMouseEnter={() => setHoveredIdx(seg.idx)}
                 onMouseLeave={() => setHoveredIdx(null)}
-                onClick={() => toggleSelect(seg.idx)}
-              />
+                onClick={() => onToggleSelect(seg.idx)}
+              >
+                <title>{seg.item.item} — {formatAmount(seg.item.amount, seg.item.currency)} ({(seg.pct * 100).toFixed(1)}%)</title>
+              </circle>
             );
           })}
 
@@ -169,7 +169,7 @@ function DonutChart({ items }: { items: BudgetItem[] }) {
               className={`${s.legendItem} ${hoveredIdx === seg.idx ? s.legendItemHover : ""} ${isSelected ? s.legendItemSelected : ""}`}
               onMouseEnter={() => setHoveredIdx(seg.idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              onClick={() => toggleSelect(seg.idx)}
+              onClick={() => onToggleSelect(seg.idx)}
             >
               <span className={s.legendCheck}>{isSelected ? "✓" : ""}</span>
               <span className={s.legendDot} style={{ backgroundColor: seg.color, opacity: selectedSet.size > 0 && !isSelected ? 0.35 : 1 }} />
@@ -189,6 +189,16 @@ function DonutChart({ items }: { items: BudgetItem[] }) {
 function BudgetApp() {
   const [toolResult, setToolResult] = useState<CallToolResult | null>(null);
   const [_hostContext, setHostContext] = useState<McpUiHostContext | undefined>();
+  const [selectedSet, setSelectedSet] = useState<Set<number>>(new Set());
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+
+  // Ref to dispatch commands without re-creating the useApp callback
+  const commandDispatchRef = useCallback((payload: any) => {
+    // Dispatch as a message event that the viewer-command listener picks up
+    window.dispatchEvent(new MessageEvent('message', {
+      data: { type: 'viewer-command', action: payload._action, payload },
+    }));
+  }, []);
 
   const { app, error } = useApp({
     appInfo: { name: "Budget Donut Chart", version: "1.0.0" },
@@ -196,7 +206,24 @@ function BudgetApp() {
     onAppCreated: (app) => {
       app.onteardown = async () => ({});
       app.ontoolinput = async () => {};
-      app.ontoolresult = async (result) => setToolResult(result);
+      app.ontoolresult = async (result) => {
+        // Check if this is an action command (not data to render)
+        try {
+          const textContent = result.content?.find((c: any) => c.type === "text");
+          if (textContent && textContent.type === "text") {
+            let parsed = JSON.parse(textContent.text);
+            // Unwrap double-wrapped MCP format: [{ type: 'text', text: '...' }]
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.type === 'text' && parsed[0]?.text) {
+              parsed = JSON.parse(parsed[0].text);
+            }
+            if (parsed?._action) {
+              commandDispatchRef(parsed);
+              return; // Don't overwrite budget data
+            }
+          }
+        } catch { /* not an action — treat as data */ }
+        setToolResult(result);
+      };
       app.ontoolcancelled = () => {};
       app.onerror = console.error;
       app.onhostcontextchanged = (params) =>
@@ -208,28 +235,97 @@ function BudgetApp() {
     if (app) setHostContext(app.getHostContext());
   }, [app]);
 
+  // Listen for viewer commands from the host (model-driven state changes)
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type !== 'viewer-command') return;
+      const { action, payload } = event.data;
+
+      if (action === 'select' && budgetItems.length > 0) {
+        const mode: string = payload?.mode || 'replace';
+        let targetIndices: number[] = [];
+
+        // Resolve indices from item labels
+        if (payload?.items && Array.isArray(payload.items)) {
+          targetIndices = payload.items
+            .map((label: string) => budgetItems.findIndex(b => b.item === label))
+            .filter((i: number) => i >= 0);
+        }
+        // Resolve from explicit indices
+        if (payload?.indices && Array.isArray(payload.indices)) {
+          targetIndices = [...targetIndices, ...payload.indices.filter((i: number) => i >= 0 && i < budgetItems.length)];
+        }
+
+        setSelectedSet(prev => {
+          let next: Set<number>;
+          switch (mode) {
+            case 'add':
+              next = new Set([...prev, ...targetIndices]);
+              break;
+            case 'remove':
+              next = new Set([...prev].filter(i => !targetIndices.includes(i)));
+              break;
+            case 'clear':
+              next = new Set();
+              break;
+            case 'replace':
+            default:
+              next = new Set(targetIndices);
+              break;
+          }
+          postSelectionToHost(budgetItems, next);
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [budgetItems]);
+
+  // Toggle selection (user click)
+  const handleToggleSelect = useCallback((idx: number) => {
+    setSelectedSet(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      postSelectionToHost(budgetItems, next);
+      return next;
+    });
+  }, [budgetItems]);
+
+  // Parse budget data from tool result
+  const data: BudgetData | null = (() => {
+    if (!toolResult) return null;
+    try {
+      const parsed = extractJson<BudgetData>(toolResult);
+      return parsed?.budget?.length > 0 ? parsed : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Keep budgetItems in sync for the message handler
+  useEffect(() => {
+    if (data?.budget && data.budget.length > 0) {
+      setBudgetItems(data.budget);
+    }
+  }, [data?.budget?.length, toolResult]);
+
   if (error) return <div className={s.error}>Error: {error.message}</div>;
   if (!app) return <div className={s.loading}><span className={s.spinner} /> Connecting...</div>;
-
-  if (!toolResult) {
-    return <div className={s.loading}>Waiting for budget data...</div>;
-  }
-
-  let data: BudgetData;
-  try {
-    data = extractJson<BudgetData>(toolResult);
-  } catch {
-    return <div className={s.error}>Failed to parse budget data</div>;
-  }
-
-  if (!data.budget || data.budget.length === 0) {
-    return <div className={s.loading}>No budget items found</div>;
-  }
+  if (!toolResult) return <div className={s.loading}>Waiting for budget data...</div>;
+  if (!data) return <div className={s.error}>Failed to parse budget data</div>;
 
   return (
     <div className={s.main}>
       <h2 className={s.title}>Budget Overview</h2>
-      <DonutChart items={data.budget} />
+      <DonutChart
+        items={data.budget}
+        selectedSet={selectedSet}
+        onToggleSelect={handleToggleSelect}
+        onSetSelection={(next) => { setSelectedSet(next); postSelectionToHost(data.budget, next); }}
+      />
     </div>
   );
 }

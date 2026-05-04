@@ -24,3 +24,24 @@ html, body {
   color: var(--color-text-primary);
   background: var(--color-background-primary);
 }
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-primary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+* {
+  scrollbar-width: thin;
+}

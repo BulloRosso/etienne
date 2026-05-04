@@ -41,7 +41,7 @@ import { flattenTree, getTagColor } from './fileTreeModel';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import OfferGeneratorModal from './OfferGeneratorModal';
-import { getContextMenuActions, buildExtensionMap } from './viewerRegistry';
+import { getContextMenuActions, buildExtensionMap, getViewerForFile } from './viewerRegistry';
 
 /**
  * Registry of modal components that can be opened from context menu actions.
@@ -86,6 +86,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
   const [selectedTags, setSelectedTags] = useState([]);
   const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, row: null, filePath: '' });
   const [contextMenuModal, setContextMenuModal] = useState({ open: false, component: null, props: {} });
+  const [noPreviewerDialog, setNoPreviewerDialog] = useState(false);
 
   // ── Copy-to-project selection mode ──
   const [selectionMode, setSelectionMode] = useState(false);
@@ -302,6 +303,17 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
   }, []);
 
   const extensionMap = useMemo(() => buildExtensionMap(previewersConfig), [previewersConfig]);
+
+  // ── Double-click preview ──
+  const handleFileDoubleClick = useCallback((row) => {
+    if (!row || row.type === 'folder') return;
+    const viewerName = getViewerForFile(row.path, extensionMap);
+    if (viewerName) {
+      filePreviewHandler.handlePreview(row.path, projectName);
+    } else {
+      setNoPreviewerDialog(true);
+    }
+  }, [extensionMap, projectName]);
 
   /**
    * Resolve a param source to a value from the file context.
@@ -646,6 +658,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
         onToggleExpand={handleToggleExpand}
         onToggleSelection={handleToggleSelection}
         onContextMenu={handleContextMenu}
+        onFileDoubleClick={handleFileDoubleClick}
         onDrop={handleDrop}
         onDropExternal={handleDropExternal}
         onDropToRoot={handleDropToRoot}
@@ -903,6 +916,19 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
             disabled={!destinationProject || copying}
           >
             {copying ? t('filesystem:copying') : t('common.copy')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── No Previewer Dialog ── */}
+      <Dialog open={noPreviewerDialog} onClose={() => setNoPreviewerDialog(false)}>
+        <DialogTitle>{t('filesystem:noPreviewerTitle')}</DialogTitle>
+        <DialogContent>
+          <Typography>{t('filesystem:noPreviewerMessage')}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNoPreviewerDialog(false)} variant="contained">
+            {t('common.ok')}
           </Button>
         </DialogActions>
       </Dialog>

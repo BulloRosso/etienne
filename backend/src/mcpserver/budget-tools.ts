@@ -37,6 +37,34 @@ const tools: McpTool[] = [
       },
     },
   } as McpTool & { _meta?: any },
+  {
+    name: 'select_budget_items',
+    description: 'Programmatically select or deselect items in the currently displayed Budget Donut Chart. Use this to highlight specific budget items for the user. Accepts item labels (names) or numeric indices.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'Array of item labels (strings) to select. Use exact item names from the budget (e.g. "Groceries", "Car & Transport").',
+        },
+        indices: {
+          type: 'array',
+          description: 'Array of numeric indices (0-based) to select. Alternative to item labels.',
+        },
+        mode: {
+          type: 'string',
+          description: 'Selection mode: "replace" (default) clears existing selection and selects specified items, "add" adds to current selection, "remove" removes from current selection, "clear" deselects all.',
+          enum: ['replace', 'add', 'remove', 'clear'],
+        },
+      },
+    },
+    _meta: {
+      ui: {
+        resourceUri: BUDGET_RESOURCE_URI,
+        action: 'select',
+      },
+    },
+  } as McpTool & { _meta?: any },
 ];
 
 /**
@@ -68,6 +96,17 @@ export function createBudgetToolsService(): ToolService {
         // so the MCP App UI can render the donut chart.
         const parsed = JSON.parse(args.content);
         return parsed;
+      }
+
+      case 'select_budget_items': {
+        // Return the selection command as structured data.
+        // The frontend host will forward this to the MCP App iframe via postMessage.
+        return {
+          _action: 'select',
+          items: args.items || null,
+          indices: args.indices || null,
+          mode: args.mode || 'replace',
+        };
       }
 
       default:
