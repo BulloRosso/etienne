@@ -115,8 +115,8 @@ export const VIEWER_COMPONENTS = {
   imap: (file, projectName) => (
     <IMAPInboxViewer servicePath={file.path} projectName={projectName} />
   ),
-  gantt: (file, projectName) => (
-    <GanttDiagram filename={file.path} projectName={projectName} />
+  gantt: (file, projectName, onViewerStateChange) => (
+    <GanttDiagram filename={file.path} projectName={projectName} onViewerStateChange={onViewerStateChange} />
   ),
 };
 

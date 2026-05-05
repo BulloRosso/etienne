@@ -174,7 +174,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
             border: 0,
           }}
         >
-          {renderFn(file, projectName)}
+          {renderFn(file, projectName, (state) => onUpdateViewerState?.(file.path, { viewerName, ...state }))}
         </Box>
       );
     }

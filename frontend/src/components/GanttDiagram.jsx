@@ -11,6 +11,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import * as d3 from 'd3';
 import {
@@ -239,7 +240,7 @@ function addUserEdit(existing = [], taskId, field, oldValue, newValue) {
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export default function GanttDiagram({ filename, projectName }) {
+export default function GanttDiagram({ filename, projectName, onViewerStateChange }) {
   const { t } = useTranslation(['ganttDiagram']);
   const { mode: themeMode } = useThemeMode();
   const isDark = themeMode === 'dark';
@@ -280,7 +281,9 @@ export default function GanttDiagram({ filename, projectName }) {
   // Refs
   const svgRef = useRef(null);
   const containerRef = useRef(null);
+  const labelsPanelRef = useRef(null);
   const saveTimerRef = useRef(null);
+  const scrollPosRef = useRef({ left: 0, top: 0, labelsTop: 0 });
   const [containerWidth, setContainerWidth] = useState(900);
 
   // Flat task list
@@ -567,10 +570,37 @@ export default function GanttDiagram({ filename, projectName }) {
     return () => window.removeEventListener('claudeHook', handler);
   }, [filename]);
 
+  /* ---- Report viewer state for prompt injection ------------------ */
+
+  useEffect(() => {
+    if (!onViewerStateChange) return;
+    const edits = ganttData?.userEdited;
+    if (edits && edits.length > 0) {
+      onViewerStateChange({ userEdited: edits });
+    } else {
+      onViewerStateChange(null);
+    }
+  }, [ganttData?.userEdited, onViewerStateChange]);
+
+  /* ---- Manual save ----------------------------------------------- */
+
+  const handleManualSave = useCallback(() => {
+    if (ganttData) saveData(ganttData);
+  }, [ganttData, saveData]);
+
   /* ---- D3 rendering --------------------------------------------- */
 
   useEffect(() => {
     if (!ganttData || !svgRef.current || flatTasks.length === 0) return;
+
+    // Save scroll positions before re-render
+    if (containerRef.current) {
+      scrollPosRef.current.left = containerRef.current.scrollLeft;
+      scrollPosRef.current.top = containerRef.current.scrollTop;
+    }
+    if (labelsPanelRef.current) {
+      scrollPosRef.current.labelsTop = labelsPanelRef.current.scrollTop;
+    }
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -968,6 +998,17 @@ export default function GanttDiagram({ filename, projectName }) {
       });
     });
 
+    // Restore scroll positions after re-render
+    requestAnimationFrame(() => {
+      if (containerRef.current) {
+        containerRef.current.scrollLeft = scrollPosRef.current.left;
+        containerRef.current.scrollTop = scrollPosRef.current.top;
+      }
+      if (labelsPanelRef.current) {
+        labelsPanelRef.current.scrollTop = scrollPosRef.current.labelsTop;
+      }
+    });
+
   }, [ganttData, flatTasks, taskMap, viewMode, colors, themeMode, debouncedSave, t, handleOpenDateModal]);
 
   /* ---- Render ---------------------------------------------------- */
@@ -1036,19 +1077,25 @@ export default function GanttDiagram({ filename, projectName }) {
       {/* Main content: label panel + timeline */}
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left: task labels */}
-        <Box sx={{
+        <Box ref={labelsPanelRef} sx={{
           width: LABEL_WIDTH, minWidth: LABEL_WIDTH, flexShrink: 0,
           borderRight: `1px solid ${colors.gridLine}`,
           overflowY: 'auto', overflowX: 'hidden',
         }}>
-          {/* Header with add button */}
+          {/* Header with add + save buttons */}
           <Box sx={{
             height: HEADER_HEIGHT, borderBottom: `1px solid ${colors.gridLine}`,
-            bgcolor: colors.headerBg, display: 'flex', alignItems: 'center', pl: 1,
+            bgcolor: colors.headerBg, display: 'flex', alignItems: 'center', pl: 1, pr: 1,
           }}>
             <Tooltip title={t('newTask')}>
               <IconButton size="small" onClick={handleOpenNewTask} sx={{ color: colors.textSecondary }}>
                 <AddIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Box sx={{ flex: 1 }} />
+            <Tooltip title={t('save')}>
+              <IconButton size="small" onClick={handleManualSave} sx={{ color: colors.textSecondary }}>
+                <SaveIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Box>

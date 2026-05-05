@@ -277,8 +277,25 @@ export class ClaudeSdkOrchestratorService {
                 });
                 lines.push(`These are the ONLY items the user is referring to when they say "selected items". Do NOT treat unselected items as selected.`);
                 lines.push(`You already know the selection state — answer questions about it directly without calling any tools.`);
-              } else {
+              } else if (!vs.userEdited) {
                 lines.push(`No items are currently selected in the viewer. You already know this — answer directly without calling any tools.`);
+              }
+              if (vs.userEdited?.length > 0) {
+                lines.push(`The user has made ${vs.userEdited.length} manual edit(s) to this file via the interactive viewer:`);
+                vs.userEdited.forEach((edit: any, idx: number) => {
+                  if (edit.field === 'deleted') {
+                    lines.push(`  ${idx + 1}. Deleted task "${edit.oldValue}" (id: ${edit.taskId})`);
+                  } else if (edit.field === 'created') {
+                    lines.push(`  ${idx + 1}. Created new task "${edit.newValue}" (id: ${edit.taskId})`);
+                  } else if (edit.field === 'reorder') {
+                    lines.push(`  ${idx + 1}. Reordered task ${edit.taskId} → ${edit.newValue}`);
+                  } else if (edit.field === 'parent') {
+                    lines.push(`  ${idx + 1}. Moved task ${edit.taskId} to parent: ${edit.newValue || 'top level'}`);
+                  } else {
+                    lines.push(`  ${idx + 1}. Changed ${edit.field} of task ${edit.taskId}: "${edit.oldValue}" → "${edit.newValue}"`);
+                  }
+                });
+                lines.push(`Acknowledge these user edits. If modifying this file, preserve the user's changes unless explicitly asked to override them.`);
               }
               lines.push(`</viewer-selection>`);
               return lines.join('\n');
