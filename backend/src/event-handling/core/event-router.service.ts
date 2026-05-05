@@ -117,6 +117,10 @@ export class EventRouterService implements OnModuleInit, OnModuleDestroy {
    * Evaluate an event against rules for a specific project
    */
   private async evaluateEventForProject(event: InternalEvent, projectName: string): Promise<void> {
+    // Always publish raw event to SSE so the frontend can react (e.g. tab indicators)
+    this.logger.log(`Publishing raw event to SSE for project ${projectName}: ${event.group}/${event.name}`);
+    this.ssePublisher.publishEvent(projectName, event);
+
     await this.ruleEngine.loadRules(projectName);
     const executionResults = await this.ruleEngine.evaluateEvent(event, projectName);
 

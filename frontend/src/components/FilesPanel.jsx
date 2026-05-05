@@ -10,6 +10,8 @@ import McpUIPreview from './McpUIPreview';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import useTabStore from '../stores/useTabStore';
+import useTabStateStore from '../stores/useTabStateStore';
+import useTabStateSSE from '../hooks/useTabStateSSE';
 import { useTranslation } from 'react-i18next';
 import { FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
@@ -20,6 +22,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const { mode: themeMode } = useThemeMode();
   const { isMinimalistic } = useUxMode();
   const { getActiveTab, setActiveTab: storeSetActiveTab, getVisibleIndices, setVisibleIndices: storeSetVisibleIndices } = useTabStore();
+  const indicators = useTabStateStore(s => s.indicators);
+  const getTabState = useTabStateStore(s => s.getTabState);
+  const clearTabState = useTabStateStore(s => s.clearTabState);
+  useTabStateSSE(projectName);
   const [activeTab, setActiveTabLocal] = useState(() => getActiveTab(projectName));
   const [anchorEl, setAnchorEl] = useState(null);
   const [visibleIndices, setVisibleIndicesLocal] = useState(() => getVisibleIndices(projectName));
@@ -248,7 +254,11 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
       <Box sx={{ borderBottom: 0, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: themeMode === 'dark' ? 'transparent' : (isMinimalistic ? '#fafafa' : '#efefef') }}>
         <Tabs
           value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
+          onChange={(e, newValue) => {
+            const targetFile = visibleFiles[newValue];
+            if (targetFile) clearTabState(projectName, targetFile.path);
+            setActiveTab(newValue);
+          }}
           variant="scrollable"
           scrollButtons="auto"
           sx={{
@@ -268,7 +278,30 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
               onDoubleClick={() => claudeEventBus.publish(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE)}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <CiFileOn size={14} />
+                  <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                    <CiFileOn size={14} />
+                    {index !== activeTab && (() => {
+                      const state = getTabState(projectName, file.path);
+                      console.log('[FilesPanel] tab indicator check:', file.path, 'index:', index, 'activeTab:', activeTab, 'state:', state);
+                      if (!state) return null;
+                      const colorMap = { green: '#4caf50', orange: '#ff9800', red: '#f44336' };
+                      return (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: -3,
+                            left: -3,
+                            mt: '6px',
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            border: '1px solid white',
+                            backgroundColor: colorMap[state.color] || 'transparent',
+                          }}
+                        />
+                      );
+                    })()}
+                  </Box>
                   <span>{getFilename(file.path)}</span>
                   <Box
                     component="span"

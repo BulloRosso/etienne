@@ -27,6 +27,7 @@ import {
 import { AiOutlinePaperClip } from 'react-icons/ai';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { apiFetch } from '../services/api';
 import AttachmentSaveModal from './AttachmentSaveModal';
 
@@ -144,6 +145,7 @@ function FolderTreeItem({ folder, selectedFolder, onSelect, depth = 0 }) {
 export default function IMAPInboxViewer({ servicePath, projectName }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
+  const { isMinimalistic } = useUxMode();
   const isDark = themeMode === 'dark';
 
   // Parse initial folder from service path: #imap/inbox → "inbox", #imap → "INBOX"
@@ -619,7 +621,7 @@ export default function IMAPInboxViewer({ servicePath, projectName }) {
                     width: '100%',
                     height: '100%',
                     border: 'none',
-                    backgroundColor: isDark ? '#2c2c2c' : '#f0eee6',
+                    backgroundColor: isDark ? '#2c2c2c' : isMinimalistic ? '#fff' : '#f0eee6',
                   }}
                 />
               </Box>

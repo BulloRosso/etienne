@@ -633,7 +633,7 @@ export class OpenCodeOrchestratorService {
           if (full.model && full.model !== 'inherit') {
             const modelMap: Record<string, string> = {
               sonnet: 'anthropic/claude-sonnet-4-5-20250514',
-              opus: 'anthropic/claude-opus-4-20250514',
+              opus: 'anthropic/claude-opus-4-6',
               haiku: 'anthropic/claude-haiku-4-5-20251001',
             };
             agent.model = modelMap[full.model] || full.model;

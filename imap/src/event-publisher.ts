@@ -2,7 +2,9 @@ import * as zmq from 'zeromq';
 import { v4 as uuidv4 } from 'uuid';
 import { EmailPayload } from './types';
 
-const IPC_ADDRESS = 'ipc:///tmp/etienne-events-pull';
+const IPC_ADDRESS = process.platform === 'win32'
+  ? 'tcp://127.0.0.1:5558'
+  : 'ipc:///tmp/etienne-events-pull';
 
 export async function publishEmailEvent(payload: EmailPayload): Promise<void> {
   const event = {

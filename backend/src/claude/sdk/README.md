@@ -471,7 +471,7 @@ POST /api/claude/unattended/:project
 
 The endpoint uses the following configuration:
 
-- **Model**: `claude-opus-4-5-20251101` (default)
+- **Model**: `claude-opus-4-6` (default)
 - **Memory**: Enabled by default
 - **Chat Persistence**: Handled internally (skipChatPersistence=true in SDK, manual persistence after)
 - **Max Turns**: Configurable per request (default 20)
