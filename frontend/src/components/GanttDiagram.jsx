@@ -129,6 +129,53 @@ function toggleCollapsed(tasks, taskId) {
   });
 }
 
+/** Find the parent id of a task. Returns '' if top-level. */
+function findParentId(tasks, taskId, parentId = '') {
+  for (const t of tasks) {
+    if (t.id === taskId) return parentId;
+    if (t.subtasks?.length) {
+      const found = findParentId(t.subtasks, taskId, t.id);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
+/** Move a task to a new parent (or top-level if newParentId is ''). */
+function moveTaskToParent(tasks, taskId, newParentId) {
+  // Extract the task from its current location
+  let movedTask = null;
+  function extract(list) {
+    return list.reduce((acc, t) => {
+      if (t.id === taskId) { movedTask = t; return acc; }
+      if (t.subtasks?.length) {
+        return [...acc, { ...t, subtasks: extract(t.subtasks) }];
+      }
+      return [...acc, t];
+    }, []);
+  }
+  const withoutTask = extract(tasks);
+  if (!movedTask) return tasks;
+
+  // Insert into new parent
+  if (!newParentId) {
+    // Top level
+    return [...withoutTask, movedTask];
+  }
+  function insert(list) {
+    return list.map(t => {
+      if (t.id === newParentId) {
+        return { ...t, subtasks: [...(t.subtasks || []), movedTask], collapsed: false };
+      }
+      if (t.subtasks?.length) {
+        return { ...t, subtasks: insert(t.subtasks) };
+      }
+      return t;
+    });
+  }
+  return insert(withoutTask);
+}
+
 /** Reorder a task within its sibling list. Works at any nesting level.
  *  dragId = task being dragged, dropId = task it's dropped onto.
  *  Places dragId directly before dropId in the same array. If they're at
@@ -212,6 +259,7 @@ export default function GanttDiagram({ filename, projectName }) {
   // Modal state: task name edit
   const [nameModalTask, setNameModalTask] = useState(null); // { id, name }
   const [nameModalValue, setNameModalValue] = useState('');
+  const [nameModalParent, setNameModalParent] = useState('');
 
   // Modal state: bar date edit
   const [dateModalTask, setDateModalTask] = useState(null); // { id, startDate, endDate }
@@ -313,26 +361,40 @@ export default function GanttDiagram({ filename, projectName }) {
   const handleOpenNameModal = useCallback((task) => {
     setNameModalTask(task);
     setNameModalValue(task.name);
-  }, []);
+    const currentParent = ganttData ? findParentId(ganttData.tasks, task.id) : '';
+    setNameModalParent(currentParent || '');
+  }, [ganttData]);
 
   const handleSaveName = useCallback(() => {
     if (!nameModalTask || nameModalValue.trim() === '') return;
     const newName = nameModalValue.trim();
-    if (newName === nameModalTask.name) {
+    const currentParent = ganttData ? (findParentId(ganttData.tasks, nameModalTask.id) || '') : '';
+    const parentChanged = nameModalParent !== currentParent;
+    const nameChanged = newName !== nameModalTask.name;
+
+    if (!nameChanged && !parentChanged) {
       setNameModalTask(null);
       return;
     }
     setGanttData(prev => {
-      const updated = {
-        ...prev,
-        tasks: updateTaskInTree(prev.tasks, nameModalTask.id, { name: newName }),
-        userEdited: addUserEdit(prev.userEdited, nameModalTask.id, 'name', nameModalTask.name, newName),
-      };
+      let tasks = prev.tasks;
+      let edits = prev.userEdited || [];
+
+      if (nameChanged) {
+        tasks = updateTaskInTree(tasks, nameModalTask.id, { name: newName });
+        edits = addUserEdit(edits, nameModalTask.id, 'name', nameModalTask.name, newName);
+      }
+      if (parentChanged) {
+        tasks = moveTaskToParent(tasks, nameModalTask.id, nameModalParent);
+        edits = addUserEdit(edits, nameModalTask.id, 'parent', currentParent || null, nameModalParent || null);
+      }
+
+      const updated = { ...prev, tasks, userEdited: edits };
       debouncedSave(updated);
       return updated;
     });
     setNameModalTask(null);
-  }, [nameModalTask, nameModalValue, debouncedSave]);
+  }, [nameModalTask, nameModalValue, nameModalParent, ganttData, debouncedSave]);
 
   const handleDeleteTask = useCallback(() => {
     if (!nameModalTask) return;
@@ -1066,15 +1128,32 @@ export default function GanttDiagram({ filename, projectName }) {
       <Dialog open={!!nameModalTask} onClose={() => setNameModalTask(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>{t('editTaskName')}</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            size="small"
-            value={nameModalValue}
-            onChange={(e) => setNameModalValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); }}
-            sx={{ mt: 1 }}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              autoFocus
+              fullWidth
+              size="small"
+              label={t('taskName')}
+              value={nameModalValue}
+              onChange={(e) => setNameModalValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); }}
+            />
+            <FormControl size="small" fullWidth>
+              <InputLabel>{t('parentTask')}</InputLabel>
+              <Select
+                value={nameModalParent}
+                onChange={(e) => setNameModalParent(e.target.value)}
+                label={t('parentTask')}
+              >
+                <MenuItem value="">{t('noParent')}</MenuItem>
+                {[...taskMap.values()]
+                  .filter(t => t.id !== nameModalTask?.id)
+                  .map(task => (
+                    <MenuItem key={task.id} value={task.id}>{task.name}</MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
           <Button
