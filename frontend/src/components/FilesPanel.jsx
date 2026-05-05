@@ -25,7 +25,8 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const indicators = useTabStateStore(s => s.indicators);
   const getTabState = useTabStateStore(s => s.getTabState);
   const clearTabState = useTabStateStore(s => s.clearTabState);
-  useTabStateSSE(projectName);
+  const openFilePaths = useMemo(() => files.map(f => f.path), [files]);
+  useTabStateSSE(projectName, openFilePaths);
   const [activeTab, setActiveTabLocal] = useState(() => getActiveTab(projectName));
   const [anchorEl, setAnchorEl] = useState(null);
   const [visibleIndices, setVisibleIndicesLocal] = useState(() => getVisibleIndices(projectName));
@@ -49,20 +50,25 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   // Initialize visible indices when files change
   useEffect(() => {
     const prevFiles = prevFilesRef.current;
+    const prevPaths = prevFiles.map(f => f.path);
+    const currPaths = files.map(f => f.path);
+
+    // Skip if only content changed (same paths, same order)
+    if (prevPaths.length === currPaths.length && prevPaths.every((p, i) => p === currPaths[i])) {
+      prevFilesRef.current = files;
+      return;
+    }
 
     // Check if a new file was added
-    if (files.length > prevFiles.length) {
-      // Find the newly added file
-      const newFile = files.find(f => !prevFiles.some(pf => pf.path === f.path));
-      if (newFile) {
-        const newFileIndex = files.indexOf(newFile);
-        // Add new file to visible indices at the beginning and make it active
-        const newVisibleIndices = [newFileIndex, ...visibleIndices.filter(i => i !== newFileIndex)].slice(0, MAX_VISIBLE_TABS);
-        setVisibleIndices(newVisibleIndices);
-        setActiveTab(0);
-        prevFilesRef.current = files;
-        return;
-      }
+    const newFile = files.find(f => !prevFiles.some(pf => pf.path === f.path));
+    if (newFile) {
+      const newFileIndex = files.indexOf(newFile);
+      // Add new file to visible indices at the beginning and make it active
+      const newVisibleIndices = [newFileIndex, ...visibleIndices.filter(i => i !== newFileIndex)].slice(0, MAX_VISIBLE_TABS);
+      setVisibleIndices(newVisibleIndices);
+      setActiveTab(0);
+      prevFilesRef.current = files;
+      return;
     }
 
     // Otherwise, reset visible indices to first MAX_VISIBLE_TABS files
@@ -282,7 +288,6 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                     <CiFileOn size={14} />
                     {index !== activeTab && (() => {
                       const state = getTabState(projectName, file.path);
-                      console.log('[FilesPanel] tab indicator check:', file.path, 'index:', index, 'activeTab:', activeTab, 'state:', state);
                       if (!state) return null;
                       const colorMap = { green: '#4caf50', orange: '#ff9800', red: '#f44336' };
                       return (

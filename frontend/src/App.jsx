@@ -1182,8 +1182,12 @@ export default function App() {
         console.log(`[fetchFile] Successfully fetched: ${path}`);
 
         setFiles((arr) => {
-          const next = arr.filter(x => x.path !== path).concat([{ path, content: j.content }]);
-          return next;
+          const exists = arr.some(x => x.path === path);
+          if (exists) {
+            // Update content in-place — preserve array order so active tab doesn't shift
+            return arr.map(x => x.path === path ? { ...x, content: j.content } : x);
+          }
+          return [...arr, { path, content: j.content }];
         });
 
         return; // Success, exit the retry loop
