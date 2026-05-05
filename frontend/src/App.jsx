@@ -1331,10 +1331,18 @@ export default function App() {
       }
     } catch { /* ignore parse errors */ }
 
-    // Attach shared viewer state (selections from open previewers)
+    // Attach shared viewer state (selections from open previewers) via POST
     const viewerStates = getViewerStates();
     if (viewerStates.length > 0) {
-      url.searchParams.set('viewerState', JSON.stringify(viewerStates));
+      try {
+        await apiFetch('/api/claude/viewerState', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project_dir: currentProject, viewerState: viewerStates }),
+        });
+      } catch (e) {
+        console.warn('[App] Failed to post viewer state:', e);
+      }
     }
 
     const token = localStorage.getItem('auth_accessToken') || sessionStorage.getItem('auth_accessToken');

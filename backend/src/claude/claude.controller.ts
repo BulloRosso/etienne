@@ -16,6 +16,8 @@ import { Public } from '../auth/public.decorator';
 @Controller('api/claude')
 export class ClaudeController {
   private readonly workspaceRoot: string;
+  /** Temporary in-memory store for viewer state, keyed by project dir. */
+  private pendingViewerState = new Map<string, any[]>();
 
   constructor(
     private readonly svc: ClaudeService,
@@ -37,6 +39,17 @@ export class ClaudeController {
     if (agent === 'openai-agents') return 'openai-agents';
     if (agent === 'openai') return 'openai';
     return 'anthropic';
+  }
+
+  @Roles('user')
+  @Post('viewerState')
+  setViewerState(@Body() body: { project_dir: string; viewerState: any[] }) {
+    if (body.project_dir && body.viewerState) {
+      this.pendingViewerState.set(body.project_dir, body.viewerState);
+    } else if (body.project_dir) {
+      this.pendingViewerState.delete(body.project_dir);
+    }
+    return { ok: true };
   }
 
   @Roles('user')
@@ -128,8 +141,15 @@ export class ClaudeController {
     const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
     let parsedViewerState: any[] | undefined;
     try {
-      if (viewerState) parsedViewerState = JSON.parse(viewerState);
+      if (viewerState) {
+        parsedViewerState = JSON.parse(viewerState);
+      }
     } catch { /* ignore parse errors */ }
+    // Fall back to pre-posted viewer state
+    if (!parsedViewerState && projectDir && this.pendingViewerState.has(projectDir)) {
+      parsedViewerState = this.pendingViewerState.get(projectDir);
+      this.pendingViewerState.delete(projectDir); // consume once
+    }
 
     if (this.activeCodingAgent === 'open-code') {
       return this.openCodeOrchestrator.streamPrompt(

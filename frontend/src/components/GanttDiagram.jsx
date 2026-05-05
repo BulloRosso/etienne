@@ -11,8 +11,8 @@ import {
   ExpandMore as ExpandMoreIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  Save as SaveIcon,
 } from '@mui/icons-material';
+import { GrSave } from 'react-icons/gr';
 import * as d3 from 'd3';
 import {
   parseISO, format, addDays, differenceInCalendarDays,
@@ -273,6 +273,9 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
   const [newTaskStart, setNewTaskStart] = useState('');
   const [newTaskEnd, setNewTaskEnd] = useState('');
   const [newTaskParent, setNewTaskParent] = useState('');
+
+  // Selection state
+  const [selectedTaskIds, setSelectedTaskIds] = useState(new Set());
 
   // Drag-to-reorder state
   const [dragOverId, setDragOverId] = useState(null);
@@ -555,6 +558,30 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
     return () => ro.disconnect();
   }, []);
 
+  /* ---- Persist scroll positions on scroll ------------------------ */
+
+  useEffect(() => {
+    const timeline = containerRef.current;
+    const labels = labelsPanelRef.current;
+    const onTimelineScroll = () => {
+      if (timeline) {
+        scrollPosRef.current.left = timeline.scrollLeft;
+        scrollPosRef.current.top = timeline.scrollTop;
+      }
+    };
+    const onLabelsScroll = () => {
+      if (labels) {
+        scrollPosRef.current.labelsTop = labels.scrollTop;
+      }
+    };
+    timeline?.addEventListener('scroll', onTimelineScroll);
+    labels?.addEventListener('scroll', onLabelsScroll);
+    return () => {
+      timeline?.removeEventListener('scroll', onTimelineScroll);
+      labels?.removeEventListener('scroll', onLabelsScroll);
+    };
+  });
+
   /* ---- claudeHook listener -------------------------------------- */
 
   useEffect(() => {
@@ -575,12 +602,32 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
   useEffect(() => {
     if (!onViewerStateChange) return;
     const edits = ganttData?.userEdited;
-    if (edits && edits.length > 0) {
-      onViewerStateChange({ userEdited: edits });
+    const selected = selectedTaskIds.size > 0
+      ? [...selectedTaskIds].map(id => {
+          const tk = taskMap.get(id);
+          return tk ? { id: tk.id, name: tk.name, startDate: tk.startDate, endDate: tk.endDate } : { id };
+        })
+      : null;
+    if ((edits && edits.length > 0) || selected) {
+      onViewerStateChange({
+        ...(edits && edits.length > 0 ? { userEdited: edits } : {}),
+        ...(selected ? { selectedTasks: selected } : {}),
+      });
     } else {
       onViewerStateChange(null);
     }
-  }, [ganttData?.userEdited, onViewerStateChange]);
+  }, [ganttData?.userEdited, selectedTaskIds, taskMap, onViewerStateChange]);
+
+  /* ---- Bar selection toggle --------------------------------------- */
+
+  const handleToggleSelect = useCallback((taskId) => {
+    setSelectedTaskIds(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  }, []);
 
   /* ---- Manual save ----------------------------------------------- */
 
@@ -592,15 +639,6 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
 
   useEffect(() => {
     if (!ganttData || !svgRef.current || flatTasks.length === 0) return;
-
-    // Save scroll positions before re-render
-    if (containerRef.current) {
-      scrollPosRef.current.left = containerRef.current.scrollLeft;
-      scrollPosRef.current.top = containerRef.current.scrollTop;
-    }
-    if (labelsPanelRef.current) {
-      scrollPosRef.current.labelsTop = labelsPanelRef.current.scrollTop;
-    }
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -626,7 +664,7 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
       .domain([minDate, maxDate])
       .range([0, timelineWidth]);
 
-    // --- Defs (arrowhead) ---
+    // --- Defs (arrowhead + selection glow) ---
     const defs = svg.append('defs');
     defs.append('marker')
       .attr('id', 'gantt-arrow')
@@ -638,13 +676,27 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
       .attr('d', 'M0,-4L8,0L0,4')
       .attr('fill', colors.depLine);
 
+    // Selection drop-shadow filter (light yellow glow)
+    const selFilter = defs.append('filter')
+      .attr('id', 'gantt-selected-glow')
+      .attr('x', '-30%').attr('y', '-30%')
+      .attr('width', '160%').attr('height', '160%');
+    selFilter.append('feDropShadow')
+      .attr('dx', 0).attr('dy', 0)
+      .attr('stdDeviation', 4)
+      .attr('flood-color', '#FFD600')
+      .attr('flood-opacity', 0.8);
+
     // --- Row backgrounds ---
     const rowsG = svg.append('g').attr('class', 'rows');
-    flatTasks.forEach((_, i) => {
+    flatTasks.forEach((task, i) => {
+      const isSelected = selectedTaskIds.has(task.id);
       rowsG.append('rect')
         .attr('x', 0).attr('y', HEADER_HEIGHT + i * ROW_HEIGHT)
         .attr('width', svgWidth).attr('height', ROW_HEIGHT)
-        .attr('fill', i % 2 === 0 ? colors.rowEven : colors.rowOdd);
+        .attr('fill', isSelected
+          ? (isDark ? 'rgba(255,214,0,0.12)' : 'rgba(255,235,130,0.45)')
+          : (i % 2 === 0 ? colors.rowEven : colors.rowOdd));
     });
 
     // --- Grid lines ---
@@ -659,6 +711,17 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
 
     if (viewMode === 'days') {
       const days = eachDayOfInterval({ start: minDate, end: maxDate });
+      // Weekend column backgrounds
+      days.forEach(day => {
+        const dow = day.getDay();
+        if (dow === 0 || dow === 6) {
+          const x = xScale(day);
+          gridG.append('rect')
+            .attr('x', x).attr('y', HEADER_HEIGHT)
+            .attr('width', dayPx).attr('height', svgHeight - HEADER_HEIGHT)
+            .attr('fill', isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)');
+        }
+      });
       days.forEach(day => {
         const x = xScale(day);
         gridG.append('line')
@@ -802,13 +865,15 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
       const barGroup = barsG.append('g').attr('class', 'bar-group');
 
       // Main bar
+      const isSelected = selectedTaskIds.has(task.id);
       const bar = barGroup.append('rect')
         .attr('x', barX).attr('y', barY)
         .attr('width', barW).attr('height', BAR_HEIGHT)
         .attr('rx', BAR_RADIUS).attr('ry', BAR_RADIUS)
         .attr('fill', task.color || '#546E7A')
         .attr('opacity', isParent ? 0.85 : 1)
-        .style('cursor', 'grab');
+        .attr('filter', isSelected ? 'url(#gantt-selected-glow)' : null)
+        .style('cursor', 'pointer');
 
       // Duration label inside bar (if wide enough)
       const days = differenceInCalendarDays(parseISO(task.endDate), parseISO(task.startDate));
@@ -932,10 +997,10 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
           const dx = event.x - state.startMouseX;
           const daysDelta = Math.round(dx / dayPx);
 
-          // If no actual drag happened, treat as click → open date modal
+          // If no actual drag happened, treat as click → toggle selection
           if (!hasDragged || daysDelta === 0) {
             if (!hasDragged) {
-              handleOpenDateModal(task);
+              handleToggleSelect(task.id);
             }
             // Reset bar position
             d3.select(this).attr('x', barX).attr('width', barW);
@@ -985,6 +1050,36 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
 
       bar.call(dragBehavior);
 
+      // Edit button (appears below bar on hover)
+      const editBtn = barGroup.append('g')
+        .attr('class', 'edit-btn')
+        .attr('transform', `translate(${barX + barW / 2}, ${barY + BAR_HEIGHT + 2})`)
+        .style('display', 'none')
+        .style('cursor', 'pointer');
+      const editLabel = 'Edit';
+      const editW = editLabel.length * 6 + 8;
+      editBtn.append('rect')
+        .attr('x', -editW / 2).attr('y', 0)
+        .attr('width', editW).attr('height', 14)
+        .attr('rx', 3).attr('ry', 3)
+        .attr('fill', isDark ? '#444' : '#e0e0e0');
+      editBtn.append('text')
+        .attr('x', 0).attr('y', 10)
+        .attr('text-anchor', 'middle')
+        .attr('fill', isDark ? '#e0e0e0' : '#424242')
+        .attr('font-size', 9)
+        .attr('font-weight', 500)
+        .text(editLabel);
+      editBtn.on('click', function (event) {
+        event.stopPropagation();
+        handleOpenDateModal(task);
+      });
+
+      // Show/hide edit button on bar hover
+      barGroup
+        .on('mouseenter', function () { editBtn.style('display', null); })
+        .on('mouseleave', function () { editBtn.style('display', 'none'); });
+
       // Cursor hint on hover for resize zones
       bar.on('mousemove', function (event) {
         const rect = this.getBoundingClientRect();
@@ -993,7 +1088,7 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
         if (localX < width * 0.2 || localX > width * 0.8) {
           d3.select(this).style('cursor', 'col-resize');
         } else {
-          d3.select(this).style('cursor', 'grab');
+          d3.select(this).style('cursor', 'pointer');
         }
       });
     });
@@ -1009,7 +1104,7 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
       }
     });
 
-  }, [ganttData, flatTasks, taskMap, viewMode, colors, themeMode, debouncedSave, t, handleOpenDateModal]);
+  }, [ganttData, flatTasks, taskMap, viewMode, colors, themeMode, debouncedSave, t, handleOpenDateModal, selectedTaskIds, handleToggleSelect]);
 
   /* ---- Render ---------------------------------------------------- */
 
@@ -1095,7 +1190,7 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
             <Box sx={{ flex: 1 }} />
             <Tooltip title={t('save')}>
               <IconButton size="small" onClick={handleManualSave} sx={{ color: colors.textSecondary }}>
-                <SaveIcon fontSize="small" />
+                <GrSave size={16} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -1115,8 +1210,12 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
                 alignItems: 'center',
                 pl: 1 + task.depth * 2,
                 pr: 1,
-                bgcolor: i % 2 === 0 ? colors.rowEven : colors.rowOdd,
-                '&:hover': { bgcolor: colors.labelHover },
+                bgcolor: selectedTaskIds.has(task.id)
+                  ? (isDark ? 'rgba(255,214,0,0.12)' : 'rgba(255,235,130,0.45)')
+                  : (i % 2 === 0 ? colors.rowEven : colors.rowOdd),
+                '&:hover': { bgcolor: selectedTaskIds.has(task.id)
+                  ? (isDark ? 'rgba(255,214,0,0.18)' : 'rgba(255,235,130,0.6)')
+                  : colors.labelHover },
                 cursor: 'grab',
                 borderBottom: `1px solid ${colors.gridLine}`,
                 borderTop: dragOverId === task.id ? `2px solid ${colors.todayLine}` : '2px solid transparent',
@@ -1165,8 +1264,47 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
           ))}
         </Box>
 
-        {/* Right: scrollable SVG timeline */}
-        <Box ref={containerRef} sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto' }}>
+        {/* Right: scrollable SVG timeline (drag-to-pan) */}
+        <Box
+          ref={containerRef}
+          sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', cursor: 'grab' }}
+          onMouseDown={(e) => {
+            // Only pan when clicking on the background, not on bars or labels
+            const tag = e.target.tagName;
+            const isBar = e.target.closest?.('.bar-group');
+            if (isBar) return;
+            if (tag !== 'svg' && tag !== 'rect' && tag !== 'line' && e.target !== svgRef.current) return;
+            const el = containerRef.current;
+            if (!el) return;
+            el.style.cursor = 'grabbing';
+            el.dataset.panStartX = e.clientX;
+            el.dataset.panStartY = e.clientY;
+            el.dataset.panScrollLeft = el.scrollLeft;
+            el.dataset.panScrollTop = el.scrollTop;
+            el.dataset.panning = '1';
+            e.preventDefault();
+          }}
+          onMouseMove={(e) => {
+            const el = containerRef.current;
+            if (!el || el.dataset.panning !== '1') return;
+            const dx = e.clientX - Number(el.dataset.panStartX);
+            const dy = e.clientY - Number(el.dataset.panStartY);
+            el.scrollLeft = Number(el.dataset.panScrollLeft) - dx;
+            el.scrollTop = Number(el.dataset.panScrollTop) - dy;
+            // Sync labels panel vertical scroll
+            if (labelsPanelRef.current) {
+              labelsPanelRef.current.scrollTop = el.scrollTop;
+            }
+          }}
+          onMouseUp={() => {
+            const el = containerRef.current;
+            if (el) { el.style.cursor = 'grab'; el.dataset.panning = ''; }
+          }}
+          onMouseLeave={() => {
+            const el = containerRef.current;
+            if (el) { el.style.cursor = 'grab'; el.dataset.panning = ''; }
+          }}
+        >
           <svg ref={svgRef} style={{ display: 'block', minHeight: svgHeight }} />
         </Box>
       </Box>

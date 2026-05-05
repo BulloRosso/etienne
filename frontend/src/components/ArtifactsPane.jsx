@@ -244,7 +244,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
           <Tabs
             value={filesystemTabValue}
             onChange={(e, newValue) => setFilesystemTabValue(newValue)}
-            sx={{ borderBottom: 1, borderColor: 'divider' }}
+            sx={{ borderBottom: 1, borderColor: 'divider', ...(isMinimalistic && { '& .MuiTab-root': { textTransform: 'none' } }) }}
           >
             <Tab label={t('artifacts:tabFiles')} />
             {checkpointsEnabled && <Tab label={t('artifacts:tabCheckpoints')} />}

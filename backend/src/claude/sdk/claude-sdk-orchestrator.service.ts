@@ -297,6 +297,13 @@ export class ClaudeSdkOrchestratorService {
                 });
                 lines.push(`Acknowledge these user edits. If modifying this file, preserve the user's changes unless explicitly asked to override them.`);
               }
+              if (vs.selectedTasks?.length > 0) {
+                lines.push(`The user has SELECTED the following ${vs.selectedTasks.length} task(s) in the Gantt chart:`);
+                vs.selectedTasks.forEach((task: any, idx: number) => {
+                  lines.push(`  ${idx + 1}. "${task.name}" (id: ${task.id}, ${task.startDate} → ${task.endDate})`);
+                });
+                lines.push(`When the user refers to "selected tasks" or "these tasks", they mean ONLY the tasks listed above.`);
+              }
               lines.push(`</viewer-selection>`);
               return lines.join('\n');
             }).join('\n\n');
