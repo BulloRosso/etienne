@@ -16,6 +16,7 @@ import DocxViewer from './DocxViewer';
 import RequirementsViewer from './RequirementsViewer';
 import ArtifactsForSession from './ArtifactsForSession';
 import IMAPInboxViewer from './IMAPInboxViewer';
+import GanttDiagram from './GanttDiagram';
 
 /**
  * Service previewers — activated by running services, not file extensions.
@@ -52,6 +53,7 @@ export const VIEWER_COMPONENT_NAMES = {
   requirements: 'RequirementsViewer',
   artifacts: 'ArtifactsForSession',
   imap: 'IMAPInboxViewer',
+  gantt: 'GanttDiagram',
 };
 
 /**
@@ -113,6 +115,9 @@ export const VIEWER_COMPONENTS = {
   imap: (file, projectName) => (
     <IMAPInboxViewer servicePath={file.path} projectName={projectName} />
   ),
+  gantt: (file, projectName) => (
+    <GanttDiagram filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -138,6 +143,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'requirements', extensions: ['.requirements.json'] },
   { viewer: 'artifacts', extensions: ['.artifacts.md'] },
   { viewer: 'budget', extensions: ['.budget.json'] },
+  { viewer: 'gantt', extensions: ['.gantt.json'] },
 ];
 
 /**

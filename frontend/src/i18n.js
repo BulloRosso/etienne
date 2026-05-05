@@ -24,7 +24,7 @@ i18n
       'dashboard',
       'elicitation', 'eventHandling', 'eventLogTab', 'examplesTab', 'excelViewer',
       'filesPanel', 'filesystem', 'fileTreeVirtualList',
-      'graphViewer', 'guardrails',
+      'ganttDiagram', 'graphViewer', 'guardrails',
       'healthToast',
       'imageViewer', 'interceptors', 'issues',
       'jsonViewer',

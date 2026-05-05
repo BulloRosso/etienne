@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Box, Tab, Tabs, IconButton, Menu, MenuItem, Divider, Typography } from '@mui/material';
 import { IoClose } from 'react-icons/io5';
 import { BsThreeDotsVertical } from 'react-icons/bs';
@@ -11,6 +11,9 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import useTabStore from '../stores/useTabStore';
 import { useTranslation } from 'react-i18next';
+import { FiMaximize2, FiMinimize2 } from 'react-icons/fi';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import { useClaudeEvent } from '../useClaudeEvent';
 
 export default function FilesPanel({ files, projectName, showBackgroundInfo, onCloseTab, onCloseAll, previewersConfig, autoFilePreviewExtensions, onUpdateViewerState }) {
   const { t } = useTranslation(["filesPanel","common"]);
@@ -20,6 +23,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const [activeTab, setActiveTabLocal] = useState(() => getActiveTab(projectName));
   const [anchorEl, setAnchorEl] = useState(null);
   const [visibleIndices, setVisibleIndicesLocal] = useState(() => getVisibleIndices(projectName));
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  const handleMaximizeToggled = useCallback(() => setIsMaximized(prev => !prev), []);
+  useClaudeEvent(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE, handleMaximizeToggled, [handleMaximizeToggled]);
 
   const setActiveTab = (val) => {
     setActiveTabLocal(val);
@@ -258,6 +265,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
           {visibleFiles.map((file, index) => (
             <Tab
               key={file.path}
+              onDoubleClick={() => claudeEventBus.publish(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE)}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <CiFileOn size={14} />
@@ -333,6 +341,15 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
             </Menu>
           </>
         )}
+
+        {/* Maximize / Minimize toggle */}
+        <IconButton
+          onClick={() => claudeEventBus.publish(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE)}
+          size="small"
+          sx={{ ml: 'auto', mr: '20px', mt: '-3px', color: themeMode === 'dark' ? '#ccc' : '#555' }}
+        >
+          {isMaximized ? <FiMinimize2 size={14} /> : <FiMaximize2 size={14} />}
+        </IconButton>
       </Box>
 
       {/* Content Area */}

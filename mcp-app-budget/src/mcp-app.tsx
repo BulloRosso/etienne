@@ -240,6 +240,7 @@ function BudgetApp() {
     const handler = (event: MessageEvent) => {
       if (event.data?.type !== 'viewer-command') return;
       const { action, payload } = event.data;
+      console.log('[BudgetApp] viewer-command received:', action, payload, 'budgetItems.length:', budgetItems.length);
 
       if (action === 'select' && budgetItems.length > 0) {
         const mode: string = payload?.mode || 'replace';

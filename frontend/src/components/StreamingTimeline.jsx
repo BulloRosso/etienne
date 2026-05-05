@@ -7,6 +7,7 @@ import TextSegmentTimeline from './TextSegmentTimeline';
 import TodoWriteTimeline from './TodoWriteTimeline';
 import McpAppRenderer from './McpAppRenderer';
 import useMcpAppMeta from '../hooks/useMcpAppMeta';
+import { useActiveMcpViewers } from '../hooks/useActiveMcpViewers.js';
 import { LuBrain } from "react-icons/lu";
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
@@ -20,6 +21,7 @@ export default function StreamingTimeline({
   items = []
 }) {
   const mcpAppMeta = useMcpAppMeta();
+  const activeMcpViewers = useActiveMcpViewers();
   const { mode: themeMode } = useThemeMode();
 
   // Process items into timeline format
@@ -166,9 +168,10 @@ export default function StreamingTimeline({
             />
           );
         } else {
-          // Check if this tool has an MCP App UI
+          // Check if this tool has an MCP App UI — but skip inline rendering
+          // when a McpUIPreview tab is already open for the same MCP group
           const appMeta = mcpAppMeta.get(item.content.toolName);
-          if (appMeta && item.content.result) {
+          if (appMeta && item.content.result && !activeMcpViewers.has(appMeta.group)) {
             return (
               <Box key={item.key} sx={{ mb: 2, position: 'relative' }}>
                 {/* Timeline connector line spanning tool + MCP App */}

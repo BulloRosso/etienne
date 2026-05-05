@@ -6,6 +6,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { UI_EXTENSION_CAPABILITIES } from '@mcp-ui/client';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useRegisterMcpViewer } from '../hooks/useActiveMcpViewers.js';
 import { BiTransfer } from 'react-icons/bi';
 import { IoClose } from 'react-icons/io5';
 import { JSONTree } from 'react-json-tree';
@@ -35,6 +36,9 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
   const [statusOpen, setStatusOpen] = useState(false);
   const { mode: themeMode } = useThemeMode();
   const clientRef = useRef(null);
+
+  // Register this viewer's MCP group so inline chat rendering is suppressed
+  useRegisterMcpViewer(mcpGroup);
 
   // Connect MCP client and call the tool
   useEffect(() => {
@@ -135,15 +139,25 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
       const isOurTool = toolName.startsWith(`mcp__${mcpGroup}__`);
       if (!isOurTool) return;
 
-      // Find the iframe rendered by AppRenderer and post the command
-      const iframe = iframeRef.current?.querySelector('iframe');
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.postMessage({
-          type: 'viewer-command',
-          action,
-          payload,
-        }, '*');
+      // Find all iframes in the container and post to each — the AppRenderer
+      // may use a sandbox proxy (nested iframes) or direct srcDoc mode.
+      const container = iframeRef.current;
+      if (!container) {
+        console.warn('[McpUIPreview] viewer-command: no container ref');
+        return;
       }
+      const iframes = container.querySelectorAll('iframe');
+      if (iframes.length === 0) {
+        console.warn('[McpUIPreview] viewer-command: no iframes found in container');
+        return;
+      }
+      const msg = { type: 'viewer-command', action, payload };
+      for (const iframe of iframes) {
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage(msg, '*');
+        }
+      }
+      console.log(`[McpUIPreview] viewer-command forwarded to ${iframes.length} iframe(s):`, action, payload);
     };
     window.addEventListener('mcp-viewer-command', handler);
     return () => window.removeEventListener('mcp-viewer-command', handler);

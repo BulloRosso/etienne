@@ -49,4 +49,5 @@ export const ClaudeEvents = {
   THINKING: 'claude:thinking',
   USER_MESSAGE: 'claude:user_message',
   FILE_PREVIEW_REQUEST: 'claude:file_preview_request',
+  PREVIEW_MAXIMIZE_TOGGLE: 'claude:preview_maximize_toggle',
 };

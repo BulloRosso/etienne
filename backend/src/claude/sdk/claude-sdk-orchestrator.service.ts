@@ -268,6 +268,7 @@ export class ClaudeSdkOrchestratorService {
               const lines: string[] = [];
               lines.push(`<viewer-selection file="${vs.path}" viewer="${vs.viewerName || 'unknown'}">`);
               lines.push(`An interactive "${vs.viewerName || 'unknown'}" viewer is currently open for this file.`);
+              lines.push(`Do NOT call render tools (e.g. mcp__${vs.viewerName}__render_*) for this file — the viewer is already displaying it. Use action tools (e.g. select, highlight, filter) to manipulate the existing viewer instead.`);
               lines.push(`You can manipulate this viewer using tools prefixed with mcp__${vs.viewerName}__ (e.g. select items, highlight, filter).`);
               if (vs.selectedItems?.length > 0) {
                 lines.push(`The user has SELECTED the following ${vs.selectedItems.length} item(s) in the UI:`);
@@ -275,8 +276,9 @@ export class ClaudeSdkOrchestratorService {
                   lines.push(`  ${idx + 1}. "${i.item}" — ${i.amount} ${i.currency}`);
                 });
                 lines.push(`These are the ONLY items the user is referring to when they say "selected items". Do NOT treat unselected items as selected.`);
+                lines.push(`You already know the selection state — answer questions about it directly without calling any tools.`);
               } else {
-                lines.push(`No items are currently selected in the viewer.`);
+                lines.push(`No items are currently selected in the viewer. You already know this — answer directly without calling any tools.`);
               }
               lines.push(`</viewer-selection>`);
               return lines.join('\n');
@@ -396,6 +398,7 @@ export class ClaudeSdkOrchestratorService {
           });
 
           // Also emit to main observer stream for frontend UI
+          this.logger.log(`📤 Emitting tool running event: ${input.tool_name} (callId: ${callId})`);
           const toolEvent = {
             type: 'tool',
             data: {
@@ -489,6 +492,7 @@ export class ClaudeSdkOrchestratorService {
           });
 
           // Emit tool completion event for frontend UI
+          this.logger.log(`📤 Emitting tool complete event: ${input.tool_name} (callId: ${callId})`);
           observer.next({
             type: 'tool',
             data: {

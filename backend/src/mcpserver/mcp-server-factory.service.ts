@@ -228,7 +228,7 @@ export class McpServerFactoryService implements OnModuleInit {
       for (const service of config.toolServices) {
         for (const tool of service.tools) {
           const meta = (tool as any)._meta;
-          if (meta?.ui?.resourceUri) {
+          if (meta?.ui?.resourceUri && !meta.ui.action) {
             result.push({
               toolName: tool.name,
               mcpToolName: `mcp__${groupName}__${tool.name}`,

@@ -553,6 +553,7 @@ export default function App() {
         } else if (eventType === 'PostToolUse') {
           const toolName = hookData.tool_name;
           const toolInput = hookData.tool_input;
+          const toolOutput = hookData.tool_output;
 
           if (!toolName) {
             console.warn('Could not find tool_name in PostToolUse hook:', hookData);
@@ -560,6 +561,26 @@ export default function App() {
           }
 
           console.log('PostToolUse hook received:', hookData);
+
+          // Forward MCP viewer commands: if the tool result contains _action,
+          // dispatch to any open McpUIPreview tab. This is a secondary routing
+          // path (the primary is in the SSE tool event handler).
+          if (toolOutput) {
+            try {
+              let resultObj = toolOutput;
+              if (resultObj?.content && Array.isArray(resultObj.content)) {
+                const textBlock = resultObj.content.find(c => c.type === 'text');
+                if (textBlock?.text) resultObj = JSON.parse(textBlock.text);
+              }
+              if (typeof resultObj === 'string') resultObj = JSON.parse(resultObj);
+              if (resultObj?._action) {
+                console.log('[Interceptor] Dispatching mcp-viewer-command from PostToolUse:', toolName, resultObj._action);
+                window.dispatchEvent(new CustomEvent('mcp-viewer-command', {
+                  detail: { toolName, action: resultObj._action, payload: resultObj },
+                }));
+              }
+            } catch { /* ignore parse errors */ }
+          }
 
           // Dispatch claudeHook event for file operations
           const fileOperationTools = ['Edit', 'Write', 'NotebookEdit'];
@@ -1715,6 +1736,7 @@ export default function App() {
           // Also handle plain string result
           if (typeof resultObj === 'string') resultObj = JSON.parse(resultObj);
           if (resultObj?._action) {
+            console.log('[App] Dispatching mcp-viewer-command:', data.toolName, resultObj._action, resultObj);
             window.dispatchEvent(new CustomEvent('mcp-viewer-command', {
               detail: { toolName: data.toolName, action: resultObj._action, payload: resultObj },
             }));
