@@ -152,15 +152,8 @@ Here are the guiding principles for Etienne, and why I believe it matters:
   - [Adding a New File-Extension Previewer](#adding-a-new-file-extension-previewer)
   - [Adding a New Service Previewer](#adding-a-new-service-previewer)
   - [Adding a Context Menu Action to a Previewer](#adding-a-context-menu-action-to-a-previewer)
-- [Messenger Integration](#messenger-integration)
-  - [Architecture](#architecture-1)
-  - [Configuration](#configuration-1)
-  - [Usage Guide](#usage-guide)
-- [MCP UI](#mcp-ui)
-  - [Architecture Flow](#architecture-flow)
-  - [Key Files](#key-files)
-  - [Adding a New MCP App](#adding-a-new-mcp-app)
-  - [Sandbox Proxy](#sandbox-proxy)
+- [Messenger Integration](messenger-integration.md) *(separate doc)*
+- [MCP UI](mcp-ui.md) *(separate doc)*
 - [Budget Tracking](#budget-tracking)
   - [How It Works](#how-it-works)
   - [Cost Calculation](#cost-calculation)
@@ -703,193 +696,6 @@ In minimalistic mode, the sidebar displays recently accessed items. These are tr
 See [Experimental Features](experimental-features.md).
 
 
-# Etienne Articles on LinkedIn
-<table>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article19.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/ontologies-agents-art-knowing-what-do-ralph-navasardyan-qqr8f/" target="_blank">Ontologies, Agents, and the Art of Knowing What to Do</a></b>
-    <p style="color:#999"><small>
-There's a concept buried inside Palantir Foundry that most people never talk about. They talk about the data integration. The pipelines. The price tag. But the genuinely interesting idea — the one that separates Foundry from a very expensive data warehouse — is something called the Ontology core.
-
-And once you understand it, you'll never look at AI agents the same way.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article16.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/formal-guarantees-vs-flexible-composition-choosing-ai-navasardyan-hhf8f/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BYaOWcdYmQTea5Nn4p8LHNg%3D%3D" target="_blank">Formal Guarantees vs. Flexible Composition: Choosing the Right AI Workflow Architecture</a></b>
-    <p style="color:#999"><small>
-  Welcome to the great AI architecture debate of 2026: LLM Event Loops vs. Hierarchical Agent Trees vs. Finite State Machines. Three approaches. Three different answers to the same question: Who should control your workflow - your LLM, your code, or a formal state machine?</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article17.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/why-your-ai-agents-compliance-process-might-secret-ralph-navasardyan-6yxnf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BfrZezl85SnO2qtvbbXaAuQ%3D%3D" target="_blank">Why Your AI Agent's Compliance Process Might Be Your Secret Competitive Advantage</a></b>
-    <p style="color:#999"><small>
-  Etienne takes a different approach. Instead of treating compliance as the annoying thing you do after building something cool, it treats your requirements document as the single source of truth from day one.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article18.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/from-chatbots-colleagues-rbac-engineered-context-ralph-navasardyan-vdsmf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BFcvig7gzTIOhrd18bgWBYQ%3D%3D" target="_blank">From Chatbots to Colleagues: RBAC and Engineered Context as the Missing Layer</a></b>
-    <p style="color:#999"><small>
-  Etienne is designed as a professional collaborator inside a company environment. It operates on private files, inside a workspace that is subdivided into projects, and assumes a clear separation between technical stewardship and business usage. That separation is enforced through RBAC and amplified through deliberate context engineering.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article1.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/" target="_blank">Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform</a></b>
-    <p style="color:#999"><small>
-    Anthropic wants to build something that sounds like science fiction: a virtual colleague that actually works like a real teammate - thinking through complex problems, remembering bad ideas to avoid them in the future, making decisions based on your private data, and getting things done over hours or days, not seconds.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article2.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/" target="_blank">Understanding Etienne: Complementing Claude Agent SDK's Agentic Loop</a></b>
-    <p style="color:#999"><small>
-    In my previous article, I illustrated how you can leverage Claude Code's agentic loop by attaching it to your own user interface and business logic. Basically: "Here's how to get the engine running." But here's the thing nobody tells you about AI agents: Getting them to work is easy. Getting them to work in production requires solving a dozen unsexy problems that have nothing to do with AI.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article3.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/feeding-etienne-condition-monitoring-ai-agents-ralph-navasardyan-usdef/" target="_blank">Feeding Etienne: Condition Monitoring with AI Agents</a></b>
-    <p style="color:#999"><small>
-    Picture this: It's Monday morning, and somewhere in Hamburg, a businessman named Thomas is still in his bathrobe, sipping coffee while his AI agent named Etienne is already hard at work. Not because Thomas programmed it to start at 6 AM, but because the world started talking to it - and Etienne was hungry.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article4.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etiennes-scrapbook-how-transform-human-intent-agentic-navasardyan-jjtpe/" target="_blank">Etienne's Scrapbook: How to transform Human Intent into Agentic Attention</a></b>
-    <p style="color:#999"><small>
-    This article describes how to move beyond single prompts to orchestrate complex, multi-faceted projects with AI agents.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article5.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etienne-getting-picky-why-90-production-ai-agent-ralph-navasardyan-i2fee/" target="_blank">Etienne is getting picky: Why 90% of Production AI Agent Systems Are Basically Expensive Random Number Generators</a></b>
-    <p style="color:#999"><small>
-    Context failures have overtaken model failures as the primary cause of AI agent breakdowns. After analyzing production systems from Anthropic, Google, and leading AI engineering teams, one pattern emerges: the quality of your context management directly determines agent reliability.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article6.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etiennes-memories-how-claude-code-based-ai-agents-over-navasardyan-sryie/" target="_blank">Etienne's Memories: How Claude Agent SDK AI Agents Build Knowledge Over Time</a></b>
-    <p style="color:#999"><small>
-    Anthropic didn't call it "Agentic Learning"—but they built something arguably more sophisticated. In October 2025, the company unveiled a distributed, file-based learning system that enables Claude to accumulate expertise across sessions, projects, and entire organizations. This architecture combines hierarchical memory files, on-demand skill loading, persistent task tracking, and iterative error correction into what may be the most practical approach to AI agent learning yet developed.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article7.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/how-etienne-solves-ais-last-mile-problem-bringing-ai-data-ralph-a97ue/" target="_blank">How Etienne Solves AI's Last Mile Problem: Bringing AI to Where the Data Lives</a></b>
-    <p style="color:#999"><small>
-    The world's most valuable data - patient records, proprietary algorithms, classified research, industrial secrets - sits locked behind security perimeters where cloud AI can never reach. Even when data access isn't restricted, professional workflows demand AI that understands specialized artifacts like DICOM scans, financial models, and CAD drawings—not generic file processors that treat domain expertise like raw text. </small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article8.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etienne-after-dark-how-a2a-accidentally-started-ai-rave-navasardyan-4ufmf/" target="_blank">Etienne after Dark: How A2A accidentally started an AI Rave</a></b>
-    <p style="color:#999"><small>
-    As a general AI agent, Etienne could reason, plan, decompose tasks, and orchestrate workflows all day long. But the real world doesn’t run on reasoning alone. It runs on invoices, shipping quotes, compliance checks, pricing engines, calendars, databases, and services with very specific opinions about how things should be done. So Etienne did what any competent orchestrator would do: it stopped pretending to be everything and started calling specialists. </small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article9.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/dressing-up-etienne-how-integrate-ai-agents-your-ralph-navasardyan-g3bte/" target="_blank">Dressing Up Etienne: How to integrate AI Agents with your Customer's Business Workflows</a></b>
-    <p style="color:#999"><small>
-    Many AI agent projects crash and burn when they meet the harsh reality of real-world implementation. What looked brilliant in an isolated demo gets rejected faster than a soggy sandwich – either by employees frustrated with poor usability or IT teams pulling their hair out over integration nightmares. This article walks you through a step-by-step approach to successfully weaving AI agents into your customer's existing technical and organizational fabric - based on my 20 years experience in enterprise consulting.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article10.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/swipe-right-smart-agents-etiennes-guide-digital-data-navasardyan-ofmhe/" target="_blank">Swipe Right on Smart Agents: Etienne's Guide to Digital Romance with Real-World Data</a></b>
-    <p style="color:#999"><small>
-    Meet Etienne - not your typical bachelor, but an open-source AI agent build with Anthropic's Agent SDK who's about to get hitched to the real world! Unlike those chatbots that live in isolation, Etienne knows how to mingle at the party, check his calendar, and even remember where he put his keys. So join the wild data party with Etienne and his hangover buddy Claude!</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article11.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/fearing-etienne-how-forward-deployed-genai-engineers-navasardyan-v9wje/" target="_blank">Fearing Etienne: How Forward-Deployed GenAI Engineers Will Replace Consulting and Software Development Teams</a></b>
-    <p style="color:#999"><small>
-   The traditional consulting-to-development pipeline is dead. One forward-deployed engineer with the right AI toolbox can deliver production systems in a few days. This article explores the forward-deployed engineer's secret weapon: exploiting AI systems' ability to self-reproduce while adapting to any business domain.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article12.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etienne-everywhere-using-telegram-microsoft-teams-ui-navasardyan-ut0ae/" target="_blank">Etienne Everywhere: Using Telegram and Microsoft Teams as an Alternative UI</a></b>
-    <p style="color:#999"><small>
-    That’s why Etienne supports messengers as an alternative UI - specifically Telegram and Microsoft Teams. Etienne is represented by a bot in both messengers.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article13.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/onboarding-etienne-next-best-thing-pip-boy-until-drop-navasardyan-vcuee/" target="_blank">Onboarding Etienne: The Next Best Thing to a Pip-Boy until the Nukes drop!</a></b>
-    <p style="color:#999"><small>
-    This article introduces the first steps with Etienne: an open-source seed project built on the Anthropic Agent SDK. Etienne is a personal, fully customizable agentic system that runs close to your data and depends only on an AI model exposing an Anthropic-compatible message API. No platform lock-in. No mandatory cloud brain. Just an agent you can actually own.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article14.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/diagnosing-etienne-inside-black-box-ai-agent-behavior-navasardyan-hqf7e/" target="_blank">Diagnosing Etienne: Inside the Black Box of AI Agent Behavior</a></b>
-    <p style="color:#999"><small>
-   AI agents no longer solve problems along a single, inspectable path. Each day adds new options: generate and execute code on the fly, delegate subtasks to MCP-backed tools, contract external specialists via A2A, chain services that themselves invoke other services. The agent’s action space is no longer a tree. It is a graph that keeps expanding while the agent is already moving through it. What used to be a prompt-and-response system now behaves like a distributed system assembled at runtime.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article15.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/beyond-mes-how-general-ai-agents-deliver-custom-ralph-navasardyan-p1mtf/" target="_blank">Beyond MES: How General AI Agents Deliver Custom Manufacturing Solutions On Demand</a></b>
-    <p style="color:#999"><small>
-   Manufacturing professionals often find themselves caught between two unsatisfying options: expensive, rigid MES implementations or cobbling together spreadsheets and manual processes. But there's a third path emerging - one that combines the sophistication of custom software with the accessibility of a conversation.</small>
-    </p>
-  </td>
-</tr>
-</table>
-
 # Setup
 
 See [API Keys & Secrets Management](api-keys-secrets.md).
@@ -1120,7 +926,7 @@ If LibreOffice is missing and the user needs to parse Office documents, the skil
 
 # File Type Previewers
 
-The previewer system routes file opens and service activations to specialized React viewer components. It uses a three-layer extension mapping and a separate service previewer registry, with configurable context menu actions per file type.
+The previewer system routes file opens and service activations to specialized React viewer components. It uses a three-layer extension mapping, a metadata registry for context menu actions and MCP UI previewers, and a separate service previewer registry.
 
 ## Architecture Overview
 
@@ -1142,21 +948,26 @@ User Action (context menu / sidebar icon / link click)
 | [FilesPanel.jsx](frontend/src/components/FilesPanel.jsx) | Tab manager: renders active file using viewerRegistry |
 | [PreviewersManager.jsx](frontend/src/components/PreviewersManager.jsx) | Admin UI: manages system-level extension mappings and context menu actions |
 | [Filesystem.jsx](frontend/src/components/Filesystem.jsx) | File explorer: renders data-driven context menu actions via `CONTEXT_MENU_MODALS` registry |
-| [previewers.service.ts](backend/src/previewers/previewers.service.ts) | Backend: reads/writes `REGISTERED_PREVIEWERS` env var and context actions JSON |
+| [previewers.service.ts](backend/src/previewers/previewers.service.ts) | Backend: extension mappings (`REGISTERED_PREVIEWERS` env), metadata (`previewer-metadata.json`), service previewers |
 | [previewers.controller.ts](backend/src/previewers/previewers.controller.ts) | API: `GET`/`PUT` `/api/previewers/configuration` |
-| [previewer-context-actions.json](backend/src/previewers/previewer-context-actions.json) | Context menu action definitions per viewer |
+| [previewer-metadata.json](backend/src/previewers/previewer-metadata.json) | Metadata per viewer: type, MCP group/tool, context menu actions |
 
-### Two Classes of Previewers
+### Three Classes of Previewers
 
-**File-Extension Previewers** map file extensions to viewer components:
+**File-Extension Previewers** (`type: 'file'`, the default) map file extensions to viewer components:
 - Configured via `REGISTERED_PREVIEWERS` env var (format: `viewer:.ext1,.ext2|viewer2:.ext3`)
 - Compound extensions (e.g., `.workflow.json`, `.artifacts.md`) are matched before simple extensions
 - Project-level overrides can remap or disable extensions per project
 
-**Service Previewers** are activated by running services, not file extensions:
+**Service Previewers** (`type: 'service'`) are activated by running services, not file extensions:
 - Triggered via service paths: `#<serviceName>/<function>` (e.g., `#imap/inbox`)
-- Registered in `SERVICE_PREVIEWERS` in viewerRegistry.jsx
+- Registered in `getServicePreviewers()` in `previewers.service.ts`
 - Typically shown as sidebar icons when their backing service is running
+
+**MCP UI Previewers** (`type: 'mcpui'`) render via MCP tool calls instead of file content:
+- Configured in `previewer-metadata.json` with `mcpGroup` and `mcpToolName`
+- Extensions are stored in metadata (not in the `REGISTERED_PREVIEWERS` env var)
+- Example: the `budget` viewer (`.budget.json`) calls the `render_budget` tool from the `budget` MCP group
 
 ### Extension Mapping Priority
 
@@ -1166,11 +977,12 @@ User Action (context menu / sidebar icon / link click)
 
 ### Context Menu Actions
 
-Previewers can define additional context menu actions that appear when right-clicking matching files in the file explorer. Actions are stored in `previewer-context-actions.json` and support:
+Previewers can define additional context menu actions that appear when right-clicking matching files in the file explorer. Actions are stored in `previewer-metadata.json` (under `actions` per viewer entry) and support:
 - **Multi-language labels** (en, de, it, zh)
 - **Conditions**: `filename` (exact match), `extension`, `pathContains` (folder segment)
 - **Modal dialogs** or **preview navigation** (`__preview__` pseudo-component)
 - **Template parameters**: `${filePath}`, `${fileName}`, `${fileNameWithoutExt}`, `${projectName}`, `${folderPath}`
+- **Role gating**: optional `minRole` field (e.g. `'user'`)
 
 ## Supported File Types
 
@@ -1193,6 +1005,7 @@ Previewers can define additional context menu actions that appear when right-cli
 | `.docx`, `.doc` | docx | [DocxViewer](frontend/src/components/DocxViewer.jsx) |
 | `.requirements.json` | requirements | [RequirementsViewer](frontend/src/components/RequirementsViewer.jsx) |
 | `.artifacts.md` | artifacts | [ArtifactsForSession](frontend/src/components/ArtifactsForSession.jsx) |
+| `.budget.json` | budget | MCP UI previewer (calls `render_budget` tool) |
 | `#imap/*` (service) | imap | [IMAPInboxViewer](frontend/src/components/IMAPInboxViewer.jsx) |
 
 ## Adding a New File-Extension Previewer
@@ -1217,15 +1030,23 @@ Previewers can define additional context menu actions that appear when right-cli
 **Steps:**
 1. Create a viewer component in `frontend/src/components/` (e.g., `MyServiceViewer.jsx`)
 2. Register it in `VIEWER_COMPONENTS` in `viewerRegistry.jsx`
-3. Register it in `SERVICE_PREVIEWERS` in `viewerRegistry.jsx` with `viewerName`, `functions`, `displayName`
+3. Add an entry in `getServicePreviewers()` in `backend/src/previewers/previewers.service.ts` with `serviceName`, `viewerName`, `functions`, `displayName`, and optional `requiresService`
 4. Add a sidebar icon in `MinimalisticSidebar.jsx` that calls `filePreviewHandler.handlePreview('#myservice/function', currentProject)`
 5. Ensure the backing service is registered in `backend/services.json`
+
+## Adding a New MCP UI Previewer
+
+**Steps:**
+1. Create a viewer component in `frontend/src/components/`
+2. Register it in `VIEWER_COMPONENTS` in `viewerRegistry.jsx`
+3. Add a metadata entry in `getDefaultMetadata()` in `backend/src/previewers/previewers.service.ts` with `viewer`, `type: 'mcpui'`, `extensions`, `mcpGroup`, and `mcpToolName`
+4. Ensure the MCP server group exposes the tool specified in `mcpToolName`
 
 ## Adding a Context Menu Action to a Previewer
 
 **Steps:**
 1. If the action opens a modal: create the modal component and register it in `CONTEXT_MENU_MODALS` in `Filesystem.jsx`
-2. Add a `contextMenuActions` entry to the viewer in `backend/src/previewers/previewer-context-actions.json` with labels, icon, `modalComponent` name (or `__preview__` to open a file preview), params, and optional condition
+2. Add an `actions` entry to the viewer's metadata in `getDefaultMetadata()` in `backend/src/previewers/previewers.service.ts` with labels, icon, `modalComponent` name (or `__preview__` to open a file preview), params, optional condition, and optional `minRole`
 3. The context menu rendering is automatic
 
 **Agent prompt:**
@@ -1236,93 +1057,7 @@ Previewers can define additional context menu actions that appear when right-cli
 
 The preview system is integrated with the [Interceptors](requirements-docs/prd-interceptors.md) feature to automatically refresh previews when files are modified by Claude Code.
 
-# Messenger Integration
-
-Etienne supports external messaging platform integration, allowing users to interact with projects directly from messaging apps like Telegram. The system uses a secure pairing mechanism where all users are blocked by default until explicitly approved by an admin.
-
-## Architecture
-
-```mermaid
-sequenceDiagram
-    actor TelegramUser as Telegram User
-    participant Provider as Telegram Provider<br/>(:6350)
-    participant Backend as Backend<br/>(:6060)
-    participant Admin as Admin<br/>(Frontend)
-
-    rect rgb(240, 240, 255)
-        Note over TelegramUser,Admin: Pairing Flow (first time only)
-        TelegramUser->>Provider: /start
-        Provider->>Backend: POST /remote-sessions/pairing/request
-        Backend-->>Admin: Pairing request appears in UI
-        Admin->>Backend: Approve pairing
-        Backend-->>Provider: Session created
-        Provider-->>TelegramUser: ✓ Paired — select a project
-    end
-
-    TelegramUser->>Provider: Send message
-    Provider->>Backend: Check session mapping
-    Backend-->>Provider: Session valid
-
-    Provider->>Backend: Forward prompt to Etienne
-    Backend-->>Provider: Etienne response (streamed)
-    Provider-->>TelegramUser: Reply to user
-```
-
-**Components:**
-- **Telegram Provider** (`/telegram`) - Grammy-based bot using long polling, handles messages and media uploads
-- **Remote Sessions Module** (`/backend/src/remote-sessions`) - Manages session mappings and pairing requests
-- **Frontend Pairing Modal** - Admin approval interface for new user pairing requests
-
-### Configuration
-
-Create a `.env` file in the `/telegram` directory:
-
-```env
-# Required: Telegram Bot Token from @BotFather
-TELEGRAM_BOT_TOKEN=your-bot-token-here
-
-# Optional: Backend URL (default: http://localhost:6060)
-BACKEND_URL=http://localhost:6060
-```
-
-To create a Telegram bot:
-1. Open Telegram and search for **@BotFather**
-2. Send `/newbot` and follow the prompts
-3. Copy the bot token provided by BotFather
-
-## Usage Guide
-
-**Starting the Provider:**
-```bash
-cd telegram
-npm install
-npm run dev   # Development mode
-```
-
-**Pairing Flow:**
-1. User sends `/start` to the Telegram bot
-2. A pairing request appears in the Etienne web UI
-3. Admin clicks **Approve** or **Deny** in the modal dialog
-4. Once approved, user can select a project and start chatting
-
-**Available Commands:**
-| Command | Description |
-|---------|-------------|
-| `/start` | Begin pairing or show current status |
-| `/status` | Show current session status |
-| `/projects` | List available projects |
-| `/disconnect` | Disconnect from Etienne |
-| `/help` | Show available commands |
-
-**Project Selection:**
-```
-project 'project-name'
-```
-
-**Sending Files:**
-Users can send photos, documents, videos, and audio files which are automatically uploaded to the project's `.attachments` folder.
-
-**More information:** See [telegram/README.md](telegram/README.md) for complete documentation including troubleshooting and development guides.
+See [Messenger Integration](messenger-integration.md).
 
 # Using the Agent with its own Email Account
 
@@ -1421,118 +1156,7 @@ These events flow through the CMS rule engine — you can create rules that matc
 
 An optional **email** skill is available in the skill repository (`skill-repository/standard/optional/email/`). When provisioned to a project, it teaches the agent when and how to use the email tools effectively — including best practices for plain-text fallbacks, attachment handling, inbox filtering, and reply workflows.
 
-# MCP UI
-
-MCP tools can serve interactive UIs directly inside the chat timeline. When a tool carries a `_meta.ui.resourceUri`, its result is rendered as a full MCP App (sandboxed iframe) instead of plain JSON, giving the user buttons, forms and live data right where the conversation happens.
-
-One use case it the configuration of Etienne which can be optionally managed using the etienne configuration MCP tool:
-
-<div align="center">
-<img src="/docs/images/mcp-ui.jpg" style="marginTop: 24px;marginBottom: 24px" alt="Etienne Chat Pane" width="600">
-</div> 
-
-The integration uses [`@mcp-ui/client`](https://github.com/idosal/mcp-ui) on the host side (React frontend) and [`@modelcontextprotocol/ext-apps`](https://github.com/modelcontextprotocol/ext-apps) inside the iframe (guest app).
-
-## Architecture Flow
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant Frontend as StreamingTimeline<br/>(React)
-    participant Renderer as McpAppRenderer<br/>(AppRenderer)
-    participant Proxy as Sandbox Proxy<br/>(iframe)
-    participant GuestApp as Guest App<br/>(MCP App React)
-    participant Backend as Backend MCP Server<br/>(:6060)
-
-    User->>Frontend: Send prompt
-    Frontend->>Backend: Claude calls MCP tool (e.g. list_services)
-    Backend-->>Frontend: JSON result via SSE<br/>with _meta.ui.resourceUri
-
-    Note over Frontend: useMcpAppMeta detects<br/>resourceUri → render McpAppRenderer
-
-    Renderer->>Backend: Connect MCP client via<br/>StreamableHTTPClientTransport
-    Backend-->>Renderer: Session established
-
-    Renderer->>Backend: resources/read (ui://…/dashboard.html)
-    Backend-->>Renderer: HTML resource (597 KB single-file)
-
-    Renderer->>Proxy: Create iframe at /sandbox-proxy
-    Proxy-->>Renderer: sandbox-proxy-ready
-
-    Renderer->>Proxy: sandbox-resource-ready { html }
-    Proxy->>GuestApp: Load HTML in nested srcdoc iframe
-
-    GuestApp-->>Proxy: initialized
-    Proxy-->>Renderer: initialized
-
-    Renderer->>Proxy: tool-input + tool-result
-    Proxy->>GuestApp: tool-input + tool-result
-
-    loop Interactive use (poll, start, stop, config)
-        GuestApp->>Proxy: callServerTool (e.g. list_services)
-        Proxy->>Renderer: callServerTool
-        Renderer->>Backend: tools/call
-        Backend-->>Renderer: Tool result JSON
-        Renderer->>Proxy: Tool result
-        Proxy->>GuestApp: Tool result
-    end
-```
-
-## Key Files
-
-| Layer | File | Purpose |
-|-------|------|---------|
-| Backend | [etienne-configuration-tools.ts](backend/src/mcpserver/etienne-configuration-tools.ts) | Tool definitions with `_meta.ui.resourceUri`, resource HTML loader |
-| Backend | [mcp-server-factory.service.ts](backend/src/mcpserver/mcp-server-factory.service.ts) | Registers resource handlers (`resources/list`, `resources/read`), exposes `getToolAppMeta()` |
-| Backend | [mcp-server.controller.ts](backend/src/mcpserver/mcp-server.controller.ts) | `GET /mcp/tool-app-meta` endpoint for frontend discovery |
-| Backend | [types.ts](backend/src/mcpserver/types.ts) | `McpResource` interface, `ToolGroupConfig.resources` |
-| Frontend | [McpAppRenderer.jsx](frontend/src/components/McpAppRenderer.jsx) | Wraps `AppRenderer`, connects MCP client to backend |
-| Frontend | [useMcpAppMeta.js](frontend/src/hooks/useMcpAppMeta.js) | Fetches tool-app metadata, maps both raw and `mcp__`-prefixed names |
-| Frontend | [StreamingTimeline.jsx](frontend/src/components/StreamingTimeline.jsx) | Detects MCP App tools, renders `McpAppRenderer` inline |
-| MCP App | [mcp-app-etienne-config/server.ts](mcp-app-etienne-config/server.ts) | Standalone MCP App server (development/testing) |
-| MCP App | [mcp-app-etienne-config/src/mcp-app.tsx](mcp-app-etienne-config/src/mcp-app.tsx) | React dashboard UI (Services + Configuration tabs) |
-
-## Adding a New MCP App
-
-1. Create a React app under `mcp-app-<name>/` using `vite-plugin-singlefile` to produce a single HTML file in `dist/`
-2. In your tool definition, add `_meta: { ui: { resourceUri: 'ui://<name>/dashboard.html' } }` to the entry tool
-3. Register a `McpResource` in the tool group's config inside `mcp-server-factory.service.ts` with a `loadContent` function pointing at the built HTML
-4. Add the group to `mcp-server-registry.json`
-5. The frontend picks it up automatically via `/mcp/tool-app-meta`
-
-## Sandbox Proxy
-
-`AppRenderer` from `@mcp-ui/client` requires a **sandbox proxy** — a small HTML page that bridges `postMessage` communication between the host and a nested iframe containing the MCP App HTML. This provides iframe isolation so the guest app cannot access the host page's DOM, cookies, or storage.
-
-**How it works:**
-
-```
-Host (AppRenderer on :5000)
-  │
-  └─ <iframe src="/sandbox-proxy?contentType=rawhtml">   ← proxy iframe
-       │
-       └─ <iframe srcdoc="...">                          ← MCP App HTML
-            │
-            └─ postMessage ↔ proxy ↔ host (JSON-RPC)
-```
-
-1. `AppRenderer` creates an iframe pointing at the proxy URL
-2. The proxy signals readiness via `{ method: "ui/notifications/sandbox-proxy-ready" }`
-3. The host sends the MCP App HTML via `{ method: "ui/notifications/sandbox-resource-ready", params: { html } }`
-4. The proxy loads the HTML into a nested `srcdoc` iframe with `sandbox="allow-scripts"`
-5. All subsequent JSON-RPC messages (tool calls, size changes, etc.) are forwarded bidirectionally
-
-**Configuration:**
-
-The proxy is served by a Vite middleware plugin at `/sandbox-proxy` on the same origin (port 5000). No additional ports are required, making it Docker-compatible.
-
-| File | Purpose |
-|------|---------|
-| [sandbox_proxy.html](frontend/public/sandbox_proxy.html) | The proxy HTML — receives HTML via `postMessage`, creates nested iframe, forwards messages |
-| [vite.config.js](frontend/vite.config.js) | `mcpSandboxProxyPlugin` serves `sandbox_proxy.html` at `/sandbox-proxy` via Vite middleware |
-| [McpAppRenderer.jsx](frontend/src/components/McpAppRenderer.jsx) | Passes `sandbox={{ url: new URL('/sandbox-proxy', origin) }}` to `AppRenderer` |
-
-**Note:** The `@mcp-ui/client` library checks whether the proxy origin matches the host origin. For `AppRenderer` (used for full MCP Apps with bidirectional tool calls), same-origin proxies work correctly. The origin check only blocks same-origin in `HTMLResourceRenderer` (a simpler component not used here).
+See [MCP UI](mcp-ui.md).
 
 # Budget Tracking
 
@@ -1591,270 +1215,194 @@ The budget indicator in the header bar shows a percentage icon (0–100 %) based
 
 The frontend subscribes to an SSE stream (`/api/budget-monitoring/:project/stream`) that pushes `budget-update` events whenever a new cost entry is recorded. On each event the UI also re-fetches global totals to keep the stacked bar accurate.
 
-# MCP Registry/Governance Layer
-
-A pluggable provider system for discovering and connecting to Model Context Protocol (MCP) servers across multiple backends. One interface, four implementations, late-bound secrets, and configs you can hand directly to Claude, the OpenAI Responses API, or opencode.
-
-## Why this exists
-
-Teams building agentic applications quickly hit the same problem: they need a handful of MCP servers, those servers live in different places, and the rules for who gets to use which one depend on environment. A single JSON file works on day one. By month three you have:
-
-- Internal servers on your own infra (`knowledge-graph`, `project-tools`, a Slack bridge you wrote last week)
-- Third-party SaaS servers you don't want to host (Gmail, GitHub, Notion)
-- Production servers that require audit trails, rate limits, and rotation
-- Developers who want local-only servers that nobody else should see
-- Secrets that should never live in git
-
-This library lets you keep all of that behind one service. You ask `registry.toClaudeConfig()` and get a ready-to-use config file with secrets resolved from Azure Key Vault, AWS credentials wired up, tool allowlists applied, and a consistent view across every backend you use.
-
-## Which provider should I use?
-
-**Short answer:** start with `json-file`, add the others as you grow.
-
-### `json-file` — the default, and where most projects should start
-
-Use this when:
-
-- You're building locally or on a small team and a file in the repo is good enough
-- You run self-hosted MCP servers (a script on localhost, a sidecar container, an internal service)
-- You want zero external dependencies — this provider works offline, in air-gapped environments, in CI, and on a plane
-- You need a flat list of servers with minimal ceremony
-
-Skip it when:
-
-- Multiple teams need to share servers without a shared repo
-- You need an audit trail of who called which tool
-- You need per-team or per-environment access control enforced at the gateway
-- Your JSON file has started to attract merge conflicts
-
-The JSON file is the source of truth and lives in your repo. Placeholders like `${env:GITHUB_TOKEN}` and `${kv:gmail-client-secret}` stay unresolved in the file so you can commit it safely. **Cost:** free.
-
-### `azure-api-center` — for production on Azure
-
-Use this when:
-
-- Your organization is already on Azure and teams expect governance (Entra ID groups, API Management policies, Azure Monitor)
-- You need a spec-compliant MCP registry endpoint that GitHub Copilot, VS Code, and other IDE clients can consume directly
-- You want runtime gatekeeping — rate limits, IP filtering, quota enforcement, JWT validation — without modifying MCP server code
-- You need lifecycle metadata (dev / staging / prod environments, version pinning, deprecation status) to be part of the registry itself, not a convention
-- You want to mix internally-hosted MCP servers with partner MCP servers (Logic Apps, GitHub MCP) in one catalog
-
-Skip it when:
-
-- You don't have an Azure tenant or don't want one
-- Your MCP traffic is too small to justify an API Management instance
-- You need to mutate the registry frequently from code (API Center is best managed through Azure portal, Bicep, or Terraform)
-
-Expect an APIM Basic tier or higher for the runtime plane; the API Center catalog itself has a free tier. Authentication uses Microsoft Entra ID (formerly Azure AD). **Cost:** APIM Basic starts at a few tens of euros per month; the API Center catalog is free.
-
-### `composio` — for SaaS toolkits you don't want to host yourself
-
-Use this when:
-
-- You need Gmail, GitHub, Slack, Notion, Linear, Stripe, or any of ~1000 third-party integrations, and you don't want to operate OAuth flows, token refresh, or credential storage
-- You have end users who each bring their own credentials (multi-tenant), and Composio's per-user instance URLs remove an entire class of credential-isolation bugs
-- Your production secret for these integrations should be exactly one API key (the Composio one), not N vendor-specific tokens
-- Speed-to-integration matters more than control — you can add a toolkit in minutes
-
-Skip it when:
-
-- You're integrating with systems that aren't in Composio's catalog (your own internal APIs, for example)
-- You don't want a vendor in the critical path of every MCP call
-- Data residency requirements prevent routing tool calls through a third party
-- Your cost model can't absorb per-action pricing at scale
-
-Tool governance is native: every server has an `allowedTools` list that Composio enforces, so you can publish a GitHub server that can only read issues and never create pull requests. **Cost:** per-seat or per-action (check current pricing).
-
-### `aws-bedrock-agentcore` — for production on AWS
-
-Use this when:
-
-- Your organization runs on AWS and you want an agent platform that integrates with IAM, CloudWatch, and AWS Marketplace
-- You're building MCP servers yourself but don't want to operate the hosting (session isolation, scale-to-zero, microVM-per-session)
-- You need 15-minute request timeouts and long-running session support (up to 8 hours) — AgentCore Runtime is built for this; most HTTP gateways are not
-- You want session affinity (`Mcp-Session-Id` routing to the same microVM) handled for you
-- Your MCP servers process multi-modal payloads (up to 100 MB) and you don't want to architect around an API Gateway 10 MB limit
-
-Skip it when:
-
-- You're not on AWS
-- You need a polished inventory UI for non-engineers — AgentCore exposes its list through the API and the AWS Console, not a dedicated catalog portal like API Center
-- You want something lighter than a containerized deployment per server
-
-AgentCore Runtime is a *hosting* platform; this provider enumerates already-deployed runtimes via the control plane's `ListAgentRuntimes` API and returns connection URLs. It does **not** deploy runtimes for you — use the `agentcore` CLI or AWS SDK for that. Authentication can be AWS SigV4 (IAM) or OAuth 2.0 via your identity provider (Cognito / Okta / Entra ID). **Cost:** consumption-based, charged for active CPU time only.
-
-### Using more than one at once (this is the common case)
-
-You don't have to choose. A realistic production setup stacks providers by priority:
-
-```
-json-file                ← local dev overrides, internal servers
-azure-api-center         ← governed production servers for your team
-aws-bedrock-agentcore    ← your AWS-hosted MCP servers
-composio                 ← the SaaS long tail
-```
-
-Order matters: later providers override earlier ones on name collisions. That means you can put a local-only `gmail` entry in your JSON file that shadows the Composio Gmail server during development, and production deployments automatically use the Composio one.
-
-### Quick decision table
-
-| I want to…                                                  | Pick                     |
-| ----------------------------------------------------------- | ------------------------ |
-| Get started in 5 minutes, local dev                         | `json-file`              |
-| Add Gmail without writing an OAuth flow                     | `composio`               |
-| Enforce JWT auth and rate limits on our internal MCP server | `azure-api-center`       |
-| Host a long-running MCP server on a managed AWS platform    | `aws-bedrock-agentcore`  |
-| Let non-engineers browse available tools                    | `azure-api-center`       |
-| Multi-tenant agent with per-user credentials                | `composio`               |
-| Air-gapped or offline development                           | `json-file`              |
-| Process 50 MB payloads through an MCP server                | `aws-bedrock-agentcore`  |
-| Mix internal and SaaS servers                               | all four together        |
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  McpRegistryService                      │
-│  (merges providers, materializes Claude/OpenAI configs)  │
-└─────────────────────────────────────────────────────────┘
-          │                                    │
-          │ listServers()                      │ resolveDeep()
-          ▼                                    ▼
-┌──────────────────────┐           ┌──────────────────────┐
-│  IMcpRegistryProvider│           │  SecretResolverChain │
-│  (4 implementations) │           │   env:, kv: schemes  │
-└──────────────────────┘           └──────────────────────┘
-          │
-   ┌──────┼──────┬──────────────┬─────────────────┐
-   ▼      ▼      ▼              ▼                 ▼
-┌──────┐ ┌────────────┐ ┌──────────┐ ┌───────────────────┐
-│ JSON │ │ Azure API  │ │ Composio │ │ AWS Bedrock       │
-│ file │ │ Center     │ │          │ │ AgentCore Runtime │
-└──────┘ └────────────┘ └──────────┘ └───────────────────┘
-```
-
-Every provider returns entries in the same canonical shape, so downstream code never branches on "where did this come from." Secret placeholders stay unresolved until a config is being built for a specific target — this lets you log, cache, and diff registry output without leaking credentials.
-
-## Secrets
-
-Strings anywhere in a provider's output — URL, headers, env, args — can contain placeholders:
-
-| Placeholder              | Resolved from                              |
-| ------------------------ | ------------------------------------------ |
-| `${env:FOO}`             | `process.env.FOO`                          |
-| `${FOO}` (legacy)        | `process.env.FOO` (back-compat)            |
-| `${kv:my-secret}`        | Azure Key Vault, latest version            |
-| `${kv:my-secret@v1}`     | Azure Key Vault, pinned version `v1`       |
-| `${aws-sigv4}`           | Sentinel — sign the request at call time   |
-
-Missing secrets leave the placeholder intact so you can spot them in the output. Key Vault results are cached (5-minute default TTL) and the cache is invalidatable.
-
-## Provider reference
-
-### `json-file`
-
-```ts
-{
-  kind: 'json-file',
-  options: {
-    registryPath: './mcp-server-registry.json', // default: $MCP_REGISTRY or cwd
-    writable: false,                             // default: read-only
-  },
-}
-```
-
-File format:
-
-```json
-{
-  "servers": [
-    {
-      "name": "knowledge-graph",
-      "transport": "http",
-      "url": "http://localhost:6060/mcp/knowledge-graph",
-      "headers": { "Authorization": "${env:INTERNAL_TOKEN}" },
-      "description": "Knowledge graph and vector search"
-    }
-  ]
-}
-```
-
-Writes (when `writable: true`) persist back to disk as formatted JSON.
-
-### `azure-api-center`
-
-```ts
-{
-  kind: 'azure-api-center',
-  options: {
-    endpoint: 'https://my-apic.data.westeurope.azure-apicenter.ms',
-    anonymous: false,    // set true if registry uses anonymous access
-    scope: 'https://azure-apicenter.net/.default', // default
-  },
-}
-```
-
-**Important:** pass the base data-plane URL only. Do not include `/v0.1/servers` — that path is appended internally. Azure API Center's URL validation rejects extra segments. Credentials come from `DefaultAzureCredential`, which walks: env vars → workload identity → managed identity → Azure CLI → VS Code. Works the same locally and in Azure.
-
-### `composio`
-
-```ts
-{
-  kind: 'composio',
-  options: {
-    apiKey: process.env.COMPOSIO_API_KEY!,
-    defaultUserId: 'tenant-42',  // optional — generates per-user URLs
-    baseUrl: undefined,          // optional — for Composio SaaS overrides
-  },
-}
-```
-
-If `defaultUserId` is set, `listServers` returns per-user instance URLs (via `composio.mcp.generate`). Otherwise it returns the shared MCP URL.
-
-Since March 2026, newly created Composio organizations require the `x-api-key` header on every MCP request. This provider sets it as a `${kv:composio-api-key}` placeholder so the key can live in Key Vault.
-
-### `aws-bedrock-agentcore`
-
-```ts
-{
-  kind: 'aws-bedrock-agentcore',
-  options: {
-    region: 'us-west-2',
-    qualifier: 'DEFAULT',          // default
-    authMode: 'sigv4',             // or 'bearer'
-    bearerPlaceholder: '${kv:agentcore-bearer-token}', // used when authMode=bearer
-    allowedStatuses: ['READY'],    // default; use ['*'] for all
-    dataPlaneEndpoint: undefined,  // override for sovereign regions / PrivateLink
-  },
-}
-```
-
-This provider enumerates runtimes via `ListAgentRuntimes` and filters to those with `serverProtocol: MCP`. The invocation URL is constructed deterministically as `https://bedrock-agentcore.{region}.amazonaws.com/runtimes/{encoded-arn}/invocations?qualifier={qualifier}`.
-
-**A note on SigV4.** AWS IAM auth requires a signature over the outgoing request, which can't be precomputed at registry time. This provider sets `Authorization: ${aws-sigv4}` as a sentinel — your runtime must detect this value and sign the request using `@aws-sdk/signature-v4` (or equivalent) before sending. For OAuth-based setups (Cognito / Okta / Entra ID), use `authMode: 'bearer'` and a Key Vault placeholder, which flows through the normal resolver.
-
-Credentials come from the AWS default credential provider chain — works with IAM roles, SSO, env vars, and profiles.
-
-### `custom`
-
-Implement `IMcpRegistryProvider` and pass it through:
-
-```ts
-{ kind: 'custom', instance: new MyConsulProvider(...) }
-```
-
-## Governance comparison
-
-| Feature                            | JSON file | API Center       | Composio        | AgentCore             |
-| ---------------------------------- | --------- | ---------------- | --------------- | --------------------- |
-| Per-environment filtering          | Manual    | Native           | N/A             | Via qualifier         |
-| Tool-level allowlist               | No        | Via APIM policy  | `allowedTools`  | At server level       |
-| Audit trail                        | No        | Azure Monitor    | Composio dash   | CloudWatch            |
-| Auth enforcement at gateway        | No        | Entra ID / keys  | `x-api-key`     | SigV4 / OAuth         |
-| Rotation without code changes      | No        | Yes (APIM)       | Yes (Composio)  | Yes (IAM / IdP)       |
-| Works offline / air-gapped         | Yes       | No               | No              | No                    |
-| Multi-tenant per-user URLs         | No        | Possible via APIM| Native          | Possible via Identity |
-| Long-running sessions (> 5 min)    | N/A       | APIM-dependent   | N/A             | 15 min → 8 hours      |
+See [MCP Registry/Governance Layer](mcp-registry.md).
+
+# Etienne Articles on LinkedIn
+<table>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article19.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/ontologies-agents-art-knowing-what-do-ralph-navasardyan-qqr8f/" target="_blank">Ontologies, Agents, and the Art of Knowing What to Do</a></b>
+    <p style="color:#999"><small>
+There's a concept buried inside Palantir Foundry that most people never talk about. They talk about the data integration. The pipelines. The price tag. But the genuinely interesting idea — the one that separates Foundry from a very expensive data warehouse — is something called the Ontology core.
+
+And once you understand it, you'll never look at AI agents the same way.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article16.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/formal-guarantees-vs-flexible-composition-choosing-ai-navasardyan-hhf8f/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BYaOWcdYmQTea5Nn4p8LHNg%3D%3D" target="_blank">Formal Guarantees vs. Flexible Composition: Choosing the Right AI Workflow Architecture</a></b>
+    <p style="color:#999"><small>
+  Welcome to the great AI architecture debate of 2026: LLM Event Loops vs. Hierarchical Agent Trees vs. Finite State Machines. Three approaches. Three different answers to the same question: Who should control your workflow - your LLM, your code, or a formal state machine?</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article17.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/why-your-ai-agents-compliance-process-might-secret-ralph-navasardyan-6yxnf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BfrZezl85SnO2qtvbbXaAuQ%3D%3D" target="_blank">Why Your AI Agent's Compliance Process Might Be Your Secret Competitive Advantage</a></b>
+    <p style="color:#999"><small>
+  Etienne takes a different approach. Instead of treating compliance as the annoying thing you do after building something cool, it treats your requirements document as the single source of truth from day one.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article18.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/from-chatbots-colleagues-rbac-engineered-context-ralph-navasardyan-vdsmf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BFcvig7gzTIOhrd18bgWBYQ%3D%3D" target="_blank">From Chatbots to Colleagues: RBAC and Engineered Context as the Missing Layer</a></b>
+    <p style="color:#999"><small>
+  Etienne is designed as a professional collaborator inside a company environment. It operates on private files, inside a workspace that is subdivided into projects, and assumes a clear separation between technical stewardship and business usage. That separation is enforced through RBAC and amplified through deliberate context engineering.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td width="220">
+    <img src="/docs/images/article1.jpg" width="220"/>
+  </td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/" target="_blank">Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform</a></b>
+    <p style="color:#999"><small>
+    Anthropic wants to build something that sounds like science fiction: a virtual colleague that actually works like a real teammate - thinking through complex problems, remembering bad ideas to avoid them in the future, making decisions based on your private data, and getting things done over hours or days, not seconds.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article2.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/" target="_blank">Understanding Etienne: Complementing Claude Agent SDK's Agentic Loop</a></b>
+    <p style="color:#999"><small>
+    In my previous article, I illustrated how you can leverage Claude Code's agentic loop by attaching it to your own user interface and business logic. Basically: "Here's how to get the engine running." But here's the thing nobody tells you about AI agents: Getting them to work is easy. Getting them to work in production requires solving a dozen unsexy problems that have nothing to do with AI.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article3.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/feeding-etienne-condition-monitoring-ai-agents-ralph-navasardyan-usdef/" target="_blank">Feeding Etienne: Condition Monitoring with AI Agents</a></b>
+    <p style="color:#999"><small>
+    Picture this: It's Monday morning, and somewhere in Hamburg, a businessman named Thomas is still in his bathrobe, sipping coffee while his AI agent named Etienne is already hard at work. Not because Thomas programmed it to start at 6 AM, but because the world started talking to it - and Etienne was hungry.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article4.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/etiennes-scrapbook-how-transform-human-intent-agentic-navasardyan-jjtpe/" target="_blank">Etienne's Scrapbook: How to transform Human Intent into Agentic Attention</a></b>
+    <p style="color:#999"><small>
+    This article describes how to move beyond single prompts to orchestrate complex, multi-faceted projects with AI agents.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article5.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/etienne-getting-picky-why-90-production-ai-agent-ralph-navasardyan-i2fee/" target="_blank">Etienne is getting picky: Why 90% of Production AI Agent Systems Are Basically Expensive Random Number Generators</a></b>
+    <p style="color:#999"><small>
+    Context failures have overtaken model failures as the primary cause of AI agent breakdowns. After analyzing production systems from Anthropic, Google, and leading AI engineering teams, one pattern emerges: the quality of your context management directly determines agent reliability.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article6.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/etiennes-memories-how-claude-code-based-ai-agents-over-navasardyan-sryie/" target="_blank">Etienne's Memories: How Claude Agent SDK AI Agents Build Knowledge Over Time</a></b>
+    <p style="color:#999"><small>
+    Anthropic didn't call it "Agentic Learning"—but they built something arguably more sophisticated. In October 2025, the company unveiled a distributed, file-based learning system that enables Claude to accumulate expertise across sessions, projects, and entire organizations. This architecture combines hierarchical memory files, on-demand skill loading, persistent task tracking, and iterative error correction into what may be the most practical approach to AI agent learning yet developed.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article7.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/how-etienne-solves-ais-last-mile-problem-bringing-ai-data-ralph-a97ue/" target="_blank">How Etienne Solves AI's Last Mile Problem: Bringing AI to Where the Data Lives</a></b>
+    <p style="color:#999"><small>
+    The world's most valuable data - patient records, proprietary algorithms, classified research, industrial secrets - sits locked behind security perimeters where cloud AI can never reach. Even when data access isn't restricted, professional workflows demand AI that understands specialized artifacts like DICOM scans, financial models, and CAD drawings—not generic file processors that treat domain expertise like raw text. </small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article8.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/etienne-after-dark-how-a2a-accidentally-started-ai-rave-navasardyan-4ufmf/" target="_blank">Etienne after Dark: How A2A accidentally started an AI Rave</a></b>
+    <p style="color:#999"><small>
+    As a general AI agent, Etienne could reason, plan, decompose tasks, and orchestrate workflows all day long. But the real world doesn’t run on reasoning alone. It runs on invoices, shipping quotes, compliance checks, pricing engines, calendars, databases, and services with very specific opinions about how things should be done. So Etienne did what any competent orchestrator would do: it stopped pretending to be everything and started calling specialists. </small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article9.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/dressing-up-etienne-how-integrate-ai-agents-your-ralph-navasardyan-g3bte/" target="_blank">Dressing Up Etienne: How to integrate AI Agents with your Customer's Business Workflows</a></b>
+    <p style="color:#999"><small>
+    Many AI agent projects crash and burn when they meet the harsh reality of real-world implementation. What looked brilliant in an isolated demo gets rejected faster than a soggy sandwich – either by employees frustrated with poor usability or IT teams pulling their hair out over integration nightmares. This article walks you through a step-by-step approach to successfully weaving AI agents into your customer's existing technical and organizational fabric - based on my 20 years experience in enterprise consulting.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article10.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/swipe-right-smart-agents-etiennes-guide-digital-data-navasardyan-ofmhe/" target="_blank">Swipe Right on Smart Agents: Etienne's Guide to Digital Romance with Real-World Data</a></b>
+    <p style="color:#999"><small>
+    Meet Etienne - not your typical bachelor, but an open-source AI agent build with Anthropic's Agent SDK who's about to get hitched to the real world! Unlike those chatbots that live in isolation, Etienne knows how to mingle at the party, check his calendar, and even remember where he put his keys. So join the wild data party with Etienne and his hangover buddy Claude!</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article11.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/fearing-etienne-how-forward-deployed-genai-engineers-navasardyan-v9wje/" target="_blank">Fearing Etienne: How Forward-Deployed GenAI Engineers Will Replace Consulting and Software Development Teams</a></b>
+    <p style="color:#999"><small>
+   The traditional consulting-to-development pipeline is dead. One forward-deployed engineer with the right AI toolbox can deliver production systems in a few days. This article explores the forward-deployed engineer's secret weapon: exploiting AI systems' ability to self-reproduce while adapting to any business domain.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article12.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/etienne-everywhere-using-telegram-microsoft-teams-ui-navasardyan-ut0ae/" target="_blank">Etienne Everywhere: Using Telegram and Microsoft Teams as an Alternative UI</a></b>
+    <p style="color:#999"><small>
+    That’s why Etienne supports messengers as an alternative UI - specifically Telegram and Microsoft Teams. Etienne is represented by a bot in both messengers.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article13.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/onboarding-etienne-next-best-thing-pip-boy-until-drop-navasardyan-vcuee/" target="_blank">Onboarding Etienne: The Next Best Thing to a Pip-Boy until the Nukes drop!</a></b>
+    <p style="color:#999"><small>
+    This article introduces the first steps with Etienne: an open-source seed project built on the Anthropic Agent SDK. Etienne is a personal, fully customizable agentic system that runs close to your data and depends only on an AI model exposing an Anthropic-compatible message API. No platform lock-in. No mandatory cloud brain. Just an agent you can actually own.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article14.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/diagnosing-etienne-inside-black-box-ai-agent-behavior-navasardyan-hqf7e/" target="_blank">Diagnosing Etienne: Inside the Black Box of AI Agent Behavior</a></b>
+    <p style="color:#999"><small>
+   AI agents no longer solve problems along a single, inspectable path. Each day adds new options: generate and execute code on the fly, delegate subtasks to MCP-backed tools, contract external specialists via A2A, chain services that themselves invoke other services. The agent’s action space is no longer a tree. It is a graph that keeps expanding while the agent is already moving through it. What used to be a prompt-and-response system now behaves like a distributed system assembled at runtime.</small>
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><img src="/docs/images/article15.jpg" style="min-width:220px" width="220"/></td>
+  <td>
+    <b><a href="https://www.linkedin.com/pulse/beyond-mes-how-general-ai-agents-deliver-custom-ralph-navasardyan-p1mtf/" target="_blank">Beyond MES: How General AI Agents Deliver Custom Manufacturing Solutions On Demand</a></b>
+    <p style="color:#999"><small>
+   Manufacturing professionals often find themselves caught between two unsatisfying options: expensive, rigid MES implementations or cobbling together spreadsheets and manual processes. But there's a third path emerging - one that combines the sophistication of custom software with the accessibility of a conversation.</small>
+    </p>
+  </td>
+</tr>
+</table>
 
 # Maintainer
 Brought to you by **[e-ntegration GmbH](https://e-ntegration.de)**, Nürnberg, Germany.
