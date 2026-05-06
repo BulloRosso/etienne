@@ -349,6 +349,75 @@ export class ContentManagementService {
   }
 
   /**
+   * Convert Markdown content to a styled HTML document string.
+   * Shared helper used by DOCX/PDF export pipelines.
+   */
+  private async markdownToHtml(markdownContent: string): Promise<string> {
+    const { marked } = await (new Function('return import("marked")'))();
+    const htmlBody = marked.parse(markdownContent, { breaks: true, gfm: true });
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; margin: 2cm; }
+  h1 { font-size: 18pt; margin-top: 24pt; }
+  h2 { font-size: 16pt; margin-top: 18pt; }
+  h3 { font-size: 14pt; margin-top: 14pt; }
+  h4 { font-size: 12pt; margin-top: 12pt; }
+  table { border-collapse: collapse; width: 100%; margin: 8pt 0; border: 1px solid #ccc; }
+  th, td { padding: 4pt 8pt; text-align: left; word-wrap: break-word; overflow-wrap: break-word; border-bottom: 1px solid #ccc; }
+  th { background: #f0f0f0; font-weight: bold; }
+  code { font-family: Consolas, monospace; font-size: 10pt; background: #f5f5f5; padding: 1pt 3pt; }
+  pre { background: #f5f5f5; padding: 8pt; overflow-x: auto; }
+</style>
+</head><body>${htmlBody}</body></html>`;
+  }
+
+  /**
+   * Convert Markdown content to DOCX and return the buffer (no filesystem write).
+   * Uses @turbodocx/html-to-docx for proper table width handling.
+   */
+  async exportMarkdownToDocxBuffer(markdownContent: string): Promise<Buffer> {
+    const html = await this.markdownToHtml(markdownContent);
+    const HTMLtoDOCX = require('@turbodocx/html-to-docx');
+    return await HTMLtoDOCX(html, null, {
+      table: {
+        row: { cantSplit: true },
+      },
+    });
+  }
+
+  /**
+   * Convert Markdown content to PDF and return the buffer (no filesystem write).
+   */
+  async exportMarkdownToPdfBuffer(markdownContent: string): Promise<Buffer> {
+    const html = await this.markdownToHtml(markdownContent);
+
+    const tempId = randomUUID();
+    const tempDir = join(tmpdir(), 'etienne-pdf-export');
+    await fs.mkdir(tempDir, { recursive: true });
+    const tempHtmlPath = join(tempDir, `${tempId}.html`);
+
+    try {
+      await fs.writeFile(tempHtmlPath, html, 'utf-8');
+
+      const cmd = `soffice --headless --convert-to pdf --outdir "${tempDir}" "${tempHtmlPath}"`;
+      await execAsync(cmd, { timeout: 60_000 });
+
+      const tempPdfPath = join(tempDir, `${tempId}.pdf`);
+      try {
+        await fs.access(tempPdfPath);
+      } catch {
+        throw new BadRequestException('LibreOffice conversion produced no output. Is LibreOffice (soffice) installed?');
+      }
+
+      return await fs.readFile(tempPdfPath);
+    } finally {
+      try { await fs.unlink(tempHtmlPath); } catch { /* ignore */ }
+      try { await fs.unlink(join(tempDir, `${tempId}.pdf`)); } catch { /* ignore */ }
+    }
+  }
+
+  /**
    * Convert Markdown content to DOCX via LibreOffice and save to target path.
    * Pipeline: Markdown → HTML (via marked) → temp .html file → soffice --convert-to docx → target path
    */
@@ -364,62 +433,15 @@ export class ContentManagementService {
     const dir = dirname(fullPath);
     await fs.mkdir(dir, { recursive: true });
 
-    // Convert markdown to HTML using marked (ESM-only, use dynamic import)
-    const { marked } = await (new Function('return import("marked")'))();
-    const htmlBody = marked.parse(markdownContent, { breaks: true, gfm: true });
-    const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; margin: 2cm; }
-  h1 { font-size: 18pt; margin-top: 24pt; }
-  h2 { font-size: 16pt; margin-top: 18pt; }
-  h3 { font-size: 14pt; margin-top: 14pt; }
-  h4 { font-size: 12pt; margin-top: 12pt; }
-  table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
-  th, td { border: 1px solid #999; padding: 4pt 8pt; text-align: left; }
-  th { background: #f0f0f0; font-weight: bold; }
-  code { font-family: Consolas, monospace; font-size: 10pt; background: #f5f5f5; padding: 1pt 3pt; }
-  pre { background: #f5f5f5; padding: 8pt; overflow-x: auto; }
-</style>
-</head><body>${htmlBody}</body></html>`;
+    const docxBuffer = await this.exportMarkdownToDocxBuffer(markdownContent);
+    await fs.writeFile(fullPath, docxBuffer);
 
-    // Write HTML to temp file
-    const tempId = randomUUID();
-    const tempDir = join(tmpdir(), 'etienne-docx-export');
-    await fs.mkdir(tempDir, { recursive: true });
-    const tempHtmlPath = join(tempDir, `${tempId}.html`);
+    this.logger.log(`Exported DOCX: ${filepath} (${docxBuffer.length} bytes)`);
 
-    try {
-      await fs.writeFile(tempHtmlPath, html, 'utf-8');
-
-      // Convert HTML to DOCX via LibreOffice
-      const cmd = `soffice --headless --convert-to "docx:Office Open XML Text" --outdir "${tempDir}" "${tempHtmlPath}"`;
-      await execAsync(cmd, { timeout: 60_000 });
-
-      const tempDocxPath = join(tempDir, `${tempId}.docx`);
-
-      // Verify docx was created
-      try {
-        await fs.access(tempDocxPath);
-      } catch {
-        throw new Error('LibreOffice conversion produced no output. Is LibreOffice (soffice) installed?');
-      }
-
-      // Move docx to target
-      const docxContent = await fs.readFile(tempDocxPath);
-      await fs.writeFile(fullPath, docxContent);
-
-      this.logger.log(`Exported DOCX: ${filepath} (${docxContent.length} bytes)`);
-
-      return {
-        success: true,
-        message: `Exported to ${filepath}`,
-      };
-    } finally {
-      // Clean up temp files
-      try { await fs.unlink(tempHtmlPath); } catch { /* ignore */ }
-      try { await fs.unlink(join(tempDir, `${tempId}.docx`)); } catch { /* ignore */ }
-    }
+    return {
+      success: true,
+      message: `Exported to ${filepath}`,
+    };
   }
 
   /**

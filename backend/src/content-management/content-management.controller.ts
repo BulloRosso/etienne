@@ -26,6 +26,32 @@ export class ContentManagementController {
   }
 
   @Public()
+  @Post(':project/files/download-docx')
+  async downloadDocx(
+    @Body() body: { content: string; filename: string },
+    @Res() res: Response,
+  ) {
+    const buffer = await this.contentManagementService.exportMarkdownToDocxBuffer(body.content);
+    const safeName = (body.filename || 'document').replace(/[<>:"/\\|?*]/g, '');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.docx"`);
+    res.send(buffer);
+  }
+
+  @Public()
+  @Post(':project/files/download-pdf')
+  async downloadPdf(
+    @Body() body: { content: string; filename: string },
+    @Res() res: Response,
+  ) {
+    const buffer = await this.contentManagementService.exportMarkdownToPdfBuffer(body.content);
+    const safeName = (body.filename || 'document').replace(/[<>:"/\\|?*]/g, '');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.pdf"`);
+    res.send(buffer);
+  }
+
+  @Public()
   @Get(':project/files/*')
   async getFile(
     @Param('project') project: string,

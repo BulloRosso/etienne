@@ -40,6 +40,7 @@
     "@opentelemetry/semantic-conventions": "^1.38.0",
     "@smithy/protocol-http": "^5.0.0",
     "@smithy/signature-v4": "^5.0.0",
+    "@turbodocx/html-to-docx": "^1.20.1",
     "@types/cron": "^2.4.3",
     "@types/js-yaml": "^4.0.9",
     "@types/mqtt": "^2.5.0",

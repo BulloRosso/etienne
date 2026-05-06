@@ -5,6 +5,7 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import ImageIcon from '@mui/icons-material/Image';
+import { PiFilePdf, PiFileDoc } from 'react-icons/pi';
 import Editor from '@monaco-editor/react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -12,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import ImageGalleryModal from './ImageGalleryModal.jsx';
+import ExportFilenameModal from './ExportFilenameModal.jsx';
 
 export default function MarkdownViewer({ filename, projectName, className = '' }) {
   const { t } = useTranslation();
@@ -28,6 +30,9 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   const [imagesAvailable, setImagesAvailable] = useState(false);
   const [imagesDir, setImagesDir] = useState('');
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [exporting, setExporting] = useState(false);
   const editorRef = useRef(null);
 
   const isDirty = rawContent !== savedContent;
@@ -187,6 +192,53 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
       window.removeEventListener('claudeHook', handleClaudeHook);
     };
   }, [filename, editMode]);
+
+  // Extract first heading from markdown for default export filename
+  const getDefaultFilename = () => {
+    const match = rawContent.match(/^#+\s+(.+)/m);
+    if (match) {
+      return match[1].trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 100);
+    }
+    const baseName = filename.split('/').pop().replace(/\.md$/i, '');
+    return baseName || 'document';
+  };
+
+  // Export handler — calls backend and triggers browser download
+  const handleExport = async (exportFilename) => {
+    setExporting(true);
+    try {
+      const endpoint = exportFormat === 'pdf'
+        ? `/api/workspace/${encodeURIComponent(projectName)}/files/download-pdf`
+        : `/api/workspace/${encodeURIComponent(projectName)}/files/download-docx`;
+
+      const response = await apiFetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: rawContent, filename: exportFilename }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${exportFilename}.${exportFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setExportModalOpen(false);
+    } catch (err) {
+      console.error('Export error:', err);
+      setError(err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -443,6 +495,25 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
             {t('markdownViewer.editMode')}
           </Button>
           <Box sx={{ flex: 1 }} />
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Tooltip title={t('markdownViewer.exportPdf', 'Export as PDF')}>
+              <IconButton
+                size="small"
+                onClick={() => { setExportFormat('pdf'); setExportModalOpen(true); }}
+              >
+                <PiFilePdf size={20} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t('markdownViewer.exportDocx', 'Export as Word')}>
+              <IconButton
+                size="small"
+                onClick={() => { setExportFormat('docx'); setExportModalOpen(true); }}
+              >
+                <PiFileDoc size={20} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Box sx={{ flex: 1 }} />
           <Tooltip title={t('markdownViewer.reloadFile')}>
             <IconButton
               onClick={handleReload}
@@ -453,6 +524,15 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
             </IconButton>
           </Tooltip>
         </Box>
+
+        <ExportFilenameModal
+          open={exportModalOpen}
+          onClose={() => setExportModalOpen(false)}
+          onConfirm={handleExport}
+          defaultFilename={getDefaultFilename()}
+          format={exportFormat}
+          exporting={exporting}
+        />
         </>
       )}
     </Box>
