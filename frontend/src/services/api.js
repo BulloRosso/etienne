@@ -167,7 +167,9 @@ apiAxios.interceptors.response.use(
 );
 
 // ---------------------------------------------------------------------------
-// authSSEUrl - for EventSource (which can't set custom headers)
+// authSSEUrl - appends ?token= for URLs that cannot use Authorization headers
+// (e.g. iframe src, video src, image src). SSE connections should use
+// useMultiplexSSE which sends proper Authorization headers via fetch.
 // ---------------------------------------------------------------------------
 
 export function authSSEUrl(url) {

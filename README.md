@@ -122,6 +122,7 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 - [User Orders](#user-orders)
 - [The Web: searching, scraping and browsing](#the-web-searching-scraping-and-browsing)
 - [Main Components](#main-components)
+- [SSE Real-Time Communication](SSE-between-frontend-and-backend.md) *(separate doc)*
 - [The Agent and the outside World](#the-agent-and-the-outside-world)
 - [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
 - [IT Budget Situation](#it-budget-situation)

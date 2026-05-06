@@ -1,21 +1,31 @@
-import { Controller, Get, Param, Res, Query } from '@nestjs/common';
+import { Controller, Get, Param, Res, Query, Headers } from '@nestjs/common';
 import { Response } from 'express';
 import { Subscription } from 'rxjs';
 import { InterceptorsService } from '../interceptors/interceptors.service';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
+import { MuxChannel, MuxEventType, MuxEnvelope } from './sse-mux.types';
 
 /**
  * Multiplexed SSE endpoint that combines all per-project event streams
  * into a single connection, avoiding the browser's 6-connection HTTP/1.1 limit.
  *
- * Each event is wrapped so the frontend can demux:
+ * Each event is wrapped with a sequence ID for reliable reconnection:
+ *   id: 42
  *   event: mux
  *   data: {"channel":"interceptor","type":"hook","payload":{...}}
+ *
+ * Clients can send Last-Event-Id header on reconnection to replay missed events.
  */
 @Controller('api/sse')
 export class SseMultiplexController {
+  /** Per-project ring buffer of recent events for replay on reconnection */
+  private replayBuffers = new Map<string, { seq: number; events: Array<{ id: number; data: string }> }>();
+
+  /** Max events to retain per project for replay */
+  private readonly REPLAY_BUFFER_SIZE = 100;
+
   constructor(
     private readonly interceptorsService: InterceptorsService,
     private readonly deepResearchService: DeepResearchService,
@@ -27,6 +37,7 @@ export class SseMultiplexController {
   stream(
     @Param('project') project: string,
     @Query('channels') channels: string,
+    @Headers('last-event-id') lastEventId: string,
     @Res() res: Response,
   ) {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -37,11 +48,42 @@ export class SseMultiplexController {
     const subscriptions: Subscription[] = [];
     let alive = true;
 
-    const send = (channel: string, eventType: string, payload: any) => {
+    // Initialize replay buffer for this project
+    if (!this.replayBuffers.has(project)) {
+      this.replayBuffers.set(project, { seq: 0, events: [] });
+    }
+    const buffer = this.replayBuffers.get(project)!;
+
+    // Replay missed events if Last-Event-Id is provided
+    if (lastEventId) {
+      const lastSeq = parseInt(lastEventId, 10);
+      if (!isNaN(lastSeq)) {
+        const missed = buffer.events.filter((e) => e.id > lastSeq);
+        for (const event of missed) {
+          if (!alive) break;
+          try {
+            res.write(`id: ${event.id}\nevent: mux\ndata: ${event.data}\n\n`);
+          } catch {
+            alive = false;
+          }
+        }
+      }
+    }
+
+    const send = (channel: MuxChannel, eventType: MuxEventType, payload: any) => {
       if (!alive) return;
       try {
-        const data = JSON.stringify({ channel, type: eventType, payload });
-        res.write(`event: mux\ndata: ${data}\n\n`);
+        const envelope: MuxEnvelope = { channel, type: eventType, payload };
+        const data = JSON.stringify(envelope);
+        const seq = ++buffer.seq;
+
+        // Store in ring buffer for replay
+        buffer.events.push({ id: seq, data });
+        if (buffer.events.length > this.REPLAY_BUFFER_SIZE) {
+          buffer.events.shift();
+        }
+
+        res.write(`id: ${seq}\nevent: mux\ndata: ${data}\n\n`);
       } catch {
         alive = false;
       }
@@ -57,7 +99,7 @@ export class SseMultiplexController {
       const sub = this.interceptorsService
         .getSubject(project)
         .asObservable()
-        .subscribe((event) => send('interceptor', event.type, event));
+        .subscribe((event) => send('interceptor', event.type as MuxEventType, event));
       subscriptions.push(sub);
     }
 
@@ -66,7 +108,7 @@ export class SseMultiplexController {
       const sub = this.interceptorsService
         .getSubject('__global__')
         .asObservable()
-        .subscribe((event) => send('interceptor-global', event.type, event));
+        .subscribe((event) => send('interceptor-global', event.type as MuxEventType, event));
       subscriptions.push(sub);
     }
 
@@ -74,7 +116,7 @@ export class SseMultiplexController {
     if (requested.has('research')) {
       const sub = this.deepResearchService
         .getEventStream(project)
-        .subscribe((event) => send('research', event.type, event.data));
+        .subscribe((event) => send('research', event.type as MuxEventType, event.data));
       subscriptions.push(sub);
     }
 
@@ -101,9 +143,9 @@ export class SseMultiplexController {
           // Skip heartbeats from SSEPublisher — we have our own
           if (eventType === 'heartbeat') return;
           try {
-            send('events', eventType, JSON.parse(jsonStr));
+            send('events', eventType as MuxEventType, JSON.parse(jsonStr));
           } catch {
-            send('events', eventType, jsonStr);
+            send('events', eventType as MuxEventType, jsonStr);
           }
         },
         on: (event: string, handler: () => void) => {
@@ -120,16 +162,21 @@ export class SseMultiplexController {
       });
     }
 
-    // Heartbeat every 30 seconds
+    // Heartbeat every 30 seconds (not sequenced — heartbeats are ephemeral)
     const heartbeat = setInterval(() => {
       if (!alive) {
         clearInterval(heartbeat);
         return;
       }
-      send('heartbeat', 'ping', { timestamp: Date.now() });
+      try {
+        res.write(`event: heartbeat\ndata: ${JSON.stringify({ timestamp: Date.now() })}\n\n`);
+      } catch {
+        alive = false;
+        clearInterval(heartbeat);
+      }
     }, 30000);
 
-    // Send initial connected event
+    // Send initial connected event (sequenced so client knows starting point)
     send('system', 'connected', { project, channels: [...requested] });
 
     // Cleanup on disconnect
