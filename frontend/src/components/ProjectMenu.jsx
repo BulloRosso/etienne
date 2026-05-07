@@ -33,6 +33,7 @@ import GuardrailsSettings from './GuardrailsSettings';
 import SubagentConfiguration from './SubagentConfiguration';
 import MQTTSettings from './MQTTSettings';
 import CustomUI from './CustomUI';
+import QuickActionsAdmin from './QuickActionsAdmin';
 import KnowledgeGraphBrowser from './KnowledgeGraphBrowser';
 import SkillsSettings from './SkillsSettings';
 import SkillCatalog from './SkillCatalog';
@@ -68,6 +69,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   const [subagentsOpen, setSubagentsOpen] = useState(false);
   const [externalEventsOpen, setExternalEventsOpen] = useState(false);
   const [customUIOpen, setCustomUIOpen] = useState(false);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [skillCatalogOpen, setSkillCatalogOpen] = useState(false);
@@ -156,6 +158,10 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
         break;
       case 'customui':
         handleCustomUIOpen();
+        break;
+      case 'quickactions':
+        setQuickActionsOpen(true);
+        handleMenuClose();
         break;
       case 'knowledge':
         handleKnowledgeGraphOpen();
@@ -826,6 +832,18 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
               handleCustomUIClose();
             }}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickActionsOpen} onClose={() => setQuickActionsOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {t('dashboard:itemQuickActions')}
+          <IconButton onClick={() => setQuickActionsOpen(false)} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <QuickActionsAdmin onSave={() => setQuickActionsOpen(false)} />
         </DialogContent>
       </Dialog>
 

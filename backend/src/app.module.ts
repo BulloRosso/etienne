@@ -46,6 +46,7 @@ import { ContextsModule } from './contexts/contexts.module';
 import { EventHandlingModule } from './event-handling/event-handling.module';
 import { ScrapbookModule } from './scrapbook/scrapbook.module';
 import { ConfigurationModule } from './configuration/configuration.module';
+import { QuickActionsModule } from './quick-actions/quick-actions.module';
 import { A2ASettingsModule } from './a2a-settings/a2a-settings.module';
 import { A2AClientModule } from './a2a-client/a2a-client.module';
 import { TelemetryModule } from './observability/telemetry.module';
@@ -78,7 +79,7 @@ import { HitlProtocolModule } from './hitl-protocol/hitl-protocol.module';
 import { FoundryAdapterModule } from './foundry-adapter/foundry-adapter.module';
 
 @Module({
-  imports: [SecretsManagerModule, EmbeddingsModule.register(), AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule.forRoot({ providers: [{ kind: 'json-file' }], secrets: { keyVaultUrl: process.env.AZURE_KEY_VAULT_URL } }), AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, RecentItemsModule, SseMultiplexModule, CollaborationModule, HitlProtocolModule, FoundryAdapterModule.register()],
+  imports: [SecretsManagerModule, EmbeddingsModule.register(), AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, QuickActionsModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule.forRoot({ providers: [{ kind: 'json-file' }], secrets: { keyVaultUrl: process.env.AZURE_KEY_VAULT_URL } }), AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, RecentItemsModule, SseMultiplexModule, CollaborationModule, HitlProtocolModule, FoundryAdapterModule.register()],
   controllers: [ClaudeController, SdkPermissionController, CodexPermissionController, OpenAIAgentsPermissionController],
   providers: [
     ClaudeService,

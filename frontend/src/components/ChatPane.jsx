@@ -11,6 +11,7 @@ import { MdInfo } from "react-icons/md";
 import { useTranslation } from 'react-i18next';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import QuickActions from './QuickActions';
 import TypingIndicator from './TypingIndicator';
 import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
@@ -456,6 +457,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       </Box>
 
       <Box sx={{ p: 0, pb: 0 }}>
+        <QuickActions onSelectAction={(prompt) => setEditingMessage(prompt)} />
         <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} initialMessage={editingMessage} onInitialMessageConsumed={() => setEditingMessage(null)} />
       </Box>
 

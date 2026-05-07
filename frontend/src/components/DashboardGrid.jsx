@@ -66,6 +66,13 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       disabled: !currentProject
     },
     {
+      id: 'quickactions',
+      image: '/quickactions.png',
+      label: t('dashboard:itemQuickActions'),
+      disabled: false,
+      minRole: 'user'
+    },
+    {
       id: 'contexts',
       image: '/contextmanager.png',
       label: t('dashboard:itemContextTagging'),
