@@ -57,35 +57,11 @@ Etienne's UI is build around **role based access control** with these basic role
 
 Etienne uses different **roles to have clear responsibilities defined** - it is usually NOT deployed as a personal AI assistant where the admin and the user role would be the same person.
 
-## Holy Crab! Is it like...???
+# Why Etienne
 
-The following comparison illustrates the conceptual differences between Etienne and OpenClaw as of early 2026:
-
-<div align="center">
-<img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="600">
-</div> 
-
-## Context Engineering
-
-Etienne guides the business user to do proper context engineering. In the background it carefully balances the main context components to avoid context window overflow:
-
-<br>
-
-<div align="center">
-<img src="/docs/images/context-engineering.jpg" style="marginTop: 24px" alt="Context Engineering" width="900">
-</div> 
-
-<br>
-
-One of the most important strategies is to think in **isolated and scoped projects** - this allows to adjust for example the selected skills to the current user problem and makes it easy to "forget" (just delete the folder).
-
-### World Model
-
-An agent is more "intelligent" if it has a notion of its own environment. For this reason there's a **world model skill** which is required for scenarios like self-healing or coding projects. In the first scenario this skill prevents the agent from endless codebase analysis and guides it directly to the closest location, in the second scenario this skill prevents the agent from recreating already existing infrastructure like the RDF store.
+Etienne exists because most AI agent products treat the LLM as the centerpiece. Etienne treats the LLM as a component inside an engineered system. Three threads make up that argument: the manifesto (what we believe), context engineering (how we keep the model focused), and a comparison with OpenClaw (how we differ from messenger-style agents).
 
 ## The Etienne Manifesto: It's all about Engineering, not LLM magic!
-
-Here are the guiding principles for Etienne, and why I believe it matters:
 
 <div align="center">
 <img src="/docs/images/etienne-manifesto.jpg" style="marginTop: 24px" alt="Etienne Manifesto" width="700">
@@ -105,65 +81,40 @@ Here are the guiding principles for Etienne, and why I believe it matters:
 
 **Respectful of security.** Etienne provides a role-based access control core around APIs and UI, adaptable to any existing identity management system — EntraID, Okta, whatever your company already runs. It supports Git-controlled versioning, backup and restore, and defined releases aligned to basic compliance rules. Event logs and settings live in defined, inspectable, auditable places. Your IT department won't love it on day one. But they won't block it either.
 
+## Context Engineering
 
+Etienne guides the business user to do proper context engineering. In the background it carefully balances the main context components to avoid context window overflow:
 
-## Table of Contents
+<div align="center">
+<img src="/docs/images/context-engineering.jpg" style="marginTop: 24px" alt="Context Engineering" width="900">
+</div> 
 
-- [Built for Artifacts](#built-for-artifacts)
-- [Built around Skills](#built-around-skills)
-- [Built for Connectivity](#built-for-connectivity)
-- [Focused on local Data and Services](#focused-on-local-data-and-services)
-- [Self-Healing Capabilities](self-healing.md) *(separate doc)*
-- [Supported Coding Models](#supported-coding-models)
-- [Multi-agent Orchestration](#multi-agent-orchestration)
-- [Managed Etienne](#managed-etienne)
-- [Azure Foundry Deployment](#azure-foundry-deployment)
-- [Memory](#memory)
-- [User Orders](user-orders.md) *(separate doc)*
-- [The Web: searching, scraping and browsing](#the-web-searching-scraping-and-browsing)
-- [Main Components](#main-components)
-- [SSE Real-Time Communication](SSE-between-frontend-and-backend.md) *(separate doc)*
-- [The Agent and the outside World](#the-agent-and-the-outside-world)
-- [Securing the Agent against Prompt Injection](#securing-the-agent-against-prompt-injection)
-- [IT Budget Situation](#it-budget-situation)
-- [Extended Use Case: Prototyping together with your Customer](#extended-use-case-prototyping-together-with-your-customer)
-- [Demo Videos](#demo-videos)
-  - [Brainstorming with Etienne](#brainstorming-with-etienne)
-  - [Creating a new project with Etienne](#creating-a-new-project-with-etienne)
-- [Etienne Articles on LinkedIn](#etienne-articles-on-linkedin)
-- [Setup](#setup)
-  - [API Keys & Secrets Management](api-keys-secrets.md) *(separate doc)*
-  - [Checkpoints](#checkpoints)
-  - [OAuth Server (Authentication)](#oauth-server-authentication)
-  - [Starting up the services](#starting-up-the-services)
-- [User Authentication in the Frontend UI](#user-authentication-in-the-frontend-ui)
-- [API Endpoints](#api-endpoints)
-- [Knowledge Base Feature](knowledge-base.md) *(separate doc)*
-- [Context Management / Metadata Layer](context-management.md) *(separate doc)*
-- [Observability](#observability)
-  - [Configuration](#configuration)
-  - [Starting Phoenix Locally](#starting-phoenix-locally)
-  - [Traced Information](#traced-information)
-  - [Viewing Traces](#viewing-traces)
-- [Architecture Decision Records](adrs/README.md)
-- [File Type Previewers](#file-type-previewers)
-  - [Architecture Overview](#architecture-overview)
-  - [Supported File Types](#supported-file-types)
-  - [Adding a New File-Extension Previewer](#adding-a-new-file-extension-previewer)
-  - [Adding a New Service Previewer](#adding-a-new-service-previewer)
-  - [Adding a Context Menu Action to a Previewer](#adding-a-context-menu-action-to-a-previewer)
-- [Messenger Integration](messenger-integration.md) *(separate doc)*
-- [MCP UI](mcp-ui.md) *(separate doc)*
-- [Budget Tracking](#budget-tracking)
-  - [How It Works](#how-it-works)
-  - [Cost Calculation](#cost-calculation)
-  - [Configuration (.env)](#configuration-env)
-  - [Storage](#storage)
-  - [UI Dashboard](#ui-dashboard)
-  - [Real-time Updates](#real-time-updates)
-- [Maintainer](#maintainer)
+One of the most important strategies is to think in **isolated and scoped projects** — this allows to adjust for example the selected skills to the current user problem and makes it easy to "forget" (just delete the folder).
 
-# Built for Artifacts
+An agent is more "intelligent" if it has a notion of its own environment. For this reason there's a **world model skill** which is required for scenarios like self-healing or coding projects. In the first scenario this skill prevents the agent from endless codebase analysis and guides it directly to the closest location, in the second scenario this skill prevents the agent from recreating already existing infrastructure like the RDF store.
+
+## Holy Crab! Is it like...???
+
+The following comparison illustrates the conceptual differences between Etienne and OpenClaw as of early 2026:
+
+<div align="center">
+<img src="/docs/images/comparison.jpg" style="marginTop: 24px" alt="Comparison" width="600">
+</div> 
+
+# Table of Contents
+
+- [Why Etienne](#why-etienne)
+- [Core Concepts](#core-concepts) — artifacts, skills, connectivity, multi-agent, memory, web, prompt-injection security
+- [What's in the Box](#whats-in-the-box) — components, ports, data model, supported coding models
+- [Setup & Running](#setup--running)
+- [Operations & Deployment](#operations--deployment)
+- [Extended Capabilities](#extended-capabilities)
+- [Demo Videos & Use Cases](#demo-videos--use-cases)
+- [Articles & Maintainer](#articles--maintainer)
+
+# Core Concepts
+
+## Built for Artifacts
 
 Of of the most valuable UI features is to work side by side with the agent on **complex results** (=artifact).
 
@@ -179,7 +130,7 @@ Many configurator or data exploration use cases greatly benefit from this kind o
 
 This main **collaboration feature** sets Etienne apart from other agents like OpenClaw, which is focused on a command/execution pattern via a simple messenger user interface.
 
-# Built around Skills
+## Built around Skills
 
 <div align="center">
 <img src="/docs/images/skills-1.jpg" alt="Skills are cute" width="700">
@@ -206,120 +157,137 @@ That's it. Business knowledge meets technical capability in a single, portable f
 
 When a user describes their task, the agent doesn't just process words — it recognizes which skill matches the situation, loads the relevant business expertise, and seamlessly translates the user's intent into the right technical execution. The business expert's judgment guides the engineer's code. The result? AI that doesn't just respond — it understands your business.
 
-### A Real Lifecycle: From Creation to Continuous Improvement
+For the full lifecycle (admin curation → user pick → agent use → in-project refinement → submit-back), the five guarantees this lifecycle delivers, and the enterprise-grade Skills Store with technical-dependency and environment-variable metadata, see [Skills: Lifecycle, Guarantees, and the Skills Store](docs/skills.md).
 
-This is where things get exciting. Let me walk you through how this works in practice with Etienne:
-
-<div align="center">
-<img src="/docs/images/skills-4.jpg" alt="How Skills evolve" width="800">
-</div>
-
-#### Step 1 — The IT Admin Builds or Selects a Skill
-An administrator curates skills — either building them from scratch with domain experts or selecting proven ones from a shared repository. Every skill is security-checked and technology-approved before it enters the company's skill store.
-
-<div align="center">
-<img src="/docs/images/skills-5.jpg" alt="Etienne internal Skill Store" width="900">
-</div>
-
-#### Step 2 — The User Picks What They Need
-Business users browse the approved skill catalog and select the ones relevant to their current project. The skill is copied into their project directory. No installation headaches. No waiting on IT tickets. Self-service, but with guardrails.
-
-<div align="center">
-<img src="/docs/images/skills-6.jpg" alt="Selecting the Skills when creating a new Project" width="900">
-</div>
-
-#### Step 3 — The Agent Uses the Skill
-From this point on, the agent automatically applies the skill whenever the user's task calls for it. The user focuses on their work; the agent handles the expertise-to-technology translation behind the scenes.
-
-#### Step 4 — The Skill Evolves Through Use
-Here's where the magic happens: as the agent works within a project, it can refine and improve the skill based on real-world usage. A generic "financial report analysis" skill might become a finely tuned "Q3 EMEA margin analysis" skill — adapted to the user's actual needs. At this point, it truly becomes the user's skill.
-
-<div align="center">
-<img src="/docs/images/skills-7.jpg" alt="Modified Skills can be reset or sent for review to the administrator" width="900">
-</div>
-
-#### Step 5 — The Best Improvements Flow Back
-When a user discovers that their refined skill is significantly better, they can submit it back to the IT administrator. The admin reviews the changes, validates them, updates the central repository — and suddenly, every team in the organization can benefit from one user's practical discovery.
-
-**This is agentic learning with human supervision at its best.**
-
-### Why This Matters: Five Guarantees That Change Everything
-Let's be clear about what this lifecycle delivers:
-
-* **Understandable**. Skills are expressed in markdown. Not in opaque model weights. Not in mysterious embeddings. In plain language that any business stakeholder can read, review, and challenge. When your compliance team asks "what does the AI actually do?" — you hand them the skill file.
-* **Battle-tested**. Every improvement comes from a real user solving a real problem in a real project. This isn't theoretical optimization. It's field-proven refinement.
-* **Intentional**. Skill updates don't happen silently in the background. A user consciously decides to submit an improvement. A human makes the choice.
-* **Reviewed**. The four-eyes principle applies. An admin reviews every submitted change before it enters the repository. No unvetted modifications reach other users.
-* **Safe to deploy**. Updated skills don't retroactively change existing results in a user's project. The rollout is safe because users must opt-in to updates through their project settings. Think of it as software updates — only on a higher abstraction level.
-
-### The Skills Store: Enterprise-Grade Management
-Behind the scenes, administrators have access to a Skills Store — a management interface where they oversee the entire skill portfolio. Each skill carries rich metadata that goes beyond the open standard, allowing companies to define their own strategies for evolving, versioning, and distributing skills across the organization.
-
-<div align="center">
-<img src="/docs/images/skills-8.jpg" alt="Adminstrator defines dependencies" width="900">
-</div>
-
-Etienne also adds practical extensions to the formal standard that business environments demand:
-
-* **Technical dependencies** — a clear list of system requirements (npm packages, Python libraries, or other artifacts) that must be present on the agent's host system. No guesswork about what needs to be installed.
-* **Environment variables** — explicit declarations of which API keys, tokens, or configuration values the skill needs. After installing a skill, a user can securely provide their personal credentials scoped exclusively to their project.
-
-This means IT knows exactly what a skill requires before deployment, and users maintain control over their own credentials and configurations.
-
-# Built for Connectivity
+## Built for Connectivity
 
 See [Event Bus Components — Integrated AI Agent Architecture](event-bus-architecture.md).
 
-# Focused on Data and Local Services
+## Multi-agent Orchestration
 
-Etienne's data structures are build around the idea of keeping things local and separated. This might be a strange concept of self-containment if you are a cloud developer and your daily-business is dealing with shared services like databases. 
+Multi-agent orchestration is supported with `CODING_AGENT=anthropic` and `CODING_AGENT=open-code`. You can define subagents in the project menu:
 
-## Workspace & Projects
+<div align="center">
+<img src="/docs/images/multi-agent-orchestration.jpg" alt="Managed Etienne" width="700">
+</div>
 
-Etienne expects all the user data inside a single local **workspace directory** (or in case of Docker deployment a single mount). The subdirectories in the workspace are the **projects**. 
+With **Anthropic**, the Claude Agent SDK picks up subagents and runs them in parallel or in sequence whenever it detects tasks might benefit from doing so. Your subagents will be used additionally to the built-in Claude agents.
 
-While in advanced use cases the agent can work cross-project the default setting for the **coding agent's root directory** is set at project level.
+With **OpenCode**, subagent definitions from `.claude/agents/*.md` are automatically translated to OpenCode's native agent format. OpenCode supports hierarchical agent delegation with configurable depth limits and call budgets.
 
-Inside the workspace the usual . convention applies: The user cannot see any internal files or directories starting with a . character.
+**Codex AppServer** does not support orchestration though it can use and understand a subagent definition. **pi-mono** simulates subagents via a custom Task tool that spawns nested sessions.
+
+## Memory
+
+Etienne provides an exchangable endpoint to extract memories from a user prompt and store them inside the project.
+
+Memory extraction is activated per default and can be accessed via the green memory card icon below the app bar.
+
+<div align="center">
+<img src="/docs/images/memory.jpg" alt="Memory pane" width="400">
+</div>
+
+Memories are stored per project and not globally in the default configuration. The extraction prompt is adjustable to sharpen the focus to certain business domain relevant information.
+
+See [User Orders](user-orders.md).
+
+## The Web: Searching, Scraping and Browsing
+
+Use the **web-scraping skill** to enable the agent to interact with websites on the internet.
+
+<div align="center">
+<img src="/docs/images/web-access.jpg" alt="Interacting with websites" width="800">
+</div>
+
+It uses these technologies by default:
+
+* **Web search**: The default tool included in Claude Code or Codex. Uses the search index of Anthropic or OpenAI.
+
+* **Web scraping**: Uses the Scrapling GitHub project which is fast and can process Javascript sites. It is a common choice for red-teaming tasks.
+
+* **Web browsing**: Uses Vercel's [agent-browser](https://github.com/vercel-labs/agent-browser) package, a headless browser automation CLI designed for AI agents. Pre-installed in the Docker image via `npm install -g agent-browser` with Chromium pre-downloaded. It is a good choice for cooperative sites and a token saver (compared to pure Playwright implementations). The browser daemon can be managed from the service console. Keep in mind that it is not suited to interact with websites which deploy anti-bot/anti-agent techniques like captchas or fingerprinting!
+
+## Securing the Agent against Prompt Injection
+
+Prompt injection is the #1 security threat to AI agents right now.
+
+When Etienne connects to tools and databases, every user input becomes a potential attack. Malicious prompts can trick it into leaking data, bypassing safety rules, or executing unintended actions.
+
+The solution: a **security gateway** that sits between users and our AI models. It scans every request real-time, blocking attacks before they reach your systems. Simple concept, but here's the reality most vendors won't share:
+
+Security isn't a one-time fix. New attack patterns emerge daily. Effective protection requires:
+- ✅ Always-on cloud infrastructure (for speed)
+- ✅ Continuous threat updates (not static rules)
+- ✅ Active learning (adapting to new risks)
+
+This means your security layer becomes a complex system itself. But that's the cost of staying protected.
+
+<div align="center">
+<img src="/docs/images/prompt-injection-2.jpg" alt="Prompt Injection" width="700">
+</div>
+
+Start your security journey with understanding these services:
+* NeuralTrust API Gateway
+* Google ModelArmorAPI
+* AWS Bedrock Guardrails
+
+# What's in the Box
+
+## Main Components
+
+This repo contains 3 mandatory servers, 6 optional servers and many modules. Modules can be removed if their functionality is not required (e. g. A2A Client, Observability, SMTP IMAP).
+
+<div align="center">
+<img src="/docs/images/servers-modules.jpg" alt="Servers and modules" width="900">
+</div>
+
+The following diagram shows the essential internal and external ports of a deployed Etienne instance:
+
+<div align="center">
+<img src="/docs/images/system-context.jpg" alt="System Context" width="900">
+</div>
+
+While the workbench (React frontend) serves as the primary user interface, messengers can optionally be added as secondary/mobile user interfaces. Real-time communication between frontend and backend uses Server-Sent Events — see [SSE Real-Time Communication](SSE-between-frontend-and-backend.md).
+
+## The Agent and the outside World
+
+Etienne is built to maximize what an AI agent can do outwardly in commercial and operational contexts. It focuses on professional automation protocols in a single deployment, which is what commercial environments actually run on.
+
+<div align="center">
+<img src="/docs/images/etienne-outside-world.jpg" alt="Outside world" width="900">
+</div>
+
+Etienne extends the system boundary itself by implementing and exposing new interfaces such as MCP servers, API endpoints, or web applications. Etienne is about turning an agent into infrastructure.
+
+See [HITL Protocol Support](hitl-protocol.md).
+
+## Focused on Data and Local Services
+
+Etienne's data structures are build around the idea of keeping things local and separated. This might be a strange concept of self-containment if you are a cloud developer and your daily-business is dealing with shared services like databases.
+
+### Workspace & Projects
+
+Etienne expects all the user data inside a single local **workspace directory** (or in case of Docker deployment a single mount). The subdirectories in the workspace are the **projects**. While in advanced use cases the agent can work cross-project the default setting for the **coding agent's root directory** is set at project level.
+
+Inside the workspace the usual `.` convention applies: the user cannot see any internal files or directories starting with a `.` character. Only the admin role can see these files via the UI.
 
 <div align="center">
 <img src="/docs/images/file-explorer-1.jpg" alt="Filesystem user perspective" width="500">
 </div>
 
-Only the admin role can see these files via the UI:
-
-<div align="center">
-<img src="/docs/images/file-explorer-2.jpg" alt="Filesystem admin perspective" width="500">
-</div>
-
 All relevant settings and data are kept on project level to ensure two features:
-* **Right to forget** if sensitive data was processed inside one project, it will be purged when the directory is deleted
-* **Portability** users can exchange a complete project by simply copying the directory
+* **Right to forget** — if sensitive data was processed inside one project, it will be purged when the directory is deleted
+* **Portability** — users can exchange a complete project by simply copying the directory
 
-## Service Control
+### Service Control & Project-aware Services
 
-The user interface provides access to the process-manager API which is responsible of starting/stopping local servers on different ports.
+The user interface provides access to the process-manager API which is responsible for starting/stopping local servers on different ports. This feature is not so much targeted at human usage but to give the agent the ability to decide which services to ramp up: there is an MCP server with a MCP App(UI) which enables the user to access service control also in the chat pane.
 
-<div align="center">
-<img src="/docs/images/service-control.jpg" alt="Service Control Pane" width="900">
-</div>
-
-This feature is not so much targeted at human usage, but to give the agent the ability to decide which services to ramp up: There is an MCP server with a MCP App(UI) which enables the user to access service control also in the chat pane.
-
-## Project-aware Services
-
-All of the local **services treat projects like tenants**: they store their data (also temp files) in subdirectories of the project folder and serve them from this location.
-
-<div align="center">
-<img src="/docs/images/file-system-3.jpg" alt="Service data" width="500">
-</div>
-
-In the example above we can see the RDF store ("knowledge graph") log and data files inside a project's directory.
-
+All local **services treat projects like tenants**: they store their data (also temp files) in subdirectories of the project folder and serve them from this location. In the example of the RDF store ("knowledge graph"), log and data files live inside the project's directory.
 
 See [Self-Healing Capabilities](self-healing.md).
 
-# Supported Coding Models
+## Supported Coding Models
 
 Though Etienne was initially implemented for the Anthropic Claude Agent SDK you can use other (coding) models by setting the **CODING_AGENT** variable in the .env file in the backend:
 
@@ -329,7 +297,7 @@ Though Etienne was initially implemented for the Anthropic Claude Agent SDK you 
 
 The main drawback with other models is limited support for MCP tools or agent skills which becomes obvious with more complex agentic tasks. **OpenCode** (`CODING_AGENT=open-code`) is a notable exception — it provides native MCP, subagent, skill, and elicitation support on par with the Anthropic harness, plus LSP integration and 75+ model support.
 
-## Coding Agent Feature Matrix
+### Coding Agent Feature Matrix
 
 | Feature | Anthropic | Codex | OpenAI Agents | pi-mono | OpenCode |
 |---|:-:|:-:|:-:|:-:|:-:|
@@ -355,350 +323,9 @@ For detailed configuration and architecture of each agent, see:
 - [OPENCODE_SUPPORT.md](OPENCODE_SUPPORT.md) — OpenCode integration
 - [backend/src/claude/pi-mono-sdk/README.md](backend/src/claude/pi-mono-sdk/README.md) — pi-mono integration
 
-# Multi-agent Orchestration
+# Setup & Running
 
-Multi-agent orchestration is supported with `CODING_AGENT=anthropic` and `CODING_AGENT=open-code`. You can define subagents in the project menu:
-
-<div align="center">
-<img src="/docs/images/multi-agent-orchestration.jpg" alt="Managed Etienne" width="700">
-</div>
-
-With **Anthropic**, the Claude Agent SDK picks up subagents and runs them in parallel or in sequence whenever it detects tasks might benefit from doing so. Your subagents will be used additionally to the built-in Claude agents.
-
-With **OpenCode**, subagent definitions from `.claude/agents/*.md` are automatically translated to OpenCode's native agent format. OpenCode supports hierarchical agent delegation with configurable depth limits and call budgets.
-
-**Codex AppServer** does not support orchestration though it can use and understand a subagent definition. **pi-mono** simulates subagents via a custom Task tool that spawns nested sessions.
-
-# Managed Etienne
-
-You can install Etienne locally, deploy it using the Docker (after you have built it from Docker the file provided) or get it hosted on AWS:
-
-<div align="center">
-<img src="/docs/images/managed-etienne.jpg" alt="Managed Etienne" width="800">
-</div>
-
-[Managed Etienne Landing Page](https://etienne-agent.replit.app/)
-
-# Azure Foundry Deployment
-
-Etienne can be deployed as an **Azure Foundry hosted agent** — Microsoft's bring-your-own-container agent runtime (public preview April 2026). This is the recommended path for enterprise Azure environments.
-
-<div align="center">
-<img src="/docs/images/azure-foundry.jpg" alt="2026 Foundry Architecture" width="800">
-</div>
-
-## Benefits
-
-* **Managed microVM isolation** — every user session runs in a dedicated hypervisor-isolated sandbox with persistent `$HOME` and `/files`; scales to zero after ~15 min idle and rehydrates state on resume
-* **Automatic Entra Agent ID** — Foundry provisions a Microsoft Entra service principal for the agent at deploy time; no client secrets or certificates required
-* **IQ grounding via MCP** — native access to Foundry IQ (Azure AI Search), Work IQ (Microsoft 365 / Graph), and Fabric IQ (Fabric data agents) through a single Toolbox MCP endpoint with OBO identity passthrough; per-document and per-row permissions are enforced automatically
-* **Multi-model support** — call Foundry-hosted Claude models (Sonnet, Opus, Haiku) at `https://{resource}.services.ai.azure.com/anthropic/v1/messages` authenticated via the agent's managed identity
-* **One-click distribution** — publish to Microsoft 365 Copilot, Teams, and the Entra Agent Registry
-
-## Architecture: External Frontend
-
-Foundry hosted agents expose **only port 8088** to the outside world. The Etienne container runs the backend (NestJS) and the Foundry protocol adapter internally, but **the React frontend must be hosted separately** — for example on Azure Static Web Apps, Azure App Service, or any static hosting.
-
-```
-┌─────────────────────────────────────────┐
-│  Foundry microVM (port 8088 only)       │
-│  ┌──────────────────────────────────┐   │
-│  │ Foundry Adapter (Express :8088)  │   │
-│  │  GET  /readiness                 │   │
-│  │  POST /responses                 │   │
-│  │  POST /invocations               │   │
-│  │  /api/* /auth/* /mcp/*  ──proxy──┼─┐ │
-│  └──────────────────────────────────┘ │ │
-│  ┌────────────────────────────────────┘ │
-│  │ NestJS Backend (:6060 internal)      │
-│  └──────────────────────────────────────│
-└─────────────────────────────────────────┘
-         ▲                       ▲
-         │ Foundry protocol      │ /api, /auth, /mcp
-         │ (M365 Copilot,        │ (proxied through 8088)
-         │  Teams, A2A)          │
-                           ┌─────────────┐
-                           │  Frontend   │
-                           │  (external) │
-                           │  Static     │
-                           │  Web App    │
-                           └─────────────┘
-```
-
-The Foundry adapter on port 8088 reverse-proxies `/api/*`, `/auth/*`, and `/mcp/*` to the internal NestJS backend on port 6060. The external frontend points its API calls at the Foundry agent endpoint URL (instead of `localhost:6060`).
-
-When `FOUNDRY_ENABLED=true`, the Docker startup script skips the in-container frontend. A separate `docker/Dockerfile.frontend` is provided to build and serve the frontend as a standalone nginx container (or deploy as static files to Azure Static Web Apps).
-
-## Prerequisites
-
-* Azure subscription with an Azure AI Foundry project
-* Azure Container Registry (ACR) — public endpoint required for image pull
-* Hosting for the frontend (Azure Static Web Apps recommended)
-* Microsoft 365 Copilot license (required for Work IQ only)
-* `az` CLI with the `azure-ai-projects` extension
-
-## Setup Steps
-
-**1. Configure environment variables**
-
-Copy `backend/.env.template` and set the Foundry-specific variables:
-
-```env
-FOUNDRY_ENABLED=true
-AZURE_AI_ENDPOINT=https://<resource>.services.ai.azure.com
-FOUNDRY_TOOLBOX_MCP_ENDPOINT=<your-toolbox-url>
-FABRIC_IQ_MCP_ENDPOINT=<your-fabric-iq-url>
-FOUNDRY_FRONTEND_ORIGIN=https://<your-frontend>.azurestaticapps.net
-AUTH_PROVIDER=azure-entraid
-SECRET_VAULT_PROVIDER=azure-keyvault
-AZURE_KEY_VAULT_URL=https://<vault>.vault.azure.net
-```
-
-**2. Build and push to ACR**
-
-```bash
-az acr build --registry <acr-name> --image etienne:v1 -f docker/Dockerfile .
-```
-
-**3. Create hosted agent version**
-
-```bash
-az ai project agent create-version \
-  --name etienne \
-  --image <acr-name>.azurecr.io/etienne:v1
-```
-
-Foundry creates the agent identity, provisions the microVM compute, and exposes the endpoint at `{project_endpoint}/agents/etienne/endpoint/protocols/responses`.
-
-**4. Deploy the frontend**
-
-A separate Dockerfile is provided at `docker/Dockerfile.frontend` for the frontend. It builds the Vite app with the Foundry endpoint baked in and serves it via nginx.
-
-```bash
-# Build and push the frontend image
-az acr build --registry <acr-name> \
-  --image etienne-frontend:v1 \
-  --build-arg VITE_API_BASE_URL=https://<foundry-agent-endpoint> \
-  -f docker/Dockerfile.frontend .
-```
-
-Deploy this image to Azure Container Apps, App Service, or any container host. Alternatively, build locally and deploy the static files to Azure Static Web Apps:
-
-```bash
-cd frontend
-VITE_API_BASE_URL=https://<foundry-endpoint> npx vite build
-# Deploy dist/ to Azure Static Web Apps
-az staticwebapp create --name etienne-ui --source ./dist
-```
-
-**5. Verify readiness**
-
-```bash
-curl https://<endpoint>/readiness
-# → {"status":"ready"}
-```
-
-**6. (Optional) Publish to M365 Copilot / Teams**
-
-Publishing creates an Agent Application resource with a stable URL, dedicated blueprint, and one-click distribution to M365 Copilot and Teams via the Activity protocol.
-
-## MCP IQ Configuration
-
-The MCP server registry includes pre-configured entries for Foundry IQ, Work IQ, and Fabric IQ with `authType: "UserEntraToken"`. When `FOUNDRY_TOOLBOX_MCP_ENDPOINT` is set, these servers are automatically routed through the Foundry Toolbox endpoint with OBO identity passthrough — no manual MSAL plumbing required.
-
-See `agent.yaml` in the project root for the full Foundry deployment descriptor.
-
-## Scale-to-Zero Resilience
-
-Foundry scales the microVM to zero after ~15 minutes of inactivity and restarts it on the next request. This is by design — it reduces cost and is not something to work around. Etienne handles cold starts gracefully:
-
-**Survives restart** (persisted to Foundry's persistent filesystem):
-* Project data, chat history, and session metadata (JSONL files in `.etienne/`)
-* Claude SDK session ID (`data/session.id`) for conversation resumption
-* Foundry session-to-project mappings (`.foundry-sessions.json`)
-* Knowledge graphs, scrapbook notes, and all workspace files
-
-**Re-acquired on cold start** (in-memory, rebuilt automatically):
-* Managed identity token — `DefaultAzureCredential` re-acquires on `onModuleInit`
-* MCP server connections — re-established on first tool call
-* Active streaming sessions — the user simply retries the request
-
-The first request after a cold start takes a few extra seconds for NestJS initialization and token acquisition. Subsequent requests within the 15-minute idle window are instant.
-
-# Memory
-
-Etienne provides an exchangable endpoint to extract memories from a user prompt and store them inside the project.
-
-Memory extraction is activated per default and can be accessed via the green memory card icon below the app bar.
-
-<div align="center">
-<img src="/docs/images/memory.jpg" alt="Memory pane" width="400">
-</div>
-
-Memories are stored per project and not globally in the default configuration.
-
-The extraction prompt is adjustable to sharpen the focus to certain business domain relevant information.
-
-See [User Orders](user-orders.md).
-
-# The Web: Searching, Scraping and Browsing
-
-Use the **web-scraping skill** to enable the agent to interact with websites on the internet.
-
-<div align="center">
-<img src="/docs/images/web-access.jpg" alt="Interacting with websites" width="800">
-</div>
-
-It uses these technologies by default:
-
-* **Web search**: The default tool included in Claude Code or Codex. Uses the search index of Anthropic or OpenAI.
-
-* **Web scraping**: Uses the Scrapling GitHub project which is fast and can process Javascript sites. It is a common choice for red-teaming tasks.
-
-* **Web browsing**: Uses Vercel's [agent-browser](https://github.com/vercel-labs/agent-browser) package, a headless browser automation CLI designed for AI agents. Pre-installed in the Docker image via `npm install -g agent-browser` with Chromium pre-downloaded. It is a good choice for cooperative sites and a token saver (compared to pure Playwright implementations). The browser daemon can be managed from the service console. Keep in mind that it is not suited to interact with websites which deploy anti-bot/anti-agent techniques like captchas or fingerprinting!
-
-# Main Components
-
-This repo contains 3 mandatory servers, 6 optional servers and many modules.
-
-Modules can be removed if their functionality is not required (e. g. A2A Client, Observability, SMTP IMAP).
-
-<div align="center">
-<img src="/docs/images/servers-modules.jpg" alt="Servers and modules" width="900">
-</div>
-
-The following diagram shows the essential internal and external ports of a deployed Etienne instance:
-
-<div align="center">
-<img src="/docs/images/system-context.jpg" alt="System Context" width="900">
-</div>
-
-While the workbench (React frontend) serves as the primary user interface, messengers can optionally be added as secondary/mobile user interfaces.
-
-# The Agent and the outside World
-
-Etienne is built to maximize what an AI agent can do outwardly in commercial and operational contexts.
-
-Etienne focuses on professional automation protocols in a single deployment, which is what commercial environments actually run on.
-
-<div align="center">
-<img src="/docs/images/etienne-outside-world.jpg" alt="Outside world" width="900">
-</div>
-
-Etienne extends the system boundary itself by implementing and exposing new interfaces such as MCP servers, API endpoints, or web applications.
-
-Etienne is about turning an agent into infrastructure.
-
-See [HITL Protocol Support](hitl-protocol.md).
-
-# Securing the Agent against Prompt Injection
-
-Prompt injection is the #1 security threat to AI agents right now.
-
-When Etienne connects to tools and databases, every user input becomes a potential attack. Malicious prompts can trick it into leaking data, bypassing safety rules, or executing unintended actions.
-
-The solution: 
-A **security gateway** that sits between users and our AI models.
-
-It scans every request real-time, blocking attacks before they reach your systems. Simple concept, but here's the reality most vendors won't share:
-
-Security isn't a one-time fix. New attack patterns emerge daily. 
-
-Effective protection requires:
-✅ Always-on cloud infrastructure (for speed)
-✅ Continuous threat updates (not static rules)
-✅ Active learning (adapting to new risks)
-
-This means your security layer becomes a complex system itself. But that's the cost of staying protected.
-
-<div align="center">
-<img src="/docs/images/prompt-injection-2.jpg" alt="Prompt Injection" width="700">
-</div>
-
-Start your security journey with understanding these services:
-* NeuralTrust API Gateway
-* Google ModelArmorAPI
-* AWS Bedrock Guardrails
-
-# IT Budget Situation
-This project is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch". You should extend/modify it using Claude Code.
-
-<div align="center">
-<img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="700">
-</div>
-
-It proposes to focus your development efforts on the business layer instead on the AI layer.
-
-# Extended Use Case: Prototyping together with your Customer
-As a forward deployed engineer you can bring a complete working AI business solution to the meeting with your customer. The Etienne frontend in combination with Claude Code for live modifications allows you to prototype solutions in real-time.
-
-<div align="center">
-<img src="/docs/images/forward-deployed-engineer.jpg" alt="Forward deployed engineer" width="700">
-</div>
-
-# Demo Videos
-
-## Brainstorming with Etienne
-
-<div align="center">
-<img src="/docs/images/video2-snapshot.jpg" alt="UI Screenshot" width="900">
-</div>
-
-[Watch Etienne walking the user through a mindmap creation process](https://youtu.be/cT1jMUM_vtk)
-
-## Creating a new project with Etienne
-
-<div align="center">
-<img src="/docs/images/video1-snapshot.jpg" alt="UI Screenshot" width="900">
-</div>
-
-[See the basic project settings and how a live website is created from specifications](https://youtu.be/I9aNyB07AaA)
-
-# User Experience Modes in the Frontend
-
-The frontend supports two UX modes, controlled by the Vite environment variable `VITE_UX_TYPE`:
-
-| Mode | Value | Description |
-|------|-------|-------------|
-| **Verbose** | `verbose` (default) | Full AppBar with title, budget indicator, scheduling, theme toggle, project selector, and hamburger menu. The ChatPane includes a 48px header with new-chat, plan/work mode toggle, notification bell, resume session, and settings buttons. |
-| **Minimalistic** | `minimalistic` | The AppBar and ChatPane header are hidden. A resizable left sidebar (default 300px, range 200–600px) provides quick access to: new chat, settings (as a modal), the 3 most recently used projects, the 5 most recent chat sessions, and the latest notifications. |
-
-### Configuration
-
-Set the default mode via environment variable before starting the Vite dev server:
-
-```bash
-# .env or .env.development
-VITE_UX_TYPE=minimalistic
-```
-
-If not set, the mode defaults to `verbose`.
-
-### Keyboard Shortcut
-
-Press **Ctrl+U** to toggle between verbose and minimalistic mode at runtime. The choice is persisted in `localStorage` (key: `uxModeOverride`) and survives page reloads. A toast notification confirms the switch.
-
-Other keyboard shortcuts:
-- **Ctrl+L** — Cycle UI language (English, German, Italian, Chinese)
-
-### Sidebar (Minimalistic Mode)
-
-The sidebar starts at 300px wide and can be horizontally resized by dragging its right edge (range: 200–600px). The width is persisted in `localStorage` (key: `sidebarWidth`).
-
-### Recent Items (Minimalistic Mode)
-
-In minimalistic mode, the sidebar displays recently accessed items. These are tracked in a workspace-level file at `<workspace>/.etienne/recent-items.json`:
-
-- **Projects** — last 10 projects opened (top 3 shown in sidebar)
-- **Chats** — last 10 chat sessions accessed (top 5 shown, titled by the first 5 words of the last user message)
-- **Notifications** — last 10 notifications sent (top 5 shown, only if any exist)
-
-See [Experimental Features](experimental-features.md).
-
-
-# Setup
-
-See [API Keys & Secrets Management](api-keys-secrets.md).
+See [API Keys & Secrets Management](api-keys-secrets.md) for how Etienne stores credentials.
 
 ## Checkpoints
 
@@ -708,65 +335,58 @@ The checkpoint feature requires **Gitea** to be installed and running on `localh
 - Gitea server running on port 3000
 - Valid Gitea user account (configured in `.env`)
 
-**Configuration:**
-The checkpoint system uses environment variables in `.env`:
-- `CHECKPOINT_PROVIDER` - Provider type: `gitea` (default) or `git` (fallback)
-- `GITEA_URL` - Gitea server URL (default: `http://localhost:3000`)
-- `GITEA_USERNAME` - Gitea user email for authentication
-- `GITEA_PASSWORD` - Gitea user password
-- `GITEA_REPO` - Repository name for checkpoints (default: `workspace-checkpoints`)
+**Configuration** — environment variables in `.env`:
+- `CHECKPOINT_PROVIDER` — Provider type: `gitea` (default) or `git` (fallback)
+- `GITEA_URL` — Gitea server URL (default: `http://localhost:3000`)
+- `GITEA_USERNAME` — Gitea user email for authentication
+- `GITEA_PASSWORD` — Gitea user password
+- `GITEA_REPO` — Repository name for checkpoints (default: `workspace-checkpoints`)
 
 **Provider Options:**
 
-1. **Gitea Provider** (default, recommended)
-   - Stores checkpoints in a Gitea repository at `localhost:3000`
-   - Creates one repository with project folders (e.g., `workspace-checkpoints/project1/`, `workspace-checkpoints/project2/`)
-   - Uses Gitea REST API for all operations
-   - Works on Windows/Linux without Docker
-   - Handles large files (>1MB) via raw download endpoint
+1. **Gitea Provider** (default, recommended) — stores checkpoints in a Gitea repository at `localhost:3000`, creates one repository with project folders (e.g., `workspace-checkpoints/project1/`), uses Gitea REST API, works on Windows/Linux without Docker, handles large files (>1MB) via raw download endpoint.
+2. **Git Provider** (fallback) — stores checkpoints in a local git repository inside the Docker container at `/workspace/.checkpoints`, uses git commands via Docker exec (development) or direct shell (production), requires `claude-code` Docker container to be running, legacy option maintained for backwards compatibility.
 
-2. **Git Provider** (fallback)
-   - Stores checkpoints in a local git repository inside the Docker container
-   - Located at `/workspace/.checkpoints` in the container
-   - Uses git commands via Docker exec (development) or direct shell (production)
-   - Requires `claude-code` Docker container to be running
-   - Legacy option maintained for backwards compatibility
-
-**How it works:**
-- Each checkpoint is a tarball (`.tar.gz`) of the project directory
-- Checkpoints are tracked in `.etienne/checkpoints.json` manifest file
-- The manifest stores checkpoint metadata: timestamp, commit message, and git commit hash
-- Restore operations extract the tarball and overwrite project files (except `checkpoints.json`)
+**How it works:** Each checkpoint is a tarball (`.tar.gz`) of the project directory. Checkpoints are tracked in `.etienne/checkpoints.json` (timestamp, commit message, git commit hash). Restore operations extract the tarball and overwrite project files (except `checkpoints.json`).
 
 To switch to the Git provider, set `CHECKPOINT_PROVIDER=git` in your `.env` file.
 
 ## OAuth Server (Authentication)
 
-The frontend requires authentication via a lightweight OAuth/JWT server running on port 5950.
-
-**Starting the OAuth server:**
-```bash
-cd oauth-server
-npm install
-npm run dev
-```
+The frontend requires authentication via a lightweight OAuth/JWT server running on port 5950. You must start the OAuth server manually before accessing the application.
 
 **Default credentials:**
+
 | Username | Password | Role |
 |----------|----------|------|
 | admin | admin123 | admin |
 | user | user123 | user |
 | guest | guest123 | guest |
 
-**User management:**
+**Available roles:**
+- `guest` — read-only access
+- `user` — full chat and project access
+- `admin` — all permissions including user management
 
-Users are configured in `oauth-server/config/users.json`. To add or change a password, generate a bcrypt hash:
+**User management:** users are configured in [`oauth-server/config/users.json`](oauth-server/config/users.json). Each user has a username, bcrypt-hashed password, role, and display name. To add or change a password, generate a bcrypt hash:
+
 ```bash
 cd oauth-server
 npm run hash-password YourNewPassword123
 ```
 
-Copy the output hash into the `passwordHash` field in `users.json`.
+Copy the output hash into the `passwordHash` field in `users.json`. Example entry:
+
+```json
+{
+  "id": "u4",
+  "username": "newuser",
+  "passwordHash": "$2b$10$your-generated-hash-here",
+  "role": "user",
+  "displayName": "New User",
+  "enabled": true
+}
+```
 
 **Token behavior:**
 - Access tokens expire after 15 minutes (configurable in `users.json`)
@@ -793,618 +413,126 @@ cd frontend
 npm i
 npm run dev
 ```
-Then **open your browser** with http://localhost:5000
+Then **open your browser** with http://localhost:5000 and log in with `user` / `user123`.
 
-# User Authentication in the Frontend UI
-
-The frontend requires authentication before use. You must start the OAuth server manually before accessing the application.
-
-**Quick Start:**
-1. Start the OAuth server (see "Starting up the services" above)
-2. Open http://localhost:5000 in your browser
-3. Login with username `user` and password `user123`
-
-**Managing Users:**
-
-Users and credentials are configured in [`oauth-server/config/users.json`](oauth-server/config/users.json). Each user has a username, bcrypt-hashed password, role, and display name.
-
-**Available Roles:**
-- `guest` - Read-only access
-- `user` - Full chat and project access
-- `admin` - All permissions including user management
-
-**Creating Password Hashes:**
-
-To add a new user or change a password, generate a bcrypt hash using the provided script:
-
-```bash
-cd oauth-server
-npm run hash-password MyNewPassword123
-```
-
-This outputs a hash like `$2b$10$...` which you copy into the `passwordHash` field in [`users.json`](oauth-server/config/users.json).
-
-**Example users.json entry:**
-```json
-{
-  "id": "u4",
-  "username": "newuser",
-  "passwordHash": "$2b$10$your-generated-hash-here",
-  "role": "user",
-  "displayName": "New User",
-  "enabled": true
-}
-```
-
-# API Endpoints 
+## API Endpoints
 
 * [Full API Reference](api.md)
 * [Live API Documentation (ReDoc)](http://localhost:6060/docs)
 
-See [Knowledge Base Feature](knowledge-base.md).
+See also: [Knowledge Base Feature](knowledge-base.md), [Context Management / Metadata Layer](context-management.md).
 
-See [Context Management / Metadata Layer](context-management.md).
+## UX Modes
 
-# Observability
+The frontend supports a **verbose** mode (default — full AppBar, ChatPane header, project selector) and a **minimalistic** mode (resizable left sidebar with quick-access tiles). Toggle at runtime with **Ctrl+U** (persisted to localStorage). Cycle UI language with **Ctrl+L** (English / German / Italian / Chinese).
 
-The backend supports OpenTelemetry-based observability for monitoring LLM conversations and tool usage. When enabled, traces are sent to an OTLP-compatible collector like [Arize Phoenix](https://phoenix.arize.com/).
+For configuration via `VITE_UX_TYPE`, sidebar sizing, and recent-items tracking see [User Experience Modes](docs/ux-modes.md).
 
-## Configuration
+# Operations & Deployment
 
-Set these environment variables in `backend/.env`:
+## Managed Etienne
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OTEL_ENABLED` | Set to `"true"` to enable telemetry | (disabled) |
-| `PHOENIX_COLLECTOR_ENDPOINT` | Base URL of the OTLP collector | `http://localhost:6006` |
-| `OTEL_SERVICE_NAME` | Service name in traces | `etienne` |
+You can install Etienne locally, deploy it using the Docker (after you have built it from Docker the file provided) or get it hosted on AWS:
 
-## Starting Phoenix Locally
+<div align="center">
+<img src="/docs/images/managed-etienne.jpg" alt="Managed Etienne" width="800">
+</div>
 
-```bash
-docker run -d --name phoenix -p 6006:6006 -p 4317:4317 arizephoenix/phoenix:latest
-```
+[Managed Etienne Landing Page](https://etienne-agent.replit.app/)
 
-Then enable telemetry:
+## Azure Foundry Deployment
 
-```bash
-# Add to backend/.env
-OTEL_ENABLED=true
-PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
-```
+Etienne deploys as an **Azure Foundry hosted agent** (Microsoft's bring-your-own-container agent runtime, public preview April 2026) — the recommended path for enterprise Azure environments. Benefits include managed microVM isolation with scale-to-zero, automatic Entra Agent ID provisioning, IQ grounding via MCP (Foundry IQ, Work IQ, Fabric IQ), and one-click distribution to Microsoft 365 Copilot and Teams. Foundry exposes only port 8088, so the React frontend is hosted separately (e.g., on Azure Static Web Apps).
 
-## Traced Information
+For prerequisites, the full `az` CLI setup, frontend deployment, MCP IQ configuration, and scale-to-zero behavior, see [Azure Foundry Deployment](docs/deployment-azure-foundry.md).
 
-The implementation follows [OpenInference Semantic Conventions](https://github.com/Arize-ai/openinference) for LLM-specific attributes.
+## Observability
 
-**Conversation Spans (Agent):**
-- `llm.model_name`, `llm.provider`, `llm.system`
-- `llm.token_count.prompt`, `llm.token_count.completion`, `llm.token_count.total`
-- `input.value`, `output.value` (prompt and response)
-- `session.id`, `project.name`, `user.id`
-- `agent.tools_used`, `agent.tool_call_count`
+The backend supports OpenTelemetry-based observability for monitoring LLM conversations and tool usage. When `OTEL_ENABLED=true`, traces (conversation spans + nested tool spans, following [OpenInference Semantic Conventions](https://github.com/Arize-ai/openinference)) are sent to an OTLP-compatible collector like [Arize Phoenix](https://phoenix.arize.com/).
 
-**Tool Spans (nested under conversation):**
-- `tool.name`, `tool.parameters`, `tool.output`
-- `tool.status` (success/error), `tool.duration_ms`
-- `tool.error_message` (if applicable)
+For environment variables, Phoenix setup, traced span attributes, and how to view traces, see [Observability](docs/observability.md).
 
-### Viewing Traces
-
-1. Open Phoenix UI at `http://localhost:6006`
-2. Navigate to the Traces view
-3. Filter by `project.name` or `session.id` to find specific conversations
-4. Click on a trace to see the conversation span with nested tool spans
-
-# Architecture Decision Records
+## Architecture Decision Records
 
 The architectural decisions behind Etienne are documented as formal ADRs in the [adrs/](adrs/README.md) directory. The 11 records cover project isolation, inner harness design, SSE communication, service connectivity (ZeroMQ, MCP, A2A), security, event-driven architecture, agentic behaviour, UX components, messenger integration, the external webserver, and cloud service integration. Each ADR includes mermaid diagrams and a base-value alignment check.
 
-# Working with PDF and Office Format Documents
+## IT Budget Situation
 
-The standard skill **office-and-pdf-documents** provides document parsing capabilities using the `@llamaindex/liteparse` npm package. It extracts text from documents while preserving spatial layout, and includes built-in OCR for scanned content. LiteParse is the local, open-source version of LlamaIndex's cloud service **LlamaParse**, which could be used for use cases with more complex requirements in regard to parsing quality (e.g. complex tables, multi-column layouts, or heavily formatted documents).
+This project is in the middle between "Buy a complete AI agent solution" and "Build an AI agent framework from scratch". You should extend/modify it using Claude Code.
 
-## Supported Formats
+<div align="center">
+<img src="/docs/images/buy-build.jpg" alt="Buy and Build" width="700">
+</div>
 
-- **PDF** — native digital PDFs as well as PDFs containing scanned images (processed via built-in OCR)
-- **Word** — `.doc`, `.docx`, `.docm`, `.odt`, `.rtf`
-- **PowerPoint** — `.ppt`, `.pptx`, `.pptm`, `.odp`
-- **Excel / Sheets** — `.xls`, `.xlsx`, `.xlsm`, `.ods`, `.csv`, `.tsv`
-- **Images** — `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.tiff`, `.webp`, `.svg` (via OCR)
+It proposes to focus your development efforts on the business layer instead on the AI layer.
 
-## Binary Dependency: LibreOffice
+## Budget Tracking
 
-Non-PDF formats (Word, PowerPoint, Excel) are converted to PDF before parsing. This conversion requires **LibreOffice** (`soffice`) to be installed on the system. It is a binary dependency that cannot be installed via npm and must be installed manually.
-
-Before parsing, the skill checks availability by running:
-
-```bash
-soffice --version
-```
-
-If LibreOffice is missing and the user needs to parse Office documents, the skill will report the issue and provide installation instructions. PDF parsing (including scanned/image-based PDFs) works without LibreOffice.
-
-# File Type Previewers
-
-The previewer system routes file opens and service activations to specialized React viewer components. It uses a three-layer extension mapping, a metadata registry for context menu actions and MCP UI previewers, and a separate service previewer registry.
-
-## Architecture Overview
-
-```
-User Action (context menu / sidebar icon / link click)
-  → FilePreviewHandler.handlePreview(filePath, projectName)
-  → getViewerForFile() determines viewer name
-  → publishes FILE_PREVIEW_REQUEST event
-  → App.jsx fetches file content (or creates placeholder for services)
-  → FilesPanel renders via VIEWER_COMPONENTS[viewerName]
-```
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| [viewerRegistry.jsx](frontend/src/components/viewerRegistry.jsx) | Central registry: `VIEWER_COMPONENTS`, `SERVICE_PREVIEWERS`, `buildExtensionMap()`, `getViewerForFile()`, `getContextMenuActions()` |
-| [FilePreviewHandler.js](frontend/src/services/FilePreviewHandler.js) | Event publisher: resolves viewer name and publishes `FILE_PREVIEW_REQUEST` |
-| [FilesPanel.jsx](frontend/src/components/FilesPanel.jsx) | Tab manager: renders active file using viewerRegistry |
-| [PreviewersManager.jsx](frontend/src/components/PreviewersManager.jsx) | Admin UI: manages system-level extension mappings and context menu actions |
-| [Filesystem.jsx](frontend/src/components/Filesystem.jsx) | File explorer: renders data-driven context menu actions via `CONTEXT_MENU_MODALS` registry |
-| [previewers.service.ts](backend/src/previewers/previewers.service.ts) | Backend: extension mappings (`REGISTERED_PREVIEWERS` env), metadata (`previewer-metadata.json`), service previewers |
-| [previewers.controller.ts](backend/src/previewers/previewers.controller.ts) | API: `GET`/`PUT` `/api/previewers/configuration` |
-| [previewer-metadata.json](backend/src/previewers/previewer-metadata.json) | Metadata per viewer: type, MCP group/tool, context menu actions |
-
-### Three Classes of Previewers
-
-**File-Extension Previewers** (`type: 'file'`, the default) map file extensions to viewer components:
-- Configured via `REGISTERED_PREVIEWERS` env var (format: `viewer:.ext1,.ext2|viewer2:.ext3`)
-- Compound extensions (e.g., `.workflow.json`, `.artifacts.md`) are matched before simple extensions
-- Project-level overrides can remap or disable extensions per project
-
-**Service Previewers** (`type: 'service'`) are activated by running services, not file extensions:
-- Triggered via service paths: `#<serviceName>/<function>` (e.g., `#imap/inbox`)
-- Registered in `getServicePreviewers()` in `previewers.service.ts`
-- Typically shown as sidebar icons when their backing service is running
-
-**MCP UI Previewers** (`type: 'mcpui'`) render via MCP tool calls instead of file content:
-- Configured in `previewer-metadata.json` with `mcpGroup` and `mcpToolName`
-- Extensions are stored in metadata (not in the `REGISTERED_PREVIEWERS` env var)
-- Example: the `budget` viewer (`.budget.json`) calls the `render_budget` tool from the `budget` MCP group
-
-### Extension Mapping Priority
-
-1. **Built-in defaults** (`BUILTIN_DEFAULTS` in viewerRegistry.jsx) — fallback
-2. **System configuration** (`REGISTERED_PREVIEWERS` via backend) — admin-managed
-3. **Project overrides** (`autoFilePreviewExtensions` in project config) — per-project
-
-### Context Menu Actions
-
-Previewers can define additional context menu actions that appear when right-clicking matching files in the file explorer. Actions are stored in `previewer-metadata.json` (under `actions` per viewer entry) and support:
-- **Multi-language labels** (en, de, it, zh)
-- **Conditions**: `filename` (exact match), `extension`, `pathContains` (folder segment)
-- **Modal dialogs** or **preview navigation** (`__preview__` pseudo-component)
-- **Template parameters**: `${filePath}`, `${fileName}`, `${fileNameWithoutExt}`, `${projectName}`, `${folderPath}`
-- **Role gating**: optional `minRole` field (e.g. `'user'`)
-
-## Supported File Types
-
-| File Extension | Viewer | Component |
-|----------------|--------|-----------|
-| `.html`, `.htm` | html | [LiveHTMLPreview](frontend/src/components/LiveHTMLPreview.jsx) |
-| `.json` | json | [JSONViewer](frontend/src/components/JSONViewer.jsx) |
-| `.jsonl` | jsonl | [JSONViewer](frontend/src/components/JSONViewer.jsx) (JSONL mode) |
-| `.md` | markdown | [MarkdownViewer](frontend/src/components/MarkdownViewer.jsx) |
-| `.mermaid` | mermaid | [MermaidViewer](frontend/src/components/MermaidViewer.jsx) |
-| `.research` | research | [ResearchDocument](frontend/src/components/ResearchDocument.jsx) |
-| `.jpg`, `.jpeg`, `.png`, `.gif` | image | [ImageViewer](frontend/src/components/ImageViewer.jsx) |
-| `.xls`, `.xlsx` | excel | [ExcelViewer](frontend/src/components/ExcelViewer.jsx) |
-| `.prompt` | prompt | [PromptEditor](frontend/src/components/PromptEditor.jsx) |
-| `.workflow.json` | workflow | [WorkflowVisualizer](frontend/src/components/WorkflowVisualizer.jsx) |
-| `.scbk` | scrapbook | [ScrapbookViewer](frontend/src/components/ScrapbookViewer.jsx) |
-| `.youtube`, `.videos`, `.mp4` | video | [VideoViewer](frontend/src/components/VideoViewer.jsx) |
-| `.knowledge` | knowledge | [KnowledgeViewer](frontend/src/components/KnowledgeViewer.jsx) |
-| `.pdf` | pdf | [PdfViewer](frontend/src/components/PdfViewer.jsx) |
-| `.docx`, `.doc` | docx | [DocxViewer](frontend/src/components/DocxViewer.jsx) |
-| `.requirements.json` | requirements | [RequirementsViewer](frontend/src/components/RequirementsViewer.jsx) |
-| `.artifacts.md` | artifacts | [ArtifactsForSession](frontend/src/components/ArtifactsForSession.jsx) |
-| `.budget.json` | budget | MCP UI previewer (calls `render_budget` tool) |
-| `#imap/*` (service) | imap | [IMAPInboxViewer](frontend/src/components/IMAPInboxViewer.jsx) |
-
-## Adding a New File-Extension Previewer
-
-**Steps:**
-1. Create a viewer component in `frontend/src/components/` (e.g., `MyFormatViewer.jsx`)
-2. Register it in `VIEWER_COMPONENTS` in `frontend/src/components/viewerRegistry.jsx`
-3. Add default extension mappings in `BUILTIN_DEFAULTS` in `viewerRegistry.jsx`
-4. Add default extension mappings in `getDefaults()` in `backend/src/previewers/previewers.service.ts`
-5. The FilePreviewHandler and event routing work automatically — no changes needed there
-
-**Agent prompt:**
-> Add a new file previewer for `.<ext>` files:
-> 1. Create `frontend/src/components/MyViewer.jsx` with props `{ filename, projectName }`
-> 2. Register it in `VIEWER_COMPONENTS` in `frontend/src/components/viewerRegistry.jsx`
-> 3. Add to `BUILTIN_DEFAULTS` in `viewerRegistry.jsx`
-> 4. Add to `getDefaults()` in `backend/src/previewers/previewers.service.ts`
-> 5. FilePreviewHandler and routing work automatically.
-
-## Adding a New Service Previewer
-
-**Steps:**
-1. Create a viewer component in `frontend/src/components/` (e.g., `MyServiceViewer.jsx`)
-2. Register it in `VIEWER_COMPONENTS` in `viewerRegistry.jsx`
-3. Add an entry in `getServicePreviewers()` in `backend/src/previewers/previewers.service.ts` with `serviceName`, `viewerName`, `functions`, `displayName`, and optional `requiresService`
-4. Add a sidebar icon in `MinimalisticSidebar.jsx` that calls `filePreviewHandler.handlePreview('#myservice/function', currentProject)`
-5. Ensure the backing service is registered in `backend/services.json`
-
-## Adding a New MCP UI Previewer
-
-**Steps:**
-1. Create a viewer component in `frontend/src/components/`
-2. Register it in `VIEWER_COMPONENTS` in `viewerRegistry.jsx`
-3. Add a metadata entry in `getDefaultMetadata()` in `backend/src/previewers/previewers.service.ts` with `viewer`, `type: 'mcpui'`, `extensions`, `mcpGroup`, and `mcpToolName`
-4. Ensure the MCP server group exposes the tool specified in `mcpToolName`
-
-## Adding a Context Menu Action to a Previewer
-
-**Steps:**
-1. If the action opens a modal: create the modal component and register it in `CONTEXT_MENU_MODALS` in `Filesystem.jsx`
-2. Add an `actions` entry to the viewer's metadata in `getDefaultMetadata()` in `backend/src/previewers/previewers.service.ts` with labels, icon, `modalComponent` name (or `__preview__` to open a file preview), params, optional condition, and optional `minRole`
-3. The context menu rendering is automatic
-
-**Agent prompt:**
-> Add a context menu action "Analyze Document" for `.pdf` files in inbox folders:
-> 1. Create `frontend/src/components/DocumentAnalysisModal.jsx` with props `{ open, onClose, filePath, projectName }`
-> 2. Register it in `CONTEXT_MENU_MODALS` in `frontend/src/components/Filesystem.jsx`
-> 3. Add a `contextMenuActions` entry to the `pdf` viewer in `backend/src/previewers/previewer-context-actions.json`
-
-The preview system is integrated with the [Interceptors](requirements-docs/prd-interceptors.md) feature to automatically refresh previews when files are modified by Claude Code.
-
-See [Messenger Integration](messenger-integration.md).
-
-# Using the Agent with its own Email Account
-
-Etienne can operate its own email account — monitoring an IMAP inbox for incoming mail and sending replies or notifications via SMTP. This gives projects a dedicated communication channel that the agent can use autonomously or on behalf of the user.
-
-## Two Integration Modes
-
-| Mode | How it works | Use case |
-|------|-------------|----------|
-| **MCP Tools** (on-demand) | Agent calls `email_send` / `email_check_inbox` tools directly | Sending reports, checking for specific emails, replying to messages |
-| **Event-driven** (real-time) | Standalone IMAP Connector monitors inbox via IMAP IDLE and publishes events to the agent bus | Triggering rules when emails arrive — e.g. auto-processing invoices, alerting on important mail |
-
-## Architecture
-
-```mermaid
-graph LR
-    subgraph "Email Server"
-        IMAP_SRV[IMAP :993]
-        SMTP_SRV[SMTP :587]
-    end
-
-    subgraph "IMAP Connector (:4440)"
-        IL[EmailListener<br/>IMAP IDLE]
-        EP[EventPublisher]
-    end
-
-    subgraph "Backend (:6060)"
-        MCP[MCP Tools<br/>email_send / email_check_inbox]
-        SMTP[SmtpService]
-        IMAP_SVC[ImapService]
-        ER[EventRouter]
-        RE[RuleEngine]
-    end
-
-    IMAP_SRV -->|new mail| IL
-    IL --> EP
-    EP -->|ZeroMQ push| ER
-    ER --> RE
-    RE -->|rule matched| ACTION[Prompt / Workflow / Intent]
-
-    MCP --> SMTP
-    SMTP -->|send| SMTP_SRV
-    MCP --> IMAP_SVC
-    IMAP_SVC -->|fetch| IMAP_SRV
-```
-
-## Configuration
-
-All email credentials are stored as secrets (OpenBao vault or `.env` fallback). Both connection strings use the same pipe-delimited format:
-
-| Secret | Format | Example |
-|--------|--------|---------|
-| `IMAP_CONNECTION` | `host\|port\|secure\|user\|password` | `mail.example.com\|993\|true\|bot@example.com\|secret` |
-| `SMTP_CONNECTION` | `host\|port\|secure\|user\|password` | `mail.example.com\|587\|false\|bot@example.com\|secret` |
-| `SMTP_WHITELIST` | Comma-separated addresses | `alice@example.com,bob@example.com` |
-
-- **Port 993** with `secure=true` — direct TLS (IMAP)
-- **Port 587** with `secure=false` — STARTTLS (SMTP)
-- **SMTP_WHITELIST** restricts which recipients the agent can email (security measure)
-
-## MCP Tools
-
-**`email_send`** — Send an email with optional HTML body and file attachments (paths relative to the project directory).
-
-**`email_check_inbox`** — Fetch unseen emails, optionally filtered by subject prefix and/or date. Emails are saved to the project workspace:
-
-```
-workspace/<project>/emails/received/<ISO_DATE>-<SENDER>-<SUBJECT>/
-  message.txt
-  attachment1.pdf
-```
-
-## Email Events on the Bus
-
-When the IMAP Connector service is running, every incoming email is published as an event:
-
-```json
-{
-  "name": "Email Received",
-  "group": "Email",
-  "source": "IMAP Connector",
-  "payload": {
-    "From": "sender@example.com",
-    "To": "bot@example.com",
-    "Important": false,
-    "Subject": "Invoice #4021",
-    "BodyText": "Please find attached...",
-    "Attachments": ["invoice-4021.pdf"]
-  }
-}
-```
-
-These events flow through the CMS rule engine — you can create rules that match on sender, subject, importance, or use semantic conditions to classify email content.
-
-## Email Skill
-
-An optional **email** skill is available in the skill repository (`skill-repository/standard/optional/email/`). When provisioned to a project, it teaches the agent when and how to use the email tools effectively — including best practices for plain-text fallbacks, attachment handling, inbox filtering, and reply workflows.
-
-See [MCP UI](mcp-ui.md).
-
-# Budget Tracking
-
-Etienne tracks AI inference costs per project and enforces a global budget limit across all projects.
+Etienne tracks AI inference costs per project and enforces a **global** budget limit across all projects (the limit applies to total spend, not per-project, so work cannot be split to circumvent it). Tracking is always-on, session-based, and pre-flight enforced. Default limit: 200 €.
 
 <div align="center">
 <img src="/docs/images/budget-tracking.jpg" alt="Budget tracking pane" width="500">
 </div>
 
-The budget pane can be activated from the app bar.
+For cost calculation, `.env` configuration, storage layout, the dashboard, and the SSE real-time update stream see [Budget Tracking](docs/budget-tracking.md). Governance-layer details: [MCP Registry/Governance Layer](mcp-registry.md).
 
-## How It Works
+# Extended Capabilities
 
-- **Always-on tracking**: Token usage is recorded for every Claude request regardless of whether the budget limit is enabled. Each cost entry includes a timestamp, session ID, input/output tokens, per-request cost, and accumulated cost.
-- **Session-based counting**: A "task" in the budget dashboard corresponds to a distinct chat session (identified by `sessionId`), not an individual API call. The dashboard shows the number of unique sessions, not raw request counts.
-- **Global budget limit**: The configured limit applies to the **sum of costs across all projects** in the workspace, not per-project. This prevents circumventing the budget by splitting work across projects.
-- **Pre-flight enforcement**: Before processing any chat request (direct, streamed, or unattended), the backend checks whether the global budget has been exceeded and rejects the request if so.
-- **Default settings**: Budget monitoring is enabled by default with a limit of 200 €.
+## File Type Previewers
 
-## Cost Calculation
+The previewer system routes file opens and service activations to specialized React viewer components. It uses a three-layer extension mapping (built-in defaults → system config → project overrides) and supports three classes of previewers: file-extension, service (e.g., `#imap/inbox`), and MCP UI (rendered via MCP tool calls). Built-in viewers cover HTML, JSON/JSONL, Markdown, Mermaid, images, Excel, PDF, DOCX, video, scrapbook, knowledge graph, workflow, requirements, artifacts, and more.
 
-Costs are computed from token counts using configurable rates:
+For the architecture diagram, key files, full extension table, context-menu actions with role gating, and recipes for adding new file/service/MCP UI previewers see [File Type Previewers](docs/file-previewers.md).
 
-```
-cost = (inputTokens / 1,000,000) × COSTS_PER_MIO_INPUT_TOKENS
-     + (outputTokens / 1,000,000) × COSTS_PER_MIO_OUTPUT_TOKENS
-```
+## Agent Email Account
 
-## Configuration (.env)
+Etienne can operate its own email account — monitoring an IMAP inbox for incoming mail and sending replies or notifications via SMTP. Two integration modes are supported: **MCP Tools** (on-demand, via `email_send` / `email_check_inbox`) and **event-driven** (a standalone IMAP Connector publishes new-mail events to the agent bus, where the rule engine can trigger workflows).
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `COSTS_CURRENCY_UNIT` | `EUR` | Currency code shown in the UI (EUR, USD, GBP, JPY) |
-| `COSTS_PER_MIO_INPUT_TOKENS` | `3.0` | Cost per million input tokens |
-| `COSTS_PER_MIO_OUTPUT_TOKENS` | `15.0` | Cost per million output tokens |
+For the architecture diagram, secret formats (`IMAP_CONNECTION` / `SMTP_CONNECTION` / `SMTP_WHITELIST`), MCP tool details, the bus event payload, and the optional email skill see [Agent Email Account](docs/agent-email.md).
 
-## Storage
+## PDF and Office Format Documents
 
-Each project stores its data under the `.etienne/` directory:
+Document parsing is provided by the standard skill **office-and-pdf-documents** (PDF, Word, PowerPoint, Excel, images via OCR). Non-PDF formats require **LibreOffice** (`soffice`) on the host. See [CLAUDE.md](CLAUDE.md#working-with-pdf-and-office-format-documents) for the full format list and the binary dependency.
 
-| File | Purpose |
-|------|---------|
-| `.etienne/costs.json` | Array of cost entries (newest first), one per API call |
-| `.etienne/budget-monitoring.settings.json` | `{ enabled, limit }` — budget on/off and limit value |
+## Messenger and MCP UI Integrations
 
-## UI Dashboard
+* [Messenger Integration](messenger-integration.md) — Telegram and Microsoft Teams as alternative UIs
+* [MCP UI](mcp-ui.md) — interactive UI rendered from MCP tool calls
 
-The budget indicator in the header bar shows a percentage icon (0–100 %) based on global spend vs. limit. Clicking it opens a drawer with:
+# Demo Videos & Use Cases
 
-- **Stacked progress bar** — blue portion represents all other projects, red represents the current project
-- **Tiles** — tokens used, tokens remaining (estimated), sessions completed, average cost per session
-- **Recent Activity** — collapsible table of the last 10 cost entries (collapsed by default)
-- **Budget Settings** — dialog to change the limit; includes a "Reset token counters" checkbox (enabled by default) that clears cost history for all projects when saved
+## Brainstorming with Etienne
 
-## Real-time Updates
+<div align="center">
+<img src="/docs/images/video2-snapshot.jpg" alt="UI Screenshot" width="900">
+</div>
 
-The frontend subscribes to an SSE stream (`/api/budget-monitoring/:project/stream`) that pushes `budget-update` events whenever a new cost entry is recorded. On each event the UI also re-fetches global totals to keep the stacked bar accurate.
+[Watch Etienne walking the user through a mindmap creation process](https://youtu.be/cT1jMUM_vtk)
 
-See [MCP Registry/Governance Layer](mcp-registry.md).
+## Creating a new project with Etienne
 
-# Etienne Articles on LinkedIn
-<table>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article19.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/ontologies-agents-art-knowing-what-do-ralph-navasardyan-qqr8f/" target="_blank">Ontologies, Agents, and the Art of Knowing What to Do</a></b>
-    <p style="color:#999"><small>
-There's a concept buried inside Palantir Foundry that most people never talk about. They talk about the data integration. The pipelines. The price tag. But the genuinely interesting idea — the one that separates Foundry from a very expensive data warehouse — is something called the Ontology core.
+<div align="center">
+<img src="/docs/images/video1-snapshot.jpg" alt="UI Screenshot" width="900">
+</div>
 
-And once you understand it, you'll never look at AI agents the same way.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article16.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/formal-guarantees-vs-flexible-composition-choosing-ai-navasardyan-hhf8f/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BYaOWcdYmQTea5Nn4p8LHNg%3D%3D" target="_blank">Formal Guarantees vs. Flexible Composition: Choosing the Right AI Workflow Architecture</a></b>
-    <p style="color:#999"><small>
-  Welcome to the great AI architecture debate of 2026: LLM Event Loops vs. Hierarchical Agent Trees vs. Finite State Machines. Three approaches. Three different answers to the same question: Who should control your workflow - your LLM, your code, or a formal state machine?</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article17.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/why-your-ai-agents-compliance-process-might-secret-ralph-navasardyan-6yxnf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BfrZezl85SnO2qtvbbXaAuQ%3D%3D" target="_blank">Why Your AI Agent's Compliance Process Might Be Your Secret Competitive Advantage</a></b>
-    <p style="color:#999"><small>
-  Etienne takes a different approach. Instead of treating compliance as the annoying thing you do after building something cool, it treats your requirements document as the single source of truth from day one.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article18.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/from-chatbots-colleagues-rbac-engineered-context-ralph-navasardyan-vdsmf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BFcvig7gzTIOhrd18bgWBYQ%3D%3D" target="_blank">From Chatbots to Colleagues: RBAC and Engineered Context as the Missing Layer</a></b>
-    <p style="color:#999"><small>
-  Etienne is designed as a professional collaborator inside a company environment. It operates on private files, inside a workspace that is subdivided into projects, and assumes a clear separation between technical stewardship and business usage. That separation is enforced through RBAC and amplified through deliberate context engineering.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td width="220">
-    <img src="/docs/images/article1.jpg" width="220"/>
-  </td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/building-etienne-how-we-turned-claude-code-20-ai-agent-ralph-g%C3%B6llner-qpw0e/" target="_blank">Building Etienne: How We Turned Claude Code 2.0 into an AI Agent Platform</a></b>
-    <p style="color:#999"><small>
-    Anthropic wants to build something that sounds like science fiction: a virtual colleague that actually works like a real teammate - thinking through complex problems, remembering bad ideas to avoid them in the future, making decisions based on your private data, and getting things done over hours or days, not seconds.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article2.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/understanding-etienne-complementing-claude-codes-agentic-g%C3%B6llner-4ivwe/" target="_blank">Understanding Etienne: Complementing Claude Agent SDK's Agentic Loop</a></b>
-    <p style="color:#999"><small>
-    In my previous article, I illustrated how you can leverage Claude Code's agentic loop by attaching it to your own user interface and business logic. Basically: "Here's how to get the engine running." But here's the thing nobody tells you about AI agents: Getting them to work is easy. Getting them to work in production requires solving a dozen unsexy problems that have nothing to do with AI.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article3.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/feeding-etienne-condition-monitoring-ai-agents-ralph-navasardyan-usdef/" target="_blank">Feeding Etienne: Condition Monitoring with AI Agents</a></b>
-    <p style="color:#999"><small>
-    Picture this: It's Monday morning, and somewhere in Hamburg, a businessman named Thomas is still in his bathrobe, sipping coffee while his AI agent named Etienne is already hard at work. Not because Thomas programmed it to start at 6 AM, but because the world started talking to it - and Etienne was hungry.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article4.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etiennes-scrapbook-how-transform-human-intent-agentic-navasardyan-jjtpe/" target="_blank">Etienne's Scrapbook: How to transform Human Intent into Agentic Attention</a></b>
-    <p style="color:#999"><small>
-    This article describes how to move beyond single prompts to orchestrate complex, multi-faceted projects with AI agents.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article5.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etienne-getting-picky-why-90-production-ai-agent-ralph-navasardyan-i2fee/" target="_blank">Etienne is getting picky: Why 90% of Production AI Agent Systems Are Basically Expensive Random Number Generators</a></b>
-    <p style="color:#999"><small>
-    Context failures have overtaken model failures as the primary cause of AI agent breakdowns. After analyzing production systems from Anthropic, Google, and leading AI engineering teams, one pattern emerges: the quality of your context management directly determines agent reliability.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article6.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etiennes-memories-how-claude-code-based-ai-agents-over-navasardyan-sryie/" target="_blank">Etienne's Memories: How Claude Agent SDK AI Agents Build Knowledge Over Time</a></b>
-    <p style="color:#999"><small>
-    Anthropic didn't call it "Agentic Learning"—but they built something arguably more sophisticated. In October 2025, the company unveiled a distributed, file-based learning system that enables Claude to accumulate expertise across sessions, projects, and entire organizations. This architecture combines hierarchical memory files, on-demand skill loading, persistent task tracking, and iterative error correction into what may be the most practical approach to AI agent learning yet developed.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article7.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/how-etienne-solves-ais-last-mile-problem-bringing-ai-data-ralph-a97ue/" target="_blank">How Etienne Solves AI's Last Mile Problem: Bringing AI to Where the Data Lives</a></b>
-    <p style="color:#999"><small>
-    The world's most valuable data - patient records, proprietary algorithms, classified research, industrial secrets - sits locked behind security perimeters where cloud AI can never reach. Even when data access isn't restricted, professional workflows demand AI that understands specialized artifacts like DICOM scans, financial models, and CAD drawings—not generic file processors that treat domain expertise like raw text. </small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article8.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etienne-after-dark-how-a2a-accidentally-started-ai-rave-navasardyan-4ufmf/" target="_blank">Etienne after Dark: How A2A accidentally started an AI Rave</a></b>
-    <p style="color:#999"><small>
-    As a general AI agent, Etienne could reason, plan, decompose tasks, and orchestrate workflows all day long. But the real world doesn’t run on reasoning alone. It runs on invoices, shipping quotes, compliance checks, pricing engines, calendars, databases, and services with very specific opinions about how things should be done. So Etienne did what any competent orchestrator would do: it stopped pretending to be everything and started calling specialists. </small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article9.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/dressing-up-etienne-how-integrate-ai-agents-your-ralph-navasardyan-g3bte/" target="_blank">Dressing Up Etienne: How to integrate AI Agents with your Customer's Business Workflows</a></b>
-    <p style="color:#999"><small>
-    Many AI agent projects crash and burn when they meet the harsh reality of real-world implementation. What looked brilliant in an isolated demo gets rejected faster than a soggy sandwich – either by employees frustrated with poor usability or IT teams pulling their hair out over integration nightmares. This article walks you through a step-by-step approach to successfully weaving AI agents into your customer's existing technical and organizational fabric - based on my 20 years experience in enterprise consulting.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article10.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/swipe-right-smart-agents-etiennes-guide-digital-data-navasardyan-ofmhe/" target="_blank">Swipe Right on Smart Agents: Etienne's Guide to Digital Romance with Real-World Data</a></b>
-    <p style="color:#999"><small>
-    Meet Etienne - not your typical bachelor, but an open-source AI agent build with Anthropic's Agent SDK who's about to get hitched to the real world! Unlike those chatbots that live in isolation, Etienne knows how to mingle at the party, check his calendar, and even remember where he put his keys. So join the wild data party with Etienne and his hangover buddy Claude!</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article11.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/fearing-etienne-how-forward-deployed-genai-engineers-navasardyan-v9wje/" target="_blank">Fearing Etienne: How Forward-Deployed GenAI Engineers Will Replace Consulting and Software Development Teams</a></b>
-    <p style="color:#999"><small>
-   The traditional consulting-to-development pipeline is dead. One forward-deployed engineer with the right AI toolbox can deliver production systems in a few days. This article explores the forward-deployed engineer's secret weapon: exploiting AI systems' ability to self-reproduce while adapting to any business domain.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article12.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/etienne-everywhere-using-telegram-microsoft-teams-ui-navasardyan-ut0ae/" target="_blank">Etienne Everywhere: Using Telegram and Microsoft Teams as an Alternative UI</a></b>
-    <p style="color:#999"><small>
-    That’s why Etienne supports messengers as an alternative UI - specifically Telegram and Microsoft Teams. Etienne is represented by a bot in both messengers.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article13.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/onboarding-etienne-next-best-thing-pip-boy-until-drop-navasardyan-vcuee/" target="_blank">Onboarding Etienne: The Next Best Thing to a Pip-Boy until the Nukes drop!</a></b>
-    <p style="color:#999"><small>
-    This article introduces the first steps with Etienne: an open-source seed project built on the Anthropic Agent SDK. Etienne is a personal, fully customizable agentic system that runs close to your data and depends only on an AI model exposing an Anthropic-compatible message API. No platform lock-in. No mandatory cloud brain. Just an agent you can actually own.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article14.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/diagnosing-etienne-inside-black-box-ai-agent-behavior-navasardyan-hqf7e/" target="_blank">Diagnosing Etienne: Inside the Black Box of AI Agent Behavior</a></b>
-    <p style="color:#999"><small>
-   AI agents no longer solve problems along a single, inspectable path. Each day adds new options: generate and execute code on the fly, delegate subtasks to MCP-backed tools, contract external specialists via A2A, chain services that themselves invoke other services. The agent’s action space is no longer a tree. It is a graph that keeps expanding while the agent is already moving through it. What used to be a prompt-and-response system now behaves like a distributed system assembled at runtime.</small>
-    </p>
-  </td>
-</tr>
-<tr>
-  <td><img src="/docs/images/article15.jpg" style="min-width:220px" width="220"/></td>
-  <td>
-    <b><a href="https://www.linkedin.com/pulse/beyond-mes-how-general-ai-agents-deliver-custom-ralph-navasardyan-p1mtf/" target="_blank">Beyond MES: How General AI Agents Deliver Custom Manufacturing Solutions On Demand</a></b>
-    <p style="color:#999"><small>
-   Manufacturing professionals often find themselves caught between two unsatisfying options: expensive, rigid MES implementations or cobbling together spreadsheets and manual processes. But there's a third path emerging - one that combines the sophistication of custom software with the accessibility of a conversation.</small>
-    </p>
-  </td>
-</tr>
-</table>
+[See the basic project settings and how a live website is created from specifications](https://youtu.be/I9aNyB07AaA)
 
-# Maintainer
+## Extended Use Case: Prototyping together with your Customer
+
+As a forward deployed engineer you can bring a complete working AI business solution to the meeting with your customer. The Etienne frontend in combination with Claude Code for live modifications allows you to prototype solutions in real-time.
+
+<div align="center">
+<img src="/docs/images/forward-deployed-engineer.jpg" alt="Forward deployed engineer" width="700">
+</div>
+
+# Articles & Maintainer
+
+## Etienne Articles on LinkedIn
+
+A growing collection of long-form articles about Etienne, AI agent architecture, and the practical realities of deploying agents in commercial environments — see [Articles on LinkedIn](docs/articles.md).
+
+## Maintainer
+
 Brought to you by **[e-ntegration GmbH](https://e-ntegration.de)**, Nürnberg, Germany.
 
 <div align="center">
