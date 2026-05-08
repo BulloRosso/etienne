@@ -168,12 +168,14 @@ export class RuleEngineService {
   ): Promise<RuleExecutionResult[]> {
     const results: RuleExecutionResult[] = [];
 
-    // Store event in history for compound conditions
+    // Store event in history for compound conditions (used only by `compound`
+    // rules with a `timeWindow`, typically a few minutes). 100 entries is
+    // ample for any realistic time window and bounds per-project memory:
+    // earlier 1000-cap × dozens of projects accumulated into hundreds of MB.
     const projectHistory = this.eventHistory.get(projectName) || [];
     projectHistory.push(event);
-    // Keep only last 1000 events per project
-    if (projectHistory.length > 1000) {
-      projectHistory.shift();
+    if (projectHistory.length > 100) {
+      projectHistory.splice(0, projectHistory.length - 100);
     }
     this.eventHistory.set(projectName, projectHistory);
 

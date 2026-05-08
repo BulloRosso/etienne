@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import { generateText } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
@@ -8,12 +8,13 @@ import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.
 export type ModelTier = 'small' | 'regular';
 
 @Injectable()
-export class LlmService implements OnModuleInit {
+export class LlmService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(LlmService.name);
   private readonly provider: 'anthropic' | 'openai';
   private readonly models: { small: string; regular: string };
   private providerInstance: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenAI>;
   private managedIdentityToken: string | null = null;
+  private tokenRefreshInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly secretsManager: SecretsManagerService,
@@ -89,8 +90,9 @@ export class LlmService implements OnModuleInit {
       this.providerInstance = this.createAnthropicProvider(
         process.env.ANTHROPIC_FOUNDRY_RESOURCE,
       );
-      // Refresh the token periodically (tokens expire after ~1 hour)
-      setInterval(() => this.acquireManagedIdentityToken().then(() => {
+      // Refresh the token periodically (tokens expire after ~1 hour).
+      // Track the handle so OnModuleDestroy can clear it on shutdown / hot reload.
+      this.tokenRefreshInterval = setInterval(() => this.acquireManagedIdentityToken().then(() => {
         this.providerInstance = this.createAnthropicProvider(
           process.env.ANTHROPIC_FOUNDRY_RESOURCE,
         );
@@ -108,6 +110,13 @@ export class LlmService implements OnModuleInit {
     } else {
       const directApiKey = await this.secretsManager.getSecret('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY;
       this.providerInstance = this.createAnthropicProvider(undefined, undefined, directApiKey);
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.tokenRefreshInterval) {
+      clearInterval(this.tokenRefreshInterval);
+      this.tokenRefreshInterval = null;
     }
   }
 

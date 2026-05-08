@@ -12,6 +12,11 @@ export interface InterceptorEvent {
 export class InterceptorsService {
   private readonly logger = new Logger(InterceptorsService.name);
 
+  // Cap retained per-project hook/event history. Prevents unbounded heap growth
+  // since these arrays are appended to from many call sites (SDK hooks, MCP tools,
+  // chat messages, ontology learning) and never trimmed otherwise.
+  private static readonly MAX_PER_PROJECT = 200;
+
   // In-memory storage per project
   private hooks = new Map<string, any[]>();
   private events = new Map<string, any[]>();
@@ -34,16 +39,15 @@ export class InterceptorsService {
     this.logger.debug(`Adding interceptor for ${project}: type=${type}, event_type=${eventType}`);
 
     // Store in appropriate collection
-    if (isHook) {
-      if (!this.hooks.has(project)) {
-        this.hooks.set(project, []);
-      }
-      this.hooks.get(project)!.push(item);
-    } else {
-      if (!this.events.has(project)) {
-        this.events.set(project, []);
-      }
-      this.events.get(project)!.push(item);
+    const collection = isHook ? this.hooks : this.events;
+    let arr = collection.get(project);
+    if (!arr) {
+      arr = [];
+      collection.set(project, arr);
+    }
+    arr.push(item);
+    if (arr.length > InterceptorsService.MAX_PER_PROJECT) {
+      arr.splice(0, arr.length - InterceptorsService.MAX_PER_PROJECT);
     }
 
     // Broadcast via SSE

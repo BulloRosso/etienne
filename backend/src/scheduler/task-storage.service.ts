@@ -63,10 +63,17 @@ export class TaskStorageService {
     }
   }
 
+  /** Cap retained task history entries per project to bound disk + memory usage
+   * (every addHistoryEntry call reads the whole file, prepends, and writes it back). */
+  private static readonly MAX_HISTORY_ENTRIES = 500;
+
   async addHistoryEntry(project: string, entry: TaskHistoryEntry): Promise<void> {
     await this.ensureEtienneDirectory(project);
     const history = await this.loadHistory(project);
     history.unshift(entry); // Add to beginning (newest first)
+    if (history.length > TaskStorageService.MAX_HISTORY_ENTRIES) {
+      history.length = TaskStorageService.MAX_HISTORY_ENTRIES;
+    }
 
     const filePath = this.getHistoryFilePath(project);
     const storage: TaskHistoryStorage = { taskHistory: history };

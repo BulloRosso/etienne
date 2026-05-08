@@ -2,25 +2,51 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 import { TaskStorageService } from './task-storage.service';
 import { TaskDefinition, TaskHistoryEntry } from './interfaces/task.interface';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
+import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 
 @Injectable()
 export class SchedulerService implements OnModuleInit {
   private readonly logger = new Logger(SchedulerService.name);
   private readonly backendUrl: string;
   private chatRefreshFlags = new Map<string, boolean>();
+  /** JWT secret resolved at boot from the same source as JwtAuthGuard so that
+   * tokens we mint for scheduler self-calls verify against the auth guard. */
+  private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
   constructor(
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly storageService: TaskStorageService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
+    private readonly secretsManager: SecretsManagerService,
   ) {
     this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
   }
 
+  /** Mint a short-lived access token for internal scheduler→backend self-calls.
+   * Must match the JwtAuthGuard's verify shape: type=access, role=user. */
+  private signInternalToken(): string {
+    const payload = {
+      sub: 'scheduler',
+      username: 'scheduler',
+      role: 'user' as const,
+      displayName: 'Scheduler',
+      type: 'access',
+    };
+    return jwt.sign(payload, this.jwtSecret, { expiresIn: '5m' });
+  }
+
   async onModuleInit() {
+    // Resolve the same JWT secret JwtAuthGuard uses, so internal tokens verify.
+    try {
+      const secret = await this.secretsManager.getSecret('JWT_SECRET');
+      if (secret) this.jwtSecret = secret;
+    } catch (err: any) {
+      this.logger.warn(`Failed to load JWT_SECRET from secrets manager, using env/default: ${err.message}`);
+    }
     this.logger.log('Initializing scheduler from workspace projects...');
     await this.initializeFromWorkspace();
   }
@@ -134,7 +160,10 @@ export class SchedulerService implements OnModuleInit {
           source: `Scheduled: ${task.name}`,
           sessionName: 'Scheduled Tasks'
         },
-        { timeout: 300000 } // 5 minute timeout
+        {
+          timeout: 300000, // 5 minute timeout
+          headers: { Authorization: `Bearer ${this.signInternalToken()}` },
+        },
       );
 
       const duration = Date.now() - startTime;
