@@ -11,10 +11,11 @@ The folder prefix `a2ui-` (not `mcp-app-`) marks the divergence: this app does *
 │  Frontend chat UI (port 5000)   │         │  A2UI agent (port 4110)    │
 │                                 │         │                            │
 │  Preview pane                   │  HTTP   │  POST /a2a (JSON-RPC)      │
-│  └─ A2UIRestaurantViewer.jsx    │ ◄─SSE─► │   ├─ message/stream  (SSE) │
-│      ├─ @a2ui/react v0_9        │  proxy  │   └─ action/submit         │
-│      ├─ @a2ui/web_core v0_9     │         │  GET /.well-known/agent.json│
-│      └─ MessageProcessor        │         │  GET /health               │
+│  └─ A2UIAppViewer.jsx           │ ◄─SSE─► │   ├─ message/stream  (SSE) │
+│      (mounted by .a2ui file)    │  proxy  │   └─ action/submit         │
+│      ├─ @a2ui/react v0_9        │         │  GET /.well-known/agent.json│
+│      ├─ @a2ui/web_core v0_9     │         │  GET /health               │
+│      └─ MessageProcessor        │         │                            │
 └─────────────────────────────────┘         └────────────────────────────┘
                   ▲                                      │
                   │            A2A Message               │
@@ -26,7 +27,7 @@ The folder prefix `a2ui-` (not `mcp-app-`) marks the divergence: this app does *
 
 - The **agent** is a deterministic state machine (no LLM). It serves an Agent Card declaring the A2UI extension `https://a2ui.org/a2a-extension/a2ui/v0.8` and streams A2UI v0.9 messages inside A2A `DataPart`s.
 - The **renderer** is a regular React component in the frontend bundle. It uses `MessageProcessor` from `@a2ui/web_core/v0_9` and `<A2uiSurface />` from `@a2ui/react/v0_9`. Action events round-trip via a separate JSON-RPC `action/submit` call.
-- Integration with the chat UI is via the existing **service-previewer** mechanism (the same one IMAP uses). Open `#a2ui-restaurant/booking` to mount the viewer in the preview pane.
+- Integration with the chat UI is via a **`.a2ui` workspace file**. The file is a tiny JSON descriptor (`{ endpoint, title, prompt }`) that the frontend's file-extension previewer picks up — opening it in the file tree mounts the renderer and connects it to the agent. Adding a second A2UI app means dropping a second `.a2ui` file (and proxying its endpoint in `vite.config.js`).
 
 ## Styling: who owns the look
 
@@ -163,10 +164,16 @@ npm run dev        # vite dev server on :5000
 ```
 
 Then in the running app:
-1. Open the **Previewers** dialog. "A2UI Restaurant Booking" appears as a service previewer.
-2. Open `#a2ui-restaurant/booking` in the preview pane (right side).
+1. Open project **`web-test`**.
+2. In the file tree, click **`restaurant-booking.a2ui`** (at the project root). It's a small JSON descriptor; the `.a2ui` extension is wired to `A2UIAppViewer`, which mounts in the preview pane.
 3. The booking form renders: title, datetime picker, guests field, Confirm button.
 4. Fill the form, click **Confirm booking** — the surface is replaced by a confirmation panel.
+
+The descriptor:
+```json
+{ "endpoint": "/a2ui-restaurant", "title": "Restaurant Booking", "prompt": "book a table" }
+```
+`endpoint` is the Vite-proxied prefix (forwarded to `:4110`); `prompt` is the initial user message that bootstraps the stream.
 
 Inspect traffic in DevTools: only `/a2ui-restaurant/...` (proxied to `:4110`) — no `/mcp/*` calls.
 
@@ -187,7 +194,6 @@ curl -N -X POST http://127.0.0.1:4110/a2a \
 ## What this is not
 
 - Not an LLM-driven agent. The booking flow is a hand-rolled state machine in [src/booking-state-machine.ts](src/booking-state-machine.ts). Adding an LLM is mechanical but out of scope for the demo.
-- Not registered as a `type: 'a2ui'` previewer in the backend's previewer abstraction. It rides the existing `service` previewer type. Promoting A2UI to a first-class previewer type is a follow-up if a second A2UI app appears.
 - Not a generic A2UI SDK. The transport glue lives in [src/server.ts](src/server.ts); if you build a second A2UI app, factor the shared bits out then.
 
 ## Files of interest
@@ -196,7 +202,7 @@ curl -N -X POST http://127.0.0.1:4110/a2a \
 - [src/booking-state-machine.ts](src/booking-state-machine.ts) — deterministic state machine.
 - [src/booking-surface.ts](src/booking-surface.ts) — A2UI v0.9 surface payloads.
 - [src/a2ui-messages.ts](src/a2ui-messages.ts) — minimal v0.9 message builders.
-- [../frontend/src/components/A2UIRestaurantViewer.jsx](../frontend/src/components/A2UIRestaurantViewer.jsx) — the renderer wired into the preview pane.
-- [../frontend/src/components/viewerRegistry.jsx](../frontend/src/components/viewerRegistry.jsx) — `SERVICE_PREVIEWERS['a2ui-restaurant']` registration.
+- [../frontend/src/components/A2UIAppViewer.jsx](../frontend/src/components/A2UIAppViewer.jsx) — the generic `.a2ui` previewer; reads the descriptor and connects to whichever endpoint it points at.
+- [../frontend/src/components/viewerRegistry.jsx](../frontend/src/components/viewerRegistry.jsx) — registers `.a2ui` → `A2UIAppViewer` in `BUILTIN_DEFAULTS`.
 - [../frontend/vite.config.js](../frontend/vite.config.js) — `/a2ui-restaurant` → `localhost:4110` proxy.
-- [../backend/src/previewers/previewers.service.ts](../backend/src/previewers/previewers.service.ts) — backend service-previewer entry.
+- [../workspace/web-test/restaurant-booking.a2ui](../workspace/web-test/restaurant-booking.a2ui) — the descriptor that launches this demo from the file tree.

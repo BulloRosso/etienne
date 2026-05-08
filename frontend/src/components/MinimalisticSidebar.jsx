@@ -15,7 +15,6 @@ import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import { TbWorld } from 'react-icons/tb';
-import { MdOutlineRestaurant } from 'react-icons/md';
 import { Logout } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useTranslation } from 'react-i18next';
@@ -317,13 +316,6 @@ export default function MinimalisticSidebar({
             </IconButton>
           </Tooltip>
         )}
-        {currentProject === 'web-test' && (
-          <Tooltip title="A2UI Restaurant Booking" placement="right">
-            <IconButton onClick={() => filePreviewHandler.handlePreview('#a2ui-restaurant/booking', currentProject)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
-              <MdOutlineRestaurant size={18} />
-            </IconButton>
-          </Tooltip>
-        )}
         <Tooltip title={t('sidebar.settings')} placement="right">
           <IconButton onClick={() => setSettingsOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
             <GiSettingsKnobs size={18} />
@@ -581,12 +573,6 @@ export default function MinimalisticSidebar({
               <ListItemButton onClick={() => filePreviewHandler.handlePreview('#imap/inbox', currentProject)} sx={{ borderRadius: 1, py: 0.75 }}>
                 <ListItemIcon sx={{ minWidth: 36 }}><AiOutlineMail size={18} /></ListItemIcon>
                 <ListItemText primary={t('sidebar.inbox')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
-              </ListItemButton>
-            )}
-            {currentProject === 'web-test' && (
-              <ListItemButton onClick={() => filePreviewHandler.handlePreview('#a2ui-restaurant/booking', currentProject)} sx={{ borderRadius: 1, py: 0.75 }}>
-                <ListItemIcon sx={{ minWidth: 36 }}><MdOutlineRestaurant size={18} /></ListItemIcon>
-                <ListItemText primary="A2UI Restaurant Booking" primaryTypographyProps={{ fontSize: '0.9rem' }} />
               </ListItemButton>
             )}
             <ListItemButton onClick={() => setSettingsOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
