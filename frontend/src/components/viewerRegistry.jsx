@@ -17,6 +17,7 @@ import RequirementsViewer from './RequirementsViewer';
 import ArtifactsForSession from './ArtifactsForSession';
 import IMAPInboxViewer from './IMAPInboxViewer';
 import GanttDiagram from './GanttDiagram';
+import A2UIRestaurantViewer from './A2UIRestaurantViewer';
 
 /**
  * Service previewers — activated by running services, not file extensions.
@@ -27,6 +28,11 @@ export const SERVICE_PREVIEWERS = {
     viewerName: 'imap',
     functions: ['/inbox'],
     displayName: 'Email Inbox',
+  },
+  'a2ui-restaurant': {
+    viewerName: 'a2ui-restaurant',
+    functions: ['/booking'],
+    displayName: 'A2UI Restaurant Booking',
   },
 };
 
@@ -54,6 +60,7 @@ export const VIEWER_COMPONENT_NAMES = {
   artifacts: 'ArtifactsForSession',
   imap: 'IMAPInboxViewer',
   gantt: 'GanttDiagram',
+  'a2ui-restaurant': 'A2UIRestaurantViewer',
 };
 
 /**
@@ -117,6 +124,9 @@ export const VIEWER_COMPONENTS = {
   ),
   gantt: (file, projectName, onViewerStateChange) => (
     <GanttDiagram filename={file.path} projectName={projectName} onViewerStateChange={onViewerStateChange} />
+  ),
+  'a2ui-restaurant': (file, projectName) => (
+    <A2UIRestaurantViewer servicePath={file.path} projectName={projectName} />
   ),
 };
 

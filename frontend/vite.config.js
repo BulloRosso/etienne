@@ -36,7 +36,8 @@ export default defineConfig({
         '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true, agent: new Agent({ maxSockets: 50, keepAlive: true }) },
         '/mcp': { target: 'http://localhost:6060', changeOrigin: true },
         '/web': { target: 'http://localhost:4000', changeOrigin: true },
-        '/auth': { target: 'http://localhost:6060', changeOrigin: true }
+        '/auth': { target: 'http://localhost:6060', changeOrigin: true },
+        '/a2ui-restaurant': { target: 'http://localhost:4110', changeOrigin: true, rewrite: (p) => p.replace(/^\/a2ui-restaurant/, '') }
     }
   },
   optimizeDeps: {

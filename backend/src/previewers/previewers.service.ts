@@ -135,6 +135,13 @@ export class PreviewersService {
         displayName: 'Email Inbox',
         requiresService: 'imap-connector',
       },
+      {
+        serviceName: 'a2ui-restaurant',
+        viewerName: 'a2ui-restaurant',
+        functions: ['/booking'],
+        displayName: 'A2UI Restaurant Booking',
+        requiresService: 'a2ui-restaurant-agent',
+      },
     ];
   }
 
