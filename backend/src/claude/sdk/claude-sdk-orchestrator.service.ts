@@ -304,6 +304,20 @@ export class ClaudeSdkOrchestratorService {
                 });
                 lines.push(`When the user refers to "selected tasks" or "these tasks", they mean ONLY the tasks listed above.`);
               }
+              if (vs.agentbusCatalog?.length > 0) {
+                lines.push(`<agentbus-events-out>`);
+                lines.push(`This viewer can emit the following semantic events when the user interacts with it:`);
+                vs.agentbusCatalog.forEach((spec: any) => {
+                  lines.push(`  - ${spec.id}: ${spec.description}`);
+                });
+                if (vs.agentbusRecentEvents?.length > 0) {
+                  lines.push(`Recent events emitted (most recent last):`);
+                  vs.agentbusRecentEvents.forEach((ev: any, idx: number) => {
+                    lines.push(`  ${idx + 1}. [${ev.timestamp}] ${ev.eventId}: ${JSON.stringify(ev.payload)}`);
+                  });
+                }
+                lines.push(`</agentbus-events-out>`);
+              }
               lines.push(`</viewer-selection>`);
               return lines.join('\n');
             }).join('\n\n');

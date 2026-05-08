@@ -18,6 +18,18 @@ import ArtifactsForSession from './ArtifactsForSession';
 import IMAPInboxViewer from './IMAPInboxViewer';
 import GanttDiagram from './GanttDiagram';
 import A2UIAppViewer from './A2UIAppViewer';
+import { agentBus } from '../services/agentBus';
+
+/**
+ * Components that opt in to the agentBus by attaching a static
+ * `agentbusEventsOut()` method. Registered once on module load.
+ */
+export const VIEWER_AGENTBUS_PROVIDERS = {
+  gantt: GanttDiagram,
+};
+for (const [name, comp] of Object.entries(VIEWER_AGENTBUS_PROVIDERS)) {
+  agentBus.registerCatalog(name, comp);
+}
 
 /**
  * Service previewers — activated by running services, not file extensions.

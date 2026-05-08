@@ -132,3 +132,79 @@ Previewers can define additional context menu actions that appear when right-cli
 > 3. Add a `contextMenuActions` entry to the `pdf` viewer in `backend/src/previewers/previewer-context-actions.json`
 
 The preview system is integrated with the [Interceptors](../requirements-docs/prd-interceptors.md) feature to automatically refresh previews when files are modified by Claude Code.
+
+## AgentBus interactions
+
+A previewer can declare the semantic events it emits when the user interacts with it. The agent then sees those events — and a plain-English description of what each one *means* — alongside the open viewer's state, and can either react automatically (auto-submitted synthetic chat message) or wait for the next user message and use the recent-event log as context.
+
+### Component contract
+
+A React previewer opts in by attaching a static `agentbusEventsOut()` method that returns an array of event descriptors:
+
+```js
+GanttDiagram.agentbusEventsOut = () => [
+  {
+    id: 'task.moved',
+    description: 'User dragged a task bar to a new date range. Indicates rescheduling.',
+    payloadSchema: {
+      taskId: 'string', taskName: 'string',
+      oldStart: 'YYYY-MM-DD', newStart: 'YYYY-MM-DD',
+      oldEnd: 'YYYY-MM-DD',   newEnd: 'YYYY-MM-DD',
+    },
+    chatTemplate: "In '{{filename}}': task '{{taskName}}' moved: start {{oldStart}} → {{newStart}}, end {{oldEnd}} → {{newEnd}}.",
+    autoSubmit: true,
+  },
+];
+```
+
+Fields:
+
+- `id` — stable identifier (e.g. `task.moved`, `item.selected`). Used in the agent prompt's `<agentbus-events-out>` block.
+- `description` — plain English; the agent sees this and reasons about what the event means.
+- `payloadSchema` — documentation only (string types). Not enforced.
+- `chatTemplate` — a Mustache-style template (`{{name}}`, `{{nested.key}}`). The reserved variables `{{filename}}` and `{{viewerInstanceId}}` are always available — emitters do not need to pass them. **Always reference `{{filename}}` when the event is meaningful per-file**, since two viewers of the same kind can be open simultaneously.
+- `autoSubmit` — `true` ships the rendered template as a synthetic user message immediately; `false` records the event in a per-(viewer, file) ring buffer that gets attached to the next user-typed message.
+
+### Emitting an event
+
+The previewer calls `agentBus.emit(viewerName, eventId, payload, { filename })`. The `filename` is **mandatory**; without it the emit is dropped (with a console warning). Two open Gantt viewers thus produce two independent event histories.
+
+### Registration
+
+Components opting into the bus are listed in `VIEWER_AGENTBUS_PROVIDERS` in [viewerRegistry.jsx](../frontend/src/components/viewerRegistry.jsx). The registry calls `agentBus.registerCatalog(name, Component)` once on module load, which reads the static method and caches the catalog.
+
+### Delivery to the agent
+
+When the user sends a chat message, the frontend ([App.jsx `getViewerStates()`](../frontend/src/App.jsx)) attaches `agentbusCatalog` and (drained) `agentbusRecentEvents` to each open viewer's state entry. The orchestrator ([claude-sdk-orchestrator.service.ts](../backend/src/claude/sdk/claude-sdk-orchestrator.service.ts)) renders these as an `<agentbus-events-out>` sub-section inside the existing `<viewer-selection>` block:
+
+```
+<viewer-selection file="project.gantt.json" viewer="gantt">
+  …existing userEdited / selectedTasks lines…
+  <agentbus-events-out>
+    This viewer can emit the following semantic events…
+      - task.moved: User dragged a task bar to a new date range…
+    Recent events emitted (most recent last):
+      1. [2026-05-08T15:44:59.302Z] task.moved: {"taskId":"t3", …, "filename":"project.gantt.json"}
+  </agentbus-events-out>
+</viewer-selection>
+```
+
+Auto-submitted events also flow through the existing `viewer-auto-prompt` window event → `handleSendMessage` path, so they appear in chat history as if the user had typed them.
+
+### MCP UI bridge
+
+An MCP UI iframe can emit agentBus events by sending a postMessage to the host:
+
+```js
+window.parent.postMessage({
+  type: 'agentbus-event',
+  eventId: 'item.clicked',
+  payload: { itemId: 'sku-123' },
+}, '*');
+```
+
+The host ([McpUIPreview.jsx](../frontend/src/components/McpUIPreview.jsx)) attaches the `filename` automatically — the iframe cannot spoof it. Catalog delivery is via the tool result envelope: an MCP server's tool result may include an `agentbusEventsOut` array, which the host registers under the `mcp.<mcpGroup>` viewer-name key.
+
+### Future bridges
+
+A2UI app viewers do not yet have a host-side intent vs. action distinction — every action goes to the agent via `action/submit`. Bridging A2UI to agentBus would require either a protocol-level `intent` message kind or a host-side filter on action IDs. Out of scope today; revisit once a use case appears.

@@ -1,26 +1,5 @@
 [
   {
-    "viewer": "requirements",
-    "actions": [
-      {
-        "id": "generate-offer",
-        "labels": {
-          "en": "Generate Offer Paragraphs",
-          "de": "Angebotsabschnitte generieren",
-          "it": "Genera paragrafi offerta",
-          "zh": "生成报价段落"
-        },
-        "icon": "codicon codicon-notebook",
-        "modalComponent": "OfferGeneratorModal",
-        "params": [
-          { "name": "projectName", "source": "projectName" }
-        ],
-        "condition": { "type": "filename", "value": "selected-requirements.md" },
-        "minRole": "user"
-      }
-    ]
-  },
-  {
     "viewer": "pdf",
     "actions": [
       {
@@ -34,9 +13,15 @@
         "icon": "codicon codicon-checklist",
         "modalComponent": "__preview__",
         "params": [
-          { "name": "filePath", "source": "out/requirements-analysis/${fileNameWithoutExt}.requirements.json" }
+          {
+            "name": "filePath",
+            "source": "out/requirements-analysis/${fileNameWithoutExt}.requirements.json"
+          }
         ],
-        "condition": { "type": "pathContains", "value": "inbox" },
+        "condition": {
+          "type": "pathContains",
+          "value": "inbox"
+        },
         "minRole": "user"
       }
     ]
@@ -44,8 +29,26 @@
   {
     "viewer": "budget",
     "type": "mcpui",
-    "extensions": [".budget.json"],
     "mcpGroup": "budget",
-    "mcpToolName": "render_budget"
+    "mcpToolName": "render_budget",
+    "extensions": [
+      ".budget.json"
+    ],
+    "actions": [
+      {
+        "id": "action-1778248619838",
+        "labels": {
+          "en": "Align budget",
+          "de": "",
+          "it": "",
+          "zh": ""
+        },
+        "icon": "",
+        "modalComponent": "",
+        "params": [],
+        "condition": null,
+        "minRole": ""
+      }
+    ]
   }
 ]

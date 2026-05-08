@@ -7,6 +7,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { UI_EXTENSION_CAPABILITIES } from '@mcp-ui/client';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useRegisterMcpViewer } from '../hooks/useActiveMcpViewers.js';
+import { agentBus } from '../services/agentBus';
 import { BiTransfer } from 'react-icons/bi';
 import { IoClose } from 'react-icons/io5';
 import { JSONTree } from 'react-json-tree';
@@ -121,11 +122,21 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
       if (event.data?.type === 'viewer-state-update') {
         setViewerState(event.data.state);
         onViewerStateChange?.(event.data.state);
+      } else if (event.data?.type === 'agentbus-event') {
+        const { eventId, payload } = event.data;
+        agentBus.emit(`mcp.${mcpGroup}`, eventId, payload, { filename });
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [onViewerStateChange]);
+  }, [onViewerStateChange, mcpGroup, filename]);
+
+  useEffect(() => {
+    const catalog = toolResult?.agentbusEventsOut;
+    if (Array.isArray(catalog) && catalog.length > 0) {
+      agentBus.registerCatalogDirect(`mcp.${mcpGroup}`, catalog);
+    }
+  }, [toolResult, mcpGroup]);
 
   // Listen for viewer commands from the model (dispatched by App.jsx when a tool
   // with _action in its result completes). Forward these to the MCP App iframe

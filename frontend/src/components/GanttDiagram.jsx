@@ -23,6 +23,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
+import { agentBus } from '../services/agentBus';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -1045,6 +1046,19 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
             return updated;
           });
 
+          const startChanged = newStartStr !== task.startDate;
+          const endChanged = newEndStr !== task.endDate;
+          if (startChanged || endChanged) {
+            agentBus.emit('gantt', 'task.moved', {
+              taskId: state.taskId,
+              taskName: task.name,
+              oldStart: task.startDate,
+              newStart: newStartStr,
+              oldEnd: task.endDate,
+              newEnd: newEndStr,
+            }, { filename });
+          }
+
           this.__dragState = null;
         });
 
@@ -1480,3 +1494,20 @@ export default function GanttDiagram({ filename, projectName, onViewerStateChang
     </Box>
   );
 }
+
+GanttDiagram.agentbusEventsOut = () => [
+  {
+    id: 'task.moved',
+    description: 'User dragged a task bar to a new date range. Indicates rescheduling.',
+    payloadSchema: {
+      taskId: 'string',
+      taskName: 'string',
+      oldStart: 'YYYY-MM-DD',
+      newStart: 'YYYY-MM-DD',
+      oldEnd: 'YYYY-MM-DD',
+      newEnd: 'YYYY-MM-DD',
+    },
+    chatTemplate: "In '{{filename}}': task '{{taskName}}' moved: start {{oldStart}} → {{newStart}}, end {{oldEnd}} → {{newEnd}}.",
+    autoSubmit: true,
+  },
+];

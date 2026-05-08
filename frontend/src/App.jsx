@@ -25,6 +25,7 @@ import { useAuth } from './contexts/AuthContext.jsx';
 import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
 import { buildExtensionMap, getViewerForFile } from './components/viewerRegistry.jsx';
+import { agentBus } from './services/agentBus';
 import Onboarding from './components/Onboarding';
 import TechnologyRadarPage from './pages/TechnologyRadarPage';
 import { apiFetch } from './services/api';
@@ -143,7 +144,17 @@ export default function App() {
   const getViewerStates = useCallback(() => {
     return Object.entries(viewerStatesRef.current)
       .filter(([_, s]) => s && Object.keys(s).length > 0)
-      .map(([path, state]) => ({ path, ...state }));
+      .map(([path, state]) => {
+        const viewerName = state.viewerName;
+        const catalog = viewerName ? agentBus.getCatalog(viewerName) : [];
+        const recentEvents = viewerName ? agentBus.drainRecent(viewerName, path) : [];
+        return {
+          path,
+          ...state,
+          ...(catalog.length > 0 ? { agentbusCatalog: catalog } : {}),
+          ...(recentEvents.length > 0 ? { agentbusRecentEvents: recentEvents } : {}),
+        };
+      });
   }, []);
 
   // Derived streaming state: true when the currently viewed session has an active stream.
@@ -173,6 +184,19 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Auto-prompt from viewers (e.g. Gantt drag emits a synthetic chat message
+  // describing the move). Reuses handleSendMessage so the regular viewer-state
+  // POST + SSE pipeline runs unchanged.
+  useEffect(() => {
+    const handler = (event) => {
+      const msg = event.detail?.message;
+      if (!msg) return;
+      handleSendMessage(msg);
+    };
+    window.addEventListener('viewer-auto-prompt', handler);
+    return () => window.removeEventListener('viewer-auto-prompt', handler);
+  });
 
   // Centralized keyboard shortcuts
   const SUPPORTED_LANGS = useMemo(() => ['en', 'de', 'it', 'zh'], []);
