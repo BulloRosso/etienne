@@ -349,11 +349,10 @@ project using the [Scrapbook](#scrapbook)
   }
 
   public async checkModelHealth() {
-    if (!this.llmService.hasApiKey()) {
-      const keyName = this.llmService.getProvider() === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY';
+    if (!(await this.llmService.hasApiKey())) {
       return {
         healthy: false,
-        reason: `${keyName} not set in environment`
+        reason: `${this.llmService.getKeyEnvName()} not set in environment`
       };
     }
 

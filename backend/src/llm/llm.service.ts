@@ -6,11 +6,32 @@ import { SecretsManagerService } from '../secrets-manager/secrets-manager.servic
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 
 export type ModelTier = 'small' | 'regular';
+export type LlmProvider = 'anthropic' | 'openai' | 'deepseek';
+
+const DEEPSEEK_ANTHROPIC_BASE_URL = 'https://api.deepseek.com/anthropic';
+
+/**
+ * Decide which provider this service should use. Honours `CODING_AGENT` for
+ * `anthropic`/`openai`, plus the OpenCode + DeepSeek combo (`CODING_AGENT=open-code`
+ * with `OPENCODE_PROVIDER=deepseek`) so background LLM calls inherit the
+ * coding-agent's model choice automatically.
+ */
+function resolveLlmProvider(): LlmProvider {
+  const coding = (process.env.CODING_AGENT || 'anthropic').toLowerCase();
+  if (coding === 'openai' || coding === 'openai-agents') return 'openai';
+  if (coding === 'open-code') {
+    const openCodeProvider = (process.env.OPENCODE_PROVIDER || 'anthropic').toLowerCase();
+    if (openCodeProvider === 'deepseek') return 'deepseek';
+    if (openCodeProvider === 'openai' || openCodeProvider === 'openai-compatible') return 'openai';
+    return 'anthropic';
+  }
+  return 'anthropic';
+}
 
 @Injectable()
 export class LlmService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(LlmService.name);
-  private readonly provider: 'anthropic' | 'openai';
+  private readonly provider: LlmProvider;
   private readonly models: { small: string; regular: string };
   private providerInstance: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenAI>;
   private managedIdentityToken: string | null = null;
@@ -20,13 +41,24 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     private readonly secretsManager: SecretsManagerService,
     @Optional() private readonly budgetMonitoringService?: BudgetMonitoringService,
   ) {
-    this.provider = (process.env.CODING_AGENT || 'anthropic') as 'anthropic' | 'openai';
+    this.provider = resolveLlmProvider();
 
     if (this.provider === 'openai') {
       const modelStr = process.env.OPENAI_MODELS || 'gpt-5-mini,gpt-5.2';
       const [small, regular] = modelStr.split(',');
       this.models = { small, regular };
       this.providerInstance = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    } else if (this.provider === 'deepseek') {
+      // DeepSeek exposes an Anthropic-compatible endpoint at /anthropic, so we
+      // can reuse the Anthropic SDK with a custom baseURL + key. Tool use,
+      // system prompts, etc. travel on the Anthropic wire format unchanged.
+      const modelStr = process.env.DEEPSEEK_MODELS || 'deepseek-v4-flash,deepseek-v4-pro';
+      const [small, regular] = modelStr.split(',');
+      this.models = { small, regular };
+      this.providerInstance = createAnthropic({
+        baseURL: DEEPSEEK_ANTHROPIC_BASE_URL,
+        apiKey: process.env.DEEPSEEK_API_KEY,
+      });
     } else {
       const modelStr = process.env.ANTHROPIC_MODELS || 'claude-haiku-4-5,claude-sonnet-4-6';
       const [small, regular] = modelStr.split(',');
@@ -84,6 +116,15 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     if (this.provider === 'openai') {
       const key = await this.secretsManager.getSecret('OPENAI_API_KEY');
       if (key) this.providerInstance = createOpenAI({ apiKey: key });
+    } else if (this.provider === 'deepseek') {
+      const key = await this.secretsManager.getSecret('DEEPSEEK_API_KEY')
+        || process.env.DEEPSEEK_API_KEY;
+      if (key) {
+        this.providerInstance = createAnthropic({
+          baseURL: DEEPSEEK_ANTHROPIC_BASE_URL,
+          apiKey: key,
+        });
+      }
     } else if (process.env.AZURE_FOUNDRY_AGENT_ID) {
       // Foundry hosted agent — acquire token via managed identity
       await this.acquireManagedIdentityToken();
@@ -187,6 +228,11 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
       const key = await this.secretsManager.getSecret('OPENAI_API_KEY');
       return !!key;
     }
+    if (this.provider === 'deepseek') {
+      const key = (await this.secretsManager.getSecret('DEEPSEEK_API_KEY'))
+        || process.env.DEEPSEEK_API_KEY;
+      return !!key;
+    }
     if (process.env.AZURE_FOUNDRY_AGENT_ID) {
       return !!this.managedIdentityToken;
     }
@@ -197,5 +243,13 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     }
     const key = await this.secretsManager.getSecret('ANTHROPIC_API_KEY');
     return !!key;
+  }
+
+  /** Env var name expected for the active provider (used for human-readable error messages). */
+  getKeyEnvName(): string {
+    if (this.provider === 'openai') return 'OPENAI_API_KEY';
+    if (this.provider === 'deepseek') return 'DEEPSEEK_API_KEY';
+    if (process.env.CLAUDE_CODE_USE_FOUNDRY) return 'ANTHROPIC_FOUNDRY_API_KEY';
+    return 'ANTHROPIC_API_KEY';
   }
 }
