@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { InterceptorsService } from '../../interceptors/interceptors.service';
 import { OpenCodeSdkService } from './opencode-sdk.service';
-import { OpenCodeConfig } from './opencode.config';
+import { OpenCodeConfig, ResolvedModel } from './opencode.config';
 import {
   OpenCodePermissionRequest,
   OpenCodeQuestionRequest,
@@ -27,6 +27,9 @@ interface PendingPermission {
   reject: (err: Error) => void;
   createdAt: Date;
   projectName: string;
+  resolved: ResolvedModel;
+  sessionId: string;
+  projectRoot: string;
 }
 
 interface PendingQuestion {
@@ -37,6 +40,9 @@ interface PendingQuestion {
   reject: (err: Error) => void;
   createdAt: Date;
   projectName: string;
+  resolved: ResolvedModel;
+  sessionId: string;
+  projectRoot: string;
 }
 
 type PendingRequest = PendingPermission | PendingQuestion;
@@ -59,6 +65,9 @@ export class OpenCodePermissionService {
   async handlePermissionAsked(
     projectName: string,
     permission: OpenCodePermissionRequest,
+    resolved: ResolvedModel,
+    sessionId: string,
+    projectRoot: string,
   ): Promise<void> {
     const id = randomUUID();
     this.logger.log(`OpenCode permission request: ${id} for tool ${permission.toolName}`);
@@ -73,7 +82,7 @@ export class OpenCodePermissionService {
             const reply = action === 'allow' ? 'once'
               : action === 'allow_always' ? 'always'
               : 'reject';
-            await this.openCodeSdkService.replyPermission(permission.id, reply as any);
+            await this.openCodeSdkService.replyPermission(sessionId, permission.id, reply as any, resolved, projectRoot);
             resolve();
           } catch (err: any) {
             this.logger.error(`Failed to reply permission: ${err?.message}`);
@@ -83,6 +92,9 @@ export class OpenCodePermissionService {
         reject,
         createdAt: new Date(),
         projectName,
+        resolved,
+        sessionId,
+        projectRoot,
       } as any;
 
       this.pendingRequests.set(id, pending);
@@ -106,6 +118,9 @@ export class OpenCodePermissionService {
   async handleQuestionAsked(
     projectName: string,
     question: OpenCodeQuestionRequest,
+    resolved: ResolvedModel,
+    sessionId: string,
+    projectRoot: string,
   ): Promise<void> {
     const id = randomUUID();
     this.logger.log(`OpenCode question request: ${id} — "${question.header}"`);
@@ -117,7 +132,7 @@ export class OpenCodePermissionService {
         type: 'question',
         resolve: async (answers: string[]) => {
           try {
-            await this.openCodeSdkService.replyQuestion(question.id, answers);
+            await this.openCodeSdkService.replyQuestion(question.id, answers, resolved);
             resolve();
           } catch (err: any) {
             this.logger.error(`Failed to reply question: ${err?.message}`);
@@ -127,6 +142,9 @@ export class OpenCodePermissionService {
         reject,
         createdAt: new Date(),
         projectName,
+        resolved,
+        sessionId,
+        projectRoot,
       } as any;
 
       this.pendingRequests.set(id, pending);
@@ -178,7 +196,7 @@ export class OpenCodePermissionService {
         (pending as PendingQuestion).resolve(answers);
       } else {
         // Rejected — dismiss the question
-        this.openCodeSdkService.rejectQuestion(pending.openCodeRequestId).catch((err: any) =>
+        this.openCodeSdkService.rejectQuestion(pending.openCodeRequestId, pending.resolved).catch((err: any) =>
           this.logger.debug(`OpenCode question reject failed: ${err?.message}`),
         );
         (pending as PendingQuestion).resolve([]);
@@ -200,11 +218,11 @@ export class OpenCodePermissionService {
 
         if (pending.type === 'permission') {
           // Auto-deny on timeout
-          this.openCodeSdkService.replyPermission(pending.openCodeRequestId, 'reject').catch(() => {});
+          this.openCodeSdkService.replyPermission(pending.sessionId, pending.openCodeRequestId, 'reject', pending.resolved, pending.projectRoot).catch(() => {});
           (pending as PendingPermission).resolve('deny');
         } else {
           // Auto-reject question on timeout
-          this.openCodeSdkService.rejectQuestion(pending.openCodeRequestId).catch(() => {});
+          this.openCodeSdkService.rejectQuestion(pending.openCodeRequestId, pending.resolved).catch(() => {});
           (pending as PendingQuestion).resolve([]);
         }
       }

@@ -1,13 +1,67 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { OpenCodeConfig } from './opencode.config';
+import { OpenCodeConfig, ResolvedModel } from './opencode.config';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
 /**
- * Core service wrapping the OpenCode TypeScript SDK (`@opencode-ai/sdk`).
+ * NPM package used to wire a generic OpenAI-compatible provider into OpenCode.
+ * DeepSeek (and similar) ride on this package — only `baseURL` + `apiKey` change.
+ */
+const OPENAI_COMPATIBLE_NPM = '@ai-sdk/openai-compatible';
+
+/**
+ * Map a provider name to the OpenCode/`ai` SDK plugin that should serve it.
+ * For first-party providers (anthropic, openai, etc.) OpenCode resolves the
+ * package automatically — we only need to inject a custom plugin for DeepSeek
+ * or anything routed through the openai-compatible adapter.
+ */
+function npmForProvider(provider: string): string | undefined {
+  const p = provider.toLowerCase();
+  if (p === 'deepseek') return OPENAI_COMPATIBLE_NPM;
+  if (p === 'openai-compatible') return OPENAI_COMPATIBLE_NPM;
+  return undefined;
+}
+
+/**
+ * Build the OpenCode SDK `Config` from a resolved per-project model config.
  *
- * Manages the lifecycle of the OpenCode background server and provides
- * typed methods for session management, prompt execution, SSE event
- * streaming, and permission/question replies.
+ * `Config.provider[<id>] = { npm, options: { apiKey, baseURL }, models: { [model]: {} } }`
+ * is the documented way to declare a provider for the OpenCode SDK so that
+ * `provider/model` references resolve and credentials are forwarded.
+ */
+function buildSdkConfig(resolved: ResolvedModel): Record<string, any> {
+  const providerEntry: Record<string, any> = {
+    models: { [resolved.model]: {} },
+    options: {
+      ...(resolved.apiKey ? { apiKey: resolved.apiKey } : {}),
+      ...(resolved.baseUrl ? { baseURL: resolved.baseUrl } : {}),
+    },
+  };
+
+  const npm = npmForProvider(resolved.provider);
+  if (npm) providerEntry.npm = npm;
+
+  return {
+    model: `${resolved.provider}/${resolved.model}`,
+    provider: { [resolved.provider]: providerEntry },
+  };
+}
+
+/**
+ * Single OpenCode SDK server + client pair, keyed by config signature.
+ */
+type SdkInstance = {
+  server: any;
+  client: any;
+  resolved: ResolvedModel;
+};
+
+/**
+ * Wraps the OpenCode TypeScript SDK (`@opencode-ai/sdk`).
+ *
+ * Per-project `<project>/.etienne/ai-model.json` is loaded by the orchestrator
+ * and passed in via `getInstanceFor(resolved)`. We keep one server per distinct
+ * config signature — different projects on the same provider/model share one
+ * server, while a project that switches to DeepSeek gets its own.
  *
  * The SDK is ESM-only so we use dynamic import (same pattern as pi-mono).
  */
@@ -17,53 +71,72 @@ export class OpenCodeSdkService implements OnModuleDestroy {
   private readonly config: OpenCodeConfig;
 
   private sdk: any = null;
-  private server: any = null;
-  private client: any = null;
-  private ready = false;
-  private initPromise: Promise<void> | null = null;
+  private readonly instances = new Map<string, SdkInstance>();
+  private readonly initPromises = new Map<string, Promise<SdkInstance>>();
 
   constructor(private readonly secretsManager: SecretsManagerService) {
     this.config = new OpenCodeConfig(secretsManager);
   }
 
-  /**
-   * Ensure the SDK is loaded and the OpenCode server is running.
-   * Lazy-initialised on first call; subsequent calls await the same promise.
-   */
-  async ensureReady(): Promise<void> {
-    if (this.ready) return;
-    if (this.initPromise) return this.initPromise;
-
-    this.initPromise = this._init();
-    await this.initPromise;
+  getConfig(): OpenCodeConfig {
+    return this.config;
   }
 
-  private async _init(): Promise<void> {
+  /**
+   * Get (or create) an SDK instance for a resolved project model config.
+   * Instances are cached by `resolved.signature` so repeat calls are cheap.
+   */
+  async getInstanceFor(resolved: ResolvedModel): Promise<SdkInstance> {
+    const cached = this.instances.get(resolved.signature);
+    if (cached) return cached;
+
+    const inflight = this.initPromises.get(resolved.signature);
+    if (inflight) return inflight;
+
+    const p = this._init(resolved);
+    this.initPromises.set(resolved.signature, p);
+    try {
+      const inst = await p;
+      this.instances.set(resolved.signature, inst);
+      return inst;
+    } finally {
+      this.initPromises.delete(resolved.signature);
+    }
+  }
+
+  private async _loadSdk(): Promise<void> {
+    if (this.sdk) return;
+    const dynamicImport = new Function('m', 'return import(m)') as (m: string) => Promise<any>;
+    this.sdk = await dynamicImport('@opencode-ai/sdk');
+  }
+
+  private async _init(resolved: ResolvedModel): Promise<SdkInstance> {
     try {
       await this.config.initSecrets();
-
-      // Dynamic import for ESM-only SDK
-      const dynamicImport = new Function('m', 'return import(m)') as (m: string) => Promise<any>;
-      this.sdk = await dynamicImport('@opencode-ai/sdk');
+      await this._loadSdk();
 
       const createServer = this.sdk.createOpencodeServer ?? this.sdk.default?.createOpencodeServer;
       const createClient = this.sdk.createOpencodeClient ?? this.sdk.default?.createOpencodeClient;
       const createOpencode = this.sdk.createOpencode ?? this.sdk.default?.createOpencode;
 
+      const sdkConfig = buildSdkConfig(resolved);
+
+      let server: any;
+      let client: any;
       if (createOpencode) {
-        // Preferred: single call that starts server + returns client
         const instance = await createOpencode({
           port: this.config.serverPort || undefined,
+          config: sdkConfig,
         });
-        this.server = instance.server ?? instance;
-        this.client = instance.client ?? instance;
+        server = instance.server ?? instance;
+        client = instance.client ?? instance;
       } else if (createServer && createClient) {
-        // Fallback: start server then create client
-        this.server = await createServer({
+        server = await createServer({
           port: this.config.serverPort || undefined,
+          config: sdkConfig,
         });
-        const serverUrl = this.server.url ?? `http://localhost:${this.server.port ?? this.config.serverPort}`;
-        this.client = createClient(serverUrl);
+        const serverUrl = server.url ?? `http://localhost:${server.port ?? this.config.serverPort}`;
+        client = createClient(serverUrl);
       } else {
         throw new Error(
           'OpenCode SDK: createOpencode or createOpencodeServer/createOpencodeClient not found. ' +
@@ -71,159 +144,220 @@ export class OpenCodeSdkService implements OnModuleDestroy {
         );
       }
 
-      this.ready = true;
-      this.logger.log('OpenCode SDK initialised successfully');
+      this.logger.log(
+        `OpenCode SDK initialised — provider=${resolved.provider} model=${resolved.model}` +
+        (resolved.baseUrl ? ` baseURL=${resolved.baseUrl}` : ''),
+      );
+      return { server, client, resolved };
     } catch (err: any) {
-      this.initPromise = null;
       throw new Error(
-        `OpenCode SDK init failed. Install: npm install @opencode-ai/sdk. ` +
-        `Underlying: ${err?.message}`,
+        `OpenCode SDK init failed (provider=${resolved.provider}, model=${resolved.model}). ` +
+        `Install: npm install @opencode-ai/sdk. Underlying: ${err?.message}`,
       );
     }
   }
 
+  /** Build the per-call model override accepted by `client.session.prompt`. */
+  static modelArg(resolved: ResolvedModel): { providerID: string; modelID: string } {
+    return { providerID: resolved.provider, modelID: resolved.model };
+  }
+
   /**
-   * Create a new session scoped to a project directory.
+   * Unwrap a hey-api `{ data, error }` response or throw with details.
    */
-  async createSession(projectRoot: string): Promise<string> {
-    await this.ensureReady();
-    const session = await this.client.session.create({ directory: projectRoot });
-    return session.id ?? session.sessionId ?? session;
+  private unwrap<T>(result: any, label: string): T {
+    if (result && 'data' in result && result.data !== undefined && !result.error) {
+      return result.data as T;
+    }
+    if (result && result.error) {
+      const msg = typeof result.error === 'string'
+        ? result.error
+        : (result.error?.data?.message ?? JSON.stringify(result.error));
+      throw new Error(`OpenCode ${label} failed: ${msg}`);
+    }
+    return result as T;
+  }
+
+  /**
+   * Create a new session scoped to a project directory, on the right SDK instance.
+   * The hey-api generated client returns `{ data: Session, error, response }`.
+   */
+  async createSession(projectRoot: string, resolved: ResolvedModel): Promise<string> {
+    const inst = await this.getInstanceFor(resolved);
+    const result = await inst.client.session.create({ query: { directory: projectRoot } });
+    const session = this.unwrap<{ id: string }>(result, 'session.create');
+    if (!session?.id) {
+      throw new Error(`OpenCode session.create returned no id: ${JSON.stringify(session)}`);
+    }
+    return session.id;
   }
 
   /**
    * List existing sessions and find one for this directory, or create a new one.
    */
-  async getOrCreateSession(projectRoot: string, existingId?: string): Promise<string> {
-    await this.ensureReady();
-
-    // Try to resume an existing session
+  async getOrCreateSession(
+    projectRoot: string,
+    resolved: ResolvedModel,
+    existingId?: string,
+  ): Promise<string> {
+    const inst = await this.getInstanceFor(resolved);
     if (existingId) {
       try {
-        const session = await this.client.session.get(existingId);
-        if (session) return existingId;
+        const result = await inst.client.session.get({
+          path: { id: existingId },
+          query: { directory: projectRoot },
+        });
+        const session = this.unwrap<{ id: string } | undefined>(result, 'session.get');
+        if (session?.id) return existingId;
       } catch {
         this.logger.debug(`OpenCode session ${existingId} not found, creating new`);
       }
     }
-
-    return this.createSession(projectRoot);
+    return this.createSession(projectRoot, resolved);
   }
 
   /**
-   * Send a prompt to a session. Returns immediately; real-time events
-   * come via the SSE event stream.
+   * Send a prompt to a session, forcing the resolved provider/model.
+   *
+   * Uses `session.promptAsync` so the call returns immediately — the model's
+   * output streams over the SSE event channel. The non-async `session.prompt`
+   * blocks until the full assistant message is generated, which would freeze
+   * the orchestrator's event loop.
    */
   async sendPrompt(
     sessionId: string,
     prompt: string,
+    resolved: ResolvedModel,
+    projectRoot?: string,
   ): Promise<any> {
-    await this.ensureReady();
-    return this.client.session.prompt({
-      sessionId,
-      parts: [{ type: 'text', text: prompt }],
-    });
+    const inst = await this.getInstanceFor(resolved);
+    const opts = {
+      path: { id: sessionId },
+      query: projectRoot ? { directory: projectRoot } : undefined,
+      body: {
+        model: OpenCodeSdkService.modelArg(resolved),
+        parts: [{ type: 'text', text: prompt }],
+      },
+    };
+    if (inst.client.session.promptAsync) {
+      return inst.client.session.promptAsync(opts);
+    }
+    return inst.client.session.prompt(opts);
   }
 
   /**
-   * Subscribe to the global SSE event stream.
-   * Returns an async iterable of events that must be filtered by sessionId.
+   * Subscribe to the SSE event stream for a project.
+   * The SDK's `event.subscribe` returns `{ stream: AsyncGenerator }` —
+   * we return the generator directly so callers can `for await` it.
    */
-  async subscribeEvents(projectRoot: string): Promise<AsyncIterable<any>> {
-    await this.ensureReady();
-    return this.client.event.subscribe({ directory: projectRoot });
+  async subscribeEvents(
+    projectRoot: string,
+    resolved: ResolvedModel,
+  ): Promise<AsyncIterable<any>> {
+    const inst = await this.getInstanceFor(resolved);
+    const result = await inst.client.event.subscribe({ query: { directory: projectRoot } });
+    if (!result?.stream) {
+      throw new Error(`OpenCode event.subscribe returned no stream: ${JSON.stringify(result)}`);
+    }
+    return result.stream as AsyncIterable<any>;
   }
 
   /**
    * Reply to a permission request (tool approval).
+   * The endpoint is `POST /session/{id}/permissions/{permissionID}` — needs
+   * both the session id and the permission id.
    */
   async replyPermission(
-    requestId: string,
+    sessionId: string,
+    permissionId: string,
     reply: 'once' | 'always' | 'reject',
+    resolved: ResolvedModel,
+    projectRoot?: string,
   ): Promise<void> {
-    await this.ensureReady();
-    await this.client.permission.reply(requestId, reply);
+    const inst = await this.getInstanceFor(resolved);
+    await inst.client.postSessionIdPermissionsPermissionId({
+      path: { id: sessionId, permissionID: permissionId },
+      query: projectRoot ? { directory: projectRoot } : undefined,
+      body: { response: reply },
+    });
   }
 
   /**
-   * Reply to a question (elicitation).
+   * The current OpenCode SDK ('1.4.x') does not expose a question/elicitation API.
+   * These are kept as no-ops so the existing handlers don't crash if a future
+   * SDK version emits `question.asked` events.
    */
-  async replyQuestion(requestId: string, answers: string[]): Promise<void> {
-    await this.ensureReady();
-    await this.client.question.reply(requestId, answers);
+  async replyQuestion(_requestId: string, _answers: string[], _resolved: ResolvedModel): Promise<void> {
+    this.logger.debug('replyQuestion: not supported by current OpenCode SDK — ignoring');
   }
 
-  /**
-   * Reject a question (dismiss elicitation).
-   */
-  async rejectQuestion(requestId: string): Promise<void> {
-    await this.ensureReady();
-    await this.client.question.reject(requestId);
+  async rejectQuestion(_requestId: string, _resolved: ResolvedModel): Promise<void> {
+    this.logger.debug('rejectQuestion: not supported by current OpenCode SDK — ignoring');
   }
 
-  /**
-   * Abort a running session.
-   */
-  async abortSession(sessionId: string): Promise<void> {
-    await this.ensureReady();
+  async abortSession(sessionId: string, resolved: ResolvedModel, projectRoot?: string): Promise<void> {
+    const inst = await this.getInstanceFor(resolved);
     try {
-      await this.client.session.abort(sessionId);
+      await inst.client.session.abort({
+        path: { id: sessionId },
+        query: projectRoot ? { directory: projectRoot } : undefined,
+      });
     } catch (err: any) {
       this.logger.debug(`OpenCode abort failed (may have already completed): ${err?.message}`);
     }
   }
 
-  /**
-   * Delete a session from the server.
-   */
-  async deleteSession(sessionId: string): Promise<void> {
-    await this.ensureReady();
+  async deleteSession(sessionId: string, resolved: ResolvedModel, projectRoot?: string): Promise<void> {
+    const inst = await this.getInstanceFor(resolved);
     try {
-      await this.client.session.delete(sessionId);
+      await inst.client.session.delete({
+        path: { id: sessionId },
+        query: projectRoot ? { directory: projectRoot } : undefined,
+      });
     } catch (err: any) {
       this.logger.debug(`OpenCode session delete failed: ${err?.message}`);
     }
   }
 
-  /**
-   * File search capabilities exposed by the SDK.
-   */
-  async findFiles(query: string, options?: { type?: string; limit?: number }): Promise<any[]> {
-    await this.ensureReady();
-    if (this.client.find?.files) {
-      return this.client.find.files(query, options);
-    }
-    return [];
+  async findFiles(query: string, resolved: ResolvedModel, projectRoot?: string): Promise<any[]> {
+    const inst = await this.getInstanceFor(resolved);
+    if (!inst.client.find?.files) return [];
+    const result = await inst.client.find.files({
+      query: { query, ...(projectRoot ? { directory: projectRoot } : {}) },
+    });
+    return this.unwrap<any[]>(result, 'find.files') ?? [];
   }
 
-  async findText(pattern: string, options?: { files?: string; limit?: number }): Promise<any[]> {
-    await this.ensureReady();
-    if (this.client.find?.text) {
-      return this.client.find.text(pattern, options);
-    }
-    return [];
+  async findText(pattern: string, resolved: ResolvedModel, projectRoot?: string): Promise<any[]> {
+    const inst = await this.getInstanceFor(resolved);
+    if (!inst.client.find?.text) return [];
+    const result = await inst.client.find.text({
+      query: { pattern, ...(projectRoot ? { directory: projectRoot } : {}) },
+    });
+    return this.unwrap<any[]>(result, 'find.text') ?? [];
   }
 
   /**
-   * Get the raw SDK client for advanced operations.
+   * Get the raw SDK client for the given resolved config.
    */
-  getClient(): any {
-    return this.client;
+  async getClient(resolved: ResolvedModel): Promise<any> {
+    const inst = await this.getInstanceFor(resolved);
+    return inst.client;
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.server?.close) {
-      try {
-        await this.server.close();
-        this.logger.log('OpenCode server closed');
-      } catch (err: any) {
-        this.logger.debug(`OpenCode server close failed: ${err?.message}`);
+    for (const [sig, inst] of this.instances) {
+      if (inst.server?.close) {
+        try {
+          await inst.server.close();
+          this.logger.log(`OpenCode server closed (${sig})`);
+        } catch (err: any) {
+          this.logger.debug(`OpenCode server close failed (${sig}): ${err?.message}`);
+        }
       }
     }
-    this.ready = false;
-    this.initPromise = null;
-    this.client = null;
-    this.server = null;
+    this.instances.clear();
+    this.initPromises.clear();
     this.sdk = null;
   }
 }

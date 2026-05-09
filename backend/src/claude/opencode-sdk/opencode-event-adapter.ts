@@ -1,211 +1,179 @@
 import { MessageEvent } from '../types';
 
 /**
- * OpenCode SSE event types (from @opencode-ai/sdk/v2).
+ * OpenCode SDK SSE event types — consumed directly from
+ * `client.event.subscribe(...)`'s stream. Each yielded item is the SDK's
+ * `Event` discriminated union: `{ type, properties }`.
  *
- * The SDK emits `GlobalEvent` objects, each containing a `payload: Event`.
- * We model the subset we need here to avoid importing the ESM-only SDK at
- * compile time.
+ * We model the subset we map here. Everything not listed falls through to the
+ * `default` branch and is ignored.
  */
-
-export interface OpenCodeGlobalEvent {
-  /** Directory the event originates from (used for multi-project filtering) */
-  properties?: { directory?: string; sessionID?: string };
-  payload: OpenCodeEvent;
+export interface OpenCodeEvent {
+  type: string;
+  properties?: any;
 }
 
-export type OpenCodeEvent =
-  // Text / reasoning streaming
-  | { type: 'message.part.delta'; part: { type: 'text'; delta: string } }
-  | { type: 'message.part.delta'; part: { type: 'reasoning'; delta: string } }
-  // Tool execution lifecycle
-  | { type: 'message.part.updated'; part: OpenCodeToolPart }
-  // Message lifecycle
-  | { type: 'message.updated'; message: OpenCodeAssistantMessage }
-  | { type: 'message.created'; message: { role: string; id?: string } }
-  // Session lifecycle
-  | { type: 'session.created'; session: { id: string } }
-  | { type: 'session.updated'; session: { id: string; status?: string } }
-  | { type: 'session.error'; error: { message: string; code?: string } }
-  // Permission / question events (elicitations)
-  | { type: 'permission.asked'; permission: OpenCodePermissionRequest }
-  | { type: 'question.asked'; question: OpenCodeQuestionRequest }
-  // File events
-  | { type: 'file.edited'; file: { path: string } }
-  // Catch-all for unknown event types
-  | { type: string; [key: string]: any };
-
-export interface OpenCodeToolPart {
-  type: 'tool';
-  id?: string;
-  toolName?: string;
-  args?: any;
-  state?: {
-    status: 'running' | 'completed' | 'error';
-    output?: string;
-    error?: string;
-  };
-}
-
-export interface OpenCodeAssistantMessage {
-  role: 'assistant';
-  id?: string;
-  time?: { completed?: number };
-  tokens?: {
-    input?: number;
-    output?: number;
-    reasoning?: number;
-    cacheRead?: number;
-    cacheWrite?: number;
-  };
-  cost?: number;
-}
-
+/**
+ * Compatibility shim. The orchestrator wraps the SDK's `Permission` payload in
+ * a small object before handing it to the permission service. Kept here so the
+ * permission service's typed param continues to compile.
+ */
 export interface OpenCodePermissionRequest {
   id: string;
-  title?: string;
-  description?: string;
   toolName?: string;
   args?: any;
+  title?: string;
 }
 
+/**
+ * The current SDK has no question/elicitation event. The interface is kept as a
+ * placeholder so the permission service compiles; the orchestrator never
+ * dispatches to it.
+ */
 export interface OpenCodeQuestionRequest {
   id: string;
   header?: string;
   text?: string;
   options?: Array<{ label: string; value?: string }>;
-  allowCustom?: boolean;
   multiSelect?: boolean;
 }
 
 /**
- * Translate an OpenCode SSE event into zero or more MessageEvents that
- * the frontend understands.
+ * Translate one OpenCode SSE event into zero or more MessageEvents the
+ * frontend understands.
+ *
+ * Permission events are handled by the orchestrator itself (it routes them to
+ * the permission service); they map to `[]` here.
  */
 export function openCodeEventToMessageEvents(
-  globalEvent: OpenCodeGlobalEvent,
+  ev: OpenCodeEvent,
   ctx: { processId: string; sessionId?: string },
 ): MessageEvent[] {
-  const ev = globalEvent.payload;
+  const props = ev.properties ?? {};
 
   switch (ev.type) {
-    // ── Text / reasoning streaming ──────────────────────────────────────
-    case 'message.part.delta': {
-      const part = (ev as any).part;
-      if (part?.type === 'text') {
-        return [{ type: 'stdout', data: { chunk: part.delta } }];
-      }
-      if (part?.type === 'reasoning') {
-        return [{ type: 'thinking', data: { content: part.delta } }];
-      }
-      return [];
-    }
-
-    // ── Tool lifecycle ──────────────────────────────────────────────────
+    // ── Streaming text / reasoning / tool state ─────────────────────────
     case 'message.part.updated': {
-      const part = (ev as any).part;
-      if (part?.type !== 'tool') return [];
+      const part = props.part;
+      const delta: string | undefined = props.delta;
+      if (!part) return [];
 
-      const state = part.state;
-      if (!state) return [];
-
-      if (state.status === 'running') {
-        return [{
-          type: 'tool_call',
-          data: {
-            callId: part.id ?? `tool_${Date.now()}`,
-            toolName: part.toolName ?? 'unknown',
-            args: part.args,
-            status: 'running',
-          },
-        }];
+      if (part.type === 'text') {
+        // Prefer the explicit delta; fall back to the cumulative text.
+        const chunk = delta ?? part.text ?? '';
+        if (!chunk) return [];
+        return [{ type: 'stdout', data: { chunk } }];
       }
 
-      if (state.status === 'completed' || state.status === 'error') {
-        return [{
-          type: 'tool_result',
-          data: {
-            callId: part.id ?? `tool_${Date.now()}`,
-            result: state.error ?? state.output ?? '',
-          },
-        }];
+      if (part.type === 'reasoning') {
+        const chunk = delta ?? part.text ?? '';
+        if (!chunk) return [];
+        return [{ type: 'thinking', data: { content: chunk } }];
       }
 
-      // Subagent step events
+      if (part.type === 'tool') {
+        const state = part.state;
+        if (!state) return [];
+
+        const callId = part.callID ?? part.id ?? `tool_${Date.now()}`;
+        const toolName = part.tool ?? 'unknown';
+
+        if (state.status === 'running' || state.status === 'pending') {
+          return [{
+            type: 'tool_call',
+            data: {
+              callId,
+              toolName,
+              args: state.input,
+              status: 'running',
+            },
+          }];
+        }
+
+        if (state.status === 'completed') {
+          return [{
+            type: 'tool_result',
+            data: { callId, toolName, result: state.output ?? '' },
+          }];
+        }
+
+        if (state.status === 'error') {
+          return [{
+            type: 'tool_result',
+            data: { callId, toolName, result: state.error ?? '' },
+          }];
+        }
+        return [];
+      }
+
       if (part.type === 'step-start') {
         return [{
           type: 'subagent_start',
-          data: {
-            name: part.toolName ?? part.id ?? 'subagent',
-            status: 'active',
-          },
+          data: { name: part.id ?? 'subagent', status: 'active' },
         }];
       }
       if (part.type === 'step-finish') {
         return [{
           type: 'subagent_end',
-          data: {
-            name: part.toolName ?? part.id ?? 'subagent',
-            status: 'complete',
-          },
+          data: { name: part.id ?? 'subagent', status: 'complete' },
         }];
       }
 
       return [];
     }
 
-    // ── Message completed (usage + completion signal) ───────────────────
+    // ── Assistant message completed (usage + cost) ──────────────────────
     case 'message.updated': {
-      const msg = (ev as any).message as OpenCodeAssistantMessage | undefined;
-      if (!msg || msg.role !== 'assistant') return [];
+      const info = props.info;
+      if (!info || info.role !== 'assistant') return [];
 
       const events: MessageEvent[] = [];
-
-      if (msg.tokens) {
+      if (info.tokens) {
+        const model = info.providerID && info.modelID
+          ? `${info.providerID}/${info.modelID}`
+          : undefined;
         events.push({
           type: 'usage',
           data: {
-            input_tokens: msg.tokens.input,
-            output_tokens: msg.tokens.output,
-            total_cost_usd: msg.cost,
+            input_tokens: info.tokens.input,
+            output_tokens: info.tokens.output,
+            cache_read_input_tokens: info.tokens.cache?.read,
+            cache_creation_input_tokens: info.tokens.cache?.write,
+            total_cost_usd: info.cost,
+            ...(model ? { model } : {}),
           },
         });
       }
-
       return events;
     }
 
-    // ── Session lifecycle ────────────────────────────────────────────────
+    // ── Session lifecycle ───────────────────────────────────────────────
     case 'session.created': {
-      const session = (ev as any).session;
+      const info = props.info;
       return [{
         type: 'session',
-        data: { process_id: ctx.processId, session_id: session?.id },
+        data: { process_id: ctx.processId, session_id: info?.id },
       }];
     }
 
     case 'session.error': {
-      const err = (ev as any).error;
-      return [{
-        type: 'error',
-        data: { message: err?.message ?? 'Unknown OpenCode error' },
-      }];
+      const err = props.error;
+      const message = err?.data?.message ?? err?.message ?? 'Unknown OpenCode error';
+      return [{ type: 'error', data: { message } }];
     }
 
     // ── File events ─────────────────────────────────────────────────────
     case 'file.edited': {
-      const file = (ev as any).file;
-      return [{
-        type: 'file_changed',
-        data: { path: file?.path },
-      }];
+      // `properties.file` is a string path in this SDK version.
+      const file: string | undefined =
+        typeof props.file === 'string' ? props.file : props.file?.path;
+      if (!file) return [];
+      return [{ type: 'file_changed', data: { path: file } }];
     }
 
-    // ── Permission / elicitation events ─────────────────────────────────
-    // These are handled by the permission service, not forwarded directly.
-    // The orchestrator intercepts them before they reach this adapter.
-    case 'permission.asked':
-    case 'question.asked':
+    // Permission events: handled by the orchestrator before the adapter.
+    case 'permission.updated':
+    case 'permission.replied':
       return [];
 
     default:

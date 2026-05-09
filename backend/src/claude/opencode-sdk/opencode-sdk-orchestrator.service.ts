@@ -9,10 +9,7 @@ import { OpenCodeSessionManagerService } from './opencode-session-manager.servic
 import { OpenCodePermissionService } from './opencode-permission.service';
 import { SdkHookEmitterService } from '../sdk/sdk-hook-emitter.service';
 import { MessageEvent, Usage } from '../types';
-import {
-  openCodeEventToMessageEvents,
-  OpenCodeGlobalEvent,
-} from './opencode-event-adapter';
+import { openCodeEventToMessageEvents } from './opencode-event-adapter';
 import { translateMcpConfig } from './opencode-mcp-config.adapter';
 import { provisionSkillsForOpenCode } from './opencode-skill-provisioner';
 import { GuardrailsService } from '../../input-guardrails/guardrails.service';
@@ -22,7 +19,7 @@ import { SessionsService } from '../../sessions/sessions.service';
 import { ContextInterceptorService } from '../../contexts/context-interceptor.service';
 import { SubagentsService } from '../../subagents/subagents.service';
 import { McpServerConfigService } from '../mcpserverconfig/mcp.server.config';
-import { OpenCodeConfig } from './opencode.config';
+import { OpenCodeConfig, ResolvedModel } from './opencode.config';
 import { safeRoot } from '../utils/path.utils';
 import { sanitize_user_message } from '../../input-guardrails/index';
 import { TelemetryService } from '../../observability/telemetry.service';
@@ -48,7 +45,7 @@ export class OpenCodeOrchestratorService {
   private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
   // Track active sessions for abort
-  private readonly activeSessions = new Map<string, { sessionId: string; aborted: boolean }>();
+  private readonly activeSessions = new Map<string, { sessionId: string; aborted: boolean; resolved: ResolvedModel; projectRoot: string }>();
 
   private generateServiceToken(): string {
     return jwt.sign(
@@ -212,17 +209,26 @@ export class OpenCodeOrchestratorService {
         this.logger.warn(`Subagent config failed: ${err?.message}`);
       }
 
+      // === Resolve per-project model (.etienne/ai-model.json overrides env defaults) ===
+      const resolved = await this.config.resolveModelForProject(projectDir);
+      this.logger.log(
+        `OpenCode model for ${projectDir}: provider=${resolved.provider} model=${resolved.model}` +
+        (resolved.baseUrl ? ` baseURL=${resolved.baseUrl}` : ''),
+      );
+      // Seed the usage payload with the model so the frontend renders it even
+      // when the model itself doesn't echo a model field on its usage event.
+      usage.model = `${resolved.provider}/${resolved.model}`;
+
       // === Initialize SDK and create/resume session ===
-      await this.openCodeSdkService.ensureReady();
-      sessionId = await this.openCodeSdkService.getOrCreateSession(projectRoot, existingSessionId);
+      sessionId = await this.openCodeSdkService.getOrCreateSession(projectRoot, resolved, existingSessionId);
 
       if (!existingSessionId || existingSessionId !== sessionId) {
-        await this.sessionManager.createSession(projectDir, sessionId, this.config.defaultModel);
+        await this.sessionManager.createSession(projectDir, sessionId, resolved.model);
       }
 
       // Track for abort
       if (processId) {
-        this.activeSessions.set(processId, { sessionId, aborted: false });
+        this.activeSessions.set(processId, { sessionId, aborted: false, resolved, projectRoot });
       }
 
       // === Memory Injection ===
@@ -292,7 +298,7 @@ export class OpenCodeOrchestratorService {
           sessionId,
           userId,
           prompt: finalPrompt,
-          model: this.config.defaultModel,
+          model: resolved.model,
           agentMode: agentMode ?? 'work',
         });
       }
@@ -311,12 +317,24 @@ export class OpenCodeOrchestratorService {
 
       // === Subscribe to SSE events BEFORE sending prompt ===
       this.logger.log(`Starting OpenCode stream for project: ${projectDir}, session: ${sessionId}`);
-      const eventStream = await this.openCodeSdkService.subscribeEvents(projectRoot);
+      const eventStream = await this.openCodeSdkService.subscribeEvents(projectRoot, resolved);
 
-      // === Send prompt ===
-      await this.openCodeSdkService.sendPrompt(sessionId, finalPrompt);
+      // === Send prompt (fire-and-forget — output streams over SSE) ===
+      this.openCodeSdkService
+        .sendPrompt(sessionId, finalPrompt, resolved, projectRoot)
+        .catch((err: any) => this.logger.error(`OpenCode sendPrompt rejected: ${err?.message}`));
 
       // === Process SSE event stream ===
+      // Each yielded item is an `Event` from the SDK directly — discriminated
+      // by `type`, with event-specific data under `properties`. There is no
+      // `payload` wrapper and `properties.sessionID` only exists on a subset
+      // of events (others carry it nested, e.g. `properties.part.sessionID`).
+      const sessionIdOf = (e: any): string | undefined =>
+        e?.properties?.sessionID
+          ?? e?.properties?.part?.sessionID
+          ?? e?.properties?.info?.sessionID
+          ?? e?.properties?.info?.id;
+
       for await (const rawEvent of eventStream) {
         // Check if aborted
         if (processId) {
@@ -327,29 +345,35 @@ export class OpenCodeOrchestratorService {
           }
         }
 
-        const globalEvent = rawEvent as OpenCodeGlobalEvent;
+        const ev = rawEvent as any;
+        if (!ev || typeof ev.type !== 'string') continue;
 
-        // Filter by sessionId for multi-project isolation
-        const eventSessionId = globalEvent.properties?.sessionID;
+        // Filter by sessionId for multi-project isolation. Events without an
+        // identifiable session (e.g. instance/lsp/installation events) pass
+        // through.
+        const eventSessionId = sessionIdOf(ev);
         if (eventSessionId && eventSessionId !== sessionId) continue;
 
-        const ev = globalEvent.payload;
-
-        // Handle permission/question events via the permission service
-        if (ev.type === 'permission.asked') {
-          const permission = (ev as any).permission;
-          this.permissionService.handlePermissionAsked(projectDir, permission).catch((err: any) =>
-            this.logger.error(`Permission handling failed: ${err?.message}`),
-          );
-
-          // Emit a running tool indicator for frontend
-          if (permission.toolName) {
+        // Handle permission events via the permission service.
+        // The current SDK emits `permission.updated` with `properties: Permission`.
+        if (ev.type === 'permission.updated') {
+          const permission = ev.properties;
+          if (permission?.id) {
+            const compat = {
+              id: permission.id,
+              toolName: permission.type ?? 'unknown',
+              args: permission.metadata,
+              title: permission.title,
+            };
+            this.permissionService.handlePermissionAsked(projectDir, compat, resolved, sessionId, projectRoot).catch((err: any) =>
+              this.logger.error(`Permission handling failed: ${err?.message}`),
+            );
             observer.next({
               type: 'tool_call',
               data: {
                 callId: permission.id,
-                toolName: permission.toolName,
-                args: permission.args,
+                toolName: compat.toolName,
+                args: compat.args,
                 status: 'running',
               },
             });
@@ -357,18 +381,9 @@ export class OpenCodeOrchestratorService {
           continue;
         }
 
-        if (ev.type === 'question.asked') {
-          const question = (ev as any).question;
-          this.permissionService.handleQuestionAsked(projectDir, question).catch((err: any) =>
-            this.logger.error(`Question handling failed: ${err?.message}`),
-          );
-          continue;
-        }
-
-        // Detect session completion
-        if (ev.type === 'session.updated') {
-          const session = (ev as any).session;
-          if (session?.status === 'idle') {
+        // Detect session completion via dedicated `session.idle` event.
+        if (ev.type === 'session.idle') {
+          {
             this.logger.debug(`OpenCode session ${sessionId} is idle — stream complete`);
 
             // === Output Guardrails ===
@@ -438,7 +453,7 @@ export class OpenCodeOrchestratorService {
 
         // Map OpenCode events to MessageEvents
         try {
-          const mapped = openCodeEventToMessageEvents(globalEvent, { processId: processId!, sessionId });
+          const mapped = openCodeEventToMessageEvents(ev, { processId: processId!, sessionId });
           for (const m of mapped) {
             // Accumulate text for persistence
             if (m.type === 'stdout') {
@@ -572,7 +587,7 @@ export class OpenCodeOrchestratorService {
     if (active) {
       this.logger.log(`Aborting OpenCode process: ${processId} (session=${active.sessionId})`);
       active.aborted = true;
-      await this.openCodeSdkService.abortSession(active.sessionId);
+      await this.openCodeSdkService.abortSession(active.sessionId, active.resolved, active.projectRoot);
       this.activeSessions.delete(processId);
       return { success: true, message: 'OpenCode session aborted' };
     }
@@ -598,6 +613,9 @@ export class OpenCodeOrchestratorService {
         existingConfig = JSON.parse(raw);
       } catch { /* file doesn't exist */ }
 
+      // Strip the legacy 'agents' (plural) key — schema rejects it.
+      if ('agents' in existingConfig) delete existingConfig.agents;
+
       existingConfig.mcp = { ...existingConfig.mcp, ...openCodeMcp };
       await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
 
@@ -610,26 +628,27 @@ export class OpenCodeOrchestratorService {
   /**
    * Translate .claude/agents/*.md subagent definitions to OpenCode agent format
    * and write to opencode.json.
+   *
+   * OpenCode's Config schema (validated at session.create time) expects:
+   *   agent: { [agentId]: AgentConfig }   // object map, NOT an array, NOT 'agents'
+   * The agent id is the map key — there is no `id` field on AgentConfig itself.
    */
   private async configureSubagents(projectDir: string, projectRoot: string): Promise<void> {
     try {
       const subagents = await this.subagentsService.listSubagents(projectDir);
-      if (!subagents || subagents.length === 0) return;
 
-      const agents: any[] = [];
-      for (const sa of subagents) {
+      const agentMap: Record<string, any> = {};
+      for (const sa of (subagents ?? [])) {
         try {
           const full = await this.subagentsService.getSubagent(projectDir, sa.name);
           if (!full) continue;
 
           const agent: any = {
-            id: sa.name,
             description: sa.description || `Subagent: ${sa.name}`,
             mode: 'subagent',
             prompt: full.systemPrompt || '',
           };
 
-          // Map model shorthand to full model ID
           if (full.model && full.model !== 'inherit') {
             const modelMap: Record<string, string> = {
               sonnet: 'anthropic/claude-sonnet-4-5-20250514',
@@ -639,24 +658,22 @@ export class OpenCodeOrchestratorService {
             agent.model = modelMap[full.model] || full.model;
           }
 
-          // Map tool allowlist to permissions
-          if (full.tools && full.tools.length > 0) {
-            const permissions: Record<string, string> = {};
+          // Tool allowlist — AgentConfig.tools is `{ [toolName]: boolean }`, not a permission map.
+          if (Array.isArray(full.tools) && full.tools.length > 0) {
+            const tools: Record<string, boolean> = {};
             for (const tool of full.tools) {
-              permissions[tool.toLowerCase()] = 'allow';
+              if (typeof tool === 'string' && tool.length > 0) tools[tool] = true;
             }
-            agent.permission = permissions;
+            if (Object.keys(tools).length > 0) agent.tools = tools;
           }
 
-          agents.push(agent);
+          agentMap[sa.name] = agent;
         } catch (err: any) {
           this.logger.warn(`Failed to load subagent '${sa.name}': ${err?.message}`);
         }
       }
 
-      if (agents.length === 0) return;
-
-      // Write to opencode.json
+      // Read, then sanitize any legacy/invalid keys before writing.
       const configPath = path.join(projectRoot, 'opencode.json');
       let existingConfig: any = {};
       try {
@@ -664,10 +681,18 @@ export class OpenCodeOrchestratorService {
         existingConfig = JSON.parse(raw);
       } catch { /* file doesn't exist */ }
 
-      existingConfig.agents = agents;
-      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
+      // Strip the legacy 'agents' (plural) key — older code wrote an array here
+      // which the OpenCode schema rejects with ConfigInvalidError.
+      if ('agents' in existingConfig) delete existingConfig.agents;
 
-      this.logger.debug(`Configured ${agents.length} subagents for OpenCode`);
+      if (Object.keys(agentMap).length > 0) {
+        existingConfig.agent = { ...(existingConfig.agent ?? {}), ...agentMap };
+      } else if ('agent' in existingConfig && Object.keys(existingConfig.agent ?? {}).length === 0) {
+        delete existingConfig.agent;
+      }
+
+      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
+      this.logger.debug(`Configured ${Object.keys(agentMap).length} subagents for OpenCode`);
     } catch (err: any) {
       this.logger.warn(`Failed to configure subagents: ${err?.message}`);
     }
