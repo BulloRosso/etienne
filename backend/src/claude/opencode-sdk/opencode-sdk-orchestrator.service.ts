@@ -276,13 +276,21 @@ export class OpenCodeOrchestratorService {
         }
       }
 
-      // === Datetime Injection ===
+      // === System prompt (per-call, not user-visible) ===
+      // - datetime context for the model
+      // - anti-echo guard: some providers (DeepSeek's V4 family in particular)
+      //   tend to begin their response by repeating the user's last message
+      //   verbatim. Not documented as configurable, so we nudge it out via the
+      //   system prompt. Cheap if it works, harmless if it doesn't.
       const now = new Date();
       const dateTimeString = now.toLocaleString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'long',
       });
-      finalPrompt = `[Current date and time: ${dateTimeString}]\n\n${finalPrompt}`;
+      const systemPrompt = [
+        `Current date and time: ${dateTimeString}`,
+        `Do not repeat the user's message back. Begin your reply with your answer or your first action.`,
+      ].join('\n');
 
       // === Emit UserPromptSubmit hook ===
       this.hookEmitter.emitUserPromptSubmit(projectDir, {
@@ -321,7 +329,7 @@ export class OpenCodeOrchestratorService {
 
       // === Send prompt (fire-and-forget — output streams over SSE) ===
       this.openCodeSdkService
-        .sendPrompt(sessionId, finalPrompt, resolved, projectRoot)
+        .sendPrompt(sessionId, finalPrompt, resolved, projectRoot, systemPrompt)
         .catch((err: any) => this.logger.error(`OpenCode sendPrompt rejected: ${err?.message}`));
 
       // === Process SSE event stream ===
@@ -486,6 +494,25 @@ export class OpenCodeOrchestratorService {
                 session_id: sessionId,
                 timestamp: new Date().toISOString(),
               });
+            }
+
+            // Trace tool calls and results so Windows-specific tool failures
+            // (e.g. glob, grep) can be diagnosed from the runtime log.
+            if (m.type === 'tool_call') {
+              const argsStr = (() => {
+                try { return JSON.stringify(m.data?.args); } catch { return '<unserializable>'; }
+              })();
+              this.logger.debug(
+                `OpenCode tool_call: name=${m.data?.toolName} callId=${m.data?.callId} args=${argsStr}`,
+              );
+            }
+            if (m.type === 'tool_result') {
+              const resultStr = typeof m.data?.result === 'string'
+                ? m.data.result.slice(0, 500)
+                : (() => { try { return JSON.stringify(m.data?.result).slice(0, 500); } catch { return '<unserializable>'; } })();
+              this.logger.debug(
+                `OpenCode tool_result: name=${m.data?.toolName} callId=${m.data?.callId} result=${resultStr}`,
+              );
             }
 
             observer.next(m);

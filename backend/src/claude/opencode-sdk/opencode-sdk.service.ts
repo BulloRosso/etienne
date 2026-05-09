@@ -229,6 +229,7 @@ export class OpenCodeSdkService implements OnModuleDestroy {
     prompt: string,
     resolved: ResolvedModel,
     projectRoot?: string,
+    system?: string,
   ): Promise<any> {
     const inst = await this.getInstanceFor(resolved);
     const opts = {
@@ -236,6 +237,7 @@ export class OpenCodeSdkService implements OnModuleDestroy {
       query: projectRoot ? { directory: projectRoot } : undefined,
       body: {
         model: OpenCodeSdkService.modelArg(resolved),
+        ...(system ? { system } : {}),
         parts: [{ type: 'text', text: prompt }],
       },
     };

@@ -108,7 +108,11 @@ export default function StreamingTimeline({
     // Collect thinking items
     const thinkingItems = items.filter(item => item.type === 'thinking');
 
-    // Merge text segments, tool calls, and thinking items, sorted by timestamp
+    // Merge text segments, tool calls, and thinking items, sorted by timestamp.
+    // Thinking items are pinned to the top of the turn — some providers (e.g.
+    // DeepSeek reasoner) stream the final answer before the reasoning trace,
+    // but humans expect to see reasoning first. We sort thinking items as a
+    // group above non-thinking items, then by timestamp within each group.
     const allItems = [
       ...textSegments.map(seg => ({ ...seg, sortTime: seg.timestamp })),
       ...filteredTools.map(tool => ({
@@ -123,7 +127,12 @@ export default function StreamingTimeline({
         sortTime: item.timestamp || 0,
         key: `thinking-${item.id || item.timestamp}`
       }))
-    ].sort((a, b) => a.sortTime - b.sortTime);
+    ].sort((a, b) => {
+      const aThink = a.type === 'thinking' ? 0 : 1;
+      const bThink = b.type === 'thinking' ? 0 : 1;
+      if (aThink !== bThink) return aThink - bThink;
+      return a.sortTime - b.sortTime;
+    });
 
     return allItems;
   }, [items]);

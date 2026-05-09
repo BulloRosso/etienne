@@ -67,7 +67,7 @@
     "multer": "^2.0.2",
     "officeparser": "^6.0.7",
     "openai": "^6.27.0",
-    "opencode-ai": "^1.14.18",
+    "opencode-ai": "^1.14.44",
     "quadstore": "^15.4.1",
     "rdf-data-factory": "^2.0.2",
     "reflect-metadata": "^0.1.13",
