@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HTML → Filesystem Bridge</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 880px; margin: 40px auto; padding: 0 24px; color: #1a202c; line-height: 1.6; }
+  h1 { border-bottom: 2px solid #1976d2; padding-bottom: 8px; }
+  h2 { color: #1976d2; margin-top: 32px; }
+  h3 { color: #263238; margin-top: 24px; }
+  code { background: #f4f6f8; padding: 2px 6px; border-radius: 4px; font-family: "Cascadia Code", Consolas, monospace; font-size: 0.92em; }
+  pre { background: #263238; color: #eceff1; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: "Cascadia Code", Consolas, monospace; font-size: 0.88em; line-height: 1.5; }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #cfd8dc; padding: 8px 12px; text-align: left; }
+  th { background: #eceff1; }
+  .note { background: #e3f2fd; border-left: 4px solid #1976d2; padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .warn { background: #fff3e0; border-left: 4px solid #fb8c00; padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .danger { background: #ffebee; border-left: 4px solid #c62828; padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<h1>HTML → Filesystem Bridge</h1>
+
+<p>
+  This document describes how an HTML document rendered inside <code>LiveHTMLPreview</code>
+  can persist arbitrary files back into its workspace project. The HTML cannot touch the host
+  filesystem directly — all writes are forwarded through the React parent frame to the
+  authenticated content-management API on the backend.
+</p>
+
+<h2>Architecture</h2>
+
+<pre><code>┌─────────────────────┐     postMessage     ┌────────────────────┐     PUT (JWT)     ┌──────────────────────┐
+│  iframe HTML / JS   │ ──────────────────▶ │ LiveHTMLPreview.jsx│ ────────────────▶ │ /api/workspace/:p/   │
+│  (sandboxed)        │ ◀────────────────── │  (parent window)   │ ◀──────────────── │   files/bridge-write │
+└─────────────────────┘   write:result      └────────────────────┘   { path, bytes } └──────────────────────┘
+                                                                                                │
+                                                                                                ▼
+                                                                                     workspace/&lt;project&gt;/...
+</code></pre>
+
+<p>The iframe never sees the JWT. The parent already holds it and signs the request via
+the existing <code>apiAxios</code> client.</p>
+
+<h2>Quick start (from inside an iframe HTML)</h2>
+
+<pre><code>function bridgeWrite(path, content, encoding) {
+  return new Promise((resolve, reject) => {
+    if (window.parent === window) return reject(new Error('No parent frame'));
+    const requestId = 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const onMessage = (event) => {
+      const m = event.data;
+      if (!m || m.type !== 'workspace:write:result' || m.requestId !== requestId) return;
+      window.removeEventListener('message', onMessage);
+      m.ok ? resolve(m.result) : reject(new Error(m.error));
+    };
+    window.addEventListener('message', onMessage);
+    window.parent.postMessage({
+      type: 'workspace:write',
+      requestId,
+      path,
+      content,
+      encoding: encoding || 'utf-8',
+    }, '*');
+  });
+}
+
+// Examples
+await bridgeWrite('./selection.json', JSON.stringify({ pick: 'Mar' }, null, 2));
+await bridgeWrite('/state/last-run.json', JSON.stringify({ ts: Date.now() }));
+await bridgeWrite('./screenshot.png', base64String, 'base64');</code></pre>
+
+<h2>Path resolution</h2>
+
+<table>
+  <tr><th>Path form</th><th>Resolves to</th><th>Example (HTML at <code>html-json/dashboard.html</code>)</th></tr>
+  <tr><td><code>/foo/bar.json</code></td><td>Project root</td><td>→ <code>foo/bar.json</code></td></tr>
+  <tr><td><code>./bar.json</code></td><td>HTML file's folder</td><td>→ <code>html-json/bar.json</code></td></tr>
+  <tr><td><code>bar.json</code></td><td>HTML file's folder (same as above)</td><td>→ <code>html-json/bar.json</code></td></tr>
+  <tr><td><code>./sub/bar.json</code></td><td>Below HTML's folder</td><td>→ <code>html-json/sub/bar.json</code></td></tr>
+</table>
+
+<p>Parent directories are created automatically. Existing files are <strong>always overwritten</strong>.</p>
+
+<div class="warn">
+  <strong>Path traversal is blocked.</strong> Any path that resolves above the project root
+  (e.g. <code>../../etc/hosts</code>) is rejected by both the frontend resolver and a second
+  check in the backend service.
+</div>
+
+<h2>Encoding</h2>
+
+<ul>
+  <li><strong>UTF-8 (default)</strong> — pass any string. The backend writes it as a UTF-8 buffer.</li>
+  <li><strong>base64</strong> — set <code>encoding: 'base64'</code> for binary content (images, PDFs, zips).
+      Encode the bytes yourself, e.g. via <code>btoa()</code> or
+      <code>FileReader.readAsDataURL()</code> (then strip the <code>data:...;base64,</code> prefix).</li>
+</ul>
+
+<h2>Message protocol</h2>
+
+<h3>Request: iframe → parent</h3>
+
+<pre><code>{
+  type: 'workspace:write',
+  requestId: 'w_1715000000_abc123',  // any unique string
+  path: './selection.json',           // see "Path resolution"
+  content: '...',                     // string (utf-8 text or base64)
+  encoding: 'utf-8' | 'base64'        // default 'utf-8'
+}</code></pre>
+
+<h3>Response: parent → iframe</h3>
+
+<pre><code>// success
+{
+  type: 'workspace:write:result',
+  requestId: 'w_1715000000_abc123',
+  ok: true,
+  result: { success: true, message: 'File written: html-json/selection.json',
+            path: 'html-json/selection.json', bytes: 73 }
+}
+
+// failure
+{
+  type: 'workspace:write:result',
+  requestId: 'w_1715000000_abc123',
+  ok: false,
+  error: 'Path escapes project root: ../../etc/hosts'
+}</code></pre>
+
+<h2>Backend endpoint</h2>
+
+<p><code>PUT /api/workspace/:project/files/bridge-write/*</code></p>
+
+<table>
+  <tr><th>Property</th><th>Value</th></tr>
+  <tr><td>Auth</td><td>Required (<code>Roles('user')</code>) — JWT carried automatically by the parent's <code>apiAxios</code></td></tr>
+  <tr><td>Body</td><td><code>{ "content": string, "encoding": "utf-8" | "base64" }</code></td></tr>
+  <tr><td>Behavior</td><td>Creates parent directories, overwrites if present, writes via <code>fs.writeFile</code> (no append)</td></tr>
+  <tr><td>Path safety</td><td>Resolves and asserts that the final path stays under <code>workspace/&lt;project&gt;/</code></td></tr>
+  <tr><td>Response</td><td><code>{ success, message, path, bytes }</code></td></tr>
+</table>
+
+<p>Source:</p>
+<ul>
+  <li>Controller: <code>backend/src/content-management/content-management.controller.ts</code> — <code>bridgeWrite</code></li>
+  <li>Service: <code>backend/src/content-management/content-management.service.ts</code> — <code>bridgeWriteFile</code></li>
+  <li>Frontend bridge: <code>frontend/src/components/LiveHTMLPreview.jsx</code> — message handler + <code>resolveBridgePath</code></li>
+</ul>
+
+<h2>Security model</h2>
+
+<ul>
+  <li>Only messages whose <code>event.source</code> matches the previewer's iframe are processed.
+      Messages from other windows or other iframes on the same page are ignored.</li>
+  <li>The JWT never leaves the parent frame.</li>
+  <li>Path traversal is blocked in two places: the frontend resolver collapses <code>..</code> and
+      refuses paths that climb above the project; the backend resolves the absolute path and
+      requires it to start with the project root.</li>
+  <li>Writes are <strong>unconditional overwrites</strong>. There is no delete, no append, no rename via
+      this bridge — those remain on the existing endpoints.</li>
+  <li>Any file extension is allowed. The backend does not interpret content; it writes the bytes.</li>
+</ul>
+
+<div class="danger">
+  <strong>Beware of the overwrite semantics.</strong> An HTML page that writes to a fixed path
+  on every load can clobber user data. Use unique filenames or read-modify-write patterns
+  (read via <code>fetch('./state.json')</code>, mutate, then write back) when you need accumulation.
+</div>
+
+<h2>Working example</h2>
+
+<p>The dashboard at <code>workspace/web-test/html-json/dashboard.html</code> uses the bridge:
+clicking any monthly bar writes <code>html-json/selection.json</code> with the chosen month and
+revenue, and shows the result inline.</p>
+
+<h2>Limitations</h2>
+
+<ul>
+  <li><strong>One-way.</strong> The bridge writes only. To read, use <code>fetch('./file.json')</code>
+      against the same content API the preview already serves.</li>
+  <li><strong>Synchronous-feeling but async.</strong> Each write is a real HTTP call, so latency
+      depends on the backend. The 10-second timeout in the helper is configurable.</li>
+  <li><strong>No partial writes.</strong> Files are written in one shot; there is no streaming.</li>
+  <li><strong>Single-iframe scope.</strong> Only the previewer's iframe can use this. Nested iframes
+      inside the preview are not granted access.</li>
+</ul>
+
+</body>
+</html>

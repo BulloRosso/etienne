@@ -136,6 +136,21 @@ export class ContentManagementController {
   }
 
   @Roles('user')
+  @Put(':project/files/bridge-write/*')
+  async bridgeWrite(
+    @Param('project') project: string,
+    @Param('0') filepath: string,
+    @Body() body: { content: string; encoding?: 'utf-8' | 'base64' },
+  ) {
+    return await this.contentManagementService.bridgeWriteFile(
+      project,
+      filepath,
+      body?.content ?? '',
+      body?.encoding ?? 'utf-8',
+    );
+  }
+
+  @Roles('user')
   @Post(':project/files/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(

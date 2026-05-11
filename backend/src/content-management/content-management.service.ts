@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Optional, Inject, Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
-import { join, extname, dirname, basename } from 'path';
+import { join, extname, dirname, basename, normalize, sep } from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { tmpdir } from 'os';
@@ -295,6 +295,47 @@ export class ContentManagementService {
   /**
    * Save text content to a file
    */
+  /**
+   * Write a file from the iframe HTML→filesystem bridge.
+   * Overwrites if present, creates parent directories, supports UTF-8 text or base64 binary,
+   * and rejects any path that resolves outside the project root.
+   */
+  async bridgeWriteFile(
+    projectName: string,
+    filepath: string,
+    content: string,
+    encoding: 'utf-8' | 'base64',
+  ): Promise<{ success: boolean; message: string; path: string; bytes: number }> {
+    const root = safeRoot(this.config.hostRoot, projectName);
+    const fullPath = normalize(join(root, filepath));
+
+    const rootWithSep = root.endsWith(sep) ? root : root + sep;
+    if (fullPath !== root && !fullPath.startsWith(rootWithSep)) {
+      throw new BadRequestException(`Path escapes project root: ${filepath}`);
+    }
+    if (fullPath === root) {
+      throw new BadRequestException(`Path must point to a file, not the project root`);
+    }
+
+    const buffer = encoding === 'base64'
+      ? Buffer.from(content, 'base64')
+      : Buffer.from(content, 'utf-8');
+
+    try {
+      await fs.mkdir(dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, buffer);
+      const rel = fullPath.substring(root.length).replace(/^[\\/]/, '').replace(/\\/g, '/');
+      return {
+        success: true,
+        message: `File written: ${rel}`,
+        path: rel,
+        bytes: buffer.length,
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to write file: ${error.message}`);
+    }
+  }
+
   async saveFileContent(
     projectName: string,
     filepath: string,
