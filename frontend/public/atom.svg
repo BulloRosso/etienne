@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <path id="o" d="M -12,0 A 12,4 0 1,1 12,0 A 12,4 0 1,1 -12,0"/>
+  </defs>
+  <g transform="translate(16 16)">
+    <use href="#o" fill="none" stroke="#3b82f6" stroke-width="1" opacity="0.55"/>
+    <use href="#o" transform="rotate(60)" fill="none" stroke="#60a5fa" stroke-width="1" opacity="0.55"/>
+    <use href="#o" transform="rotate(120)" fill="none" stroke="#93c5fd" stroke-width="1" opacity="0.55"/>
+    <circle cx="0" cy="0" r="2.2" fill="#1e40af"/>
+    <g>
+      <circle r="3" fill="#1e3a8a">
+        <animateMotion dur="4s" repeatCount="indefinite"><mpath href="#o"/></animateMotion>
+      </circle>
+      <circle r="2.8" fill="#2563eb">
+        <animateMotion dur="4s" repeatCount="indefinite" begin="-2s"><mpath href="#o"/></animateMotion>
+      </circle>
+    </g>
+    <g transform="rotate(60)">
+      <circle r="2.8" fill="#3b82f6">
+        <animateMotion dur="5.5s" repeatCount="indefinite"><mpath href="#o"/></animateMotion>
+      </circle>
+      <circle r="2.6" fill="#60a5fa">
+        <animateMotion dur="5.5s" repeatCount="indefinite" begin="-2.7s"><mpath href="#o"/></animateMotion>
+      </circle>
+    </g>
+    <g transform="rotate(120)">
+      <circle r="2.8" fill="#93c5fd">
+        <animateMotion dur="4.8s" repeatCount="indefinite"><mpath href="#o"/></animateMotion>
+      </circle>
+      <circle r="2.6" fill="#bfdbfe">
+        <animateMotion dur="4.8s" repeatCount="indefinite" begin="-2.4s"><mpath href="#o"/></animateMotion>
+      </circle>
+    </g>
+  </g>
+</svg>

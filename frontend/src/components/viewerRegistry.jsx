@@ -18,6 +18,7 @@ import ArtifactsForSession from './ArtifactsForSession';
 import IMAPInboxViewer from './IMAPInboxViewer';
 import GanttDiagram from './GanttDiagram';
 import A2UIAppViewer from './A2UIAppViewer';
+import DreamsPreviewViewer from './DreamsPreviewViewer';
 import { agentBus } from '../services/agentBus';
 
 /**
@@ -68,6 +69,7 @@ export const VIEWER_COMPONENT_NAMES = {
   imap: 'IMAPInboxViewer',
   gantt: 'GanttDiagram',
   a2ui: 'A2UIAppViewer',
+  dreams: 'DreamsPreviewViewer',
 };
 
 /**
@@ -135,6 +137,9 @@ export const VIEWER_COMPONENTS = {
   a2ui: (file, projectName) => (
     <A2UIAppViewer filename={file.path} projectName={projectName} />
   ),
+  dreams: (file, projectName) => (
+    <DreamsPreviewViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -162,6 +167,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'budget', extensions: ['.budget.json'] },
   { viewer: 'gantt', extensions: ['.gantt.json'] },
   { viewer: 'a2ui', extensions: ['.a2ui'] },
+  { viewer: 'dreams', extensions: ['.dreams.json'] },
 ];
 
 /**

@@ -36,7 +36,7 @@ import { apiFetch } from '../services/api';
 import PowerUpSection from './PowerUpSection';
 import MCPServerConfiguration from './MCPServerConfiguration';
 
-export default function SkillsSettings({ open, onClose, project }) {
+export default function SkillsSettings({ open, onClose, project, initialSkill = null }) {
   const { t } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const { hasRole } = useAuth();
@@ -78,6 +78,17 @@ export default function SkillsSettings({ open, onClose, project }) {
       setSelectedSkill(null);
     }
   }, [open]);
+
+  // When opened with an initialSkill (e.g. from the Dreaming settings link),
+  // immediately load that skill into the right-hand editor drawer.
+  useEffect(() => {
+    if (open && project && initialSkill) {
+      handleEditSkill(initialSkill);
+    }
+    // We deliberately only re-run when the modal opens or the requested skill changes,
+    // not on every render — handleEditSkill is stable in its semantics.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, project, initialSkill]);
 
   const loadSkills = async () => {
     try {
@@ -262,18 +273,40 @@ Show what the expected output should look like.
     const skillName = typeof skillObj === 'string' ? skillObj : skillObj.name;
     const skillProject = typeof skillObj === 'string' ? project : skillObj.project;
 
-    try {
+    const tryOpen = async () => {
       const response = await apiFetch(`/api/skills/${skillProject}/${skillName}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSkillName(skillName);
-        setSkillContent(data.skill.content);
-        setIsEditing(true);
-        setDrawerOpen(true);
-        await loadSkillFiles(skillName);
+      if (!response.ok) return false;
+      const data = await response.json();
+      setSkillName(skillName);
+      setSkillContent(data.skill.content);
+      setIsEditing(true);
+      setDrawerOpen(true);
+      await loadSkillFiles(skillName);
+      return true;
+    };
+
+    try {
+      if (await tryOpen()) return;
+
+      // Skill not present in the project — try provisioning it from the standard
+      // repository on the fly. This covers links from features (e.g. Dreaming) that
+      // reference a skill the user hasn't explicitly added yet.
+      const prov = await apiFetch(`/api/skills/${skillProject}/provision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skillNames: [skillName], source: 'standard' }),
+      });
+      if (prov.ok) {
+        await loadSkills();
+        if (await tryOpen()) {
+          showToast(t('skills.provisionedAndOpened', `Installed “${skillName}” from the standard repository`));
+          return;
+        }
       }
+      showToast(t('skills.skillNotFound', `Skill “${skillName}” not found in the repository`), 'error');
     } catch (error) {
       console.error('Failed to load skill:', error);
+      showToast(t('skills.loadFailed', `Failed to load skill “${skillName}”`), 'error');
     }
   };
 

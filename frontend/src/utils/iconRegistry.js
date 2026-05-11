@@ -6,6 +6,7 @@ import * as AiIcons from 'react-icons/ai';
 import * as GiIcons from 'react-icons/gi';
 import * as FiIcons from 'react-icons/fi';
 import * as TbIcons from 'react-icons/tb';
+import * as BsIcons from 'react-icons/bs';
 
 export const allReactIcons = {
   ...Object.fromEntries(Object.entries(FaIcons).filter(([k]) => k.startsWith('Fa'))),
@@ -16,6 +17,7 @@ export const allReactIcons = {
   ...Object.fromEntries(Object.entries(GiIcons).filter(([k]) => k.startsWith('Gi'))),
   ...Object.fromEntries(Object.entries(FiIcons).filter(([k]) => k.startsWith('Fi'))),
   ...Object.fromEntries(Object.entries(TbIcons).filter(([k]) => k.startsWith('Tb'))),
+  ...Object.fromEntries(Object.entries(BsIcons).filter(([k]) => k.startsWith('Bs'))),
 };
 
 export const reactIconNames = Object.keys(allReactIcons);

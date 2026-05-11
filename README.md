@@ -159,6 +159,8 @@ When a user describes their task, the agent doesn't just process words — it re
 
 For the full lifecycle (admin curation → user pick → agent use → in-project refinement → submit-back), the five guarantees this lifecycle delivers, and the enterprise-grade Skills Store with technical-dependency and environment-variable metadata, see [Skills: Lifecycle, Guarantees, and the Skills Store](docs/skills.md).
 
+Skills can also grow autonomously: Etienne's offline **dreaming** process reflects nightly on recent sessions and proposes new strategy SKILL.md cards for human review. See [Dreaming: How an Agent Learns From Itself While You Sleep](docs/dreaming.md) for the full pipeline, the wiki dual-store layout, and the human-in-the-loop feedback model.
+
 ## Built for Connectivity
 
 See [Event Bus Components — Integrated AI Agent Architecture](event-bus-architecture.md).

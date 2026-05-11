@@ -421,7 +421,6 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
             onClick={handleStop}
             disabled={disabled}
             sx={{ color: '#c62828' }}
-            className="rotating-icon"
           >
             <BsStopCircle size={24} />
           </IconButton>

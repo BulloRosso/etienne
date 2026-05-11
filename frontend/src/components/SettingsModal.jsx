@@ -44,6 +44,7 @@ import AgentPersonaPersonality from './AgentPersonaPersonality';
 import ServiceControlDrawer from './ServiceControlDrawer';
 import IssueManager from './IssueManager';
 import PreviewersManager from './PreviewersManager';
+import DreamingSettings from './DreamingSettings';
 
 export default function SettingsModal({
   open,
@@ -90,6 +91,8 @@ export default function SettingsModal({
   const [personaDialogOpen, setPersonaDialogOpen] = useState(false);
   const [teamUpOpen, setTeamUpOpen] = useState(false);
   const [previewersManagerOpen, setPreviewersManagerOpen] = useState(false);
+  const [dreamingOpen, setDreamingOpen] = useState(false);
+  const [skillsInitialSkill, setSkillsInitialSkill] = useState(null);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
   const [shortcutsTab, setShortcutsTab] = useState(0);
@@ -118,6 +121,7 @@ export default function SettingsModal({
       case 'a2a': closeSettingsAndOpen(setTeamUpOpen); break;
       case 'skillstore': closeSettingsAndOpen(setSkillCatalogOpen); break;
       case 'previewers': closeSettingsAndOpen(setPreviewersManagerOpen); break;
+      case 'dreaming': closeSettingsAndOpen(setDreamingOpen); break;
       default: break;
     }
   };
@@ -397,7 +401,12 @@ export default function SettingsModal({
         </DialogContent>
       </Dialog>
 
-      <SkillsSettings open={skillsOpen} onClose={() => setSkillsOpen(false)} project={currentProject} />
+      <SkillsSettings
+        open={skillsOpen}
+        onClose={() => { setSkillsOpen(false); setSkillsInitialSkill(null); }}
+        project={currentProject}
+        initialSkill={skillsInitialSkill}
+      />
       <SkillCatalog open={skillCatalogOpen} onClose={() => setSkillCatalogOpen(false)} />
       <ContextManager open={contextsOpen} onClose={() => setContextsOpen(false)} projectName={currentProject} allTags={allTags} onContextChange={() => {}} />
 
@@ -445,6 +454,17 @@ export default function SettingsModal({
 
       <ChangePasswordDialog open={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
       <ServiceControlDrawer open={serviceControlOpen} onClose={() => setServiceControlOpen(false)} />
+
+      <DreamingSettings
+        open={dreamingOpen}
+        onClose={() => setDreamingOpen(false)}
+        currentProject={currentProject}
+        onOpenSkill={(skillName) => {
+          setDreamingOpen(false);
+          setSkillsInitialSkill(skillName || 'dreaming');
+          setSkillsOpen(true);
+        }}
+      />
     </>
   );
 }

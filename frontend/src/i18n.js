@@ -22,6 +22,7 @@ i18n
       'connectivity', 'contextManager', 'contextSwitcher', 'createFromText',
       'customUI',
       'dashboard',
+      'dreaming',
       'elicitation', 'eventHandling', 'eventLogTab', 'examplesTab', 'excelViewer',
       'filesPanel', 'filesystem', 'fileTreeVirtualList',
       'ganttDiagram', 'graphViewer', 'guardrails',

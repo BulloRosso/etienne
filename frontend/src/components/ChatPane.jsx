@@ -457,7 +457,7 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       </Box>
 
       <Box sx={{ p: 0, pb: 0 }}>
-        <QuickActions onSelectAction={(prompt) => setEditingMessage(prompt)} />
+        <QuickActions onSelectAction={(prompt) => setEditingMessage(prompt)} currentProject={projectName} />
         <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} initialMessage={editingMessage} onInitialMessageConsumed={() => setEditingMessage(null)} />
       </Box>
 

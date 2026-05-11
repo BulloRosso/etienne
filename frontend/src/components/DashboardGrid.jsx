@@ -58,6 +58,12 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       label: t('dashboard:itemBudgetSettings'),
       disabled: !currentProject
     },
+    {
+      id: 'dreaming',
+      image: '/dreaming.png',
+      label: t('dashboard:itemDreaming'),
+      disabled: !currentProject
+    },
     // 5th row
     {
       id: 'customui',

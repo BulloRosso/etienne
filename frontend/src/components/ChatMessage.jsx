@@ -571,6 +571,14 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         {/* Source indicator and timestamp */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, pl: '40px' }}>
           {renderSourceIndicator()}
+          {isStreaming && (
+            <Box
+              component="img"
+              src="/atom.svg"
+              alt=""
+              sx={{ width: 34, height: 34 }}
+            />
+          )}
           <Typography
             variant="caption"
             sx={{

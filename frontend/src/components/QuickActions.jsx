@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
 import { apiFetch } from '../services/api';
 import { getIcon } from '../utils/iconRegistry';
+import { filePreviewHandler } from '../services/FilePreviewHandler';
 
-export default function QuickActions({ onSelectAction }) {
+export default function QuickActions({ onSelectAction, currentProject }) {
   const [actions, setActions] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -29,15 +30,28 @@ export default function QuickActions({ onSelectAction }) {
     return () => window.removeEventListener('quick-actions:changed', handler);
   }, []);
 
+  // Filter to: workspace-scoped (no project field) plus actions for the active project.
+  const visible = useMemo(() => {
+    return actions.filter((a) => !a.project || a.project === currentProject);
+  }, [actions, currentProject]);
+
   const sorted = useMemo(() => {
-    return [...actions].sort((a, b) => {
+    return [...visible].sort((a, b) => {
       const ao = typeof a.sortOrder === 'number' ? a.sortOrder : Number.MAX_SAFE_INTEGER;
       const bo = typeof b.sortOrder === 'number' ? b.sortOrder : Number.MAX_SAFE_INTEGER;
       return ao - bo;
     });
-  }, [actions]);
+  }, [visible]);
 
   if (sorted.length === 0) return null;
+
+  const handleClick = (action) => {
+    if (action.previewFile) {
+      filePreviewHandler.handlePreview(action.previewFile, action.project || currentProject);
+      return;
+    }
+    if (onSelectAction && action.prompt) onSelectAction(action.prompt);
+  };
 
   return (
     <Box
@@ -59,16 +73,13 @@ export default function QuickActions({ onSelectAction }) {
       </Typography>
       {sorted.map((action) => {
         const IconComp = getIcon(action.icon);
-        const handleClick = () => {
-          if (onSelectAction && action.prompt) onSelectAction(action.prompt);
-        };
 
         if (IconComp) {
           return (
             <Tooltip key={action.id} title={action.title || ''}>
               <IconButton
                 size="small"
-                onClick={handleClick}
+                onClick={() => handleClick(action)}
                 aria-label={action.title}
                 sx={{ p: 0.5 }}
               >
@@ -83,7 +94,7 @@ export default function QuickActions({ onSelectAction }) {
             key={action.id}
             variant="outlined"
             size="small"
-            onClick={handleClick}
+            onClick={() => handleClick(action)}
             sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
           >
             {action.title}
