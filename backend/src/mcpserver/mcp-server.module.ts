@@ -17,9 +17,10 @@ import { ConfigurationModule } from '../configuration/configuration.module';
 import { UserOrdersModule } from '../user-orders/user-orders.module';
 import { CollaborationModule } from '../collaboration/collaboration.module';
 import { RagModule } from '../rag/rag.module';
+import { Ms365Module } from '../ms365/ms365.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule, RagModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule, RagModule, Ms365Module],
   controllers: [McpServerController],
   providers: [McpServerFactoryService, McpAuthGuard],
   exports: [McpServerFactoryService],

@@ -67,6 +67,10 @@ import { createRagToolsService } from './rag-tools';
 import { createDocumentAnalysisToolsService } from './document-analysis-tools';
 import { createRequirementsMatcherToolsService } from './requirements-matcher-tools';
 import { createImageGenerationToolsService } from './image-generation-tools';
+import { createMs365BridgeToolsService } from '../ms365/ms365-bridge-tools';
+import { GraphClientService } from '../ms365/graph-client.service';
+import { OneDriveSyncService } from '../ms365/onedrive-sync.service';
+import { WritebackWatcherService } from '../ms365/writeback-watcher.service';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -103,6 +107,9 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly embeddingsService: EmbeddingsService,
     private readonly llmService: LlmService,
     private readonly ragService: RagService,
+    private readonly graphClient: GraphClientService,
+    private readonly oneDriveSync: OneDriveSyncService,
+    private readonly writebackWatcher: WritebackWatcherService,
   ) {
     const scopedLlm = this.createProjectScopedLlm();
     this.groupConfigs = {
@@ -200,6 +207,19 @@ export class McpServerFactoryService implements OnModuleInit {
       },
       'image-generation': {
         toolServices: [createImageGenerationToolsService()],
+      },
+      'ms365': {
+        toolServices: [createMs365BridgeToolsService(
+          graphClient,
+          oneDriveSync,
+          writebackWatcher,
+          () => {
+            if (!this.currentProjectRoot) return null;
+            return this.currentProjectRoot.split('/').pop()
+              || this.currentProjectRoot.split('\\').pop()
+              || null;
+          },
+        )],
       },
     };
   }
