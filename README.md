@@ -492,6 +492,12 @@ Etienne can operate its own email account — monitoring an IMAP inbox for incom
 
 For the architecture diagram, secret formats (`IMAP_CONNECTION` / `SMTP_CONNECTION` / `SMTP_WHITELIST`), MCP tool details, the bus event payload, and the optional email skill see [Agent Email Account](docs/agent-email.md).
 
+## OneDrive / Microsoft 365 Integration
+
+Etienne can mirror a user's OneDrive (and SharePoint, in org mode) into a project's workspace volume so the coding agent reads and writes those files as if they were local. The integration uses a native Microsoft Graph client (no MCP pass-through) with per-project OAuth tokens, automatic 20 s delta pull, manual push to upload local changes, and an MCP tool surface at `/mcp/ms365` so Claude Code can manage its own connection.
+
+For the architecture, sync strategy (pull-auto + push-manual), Entra app registration, env vars, and limitations see [OneDrive / Microsoft 365 Integration](one-drive.md).
+
 ## PDF and Office Format Documents
 
 Document parsing is provided by the standard skill **office-and-pdf-documents** (PDF, Word, PowerPoint, Excel, images via OCR). Non-PDF formats require **LibreOffice** (`soffice`) on the host. See [CLAUDE.md](CLAUDE.md#working-with-pdf-and-office-format-documents) for the full format list and the binary dependency.
