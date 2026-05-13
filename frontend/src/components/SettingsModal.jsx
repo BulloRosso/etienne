@@ -45,6 +45,7 @@ import ServiceControlDrawer from './ServiceControlDrawer';
 import IssueManager from './IssueManager';
 import PreviewersManager from './PreviewersManager';
 import DreamingSettings from './DreamingSettings';
+import MS365Connect from './MS365Connect';
 
 export default function SettingsModal({
   open,
@@ -92,6 +93,7 @@ export default function SettingsModal({
   const [teamUpOpen, setTeamUpOpen] = useState(false);
   const [previewersManagerOpen, setPreviewersManagerOpen] = useState(false);
   const [dreamingOpen, setDreamingOpen] = useState(false);
+  const [ms365Open, setMs365Open] = useState(false);
   const [skillsInitialSkill, setSkillsInitialSkill] = useState(null);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
@@ -122,6 +124,7 @@ export default function SettingsModal({
       case 'skillstore': closeSettingsAndOpen(setSkillCatalogOpen); break;
       case 'previewers': closeSettingsAndOpen(setPreviewersManagerOpen); break;
       case 'dreaming': closeSettingsAndOpen(setDreamingOpen); break;
+      case 'onedrive': closeSettingsAndOpen(setMs365Open); break;
       default: break;
     }
   };
@@ -464,6 +467,12 @@ export default function SettingsModal({
           setSkillsInitialSkill(skillName || 'dreaming');
           setSkillsOpen(true);
         }}
+      />
+
+      <MS365Connect
+        open={ms365Open}
+        onClose={() => setMs365Open(false)}
+        projectName={currentProject}
       />
     </>
   );

@@ -60,7 +60,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
     },
     {
       id: 'dreaming',
-      image: '/dreaming.png',
+      image: '/dreaming-small.png',
       label: t('dashboard:itemDreaming'),
       disabled: !currentProject
     },
@@ -131,6 +131,12 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       label: t('dashboard:itemPreviewers'),
       disabled: false,
       adminOnly: true
+    },
+    {
+      id: 'onedrive',
+      image: '/onedrive.png',
+      label: 'OneDrive',
+      disabled: !currentProject
     }
   ];
 

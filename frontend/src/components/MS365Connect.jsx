@@ -9,6 +9,9 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
   List,
   ListItem,
   ListItemText,
@@ -28,6 +31,7 @@ import {
   PlayArrow,
   Stop,
   FolderOpen,
+  Close,
 } from '@mui/icons-material';
 import { apiAxios, API_BASE } from '../services/api';
 
@@ -59,7 +63,9 @@ function callMcp(project, toolName, args = {}) {
   });
 }
 
-export default function MS365Connect({ projectName }) {
+export default function MS365Connect({ projectName, open, onClose }) {
+  const asDialog = typeof open === 'boolean';
+
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -208,11 +214,9 @@ export default function MS365Connect({ projectName }) {
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
 
-  if (loading) {
-    return <Box sx={{ p: 3 }}><CircularProgress /></Box>;
-  }
-
-  return (
+  const body = loading ? (
+    <Box sx={{ p: 3 }}><CircularProgress /></Box>
+  ) : (
     <Box sx={{ p: 2, maxWidth: 900 }}>
       <Card sx={{ mb: 2 }}>
         <CardContent>
@@ -341,5 +345,19 @@ export default function MS365Connect({ projectName }) {
         </>
       )}
     </Box>
+  );
+
+  if (!asDialog) return body;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>Microsoft 365 / OneDrive</span>
+        <IconButton onClick={onClose} size="small"><Close /></IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        {body}
+      </DialogContent>
+    </Dialog>
   );
 }
