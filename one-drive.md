@@ -54,52 +54,44 @@ Reports `{ uploaded, deleted, failed, skipped }` which the frontend shows as a t
 
 ## Architecture
 
-```
-                                +-------------------------------+
-                                | Microsoft identity platform   |
-                                | login.microsoftonline.com     |
-                                +-------------------------------+
-                                          ^         ^
-                                  authorize|         |token refresh
-                                          |         |
-       Browser <---OAuth popup--- /api/ms365/:project/connect
-                                          |
-                                          v
-       +---------------------------------------------------------------+
-       | Backend (Nest.js, :6060)                                      |
-       |                                                               |
-       |  Ms365OAuthController          Ms365TokenService               |
-       |     code -> tokens   -------->   stores in SecretsManager      |
-       |                                  (keys: ms365/<project>/*)    |
-       |                                                               |
-       |  GraphClientService  <-- uses TokenService for Bearer header  |
-       |                                                               |
-       |  OneDriveSyncService                                          |
-       |     runDelta (every 20 s) ----- automatic pull                |
-       |     pushNow              ------- manual push (button)         |
-       |     mapping.json     <-- /workspace/<project>/onedrive/.meta/ |
-       |                                                               |
-       |  FilesystemEventsService   per-project Subject<FsEvent>       |
-       |       └─> SseMultiplexController  channel="filesystem"        |
-       |                                                               |
-       |  WritebackWatcherService   (chokidar — opt-in, not default)   |
-       |                                                               |
-       |  McpServerFactory  registers "ms365" group ---> /mcp/ms365    |
-       |     tools: list_drives, add_sync_root, stub_tree,             |
-       |            run_delta, push_now, set_auto_sync, ...            |
-       +---------------------------------------------------------------+
-                                          |
-                                          v
-                  /workspace/<project>/onedrive/
-                    .meta/
-                       mapping.json     (driveItemId, eTag, hydrated, autoSync, ...)
-                       downloading/     (atomic-rename staging area)
-                       exclude.json     (optional)
-                       conflicts/       (timestamped copies on 412/409)
-                    <label>/             (one subdir per sync root)
-                      Documents/
-                        foo.docx           <-- hydrated (the normal case)
-                        bar.txt.onedrive-stub  <-- placeholder (download-failure fallback)
+```mermaid
+flowchart TB
+    MS["Microsoft identity platform<br/>login.microsoftonline.com"]
+    Browser["Browser"]
+
+    Browser -- "OAuth popup" --> Connect["/api/ms365/:project/connect"]
+    Connect -- "authorize" --> MS
+    MS -- "token refresh" --> TokenSvc
+
+    subgraph Backend["Backend (Nest.js, :6060)"]
+        direction TB
+        OAuth["Ms365OAuthController<br/>code → tokens"]
+        TokenSvc["Ms365TokenService<br/>stores in SecretsManager<br/>(keys: ms365/&lt;project&gt;/*)"]
+        Graph["GraphClientService<br/>uses TokenService for Bearer header"]
+        Sync["OneDriveSyncService<br/>• runDelta (every 20 s) — automatic pull<br/>• pushNow — manual push (button)<br/>• mapping.json under /workspace/&lt;project&gt;/onedrive/.meta/"]
+        FsEvents["FilesystemEventsService<br/>per-project Subject&lt;FsEvent&gt;"]
+        SseMux["SseMultiplexController<br/>channel=&quot;filesystem&quot;"]
+        Watcher["WritebackWatcherService<br/>(chokidar — opt-in, not default)"]
+        McpFactory["McpServerFactory<br/>registers &quot;ms365&quot; group → /mcp/ms365<br/>tools: list_drives, add_sync_root, stub_tree,<br/>run_delta, push_now, set_auto_sync, ..."]
+
+        OAuth --> TokenSvc
+        TokenSvc --> Graph
+        Graph --> Sync
+        Sync --> FsEvents
+        FsEvents --> SseMux
+    end
+
+    Connect --> OAuth
+
+    subgraph FS["/workspace/&lt;project&gt;/onedrive/"]
+        direction TB
+        Meta[".meta/<br/>• mapping.json (driveItemId, eTag, hydrated, autoSync, ...)<br/>• downloading/ (atomic-rename staging area)<br/>• exclude.json (optional)<br/>• conflicts/ (timestamped copies on 412/409)"]
+        Label["&lt;label&gt;/ (one subdir per sync root)<br/>Documents/<br/>• foo.docx — hydrated (the normal case)<br/>• bar.txt.onedrive-stub — placeholder (download-failure fallback)"]
+    end
+
+    Sync --> Meta
+    Sync --> Label
+    Watcher --> Label
 ```
 
 ### Lifecycle
