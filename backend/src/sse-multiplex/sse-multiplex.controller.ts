@@ -5,6 +5,7 @@ import { InterceptorsService } from '../interceptors/interceptors.service';
 import { DeepResearchService } from '../deep-research/deep-research.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
+import { FilesystemEventsService } from '../ms365/filesystem-events.service';
 import { MuxChannel, MuxEventType, MuxEnvelope } from './sse-mux.types';
 
 /**
@@ -31,6 +32,7 @@ export class SseMultiplexController {
     private readonly deepResearchService: DeepResearchService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly ssePublisher: SSEPublisherService,
+    private readonly fsEvents: FilesystemEventsService,
   ) {}
 
   @Get('stream/:project')
@@ -92,7 +94,7 @@ export class SseMultiplexController {
     // Parse requested channels (default: all)
     const requested = channels
       ? new Set(channels.split(','))
-      : new Set(['interceptor', 'interceptor-global', 'research', 'budget', 'events']);
+      : new Set(['interceptor', 'interceptor-global', 'research', 'budget', 'events', 'filesystem']);
 
     // 1. Project interceptors
     if (requested.has('interceptor')) {
@@ -125,6 +127,14 @@ export class SseMultiplexController {
       const sub = this.budgetMonitoringService
         .getSubject(project)
         .subscribe((event) => send('budget', 'budget-update', event));
+      subscriptions.push(sub);
+    }
+
+    // 4b. Filesystem events (OneDrive sync downloads/renames/deletes)
+    if (requested.has('filesystem')) {
+      const sub = this.fsEvents
+        .getSubject(project)
+        .subscribe((event) => send('filesystem', event.type as MuxEventType, event));
       subscriptions.push(sub);
     }
 

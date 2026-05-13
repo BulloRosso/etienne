@@ -15,20 +15,30 @@ export interface ContextMenuCondition {
   value: string;
 }
 
+export interface ContextMenuStateEndpoint {
+  url: string;                           // supports '{project}' substitution
+  expression: string;                    // dot-path, e.g. '$.connected'
+  fallback: 'disable' | 'hide';
+}
+
 export interface ContextMenuAction {
   id: string;
   labels: Record<string, string>;       // { en, de, it, zh }
   icon?: string;                         // e.g. 'codicon codicon-checklist'
-  modalComponent: string;               // component name or '__preview__'
+  modalComponent: string;               // component name, '__preview__', '__mcptool__', or '__rest__'
   params: ContextMenuActionParam[];
   condition?: ContextMenuCondition;
   minRole?: string;                      // e.g. 'user'
+  stateEndpoint?: ContextMenuStateEndpoint;
+  mcpGroup?: string;                     // per-action override (for __mcptool__)
+  mcpToolName?: string;                  // per-action override (for __mcptool__)
 }
 
 export interface PreviewerMapping {
   viewer: string;
-  type?: 'file' | 'service' | 'mcpui';   // defaults to 'file' for backward compat
+  type?: 'file' | 'service' | 'mcpui' | 'folder';   // defaults to 'file' for backward compat
   extensions: string[];
+  folderPatterns?: string[];                          // glob list, e.g. ['onedrive*'] for folder-type entries
   contextMenuActions?: ContextMenuAction[];
   mcpGroup?: string;                       // MCP server group name (e.g. 'budget')
   mcpToolName?: string;                    // MCP tool to call (e.g. 'render_budget')
@@ -44,10 +54,11 @@ export interface ServicePreviewerInfo {
 
 export interface PreviewerMetadataEntry {
   viewer: string;
-  type?: 'file' | 'service' | 'mcpui';
+  type?: 'file' | 'service' | 'mcpui' | 'folder';
   mcpGroup?: string;
   mcpToolName?: string;
   extensions?: string[];
+  folderPatterns?: string[];
   actions?: ContextMenuAction[];
 }
 
@@ -72,11 +83,11 @@ export class PreviewersService {
     const previewers = this.getExtensionMappings();
     const metadata = await this.loadMetadata();
 
-    // Merge metadata (type, mcpGroup, mcpToolName, contextMenuActions) into previewers
+    // Merge metadata (type, mcpGroup, mcpToolName, folderPatterns, contextMenuActions) into previewers
     for (const entry of metadata) {
       let previewer = previewers.find(p => p.viewer === entry.viewer);
-      if (!previewer && entry.type === 'mcpui') {
-        // MCP UI previewers may not be in REGISTERED_PREVIEWERS env — add them
+      if (!previewer && (entry.type === 'mcpui' || entry.type === 'folder')) {
+        // MCP UI and folder previewers are not in REGISTERED_PREVIEWERS env — add them
         previewer = { viewer: entry.viewer, extensions: entry.extensions || [] };
         previewers.push(previewer);
       }
@@ -84,6 +95,7 @@ export class PreviewersService {
         if (entry.type) previewer.type = entry.type;
         if (entry.mcpGroup) previewer.mcpGroup = entry.mcpGroup;
         if (entry.mcpToolName) previewer.mcpToolName = entry.mcpToolName;
+        if (entry.folderPatterns) previewer.folderPatterns = entry.folderPatterns;
         if (entry.actions) previewer.contextMenuActions = entry.actions;
       }
     }
@@ -167,7 +179,8 @@ export class PreviewersService {
     const extensionOnly: PreviewerMapping[] = [];
 
     for (const p of previewers) {
-      const hasMetadata = p.type === 'mcpui' || p.mcpGroup || p.mcpToolName
+      const hasMetadata = p.type === 'mcpui' || p.type === 'folder' || p.mcpGroup || p.mcpToolName
+        || (p.folderPatterns && p.folderPatterns.length > 0)
         || (p.contextMenuActions && p.contextMenuActions.length > 0);
 
       if (hasMetadata) {
@@ -176,14 +189,15 @@ export class PreviewersService {
         if (p.mcpGroup) entry.mcpGroup = p.mcpGroup;
         if (p.mcpToolName) entry.mcpToolName = p.mcpToolName;
         if (p.type === 'mcpui') entry.extensions = p.extensions;
+        if (p.type === 'folder') entry.folderPatterns = p.folderPatterns || [];
         if (p.contextMenuActions && p.contextMenuActions.length > 0) {
           entry.actions = p.contextMenuActions;
         }
         metadata.push(entry);
       }
 
-      // MCP UI previewers store extensions in metadata, not in env var
-      if (p.type !== 'mcpui') {
+      // MCP UI and folder previewers store everything in metadata, not in env var
+      if (p.type !== 'mcpui' && p.type !== 'folder') {
         extensionOnly.push({ viewer: p.viewer, extensions: p.extensions });
       }
     }
@@ -254,6 +268,52 @@ export class PreviewersService {
         extensions: ['.budget.json'],
         mcpGroup: 'budget',
         mcpToolName: 'render_budget',
+      },
+      {
+        viewer: 'onedrive',
+        type: 'folder',
+        folderPatterns: ['onedrive*'],
+        mcpGroup: 'ms365',
+        actions: [
+          {
+            id: 'onedrive-pull',
+            labels: {
+              en: 'Pull from OneDrive',
+              de: 'Von OneDrive herunterziehen',
+              it: 'Scarica da OneDrive',
+              zh: '从 OneDrive 拉取',
+            },
+            icon: 'codicon codicon-cloud-download',
+            modalComponent: '__mcptool__',
+            mcpToolName: 'run_delta',
+            params: [],
+            minRole: 'user',
+            stateEndpoint: {
+              url: '/api/ms365/{project}/status',
+              expression: '$.connected',
+              fallback: 'disable',
+            },
+          },
+          {
+            id: 'onedrive-push',
+            labels: {
+              en: 'Push to OneDrive',
+              de: 'Auf OneDrive hochladen',
+              it: 'Carica su OneDrive',
+              zh: '推送到 OneDrive',
+            },
+            icon: 'codicon codicon-cloud-upload',
+            modalComponent: '__mcptool__',
+            mcpToolName: 'start_writeback',
+            params: [],
+            minRole: 'user',
+            stateEndpoint: {
+              url: '/api/ms365/{project}/status',
+              expression: '$.connected',
+              fallback: 'disable',
+            },
+          },
+        ],
       },
     ];
   }

@@ -12,6 +12,8 @@ export interface DriveItem {
   parentReference?: { driveId: string; path?: string };
   lastModifiedDateTime?: string;
   '@microsoft.graph.downloadUrl'?: string;
+  deleted?: { state: string };
+  root?: Record<string, unknown>;
 }
 
 @Injectable()

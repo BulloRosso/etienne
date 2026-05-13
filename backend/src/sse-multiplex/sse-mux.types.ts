@@ -21,6 +21,7 @@ export type MuxChannel =
   | 'research'
   | 'budget'
   | 'events'
+  | 'filesystem'
   | 'system'
   | 'heartbeat';
 

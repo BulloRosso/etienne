@@ -4,9 +4,10 @@ import { InterceptorsModule } from '../interceptors/interceptors.module';
 import { DeepResearchModule } from '../deep-research/deep-research.module';
 import { BudgetMonitoringModule } from '../budget-monitoring/budget-monitoring.module';
 import { EventHandlingModule } from '../event-handling/event-handling.module';
+import { Ms365Module } from '../ms365/ms365.module';
 
 @Module({
-  imports: [InterceptorsModule, DeepResearchModule, BudgetMonitoringModule, EventHandlingModule],
+  imports: [InterceptorsModule, DeepResearchModule, BudgetMonitoringModule, EventHandlingModule, Ms365Module],
   controllers: [SseMultiplexController],
 })
 export class SseMultiplexModule {}

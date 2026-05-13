@@ -186,7 +186,8 @@ export function buildExtensionMap(systemPreviewers = [], projectOverrides = []) 
 
   // System config from backend overrides built-in defaults
   for (const previewer of systemPreviewers) {
-    for (const ext of previewer.extensions) {
+    if (previewer.type === 'folder') continue;     // folder entries don't participate in the extension map
+    for (const ext of (previewer.extensions || [])) {
       map.set(ext.toLowerCase(), previewer.viewer);
     }
   }
@@ -277,4 +278,105 @@ export function getContextMenuActions(row, previewersConfig, extensionMap, user)
 
     return true;
   });
+}
+
+/**
+ * Glob-style match of a single folder name against a pattern.
+ * Anchored full-string match. `*` matches any sequence. Case-insensitive.
+ *   matchFolderPattern('onedrive-personal', 'onedrive*') === true
+ *   matchFolderPattern('myonedrive', 'onedrive*') === false
+ */
+export function matchFolderPattern(folderName, pattern) {
+  if (!folderName || !pattern) return false;
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  return new RegExp(`^${escaped}$`, 'i').test(folderName);
+}
+
+/**
+ * Returns context menu actions applicable to a folder row, based on previewer config.
+ * Matches folder-type entries by glob against the folder's own name (last path segment).
+ * Each returned action carries a `_previewer` reference for mcpGroup lookup.
+ */
+export function getFolderContextMenuActions(row, previewersConfig, user) {
+  if (!row || row.type !== 'folder' || !previewersConfig) return [];
+  const folderName = (row.path || '').split('/').filter(Boolean).pop() || '';
+  if (!folderName) return [];
+
+  const out = [];
+  for (const p of previewersConfig) {
+    if (p.type !== 'folder' || !Array.isArray(p.folderPatterns)) continue;
+    if (!p.folderPatterns.some(pat => matchFolderPattern(folderName, pat))) continue;
+    for (const action of (p.contextMenuActions || [])) {
+      // Role gate — same logic as getContextMenuActions
+      if (action.minRole && user) {
+        if (action.minRole === 'user' && user.role === 'guest') continue;
+        if (action.minRole === 'admin' && user.role !== 'admin') continue;
+      } else if (action.minRole && !user) {
+        continue;
+      }
+      out.push({ ...action, _previewer: p });
+    }
+  }
+  return out;
+}
+
+/**
+ * Resolve a dotted JSONPath subset against a JSON value.
+ * Supports '$', '$.foo', '$.foo.bar'. Returns undefined on miss.
+ */
+export function evalDotPath(json, expr) {
+  if (!expr || expr === '$') return json;
+  const path = expr.startsWith('$.') ? expr.slice(2) : expr.replace(/^\$/, '');
+  let cur = json;
+  for (const seg of path.split('.')) {
+    if (cur == null) return undefined;
+    cur = cur[seg];
+  }
+  return cur;
+}
+
+/**
+ * Evaluate `stateEndpoint` for a set of actions.
+ * Dedupes endpoint URLs, fetches them in parallel, walks the dot-path expression,
+ * and returns a map: actionId -> { enabled, hidden }.
+ * Network failures degrade to enabled=false. Actions without a stateEndpoint are always enabled.
+ */
+export async function evaluateActionStates(actions, projectName, apiAxios) {
+  const result = {};
+  if (!actions?.length) return result;
+
+  const urlMap = new Map();
+  for (const a of actions) {
+    if (!a.stateEndpoint?.url) continue;
+    const url = a.stateEndpoint.url.replace(/\{project\}/g, encodeURIComponent(projectName));
+    if (!urlMap.has(url)) {
+      urlMap.set(url, apiAxios.get(url).then(r => r.data).catch(() => null));
+    }
+  }
+
+  const entries = [...urlMap.entries()];
+  const responses = await Promise.all(entries.map(([, p]) => p));
+  const byUrl = new Map(entries.map(([url], i) => [url, responses[i]]));
+
+  for (const a of actions) {
+    if (!a.stateEndpoint?.url) {
+      result[a.id] = { enabled: true, hidden: false };
+      continue;
+    }
+    const url = a.stateEndpoint.url.replace(/\{project\}/g, encodeURIComponent(projectName));
+    const data = byUrl.get(url);
+    if (data == null) {
+      result[a.id] = { enabled: false, hidden: false };
+      continue;
+    }
+    const truthy = !!evalDotPath(data, a.stateEndpoint.expression);
+    if (truthy) {
+      result[a.id] = { enabled: true, hidden: false };
+    } else if (a.stateEndpoint.fallback === 'hide') {
+      result[a.id] = { enabled: false, hidden: true };
+    } else {
+      result[a.id] = { enabled: false, hidden: false };
+    }
+  }
+  return result;
 }

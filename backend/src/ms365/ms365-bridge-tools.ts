@@ -68,18 +68,18 @@ export function createMs365BridgeToolsService(
       },
       {
         name: 'stub_tree',
-        description: 'Materialize the file tree under each sync root as empty stub files (*.onedrive-stub). Stubs make Glob/ls work. Use hydrate_path to fetch real content for a specific file.',
+        description: 'Sync the file tree under each sync root: download every file and create folders locally. Files are written directly (no stubs) so Read/Glob work without extra steps. Files that fail to download fall back to *.onedrive-stub placeholders.',
         inputSchema: {
           type: 'object' as const,
-          properties: { root_label: { type: 'string', description: 'Limit to one sync root; omit to stub all roots.' } },
+          properties: { root_label: { type: 'string', description: 'Limit to one sync root; omit to sync all roots.' } },
         },
       },
       {
         name: 'hydrate_path',
-        description: 'Download the real content for a remote path and replace its stub with the actual file. Call this before Read on a stub.',
+        description: 'Force-download a remote path now (used when a fallback stub exists or to refresh a file). Normal new files are already downloaded by stub_tree and run_delta.',
         inputSchema: {
           type: 'object' as const,
-          properties: { remote_path: { type: 'string', description: 'Remote path from the mapping (as shown in stub contents).' } },
+          properties: { remote_path: { type: 'string', description: 'Remote path from the mapping.' } },
           required: ['remote_path'],
         },
       },
@@ -106,14 +106,23 @@ export function createMs365BridgeToolsService(
         inputSchema: { type: 'object' as const, properties: {} },
       },
       {
-        name: 'start_writeback',
-        description: 'Start the chokidar watcher that uploads local edits under /workspace/<project>/onedrive/ back to OneDrive.',
+        name: 'push_now',
+        description: 'One-shot scan: upload any local files that are new or changed since last push, and delete remote files whose local copy has been removed. Use this after editing or deleting files locally.',
         inputSchema: { type: 'object' as const, properties: {} },
       },
       {
-        name: 'stop_writeback',
-        description: 'Stop the write-back watcher for this project.',
+        name: 'get_auto_sync',
+        description: 'Return whether auto-sync is enabled for this project (delta poll every 20s + chokidar write-back).',
         inputSchema: { type: 'object' as const, properties: {} },
+      },
+      {
+        name: 'set_auto_sync',
+        description: 'Enable or disable auto-sync. When on: delta polling and write-back start automatically. When off: both stop.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: { enabled: { type: 'boolean' } },
+          required: ['enabled'],
+        },
       },
       {
         name: 'create_folder',
@@ -149,16 +158,23 @@ export function createMs365BridgeToolsService(
             remotePath: args.remote_path || '',
             label: args.label,
           });
-          sync.startDeltaPolling(project);
+          if (await sync.getAutoSync(project)) {
+            sync.startDeltaPolling(project);
+          }
           return { root };
         }
 
         case 'list_sync_roots':
           return { roots: await sync.listRoots(project) };
 
-        case 'remove_sync_root':
-          await sync.removeRoot(project, args.label);
-          return { ok: true };
+        case 'remove_sync_root': {
+          const result = await sync.removeRoot(project, args.label);
+          if (!(await sync.hasAnyRoots(project))) {
+            sync.stopDeltaPolling(project);
+            watcher.stopWatching(project);
+          }
+          return { ok: true, ...result };
+        }
 
         case 'stub_tree':
           return await sync.stubTree(project, args.root_label);
@@ -177,13 +193,21 @@ export function createMs365BridgeToolsService(
         case 'run_delta':
           return await sync.runDelta(project);
 
-        case 'start_writeback':
-          watcher.startWatching(project);
-          return { watching: true };
+        case 'push_now':
+          return await sync.pushNow(project);
 
-        case 'stop_writeback':
-          watcher.stopWatching(project);
-          return { watching: false };
+        case 'get_auto_sync':
+          return { enabled: await sync.getAutoSync(project) };
+
+        case 'set_auto_sync': {
+          await sync.setAutoSync(project, !!args.enabled);
+          if (args.enabled) {
+            sync.startDeltaPolling(project);
+          } else {
+            sync.stopDeltaPolling(project);
+          }
+          return { enabled: !!args.enabled };
+        }
 
         case 'create_folder': {
           const item = await graph.createFolder(project, args.parent_path || '', args.folder_name, args.drive_id);

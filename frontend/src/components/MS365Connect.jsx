@@ -5,13 +5,21 @@ import {
   Card,
   CardContent,
   Typography,
-  Chip,
   CircularProgress,
   Alert,
   Divider,
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  Snackbar,
+  Checkbox,
+  Collapse,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  MenuItem,
+  Select,
   List,
   ListItem,
   ListItemText,
@@ -23,45 +31,21 @@ import {
 } from '@mui/material';
 import {
   CloudQueue,
-  CloudOff,
   Refresh,
   Add,
   Delete,
-  Sync,
-  PlayArrow,
-  Stop,
+  CloudDownload,
+  CloudUpload,
   FolderOpen,
   Close,
+  ExpandMore,
+  ExpandLess,
 } from '@mui/icons-material';
 import { apiAxios, API_BASE } from '../services/api';
+import { callMcp as callMcpShared } from '../services/mcpClient';
 
-const MCP_TOKEN = 'test123';
-
-function callMcp(project, toolName, args = {}) {
-  return apiAxios.post(
-    `/mcp/ms365`,
-    {
-      jsonrpc: '2.0',
-      id: Date.now(),
-      method: 'tools/call',
-      params: { name: toolName, arguments: args },
-    },
-    {
-      headers: {
-        'X-Project-Name': project,
-        Authorization: `Bearer ${MCP_TOKEN}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json, text/event-stream',
-      },
-    },
-  ).then(r => {
-    const text = r.data?.result?.content?.[0]?.text;
-    if (text) {
-      try { return JSON.parse(text); } catch { return text; }
-    }
-    return r.data;
-  });
-}
+// Thin wrapper binding this file's calls to the 'ms365' MCP group.
+const callMcp = (project, toolName, args = {}) => callMcpShared(project, 'ms365', toolName, args);
 
 export default function MS365Connect({ projectName, open, onClose }) {
   const asDialog = typeof open === 'boolean';
@@ -74,9 +58,28 @@ export default function MS365Connect({ projectName, open, onClose }) {
   const [sites, setSites] = useState([]);
   const [siteSearch, setSiteSearch] = useState('');
   const [roots, setRoots] = useState([]);
-  const [syncStatus, setSyncStatus] = useState(null);
+  const [autoSync, setAutoSync] = useState(true);
   const [busy, setBusy] = useState(false);
   const [newRoot, setNewRoot] = useState({ drive_id: '', remote_path: '', label: '' });
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const [sharepointOpen, setSharepointOpen] = useState(false);
+  const [confirmState, setConfirmState] = useState({ open: false, title: '', message: '', confirmLabel: 'Confirm', danger: false, onConfirm: null });
+
+  const showToast = (message, severity = 'success') => setToast({ open: true, message, severity });
+
+  const askConfirm = (opts) => new Promise((resolve) => {
+    setConfirmState({
+      open: true,
+      title: opts.title || 'Confirm',
+      message: opts.message,
+      confirmLabel: opts.confirmLabel || 'Confirm',
+      danger: !!opts.danger,
+      onConfirm: (ok) => {
+        setConfirmState(s => ({ ...s, open: false }));
+        resolve(ok);
+      },
+    });
+  });
 
   const loadStatus = useCallback(async () => {
     if (!projectName) return;
@@ -97,12 +100,16 @@ export default function MS365Connect({ projectName, open, onClose }) {
 
   const refreshSyncState = useCallback(async () => {
     try {
-      const [r1, r2] = await Promise.all([
+      const [r1, r2, r3] = await Promise.all([
         callMcp(projectName, 'list_sync_roots'),
-        callMcp(projectName, 'sync_status'),
+        callMcp(projectName, 'get_auto_sync'),
+        callMcp(projectName, 'list_drives'),
       ]);
       setRoots(r1.roots || []);
-      setSyncStatus(r2);
+      if (typeof r2?.enabled === 'boolean') setAutoSync(r2.enabled);
+      const driveList = r3.drives || [];
+      setDrives(driveList);
+      setNewRoot(prev => prev.drive_id ? prev : { ...prev, drive_id: driveList[0]?.id || '' });
     } catch (e) {
       // swallow — not connected yet
     }
@@ -137,7 +144,13 @@ export default function MS365Connect({ projectName, open, onClose }) {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('Disconnect Microsoft 365 for this project? Sync roots stay; tokens are deleted.')) return;
+    const ok = await askConfirm({
+      title: 'Disconnect Microsoft 365?',
+      message: 'Tokens for this project will be deleted. Sync roots stay configured but auto-sync will fail until you reconnect.',
+      confirmLabel: 'Disconnect',
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await apiAxios.post(`/api/ms365/${encodeURIComponent(projectName)}/disconnect`);
@@ -147,14 +160,6 @@ export default function MS365Connect({ projectName, open, onClose }) {
     } finally {
       setBusy(false);
     }
-  };
-
-  const handleListDrives = async () => {
-    setBusy(true); setError(null);
-    try {
-      const r = await callMcp(projectName, 'list_drives');
-      setDrives(r.drives || []);
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
 
   const handleListSites = async () => {
@@ -180,18 +185,36 @@ export default function MS365Connect({ projectName, open, onClose }) {
   };
 
   const handleRemoveRoot = async (label) => {
-    setBusy(true);
+    const ok = await askConfirm({
+      title: `Remove sync root "${label}"?`,
+      message: 'This deletes the local mirror folder and clears mapping entries for this root. Files in OneDrive are not touched.',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy(true); setError(null);
     try {
-      await callMcp(projectName, 'remove_sync_root', { label });
+      const r = await callMcp(projectName, 'remove_sync_root', { label });
+      showToast(`Removed "${label}" (${r.purgedEntries || 0} entries purged)`, 'success');
       await refreshSyncState();
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
+    } catch (e) {
+      setError(`Remove failed: ${e.message}`);
+      showToast(`Remove failed: ${e.message}`, 'error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleStubTree = async (label) => {
     setBusy(true); setError(null);
     try {
       const r = await callMcp(projectName, 'stub_tree', label ? { root_label: label } : {});
-      alert(`Stubbed ${r.stubs} files, ${r.folders} folders`);
+      const parts = [];
+      if (r.files) parts.push(`${r.files} file${r.files === 1 ? '' : 's'}`);
+      if (r.folders) parts.push(`${r.folders} folder${r.folders === 1 ? '' : 's'}`);
+      if (r.stubs) parts.push(`${r.stubs} stub${r.stubs === 1 ? '' : 's'} (download failed)`);
+      if (r.skipped) parts.push(`${r.skipped} skipped (too large)`);
+      showToast(`Synced: ${parts.join(', ') || 'nothing'}`, r.stubs ? 'warning' : 'success');
       await refreshSyncState();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
@@ -200,84 +223,59 @@ export default function MS365Connect({ projectName, open, onClose }) {
     setBusy(true);
     try {
       const r = await callMcp(projectName, 'run_delta');
-      alert(`Delta processed ${r.changed} changes`);
+      const parts = [];
+      if (r.added) parts.push(`${r.added} added`);
+      if (r.renamed) parts.push(`${r.renamed} renamed`);
+      if (r.removed) parts.push(`${r.removed} removed`);
+      const summary = parts.length ? parts.join(', ') : 'no remote changes';
+      showToast(`Delta: ${summary}`, parts.length ? 'success' : 'info');
       await refreshSyncState();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
 
-  const handleToggleWriteback = async () => {
-    setBusy(true);
+  const handlePush = async () => {
+    setBusy(true); setError(null);
     try {
-      const tool = syncStatus?.writebackActive ? 'stop_writeback' : 'start_writeback';
-      await callMcp(projectName, tool);
-      await refreshSyncState();
+      const r = await callMcp(projectName, 'push_now');
+      const parts = [];
+      if (r.uploaded) parts.push(`${r.uploaded} uploaded`);
+      if (r.deleted) parts.push(`${r.deleted} deleted`);
+      if (r.failed) parts.push(`${r.failed} failed`);
+      if (r.skipped) parts.push(`${r.skipped} skipped`);
+      const summary = parts.length ? parts.join(', ') : 'nothing to push';
+      showToast(`Push: ${summary}`, r.failed ? 'warning' : (parts.length ? 'success' : 'info'));
     } catch (e) { setError(e.message); } finally { setBusy(false); }
+  };
+
+  const handleSetAutoSync = async (enabled) => {
+    setAutoSync(enabled); // optimistic
+    try {
+      await callMcp(projectName, 'set_auto_sync', { enabled });
+    } catch (e) {
+      setAutoSync(!enabled);
+      setError(e.message);
+    }
   };
 
   const body = loading ? (
     <Box sx={{ p: 3 }}><CircularProgress /></Box>
   ) : (
-    <Box sx={{ p: 2, maxWidth: 900 }}>
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Stack direction="row" alignItems="center" spacing={2}>
-            {status?.connected ? <CloudQueue color="primary" /> : <CloudOff color="disabled" />}
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6">Microsoft 365</Typography>
-              {status?.connected ? (
-                <Typography variant="body2" color="text.secondary">
-                  Connected as <strong>{status.accountEmail || 'unknown'}</strong>
-                  {status.expiresAt && (
-                    <> · token expires {new Date(status.expiresAt).toLocaleString()}</>
-                  )}
-                </Typography>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Not connected. Connect to mirror OneDrive/SharePoint into the project workspace.
-                </Typography>
-              )}
-            </Box>
-            {status?.connected ? (
-              <>
-                <Button onClick={loadStatus} startIcon={<Refresh />} disabled={busy}>Refresh</Button>
-                <Button onClick={handleDisconnect} color="error" disabled={busy}>Disconnect</Button>
-              </>
-            ) : (
-              <Button variant="contained" onClick={handleConnect} disabled={connecting} startIcon={connecting ? <CircularProgress size={16} /> : <CloudQueue />}>
-                {connecting ? 'Waiting…' : 'Connect Microsoft 365'}
-              </Button>
-            )}
-          </Stack>
-        </CardContent>
-      </Card>
-
+    <Box sx={{ p: asDialog ? 0 : 2, maxWidth: 900 }}>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+
+      {!status?.connected && (
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+            Not connected. Connect to mirror OneDrive/SharePoint into the project workspace.
+          </Typography>
+          <Button variant="contained" onClick={handleConnect} disabled={connecting} startIcon={connecting ? <CircularProgress size={16} /> : <CloudQueue />}>
+            {connecting ? 'Waiting…' : 'Connect Microsoft 365'}
+          </Button>
+        </Box>
+      )}
 
       {status?.connected && (
         <>
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>Sync status</Typography>
-              {syncStatus ? (
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Chip label={`${syncStatus.roots.length} roots`} />
-                  <Chip label={`${syncStatus.entries} entries`} />
-                  <Chip label={`${syncStatus.hydrated} hydrated`} color="primary" variant="outlined" />
-                  <Chip label={`${syncStatus.pendingUploads} pending`} color={syncStatus.pendingUploads > 0 ? 'warning' : 'default'} />
-                  <Chip label={`${syncStatus.conflicts} conflicts`} color={syncStatus.conflicts > 0 ? 'error' : 'default'} />
-                  <Chip label={syncStatus.deltaPolling ? 'delta polling on' : 'delta polling off'} />
-                  <Chip label={syncStatus.writebackActive ? 'write-back on' : 'write-back off'} color={syncStatus.writebackActive ? 'success' : 'default'} />
-                </Stack>
-              ) : <Typography variant="body2" color="text.secondary">Loading…</Typography>}
-              <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                <Button startIcon={<Sync />} onClick={handleRunDelta} disabled={busy}>Run delta now</Button>
-                <Button startIcon={syncStatus?.writebackActive ? <Stop /> : <PlayArrow />} onClick={handleToggleWriteback} disabled={busy}>
-                  {syncStatus?.writebackActive ? 'Stop write-back' : 'Start write-back'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-
           <Card sx={{ mb: 2 }}>
             <CardContent>
               <Typography variant="subtitle1" gutterBottom>Sync roots</Typography>
@@ -290,7 +288,7 @@ export default function MS365Connect({ projectName, open, onClose }) {
                       secondary={`remote: ${r.remotePath || '/'} → local: ${r.localRoot}`}
                     />
                     <ListItemSecondaryAction>
-                      <Tooltip title="Stub this tree (materialize file structure as empty placeholders)">
+                      <Tooltip title="Sync this tree (download all files and create folders locally)">
                         <IconButton onClick={() => handleStubTree(r.label)} disabled={busy}><FolderOpen /></IconButton>
                       </Tooltip>
                       <IconButton onClick={() => handleRemoveRoot(r.label)} disabled={busy}><Delete /></IconButton>
@@ -300,64 +298,133 @@ export default function MS365Connect({ projectName, open, onClose }) {
               </List>
               <Divider sx={{ my: 1 }} />
               <Typography variant="subtitle2">Add a sync root</Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center">
                 <TextField size="small" label="Label" value={newRoot.label} onChange={(e) => setNewRoot({ ...newRoot, label: e.target.value })} sx={{ width: 200 }} />
-                <TextField size="small" label="Drive ID (blank = /me/drive)" value={newRoot.drive_id} onChange={(e) => setNewRoot({ ...newRoot, drive_id: e.target.value })} sx={{ flex: 1 }} />
+                <FormControl size="small" sx={{ flex: 1, minWidth: 220 }}>
+                  <InputLabel id="ms365-drive-label">Drive</InputLabel>
+                  <Select
+                    labelId="ms365-drive-label"
+                    label="Drive"
+                    value={newRoot.drive_id}
+                    onChange={(e) => setNewRoot({ ...newRoot, drive_id: e.target.value })}
+                    displayEmpty
+                  >
+                    <MenuItem value=""><em>/me/drive (default)</em></MenuItem>
+                    {drives.map(d => (
+                      <MenuItem key={d.id} value={d.id}>{d.name || '(no name)'}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <TextField size="small" label="Remote path (e.g. Documents)" value={newRoot.remote_path} onChange={(e) => setNewRoot({ ...newRoot, remote_path: e.target.value })} sx={{ flex: 1 }} />
-                <Button startIcon={<Add />} onClick={handleAddRoot} disabled={busy}>Add</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={handleAddRoot} disabled={busy || !newRoot.label}>Add</Button>
               </Stack>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>Browse drives</Typography>
-              <Button onClick={handleListDrives} disabled={busy}>List my drives</Button>
-              <List dense>
-                {drives.map(d => (
-                  <ListItem key={d.id}>
-                    <ListItemText primary={d.name || '(no name)'} secondary={`ID: ${d.id}`} />
-                    <ListItemSecondaryAction>
-                      <Button size="small" onClick={() => setNewRoot({ drive_id: d.id, remote_path: '', label: d.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'drive' })}>Use</Button>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))}
-              </List>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>Browse SharePoint sites (org mode)</Typography>
-              <Stack direction="row" spacing={1}>
-                <TextField size="small" label="Search (optional)" value={siteSearch} onChange={(e) => setSiteSearch(e.target.value)} sx={{ flex: 1 }} />
-                <Button onClick={handleListSites} disabled={busy}>Search</Button>
+            <CardContent sx={{ pb: '16px !important' }}>
+              <Stack direction="row" alignItems="center" sx={{ cursor: 'pointer' }} onClick={() => setSharepointOpen(o => !o)}>
+                <Typography variant="subtitle1" sx={{ flex: 1 }}>Browse SharePoint sites (org mode)</Typography>
+                <IconButton size="small">{sharepointOpen ? <ExpandLess /> : <ExpandMore />}</IconButton>
               </Stack>
-              <List dense>
-                {sites.map(s => (
-                  <ListItem key={s.id}>
-                    <ListItemText primary={s.displayName} secondary={s.webUrl} />
-                  </ListItem>
-                ))}
-              </List>
+              <Collapse in={sharepointOpen}>
+                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                  <TextField size="small" label="Search (optional)" value={siteSearch} onChange={(e) => setSiteSearch(e.target.value)} sx={{ flex: 1 }} />
+                  <Button onClick={handleListSites} disabled={busy}>Search</Button>
+                </Stack>
+                <List dense>
+                  {sites.map(s => (
+                    <ListItem key={s.id}>
+                      <ListItemText primary={s.displayName} secondary={s.webUrl} />
+                    </ListItem>
+                  ))}
+                </List>
+              </Collapse>
             </CardContent>
           </Card>
         </>
       )}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3500}
+        onClose={() => setToast(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={toast.severity} variant="filled" onClose={() => setToast(s => ({ ...s, open: false }))}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+
+      <Dialog
+        open={confirmState.open}
+        onClose={() => confirmState.onConfirm && confirmState.onConfirm(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>{confirmState.title}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">{confirmState.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => confirmState.onConfirm && confirmState.onConfirm(false)}>Cancel</Button>
+          <Button
+            onClick={() => confirmState.onConfirm && confirmState.onConfirm(true)}
+            variant="contained"
+            color={confirmState.danger ? 'error' : 'primary'}
+            autoFocus
+          >
+            {confirmState.confirmLabel}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 
   if (!asDialog) return body;
 
+  const expiryText = status?.expiresAt ? `Token expires ${new Date(status.expiresAt).toLocaleString()}` : '';
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>Microsoft 365 / OneDrive</span>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ flex: 1 }}>Microsoft 365 / OneDrive</Box>
+        {status?.connected && (
+          <>
+            <Tooltip title="Pull (run delta now)">
+              <span>
+                <IconButton onClick={handleRunDelta} disabled={busy} size="small"><CloudDownload /></IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Push (upload local adds, delete local removes on OneDrive)">
+              <span>
+                <IconButton onClick={handlePush} disabled={busy} size="small"><CloudUpload /></IconButton>
+              </span>
+            </Tooltip>
+            <FormControlLabel
+              control={<Checkbox size="small" checked={autoSync} onChange={(e) => handleSetAutoSync(e.target.checked)} />}
+              label="auto-sync"
+              sx={{ ml: 0.5, mr: 0 }}
+            />
+          </>
+        )}
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
       </DialogTitle>
       <DialogContent dividers>
         {body}
       </DialogContent>
+      {status?.connected && (
+        <DialogActions sx={{ justifyContent: 'space-between', px: 3, py: 1.5 }}>
+          <Tooltip title={expiryText} arrow placement="top-start">
+            <Typography variant="body2" color="text.secondary">
+              Connected as <strong>{status.accountEmail || 'unknown'}</strong>
+            </Typography>
+          </Tooltip>
+          <Stack direction="row" spacing={1}>
+            <Button onClick={loadStatus} startIcon={<Refresh />} disabled={busy} size="small">Refresh</Button>
+            <Button onClick={handleDisconnect} color="error" disabled={busy} size="small">Disconnect</Button>
+          </Stack>
+        </DialogActions>
+      )}
     </Dialog>
   );
 }

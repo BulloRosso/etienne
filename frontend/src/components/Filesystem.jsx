@@ -41,7 +41,9 @@ import { flattenTree, getTagColor } from './fileTreeModel';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import OfferGeneratorModal from './OfferGeneratorModal';
-import { getContextMenuActions, buildExtensionMap, getViewerForFile } from './viewerRegistry';
+import { getContextMenuActions, buildExtensionMap, getViewerForFile, getFolderContextMenuActions, evaluateActionStates } from './viewerRegistry';
+import { callMcp } from '../services/mcpClient';
+import useMultiplexSSE from '../hooks/useMultiplexSSE';
 
 /**
  * Registry of modal components that can be opened from context menu actions.
@@ -88,6 +90,10 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
   const [contextMenuModal, setContextMenuModal] = useState({ open: false, component: null, props: {} });
   const [noPreviewerDialog, setNoPreviewerDialog] = useState(false);
 
+  // ── Folder context-menu actions (Pull/Push etc., driven by previewer config) ──
+  const [folderMenuStates, setFolderMenuStates] = useState({});      // actionId -> { enabled, hidden }
+  const [folderMenuLoading, setFolderMenuLoading] = useState(false);
+
   // ── Copy-to-project selection mode ──
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState(new Set());
@@ -115,6 +121,25 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
     loadReleaseData();
     loadIndexedPaths();
   }, [projectName]);
+
+  // ── Live updates from OneDrive sync (and any future fs publishers) ──
+  const mux = useMultiplexSSE(projectName);
+  const reloadDebounceRef = useRef(null);
+  useEffect(() => {
+    if (!projectName) return;
+    const onFsEvent = () => {
+      if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+      reloadDebounceRef.current = setTimeout(() => {
+        reloadDebounceRef.current = null;
+        loadFilesystem();
+      }, 500);
+    };
+    mux.on('filesystem', '*', onFsEvent);
+    return () => {
+      mux.off('filesystem', '*', onFsEvent);
+      if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+    };
+  }, [projectName, mux]);
 
   const loadFilesystem = async () => {
     setLoading(true);
@@ -304,6 +329,38 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
 
   const extensionMap = useMemo(() => buildExtensionMap(previewersConfig), [previewersConfig]);
 
+  // ── Folder context-menu actions: compute matches + evaluate state when menu opens ──
+  const currentFolderActions = useMemo(() => {
+    if (!contextMenu?.row || contextMenu.row.type !== 'folder') return [];
+    return getFolderContextMenuActions(
+      contextMenu.row,
+      previewersConfig,
+      { role: isGuest ? 'guest' : isAdmin ? 'admin' : 'user' },
+    );
+  }, [contextMenu, previewersConfig, isGuest, isAdmin]);
+
+  useEffect(() => {
+    if (!currentFolderActions.length) {
+      setFolderMenuStates({});
+      setFolderMenuLoading(false);
+      return;
+    }
+    // Render immediately with items disabled; flip to live state on resolve.
+    const initial = {};
+    for (const a of currentFolderActions) initial[a.id] = { enabled: false, hidden: false };
+    setFolderMenuStates(initial);
+    setFolderMenuLoading(true);
+
+    let cancelled = false;
+    evaluateActionStates(currentFolderActions, projectName, apiAxios).then(states => {
+      if (!cancelled) {
+        setFolderMenuStates(states);
+        setFolderMenuLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [currentFolderActions, projectName]);
+
   // ── Double-click preview ──
   const handleFileDoubleClick = useCallback((row) => {
     if (!row || row.type === 'folder') return;
@@ -353,6 +410,42 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
       return;
     }
 
+    // '__mcptool__' — call an MCP tool. Action's mcpGroup/mcpToolName override the parent previewer's.
+    if (action.modalComponent === '__mcptool__') {
+      const group = action.mcpGroup || action._previewer?.mcpGroup;
+      const tool  = action.mcpToolName || action._previewer?.mcpToolName;
+      if (!group || !tool) {
+        setError(`Action '${action.id}' is missing mcpGroup or mcpToolName`);
+        return;
+      }
+      const args = {};
+      for (const p of (action.params || [])) args[p.name] = resolveParamValue(p.source, row);
+      callMcp(projectName, group, tool, args)
+        .then(() => setRagSuccess(t('filesystem:folderActionSuccess', { tool, defaultValue: `${tool} completed` })))
+        .catch(err => setError(t('filesystem:folderActionFailed', { tool, message: err.message, defaultValue: `${tool} failed: ${err.message}` })));
+      return;
+    }
+
+    // '__rest__' — generic REST call. params drive method/path/body.
+    if (action.modalComponent === '__rest__') {
+      const resolved = {};
+      for (const p of (action.params || [])) resolved[p.name] = resolveParamValue(p.source, row);
+      const method = (resolved.method || 'GET').toLowerCase();
+      const path   = (resolved.path || '').replace(/\{project\}/g, encodeURIComponent(projectName));
+      const verb = apiAxios[method];
+      if (typeof verb !== 'function') {
+        setError(`Unsupported HTTP method: ${method}`);
+        return;
+      }
+      const req = method === 'get' || method === 'delete'
+        ? verb(path)
+        : verb(path, resolved.body);
+      req
+        .then(() => setRagSuccess(`${path} ok`))
+        .catch(err => setError(`${path} failed: ${err.message}`));
+      return;
+    }
+
     // Resolve params and open the named modal
     const props = {};
     for (const param of action.params) {
@@ -362,7 +455,7 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
     props.onClose = () => setContextMenuModal({ open: false, component: null, props: {} });
 
     setContextMenuModal({ open: true, component: action.modalComponent, props });
-  }, [contextMenu, projectName, resolveParamValue]);
+  }, [contextMenu, projectName, resolveParamValue, t]);
 
   // ── RAG index ──
   const handleAddToIndex = async () => {
@@ -768,6 +861,25 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
             {action.labels[i18n.language] || action.labels.en}
           </MenuItem>
         ))}
+        {/* Folder context menu actions (matched by prefix glob, gated by state endpoint) */}
+        {currentFolderActions
+          .filter(a => !folderMenuStates[a.id]?.hidden)
+          .map(action => {
+            const state = folderMenuStates[action.id] || { enabled: false, hidden: false };
+            const pending = folderMenuLoading && !state.enabled;
+            return (
+              <MenuItem
+                key={action.id}
+                disabled={!state.enabled}
+                onClick={() => handleContextMenuAction(action)}
+              >
+                {pending
+                  ? <CircularProgress size={12} sx={{ mr: 1 }} />
+                  : action.icon && <i className={action.icon} style={{ fontSize: 16, marginRight: 8 }} />}
+                {action.labels[i18n.language] || action.labels.en}
+              </MenuItem>
+            );
+          })}
         {isInboxFile(contextMenu?.row) && !isGuest && (
           <MenuItem onClick={handleAddToIndex} disabled={indexing}>
             <i className="codicon codicon-database" style={{ fontSize: 16, marginRight: 8 }} />

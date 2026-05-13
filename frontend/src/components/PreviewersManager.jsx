@@ -53,6 +53,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
   const [servicePreviewers, setServicePreviewers] = useState([]);
   const [selectedViewer, setSelectedViewer] = useState(null);
   const [newExtension, setNewExtension] = useState('');
+  const [newFolderPattern, setNewFolderPattern] = useState('');
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
@@ -105,6 +106,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
         name: p.viewer,
         type: p.type || 'file',
         extensions: p.extensions,
+        folderPatterns: p.folderPatterns,
         contextMenuActions: p.contextMenuActions || [],
         mcpGroup: p.mcpGroup,
         mcpToolName: p.mcpToolName,
@@ -153,6 +155,33 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
     const updated = previewers.map(p => {
       if (p.viewer === selectedViewer) {
         return { ...p, extensions: p.extensions.filter(e => e !== ext) };
+      }
+      return p;
+    });
+    setPreviewers(updated);
+  };
+
+  // ── Folder pattern management ──
+
+  const handleAddFolderPattern = () => {
+    const pat = newFolderPattern.trim();
+    if (!pat || !selectedPreviewer) return;
+    const updated = previewers.map(p => {
+      if (p.viewer === selectedViewer) {
+        const current = p.folderPatterns || [];
+        if (current.includes(pat)) return p;
+        return { ...p, folderPatterns: [...current, pat] };
+      }
+      return p;
+    });
+    setPreviewers(updated);
+    setNewFolderPattern('');
+  };
+
+  const handleRemoveFolderPattern = (pat) => {
+    const updated = previewers.map(p => {
+      if (p.viewer === selectedViewer) {
+        return { ...p, folderPatterns: (p.folderPatterns || []).filter(x => x !== pat) };
       }
       return p;
     });
@@ -268,6 +297,15 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
         mcpToolName: newMcpToolName.trim() || 'render_file',
         contextMenuActions: [],
       }]);
+    } else if (newPreviewerType === 'folder') {
+      setPreviewers(prev => [...prev, {
+        viewer: name,
+        type: 'folder',
+        extensions: [],
+        folderPatterns: [],
+        mcpGroup: newMcpGroup.trim() || undefined,
+        contextMenuActions: [],
+      }]);
     }
 
     setSelectedViewer(name);
@@ -282,6 +320,26 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
   // ── Save ──
 
   const handleSave = async () => {
+    // Warn (but don't block) when __mcptool__ actions lack an mcpGroup either on the action or its entry.
+    const orphanMcpToolActions = [];
+    for (const p of previewers) {
+      for (const a of (p.contextMenuActions || [])) {
+        if (a.modalComponent === '__mcptool__' && !(a.mcpGroup || p.mcpGroup)) {
+          orphanMcpToolActions.push(`${p.viewer}:${a.id}`);
+        }
+      }
+    }
+    if (orphanMcpToolActions.length > 0) {
+      setSnackbar({
+        open: true,
+        message: t('previewersManager:mcpToolMissingGroup', {
+          ids: orphanMcpToolActions.join(', '),
+          defaultValue: `__mcptool__ actions missing mcpGroup: ${orphanMcpToolActions.join(', ')}`,
+        }),
+        severity: 'warning',
+      });
+    }
+
     setSaving(true);
     try {
       const response = await apiFetch('/api/previewers/configuration', {
@@ -383,10 +441,84 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                 label={t('previewersManager:actionModal')}
                 value={action.modalComponent || ''}
                 onChange={(e) => handleUpdateAction(idx, 'modalComponent', e.target.value)}
-                placeholder="OfferGeneratorModal or __preview__"
+                placeholder="Modal | __preview__ | __mcptool__ | __rest__"
                 sx={{ flex: 1 }}
               />
             </Box>
+
+            {/* MCP group + tool name — only relevant for __mcptool__ actions */}
+            {action.modalComponent === '__mcptool__' && (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  size="small"
+                  label={t('previewersManager:mcpGroup')}
+                  value={action.mcpGroup || ''}
+                  onChange={(e) => handleUpdateAction(idx, 'mcpGroup', e.target.value)}
+                  placeholder={t('previewersManager:mcpGroupInherits', { defaultValue: '(inherits from entry)' })}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  label={t('previewersManager:mcpToolName')}
+                  value={action.mcpToolName || ''}
+                  onChange={(e) => handleUpdateAction(idx, 'mcpToolName', e.target.value)}
+                  placeholder="run_delta"
+                  sx={{ flex: 1 }}
+                />
+              </Box>
+            )}
+
+            {/* State endpoint — drives enabled/disabled/hidden at render time */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                {t('previewersManager:stateEndpoint', { defaultValue: 'State endpoint' })}
+              </Typography>
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => handleUpdateAction(
+                  idx,
+                  'stateEndpoint',
+                  action.stateEndpoint ? null : { url: '', expression: '$.connected', fallback: 'disable' }
+                )}
+                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+              >
+                {action.stateEndpoint
+                  ? t('previewersManager:removeStateEndpoint', { defaultValue: 'remove' })
+                  : t('previewersManager:addStateEndpoint', { defaultValue: 'add' })}
+              </Button>
+            </Box>
+            {action.stateEndpoint && (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  size="small"
+                  label="URL"
+                  value={action.stateEndpoint.url || ''}
+                  onChange={(e) => handleUpdateAction(idx, 'stateEndpoint', { ...action.stateEndpoint, url: e.target.value })}
+                  placeholder="/api/ms365/{project}/status"
+                  sx={{ flex: 2 }}
+                />
+                <TextField
+                  size="small"
+                  label={t('previewersManager:stateExpression', { defaultValue: 'Expression' })}
+                  value={action.stateEndpoint.expression || ''}
+                  onChange={(e) => handleUpdateAction(idx, 'stateEndpoint', { ...action.stateEndpoint, expression: e.target.value })}
+                  placeholder="$.connected"
+                  sx={{ flex: 1 }}
+                />
+                <FormControl size="small" sx={{ width: 110 }}>
+                  <InputLabel>{t('previewersManager:stateFallback', { defaultValue: 'Fallback' })}</InputLabel>
+                  <Select
+                    label={t('previewersManager:stateFallback', { defaultValue: 'Fallback' })}
+                    value={action.stateEndpoint.fallback || 'disable'}
+                    onChange={(e) => handleUpdateAction(idx, 'stateEndpoint', { ...action.stateEndpoint, fallback: e.target.value })}
+                  >
+                    <MenuItem value="disable">disable</MenuItem>
+                    <MenuItem value="hide">hide</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
 
             {/* Min Role */}
             <FormControl size="small" sx={{ width: 150 }}>
@@ -505,6 +637,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
               {sortedViewers.map(item => {
                 const isSelected = selectedViewer === item.id;
                 const extCount = item.extensions?.length || 0;
+                const folderPatternCount = item.folderPatterns?.length || 0;
                 return (
                   <Paper
                     key={item.id}
@@ -548,6 +681,8 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                           ? t('previewersManager:serviceViewer')
                           : item.type === 'mcpui'
                           ? t('previewersManager:typeMcpUI')
+                          : item.type === 'folder'
+                          ? t('previewersManager:folderPatternsCount', { count: folderPatternCount, defaultValue: `${folderPatternCount} folder pattern(s)` })
                           : t('previewersManager:mappedExtensions', { count: extCount })}
                       </Typography>
                     </Box>
@@ -611,7 +746,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                         </Box>.jsx
                       </Typography>
                     </Box>
-                    {(selectedItem.type === 'file' || selectedPreviewer?.type === 'mcpui') && (
+                    {(selectedItem.type === 'file' || selectedPreviewer?.type === 'mcpui' || selectedItem.type === 'folder') && (
                       <Tooltip title={t('previewersManager:removePreviewer')}>
                         <IconButton size="small" color="error" onClick={() => handleRemovePreviewer(selectedViewer)} sx={{ flexShrink: 0 }}>
                           <TbTrash size={16} />
@@ -724,6 +859,98 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                         </Typography>
                       )}
 
+                    </>
+                  )}
+
+                  {selectedItem.type === 'folder' && selectedPreviewer && (
+                    <>
+                      {/* mcpGroup (optional) — inherited default for any __mcptool__ action */}
+                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                        <TextField
+                          size="small"
+                          label={t('previewersManager:mcpGroup')}
+                          value={selectedPreviewer.mcpGroup || ''}
+                          onChange={(e) => setPreviewers(prev => prev.map(p =>
+                            p.viewer === selectedViewer ? { ...p, mcpGroup: e.target.value } : p
+                          ))}
+                          placeholder="e.g. ms365"
+                          sx={{ flex: 1 }}
+                          helperText={t('previewersManager:folderMcpGroupHint', { defaultValue: 'Default MCP group for __mcptool__ actions on this folder type.' })}
+                        />
+                      </Box>
+                      <Divider sx={{ mb: 2 }} />
+
+                      {/* Folder patterns */}
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                        {t('previewersManager:folderPatterns', { defaultValue: 'Folder name patterns' })}
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                        {(selectedPreviewer.folderPatterns || []).length > 0 ? (
+                          selectedPreviewer.folderPatterns.map(pat => (
+                            <Chip
+                              key={pat}
+                              label={pat}
+                              size="small"
+                              onDelete={() => handleRemoveFolderPattern(pat)}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            {t('previewersManager:noFolderPatterns', { defaultValue: 'No folder patterns yet — e.g. "onedrive*" or "*-archive".' })}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
+                        <TextField
+                          size="small"
+                          label={t('previewersManager:addFolderPattern', { defaultValue: 'Add folder pattern' })}
+                          value={newFolderPattern}
+                          onChange={(e) => setNewFolderPattern(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddFolderPattern(); }}
+                          placeholder="onedrive*"
+                          sx={{ width: 200 }}
+                        />
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<TbPlus />}
+                          onClick={handleAddFolderPattern}
+                          disabled={!newFolderPattern.trim()}
+                        >
+                          {t('common.add')}
+                        </Button>
+                      </Box>
+
+                      <Divider sx={{ mb: 2 }} />
+
+                      {/* Context Menu Actions — reuse the same editor */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          {t('previewersManager:contextMenuActions')}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<TbPlus size={14} />}
+                          onClick={handleAddAction}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          {t('common.add')}
+                        </Button>
+                      </Box>
+
+                      {(selectedPreviewer.contextMenuActions || []).length > 0 ? (
+                        <Box sx={{ mb: 2 }}>
+                          {(selectedPreviewer.contextMenuActions || []).map((action, idx) =>
+                            renderActionEditor(action, idx)
+                          )}
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          {t('previewersManager:noContextActions')}
+                        </Typography>
+                      )}
                     </>
                   )}
 
@@ -865,6 +1092,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             <ToggleButton value="file">{t('previewersManager:typeFileMapping')}</ToggleButton>
             <ToggleButton value="service">{t('previewersManager:typeServiceFunction')}</ToggleButton>
             <ToggleButton value="mcpui">{t('previewersManager:typeMcpUI')}</ToggleButton>
+            <ToggleButton value="folder">{t('previewersManager:typeFolderActions', { defaultValue: 'Folder Actions' })}</ToggleButton>
           </ToggleButtonGroup>
 
           {/* Hint per type */}
@@ -872,6 +1100,7 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             {newPreviewerType === 'file' && t('previewersManager:addPreviewerHint')}
             {newPreviewerType === 'service' && t('previewersManager:serviceHint')}
             {newPreviewerType === 'mcpui' && t('previewersManager:mcpUIHint')}
+            {newPreviewerType === 'folder' && t('previewersManager:folderHint', { defaultValue: 'Folder actions appear in the file-tree context menu when a folder name matches a configured glob pattern (e.g. onedrive*).' })}
           </Typography>
 
           {/* Common: viewer name */}
@@ -883,7 +1112,12 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
             value={newViewerName}
             onChange={(e) => setNewViewerName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && newViewerName.trim()) handleAddPreviewer(); }}
-            placeholder={newPreviewerType === 'file' ? 'e.g. csv' : newPreviewerType === 'mcpui' ? 'e.g. budget' : 'e.g. imap'}
+            placeholder={
+              newPreviewerType === 'file' ? 'e.g. csv'
+              : newPreviewerType === 'mcpui' ? 'e.g. budget'
+              : newPreviewerType === 'folder' ? 'e.g. onedrive'
+              : 'e.g. imap'
+            }
             sx={{ mb: 2 }}
             helperText={newPreviewerType === 'file' && newViewerName && !hasComponent(newViewerName.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''))
               ? t('previewersManager:componentNotRegistered')
@@ -925,6 +1159,19 @@ export default function PreviewersManager({ open, onClose, onConfigChanged }) {
                 placeholder="render_file"
               />
             </>
+          )}
+
+          {/* Folder-specific fields */}
+          {newPreviewerType === 'folder' && (
+            <TextField
+              fullWidth
+              size="small"
+              label={t('previewersManager:mcpGroup')}
+              value={newMcpGroup}
+              onChange={(e) => setNewMcpGroup(e.target.value)}
+              placeholder="e.g. ms365 (optional)"
+              helperText={t('previewersManager:folderMcpGroupOptionalHint', { defaultValue: 'Default MCP group inherited by __mcptool__ actions. Leave blank if not using MCP.' })}
+            />
           )}
         </DialogContent>
         <DialogActions>

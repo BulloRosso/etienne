@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as chokidar from 'chokidar';
@@ -15,16 +15,49 @@ interface PendingChange {
   timer: NodeJS.Timeout;
 }
 
+interface RecentUnlink {
+  remotePath: string;
+  driveItemId: string;
+  driveId?: string;
+  size?: number;
+  at: number;
+}
+
+const RENAME_WINDOW_MS = 3000;
+
 @Injectable()
-export class WritebackWatcherService implements OnModuleDestroy {
+export class WritebackWatcherService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WritebackWatcherService.name);
   private readonly watchers = new Map<string, chokidar.FSWatcher>();
   private readonly pending = new Map<string, PendingChange>();
+  private readonly recentUnlinks = new Map<string, RecentUnlink[]>(); // project -> recent
 
   constructor(
     private readonly graph: GraphClientService,
     private readonly sync: OneDriveSyncService,
   ) {}
+
+  async onModuleInit() {
+    // Resume auto-sync (pull-only) for projects that had it enabled before the restart.
+    // Auto-sync no longer arms chokidar — local changes require an explicit Push.
+    try {
+      const entries = await fs.readdir(WORKSPACE_ROOT, { withFileTypes: true });
+      for (const e of entries) {
+        if (!e.isDirectory()) continue;
+        const project = e.name;
+        try {
+          const enabled = await this.sync.getAutoSync(project);
+          if (!enabled) continue;
+          const roots = await this.sync.listRoots(project);
+          if (roots.length === 0) continue;
+          this.sync.startDeltaPolling(project);
+          this.logger.log(`Resumed auto-pull for project ${project}`);
+        } catch { /* no mapping yet */ }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Auto-sync resume scan failed: ${err.message}`);
+    }
+  }
 
   onModuleDestroy() {
     for (const w of this.watchers.values()) w.close().catch(() => {});
@@ -35,7 +68,7 @@ export class WritebackWatcherService implements OnModuleDestroy {
     if (this.watchers.has(project)) return;
     const root = path.join(WORKSPACE_ROOT, project, 'onedrive');
     const watcher = chokidar.watch(root, {
-      ignored: [/(^|[\/\\])\../, '**/.meta/**', `**/*.onedrive-stub`],
+      ignored: [/(^|[\/\\])\../, '**/.meta/**', `**/*.onedrive-stub`, `**/*.downloading`, `**/*.part`],
       ignoreInitial: true,
       persistent: true,
       awaitWriteFinish: { stabilityThreshold: 1500, pollInterval: 200 },
@@ -80,7 +113,29 @@ export class WritebackWatcherService implements OnModuleDestroy {
     const { root, remotePath } = resolved;
 
     if (type === 'delete') {
-      await this.handleDelete(project, remotePath, root.driveId);
+      // Defer the actual delete: a paired 'add' within RENAME_WINDOW_MS will
+      // claim this entry as a rename and skip the network delete.
+      const mapping = await this.sync.loadMapping(project);
+      const entry = mapping.entries[remotePath];
+      if (!entry) return;
+      this.rememberUnlink(project, {
+        remotePath,
+        driveItemId: entry.driveItemId,
+        driveId: entry.driveId,
+        size: entry.size,
+        at: Date.now(),
+      });
+      setTimeout(() => {
+        // Re-check: if still in recentUnlinks (no add claimed it), perform real delete.
+        const list = this.recentUnlinks.get(project) || [];
+        const idx = list.findIndex(u => u.remotePath === remotePath);
+        if (idx >= 0) {
+          list.splice(idx, 1);
+          this.handleDelete(project, remotePath, root.driveId).catch(err =>
+            this.logger.error(`delayed delete ${remotePath} failed: ${err.message}`),
+          );
+        }
+      }, RENAME_WINDOW_MS);
       return;
     }
 
@@ -92,7 +147,78 @@ export class WritebackWatcherService implements OnModuleDestroy {
     }
     if (!stats.isFile()) return;
 
+    // Rename detection: did a same-size, basename-matching unlink happen recently?
+    const renamed = this.claimRename(project, path.basename(absPath), stats.size, remotePath);
+    if (renamed) {
+      await this.handleRename(project, renamed, remotePath, root.driveId);
+      return;
+    }
+
     await this.handleUpload(project, absPath, remotePath, root.driveId, stats.size);
+  }
+
+  private rememberUnlink(project: string, u: RecentUnlink): void {
+    const list = this.recentUnlinks.get(project) || [];
+    const cutoff = Date.now() - RENAME_WINDOW_MS;
+    const pruned = list.filter(x => x.at >= cutoff);
+    pruned.push(u);
+    this.recentUnlinks.set(project, pruned);
+  }
+
+  private claimRename(project: string, newBasename: string, newSize: number, newRemotePath: string): RecentUnlink | null {
+    const list = this.recentUnlinks.get(project) || [];
+    const cutoff = Date.now() - RENAME_WINDOW_MS;
+    let bestIdx = -1;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const u = list[i];
+      if (u.at < cutoff) continue;
+      if (u.size !== newSize) continue;
+      if (u.remotePath === newRemotePath) continue;
+      // Don't match an old unlink to itself (same path)
+      bestIdx = i;
+      break;
+    }
+    if (bestIdx < 0) return null;
+    const claimed = list.splice(bestIdx, 1)[0];
+    this.recentUnlinks.set(project, list);
+    return claimed;
+  }
+
+  private async handleRename(project: string, claimed: RecentUnlink, newRemotePath: string, driveId: string | undefined): Promise<void> {
+    try {
+      const newName = path.basename(newRemotePath);
+      await this.graph.moveOrRenameItem(project, claimed.driveItemId, newName, undefined, driveId);
+      await this.sync.withMapping(project, async (m) => {
+        const old = m.entries[claimed.remotePath];
+        delete m.entries[claimed.remotePath];
+        m.entries[newRemotePath] = {
+          driveItemId: claimed.driveItemId,
+          driveId,
+          remotePath: newRemotePath,
+          eTag: old?.eTag,
+          size: claimed.size,
+          lastModifiedDateTime: new Date().toISOString(),
+          hydrated: old?.hydrated || true,
+          lastSync: Date.now(),
+        };
+      });
+      this.logger.log(`Renamed ${claimed.remotePath} -> ${newRemotePath}`);
+    } catch (err: any) {
+      this.logger.error(`Rename ${claimed.remotePath} -> ${newRemotePath} failed, falling back to delete+upload: ${err.message}`);
+      await this.handleDelete(project, claimed.remotePath, driveId);
+      const roots = await this.sync.listRoots(project);
+      const root = roots.find(r => (r.driveId || '') === (driveId || ''));
+      if (root) {
+        const rel = root.remotePath
+          ? newRemotePath.substring(root.remotePath.length).replace(/^\/+/, '')
+          : newRemotePath;
+        const absPath = path.join(root.localRoot, rel);
+        try {
+          const stat = await fs.stat(absPath);
+          await this.handleUpload(project, absPath, newRemotePath, driveId, stat.size);
+        } catch { /* not present */ }
+      }
+    }
   }
 
   private async handleUpload(project: string, absPath: string, remotePath: string, driveId: string | undefined, size: number): Promise<void> {

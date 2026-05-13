@@ -50,5 +50,51 @@
         "minRole": ""
       }
     ]
+  },
+  {
+    "viewer": "onedrive",
+    "type": "folder",
+    "folderPatterns": ["onedrive*"],
+    "mcpGroup": "ms365",
+    "actions": [
+      {
+        "id": "onedrive-pull",
+        "labels": {
+          "en": "Pull from OneDrive",
+          "de": "Von OneDrive herunterziehen",
+          "it": "Scarica da OneDrive",
+          "zh": "从 OneDrive 拉取"
+        },
+        "icon": "codicon codicon-cloud-download",
+        "modalComponent": "__mcptool__",
+        "mcpToolName": "run_delta",
+        "params": [],
+        "minRole": "user",
+        "stateEndpoint": {
+          "url": "/api/ms365/{project}/status",
+          "expression": "$.connected",
+          "fallback": "disable"
+        }
+      },
+      {
+        "id": "onedrive-push",
+        "labels": {
+          "en": "Push to OneDrive",
+          "de": "Auf OneDrive hochladen",
+          "it": "Carica su OneDrive",
+          "zh": "推送到 OneDrive"
+        },
+        "icon": "codicon codicon-cloud-upload",
+        "modalComponent": "__mcptool__",
+        "mcpToolName": "start_writeback",
+        "params": [],
+        "minRole": "user",
+        "stateEndpoint": {
+          "url": "/api/ms365/{project}/status",
+          "expression": "$.connected",
+          "fallback": "disable"
+        }
+      }
+    ]
   }
 ]

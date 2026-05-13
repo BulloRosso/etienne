@@ -4,6 +4,7 @@ import { Ms365OAuthController } from './ms365-oauth.controller';
 import { GraphClientService } from './graph-client.service';
 import { OneDriveSyncService } from './onedrive-sync.service';
 import { WritebackWatcherService } from './writeback-watcher.service';
+import { FilesystemEventsService } from './filesystem-events.service';
 
 @Module({
   controllers: [Ms365OAuthController],
@@ -12,12 +13,14 @@ import { WritebackWatcherService } from './writeback-watcher.service';
     GraphClientService,
     OneDriveSyncService,
     WritebackWatcherService,
+    FilesystemEventsService,
   ],
   exports: [
     Ms365TokenService,
     GraphClientService,
     OneDriveSyncService,
     WritebackWatcherService,
+    FilesystemEventsService,
   ],
 })
 export class Ms365Module {}

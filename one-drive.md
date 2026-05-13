@@ -4,8 +4,8 @@ End-to-end integration that mirrors a user's OneDrive (and SharePoint, with org 
 
 1. **OAuth + token storage** — per-project Microsoft identity, refresh on demand.
 2. **Graph client** — typed wrapper over `https://graph.microsoft.com/v1.0`, with retry/throttle handling.
-3. **OneDrive sync service** — stub generation, hydration, delta polling, mapping persistence.
-4. **Write-back watcher** — chokidar-based local-to-remote upload, with conflict detection.
+3. **OneDrive sync service** — tree materialization, delta polling, manual push, mapping persistence.
+4. **Write-back watcher** — chokidar-based real-time uploader (available but **not** part of the default auto-sync flow).
 5. **MCP bridge** — exposes the sync engine as MCP tools at `/mcp/ms365`, so Claude Code in any session can manage its own connection.
 
 A "thin pass-through" of an external MCP server was **deliberately rejected**. Instead, the backend talks to Microsoft Graph directly, because:
@@ -15,6 +15,40 @@ A "thin pass-through" of an external MCP server was **deliberately rejected**. I
 - Sync, write-back, and conflict tracking already run server-side. Adding an extra hop through stdio MCP would just slow them down.
 
 The cost: every Graph endpoint we use was implemented explicitly. The current set covers OneDrive + SharePoint drives + delta + upload-session for large files. Excel workbook editing, Teams, Outlook, Planner, and the rest of Graph are **not** wired up — add them to `GraphClientService` and `ms365-bridge-tools.ts` as needed.
+
+---
+
+## Sync strategy (Pull-auto + Push-manual)
+
+The integration follows a deliberately asymmetric model:
+
+| Direction | Trigger | What's covered |
+|---|---|---|
+| **OneDrive → local** | Automatic (every 20 s via delta) | adds, deletes, renames, content changes (only for already-hydrated files) |
+| **Local → OneDrive** | **Manual** (the user clicks **Push** in the modal, or `push_now` is called via MCP) | uploads new local files, deletes remote files whose local copy was removed |
+
+Rationale:
+
+1. **OneDrive is the source of truth.** Whatever happens there should reflect locally within the polling interval. Adds, deletes, and renames propagate automatically; content changes propagate only when the local copy is already hydrated (we never silently overwrite a hydrated file's bytes — *that* requires the user re-running `hydrate_path`, see Limitations).
+
+2. **Local changes need a human ack.** A misconfigured script that drops 10 GB of logs into `/workspace/<project>/onedrive/` should not automatically chew through your OneDrive quota. Same for an accidental `rm -rf` — local deletes don't immediately delete on OneDrive. Click Push when you mean it.
+
+3. **Real-time write-back is still available but opt-in.** The `WritebackWatcherService` (chokidar) can be started manually if you want continuous bidirectional sync. It isn't started by the auto-sync flag and isn't wired into the modal anymore.
+
+### What `Push` actually does
+
+The Push button calls the `push_now` MCP tool, which runs `OneDriveSyncService.pushNow()`:
+
+1. Walk the local mirror under each sync root (skipping `.meta/`, `.onedrive-stub`, `.downloading`, `.part`).
+2. **For each local file:**
+   - If not in `mapping.json` → upload (small ≤ 4 MB or chunked upload-session).
+   - If in mapping with same size and `hydrated: true` → skip (no detectable change).
+   - Otherwise → upload as a content update.
+3. **For each mapping entry that's hydrated but whose local copy is missing → delete on OneDrive.**
+
+Reports `{ uploaded, deleted, failed, skipped }` which the frontend shows as a toast like *"Push: 2 uploaded, 1 deleted"*.
+
+**Renames** from local→remote are not detected by `pushNow` alone — it sees only the final state, so a rename looks like delete+add and you get a fresh remote upload plus a remote delete. Renames from OneDrive→local are detected by the delta loop and applied atomically. If you need transparent local→remote rename detection, manually start the `WritebackWatcherService` (it pairs `unlink`+`add` within 3 s and calls `moveOrRenameItem` instead).
 
 ---
 
@@ -40,41 +74,47 @@ The cost: every Graph endpoint we use was implemented explicitly. The current se
        |                                                               |
        |  GraphClientService  <-- uses TokenService for Bearer header  |
        |                                                               |
-       |  OneDriveSyncService   stubTree / hydratePath / runDelta      |
+       |  OneDriveSyncService                                          |
+       |     runDelta (every 20 s) ----- automatic pull                |
+       |     pushNow              ------- manual push (button)         |
        |     mapping.json     <-- /workspace/<project>/onedrive/.meta/ |
        |                                                               |
-       |  WritebackWatcherService   chokidar -> upload + conflict      |
+       |  FilesystemEventsService   per-project Subject<FsEvent>       |
+       |       └─> SseMultiplexController  channel="filesystem"        |
+       |                                                               |
+       |  WritebackWatcherService   (chokidar — opt-in, not default)   |
        |                                                               |
        |  McpServerFactory  registers "ms365" group ---> /mcp/ms365    |
        |     tools: list_drives, add_sync_root, stub_tree,             |
-       |            hydrate_path, sync_status, run_delta, ...          |
+       |            run_delta, push_now, set_auto_sync, ...            |
        +---------------------------------------------------------------+
                                           |
                                           v
                   /workspace/<project>/onedrive/
                     .meta/
-                       mapping.json     (driveItemId, eTag, hydrated, ...)
+                       mapping.json     (driveItemId, eTag, hydrated, autoSync, ...)
+                       downloading/     (atomic-rename staging area)
                        exclude.json     (optional)
                        conflicts/       (timestamped copies on 412/409)
                     <label>/             (one subdir per sync root)
                       Documents/
-                        foo.docx.onedrive-stub    <-- placeholder
-                        bar.txt                    <-- hydrated
+                        foo.docx           <-- hydrated (the normal case)
+                        bar.txt.onedrive-stub  <-- placeholder (download-failure fallback)
 ```
 
 ### Lifecycle
 
 1. **Connect.** User clicks "Connect Microsoft 365" in the project. Backend redirects to Microsoft, code comes back to `/api/ms365/oauth/callback`, tokens land in `SecretsManager` keyed by project name. The `home_account_id` and `account_email` are read from `/me`.
 
-2. **Choose what to sync.** User adds a sync root (`add_sync_root`): a `{ driveId?, remotePath, label }` tuple. `driveId` blank means personal `/me/drive`; any other value is a SharePoint or shared drive ID from `list_drives` / `list_sites` / `list_site_drives`.
+2. **Choose what to sync.** User adds a sync root (`add_sync_root`): a `{ driveId?, remotePath, label }` tuple. `driveId` blank means personal `/me/drive`; any other value is a SharePoint or shared drive ID from `list_drives` / `list_sites` / `list_site_drives`. The drive picker is a `Select` in the modal, populated on open by an internal `list_drives` call.
 
-3. **Stub.** `stub_tree` walks every sync root via Graph, creates the folder structure under `/workspace/<project>/onedrive/<label>/`, and writes `<file>.onedrive-stub` files containing the `driveItemId`, remote path, size, eTag, and a hint telling Claude to call `hydrate_path`. Each entry also lands in `.meta/mapping.json` with `hydrated: false`.
+3. **Materialize the tree.** `stub_tree` walks the OneDrive root via Graph, creates folders locally, and **downloads each file directly** (atomically: written under `.meta/downloading/`, then renamed into place). Stubs (`*.onedrive-stub`) appear only as a fallback when a download fails.
 
-4. **Hydrate on demand.** When Claude wants to read `Documents/foo.docx`, it calls `hydrate_path` with that remote path. The service downloads via `@microsoft.graph.downloadUrl`, atomically replaces the stub with the real file, flips `hydrated: true` in the mapping.
+4. **Auto-sync (pull-only).** Once a sync root exists and `autoSync` is on, the backend polls `/delta` every 20 s. New files are downloaded. Renames move local files. Deletes remove local files. Content updates re-download — but **only for already-hydrated files**, never silently re-overwriting a stub-fallback.
 
-5. **Edit & write-back.** `start_writeback` arms a chokidar watcher on `/workspace/<project>/onedrive/`. Local writes are debounced 2 s, resolved to a remote path via the mapping, and pushed back via `uploadSmallFile` (≤ 4 MB) or `uploadLargeFile` (chunked upload session). If Graph returns 412/409, the local content is copied into `.meta/conflicts/` and the conflict is logged.
+5. **Manual push.** User clicks Push (`CloudUpload` icon in the dialog header) or invokes `push_now`. Backend uploads any local-added files and deletes any remote files whose local copy is gone. Result is reported as a toast.
 
-6. **Stay in sync.** Every `MS365_DELTA_INTERVAL_MS` (default 5 min), `runDelta` calls `/me/drive/root/delta` per root, updates mapping entries for items that changed remotely, and stores the new delta token. **Hydrated files are not auto-refreshed** — call `hydrate_path` again to pull a fresh copy. This is intentional: silently overwriting a local edit because the remote changed is worse than a stale read.
+6. **Filesystem event stream.** Every materialize / hydrate / rename / remove emits an event into `FilesystemEventsService`, which the SSE multiplexer forwards on a `filesystem` channel. The project's file explorer subscribes via `useMultiplexSSE` and reloads (500 ms debounce) so the UI updates without polling.
 
 ---
 
@@ -127,42 +167,71 @@ State lives in `/workspace/<project>/onedrive/.meta/mapping.json`:
 {
   "version": 1,
   "roots": [
-    { "driveId": null, "remotePath": "Documents", "label": "personal", "localRoot": "/workspace/foo/onedrive/personal/Documents" }
+    { "driveId": "b!...", "remotePath": "Documents", "label": "personal", "localRoot": "/workspace/foo/onedrive/personal/Documents" }
   ],
   "deltaTokens": { "personal": "https://graph.microsoft.com/v1.0/.../delta?token=..." },
   "entries": {
     "Documents/foo.docx": {
       "driveItemId": "01ABCD...",
-      "driveId": null,
+      "driveId": "b!...",
       "remotePath": "Documents/foo.docx",
       "eTag": "\"{abc-123},1\"",
       "size": 12345,
       "lastModifiedDateTime": "2026-05-13T10:00:00Z",
-      "hydrated": false,
+      "hydrated": true,
       "lastSync": 1715600000000
     }
   },
   "pendingUploads": [],
-  "conflicts": []
+  "conflicts": [],
+  "autoSync": true
 }
 ```
 
 `withMapping(project, fn)` serializes access via a per-project lock — all reads and writes go through it, so concurrent tool calls don't clobber each other.
 
-The stub file format (a JSON object with `driveItemId`, `remotePath`, `size`, `eTag`, and a `hydrate` hint) is intentionally human-readable. If you `cat` a stub you get a clear message: "Call hydrate_path with this remote path."
+`autoSync` defaults to `true` for new mappings. Toggling it via `set_auto_sync` starts/stops the delta-poll timer.
+
+Key methods:
+
+- `stubTree(project, rootLabel?)` — walk the remote tree once, downloading every file. **Despite the name** (kept for back-compat), files are written for real, not as stubs.
+- `runDelta(project)` — call `/delta`, then reconcile the file system: download adds, rename moves, delete removes. Looks up entries by `driveItemId` (not by name), so deletions whose Graph response omits the name are still processed.
+- `pushNow(project)` — see "What `Push` actually does" above.
+- `hydratePath(project, remotePath)` — force-download a single file (used to recover from a stub fallback or refresh a stale hydrated file).
+- `removeRoot(project, label)` — also purges entries and deletes the local mirror directory.
+
+The stub file format (a JSON object with `driveItemId`, `remotePath`, `size`, `eTag`, and a `hydrate` hint) is intentionally human-readable. Stubs are now a *fallback* path — they appear only when a download fails mid-operation.
 
 Exclude patterns live in `.meta/exclude.json` (optional). Defaults skip `~$*` (Office lock files), `*.tmp`, `.DS_Store`, `Thumbs.db`, and any file > 500 MB. Patterns are simple `*` globs against the file name.
 
+**Atomic downloads.** Each download writes to `.meta/downloading/<itemId>-<ts>.part` and is then renamed into place. Temp files never appear in the user-visible tree, and the chokidar watcher (if started) ignores `*.downloading` and `*.part` defensively.
+
+### `FilesystemEventsService` — [backend/src/ms365/filesystem-events.service.ts](backend/src/ms365/filesystem-events.service.ts)
+
+Per-project RxJS `Subject<FilesystemEvent>`. Emitted from `materialize`, `hydratePath`, `renameLocalAndMapping`, `removeLocalAndMapping`, and `removeRoot`. Wired into the SSE multiplexer on channel `filesystem`. The frontend file explorer subscribes via `useMultiplexSSE` and reloads with a 500 ms debounce.
+
+Event shape:
+
+```ts
+type FilesystemEvent =
+  | { type: 'fs.added';   project: string; path: string; isDir?: boolean; source: 'onedrive' }
+  | { type: 'fs.removed'; project: string; path: string;                  source: 'onedrive' }
+  | { type: 'fs.renamed'; project: string; from: string; to: string;      source: 'onedrive' }
+  | { type: 'fs.changed'; project: string; path: string;                  source: 'onedrive' };
+```
+
 ### `WritebackWatcherService` — [backend/src/ms365/writeback-watcher.service.ts](backend/src/ms365/writeback-watcher.service.ts)
 
-`startWatching(project)` spawns a chokidar watcher rooted at `/workspace/<project>/onedrive/`, ignoring `.meta/**` and `*.onedrive-stub`. Events:
+*Available but not part of the default auto-sync flow.* When manually started, it spawns a chokidar watcher rooted at `/workspace/<project>/onedrive/`, ignoring `.meta/**`, `*.onedrive-stub`, `*.downloading`, `*.part`. Events:
 
-- `add` / `change` → debounce 2 s, then `uploadSmallFile` or `uploadLargeFile`. Mapping is updated with the response's `driveItemId` and `eTag`, and the path is removed from `pendingUploads`.
-- `unlink` → look up `driveItemId` in mapping, call `deleteItem`, remove from mapping.
+- `add` / `change` → debounce 2 s, then `uploadSmallFile` or `uploadLargeFile`. Mapping is updated with the response's `driveItemId` and `eTag`.
+- `unlink` → look up `driveItemId`, call `deleteItem`. **Deferred 3 s to pair with a later `add` of the same size = rename**, in which case `moveOrRenameItem` is used instead.
 
 On 412 (precondition failed) or 409 (conflict), the local content is copied to `.meta/conflicts/<timestamp>-<flattened-path>` and surfaced via `sync_status`. There is **no automatic three-way merge** — manual resolution is intentional.
 
-Large files (> 4 MB) use `createUploadSession` and PUT chunks directly to the pre-authed `uploadUrl` Microsoft returns. This bypasses the 4 MB cap that applies to inline `:/content` PUTs. The chunk size (3.2 MB) is a multiple of the 320 KiB alignment Graph requires.
+Large files (> 4 MB) use `createUploadSession` and PUT chunks directly to the pre-authed `uploadUrl` Microsoft returns. The chunk size (3.2 MB) is a multiple of the 320 KiB alignment Graph requires.
+
+`OnModuleInit` resumes auto-pull (delta polling) for projects whose mapping has `autoSync: true`. It does **not** auto-arm the chokidar watcher — that's an explicit user action only.
 
 ### `ms365-bridge-tools.ts` — MCP tools — [backend/src/ms365/ms365-bridge-tools.ts](backend/src/ms365/ms365-bridge-tools.ts)
 
@@ -173,6 +242,7 @@ POST /mcp/ms365
   Authorization: Bearer test123
   X-Project-Name: <project>
   Content-Type: application/json
+  Mcp-Session-Id: <uuid from initialize>
   { "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "<tool>", "arguments": { ... } } }
 ```
 
@@ -183,30 +253,32 @@ Tools:
 | `list_drives` | OneDrive + shared drives for the connected account. |
 | `list_sites` | SharePoint sites (org mode). Optional `query`. |
 | `list_site_drives` | Document libraries inside a SharePoint site. |
-| `add_sync_root` | Register `{ drive_id?, remote_path, label }` as a sync root. Auto-starts delta polling. |
+| `add_sync_root` | Register `{ drive_id?, remote_path, label }` as a sync root. Auto-starts delta polling if `autoSync` is on. |
 | `list_sync_roots` | Currently configured roots. |
-| `remove_sync_root` | Unregister by label; doesn't delete local files. |
-| `stub_tree` | Walk the remote tree and materialize stub files. Optional `root_label`. |
-| `hydrate_path` | Download real content for a remote path; replace stub. **Call before `Read`.** |
+| `remove_sync_root` | Unregister by label; also purges entries and deletes the local mirror folder. |
+| `stub_tree` | Walk the remote tree and download every file (folders become real dirs). Optional `root_label`. |
+| `hydrate_path` | Force-download a specific remote path (used to recover from a fallback stub or refresh a stale file). |
 | `search_onedrive` | Graph search; metadata only. |
-| `sync_status` | Roots, entries, hydrated count, pending uploads, conflicts, polling state. |
-| `run_delta` | Force a delta poll now. |
-| `start_writeback` / `stop_writeback` | Toggle chokidar watcher. |
+| `sync_status` | Roots, entries, hydrated count, pending uploads, conflicts, polling state, write-back-watcher state. |
+| `run_delta` | Force a pull-style delta poll now. Returns `{ changed, added, renamed, removed }`. |
+| `push_now` | One-shot scan: upload local-added files, delete remote files whose local copy is gone. Returns `{ uploaded, deleted, failed, skipped }`. |
+| `get_auto_sync` / `set_auto_sync` | Read/write the `autoSync` flag. When on, the 20 s delta poll runs in the background. |
 | `create_folder` | `parent_path`, `folder_name`, optional `drive_id`. |
 
 The project context comes from `X-Project-Name` (or `?project=`). The `Ms365BridgeTools` resolves the project via a closure over `McpServerFactoryService.currentProjectRoot`, the same mechanism every other dynamic tool group uses.
 
 ### Frontend — [frontend/src/components/MS365Connect.jsx](frontend/src/components/MS365Connect.jsx)
 
-A single panel:
+A single MUI dialog opened from the project Dashboard tile **OneDrive**:
 
-- **Connect / Disconnect** button. The connect button opens `/api/ms365/:project/connect` in a popup; the callback page `postMessage`s back, the panel refreshes.
-- **Sync status** chips: roots / entries / hydrated / pending / conflicts / delta polling / write-back state.
-- **Sync roots** list with "stub" and "remove" actions; an add form with three fields (label, drive ID, remote path).
-- **Browse drives** — `list_drives` button populates a list; each row has a "Use" button that pre-fills the add-root form.
-- **Browse SharePoint sites** — search-driven (`list_sites`).
+- **Header bar:** title + Pull icon (`run_delta`) + Push icon (`push_now`) + `auto-sync` checkbox + Close.
+- **Body:**
+  - **Sync roots** card: each row has a "sync this tree now" folder icon (calls `stub_tree`) and a trash icon (calls `remove_sync_root` with confirm dialog). Add-root form below with `Label` + `Drive` dropdown (auto-populated from `list_drives` on open, first entry preselected) + `Remote path` + `Add`.
+  - **Browse SharePoint sites (org mode)** — collapsible, collapsed by default. Search-driven via `list_sites`.
+- **Footer (DialogActions):** "Connected as `<email>`" left-aligned (tooltip shows token expiry); `Refresh` + `Disconnect` right-aligned. Disconnect goes through a styled MUI confirm dialog (no native `confirm()`).
+- **Toasts** for all action outcomes (Pull / Push / Sync / Remove).
 
-The frontend calls the MCP HTTP endpoint directly, including the static `Bearer test123` token (same as Claude does). The Streamable HTTP response shape is `{ result: { content: [{ type: "text", text: "<JSON>" }] } }`, so the helper extracts and parses the inner text. Mount this component anywhere a per-project settings panel exists — it takes a single `projectName` prop.
+The frontend calls the MCP HTTP endpoint via a shared helper that maintains an `Mcp-Session-Id` per project and auto-reinitializes on session loss (e.g. backend restart). Errors carry the response body; transient `400: Server not initialized` is silently recovered.
 
 ---
 
@@ -222,6 +294,8 @@ You need an app registration in Microsoft Entra ID (formerly Azure AD).
    - **Application (client) ID** → `MS365_MCP_CLIENT_ID`
    - **Directory (tenant) ID** → `MS365_MCP_TENANT_ID` (or use `common`)
    - Under **Certificates & secrets**, create a new **client secret** if you need confidential-client behavior (server-side OAuth, refresh tokens without PKCE). → `MS365_MCP_CLIENT_SECRET`. Public-client / PKCE flow works without a secret, but this backend currently uses confidential-client.
+
+   **The Value column is shown once.** Don't copy the *Secret ID* (a GUID) — copy the *Value* (mixed-case alnum with `~`, `.`, `_`, `-`).
 6. Under **API permissions** → **Microsoft Graph** → **Delegated permissions**, add:
    - `offline_access` (required to get refresh tokens)
    - `User.Read`
@@ -231,6 +305,8 @@ You need an app registration in Microsoft Entra ID (formerly Azure AD).
 
    Click **Grant admin consent for <tenant>**. The `.All` scopes require an admin to consent once per tenant; individual users connecting after that won't be prompted again.
 
+If your app is **single-tenant**, you must set `MS365_MCP_TENANT_ID` to your tenant's directory ID (the `common` endpoint rejects single-tenant apps registered after 2018).
+
 ---
 
 ## Environment variables
@@ -238,13 +314,15 @@ You need an app registration in Microsoft Entra ID (formerly Azure AD).
 | Variable | Required | Default | Notes |
 |---|---|---|---|
 | `MS365_MCP_CLIENT_ID` | yes | — | Entra app's Application (client) ID. |
-| `MS365_MCP_CLIENT_SECRET` | yes (confidential client) | — | If absent, code-exchange falls back to public-client mode (PKCE flow only). |
-| `MS365_MCP_TENANT_ID` | no | `common` | Use a specific GUID/domain to lock to a single tenant. |
+| `MS365_MCP_CLIENT_SECRET` | yes (confidential client) | — | The *Value* column from Certificates & secrets, not the Secret ID GUID. |
+| `MS365_MCP_TENANT_ID` | no¹ | `common` | Use a specific GUID/domain to lock to a single tenant. **Required** if your app registration is single-tenant. |
 | `MS365_REDIRECT_URI` | no | `http://localhost:6060/api/ms365/oauth/callback` | Must exactly match the Entra app registration. |
 | `MS365_SCOPES` | no | `offline_access Files.ReadWrite.All Sites.ReadWrite.All User.Read` | Space-separated. Drop `.All` for personal-OneDrive-only mode. |
-| `MS365_DELTA_INTERVAL_MS` | no | `300000` (5 min) | Per-project delta poll cadence. |
+| `MS365_DELTA_INTERVAL_MS` | no | `20000` (20 s) | Per-project delta poll cadence when `autoSync` is on. |
 | `WORKSPACE_ROOT` | no | `/workspace` | Where projects (and their `onedrive/` subdir) live. |
 | `SECRET_VAULT_PROVIDER` | no | `openbao` | Already a backend-wide setting; tokens go into whichever vault is selected. |
+
+¹ Required if the app is single-tenant; optional for multi-tenant apps.
 
 ---
 
@@ -252,36 +330,34 @@ You need an app registration in Microsoft Entra ID (formerly Azure AD).
 
 Assumes: Entra app registered, env vars set, backend running on :6060, frontend on :5000.
 
-1. **Open project `acme` in the frontend.** Navigate to the MS365 panel (wherever you mount `<MS365Connect projectName="acme" />`).
-2. **Click "Connect Microsoft 365".** A popup opens to `login.microsoftonline.com`. Sign in, consent. The popup posts back and closes; the panel shows "Connected as alice@contoso.com".
-3. **Click "List my drives".** You see at minimum your personal OneDrive plus any drives shared with you. Pick the one labeled "OneDrive" and click "Use" — the add-root form fills with that drive ID.
-4. **Set label = `personal`, remote path = `Documents`, click Add.** Backend creates `/workspace/acme/onedrive/personal/Documents/` (empty), records the root in `mapping.json`, starts delta polling.
-5. **Click the folder icon next to the root.** That fires `stub_tree`. Backend walks `Documents/` on Graph, creates the tree locally, writes `.onedrive-stub` files. You see "Stubbed 47 files, 12 folders".
-6. **Click "Start write-back".** Watcher arms.
-7. **In Claude Code in project `acme`:**
+1. **Open project `acme` in the frontend.** Click the **OneDrive** dashboard tile.
+2. **Click "Connect Microsoft 365".** A popup opens to `login.microsoftonline.com`. Sign in, consent. The popup posts back and closes; the footer shows "Connected as alice@contoso.com".
+3. **Pick a drive.** The "Drive" dropdown was already populated when the dialog opened (first entry selected). Leave it on your primary OneDrive (or pick another).
+4. **Set label = `personal`, remote path = `Documents` (or blank for the whole drive), click Add.** Backend creates `/workspace/acme/onedrive/personal/` and starts delta polling.
+5. **Click the folder icon next to the new root.** That fires `stub_tree`. Backend walks `Documents/` on Graph and **downloads every file directly** under `/workspace/acme/onedrive/personal/Documents/`. Toast: "Synced: 47 files, 12 folders".
+6. **Auto-sync is on by default.** Within 20 s of any OneDrive change (add / rename / delete in the web UI), the local mirror reflects it, and the project's file explorer refreshes automatically via the `filesystem` SSE channel.
+7. **Pushing local changes.** Drop a new file into `/workspace/acme/onedrive/personal/Documents/` → click the **Push** icon in the dialog header. Toast: "Push: 1 uploaded". Delete a local file → click Push → toast: "Push: 1 deleted" → the file is gone from OneDrive web.
+8. **From Claude Code in project `acme`:**
    ```
    ls /workspace/acme/onedrive/personal/Documents
+   cat /workspace/acme/onedrive/personal/Documents/notes.md
+   # → real content, no MCP hop needed
    ```
-   You see folders and `*.onedrive-stub` files. To read one:
-   ```
-   Call MCP tool: mcp__ms365__hydrate_path with arguments { "remote_path": "Documents/notes.md" }
-   Then Read /workspace/acme/onedrive/personal/Documents/notes.md
-   ```
-   The stub gets replaced with the real content; subsequent reads are local file system access.
-8. **Edit the file from Claude.** Within ~3 s the watcher picks it up, uploads, and the change shows up in the OneDrive web UI.
-9. **Concurrent edit test.** Edit the file in the OneDrive web UI while it's also being edited locally. On the next local save, the upload fails with 412, and `.meta/conflicts/<ts>-Documents__notes.md` appears with your local content; `sync_status` shows `conflicts: 1`. Manually merge.
+9. **Disconnect.** Click Disconnect (footer right). MUI confirm dialog. Tokens are wiped; sync roots stay configured but `autoSync` will be a no-op until you reconnect.
 
 ---
 
 ## Limitations and known constraints
 
-**File-system illusion is incomplete.** Claude's built-in `Read`/`Glob`/`Write` tools see real files only. Stub files (`*.onedrive-stub`) show up in `Glob` results but are placeholders. The `hydrate_path` MCP tool must be called before reading. The project's CLAUDE.md template should mention this.
+**Local→remote renames aren't auto-detected by Push.** `pushNow` sees only the final filesystem state, so a rename from `a.txt` to `b.txt` looks like *delete `a.txt`, upload `b.txt`*. Net effect on OneDrive is correct but loses the version history of the original. For transparent rename handling, manually start the `WritebackWatcherService` (it pairs `unlink`+`add` within 3 s into a single `moveOrRenameItem`).
+
+**Local→remote bytes need an explicit Push.** This is by design (see "Sync strategy"). A misconfigured script can't accidentally fill your OneDrive — but you also need to remember to click Push after editing.
 
 **4 MB inline-upload cap.** Files > 4 MB use the chunked upload-session path — slower, more API calls, but works up to ~250 GB per Graph's limits.
 
-**`download-bytes`-style inline base64 isn't used.** The backend reads `@microsoft.graph.downloadUrl` directly via axios, streaming bytes server-side. There's no realistic file-size cap on hydration — limited by available disk in `/workspace`.
-
 **Excel native editing isn't implemented.** This would need Graph's workbook API (`/items/{id}/workbook/...`). For now, Excel files are download-edit-upload only — the same as Word and PowerPoint.
+
+**Hydrated files re-download on remote change.** When `runDelta` sees an item already marked `hydrated` whose content (eTag) changed remotely, it re-downloads. If a remote-side and local-side edit happen between polls, the remote bytes win at the next pull — you lose your local edit. There is **no merge UI**. Workaround: rename your work-in-progress to take it out of the auto-tracked path, or disable auto-sync while editing.
 
 **`account` isolation is enforced by the backend, not by Microsoft.** Every Graph call goes through `Ms365TokenService.getValidAccessToken(project)`, which looks up the project's token from `SecretsManager`. There is no shared MCP child process whose `account` param could be tampered with. Cross-tenant leakage requires a backend bug, not a single mis-routed tool call.
 
@@ -289,11 +365,9 @@ Assumes: Entra app registered, env vars set, backend running on :6060, frontend 
 
 **OAuth state is per-process.** `stateStore` in `Ms365OAuthController` is a `Map` in memory. Multi-instance deployments need a shared store before `state` can survive a callback hitting a different backend instance from the one that initiated the redirect.
 
-**Hydrated files are not auto-refreshed by delta.** Delta polling updates the *mapping* (so `sync_status` sees the remote change), but does not silently overwrite a hydrated local file. Call `hydrate_path` again to pull a fresh copy. Rationale: silently overwriting an in-progress local edit because someone changed the OneDrive copy is worse than a stale read.
-
-**MCP `start_writeback` is project-scoped.** Each project needs its own start. Backend restarts lose the "watching" state. To make it persistent, add a `meta.writebackEnabled` flag and auto-arm on module init.
-
 **Graph throttling (429) is handled per-request, not globally.** Heavy `stub_tree` runs on a large drive could hit per-app limits across all projects. If you start seeing 429 storms, batch via Graph's `$batch` endpoint (up to 20 requests).
+
+**MCP session pinning.** The frontend caches an `Mcp-Session-Id` per project. After a backend restart all sessions are wiped; the next request gets `400 "Server not initialized"`, which the helper transparently retries after `initialize`. Worst case: one extra round-trip.
 
 ---
 
@@ -332,21 +406,36 @@ No frontend change needed — Claude can discover the tool via the standard MCP 
 ```
 backend/src/ms365/
 ├── ms365.module.ts                  (Nest module — exports services for factory)
-├── ms365-token.service.ts           (M2: tokens + refresh)
-├── ms365-oauth.controller.ts        (M2: /api/ms365/* OAuth routes)
-├── graph-client.service.ts          (M1: typed Graph wrapper, retry/throttle)
-├── onedrive-sync.service.ts         (M3: stubs, hydrate, delta, mapping)
-├── writeback-watcher.service.ts     (M4: chokidar + upload + conflict store)
-└── ms365-bridge-tools.ts            (M1+M3+M4+M5: MCP tool surface)
+├── ms365-token.service.ts           (tokens + refresh)
+├── ms365-oauth.controller.ts        (/api/ms365/* OAuth routes)
+├── graph-client.service.ts          (typed Graph wrapper, retry/throttle)
+├── onedrive-sync.service.ts         (delta, push_now, hydrate, mapping, materialization)
+├── writeback-watcher.service.ts     (chokidar — opt-in, not auto-armed)
+├── filesystem-events.service.ts     (Subject<FilesystemEvent> → SSE channel)
+└── ms365-bridge-tools.ts            (MCP tool surface)
 
 backend/src/mcpserver/
-├── mcp-server-factory.service.ts    (modified — registers "ms365" group)
-└── mcp-server.module.ts             (modified — imports Ms365Module)
+├── mcp-server-factory.service.ts    (registers "ms365" group)
+└── mcp-server.module.ts             (imports Ms365Module)
 
-backend/src/app.module.ts             (modified — imports Ms365Module)
+backend/src/sse-multiplex/
+├── sse-multiplex.controller.ts      (forwards FilesystemEventsService → "filesystem" channel)
+├── sse-multiplex.module.ts          (imports Ms365Module)
+└── sse-mux.types.ts                 (adds "filesystem" to MuxChannel union)
+
+backend/src/app.module.ts             (imports Ms365Module)
 
 frontend/src/components/
-└── MS365Connect.jsx                  (M2+M5: connect panel + sync UI)
+├── MS365Connect.jsx                  (dialog: header icons + sync-roots + collapsible SharePoint + footer status)
+├── DashboardGrid.jsx                 (OneDrive tile)
+└── SettingsModal.jsx                 (mounts the dialog)
+
+frontend/src/hooks/
+├── useMultiplexSSE.js                (subscribes Filesystem.jsx to "filesystem" channel)
+└── sse-mux.types.js                  (adds "filesystem" channel)
+
+frontend/public/
+└── onedrive.png                      (dashboard tile icon)
 ```
 
 ---
@@ -354,8 +443,9 @@ frontend/src/components/
 ## What's intentionally not built
 
 - **A single-MCP-child-process bridge to `softeria/ms-365-mcp-server`.** Considered and rejected for the reasons in the architecture section. If you ever want this, mount it under a different group name (e.g. `ms365-passthrough`) so it lives alongside, not instead of, this implementation.
-- **Auto-sync of remote changes onto hydrated files.** See "Limitations." If you want it, hook `runDelta` so that for any entry where `hydrated && localEtag !== newEtag`, you either auto-`hydrate_path` (overwriting) or move the local copy aside first.
+- **Auto-push of local changes.** By design, see "Sync strategy." If you want it, manually start the `WritebackWatcherService` for that project (its `startWatching` is still exposed via the service API; just not wired into the modal).
 - **A separate per-end-user-per-project auth model.** Tokens are scoped per project, not per logged-in user. If two end users share project `acme`, they share the OneDrive that's connected to `acme`. To split them, key tokens under `ms365/<project>/<userId>/...` and pass user context into every Graph call.
-- **Three-way merge on conflict.** Conflicts are recorded as side files; the user resolves them manually. A merge UI is out of scope.
+- **Three-way merge on conflict.** The 412 conflict path in the chokidar watcher writes side files to `.meta/conflicts/`; manual resolution. A merge UI is out of scope.
+- **Local→remote rename detection in `push_now`.** Looks like delete+add. The chokidar watcher does pair them within 3 s if you start it; the manual push doesn't.
 - **Three-pane diff for Office documents.** Word/PowerPoint round-trip works but doesn't surface a diff.
 - **Real-time presence / co-authoring.** Graph doesn't expose this for arbitrary clients; the OneDrive web UI is the only place to co-author Office files.

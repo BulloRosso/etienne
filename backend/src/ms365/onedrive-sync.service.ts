@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { GraphClientService, DriveItem } from './graph-client.service';
+import { FilesystemEventsService } from './filesystem-events.service';
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/workspace';
 const STUB_EXT = '.onedrive-stub';
@@ -31,6 +32,7 @@ export interface ProjectMapping {
   entries: Record<string, MappingEntry>;
   pendingUploads: string[];
   conflicts: Array<{ localPath: string; timestamp: number; reason: string }>;
+  autoSync?: boolean;
 }
 
 interface ExcludeConfig {
@@ -71,9 +73,12 @@ export class OneDriveSyncService implements OnModuleDestroy {
   private readonly logger = new Logger(OneDriveSyncService.name);
   private readonly mappingLocks = new Map<string, Promise<void>>();
   private readonly deltaTimers = new Map<string, NodeJS.Timeout>();
-  private readonly DELTA_INTERVAL_MS = Number(process.env.MS365_DELTA_INTERVAL_MS || 5 * 60 * 1000);
+  private readonly DELTA_INTERVAL_MS = Number(process.env.MS365_DELTA_INTERVAL_MS || 20 * 1000);
 
-  constructor(private readonly graph: GraphClientService) {}
+  constructor(
+    private readonly graph: GraphClientService,
+    private readonly fsEvents: FilesystemEventsService,
+  ) {}
 
   onModuleDestroy() {
     for (const t of this.deltaTimers.values()) clearInterval(t);
@@ -99,9 +104,11 @@ export class OneDriveSyncService implements OnModuleDestroy {
     await this.ensureMetaDir(project);
     try {
       const raw = await fs.readFile(this.mappingPath(project), 'utf8');
-      return JSON.parse(raw) as ProjectMapping;
+      const m = JSON.parse(raw) as ProjectMapping;
+      if (m.autoSync === undefined) m.autoSync = true; // default-on for existing mappings
+      return m;
     } catch {
-      return { version: 1, roots: [], deltaTokens: {}, entries: {}, pendingUploads: [], conflicts: [] };
+      return { version: 1, roots: [], deltaTokens: {}, entries: {}, pendingUploads: [], conflicts: [], autoSync: true };
     }
   }
 
@@ -158,22 +165,62 @@ export class OneDriveSyncService implements OnModuleDestroy {
     return m.roots;
   }
 
-  async removeRoot(project: string, label: string): Promise<void> {
+  async removeRoot(project: string, label: string): Promise<{ purgedEntries: number; localRoot?: string }> {
+    let purgedEntries = 0;
+    let localRoot: string | undefined;
+
+    // First read what we need before mutating.
+    const mapping = await this.loadMapping(project);
+    const root = mapping.roots.find(r => r.label === label);
+    if (!root) {
+      return { purgedEntries: 0 };
+    }
+    localRoot = root.localRoot;
+
+    // Identify entries that belong to this root and remove them.
+    const entryKeys = Object.keys(mapping.entries).filter(p => {
+      const e = mapping.entries[p];
+      if ((e.driveId || '') !== (root.driveId || '')) return false;
+      if (!root.remotePath) return true; // root is drive-root, owns everything for this driveId
+      return p === root.remotePath || p.startsWith(root.remotePath + '/');
+    });
+
     await this.withMapping(project, async (m) => {
       m.roots = m.roots.filter(r => r.label !== label);
       delete m.deltaTokens[label];
+      for (const k of entryKeys) {
+        delete m.entries[k];
+        purgedEntries++;
+      }
     });
+
+    // Best-effort: remove the local mirror directory.
+    if (localRoot) {
+      try {
+        await fs.rm(localRoot, { recursive: true, force: true });
+        this.fsEvents.emit({ type: 'fs.removed', project, path: localRoot, source: 'onedrive' });
+      } catch (err: any) {
+        this.logger.warn(`Could not remove local mirror ${localRoot}: ${err.message}`);
+      }
+    }
+
+    return { purgedEntries, localRoot };
+  }
+
+  async hasAnyRoots(project: string): Promise<boolean> {
+    const m = await this.loadMapping(project);
+    return m.roots.length > 0;
   }
 
   // ============================================
-  // Stub creation: materialize tree structure as empty files
+  // Tree materialization: download files, mkdir folders
   // ============================================
 
-  async stubTree(project: string, rootLabel?: string): Promise<{ stubs: number; folders: number }> {
+  async stubTree(project: string, rootLabel?: string): Promise<{ files: number; folders: number; skipped: number; stubs: number }> {
     const mapping = await this.loadMapping(project);
     const excludes = await this.loadExcludes(project);
     const roots = rootLabel ? mapping.roots.filter(r => r.label === rootLabel) : mapping.roots;
-    let stubs = 0, folders = 0;
+    let files = 0, folders = 0, skipped = 0, stubs = 0;
 
     for (const root of roots) {
       const walk = async (remotePath: string, localDir: string): Promise<void> => {
@@ -182,24 +229,20 @@ export class OneDriveSyncService implements OnModuleDestroy {
         for (const child of children) {
           if (!child.name || matchesExclude(child.name, excludes)) continue;
           const childRemote = remotePath ? `${remotePath}/${child.name}` : child.name;
-          const childLocal = path.join(localDir, child.name);
           if (child.folder) {
             folders++;
             await this.recordEntry(project, child, childRemote, root.driveId, false);
+            const childLocal = path.join(localDir, child.name);
             await walk(childRemote, childLocal);
-          } else if (child.file) {
-            if (child.size && excludes.maxSize && child.size > excludes.maxSize) continue;
-            const stubPath = childLocal + STUB_EXT;
-            await fs.writeFile(stubPath, JSON.stringify({
-              driveItemId: child.id,
-              driveId: root.driveId,
-              remotePath: childRemote,
-              size: child.size,
-              eTag: child.eTag,
-              hydrate: `Call mcp__ms365-bridge__hydrate_path with path "${childRemote}" to fetch content.`,
-            }, null, 2));
-            stubs++;
-            await this.recordEntry(project, child, childRemote, root.driveId, false);
+          } else if (child.file || child.size != null) {
+            if (child.size && excludes.maxSize && child.size > excludes.maxSize) {
+              skipped++;
+              continue;
+            }
+            const ok = await this.materialize(project, root, childRemote, child);
+            if (ok) files++;
+            else stubs++;
+            await this.recordEntry(project, child, childRemote, root.driveId, ok);
           }
         }
       };
@@ -209,7 +252,7 @@ export class OneDriveSyncService implements OnModuleDestroy {
         this.logger.error(`stubTree failed for root ${root.label}: ${err.message}`);
       }
     }
-    return { stubs, folders };
+    return { files, folders, skipped, stubs };
   }
 
   private async recordEntry(project: string, item: DriveItem, remotePath: string, driveId?: string, hydrated = false): Promise<void> {
@@ -244,6 +287,7 @@ export class OneDriveSyncService implements OnModuleDestroy {
 
     const buf = await this.graph.downloadItemContent(project, entry.driveItemId, entry.driveId);
     await fs.mkdir(path.dirname(localPath), { recursive: true });
+    const existed = await this.pathExists(localPath);
     await fs.writeFile(localPath, buf);
     try { await fs.unlink(stubPath); } catch { /* no stub */ }
 
@@ -253,6 +297,7 @@ export class OneDriveSyncService implements OnModuleDestroy {
         m.entries[remotePath].lastSync = Date.now();
       }
     });
+    this.fsEvents.emit({ type: existed ? 'fs.changed' : 'fs.added', project, path: localPath, source: 'onedrive' });
     return { localPath, bytes: buf.length };
   }
 
@@ -296,9 +341,11 @@ export class OneDriveSyncService implements OnModuleDestroy {
     }
   }
 
-  async runDelta(project: string): Promise<{ changed: number }> {
+  async runDelta(project: string): Promise<{ changed: number; added: number; renamed: number; removed: number }> {
     const mapping = await this.loadMapping(project);
-    let changed = 0;
+    const excludes = await this.loadExcludes(project);
+    let changed = 0, added = 0, renamed = 0, removed = 0;
+
     for (const root of mapping.roots) {
       const prevToken = mapping.deltaTokens[root.label];
       try {
@@ -307,13 +354,68 @@ export class OneDriveSyncService implements OnModuleDestroy {
         do {
           const { items, nextLink, deltaLink } = await this.graph.getDelta(project, cursor, root.driveId);
           for (const item of items) {
+            // Skip drive root marker (it has root:{} and no parent)
+            if (item.root) continue;
+
+            // Find any existing mapping entry with this driveItemId
+            const existingPath = Object.keys(mapping.entries).find(
+              p => mapping.entries[p].driveItemId === item.id,
+            );
+
+            // Deletion: Graph may omit name / parentReference. Use the cached path.
+            if (item.deleted) {
+              if (existingPath) {
+                await this.removeLocalAndMapping(project, mapping, root, existingPath);
+                removed++;
+                changed++;
+              }
+              continue;
+            }
+
+            // Non-deletion items must have a name.
             if (!item.name) continue;
-            const parentPath = item.parentReference?.path?.replace(/^\/drive\/root:?\/?/, '') || '';
+            if (matchesExclude(item.name, excludes)) continue;
+
+            // Build remote path from parentReference.path:
+            //   personal:  /drive/root:/Folder
+            //   org/sp:    /drives/<id>/root:/Folder
+            const rawParent = item.parentReference?.path || '';
+            const parentPath = rawParent
+              .replace(/^\/drives\/[^/]+\/root:?\/?/, '')
+              .replace(/^\/drive\/root:?\/?/, '');
             const remotePath = parentPath ? `${parentPath}/${item.name}` : item.name;
-            if (!remotePath.startsWith(root.remotePath)) continue;
-            changed++;
-            // Update mapping entry; do not auto-hydrate.
-            await this.recordEntry(project, item, remotePath, root.driveId, mapping.entries[remotePath]?.hydrated || false);
+            if (root.remotePath && !remotePath.startsWith(root.remotePath)) continue;
+
+            if (existingPath && existingPath !== remotePath) {
+              // Rename: move local file/stub and update mapping key
+              await this.renameLocalAndMapping(project, mapping, root, existingPath, remotePath, item);
+              renamed++;
+              changed++;
+            } else if (!existingPath) {
+              // New item: download immediately (or mkdir for folders).
+              const ok = await this.materialize(project, root, remotePath, item);
+              await this.recordEntry(project, item, remotePath, root.driveId, ok && !item.folder);
+              mapping.entries[remotePath] = {
+                driveItemId: item.id,
+                driveId: root.driveId,
+                remotePath,
+                eTag: item.eTag,
+                size: item.size,
+                lastModifiedDateTime: item.lastModifiedDateTime,
+                hydrated: ok && !item.folder,
+                lastSync: Date.now(),
+              };
+              added++;
+              changed++;
+            } else {
+              // Same path, content changed remotely.
+              // If we already had a hydrated local copy, re-download to reflect the new bytes.
+              if (mapping.entries[existingPath]?.hydrated && !item.folder) {
+                await this.materialize(project, root, remotePath, item);
+              }
+              await this.recordEntry(project, item, remotePath, root.driveId, mapping.entries[remotePath]?.hydrated || false);
+              changed++;
+            }
           }
           cursor = nextLink;
           if (deltaLink) token = deltaLink;
@@ -327,7 +429,254 @@ export class OneDriveSyncService implements OnModuleDestroy {
         this.logger.error(`delta for root ${root.label} failed: ${err.message}`);
       }
     }
-    return { changed };
+    return { changed, added, renamed, removed };
+  }
+
+  // ============================================
+  // File-system reconciliation helpers
+  // ============================================
+
+  private localPathFor(root: SyncRoot, remotePath: string): string {
+    const rel = root.remotePath
+      ? remotePath.substring(root.remotePath.length).replace(/^\/+/, '')
+      : remotePath;
+    return path.join(root.localRoot, rel);
+  }
+
+  private async materialize(project: string, root: SyncRoot, remotePath: string, item: DriveItem): Promise<boolean> {
+    const local = this.localPathFor(root, remotePath);
+    if (item.folder) {
+      const existed = await this.pathExists(local);
+      await fs.mkdir(local, { recursive: true });
+      if (!existed) this.fsEvents.emit({ type: 'fs.added', project, path: local, isDir: true, source: 'onedrive' });
+      return true;
+    }
+    if (!item.file && !item.size) {
+      // Unknown type; leave a stub for safety
+      return false;
+    }
+    // Download and write atomically, staging in .meta/downloading/ so the temp
+    // file is never visible in the user-facing tree.
+    try {
+      const buf = await this.graph.downloadItemContent(project, item.id, root.driveId);
+      await fs.mkdir(path.dirname(local), { recursive: true });
+      const stagingDir = path.join(metaDir(project), 'downloading');
+      await fs.mkdir(stagingDir, { recursive: true });
+      const tmp = path.join(stagingDir, `${item.id}-${Date.now()}.part`);
+      await fs.writeFile(tmp, buf);
+      const existed = await this.pathExists(local);
+      await fs.rename(tmp, local);
+      // Remove any leftover stub from prior runs.
+      try { await fs.unlink(local + STUB_EXT); } catch { /* ignore */ }
+      this.fsEvents.emit({ type: existed ? 'fs.changed' : 'fs.added', project, path: local, source: 'onedrive' });
+      return true;
+    } catch (err: any) {
+      this.logger.error(`Failed to materialize ${remotePath}: ${err.message}. Falling back to stub.`);
+      await fs.mkdir(path.dirname(local), { recursive: true });
+      const stubPath = local + STUB_EXT;
+      await fs.writeFile(stubPath, JSON.stringify({
+        driveItemId: item.id,
+        driveId: root.driveId,
+        remotePath,
+        size: item.size,
+        eTag: item.eTag,
+        error: err.message,
+      }, null, 2));
+      return false;
+    }
+  }
+
+  private async renameLocalAndMapping(
+    project: string,
+    mapping: ProjectMapping,
+    root: SyncRoot,
+    oldRemote: string,
+    newRemote: string,
+    item: DriveItem,
+  ): Promise<void> {
+    const oldEntry = mapping.entries[oldRemote];
+    const oldLocal = this.localPathFor(root, oldRemote);
+    const newLocal = this.localPathFor(root, newRemote);
+    await fs.mkdir(path.dirname(newLocal), { recursive: true });
+
+    // Move either the hydrated file or its stub, whichever exists.
+    const candidates = oldEntry?.hydrated
+      ? [oldLocal, oldLocal + STUB_EXT]
+      : [oldLocal + STUB_EXT, oldLocal];
+    for (const src of candidates) {
+      try {
+        const dst = src.endsWith(STUB_EXT) ? newLocal + STUB_EXT : newLocal;
+        await fs.rename(src, dst);
+        break;
+      } catch (err: any) {
+        if (err.code !== 'ENOENT') throw err;
+      }
+    }
+    // If neither existed (e.g., folder), at least ensure the new dir exists for folders.
+    if (item.folder) {
+      await fs.mkdir(newLocal, { recursive: true });
+    }
+
+    await this.withMapping(project, async (m) => {
+      const moved = m.entries[oldRemote];
+      delete m.entries[oldRemote];
+      m.entries[newRemote] = {
+        ...(moved || {}),
+        driveItemId: item.id,
+        driveId: root.driveId,
+        remotePath: newRemote,
+        eTag: item.eTag,
+        size: item.size,
+        lastModifiedDateTime: item.lastModifiedDateTime,
+        hydrated: moved?.hydrated || false,
+        lastSync: Date.now(),
+      };
+    });
+
+    this.fsEvents.emit({ type: 'fs.renamed', project, from: oldLocal, to: newLocal, source: 'onedrive' });
+  }
+
+  private async removeLocalAndMapping(
+    project: string,
+    mapping: ProjectMapping,
+    root: SyncRoot,
+    remotePath: string,
+  ): Promise<void> {
+    const entry = mapping.entries[remotePath];
+    const local = this.localPathFor(root, remotePath);
+    const stub = local + STUB_EXT;
+    for (const p of [local, stub]) {
+      try { await fs.unlink(p); } catch (err: any) {
+        if (err.code !== 'ENOENT' && err.code !== 'EISDIR' && err.code !== 'EPERM') throw err;
+      }
+    }
+    // Folder cleanup
+    if (entry && !entry.size) {
+      try { await fs.rm(local, { recursive: true, force: true }); } catch { /* swallow */ }
+    }
+    await this.withMapping(project, async (m) => {
+      delete m.entries[remotePath];
+    });
+
+    this.fsEvents.emit({ type: 'fs.removed', project, path: local, source: 'onedrive' });
+  }
+
+  private async pathExists(p: string): Promise<boolean> {
+    try { await fs.access(p); return true; } catch { return false; }
+  }
+
+  // ============================================
+  // Manual push: scan local mirror, send adds/deletes to OneDrive
+  // ============================================
+
+  async pushNow(project: string): Promise<{ uploaded: number; deleted: number; failed: number; skipped: number }> {
+    const mapping = await this.loadMapping(project);
+    const excludes = await this.loadExcludes(project);
+    let uploaded = 0, deleted = 0, failed = 0, skipped = 0;
+
+    for (const root of mapping.roots) {
+      // 1. Walk the local mirror, collecting actual files.
+      const localPaths = new Set<string>();
+      try {
+        await this.walkLocal(root.localRoot, localPaths);
+      } catch (err: any) {
+        if (err.code !== 'ENOENT') {
+          this.logger.error(`pushNow: walk failed for ${root.localRoot}: ${err.message}`);
+        }
+      }
+
+      // 2. For each local file: upload if not in mapping or content changed.
+      for (const absPath of localPaths) {
+        const rel = path.relative(root.localRoot, absPath).replace(/\\/g, '/');
+        if (matchesExclude(path.basename(rel), excludes)) { skipped++; continue; }
+        const remotePath = root.remotePath ? `${root.remotePath}/${rel}` : rel;
+        const entry = mapping.entries[remotePath];
+
+        let stat;
+        try { stat = await fs.stat(absPath); } catch { continue; }
+        if (!stat.isFile()) continue;
+        if (excludes.maxSize && stat.size > excludes.maxSize) { skipped++; continue; }
+
+        // Skip if mapping says identical size + hydrated (cheap proxy for "no local change").
+        if (entry && entry.hydrated && entry.size === stat.size) {
+          continue;
+        }
+
+        try {
+          const content = await fs.readFile(absPath);
+          const parentRel = path.dirname(remotePath).replace(/\\/g, '/');
+          const parentPath = parentRel === '.' ? '' : parentRel;
+          const fileName = path.basename(remotePath);
+          const item = content.length <= 4 * 1024 * 1024
+            ? await this.graph.uploadSmallFile(project, parentPath, fileName, content, root.driveId)
+            : await this.graph.uploadLargeFile(project, parentPath, fileName, content, root.driveId);
+
+          await this.withMapping(project, async (m) => {
+            m.entries[remotePath] = {
+              driveItemId: item.id,
+              driveId: root.driveId,
+              remotePath,
+              eTag: item.eTag,
+              size: item.size,
+              lastModifiedDateTime: item.lastModifiedDateTime,
+              hydrated: true,
+              lastSync: Date.now(),
+            };
+          });
+          uploaded++;
+          this.logger.log(`pushNow: uploaded ${remotePath}`);
+        } catch (err: any) {
+          this.logger.error(`pushNow: upload ${remotePath} failed: ${err.message}`);
+          failed++;
+        }
+      }
+
+      // 3. For each entry that's hydrated but missing locally: delete on OneDrive.
+      for (const [remotePath, entry] of Object.entries(mapping.entries)) {
+        if ((entry.driveId || '') !== (root.driveId || '')) continue;
+        if (root.remotePath && !remotePath.startsWith(root.remotePath)) continue;
+        if (!entry.hydrated) continue;
+        const rel = root.remotePath
+          ? remotePath.substring(root.remotePath.length).replace(/^\/+/, '')
+          : remotePath;
+        const absPath = path.join(root.localRoot, rel);
+        if (localPaths.has(path.normalize(absPath))) continue;
+        // Local file is gone — propagate the delete remotely.
+        try {
+          await this.graph.deleteItem(project, entry.driveItemId, entry.driveId);
+          await this.withMapping(project, async (m) => {
+            delete m.entries[remotePath];
+          });
+          deleted++;
+          this.logger.log(`pushNow: deleted ${remotePath} on OneDrive`);
+        } catch (err: any) {
+          this.logger.error(`pushNow: delete ${remotePath} failed: ${err.message}`);
+          failed++;
+        }
+      }
+    }
+
+    return { uploaded, deleted, failed, skipped };
+  }
+
+  private async walkLocal(dir: string, sink: Set<string>): Promise<void> {
+    let entries: import('fs').Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch (err: any) {
+      if (err.code === 'ENOENT') return;
+      throw err;
+    }
+    for (const e of entries) {
+      if (e.name === '.meta' || e.name.startsWith('.')) continue;
+      if (e.name.endsWith(STUB_EXT) || e.name.endsWith('.downloading') || e.name.endsWith('.part')) continue;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        await this.walkLocal(full, sink);
+      } else if (e.isFile()) {
+        sink.add(path.normalize(full));
+      }
+    }
   }
 
   // ============================================
@@ -341,6 +690,7 @@ export class OneDriveSyncService implements OnModuleDestroy {
     pendingUploads: number;
     conflicts: number;
     deltaPolling: boolean;
+    autoSync: boolean;
     recentConflicts: Array<{ localPath: string; timestamp: number; reason: string }>;
   }> {
     const m = await this.loadMapping(project);
@@ -351,7 +701,19 @@ export class OneDriveSyncService implements OnModuleDestroy {
       pendingUploads: m.pendingUploads.length,
       conflicts: m.conflicts.length,
       deltaPolling: this.deltaTimers.has(project),
+      autoSync: m.autoSync !== false,
       recentConflicts: m.conflicts.slice(-5),
     };
+  }
+
+  async getAutoSync(project: string): Promise<boolean> {
+    const m = await this.loadMapping(project);
+    return m.autoSync !== false;
+  }
+
+  async setAutoSync(project: string, enabled: boolean): Promise<void> {
+    await this.withMapping(project, async (m) => {
+      m.autoSync = enabled;
+    });
   }
 }
