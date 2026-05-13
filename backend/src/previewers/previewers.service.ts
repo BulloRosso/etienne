@@ -304,7 +304,7 @@ export class PreviewersService {
             },
             icon: 'codicon codicon-cloud-upload',
             modalComponent: '__mcptool__',
-            mcpToolName: 'start_writeback',
+            mcpToolName: 'push_now',
             params: [],
             minRole: 'user',
             stateEndpoint: {
