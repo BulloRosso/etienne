@@ -294,18 +294,23 @@ export function matchFolderPattern(folderName, pattern) {
 
 /**
  * Returns context menu actions applicable to a folder row, based on previewer config.
- * Matches folder-type entries by glob against the folder's own name (last path segment).
+ * Matches folder-type entries by glob against any path segment of the folder row.
+ * (The file tree compresses single-child chains into one row, so `onedrive/personal`
+ * may surface as a single row — we still want `onedrive*` to match.)
  * Each returned action carries a `_previewer` reference for mcpGroup lookup.
  */
 export function getFolderContextMenuActions(row, previewersConfig, user) {
   if (!row || row.type !== 'folder' || !previewersConfig) return [];
-  const folderName = (row.path || '').split('/').filter(Boolean).pop() || '';
-  if (!folderName) return [];
+  const segments = (row.path || '').split('/').filter(Boolean);
+  if (!segments.length) return [];
 
   const out = [];
   for (const p of previewersConfig) {
     if (p.type !== 'folder' || !Array.isArray(p.folderPatterns)) continue;
-    if (!p.folderPatterns.some(pat => matchFolderPattern(folderName, pat))) continue;
+    const matches = p.folderPatterns.some(pat =>
+      segments.some(seg => matchFolderPattern(seg, pat))
+    );
+    if (!matches) continue;
     for (const action of (p.contextMenuActions || [])) {
       // Role gate — same logic as getContextMenuActions
       if (action.minRole && user) {
