@@ -208,9 +208,10 @@ Sessions, Dreaming, ChromaDB (RAG), and Quadstore (KG) modules:
 
 A project opts in by creating
 `workspace/<project>/.etienne/adaptive-memory.config.json` (most easily via
-the Settings tab of the Adaptive Memory page, hash `#adaptive-memory`). The
-file's existence is the activation switch — without it the Ponderer cron is
-not registered and the within-task endpoint returns `409`.
+the Settings tab inside the Adaptive Memory dialog — open it from the
+**Adaptive Memory** tile on the dashboard grid). The file's existence is
+the activation switch — without it the Ponderer cron is not registered and
+the within-task endpoint returns `409`.
 
 **Full architecture, storage map, firewall details, API surface, and tests:**
 [adaptive-memory.md](adaptive-memory.md).

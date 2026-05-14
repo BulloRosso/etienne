@@ -64,6 +64,12 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       label: t('dashboard:itemDreaming'),
       disabled: !currentProject
     },
+    {
+      id: 'adaptive-memory',
+      image: '/adaptive-memory.png',
+      label: t('dashboard:itemAdaptiveMemory'),
+      disabled: !currentProject
+    },
     // 5th row
     {
       id: 'customui',

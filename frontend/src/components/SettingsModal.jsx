@@ -45,6 +45,7 @@ import ServiceControlDrawer from './ServiceControlDrawer';
 import IssueManager from './IssueManager';
 import PreviewersManager from './PreviewersManager';
 import DreamingSettings from './DreamingSettings';
+import AdaptiveMemoryDialog from './AdaptiveMemoryDialog';
 import MS365Connect from './MS365Connect';
 
 export default function SettingsModal({
@@ -93,6 +94,7 @@ export default function SettingsModal({
   const [teamUpOpen, setTeamUpOpen] = useState(false);
   const [previewersManagerOpen, setPreviewersManagerOpen] = useState(false);
   const [dreamingOpen, setDreamingOpen] = useState(false);
+  const [adaptiveMemoryOpen, setAdaptiveMemoryOpen] = useState(false);
   const [ms365Open, setMs365Open] = useState(false);
   const [skillsInitialSkill, setSkillsInitialSkill] = useState(null);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
@@ -124,6 +126,7 @@ export default function SettingsModal({
       case 'skillstore': closeSettingsAndOpen(setSkillCatalogOpen); break;
       case 'previewers': closeSettingsAndOpen(setPreviewersManagerOpen); break;
       case 'dreaming': closeSettingsAndOpen(setDreamingOpen); break;
+      case 'adaptive-memory': closeSettingsAndOpen(setAdaptiveMemoryOpen); break;
       case 'onedrive': closeSettingsAndOpen(setMs365Open); break;
       default: break;
     }
@@ -467,6 +470,12 @@ export default function SettingsModal({
           setSkillsInitialSkill(skillName || 'dreaming');
           setSkillsOpen(true);
         }}
+      />
+
+      <AdaptiveMemoryDialog
+        open={adaptiveMemoryOpen}
+        onClose={() => setAdaptiveMemoryOpen(false)}
+        currentProject={currentProject}
       />
 
       <MS365Connect

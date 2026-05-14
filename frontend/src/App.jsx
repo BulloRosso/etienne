@@ -28,7 +28,6 @@ import { buildExtensionMap, getViewerForFile } from './components/viewerRegistry
 import { agentBus } from './services/agentBus';
 import Onboarding from './components/Onboarding';
 import TechnologyRadarPage from './pages/TechnologyRadarPage';
-import AdaptiveMemoryPage from './pages/AdaptiveMemoryPage';
 import { apiFetch } from './services/api';
 import { filePreviewHandler } from './services/FilePreviewHandler';
 import useTabStore from './stores/useTabStore';
@@ -2337,10 +2336,6 @@ export default function App() {
         {hashRoute === 'techradar' ? (
           <Box sx={{ height: '100%', overflow: 'auto' }}>
             <TechnologyRadarPage />
-          </Box>
-        ) : hashRoute === 'adaptive-memory' ? (
-          <Box sx={{ height: '100%', overflow: 'hidden' }}>
-            <AdaptiveMemoryPage project={currentProject} />
           </Box>
         ) : showWelcomePage ? (
           <WelcomePage

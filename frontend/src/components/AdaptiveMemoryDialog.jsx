@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Tabs,
@@ -13,12 +13,12 @@ import {
   Divider,
   IconButton,
   Alert,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemButton,
   Collapse,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -26,52 +26,79 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import BlockIcon from '@mui/icons-material/Block';
 import ReplayIcon from '@mui/icons-material/Replay';
+import CloseIcon from '@mui/icons-material/Close';
 import { apiFetch } from '../services/api';
 import useMultiplexSSE from '../hooks/useMultiplexSSE';
 
 /**
- * AdaptiveMemoryPage — single tabbed page for the Adaptive Memory module.
+ * AdaptiveMemoryDialog — modal dialog for the Adaptive Memory module.
  *
- *   Tabs:
- *     • Task        chat-style runTask UI; subscribes to the 'adaptive-memory' mux channel
- *     • Review      ReviewItem list with verdict buttons
- *     • Skill diff  side-by-side diff of the dreaming SKILL.md (current vs. original)
- *     • Settings    activation toggle + cron + thresholds
+ * Tabs:
+ *   • Task        chat-style runTask UI; subscribes to the 'adaptive-memory' mux channel
+ *   • Review      ReviewItem list with verdict buttons
+ *   • Skill diff  current dreaming SKILL.md (Ponderer's self-edit target)
+ *   • Settings    activation toggle + cron + classification policy
  *
  * All four tabs share one mux subscription so we don't open multiple SSE
- * streams. Per the plan, no WebSocket — live updates flow over the existing
- * multiplexed SSE.
+ * streams. Live updates flow over the existing multiplexed SSE — no WebSocket.
  *
- * Routing: hash-based, matching the existing TechnologyRadarPage convention
- * (`#adaptive-memory`).
+ * Mirrors the modal pattern of DreamingSettings: `open` + `onClose` props,
+ * owned by SettingsModal.jsx.
  */
-export default function AdaptiveMemoryPage({ project }) {
+export default function AdaptiveMemoryDialog({ open, onClose, currentProject }) {
   const [tab, setTab] = useState(0);
 
+  // Reset to the first tab whenever the dialog re-opens.
+  useEffect(() => {
+    if (open) setTab(0);
+  }, [open]);
+
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3, pt: 1 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-          Adaptive Memory
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-          Triple-P agent memory: Picker / Packer / Ponderer. The within-task
-          loop assembles context and the nightly Ponderer reflects on sessions.
-        </Typography>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{ sx: { height: '85vh' } }}
+    >
+      <DialogTitle sx={{ pb: 1 }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Adaptive Memory
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Triple-P agent memory: Picker / Packer / Ponderer. The within-task
+              loop assembles context; the nightly Ponderer reflects on sessions.
+            </Typography>
+          </Box>
+          <IconButton size="small" onClick={onClose} aria-label="close">
+            <CloseIcon />
+          </IconButton>
+        </Stack>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mt: 1 }}>
           <Tab label="Task" />
           <Tab label="Review queue" />
           <Tab label="Skill diff" />
           <Tab label="Settings" />
         </Tabs>
-      </Box>
-      <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
-        {tab === 0 && <TaskPanel project={project} />}
-        {tab === 1 && <ReviewPanel project={project} />}
-        {tab === 2 && <SkillDiffPanel project={project} />}
-        {tab === 3 && <SettingsPanel project={project} />}
-      </Box>
-    </Box>
+      </DialogTitle>
+      <DialogContent dividers sx={{ p: 3 }}>
+        {!currentProject ? (
+          <Alert severity="info">Select a project to use Adaptive Memory.</Alert>
+        ) : (
+          <>
+            {tab === 0 && <TaskPanel project={currentProject} />}
+            {tab === 1 && <ReviewPanel project={currentProject} />}
+            {tab === 2 && <SkillDiffPanel project={currentProject} />}
+            {tab === 3 && <SettingsPanel project={currentProject} />}
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -87,7 +114,6 @@ function TaskPanel({ project }) {
   const [error, setError] = useState(null);
   const mux = useMultiplexSSE(project);
 
-  // Subscribe to the adaptive-memory channel for live updates.
   useEffect(() => {
     if (!mux) return undefined;
     const handler = (payload, type) => {
@@ -129,7 +155,7 @@ function TaskPanel({ project }) {
   }, [prompt, project, running]);
 
   return (
-    <Stack spacing={2} sx={{ maxWidth: 1100 }}>
+    <Stack spacing={2}>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1 }}>Prompt</Typography>
         <TextField
@@ -290,7 +316,6 @@ function ReviewPanel({ project }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const setVerdict = useCallback(async (itemId, verdict) => {
-    // Optimistic UI.
     setItems((prev) =>
       prev ? prev.map((i) => (i.id === itemId ? { ...i, status: verdict } : i)) : prev,
     );
@@ -304,7 +329,7 @@ function ReviewPanel({ project }) {
         },
       );
     } catch {
-      refresh(); // roll back to truth
+      refresh();
     }
   }, [project, refresh]);
 
@@ -326,7 +351,7 @@ function ReviewPanel({ project }) {
   const pending = (items ?? []).filter((i) => i.status === 'pending');
 
   return (
-    <Stack spacing={2} sx={{ maxWidth: 1100 }}>
+    <Stack spacing={2}>
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography variant="subtitle2">
           {(items ?? []).length} item{(items ?? []).length === 1 ? '' : 's'}
@@ -458,14 +483,10 @@ function statusColor(status) {
 }
 
 // =========================================================================
-// Tab 3 — Skill diff (focuses on the dreaming skill, the one the Ponderer rewrites)
+// Tab 3 — Skill diff
 // =========================================================================
 
 function SkillDiffPanel({ project }) {
-  // We don't have a backend GET-skill endpoint yet; surface a guidance panel
-  // and a link to /api/skills if/when it lands. For now read the dreaming
-  // skill via the existing /api/skills endpoint shape if available, else
-  // show a static placeholder so the tab is not broken.
   const [body, setBody] = useState(null);
   const [error, setError] = useState(null);
 
@@ -490,7 +511,7 @@ function SkillDiffPanel({ project }) {
   }, [project]);
 
   return (
-    <Stack spacing={2} sx={{ maxWidth: 1100 }}>
+    <Stack spacing={2}>
       <Typography variant="subtitle2">Dreaming skill — current SKILL.md</Typography>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
         The Ponderer's self-edit stage rewrites this skill body based on the
@@ -612,7 +633,7 @@ function SettingsPanel({ project }) {
   if (!data || !draft) return <CircularProgress size={20} />;
 
   return (
-    <Stack spacing={2} sx={{ maxWidth: 700 }}>
+    <Stack spacing={2}>
       <Alert severity={data.active ? 'success' : 'info'}>
         {data.active
           ? 'Adaptive Memory is active. Saving will update the config; deleting deactivates and unregisters the cron.'
