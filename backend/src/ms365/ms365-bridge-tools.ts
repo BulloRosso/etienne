@@ -23,6 +23,14 @@ export function createMs365BridgeToolsService(
         inputSchema: { type: 'object' as const, properties: {} },
       },
       {
+        name: 'list_root_folders',
+        description: 'List the top-level folders at the root of a drive (defaults to /me/drive). Returns only folders, not files.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: { drive_id: { type: 'string', description: 'Drive ID; omit for personal /me/drive.' } },
+        },
+      },
+      {
         name: 'list_sites',
         description: 'Search SharePoint sites accessible to the project account. Use with org-mode auth.',
         inputSchema: {
@@ -145,6 +153,14 @@ export function createMs365BridgeToolsService(
       switch (toolName) {
         case 'list_drives':
           return { drives: await graph.listDrives(project) };
+
+        case 'list_root_folders': {
+          const items = await graph.getRootChildren(project, args.drive_id);
+          const folders = items
+            .filter((it: any) => !!it.folder)
+            .map((it: any) => ({ id: it.id, name: it.name }));
+          return { folders };
+        }
 
         case 'list_sites':
           return { sites: await graph.listSites(project, args.query) };

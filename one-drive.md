@@ -98,7 +98,7 @@ flowchart TB
 
 1. **Connect.** User clicks "Connect Microsoft 365" in the project. Backend redirects to Microsoft, code comes back to `/api/ms365/oauth/callback`, tokens land in `SecretsManager` keyed by project name. The `home_account_id` and `account_email` are read from `/me`.
 
-2. **Choose what to sync.** User adds a sync root (`add_sync_root`): a `{ driveId?, remotePath, label }` tuple. `driveId` blank means personal `/me/drive`; any other value is a SharePoint or shared drive ID from `list_drives` / `list_sites` / `list_site_drives`. The drive picker is a `Select` in the modal, populated on open by an internal `list_drives` call.
+2. **Choose what to sync.** User adds a sync root (`add_sync_root`): a `{ driveId?, remotePath, label }` tuple. The modal offers two side-by-side choices for the personal drive: **Mirror entire drive** (label = `root`, remotePath = `""`) or **Pick a top-level folder** (label = folder name, remotePath = folder name). The backend always passes the first drive returned by `list_drives` as `driveId`. SharePoint sites/drives are added separately via the collapsible SharePoint browser.
 
 3. **Materialize the tree.** `stub_tree` walks the OneDrive root via Graph, creates folders locally, and **downloads each file directly** (atomically: written under `.meta/downloading/`, then renamed into place). Stubs (`*.onedrive-stub`) appear only as a fallback when a download fails.
 
@@ -243,6 +243,7 @@ Tools:
 | Tool | Purpose |
 |---|---|
 | `list_drives` | OneDrive + shared drives for the connected account. |
+| `list_root_folders` | Top-level folders at a drive's root (defaults to `/me/drive`). Used by the modal's folder picker. |
 | `list_sites` | SharePoint sites (org mode). Optional `query`. |
 | `list_site_drives` | Document libraries inside a SharePoint site. |
 | `add_sync_root` | Register `{ drive_id?, remote_path, label }` as a sync root. Auto-starts delta polling if `autoSync` is on. |
@@ -265,7 +266,7 @@ A single MUI dialog opened from the project Dashboard tile **OneDrive**:
 
 - **Header bar:** title + Pull icon (`run_delta`) + Push icon (`push_now`) + `auto-sync` checkbox + Close.
 - **Body:**
-  - **Sync roots** card: each row has a "sync this tree now" folder icon (calls `stub_tree`) and a trash icon (calls `remove_sync_root` with confirm dialog). Add-root form below with `Label` + `Drive` dropdown (auto-populated from `list_drives` on open, first entry preselected) + `Remote path` + `Add`.
+  - **Sync roots** card: each row has a "sync this tree now" folder icon (calls `stub_tree`) and a trash icon (calls `remove_sync_root` with confirm dialog). Below: two side-by-side option cards — **Mirror entire drive** (one click, label `root`) and **Pick a top-level folder** (a scrollable list of root folders from `list_root_folders`, label = folder name).
   - **Browse SharePoint sites (org mode)** — collapsible, collapsed by default. Search-driven via `list_sites`.
 - **Footer (DialogActions):** "Connected as `<email>`" left-aligned (tooltip shows token expiry); `Refresh` + `Disconnect` right-aligned. Disconnect goes through a styled MUI confirm dialog (no native `confirm()`).
 - **Toasts** for all action outcomes (Pull / Push / Sync / Remove).

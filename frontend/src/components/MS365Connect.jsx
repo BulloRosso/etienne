@@ -7,7 +7,6 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -15,11 +14,7 @@ import {
   Snackbar,
   Checkbox,
   Collapse,
-  FormControl,
   FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
   List,
   ListItem,
   ListItemText,
@@ -55,12 +50,15 @@ export default function MS365Connect({ projectName, open, onClose }) {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState(null);
   const [drives, setDrives] = useState([]);
+  const [rootFolders, setRootFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState('');
+  const [justAddedLabel, setJustAddedLabel] = useState(null);
+  const [syncingLabel, setSyncingLabel] = useState(null);
   const [sites, setSites] = useState([]);
   const [siteSearch, setSiteSearch] = useState('');
   const [roots, setRoots] = useState([]);
   const [autoSync, setAutoSync] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [newRoot, setNewRoot] = useState({ drive_id: '', remote_path: '', label: '' });
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   const [sharepointOpen, setSharepointOpen] = useState(false);
   const [confirmState, setConfirmState] = useState({ open: false, title: '', message: '', confirmLabel: 'Confirm', danger: false, onConfirm: null });
@@ -99,19 +97,21 @@ export default function MS365Connect({ projectName, open, onClose }) {
   }, [projectName]);
 
   const refreshSyncState = useCallback(async () => {
+    const [r1, r2, r3] = await Promise.allSettled([
+      callMcp(projectName, 'list_sync_roots'),
+      callMcp(projectName, 'get_auto_sync'),
+      callMcp(projectName, 'list_drives'),
+    ]);
+    if (r1.status === 'fulfilled') setRoots(r1.value.roots || []);
+    if (r2.status === 'fulfilled' && typeof r2.value?.enabled === 'boolean') setAutoSync(r2.value.enabled);
+    const driveList = r3.status === 'fulfilled' ? (r3.value.drives || []) : [];
+    if (r3.status === 'fulfilled') setDrives(driveList);
+    setSelectedFolder('');
     try {
-      const [r1, r2, r3] = await Promise.all([
-        callMcp(projectName, 'list_sync_roots'),
-        callMcp(projectName, 'get_auto_sync'),
-        callMcp(projectName, 'list_drives'),
-      ]);
-      setRoots(r1.roots || []);
-      if (typeof r2?.enabled === 'boolean') setAutoSync(r2.enabled);
-      const driveList = r3.drives || [];
-      setDrives(driveList);
-      setNewRoot(prev => prev.drive_id ? prev : { ...prev, drive_id: driveList[0]?.id || '' });
-    } catch (e) {
-      // swallow — not connected yet
+      const r4 = await callMcp(projectName, 'list_root_folders', driveList[0]?.id ? { drive_id: driveList[0].id } : {});
+      setRootFolders(r4.folders || []);
+    } catch {
+      setRootFolders([]);
     }
   }, [projectName]);
 
@@ -170,18 +170,33 @@ export default function MS365Connect({ projectName, open, onClose }) {
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
 
-  const handleAddRoot = async () => {
-    if (!newRoot.label) { setError('Label required'); return; }
+  const addRootInternal = async (remotePath, label) => {
+    if (roots.some(r => r.label === label)) {
+      setError(`A sync root with label "${label}" already exists.`);
+      return;
+    }
     setBusy(true); setError(null);
     try {
-      await callMcp(projectName, 'add_sync_root', {
-        drive_id: newRoot.drive_id || undefined,
-        remote_path: newRoot.remote_path,
-        label: newRoot.label,
+      const resp = await callMcp(projectName, 'add_sync_root', {
+        drive_id: drives[0]?.id || undefined,
+        remote_path: remotePath,
+        label,
       });
-      setNewRoot({ drive_id: '', remote_path: '', label: '' });
+      // Optimistic: insert the new row immediately so the cards disappear without waiting for refreshSyncState.
+      if (resp?.root) {
+        setRoots(prev => prev.some(x => x.label === resp.root.label) ? prev : [...prev, resp.root]);
+      }
+      setJustAddedLabel(label);
+      showToast(`Added sync root "${label}"`, 'success');
       await refreshSyncState();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
+  };
+
+  const handleAddWholeDrive = () => addRootInternal('', 'root');
+
+  const handleAddSelectedFolder = () => {
+    if (!selectedFolder) { setError('Select a folder first'); return; }
+    addRootInternal(selectedFolder, selectedFolder);
   };
 
   const handleRemoveRoot = async (label) => {
@@ -195,6 +210,9 @@ export default function MS365Connect({ projectName, open, onClose }) {
     setBusy(true); setError(null);
     try {
       const r = await callMcp(projectName, 'remove_sync_root', { label });
+      // Optimistic: drop the row immediately so the add-cards appear without waiting for refreshSyncState.
+      setRoots(prev => prev.filter(x => x.label !== label));
+      if (justAddedLabel === label) setJustAddedLabel(null);
       showToast(`Removed "${label}" (${r.purgedEntries || 0} entries purged)`, 'success');
       await refreshSyncState();
     } catch (e) {
@@ -206,7 +224,7 @@ export default function MS365Connect({ projectName, open, onClose }) {
   };
 
   const handleStubTree = async (label) => {
-    setBusy(true); setError(null);
+    setSyncingLabel(label || '*'); setError(null);
     try {
       const r = await callMcp(projectName, 'stub_tree', label ? { root_label: label } : {});
       const parts = [];
@@ -215,8 +233,9 @@ export default function MS365Connect({ projectName, open, onClose }) {
       if (r.stubs) parts.push(`${r.stubs} stub${r.stubs === 1 ? '' : 's'} (download failed)`);
       if (r.skipped) parts.push(`${r.skipped} skipped (too large)`);
       showToast(`Synced: ${parts.join(', ') || 'nothing'}`, r.stubs ? 'warning' : 'success');
+      if (justAddedLabel === label) setJustAddedLabel(null);
       await refreshSyncState();
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
+    } catch (e) { setError(e.message); } finally { setSyncingLabel(null); }
   };
 
   const handleRunDelta = async () => {
@@ -278,46 +297,126 @@ export default function MS365Connect({ projectName, open, onClose }) {
         <>
           <Card sx={{ mb: 2 }}>
             <CardContent>
-              <Typography variant="subtitle1" gutterBottom>Sync roots</Typography>
-              <List dense>
-                {roots.length === 0 && <Typography variant="body2" color="text.secondary">No roots configured yet.</Typography>}
-                {roots.map((r) => (
-                  <ListItem key={r.label}>
-                    <ListItemText
-                      primary={<><strong>{r.label}</strong>{r.driveId ? ` · drive ${r.driveId.substring(0, 8)}…` : ' · /me/drive'}</>}
-                      secondary={`remote: ${r.remotePath || '/'} → local: ${r.localRoot}`}
-                    />
-                    <ListItemSecondaryAction>
-                      <Tooltip title="Sync this tree (download all files and create folders locally)">
-                        <IconButton onClick={() => handleStubTree(r.label)} disabled={busy}><FolderOpen /></IconButton>
-                      </Tooltip>
-                      <IconButton onClick={() => handleRemoveRoot(r.label)} disabled={busy}><Delete /></IconButton>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))}
-              </List>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle2">Add a sync root</Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center">
-                <TextField size="small" label="Label" value={newRoot.label} onChange={(e) => setNewRoot({ ...newRoot, label: e.target.value })} sx={{ width: 200 }} />
-                <FormControl size="small" sx={{ flex: 1, minWidth: 220 }}>
-                  <InputLabel id="ms365-drive-label">Drive</InputLabel>
-                  <Select
-                    labelId="ms365-drive-label"
-                    label="Drive"
-                    value={newRoot.drive_id}
-                    onChange={(e) => setNewRoot({ ...newRoot, drive_id: e.target.value })}
-                    displayEmpty
-                  >
-                    <MenuItem value=""><em>/me/drive (default)</em></MenuItem>
-                    {drives.map(d => (
-                      <MenuItem key={d.id} value={d.id}>{d.name || '(no name)'}</MenuItem>
+              <Typography variant="subtitle1" gutterBottom>Connected to cloud drive</Typography>
+              {roots.length > 0 ? (
+                <>
+                  <List dense>
+                    {roots.map((r) => (
+                      <ListItem key={r.label}>
+                        <ListItemText
+                          primary={
+                            <Tooltip title={r.driveId ? `Drive ID: ${r.driveId}` : 'Personal drive (/me/drive)'} placement="top-start">
+                              <strong>{r.label}</strong>
+                            </Tooltip>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <Tooltip title="Sync this tree (download all files and create folders locally)">
+                            <span>
+                              <IconButton onClick={() => handleStubTree(r.label)} disabled={busy || !!syncingLabel}>
+                                {syncingLabel === r.label ? <CircularProgress size={20} /> : <FolderOpen />}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Change root (removes the current root so you can pick a different one)">
+                            <span>
+                              <IconButton onClick={() => handleRemoveRoot(r.label)} disabled={busy || !!syncingLabel}><Delete /></IconButton>
+                            </span>
+                          </Tooltip>
+                        </ListItemSecondaryAction>
+                      </ListItem>
                     ))}
-                  </Select>
-                </FormControl>
-                <TextField size="small" label="Remote path (e.g. Documents)" value={newRoot.remote_path} onChange={(e) => setNewRoot({ ...newRoot, remote_path: e.target.value })} sx={{ flex: 1 }} />
-                <Button variant="contained" startIcon={<Add />} onClick={handleAddRoot} disabled={busy || !newRoot.label}>Add</Button>
-              </Stack>
+                  </List>
+                  {justAddedLabel && roots.some(r => r.label === justAddedLabel) ? (
+                    <Alert
+                      severity="info"
+                      sx={{ mt: 1 }}
+                      action={
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={syncingLabel === justAddedLabel ? <CircularProgress size={14} color="inherit" /> : <CloudDownload />}
+                            onClick={() => handleStubTree(justAddedLabel)}
+                            disabled={!!syncingLabel}
+                          >
+                            {syncingLabel === justAddedLabel ? 'Syncing…' : 'Pull now'}
+                          </Button>
+                          <Button size="small" onClick={() => setJustAddedLabel(null)} disabled={!!syncingLabel}>
+                            Not now
+                          </Button>
+                        </Stack>
+                      }
+                    >
+                      Sync root "<strong>{justAddedLabel}</strong>" added. Do you want to pull (sync) right now?
+                    </Alert>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">
+                      To switch to a different root, remove the current one with the trash icon.
+                    </Typography>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    No root configured yet. Choose one of the two options below.
+                  </Typography>
+                  <Stack direction="row" spacing={2} sx={{ mt: 1 }} alignItems="stretch">
+                    <Card variant="outlined" sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="subtitle2">Mirror entire drive</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Mirrors the whole drive into <code>onedrive/root</code>.
+                        </Typography>
+                        <Box sx={{ flex: 1 }} />
+                        <Button
+                          variant="contained"
+                          startIcon={<Add />}
+                          onClick={handleAddWholeDrive}
+                          disabled={busy}
+                        >
+                          Add (root)
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    <Card variant="outlined" sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="subtitle2">Pick a top-level folder</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Mirrors one folder of the drive root into <code>onedrive/&lt;folder&gt;</code>.
+                        </Typography>
+                        <Box sx={{ flex: 1, maxHeight: 200, overflowY: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
+                          {rootFolders.length === 0 && (
+                            <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
+                              No folders found at drive root.
+                            </Typography>
+                          )}
+                          <List dense disablePadding>
+                            {rootFolders.map(f => (
+                              <ListItem
+                                key={f.id}
+                                button
+                                selected={selectedFolder === f.name}
+                                onClick={() => setSelectedFolder(f.name)}
+                              >
+                                <ListItemText primary={f.name} />
+                              </ListItem>
+                            ))}
+                          </List>
+                        </Box>
+                        <Button
+                          variant="contained"
+                          startIcon={<Add />}
+                          onClick={handleAddSelectedFolder}
+                          disabled={busy || !selectedFolder}
+                        >
+                          Add {selectedFolder ? `(${selectedFolder})` : ''}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Stack>
+                </>
+              )}
             </CardContent>
           </Card>
 
