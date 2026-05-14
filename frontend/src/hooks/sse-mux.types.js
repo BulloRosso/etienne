@@ -16,7 +16,7 @@
 
 /**
  * All available multiplexing channels.
- * @typedef {'interceptor'|'interceptor-global'|'research'|'budget'|'events'|'filesystem'|'system'|'heartbeat'} MuxChannel
+ * @typedef {'interceptor'|'interceptor-global'|'research'|'budget'|'events'|'filesystem'|'adaptive-memory'|'system'|'heartbeat'} MuxChannel
  */
 
 // ---------------------------------------------------------------------------

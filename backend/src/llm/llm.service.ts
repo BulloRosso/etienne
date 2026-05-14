@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
-import { generateText } from 'ai';
+import { generateText, stepCountIs, type Tool } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
@@ -213,6 +213,56 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     });
     this.trackUsage(result.usage, opts.projectDir);
     return result.text;
+  }
+
+  /**
+   * Multi-step tool-using generation, used by the Adaptive-Memory agent and any
+   * other caller that needs the model to invoke writeback tools and react to
+   * their results.
+   *
+   * Implementation note (deliberate divergence from PRD §5):
+   *   The PRD names "Claude Agent SDK" as the within-task harness, but this
+   *   backend already routes ALL LLM traffic through the Vercel `ai` SDK +
+   *   `@ai-sdk/anthropic` (with OpenAI / DeepSeek as alternative providers).
+   *   Subprocessing `@anthropic-ai/claude-agent-sdk` would lock the Adaptive
+   *   Memory loop to Anthropic and bypass our budget tracking, secrets, and
+   *   provider routing. The `ai` SDK exposes the same primitives we need —
+   *   `tool({...})`, multi-step loops via `stopWhen: stepCountIs(N)`, parallel
+   *   tool calls — and stays inside the provider boundary already in place.
+   *
+   * Caller responsibilities:
+   *   - Each tool's `execute` should do firewall enforcement (e.g. call
+   *     `enforceWriteClassification(input)` as its first statement).
+   *   - The caller streams events to its own RxJS Subject; this method
+   *     returns the final string only. Streaming hooks come later via
+   *     `onStepFinish` if we need them.
+   */
+  async runWithTools(opts: {
+    tier: ModelTier;
+    system?: string;
+    messages: Array<{ role: 'user' | 'assistant' | 'system'; content: any }>;
+    tools: Record<string, Tool<any, any>>;
+    maxSteps?: number;
+    maxOutputTokens?: number;
+    projectDir?: string;
+  }): Promise<{ text: string; toolCalls: number; steps: number }> {
+    const modelId = this.models[opts.tier];
+    const result = await generateText({
+      model: this.providerInstance(modelId),
+      maxOutputTokens: opts.maxOutputTokens ?? 2048,
+      system: opts.system,
+      messages: opts.messages,
+      tools: opts.tools,
+      stopWhen: stepCountIs(opts.maxSteps ?? 10),
+    });
+    this.trackUsage(result.usage, opts.projectDir);
+    // result.steps is the array of model turns; toolCalls is summed across them.
+    const steps = result.steps?.length ?? 1;
+    const toolCalls = result.steps?.reduce(
+      (sum, s) => sum + (s.toolCalls?.length ?? 0),
+      0,
+    ) ?? 0;
+    return { text: result.text, toolCalls, steps };
   }
 
   getProvider(): string {

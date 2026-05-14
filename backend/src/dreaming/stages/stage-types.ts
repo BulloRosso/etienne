@@ -3,8 +3,16 @@
  * Each stage's handler receives `payload` of the corresponding type.
  */
 
+import type { Classification, Provenance } from '../../memory/types';
+
 export interface HarvestPayload {
   project: string;
+  /**
+   * When set by the Adaptive-Memory Ponderer's personality-induction stage,
+   * the harvest stage uses this curated list instead of scanning chat history
+   * since `last_run_ts`. Leave undefined for the standalone cron-driven run.
+   */
+  sessionFilesOverride?: string[];
 }
 
 export interface SegmentPayload {
@@ -40,6 +48,13 @@ export interface CandidateStrategy {
   confidence: number;
   /** Trajectory IDs supporting this candidate. */
   supportTrajectories: string[];
+  /**
+   * Adaptive-Memory extension. Optional on the existing legacy pipeline (REFLECT /
+   * CONSOLIDATE populate them from `config.classificationPolicy.defaultForAgentWrites`
+   * when active). When undefined on read, callers default to 'private'.
+   */
+  classification?: Classification;
+  provenance?: Provenance;
 }
 
 export interface DistillPayload {

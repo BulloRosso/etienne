@@ -4,7 +4,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 export interface PageFrontmatter {
   title: string;
   slug: string;
-  status: "stub" | "draft" | "stable";
+  // `deleted` is the soft-tombstone state written by wiki-delete.ts. Excluded
+  // from index.md regeneration; redirects entry retains the slug history.
+  status: "stub" | "draft" | "stable" | "deleted";
   confidence: "high" | "medium" | "low";
   tags: string[];
   mission_relevance: number;
@@ -13,6 +15,19 @@ export interface PageFrontmatter {
   last_updated: string;
   supersedes: string[];
   aliases: string[];
+  // Adaptive-Memory extensions. Optional; pages without these keys default to
+  // classification='private' and a synthesised Provenance at the service boundary.
+  classification?: "public" | "private" | "secret";
+  provenance?: Provenance;
+}
+
+export interface Provenance {
+  sourceSessions: string[];
+  sourceEntries: string[];
+  createdBy: "agent" | "ponderer" | "user";
+  createdAt: string;
+  updatedAt: string;
+  inferenceTag?: string;
 }
 
 export type SourceEntry =

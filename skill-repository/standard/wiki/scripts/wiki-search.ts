@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { readPage } from "./lib/frontmatter.js";
 import { resolveWiki, ensureWikiExists } from "./lib/paths.js";
@@ -18,6 +18,7 @@ interface SearchHit {
 }
 
 function walk(dir: string, acc: string[] = []): string[] {
+  if (!existsSync(dir)) return acc;
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     const st = statSync(full);
@@ -74,6 +75,8 @@ function main(): void {
     let parsed;
     try { parsed = readPage(file); } catch { continue; }
     const fm = parsed.data;
+    // Tombstones written by wiki-delete.ts are excluded from search results.
+    if (fm.status === "deleted") continue;
     const title = String(fm.title ?? "");
     const tags = Array.isArray(fm.tags) ? fm.tags.map(String) : [];
     const aliases = Array.isArray(fm.aliases) ? fm.aliases.map(String) : [];

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Param, Res, Query, Headers, Optional } from '@nestjs/common';
 import { Response } from 'express';
 import { Subscription } from 'rxjs';
 import { InterceptorsService } from '../interceptors/interceptors.service';
@@ -6,6 +6,8 @@ import { DeepResearchService } from '../deep-research/deep-research.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
 import { FilesystemEventsService } from '../ms365/filesystem-events.service';
+import { AdaptiveMemoryAgent } from '../adaptive-memory/agent/adaptive-memory-agent.service';
+import { Ponderer } from '../adaptive-memory/subagents/ponderer.service';
 import { MuxChannel, MuxEventType, MuxEnvelope } from './sse-mux.types';
 
 /**
@@ -33,6 +35,11 @@ export class SseMultiplexController {
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly ssePublisher: SSEPublisherService,
     private readonly fsEvents: FilesystemEventsService,
+    // Adaptive Memory is optional — the multiplex controller predates this
+    // module, and unit-test contexts that don't import AdaptiveMemoryModule
+    // should still be able to instantiate this controller.
+    @Optional() private readonly adaptiveAgent?: AdaptiveMemoryAgent,
+    @Optional() private readonly ponderer?: Ponderer,
   ) {}
 
   @Get('stream/:project')
@@ -94,7 +101,7 @@ export class SseMultiplexController {
     // Parse requested channels (default: all)
     const requested = channels
       ? new Set(channels.split(','))
-      : new Set(['interceptor', 'interceptor-global', 'research', 'budget', 'events', 'filesystem']);
+      : new Set(['interceptor', 'interceptor-global', 'research', 'budget', 'events', 'filesystem', 'adaptive-memory']);
 
     // 1. Project interceptors
     if (requested.has('interceptor')) {
@@ -136,6 +143,27 @@ export class SseMultiplexController {
         .getSubject(project)
         .subscribe((event) => send('filesystem', event.type as MuxEventType, event));
       subscriptions.push(sub);
+    }
+
+    // 4c. Adaptive Memory — agent runTask events + Ponderer cycle events.
+    // Two subjects funnel into one channel so the frontend sees one timeline.
+    if (requested.has('adaptive-memory')) {
+      if (this.adaptiveAgent) {
+        const sub = this.adaptiveAgent
+          .getEventSubject(project)
+          .subscribe((event) =>
+            send('adaptive-memory', event.type as MuxEventType, event),
+          );
+        subscriptions.push(sub);
+      }
+      if (this.ponderer) {
+        const sub = this.ponderer
+          .getEventSubject(project)
+          .subscribe((event) =>
+            send('adaptive-memory', event.type as MuxEventType, event),
+          );
+        subscriptions.push(sub);
+      }
     }
 
     // 5. Event handling (condition monitoring, prompt/workflow execution)

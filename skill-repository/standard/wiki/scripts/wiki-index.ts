@@ -1,4 +1,4 @@
-import { readdirSync, statSync, writeFileSync } from "node:fs";
+import { readdirSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { readPage, type PageFrontmatter } from "./lib/frontmatter.js";
 import { resolveWiki, ensureWikiExists } from "./lib/paths.js";
@@ -13,6 +13,7 @@ interface PageSummary {
 }
 
 function walk(dir: string, acc: string[] = []): string[] {
+  if (!existsSync(dir)) return acc;
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     const st = statSync(full);
@@ -54,6 +55,8 @@ function main(): void {
     for (const file of walk(dir)) {
       try {
         const parsed = readPage(file);
+        // Tombstones written by wiki-delete.ts are excluded from index + graph.
+        if ((parsed.data as Partial<PageFrontmatter>).status === "deleted") continue;
         pages.push({
           path: relative(paths.wikiRoot, file),
           bucket,

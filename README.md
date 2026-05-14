@@ -193,6 +193,28 @@ Memories are stored per project and not globally in the default configuration. T
 
 See [User Orders](user-orders.md).
 
+### Adaptive Memory (Triple-P)
+
+On top of the basic memory extraction Etienne implements a **Triple-P** agent
+memory loop — Picker / Packer / Ponderer — built atop the existing Skills,
+Sessions, Dreaming, ChromaDB (RAG), and Quadstore (KG) modules:
+
+- **Picker** assembles candidate context from Wiki / KG / RAG / Preferences / SOR.
+- **Packer** trims to fit the token budget and enforces a `public` / `private` /
+  `secret` classification firewall before context reaches the LLM.
+- **Ponderer** runs nightly: scores sessions, prunes stale state, induces
+  cross-project personality principles, rewrites the dreaming skill from
+  user feedback, and publishes a Review Queue.
+
+A project opts in by creating
+`workspace/<project>/.etienne/adaptive-memory.config.json` (most easily via
+the Settings tab of the Adaptive Memory page, hash `#adaptive-memory`). The
+file's existence is the activation switch — without it the Ponderer cron is
+not registered and the within-task endpoint returns `409`.
+
+**Full architecture, storage map, firewall details, API surface, and tests:**
+[adaptive-memory.md](adaptive-memory.md).
+
 ## The Web: Searching, Scraping and Browsing
 
 Use the **web-scraping skill** to enable the agent to interact with websites on the internet.

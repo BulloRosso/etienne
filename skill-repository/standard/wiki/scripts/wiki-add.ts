@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname, basename, relative } from "node:path";
-import { readPage, writePage, nowIso, type PageFrontmatter, type SourceEntry } from "./lib/frontmatter.js";
+import { readPage, writePage, nowIso, type PageFrontmatter, type Provenance, type SourceEntry } from "./lib/frontmatter.js";
 import { resolveWiki, ensureWikiExists } from "./lib/paths.js";
 import { parseArgs } from "./lib/argv.js";
 import { slugify } from "./lib/slug.js";
@@ -20,6 +20,11 @@ interface AddInput {
   appendHistory?: boolean;
   supersedes?: string[];
   aliases?: string[];
+  // Adaptive-Memory extensions. Optional; when omitted, pages have no
+  // classification/provenance frontmatter and the Adaptive-Memory service
+  // synthesises defaults at the read boundary.
+  classification?: "public" | "private" | "secret";
+  provenance?: Provenance;
 }
 
 function readInput(args: Record<string, string | boolean>): AddInput {
@@ -104,6 +109,29 @@ function main(): void {
     const split = splitHistory(prev.content);
     const prevFm = prev.data as Partial<PageFrontmatter>;
 
+    // Merge provenance: keep the original createdBy/createdAt/sourceSessions[]
+    // from the previous version; bump updatedAt; union the source lists when
+    // both sides supply provenance.
+    let mergedProvenance: Provenance | undefined = prevFm.provenance ?? input.provenance;
+    if (prevFm.provenance && input.provenance) {
+      mergedProvenance = {
+        createdBy: prevFm.provenance.createdBy,
+        createdAt: prevFm.provenance.createdAt,
+        updatedAt: now,
+        sourceSessions: Array.from(new Set([
+          ...(prevFm.provenance.sourceSessions ?? []),
+          ...(input.provenance.sourceSessions ?? []),
+        ])),
+        sourceEntries: Array.from(new Set([
+          ...(prevFm.provenance.sourceEntries ?? []),
+          ...(input.provenance.sourceEntries ?? []),
+        ])),
+        inferenceTag: input.provenance.inferenceTag ?? prevFm.provenance.inferenceTag,
+      };
+    } else if (mergedProvenance) {
+      mergedProvenance = { ...mergedProvenance, updatedAt: now };
+    }
+
     fm = {
       title: input.title,
       slug,
@@ -121,6 +149,11 @@ function main(): void {
         ...(prevFm.title && prevFm.title !== input.title ? [String(prevFm.title)] : []),
       ])),
     };
+    // Only attach Adaptive-Memory fields when one side supplied them; YAML
+    // serializer rejects undefined values in the frontmatter object.
+    const cls = input.classification ?? prevFm.classification;
+    if (cls) fm.classification = cls;
+    if (mergedProvenance) fm.provenance = mergedProvenance;
 
     if (input.appendHistory && split.main.trim() && split.main.trim() !== input.body.trim()) {
       const stamp = `### ${now} (superseded)\n\n${split.main.trim()}`;
@@ -144,6 +177,10 @@ function main(): void {
       supersedes: input.supersedes ?? [],
       aliases: input.aliases ?? [],
     };
+    // Only attach Adaptive-Memory fields when supplied; YAML serializer rejects
+    // undefined values in the frontmatter object.
+    if (input.classification) fm.classification = input.classification;
+    if (input.provenance) fm.provenance = { ...input.provenance, updatedAt: now };
   }
 
   writePage(target, fm, compose(main_, history, backlinks));

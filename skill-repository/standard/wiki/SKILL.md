@@ -4,7 +4,7 @@ description: Maintains a project knowledge wiki at wiki/ as the agent's long-ter
 allowed-tools: Read Write Edit Bash(tsx:*) Bash(cat:*) Bash(ls:*) Grep Glob
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: etienne
 ---
 
@@ -59,7 +59,7 @@ Every page under `topics/`, `sources/`, `queries/` carries this header. Required
 ---
 title: <Human readable>
 slug: <kebab-case>
-status: stub | draft | stable
+status: stub | draft | stable | deleted
 confidence: high | medium | low
 tags: [t1, t2, axis:value]
 mission_relevance: 0..1
@@ -74,24 +74,40 @@ created: <ISO-8601>
 last_updated: <ISO-8601>
 supersedes: []
 aliases: []
+
+# Optional — set by Adaptive Memory when active. Absent fields default to
+# classification='private' and a synthesised Provenance at the service boundary.
+classification: public | private | secret
+provenance:
+  sourceSessions: [<session-id>, ...]
+  sourceEntries: [<upstream-entry-id>, ...]
+  createdBy: agent | ponderer | user
+  createdAt: <ISO-8601>
+  updatedAt: <ISO-8601>
+  inferenceTag: <ponderer-pattern-id>      # ponderer-only
 ---
 ```
 
-`title`, `slug`, `status`, `confidence`, `mission_relevance`, `created`, `last_updated`, and at least one `sources` entry are required.
+`title`, `slug`, `status`, `confidence`, `mission_relevance`, `created`, `last_updated`,
+and at least one `sources` entry are required. `classification` and `provenance` are
+optional but should be supplied whenever the page is written through Adaptive Memory;
+`status: deleted` is reserved for `wiki-delete.ts` tombstones and is excluded from
+`index.md` regeneration.
 
 ## Cross-linking convention
 
 Use relative markdown links: `[Walnut wood](../topics/walnut-wood.md)`. Every page ends with a `## Backlinks` section maintained by `wiki-add` — never edit it by hand.
 
-## The five scripts
+## The six scripts
 
 All scripts live at `.claude/skills/wiki/scripts/` and run with `tsx`. Their stdout is structured (single JSON object per call). Always parse the JSON; do not rely on prose output.
 
 | Script | Purpose | Typical call |
 |---|---|---|
 | `wiki-search.ts` | Ranked search across body and frontmatter. **Run before every write.** | `tsx <skill>/scripts/wiki-search.ts --query "mid-century sofa" --limit 10` |
-| `wiki-add.ts` | Add a new page or update an existing one. Handles frontmatter merge, history append, backlink maintenance. | `tsx <skill>/scripts/wiki-add.ts --input /tmp/page.json` |
-| `wiki-index.ts` | Rebuilds `index.md` and `_meta/graph.md`. **Run after any batch of writes.** | `tsx <skill>/scripts/wiki-index.ts` |
+| `wiki-add.ts` | Add a new page or update an existing one. Handles frontmatter merge (including `classification` + `provenance`), history append, backlink maintenance. | `tsx <skill>/scripts/wiki-add.ts --input /tmp/page.json` |
+| `wiki-delete.ts` | Soft-delete a page (sets `status: deleted`, appends a tombstone to `_meta/redirects.md`). Idempotent. Preserves the file on disk per the history-append-only principle. | `tsx <skill>/scripts/wiki-delete.ts --slug brand-x --bucket topics --reason "merged into brand-y"` |
+| `wiki-index.ts` | Rebuilds `index.md` and `_meta/graph.md`. Skips pages with `status: deleted`. **Run after any batch of writes.** | `tsx <skill>/scripts/wiki-index.ts` |
 | `wiki-taxonomy.ts` | Diffs current pages against `_meta/taxonomy.md` and the mission. Reports orphan tags, missing pages, oversized categories. Use `--bootstrap` on first run. | `tsx <skill>/scripts/wiki-taxonomy.ts --diff` |
 | `wiki-ingest-file.ts` | Heuristic extraction of mission-relevant chunks from a codebase file. Produces a *draft* JSON you review and pass to `wiki-add`. | `tsx <skill>/scripts/wiki-ingest-file.ts --path src/foo.ts` |
 

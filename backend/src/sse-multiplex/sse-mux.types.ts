@@ -22,6 +22,7 @@ export type MuxChannel =
   | 'budget'
   | 'events'
   | 'filesystem'
+  | 'adaptive-memory'
   | 'system'
   | 'heartbeat';
 

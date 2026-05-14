@@ -23,20 +23,33 @@ export async function runHarvest(
   const projectRoot = safeRoot(workspaceRoot, project);
   const etienneDir = join(projectRoot, '.etienne');
 
+  // Adaptive-Memory Ponderer can override the scan with a curated list.
+  // When the override is present we bypass the last_run_ts gate entirely —
+  // the Ponderer already decided which sessions are worth processing.
+  const override = payload.sessionFilesOverride;
   const lastRunRaw = queue.getRunState('last_run_ts');
   const lastRunTs = lastRunRaw ? Number(lastRunRaw) : 0;
 
-  let entries: string[] = [];
-  try { entries = await fs.readdir(etienneDir); } catch { entries = []; }
-
-  const sessionFiles = entries.filter((f) => f.startsWith('chat.history-') && f.endsWith('.jsonl'));
   const candidateFiles: Array<{ path: string; mtimeMs: number }> = [];
-  for (const f of sessionFiles) {
-    const path = join(etienneDir, f);
-    try {
-      const stat = await fs.stat(path);
-      if (stat.mtimeMs > lastRunTs) candidateFiles.push({ path, mtimeMs: stat.mtimeMs });
-    } catch { /* skip unreadable */ }
+  if (override && override.length > 0) {
+    for (const path of override) {
+      try {
+        const stat = await fs.stat(path);
+        candidateFiles.push({ path, mtimeMs: stat.mtimeMs });
+      } catch { /* skip unreadable */ }
+    }
+    log.log(`[${project}] HARVEST using sessionFilesOverride (${override.length} files)`);
+  } else {
+    let entries: string[] = [];
+    try { entries = await fs.readdir(etienneDir); } catch { entries = []; }
+    const sessionFiles = entries.filter((f) => f.startsWith('chat.history-') && f.endsWith('.jsonl'));
+    for (const f of sessionFiles) {
+      const path = join(etienneDir, f);
+      try {
+        const stat = await fs.stat(path);
+        if (stat.mtimeMs > lastRunTs) candidateFiles.push({ path, mtimeMs: stat.mtimeMs });
+      } catch { /* skip unreadable */ }
+    }
   }
 
   if (candidateFiles.length === 0) {

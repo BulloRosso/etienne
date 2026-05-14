@@ -183,10 +183,19 @@ export class DreamingService implements OnModuleInit {
 
   /**
    * Enqueue a HARVEST job for this project, gated by the soft pre-flight budget check.
+   *
+   * `opts.sessionFilesOverride` is honoured by [harvest.ts] when present — it
+   * bypasses the `last_run_ts` scan and processes exactly the supplied files.
+   * The Adaptive-Memory Ponderer uses this to feed curated high-quality
+   * sessions through the strategy-mining pipeline; the standalone cron flow
+   * leaves it undefined.
    */
-  async triggerRun(project: string): Promise<{ runId: string; enqueued: boolean; reason?: string }> {
+  async triggerRun(
+    project: string,
+    opts?: { sessionFilesOverride?: string[]; bypassEnabledCheck?: boolean },
+  ): Promise<{ runId: string; enqueued: boolean; reason?: string }> {
     const settings = await this.getSettings(project);
-    if (!settings.enabled) {
+    if (!settings.enabled && !opts?.bypassEnabledCheck) {
       this.emitEvent({ type: 'run-skipped', project, runId: '', detail: { reason: 'dreaming-disabled' } });
       return { runId: '', enqueued: false, reason: 'dreaming-disabled' };
     }
@@ -197,7 +206,11 @@ export class DreamingService implements OnModuleInit {
     }
     const queue = await this.getQueue(project);
     const runId = `run-${new Date().toISOString().slice(0, 10)}-${uuidv4().slice(0, 8)}`;
-    queue.enqueue('harvest', { project }, { runId });
+    queue.enqueue(
+      'harvest',
+      { project, sessionFilesOverride: opts?.sessionFilesOverride },
+      { runId },
+    );
     queue.setRunState('last_trigger_ts', String(Date.now()));
     this.logger.log(`Enqueued HARVEST run ${runId} for ${project}`);
     this.emitEvent({ type: 'run-enqueued', project, runId });
