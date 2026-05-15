@@ -392,6 +392,9 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
             '& > *:first-child': {
               marginTop: 0
             },
+            '& > h1:first-child': {
+              marginTop: '10px'
+            },
             '& h1': {
               fontSize: '2em',
               fontWeight: 'bold',
