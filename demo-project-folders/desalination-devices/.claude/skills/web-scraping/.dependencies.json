@@ -1,0 +1,5 @@
+{
+  "requires": [],
+  "provides": ["get", "bulk_get", "fetch", "bulk_fetch", "stealthy_fetch", "bulk_stealthy_fetch"],
+  "services": ["web-scraper"]
+}

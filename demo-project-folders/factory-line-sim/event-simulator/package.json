@@ -1,0 +1,14 @@
+{
+  "name": "factory-line-sim-event-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulates MQTT-style telemetry events for the factory-line-sim project.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/simulator.ts",
+    "start:burst": "tsx src/simulator.ts --burst"
+  },
+  "dependencies": {
+    "tsx": "^4.7.0"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "cronExpression": "0 22 * * *",
+  "timeZone": "UTC",
+  "maxItems": 10,
+  "skillName": "dreaming"
+}

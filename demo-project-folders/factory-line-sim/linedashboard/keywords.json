@@ -1,0 +1,76 @@
+{
+  "keywords": [
+    {
+      "cluster_id": "C001",
+      "cluster_name": "On-spec",
+      "keyword": "within tolerance",
+      "count": 130
+    },
+    {
+      "cluster_id": "C001",
+      "cluster_name": "On-spec",
+      "keyword": "pass",
+      "count": 130
+    },
+    {
+      "cluster_id": "C002",
+      "cluster_name": "Surface finish issues",
+      "keyword": "Ra above 1.6",
+      "count": 6
+    },
+    {
+      "cluster_id": "C002",
+      "cluster_name": "Surface finish issues",
+      "keyword": "staining",
+      "count": 3
+    },
+    {
+      "cluster_id": "C002",
+      "cluster_name": "Surface finish issues",
+      "keyword": "coolant",
+      "count": 9
+    },
+    {
+      "cluster_id": "C002",
+      "cluster_name": "Surface finish issues",
+      "keyword": "smeary finish",
+      "count": 5
+    },
+    {
+      "cluster_id": "C003",
+      "cluster_name": "Dimensional drift",
+      "keyword": "length tolerance",
+      "count": 4
+    },
+    {
+      "cluster_id": "C003",
+      "cluster_name": "Dimensional drift",
+      "keyword": "chatter",
+      "count": 4
+    },
+    {
+      "cluster_id": "C003",
+      "cluster_name": "Dimensional drift",
+      "keyword": "fixture",
+      "count": 1
+    },
+    {
+      "cluster_id": "C004",
+      "cluster_name": "Edge / chip damage",
+      "keyword": "chipped flange",
+      "count": 2
+    },
+    {
+      "cluster_id": "C004",
+      "cluster_name": "Edge / chip damage",
+      "keyword": "tool damage",
+      "count": 2
+    },
+    {
+      "cluster_id": "C004",
+      "cluster_name": "Edge / chip damage",
+      "keyword": "chip-jam",
+      "count": 2
+    }
+  ]
+}

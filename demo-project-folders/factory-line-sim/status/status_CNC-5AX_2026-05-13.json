@@ -1,0 +1,67 @@
+{
+  "machine_id": "CNC-5AX",
+  "date": "2026-05-13",
+  "shift_pattern": "1-shift",
+  "timeline": [
+    {
+      "start": "07:30",
+      "end": "08:00",
+      "state": "idle",
+      "reason": "shift_warmup"
+    },
+    {
+      "start": "08:00",
+      "end": "10:30",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "10:30",
+      "end": "10:45",
+      "state": "idle",
+      "reason": "operator_break"
+    },
+    {
+      "start": "10:45",
+      "end": "12:00",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "12:00",
+      "end": "12:45",
+      "state": "idle",
+      "reason": "lunch_break"
+    },
+    {
+      "start": "12:45",
+      "end": "15:45",
+      "state": "degraded",
+      "reason": "coolant_quality_degraded",
+      "note": "Coolant temperature elevated (>65°C); cycle continued at reduced surface-finish quality"
+    },
+    {
+      "start": "15:45",
+      "end": "17:00",
+      "state": "running",
+      "reason": null
+    }
+  ],
+  "total_runtime_min": 300,
+  "total_downtime_min": 90,
+  "downtime_breakdown": {
+    "shift_warmup": 30,
+    "operator_break": 15,
+    "lunch_break": 45,
+    "coolant_quality_degraded": 180
+  },
+  "oee_metrics": {
+    "availability_pct": 84.2,
+    "performance_pct": 88.8,
+    "quality_pct": 88.5
+  },
+  "chip_bin_emptied_count": 1,
+  "coolant_changed": false,
+  "tool_changes": 1,
+  "last_updated": "2026-05-13T17:30:00Z"
+}

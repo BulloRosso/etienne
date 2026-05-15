@@ -1,0 +1,37 @@
+{
+  "title": "Production Categories — by dominant defect family",
+  "clusters": [
+    {
+      "id": "C001",
+      "name": "On-spec",
+      "items": 2,
+      "patents": [
+        "PO-1001",
+        "PO-1004"
+      ]
+    },
+    {
+      "id": "C002",
+      "name": "Surface finish issues",
+      "items": 1,
+      "patents": [
+        "PO-1003"
+      ]
+    },
+    {
+      "id": "C003",
+      "name": "Dimensional drift",
+      "items": 2,
+      "patents": [
+        "PO-1002",
+        "PO-1005"
+      ]
+    },
+    {
+      "id": "C004",
+      "name": "Edge / chip damage",
+      "items": 0,
+      "patents": []
+    }
+  ]
+}

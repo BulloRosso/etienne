@@ -1,0 +1,40 @@
+{
+  "rules": [
+    {
+      "id": "rule-coolant-temp-high",
+      "name": "Coolant temperature high — trigger insight pass",
+      "enabled": true,
+      "condition": {
+        "type": "simple",
+        "event": {
+          "topic": "cnc-5ax/telemetry",
+          "payloadType": "coolant_temp_high"
+        }
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "insight-from-event"
+      },
+      "createdAt": "2026-05-15T08:00:00Z",
+      "updatedAt": "2026-05-15T08:00:00Z"
+    },
+    {
+      "id": "rule-conveyor-jam",
+      "name": "Conveyor jam — notify shift lead",
+      "enabled": true,
+      "condition": {
+        "type": "simple",
+        "event": {
+          "topic": "cnc-5ax/chip-evacuation",
+          "payloadType": "conveyor_jam_detected"
+        }
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "notify-jam"
+      },
+      "createdAt": "2026-05-15T08:00:00Z",
+      "updatedAt": "2026-05-15T08:00:00Z"
+    }
+  ]
+}

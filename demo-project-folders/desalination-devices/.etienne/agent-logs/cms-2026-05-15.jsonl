@@ -1,0 +1,1 @@
+{"timestamp":"2026-05-15T09:32:31.011Z","correlationId":"e1430409-2582-40f6-ac33-4e065db7188d","service":"cms","topic":"events/raw/filesystem","action":"event_received","projectName":"desalination-devices","data":{"eventId":"7ead6a81-f47d-4ca0-b881-98cb5b83e1b9","group":"Filesystem","name":"Directory Created"}}

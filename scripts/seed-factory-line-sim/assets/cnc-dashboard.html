@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Line — Quality Dashboard</title>
+
+<!--
+================================================================================
+  DATA FILE STRUCTURE
+================================================================================
+  Reads up to four JSON files from the same folder. Two required, two optional.
+
+  1) categories.json [REQUIRED]   — defect categories (with order IDs)
+     { "title": "...", "clusters": [ { "id":"C001", "name":"Surface finish issues",
+                                       "items": 9, "patents":["PO-1003"] } ] }
+
+  2) jobs.json       [REQUIRED]   — production orders flattened
+     { "patents":[ { "id":"PO-1003", "status":"Completed",
+                     "assignee":"Acme Aerospace — 80/80 units · 9 scrapped",
+                     "title":"TURB-AL75-65X22 (Al-7075, IT7, prio high)",
+                     "company":"CNC-5AX", "ipc":["MILL-5AX","DEBURR-MAN","INSP-3D"],
+                     "year":2026 } ] }
+
+  3) keywords.json   [OPTIONAL]   — defect-signature keywords
+  4) machines.json   [OPTIONAL]   — machines with cell ("country") and plant ("region")
+
+  See ../wiki/topics/dashboard-anatomy.md for the manufacturing-domain mapping.
+================================================================================
+-->
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,500&display=swap" rel="stylesheet">
+
+<style>
+  body { background: #eceff1; font-family: 'Roboto', sans-serif; }
+  nav { background: #1976d2; }
+
+  :root { --gap: 24px; }
+  .page { padding: var(--gap); }
+  #content > * + * { margin-top: var(--gap); }
+  #content > .row:has(.stat-card) { margin-bottom: var(--gap); }
+
+  #content .row  { margin-bottom: 0; margin-left: calc(var(--gap) / -2); margin-right: calc(var(--gap) / -2); }
+  #content .col  { padding-left: calc(var(--gap) / 2); padding-right: calc(var(--gap) / 2); }
+  #content .card { margin: 0; }
+  #content .row > .col { margin-top: 0; }
+  #content > .drilldown-card { margin-top: var(--gap); }
+
+  .stat-card .card-content { padding: 16px 20px; }
+  .stat-label { font-size: 12px; color: #78909c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 500; color: #263238; }
+  .stat-sub   { font-size: 12px; color: #90a4ae; margin-top: 2px; }
+  .stat-card.accent  { border-left: 4px solid #1976d2; }
+  .stat-card.success { border-left: 4px solid #43a047; }
+  .stat-card.warn    { border-left: 4px solid #fb8c00; }
+  .stat-card.info    { border-left: 4px solid #00acc1; }
+
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 280px; padding: 32px 8px 8px;
+           border-bottom: 1px solid #cfd8dc; border-left: 1px solid #cfd8dc; position: relative; }
+  .chart-grid-line { position: absolute; left: 0; right: 0; border-top: 1px dashed #eceff1; pointer-events: none; }
+  .chart-grid-label { position: absolute; left: -40px; transform: translateY(-50%); font-size: 11px; color: #90a4ae;
+                      font-family: 'Roboto Mono', monospace; text-align: right; width: 32px; pointer-events: none; }
+  .chart-wrap { position: relative; padding-left: 44px; }
+  .bar-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
+              height: 100%; justify-content: flex-end; position: relative; }
+  .bar { width: 100%;
+         background: linear-gradient(180deg, var(--bar-top, #64b5f6) 0%, var(--bar-bot, #1565c0) 100%);
+         border-radius: 4px 4px 0 0;
+         transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s, background 0.2s;
+         min-height: 2px; position: relative; cursor: pointer;
+         box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+  .bar.selected { background: linear-gradient(180deg, #ffd54f 0%, #c9a227 100%);
+                  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d4af37, 0 4px 12px rgba(212, 175, 55, 0.4); }
+  .bar.selected .value { background: #6d4c00; }
+  .bar:hover { filter: brightness(1.15); }
+  .bar:hover .value { opacity: 1; transform: translate(-50%, -4px); }
+  .value { position: absolute; top: -28px; left: 50%; transform: translate(-50%, 0); font-size: 12px; font-weight: 500;
+           color: #fff; background: #263238; padding: 4px 8px; border-radius: 4px; white-space: nowrap;
+           opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+           box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 5; }
+  .label { margin-top: 8px; font-size: 12px; color: #546e7a; font-weight: 500; text-align: center; line-height: 1.2;
+           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .chart-title    { color: #263238; font-weight: 500; font-size: 18px; }
+  .chart-subtitle { color: #78909c; font-size: 13px; margin-top: 2px; }
+  .section-head   { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; gap: 16px; flex-wrap: wrap; }
+  .chart-tabs-row { display: flex; justify-content: space-between; align-items: center;
+                    border-bottom: 1px solid #eceff1; margin: -8px -20px 8px; padding: 0 20px; }
+  .chart-tabs { display: flex; gap: 0; }
+  .chart-tab { border: none; background: transparent; cursor: pointer; padding: 12px 18px;
+               font-family: 'Roboto', sans-serif; font-size: 13px; font-weight: 500;
+               color: #78909c; text-transform: uppercase; letter-spacing: 0.5px;
+               border-bottom: 2px solid transparent; margin-bottom: -1px;
+               transition: color 0.15s, border-color 0.15s; }
+  .chart-tab:hover { color: #455a64; }
+  .chart-tab.active { color: #1976d2; border-bottom-color: #1976d2; }
+
+  .controls       { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+  .control-group  { display: flex; align-items: center; gap: 8px; }
+  .control-label  { font-size: 11px; color: #78909c; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+  .toggle-btn { border: 1px solid #cfd8dc; background: #fff; color: #455a64; padding: 6px 14px; border-radius: 18px;
+                cursor: pointer; font-family: 'Roboto', sans-serif; font-size: 13px; font-weight: 500;
+                transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; }
+  .toggle-btn:hover { background: #eceff1; }
+  .toggle-btn.active { background: #1976d2; color: #fff; border-color: #1976d2; }
+  .toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .selections   { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; min-height: 28px; }
+  .sel-chip { display: inline-flex; align-items: center; gap: 6px; background: #fff3e0; color: #ef6c00;
+              padding: 4px 4px 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 500;
+              border: 1px solid #ffe0b2; }
+  .sel-chip .chip-cat { color: #bf6000; text-transform: uppercase; font-size: 10px;
+                        letter-spacing: 0.5px; font-weight: 700; }
+  .sel-chip .close { cursor: pointer; width: 18px; height: 18px; border-radius: 50%; background: #ef6c00; color: #fff;
+                     display: inline-flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; user-select: none; }
+  .sel-chip .close:hover { background: #c62828; }
+  .empty-note { color: #90a4ae; font-size: 13px; font-style: italic; padding: 4px 0; }
+
+  .clear-btn { background: #fafafa; border: 1px solid #cfd8dc; color: #546e7a; padding: 6px 14px; border-radius: 4px;
+               cursor: pointer; font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500;
+               text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px; }
+  .clear-btn:hover    { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
+  .clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .patent-row { display: grid; grid-template-columns: 32px 90px 1fr 200px 170px 80px 100px;
+                gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #eceff1;
+                font-size: 13px; transition: background 0.15s; cursor: pointer; }
+  .patent-row:hover    { background: #f5f7f9; }
+  .patent-row.selected { background: #fff3e0; }
+  .patent-row.header { font-weight: 500; color: #78909c; text-transform: uppercase;
+                       font-size: 11px; letter-spacing: 0.5px; background: #fafafa; cursor: default; }
+  .patent-row.header:hover { background: #fafafa; }
+  .patent-checkbox { width: 18px; height: 18px; border: 2px solid #b0bec5; border-radius: 3px;
+                     display: inline-flex; align-items: center; justify-content: center;
+                     background: #fff; transition: all 0.15s; }
+  .patent-row.selected .patent-checkbox { background: #ef6c00; border-color: #ef6c00; }
+  .patent-row.selected .patent-checkbox::after { content: 'check'; font-family: 'Material Icons'; color: #fff; font-size: 14px; }
+  .patent-id { font-family: 'Roboto Mono', monospace; color: #1976d2; font-weight: 500; }
+  .patent-title { color: #263238; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .patent-meta { color: #546e7a; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ipc-badge { display: inline-block; padding: 2px 6px; background: #eceff1; color: #455a64;
+               border-radius: 3px; font-size: 10px; font-family: 'Roboto Mono', monospace; margin: 1px 2px 1px 0; }
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .status-Completed { background: #c8e6c9; color: #2e7d32; }
+  .status-Running   { background: #fff3e0; color: #ef6c00; }
+  .status-Queued    { background: #e1f5fe; color: #0277bd; }
+  .patents-scroll { max-height: 540px; overflow-y: auto; }
+
+  .status-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 16px; }
+  .status-pill { border: 1px solid #cfd8dc; background: #fff; color: #455a64; padding: 4px 12px; border-radius: 14px;
+                 cursor: pointer; font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500;
+                 display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .status-pill:hover { background: #eceff1; }
+  .status-pill-count { font-size: 11px; color: #90a4ae; background: #eceff1; padding: 1px 6px; border-radius: 8px;
+                       min-width: 18px; text-align: center; font-weight: 500; }
+  .status-pill.active.status-pill-Completed { background: #c8e6c9; color: #2e7d32; border-color: #a5d6a7; }
+  .status-pill.active.status-pill-Running   { background: #fff3e0; color: #ef6c00; border-color: #ffcc80; }
+  .status-pill.active.status-pill-Queued    { background: #e1f5fe; color: #0277bd; border-color: #81d4fa; }
+  .status-pill.active .status-pill-count { background: rgba(255,255,255,0.7); color: inherit; }
+
+  .kw-cluster       { margin-bottom: 16px; }
+  .kw-cluster-title { font-size: 12px; font-weight: 500; color: #263238; margin-bottom: 6px;
+                      text-transform: uppercase; letter-spacing: 0.5px; }
+  .kw-cluster-title .kw-cluster-id { color: #90a4ae; font-family: 'Roboto Mono', monospace; margin-right: 6px; }
+  .kw-chip { display: inline-block; margin: 3px 3px 3px 0; padding: 4px 10px; background: #f5f5f5; color: #455a64;
+             border-radius: 12px; font-size: 12px; cursor: pointer; user-select: none;
+             transition: background 0.15s, color 0.15s; }
+  .kw-chip:hover { background: #eceff1; }
+  .kw-chip.selected { background: #1976d2; color: #fff; }
+  .kw-chip.selected .kw-count { color: rgba(255,255,255,0.75); }
+  .kw-count { color: #90a4ae; font-weight: 500; margin-left: 6px; }
+
+  .error   { color: #c62828; padding: 16px; background: #ffebee; border-radius: 4px; border-left: 4px solid #c62828; }
+  .warning { color: #ef6c00; padding: 12px 16px; background: #fff8e1; border-radius: 4px; border-left: 4px solid #fb8c00; margin-bottom: 16px; font-size: 13px; }
+  .card-content > .section-head:first-child { margin-bottom: 8px; }
+  .divider-soft { height: 1px; background: #eceff1; margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<nav class="z-depth-1">
+  <div class="nav-wrapper" style="padding: 0 24px;">
+    <a href="#" class="brand-logo" style="font-size: 1.1rem;">
+      <i class="material-icons" style="vertical-align: middle; margin-right: 8px;">precision_manufacturing</i>
+      Factory Line — Quality Dashboard
+    </a>
+  </div>
+</nav>
+
+<div class="page">
+  <div id="content"><div class="progress"><div class="indeterminate"></div></div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script>
+/* ============================================================
+   Factory Line Quality Dashboard
+   - reuses the PRD's CNC dashboard structure (selections, drilldown,
+     localStorage + workspace:write bridge), only relabels UI strings.
+   - data-model field names are preserved verbatim (clusters/patents/
+     companies/keywords/ipc/region/country) so this code is unchanged.
+   ============================================================ */
+
+const FILENAME = (location.pathname.split('/').pop() || 'cnc-dashboard.html')
+  .replace(/\.html?$/i, '') || 'cnc-dashboard';
+const STORAGE_KEY = FILENAME + '_selection';
+
+const DEFAULT_STATE = {
+  clusters: [], regions: [], countries: [], ipcs: [], years: [], patents: [],
+  companies: [], statuses: [], keywords: [],
+  level1: 'region', level2: 'country', level3: 'company',
+  activeLevel: 'level1',
+  collapsed: {}
+};
+
+const DIM2KEY = {
+  cluster: 'clusters', region: 'regions', country: 'countries',
+  ipc:     'ipcs',     year:   'years',   patent:  'patents',
+  status:  'statuses', keyword: 'keywords', company: 'companies'
+};
+const DIM_LABEL = {
+  cluster: 'Defect category', region: 'Plant', country: 'Cell',
+  ipc:     'Process step', year:   'Year',  patent:  'Production order',
+  status:  'Status',   keyword: 'Signature', company: 'Machine'
+};
+const STATUS_ORDER = ['Completed', 'Running', 'Queued'];
+
+let STATE = loadState();
+let DATA  = {};
+let firstRender = true;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_STATE, collapsed: {} };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_STATE, ...parsed, collapsed: parsed.collapsed || {} };
+  } catch (e) { return { ...DEFAULT_STATE, collapsed: {} }; }
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); } catch (e) {}
+  scheduleBridgeWrite();
+}
+
+const BRIDGE_PATH = '/selected-items/cnc-dashboard-selection.json';
+let bridgeTimer = null;
+
+function scheduleBridgeWrite() {
+  if (window.parent === window) return;
+  clearTimeout(bridgeTimer);
+  bridgeTimer = setTimeout(() => { void flushBridgeWrite(); }, 250);
+}
+async function flushBridgeWrite() {
+  if (window.parent === window) return;
+  try { await bridgeWrite(BRIDGE_PATH, JSON.stringify(STATE, null, 2)); }
+  catch (err) { console.warn('[line-dashboard] bridge write failed:', err.message); }
+}
+function bridgeWrite(path, content) {
+  return new Promise((resolve, reject) => {
+    if (window.parent === window) return reject(new Error('No parent frame'));
+    const requestId = 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const onMessage = (event) => {
+      const m = event.data;
+      if (!m || m.type !== 'workspace:write:result' || m.requestId !== requestId) return;
+      window.removeEventListener('message', onMessage);
+      clearTimeout(timeout);
+      m.ok ? resolve(m.result) : reject(new Error(m.error || 'Write failed'));
+    };
+    const timeout = setTimeout(() => {
+      window.removeEventListener('message', onMessage);
+      reject(new Error('Bridge timed out after 10s'));
+    }, 10000);
+    window.addEventListener('message', onMessage);
+    window.parent.postMessage({ type: 'workspace:write', requestId, path, content, encoding: 'utf-8' }, '*');
+  });
+}
+
+async function loadJson(url, optional) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    if (optional) return null;
+    throw new Error(url + ' — ' + e.message);
+  }
+}
+
+async function init() {
+  try {
+    const [categories, jobs, keywords, machines] = await Promise.all([
+      loadJson('./categories.json', false),
+      loadJson('./jobs.json',       false),
+      loadJson('./keywords.json',   true),
+      loadJson('./machines.json',   true)
+    ]);
+    DATA = buildData(categories, jobs, keywords, machines);
+    if (!DATA.hasCompanies && STATE.level1 === 'region')  STATE.level1 = 'technology';
+    if (!DATA.hasCompanies && STATE.level2 === 'country') STATE.level2 = 'ipc';
+    render();
+  } catch (err) {
+    document.getElementById('content').innerHTML =
+      '<div class="error"><strong>Failed to load required data:</strong> ' + err.message + '</div>';
+  }
+}
+
+function buildData(categories, jobs, keywords, machines) {
+  const cs  = (categories && categories.clusters) || [];
+  const ps  = (jobs && jobs.patents)              || [];
+  const ks  = (keywords && keywords.keywords)     || [];
+  const cos = (machines && machines.companies)    || [];
+
+  const companyByName = new Map(cos.map(c => [c.name, c]));
+  const clusterById   = new Map(cs.map(c => [c.id, c]));
+  const patentById    = new Map(ps.map(p => [p.id, p]));
+
+  const patentToClusters = new Map();
+  cs.forEach(c => (c.patents || []).forEach(pid => {
+    if (!patentToClusters.has(pid)) patentToClusters.set(pid, []);
+    patentToClusters.get(pid).push(c.id);
+  }));
+
+  return {
+    clusters: cs, patents: ps, keywords: ks, companies: cos,
+    title: (categories && categories.title) || 'Factory Line',
+    companyByName, clusterById, patentById, patentToClusters,
+    hasCompanies: cos.length > 0, hasKeywords:  ks.length > 0
+  };
+}
+
+function patentMatches(p, exclude) {
+  const c = DATA.companyByName.get(p.company);
+  if (exclude !== 'cluster' && STATE.clusters.length) {
+    const cl = DATA.patentToClusters.get(p.id) || [];
+    if (!cl.some(id => STATE.clusters.includes(id))) return false;
+  }
+  if (exclude !== 'region' && STATE.regions.length) {
+    if (!c || !STATE.regions.includes(c.region)) return false;
+  }
+  if (exclude !== 'country' && STATE.countries.length) {
+    if (!c || !STATE.countries.includes(c.country)) return false;
+  }
+  if (exclude !== 'company' && STATE.companies.length) {
+    if (!STATE.companies.includes(p.company)) return false;
+  }
+  if (exclude !== 'ipc' && STATE.ipcs.length) {
+    if (!p.ipc.some(i => STATE.ipcs.includes(i))) return false;
+  }
+  if (exclude !== 'year' && STATE.years.length) {
+    if (!STATE.years.includes(p.year)) return false;
+  }
+  if (exclude !== 'status' && STATE.statuses.length) {
+    if (!STATE.statuses.includes(p.status)) return false;
+  }
+  return true;
+}
+function filtered(exclude) { return DATA.patents.filter(p => patentMatches(p, exclude)); }
+
+function aggregate(patents, getKeys) {
+  const map = new Map();
+  patents.forEach(p => {
+    const keys = getKeys(p);
+    if (keys == null) return;
+    const arr = Array.isArray(keys) ? keys : [keys];
+    arr.forEach(k => {
+      if (k === null || k === undefined) return;
+      map.set(k, (map.get(k) || 0) + 1);
+    });
+  });
+  return [...map.entries()].map(([key, value]) => ({ key, value }));
+}
+
+function toggle(dim, value) {
+  const key = DIM2KEY[dim];
+  const arr = STATE[key];
+  const i = arr.indexOf(value);
+  if (i === -1) arr.push(value); else arr.splice(i, 1);
+  saveState(); render();
+}
+function clearAll() { STATE = { ...DEFAULT_STATE, level1: STATE.level1, level2: STATE.level2 }; saveState(); render(); }
+function setLevel(which, val) { STATE[which] = val; saveState(); render(); }
+
+function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function totalSelections() {
+  return STATE.clusters.length + STATE.regions.length + STATE.countries.length
+       + STATE.ipcs.length    + STATE.years.length   + STATE.patents.length
+       + STATE.statuses.length + STATE.keywords.length + STATE.companies.length;
+}
+
+function render() {
+  const root = document.getElementById('content');
+  const filteredP = filtered(null);
+  const distinctClusters = new Set();
+  filteredP.forEach(p => (DATA.patentToClusters.get(p.id) || []).forEach(cid => distinctClusters.add(cid)));
+  const distinctCompanies = new Set(filteredP.map(p => p.company));
+  const years = filteredP.map(p => p.year);
+  const yearRange = years.length
+    ? (Math.min(...years) === Math.max(...years) ? String(Math.min(...years)) : Math.min(...years) + '–' + Math.max(...years))
+    : '—';
+  const statusCount = { Completed: 0, Running: 0, Queued: 0 };
+  filteredP.forEach(p => { if (statusCount[p.status] !== undefined) statusCount[p.status]++; });
+
+  const kpis = `
+    <div class="row">
+      <div class="col s12 m6 l3">
+        <div class="card stat-card accent"><div class="card-content">
+          <div class="stat-label"><i class="material-icons tiny">assignment</i> Production orders in scope</div>
+          <div class="stat-value">${filteredP.length}</div>
+          <div class="stat-sub">of ${DATA.patents.length} total</div>
+        </div></div>
+      </div>
+      <div class="col s12 m6 l3">
+        <div class="card stat-card success"><div class="card-content">
+          <div class="stat-label"><i class="material-icons tiny">play_circle</i> Currently running</div>
+          <div class="stat-value">${statusCount.Running}</div>
+          <div class="stat-sub">${statusCount.Queued} queued · ${statusCount.Completed} completed</div>
+        </div></div>
+      </div>
+      <div class="col s12 m6 l3">
+        <div class="card stat-card info"><div class="card-content">
+          <div class="stat-label"><i class="material-icons tiny">precision_manufacturing</i> Machines in scope</div>
+          <div class="stat-value">${distinctCompanies.size}</div>
+          <div class="stat-sub">${DATA.hasCompanies ? 'of ' + DATA.companies.length + ' on the line' : 'machines.json missing'}</div>
+        </div></div>
+      </div>
+      <div class="col s12 m6 l3">
+        <div class="card stat-card warn"><div class="card-content">
+          <div class="stat-label"><i class="material-icons tiny">category</i> Defect categories</div>
+          <div class="stat-value">${distinctClusters.size}</div>
+          <div class="stat-sub">of ${DATA.clusters.length} · ${yearRange}</div>
+        </div></div>
+      </div>
+    </div>`;
+
+  const noCompaniesWarn = DATA.hasCompanies ? '' : `
+    <div class="warning">
+      <i class="material-icons tiny" style="vertical-align:middle">warning</i>
+      <strong>machines.json</strong> not found — Plant / Cell drilldown is disabled.
+    </div>`;
+
+  const controls = `
+    ${noCompaniesWarn}
+    <div class="card drilldown-card"><div class="card-content">
+      <div class="section-head">
+        <div>
+          <div class="chart-title">Drilldown &amp; Selection</div>
+          <div class="chart-subtitle">Choose how to group orders, then click bars or rows to filter. Selections combine with AND across dimensions.</div>
+        </div>
+        <button class="clear-btn" data-action="clear" ${totalSelections() ? '' : 'disabled'}>
+          <i class="material-icons tiny">close</i> Clear all (${totalSelections()})
+        </button>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <span class="control-label">Level 1</span>
+          <button class="toggle-btn ${STATE.level1==='region' ? 'active' : ''}"
+                  data-action="level" data-which="level1" data-val="region"
+                  ${DATA.hasCompanies ? '' : 'disabled'}>
+            <i class="material-icons tiny">public</i> Plant
+          </button>
+          <button class="toggle-btn ${STATE.level1==='technology' ? 'active' : ''}"
+                  data-action="level" data-which="level1" data-val="technology">
+            <i class="material-icons tiny">category</i> Defect category
+          </button>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Level 2</span>
+          <button class="toggle-btn ${STATE.level2==='country' ? 'active' : ''}"
+                  data-action="level" data-which="level2" data-val="country"
+                  ${DATA.hasCompanies ? '' : 'disabled'}>
+            <i class="material-icons tiny">business</i> Cell
+          </button>
+          <button class="toggle-btn ${STATE.level2==='ipc' ? 'active' : ''}"
+                  data-action="level" data-which="level2" data-val="ipc">
+            <i class="material-icons tiny">build</i> Process step
+          </button>
+        </div>
+      </div>
+      <div class="selections">${renderSelections()}</div>
+    </div></div>`;
+
+  root.innerHTML = kpis + (DATA.hasKeywords ? renderKeywords() : '') + controls + renderChartTabs() + renderPatents(filteredP);
+
+  if (firstRender) {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.bar').forEach(b => { b.style.height = b.dataset.target + '%'; });
+    });
+    firstRender = false;
+  }
+}
+
+function renderSelections() {
+  const parts = [];
+  const push = (dim, label, val, display) => parts.push(`
+    <span class="sel-chip" data-dim="${dim}" data-value="${esc(String(val))}">
+      <span class="chip-cat">${label}</span> ${esc(display)}
+      <span class="close" data-action="remove" title="Remove">&times;</span>
+    </span>`);
+  STATE.clusters.forEach(id => { const c = DATA.clusterById.get(id); push('cluster', DIM_LABEL.cluster, id, c ? c.name : id); });
+  STATE.regions.forEach(r    => push('region',  DIM_LABEL.region,  r, r));
+  STATE.countries.forEach(c  => push('country', DIM_LABEL.country, c, c));
+  STATE.companies.forEach(co => push('company', DIM_LABEL.company, co, co));
+  STATE.ipcs.forEach(i       => push('ipc',     DIM_LABEL.ipc,     i, i));
+  STATE.years.forEach(y      => push('year',    DIM_LABEL.year,    y, y));
+  STATE.statuses.forEach(s   => push('status',  DIM_LABEL.status,  s, s));
+  STATE.keywords.forEach(k   => push('keyword', DIM_LABEL.keyword, k, k));
+  STATE.patents.forEach(pid  => { const p = DATA.patentById.get(pid); push('patent', DIM_LABEL.patent, pid, p ? pid + ' · ' + p.title : pid); });
+  return parts.length ? parts.join('') :
+    '<span class="empty-note">No selections — showing all orders. Click bars or rows below to filter.</span>';
+}
+
+const BLUE_RAMP = [
+  { top: '#bbdefb', bot: '#90caf9' }, { top: '#90caf9', bot: '#64b5f6' },
+  { top: '#64b5f6', bot: '#42a5f5' }, { top: '#42a5f5', bot: '#2196f3' },
+  { top: '#2196f3', bot: '#1e88e5' }, { top: '#1e88e5', bot: '#1976d2' },
+  { top: '#1976d2', bot: '#1565c0' }, { top: '#1565c0', bot: '#0d47a1' }
+];
+function shadeForValue(value, min, max) {
+  if (max === min) return BLUE_RAMP[BLUE_RAMP.length - 1];
+  const t = (value - min) / (max - min);
+  const i = Math.min(BLUE_RAMP.length - 1, Math.max(0, Math.round(t * (BLUE_RAMP.length - 1))));
+  return BLUE_RAMP[i];
+}
+function niceTicks(max, target = 5) {
+  if (max <= 0) return { axisMax: 1, step: 1 };
+  const rawStep = max / target;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  let step;
+  if      (norm <= 1)  step = 1 * mag;
+  else if (norm <= 2)  step = 2 * mag;
+  else if (norm <= 5)  step = 5 * mag;
+  else                 step = 10 * mag;
+  return { axisMax: Math.ceil(max / step) * step, step };
+}
+
+function renderBars(items, dim, formatLabel, sort) {
+  if (!items.length) return '<div class="empty-note" style="padding: 24px 8px;">No data for current filters.</div>';
+  items = items.slice().sort(sort || ((a, b) => b.value - a.value));
+  const values = items.map(i => i.value);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const { axisMax, step } = niceTicks(max);
+  const selKey = DIM2KEY[dim];
+  const selectedSet = new Set(STATE[selKey]);
+  const bars = items.map(it => {
+    const pct = (it.value / axisMax) * 100;
+    const sel = selectedSet.has(it.key) ? ' selected' : '';
+    const lbl = formatLabel ? formatLabel(it.key) : String(it.key);
+    const shade = shadeForValue(it.value, min, max);
+    const initialHeight = firstRender ? '0%' : pct.toFixed(2) + '%';
+    const style = `height: ${initialHeight}; --bar-top: ${shade.top}; --bar-bot: ${shade.bot};`;
+    return `
+      <div class="bar-wrap">
+        <div class="bar${sel}" style="${style}" data-target="${pct.toFixed(2)}"
+             data-action="toggle" data-dim="${dim}" data-value="${esc(String(it.key))}"
+             title="${esc(lbl)} — ${it.value} order${it.value===1?'':'s'} (click to ${sel?'deselect':'select'})">
+          <span class="value">${it.value}</span>
+        </div>
+        <div class="label" title="${esc(lbl)}">${esc(lbl)}</div>
+      </div>`;
+  }).join('');
+  const ticks = [];
+  for (let v = 0; v <= axisMax + 1e-9; v += step) ticks.push(v);
+  const PLOT_TOP_PAD = 32, PLOT_BOTTOM_PAD = 8, CHART_HEIGHT = 280;
+  const plotHeight = CHART_HEIGHT - PLOT_TOP_PAD - PLOT_BOTTOM_PAD;
+  const axis = ticks.map(v => {
+    const yPx = PLOT_TOP_PAD + plotHeight * (1 - v / axisMax);
+    return `<div class="chart-grid-line" style="top: ${yPx.toFixed(1)}px;"></div>
+            <div class="chart-grid-label" style="top: ${yPx.toFixed(1)}px;">${v}</div>`;
+  }).join('');
+  return `<div class="chart-wrap"><div class="chart">${axis}${bars}</div></div>`;
+}
+
+function renderChartTabs() {
+  let title, subtitle, body;
+  if (STATE.activeLevel === 'level1') {
+    if (STATE.level1 === 'region') {
+      const data = aggregate(filtered('region'), p => { const c = DATA.companyByName.get(p.company); return c ? c.region : null; });
+      title = 'Orders by Plant'; subtitle = 'Click a bar to filter (multi-select supported).'; body = renderBars(data, 'region');
+    } else {
+      const data = aggregate(filtered('cluster'), p => DATA.patentToClusters.get(p.id) || []);
+      const fmt = id => { const c = DATA.clusterById.get(id); return c ? c.name : id; };
+      title = 'Orders by Defect Category'; subtitle = 'Click a bar to filter to that category.'; body = renderBars(data, 'cluster', fmt);
+    }
+  } else if (STATE.activeLevel === 'level2') {
+    if (STATE.level2 === 'country') {
+      const data = aggregate(filtered('country'), p => { const c = DATA.companyByName.get(p.company); return c ? c.country : null; });
+      title = 'Orders by Cell'; subtitle = 'Click a bar to filter to that cell.'; body = renderBars(data, 'country');
+    } else {
+      const data = aggregate(filtered('ipc'), p => p.ipc);
+      title = 'Orders by Process Step'; subtitle = 'An order is counted under each step it requires.'; body = renderBars(data, 'ipc');
+    }
+  } else {
+    const data = aggregate(filtered('company'), p => p.company);
+    title = 'Orders by Machine'; subtitle = 'Click a bar to filter to that machine.'; body = renderBars(data, 'company');
+  }
+
+  const tab = (key, label) => {
+    const active = STATE.activeLevel === key ? ' active' : '';
+    return `<button class="chart-tab${active}" data-action="set-active-level" data-level="${key}">${label}</button>`;
+  };
+  const isCollapsed = !!STATE.collapsed['drilldown'];
+  const chevron = isCollapsed ? 'expand_more' : 'expand_less';
+  const l1Mode = STATE.level1 === 'region' ? 'Plant' : 'Defect category';
+  const l2Mode = STATE.level2 === 'country' ? 'Cell'  : 'Process step';
+  return `
+    <div class="row"><div class="col s12">
+      <div class="card"><div class="card-content">
+        <div class="chart-tabs-row">
+          <div class="chart-tabs">
+            ${tab('level1', 'Level 1 — ' + l1Mode)}
+            ${tab('level2', 'Level 2 — ' + l2Mode)}
+            ${tab('level3', 'Level 3 — Machine')}
+          </div>
+          <i class="material-icons chart-chevron" data-action="toggle-collapse" data-chart="drilldown"
+             style="cursor: pointer;">${chevron}</i>
+        </div>
+        ${isCollapsed ? '' : `<div class="chart-subtitle" style="margin-top: 4px;">${esc(subtitle)}</div>${body}`}
+      </div></div>
+    </div></div>`;
+}
+
+function renderPatents(patents) {
+  const sel = new Set(STATE.patents);
+  const rows = patents.length ? patents.map(p => {
+    const c = DATA.companyByName.get(p.company);
+    const loc = c ? c.country + ' · ' + c.region : '—';
+    const isSel = sel.has(p.id);
+    return `
+      <div class="patent-row${isSel ? ' selected' : ''}" data-action="togglepatent" data-id="${esc(p.id)}">
+        <div class="patent-checkbox"></div>
+        <div class="patent-id">${esc(p.id)}</div>
+        <div class="patent-title" title="${esc(p.title)}">${esc(p.title)}<br><span style="color:#90a4ae;font-size:11px;">${esc(p.assignee)}</span></div>
+        <div class="patent-meta" title="${esc(p.company)}">${esc(p.company)}<br><span style="color:#90a4ae;font-size:11px;">${esc(loc)}</span></div>
+        <div class="patent-meta">${p.ipc.map(i => '<span class="ipc-badge">'+esc(i)+'</span>').join('')}</div>
+        <div class="patent-meta" style="text-align:center;">${p.year}</div>
+        <div><span class="status-badge status-${esc(p.status)}">${esc(p.status)}</span></div>
+      </div>`;
+  }).join('') : '<div class="empty-note" style="padding: 24px 16px;">No orders match the current selection.</div>';
+
+  const header = `
+    <div class="patent-row header">
+      <div></div><div>Order ID</div><div>Description / Customer</div><div>Machine / Cell</div>
+      <div>Process steps</div><div style="text-align:center;">Year</div><div>Status</div>
+    </div>`;
+
+  const statusCounts = {};
+  STATUS_ORDER.forEach(s => statusCounts[s] = 0);
+  filtered('status').forEach(p => { if (statusCounts[p.status] !== undefined) statusCounts[p.status]++; });
+  const selectedStatuses = new Set(STATE.statuses);
+  const statusPills = STATUS_ORDER
+    .filter(s => statusCounts[s] > 0 || selectedStatuses.has(s))
+    .map(s => {
+      const active = selectedStatuses.has(s) ? ' active' : '';
+      const cls = 'status-pill status-pill-' + s + active;
+      return `<button class="${cls}" data-action="toggle" data-dim="status" data-value="${s}"
+                      title="${active ? 'Click to remove' : 'Click to filter to'} ${s}">
+                ${s} <span class="status-pill-count">${statusCounts[s]}</span>
+              </button>`;
+    }).join('');
+
+  return `
+    <div class="row"><div class="col s12">
+      <div class="card"><div class="card-content">
+        <div class="section-head">
+          <div><div class="chart-title">Production Orders (${patents.length})</div></div>
+          ${STATE.patents.length ? `<button class="clear-btn" data-action="clear-dim" data-dim="patent">
+            <i class="material-icons tiny">close</i> Clear ${STATE.patents.length} selected
+          </button>` : ''}
+        </div>
+        <div class="status-filter-row"><span class="control-label">Status</span>${statusPills}
+          ${STATE.statuses.length ? `<button class="clear-btn" data-action="clear-dim" data-dim="status" style="margin-left: auto;">
+            <i class="material-icons tiny">close</i> Clear status
+          </button>` : ''}
+        </div>
+        <div style="border:1px solid #eceff1; border-radius: 4px;">${header}<div class="patents-scroll">${rows}</div></div>
+      </div></div>
+    </div></div>`;
+}
+
+function renderKeywords() {
+  const inScope = new Set();
+  filtered(null).forEach(p => (DATA.patentToClusters.get(p.id) || []).forEach(cid => inScope.add(cid)));
+  const clusters = DATA.clusters.filter(c => inScope.has(c.id));
+  const byCluster = new Map();
+  DATA.keywords.forEach(k => { if (!byCluster.has(k.cluster_id)) byCluster.set(k.cluster_id, []); byCluster.get(k.cluster_id).push(k); });
+  const selectedKeywords = new Set(STATE.keywords);
+  const blocks = clusters.map(c => {
+    const list = (byCluster.get(c.id) || []).slice().sort((a,b) => b.count - a.count).slice(0, 8);
+    if (!list.length) return '';
+    return `
+      <div class="kw-cluster">
+        <div class="kw-cluster-title"><span class="kw-cluster-id">${esc(c.id)}</span>${esc(c.name)}</div>
+        ${list.map(k => {
+          const isSel = selectedKeywords.has(k.keyword) ? ' selected' : '';
+          return `<span class="kw-chip${isSel}" data-action="toggle" data-dim="keyword" data-value="${esc(k.keyword)}"
+                        title="${isSel ? 'Click to unmark' : 'Click to mark'}: ${esc(k.keyword)}">${esc(k.keyword)}<span class="kw-count">${k.count}</span></span>`;
+        }).join('')}
+      </div>`;
+  }).filter(Boolean).join('');
+  return `
+    <div class="row"><div class="col s12">
+      <div class="card"><div class="card-content">
+        <div class="chart-title">Defect Signatures by Category</div>
+        <div class="chart-subtitle">Top words from inspector notes for orders in the categories currently in scope.</div>
+        <div class="divider-soft"></div>
+        ${blocks || '<div class="empty-note">No defect-signature data for current scope.</div>'}
+      </div></div>
+    </div></div>`;
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-action]');
+  if (!t) return;
+  const action = t.dataset.action;
+  if (action === 'toggle') {
+    const dim = t.dataset.dim;
+    const v = dim === 'year' ? Number(t.dataset.value) : t.dataset.value;
+    toggle(dim, v); return;
+  }
+  if (action === 'remove') {
+    e.stopPropagation();
+    const chip = t.closest('.sel-chip');
+    const dim = chip.dataset.dim;
+    const v = dim === 'year' ? Number(chip.dataset.value) : chip.dataset.value;
+    toggle(dim, v); return;
+  }
+  if (action === 'togglepatent') { toggle('patent', t.dataset.id); return; }
+  if (action === 'level') { setLevel(t.dataset.which, t.dataset.val); return; }
+  if (action === 'clear') { clearAll(); return; }
+  if (action === 'clear-dim') {
+    const dim = t.dataset.dim;
+    STATE[DIM2KEY[dim]] = []; saveState(); render(); return;
+  }
+  if (action === 'toggle-collapse') {
+    const k = t.dataset.chart;
+    STATE.collapsed[k] = !STATE.collapsed[k];
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); } catch (e) {}
+    render(); return;
+  }
+  if (action === 'set-active-level') {
+    STATE.activeLevel = t.dataset.level;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); } catch (e) {}
+    render(); return;
+  }
+});
+
+init();
+</script>
+</body>
+</html>

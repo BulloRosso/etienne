@@ -1,0 +1,17 @@
+{
+  "appBar": {
+    "title": "Etienne",
+    "fontColor": "white",
+    "backgroundColor": "#1976d2"
+  },
+  "welcomePage": {
+    "message": "",
+    "backgroundColor": "#f5f5f5",
+    "quickActions": [],
+    "showWelcomeMessage": true
+  },
+  "previewDocuments": [
+    "intro.videos"
+  ],
+  "autoFilePreviewExtensions": []
+}

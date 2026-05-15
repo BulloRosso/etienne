@@ -1,0 +1,31 @@
+{
+  "order_id": "PO-1005",
+  "part_number": "BRACKET-ST304-180",
+  "customer": "Bremen Maritime",
+  "priority": "normal",
+  "qty_ordered": 40,
+  "qty_completed": 40,
+  "qty_scrapped": 6,
+  "due_date": "2026-05-13",
+  "created_date": "2026-05-06",
+  "material": "Steel-304",
+  "tolerance_grade": "IT7",
+  "status": "Completed",
+  "routing": [
+    {
+      "sequence": 1,
+      "machine": "CNC-5AX",
+      "est_cycle_min": 22
+    },
+    {
+      "sequence": 2,
+      "machine": "DEBURR-HAND",
+      "est_cycle_min": 8
+    },
+    {
+      "sequence": 3,
+      "machine": "QA-INSP",
+      "est_cycle_min": 3
+    }
+  ]
+}

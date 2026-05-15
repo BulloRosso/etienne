@@ -1,0 +1,19 @@
+{
+  "sessions": [
+    {
+      "timestamp": "2026-05-12T09:14:00Z",
+      "sessionId": "d1f0c4a2-1111-4aaa-9aaa-aaaaaaaaaaaa",
+      "summary": "Selected RO over solar still and electrodialysis for a small Pacific atoll. Identified boron and pre-treatment as the two binding design constraints; established the WHO+EU dual-validation pattern."
+    },
+    {
+      "timestamp": "2026-05-13T11:30:00Z",
+      "sessionId": "d1f0c4a2-2222-4bbb-9bbb-bbbbbbbbbbbb",
+      "summary": "Walked through WHO vs EU for the proposed RO design parameter by parameter. Boron is the binding EU constraint; coliforms and turbidity satisfied by the standard train. Confirmed the WHO+EU dual-validation pattern."
+    },
+    {
+      "timestamp": "2026-05-14T15:02:00Z",
+      "sessionId": "d1f0c4a2-3333-4ccc-9ccc-cccccccccccc",
+      "summary": "Built a 10-year TCO for a Caribbean pilot in the Bequia mould. Confirmed PV+genset hybrid economics, layered supply resilience, and the dominance of pre-treatment + 6-monthly CIP discipline in total cost of ownership."
+    }
+  ]
+}

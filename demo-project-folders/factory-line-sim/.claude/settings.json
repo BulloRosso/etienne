@@ -1,0 +1,20 @@
+{
+  "model": "claude-opus-4-7",
+  "defaultSubagentModel": "claude-sonnet-4-6",
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)"
+    ],
+    "allow": [
+      "Read(quality-reports/**)",
+      "Read(status/**)",
+      "Read(production-orders/**)",
+      "Read(linedashboard/**)",
+      "Read(insights/**)",
+      "Read(wiki/**)",
+      "Read(documents/**)",
+      "Write(insights/**)"
+    ]
+  }
+}

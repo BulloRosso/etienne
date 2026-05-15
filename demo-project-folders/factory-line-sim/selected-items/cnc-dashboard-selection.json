@@ -1,0 +1,18 @@
+{
+  "clusters": [],
+  "regions": [],
+  "countries": [],
+  "ipcs": [],
+  "years": [],
+  "patents": [],
+  "companies": [],
+  "statuses": [],
+  "keywords": [],
+  "level1": "technology",
+  "level2": "ipc",
+  "level3": "company",
+  "activeLevel": "level1",
+  "collapsed": {
+    "drilldown": false
+  }
+}

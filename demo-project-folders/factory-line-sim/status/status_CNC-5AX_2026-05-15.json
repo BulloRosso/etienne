@@ -1,0 +1,46 @@
+{
+  "machine_id": "CNC-5AX",
+  "date": "2026-05-15",
+  "shift_pattern": "1-shift",
+  "timeline": [
+    {
+      "start": "07:30",
+      "end": "08:00",
+      "state": "idle",
+      "reason": "shift_warmup"
+    },
+    {
+      "start": "08:00",
+      "end": "10:30",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "10:30",
+      "end": "10:45",
+      "state": "idle",
+      "reason": "operator_break"
+    },
+    {
+      "start": "10:45",
+      "end": "12:00",
+      "state": "running",
+      "reason": null
+    }
+  ],
+  "total_runtime_min": 225,
+  "total_downtime_min": 45,
+  "downtime_breakdown": {
+    "shift_warmup": 30,
+    "operator_break": 15
+  },
+  "oee_metrics": {
+    "availability_pct": 83.3,
+    "performance_pct": 100,
+    "quality_pct": 98.5
+  },
+  "chip_bin_emptied_count": 0,
+  "coolant_changed": false,
+  "tool_changes": 0,
+  "last_updated": "2026-05-15T17:30:00Z"
+}

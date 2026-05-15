@@ -1,0 +1,73 @@
+{
+  "machine_id": "CNC-5AX",
+  "date": "2026-05-09",
+  "shift_pattern": "1-shift",
+  "timeline": [
+    {
+      "start": "07:30",
+      "end": "08:00",
+      "state": "idle",
+      "reason": "shift_warmup"
+    },
+    {
+      "start": "08:00",
+      "end": "10:30",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "10:30",
+      "end": "10:45",
+      "state": "idle",
+      "reason": "operator_break"
+    },
+    {
+      "start": "10:45",
+      "end": "12:00",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "12:00",
+      "end": "12:45",
+      "state": "idle",
+      "reason": "lunch_break"
+    },
+    {
+      "start": "12:45",
+      "end": "14:30",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "14:30",
+      "end": "14:50",
+      "state": "maintenance",
+      "reason": "tool_change",
+      "note": "T12 swap, scheduled at 1000 cycles"
+    },
+    {
+      "start": "14:50",
+      "end": "17:00",
+      "state": "running",
+      "reason": null
+    }
+  ],
+  "total_runtime_min": 460,
+  "total_downtime_min": 110,
+  "downtime_breakdown": {
+    "shift_warmup": 30,
+    "operator_break": 15,
+    "lunch_break": 45,
+    "tool_change": 20
+  },
+  "oee_metrics": {
+    "availability_pct": 80.7,
+    "performance_pct": 100,
+    "quality_pct": 98.5
+  },
+  "chip_bin_emptied_count": 1,
+  "coolant_changed": false,
+  "tool_changes": 1,
+  "last_updated": "2026-05-09T17:30:00Z"
+}

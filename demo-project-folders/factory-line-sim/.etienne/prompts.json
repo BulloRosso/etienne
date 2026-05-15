@@ -1,0 +1,14 @@
+{
+  "prompts": [
+    {
+      "id": "insight-from-event",
+      "name": "Insight from event",
+      "body": "A coolant_temp_high event just fired. Check the past 4 hours of QA-INSP defect rows for surface_finish or surface_staining defects. If any spike is visible, write an insights/*.md report and emit it as a quick-action per the line-quality-insights skill."
+    },
+    {
+      "id": "notify-jam",
+      "name": "Notify chip-jam",
+      "body": "A conveyor_jam_detected event just fired on CNC-5AX. Confirm the bin status, check whether any PO is currently being machined, and write a brief insights/*.md note. Emit a quick-action so the shift lead can read it."
+    }
+  ]
+}

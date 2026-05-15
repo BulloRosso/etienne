@@ -1,0 +1,19 @@
+{
+  "companies": [
+    {
+      "name": "CNC-5AX",
+      "country": "Cell A",
+      "region": "Plant 2"
+    },
+    {
+      "name": "DEBURR-HAND",
+      "country": "Cell B",
+      "region": "Plant 2"
+    },
+    {
+      "name": "QA-INSP",
+      "country": "Cell C",
+      "region": "Plant 2"
+    }
+  ]
+}

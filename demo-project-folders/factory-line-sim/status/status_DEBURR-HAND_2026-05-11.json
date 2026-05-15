@@ -1,0 +1,64 @@
+{
+  "machine_id": "DEBURR-HAND",
+  "date": "2026-05-11",
+  "shift_pattern": "1-shift",
+  "timeline": [
+    {
+      "start": "07:30",
+      "end": "08:00",
+      "state": "idle",
+      "reason": "shift_warmup"
+    },
+    {
+      "start": "08:00",
+      "end": "10:30",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "10:30",
+      "end": "10:45",
+      "state": "idle",
+      "reason": "operator_break"
+    },
+    {
+      "start": "10:45",
+      "end": "12:00",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "12:00",
+      "end": "12:45",
+      "state": "idle",
+      "reason": "lunch_break"
+    },
+    {
+      "start": "12:45",
+      "end": "15:30",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "15:30",
+      "end": "17:00",
+      "state": "idle",
+      "reason": "no_input_parts",
+      "note": "Waiting on CNC-5AX output"
+    }
+  ],
+  "total_runtime_min": 390,
+  "total_downtime_min": 180,
+  "downtime_breakdown": {
+    "shift_warmup": 30,
+    "operator_break": 15,
+    "lunch_break": 45,
+    "no_input_parts": 90
+  },
+  "oee_metrics": {
+    "availability_pct": 68.4,
+    "performance_pct": 100,
+    "quality_pct": 98.5
+  },
+  "last_updated": "2026-05-11T17:30:00Z"
+}

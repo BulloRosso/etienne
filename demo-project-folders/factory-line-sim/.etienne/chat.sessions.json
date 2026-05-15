@@ -1,0 +1,19 @@
+{
+  "sessions": [
+    {
+      "timestamp": "2026-05-14T08:30:00Z",
+      "sessionId": "a01f9e30-1111-4aaa-9aaa-aaaaaaaaaaaa",
+      "summary": "Traced PO-1003 surface-finish defect spike to coolant degradation on the prior afternoon. Established the pattern: coolant_temp_high MQTT events + degraded status block + same-day or next-day surface_finish/staining defects. Concluded the line should have an unscheduled coolant test trigger at 65°C rather than waiting for the 120-hour cycle."
+    },
+    {
+      "timestamp": "2026-05-12T09:45:00Z",
+      "sessionId": "b02f9e30-2222-4bbb-9bbb-bbbbbbbbbbbb",
+      "summary": "Traced PO-1005 dimensional + edge defect cluster to a chip-evacuation jam two days earlier. Established the chip-jam → tool damage → next-day dimensional/edge defect chain. The end-of-day tool change with note \"chip damage\" was the corroborating evidence."
+    },
+    {
+      "timestamp": "2026-05-15T10:30:00Z",
+      "sessionId": "c03f9e30-3333-4ccc-9ccc-cccccccccccc",
+      "summary": "PO-1004 is running today; checked progress vs. estimate and confirmed the bottleneck is upstream input from CNC-5AX, not a new issue. No anomalies in MQTT or status. Recommended just monitoring; flagged that DEBURR-HAND has been idle most of the morning."
+    }
+  ]
+}

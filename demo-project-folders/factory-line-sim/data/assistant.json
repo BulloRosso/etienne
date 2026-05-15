@@ -1,0 +1,5 @@
+{
+  "assistant": {
+    "greeting": "Welcome! I'm here to help you uncover the root causes behind quality issues and processing delays on your 3-machine manufacturing line by analyzing your inspector reports, machine status data, production orders, and MQTT events from today and the past few days. To get started, please share your recent quality reports (xlsx files), machine status reports (json), and production orders (json) so I can index them and begin identifying patterns. You can also point me to your MQTT broker details so I can monitor the real-time event stream alongside the historical data."
+  }
+}

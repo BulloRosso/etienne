@@ -1,0 +1,5 @@
+{
+  "requires": [],
+  "provides": [],
+  "services": ["user-orders"]
+}

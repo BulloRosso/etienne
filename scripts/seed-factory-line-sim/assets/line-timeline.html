@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Line — Daily Timeline</title>
+
+<!--
+================================================================================
+  Reads machines_line_<YYYY-MM-DD>.linedashboard.json from the same folder.
+  Date picker switches between the available daily files.
+
+  Each per-day file contains per-machine timeline rows + recent MQTT events.
+  See ../wiki/topics/dashboard-anatomy.md for the data shape.
+================================================================================
+-->
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,500&display=swap" rel="stylesheet">
+
+<style>
+  body { background: #eceff1; font-family: 'Roboto', sans-serif; margin: 0; }
+  nav { background: #1976d2; }
+  .page { padding: 24px; }
+
+  .toolbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    background: #fff; border-radius: 4px; padding: 12px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .toolbar label { font-size: 12px; text-transform: uppercase; color: #78909c; letter-spacing: 0.5px; font-weight: 500; }
+  .toolbar select { font-family: 'Roboto Mono', monospace; padding: 4px 8px; border-radius: 4px; border: 1px solid #cfd8dc; }
+  .toolbar .machine-filter { display: inline-flex; gap: 6px; }
+  .toolbar .machine-pill {
+    border: 1px solid #cfd8dc; background: #fff; color: #455a64;
+    padding: 4px 12px; border-radius: 14px; cursor: pointer;
+    font-size: 12px; font-weight: 500;
+  }
+  .toolbar .machine-pill.active { background: #1976d2; color: #fff; border-color: #1976d2; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+
+  .machine-card {
+    background: #fff; border-radius: 4px; padding: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06); margin-bottom: 16px;
+  }
+  .machine-header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 16px;
+    padding-bottom: 12px; border-bottom: 1px solid #eceff1;
+  }
+  .machine-img {
+    height: 350px; width: auto; object-fit: contain; border-radius: 4px;
+    background: #eceff1;
+  }
+  .machine-meta { flex: 1; }
+  .machine-meta .machine-name { font-size: 18px; font-weight: 500; color: #263238; }
+  .machine-meta .machine-id { font-family: 'Roboto Mono', monospace; color: #78909c; font-size: 12px; }
+  .machine-meta .machine-summary { color: #546e7a; font-size: 13px; margin-top: 4px; }
+
+  .timeline {
+    position: relative; height: 28px; background: #f5f7f9;
+    border-radius: 3px; margin-bottom: 8px; overflow: hidden;
+  }
+  .timeline.row-orders { height: 22px; }
+  .timeline.row-state  { height: 28px; }
+  .timeline.row-quality { height: 22px; }
+
+  .timeline-segment {
+    position: absolute; top: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: #fff; font-weight: 500;
+    overflow: hidden; white-space: nowrap;
+    cursor: default;
+  }
+  .timeline-segment.state-running    { background: #43a047; }
+  .timeline-segment.state-idle       { background: #b0bec5; color: #37474f; }
+  .timeline-segment.state-maintenance { background: #29b6f6; }
+  .timeline-segment.state-degraded   { background: #fb8c00; }
+  .timeline-segment.state-error      { background: #e53935; }
+  .timeline-segment.state-offline    { background: #455a64; }
+  .timeline-segment.order            { background: #1976d2; }
+  .timeline-segment.quality-minor    { background: #ffb74d; }
+  .timeline-segment.quality-major    { background: #ef5350; }
+  .timeline-segment.quality-critical { background: #b71c1c; }
+
+  .row-label {
+    font-size: 11px; color: #78909c; text-transform: uppercase;
+    letter-spacing: 0.5px; font-weight: 500; margin-bottom: 4px;
+  }
+
+  .hour-axis {
+    display: grid; grid-template-columns: repeat(11, 1fr);
+    margin-top: 4px; font-size: 10px; color: #90a4ae;
+    font-family: 'Roboto Mono', monospace;
+  }
+  .hour-axis div { text-align: center; }
+
+  .events-panel {
+    background: #fff; border-radius: 4px; padding: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    position: sticky; top: 16px; max-height: calc(100vh - 80px); overflow-y: auto;
+  }
+  .events-panel h3 {
+    font-size: 14px; font-weight: 500; color: #263238;
+    margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .event-row {
+    border-left: 3px solid #cfd8dc; padding: 6px 10px;
+    margin-bottom: 6px; background: #fafafa; font-size: 12px;
+    border-radius: 0 3px 3px 0;
+  }
+  .event-row.evt-error    { border-left-color: #e53935; background: #ffebee; }
+  .event-row.evt-warn     { border-left-color: #fb8c00; background: #fff8e1; }
+  .event-row.evt-info     { border-left-color: #29b6f6; background: #e1f5fe; }
+  .event-row .event-time {
+    font-family: 'Roboto Mono', monospace; font-size: 11px;
+    color: #78909c;
+  }
+  .event-row .event-type {
+    font-weight: 500; color: #263238; margin-top: 2px;
+  }
+  .event-row .event-machine { color: #546e7a; font-size: 11px; }
+  .event-row .event-payload {
+    font-family: 'Roboto Mono', monospace; font-size: 10px;
+    color: #455a64; margin-top: 2px;
+  }
+
+  .empty-events { color: #90a4ae; font-style: italic; font-size: 13px; }
+
+  .findings-summary {
+    margin-top: 8px; font-size: 12px; color: #546e7a;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .finding-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 10px; font-size: 11px;
+  }
+  .finding-pill.minor    { background: #fff3e0; color: #ef6c00; }
+  .finding-pill.major    { background: #ffebee; color: #c62828; }
+  .finding-pill.critical { background: #b71c1c; color: #fff; }
+  .finding-pill.attribution { background: #f5f5f5; color: #455a64; }
+</style>
+</head>
+<body>
+
+<nav class="z-depth-1">
+  <div class="nav-wrapper" style="padding: 0 24px;">
+    <a href="#" class="brand-logo" style="font-size: 1.1rem;">
+      <i class="material-icons" style="vertical-align: middle; margin-right: 8px;">timeline</i>
+      Factory Line — Daily Timeline
+    </a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="toolbar">
+    <label for="day-picker">Day</label>
+    <select id="day-picker"></select>
+    <span style="flex: 1"></span>
+    <label>Machines</label>
+    <span class="machine-filter" id="machine-filter"></span>
+  </div>
+  <div class="layout">
+    <div id="machines-col"></div>
+    <div class="events-panel">
+      <h3>Latest MQTT events</h3>
+      <div id="events-list"><div class="empty-events">No events.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Available days are inferred from a sibling index file the seed script
+ * writes (line-timeline-index.json). The picker defaults to the latest. */
+let STATE = { date: null, machineFilter: 'all', day: null, days: [] };
+
+async function loadJson(url, optional) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) { if (optional) return null; throw e; }
+}
+
+async function init() {
+  const idx = await loadJson('./line-timeline-index.json', false);
+  STATE.days = idx.days; // ["2026-05-08", "2026-05-09", ..., "2026-05-15"]
+  STATE.date = STATE.days[STATE.days.length - 1]; // default to latest
+  populatePicker();
+  await loadDay(STATE.date);
+}
+
+function populatePicker() {
+  const sel = document.getElementById('day-picker');
+  sel.innerHTML = STATE.days.map(d => `<option value="${d}"${d===STATE.date?' selected':''}>${d}</option>`).join('');
+  sel.addEventListener('change', (e) => { STATE.date = e.target.value; loadDay(STATE.date); });
+  document.getElementById('machine-filter').innerHTML =
+    ['all', 'CNC-5AX', 'DEBURR-HAND', 'QA-INSP'].map(m =>
+      `<button class="machine-pill ${STATE.machineFilter===m?'active':''}" data-machine="${m}">${m === 'all' ? 'All' : m}</button>`
+    ).join('');
+  document.getElementById('machine-filter').addEventListener('click', (e) => {
+    const b = e.target.closest('.machine-pill');
+    if (!b) return;
+    STATE.machineFilter = b.dataset.machine;
+    populatePicker(); // re-render pills
+    renderMachines();
+    renderEvents();
+  });
+}
+
+async function loadDay(date) {
+  const day = await loadJson(`./machines_line_${date}.linedashboard.json`, false);
+  STATE.day = day;
+  renderMachines();
+  renderEvents();
+}
+
+function pctOfDay(hour) {
+  // Render hours 7..18 = 0..100%
+  const HOUR_START = 7, HOUR_END = 18, HOURS_VISIBLE = HOUR_END - HOUR_START;
+  return Math.max(0, Math.min(100, ((hour - HOUR_START) / HOURS_VISIBLE) * 100));
+}
+
+function renderMachines() {
+  const col = document.getElementById('machines-col');
+  const machines = (STATE.day?.machines || []).filter(m =>
+    STATE.machineFilter === 'all' || m.machine_id === STATE.machineFilter
+  );
+  if (!machines.length) {
+    col.innerHTML = '<div class="empty-events" style="padding: 16px; background: #fff; border-radius: 4px;">No machines for filter.</div>';
+    return;
+  }
+  col.innerHTML = machines.map(m => renderMachine(m)).join('');
+}
+
+function renderMachine(m) {
+  const orders = m.orders.map(o => {
+    const left = pctOfDay(o.start_hour);
+    const width = pctOfDay(o.end_hour) - left;
+    return `<div class="timeline-segment order" style="left:${left}%;width:${width}%" title="${o.order_id}"></div>`;
+  }).join('');
+
+  const states = m.state_timeline.map(s => {
+    const left = pctOfDay(s.start_hour);
+    const width = pctOfDay(s.end_hour) - left;
+    if (width <= 0) return '';
+    return `<div class="timeline-segment state-${s.state}" style="left:${left}%;width:${width}%"
+                title="${s.state}${s.reason ? ' — ' + s.reason : ''}"></div>`;
+  }).join('');
+
+  const findings = (m.quality_findings || []).map(f => {
+    const left = pctOfDay(f.hour);
+    return `<div class="timeline-segment quality-${f.severity}" style="left:${left}%;width:1.2%"
+                title="${f.severity} ${f.defect_type} on ${f.order_id} — attributable to ${f.attributable_to}: ${escapeHtml(f.note)}"></div>`;
+  }).join('');
+
+  const findingCounts = countFindings(m.quality_findings || []);
+  const findingPills = Object.entries(findingCounts).map(([sev, c]) =>
+    `<span class="finding-pill ${sev}">${sev}: ${c}</span>`
+  ).join('');
+  const attrPills = attributionCounts(m.quality_findings || []);
+
+  return `
+    <div class="machine-card">
+      <div class="machine-header">
+        <img class="machine-img" src="./images/${m.image}" alt="${m.machine_id}"
+             onerror="this.style.background='#eceff1';this.alt='no image';">
+        <div class="machine-meta">
+          <div class="machine-name">${m.name}</div>
+          <div class="machine-id">${m.machine_id}</div>
+          <div class="machine-summary">${m.orders.length} order${m.orders.length===1?'':'s'} on this machine today.</div>
+        </div>
+      </div>
+
+      <div class="row-label">Production orders</div>
+      <div class="timeline row-orders">${orders || '<div style="padding: 4px 10px; color:#90a4ae; font-size:11px;">no orders</div>'}</div>
+
+      <div class="row-label">Machine state</div>
+      <div class="timeline row-state">${states || '<div style="padding: 4px 10px; color:#90a4ae; font-size:11px;">no state data</div>'}</div>
+
+      <div class="row-label">Quality findings (at QA-INSP, attributed back to this machine)</div>
+      <div class="timeline row-quality">${findings || '<div style="padding: 4px 10px; color:#90a4ae; font-size:11px;">none</div>'}</div>
+
+      <div class="hour-axis">
+        ${Array.from({length: 11}, (_, i) => `<div>${(7+i).toString().padStart(2,'0')}</div>`).join('')}
+      </div>
+
+      ${(findingPills || attrPills) ? `<div class="findings-summary">${findingPills}${attrPills}</div>` : ''}
+    </div>`;
+}
+
+function countFindings(findings) {
+  const counts = {};
+  for (const f of findings) counts[f.severity] = (counts[f.severity] || 0) + 1;
+  return counts;
+}
+
+function attributionCounts(findings) {
+  const counts = {};
+  for (const f of findings) counts[f.attributable_to] = (counts[f.attributable_to] || 0) + 1;
+  return Object.entries(counts).map(([m, c]) =>
+    `<span class="finding-pill attribution">${m}: ${c}</span>`
+  ).join('');
+}
+
+function renderEvents() {
+  const list = document.getElementById('events-list');
+  // Filter by active machine before slicing the last 10, so the panel
+  // doesn't go empty just because the most recent 10 happened to belong
+  // to a different machine. Events with machine='LINE' (line-wide
+  // events like ambient_temp_deviation) are always shown.
+  const all = STATE.day?.recent_events || [];
+  const filtered = STATE.machineFilter === 'all'
+    ? all
+    : all.filter(e => e.machine === STATE.machineFilter || e.machine === 'LINE');
+  const events = filtered.slice(-10).reverse();
+  if (!events.length) { list.innerHTML = '<div class="empty-events">No events for this filter on this day.</div>'; return; }
+  list.innerHTML = events.map(e => {
+    const cls = e.type.includes('jam') || e.type.includes('error') ? 'evt-error'
+              : e.type.includes('warn') || e.type.includes('high') || e.type.includes('low') || e.type.includes('overdue') ? 'evt-warn'
+              : 'evt-info';
+    const t = (e.ts || '').slice(11, 16);
+    return `
+      <div class="event-row ${cls}">
+        <div class="event-time">${t}</div>
+        <div class="event-type">${escapeHtml(e.type)}</div>
+        <div class="event-machine">${escapeHtml(e.machine)}</div>
+        <div class="event-payload">${escapeHtml(JSON.stringify(e.payload))}</div>
+      </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "order_id": "PO-1001",
+  "part_number": "BR-AL75-12X40",
+  "customer": "Acme Aerospace",
+  "priority": "normal",
+  "qty_ordered": 50,
+  "qty_completed": 50,
+  "qty_scrapped": 0,
+  "due_date": "2026-05-10",
+  "created_date": "2026-05-05",
+  "material": "Al-7075",
+  "tolerance_grade": "IT8",
+  "status": "Completed",
+  "routing": [
+    {
+      "sequence": 1,
+      "machine": "CNC-5AX",
+      "est_cycle_min": 12
+    },
+    {
+      "sequence": 2,
+      "machine": "DEBURR-HAND",
+      "est_cycle_min": 5
+    },
+    {
+      "sequence": 3,
+      "machine": "QA-INSP",
+      "est_cycle_min": 2
+    }
+  ]
+}

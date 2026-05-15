@@ -1,0 +1,24 @@
+{
+  "machine_id": "QA-INSP",
+  "date": "2026-05-15",
+  "shift_pattern": "1-shift",
+  "timeline": [
+    {
+      "start": "08:00",
+      "end": "12:00",
+      "state": "idle",
+      "reason": "no_input_parts"
+    }
+  ],
+  "total_runtime_min": 0,
+  "total_downtime_min": 240,
+  "downtime_breakdown": {
+    "no_input_parts": 240
+  },
+  "oee_metrics": {
+    "availability_pct": 0,
+    "performance_pct": 0,
+    "quality_pct": 98.5
+  },
+  "last_updated": "2026-05-15T17:30:00Z"
+}

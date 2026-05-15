@@ -1,0 +1,23 @@
+{
+  "rules": [
+    {
+      "id": "rag-auto-index-documents",
+      "name": "Auto-index documents for RAG search",
+      "enabled": true,
+      "condition": {
+        "type": "simple",
+        "event": {
+          "group": "Filesystem",
+          "name": "File Created",
+          "payload.path": "*/documents/*"
+        }
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "rag-auto-index"
+      },
+      "createdAt": "2026-04-07T00:00:00.000Z",
+      "updatedAt": "2026-04-07T00:00:00.000Z"
+    }
+  ]
+}

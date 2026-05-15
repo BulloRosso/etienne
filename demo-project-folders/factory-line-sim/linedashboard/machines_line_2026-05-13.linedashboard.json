@@ -1,0 +1,223 @@
+{
+  "date": "2026-05-13",
+  "machines": [
+    {
+      "machine_id": "CNC-5AX",
+      "name": "5-Axis CNC Mill",
+      "image": "cnc-5ax.png",
+      "orders": [
+        {
+          "order_id": "PO-1003",
+          "start_hour": 8,
+          "end_hour": 15
+        }
+      ],
+      "state_timeline": [
+        {
+          "start_hour": 7.5,
+          "end_hour": 8,
+          "state": "idle",
+          "reason": "shift_warmup"
+        },
+        {
+          "start_hour": 8,
+          "end_hour": 10.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 10.5,
+          "end_hour": 10.75,
+          "state": "idle",
+          "reason": "operator_break"
+        },
+        {
+          "start_hour": 10.75,
+          "end_hour": 12,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 12,
+          "end_hour": 12.75,
+          "state": "idle",
+          "reason": "lunch_break"
+        },
+        {
+          "start_hour": 12.75,
+          "end_hour": 15.75,
+          "state": "degraded",
+          "reason": "coolant_quality_degraded"
+        },
+        {
+          "start_hour": 15.75,
+          "end_hour": 17,
+          "state": "running",
+          "reason": null
+        }
+      ],
+      "quality_findings": []
+    },
+    {
+      "machine_id": "DEBURR-HAND",
+      "name": "Manual Deburring Station",
+      "image": "deburr-hand.png",
+      "orders": [
+        {
+          "order_id": "PO-1003",
+          "start_hour": 13,
+          "end_hour": 17
+        }
+      ],
+      "state_timeline": [
+        {
+          "start_hour": 7.5,
+          "end_hour": 8,
+          "state": "idle",
+          "reason": "shift_warmup"
+        },
+        {
+          "start_hour": 8,
+          "end_hour": 10.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 10.5,
+          "end_hour": 10.75,
+          "state": "idle",
+          "reason": "operator_break"
+        },
+        {
+          "start_hour": 10.75,
+          "end_hour": 12,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 12,
+          "end_hour": 12.75,
+          "state": "idle",
+          "reason": "lunch_break"
+        },
+        {
+          "start_hour": 12.75,
+          "end_hour": 15.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 15.5,
+          "end_hour": 17,
+          "state": "idle",
+          "reason": "no_input_parts"
+        }
+      ],
+      "quality_findings": []
+    },
+    {
+      "machine_id": "QA-INSP",
+      "name": "3D Vision Inspection",
+      "image": "qa-insp.png",
+      "orders": [],
+      "state_timeline": [
+        {
+          "start_hour": 8,
+          "end_hour": 11,
+          "state": "idle",
+          "reason": "no_input_parts"
+        },
+        {
+          "start_hour": 11,
+          "end_hour": 13,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 13,
+          "end_hour": 13.5,
+          "state": "idle",
+          "reason": "lunch_break"
+        },
+        {
+          "start_hour": 13.5,
+          "end_hour": 15.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 15.5,
+          "end_hour": 17,
+          "state": "idle",
+          "reason": "no_input_parts"
+        }
+      ],
+      "quality_findings": []
+    }
+  ],
+  "recent_events": [
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-13T09:00:00Z",
+      "payload": {
+        "load_pct": 80,
+        "tool_id": "T12"
+      }
+    },
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-13T11:00:00Z",
+      "payload": {
+        "load_pct": 81,
+        "tool_id": "T12"
+      }
+    },
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-13T14:00:00Z",
+      "payload": {
+        "load_pct": 79,
+        "tool_id": "T12"
+      }
+    },
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-13T16:00:00Z",
+      "payload": {
+        "load_pct": 79,
+        "tool_id": "T12"
+      }
+    },
+    {
+      "type": "coolant_temp_high",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-13T13:08:00Z",
+      "payload": {
+        "temp": 67.2,
+        "threshold": 65
+      }
+    },
+    {
+      "type": "coolant_temp_high",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-13T14:12:00Z",
+      "payload": {
+        "temp": 69,
+        "threshold": 65
+      }
+    },
+    {
+      "type": "coolant_temp_high",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-13T15:30:00Z",
+      "payload": {
+        "temp": 66.3,
+        "threshold": 65
+      }
+    }
+  ]
+}

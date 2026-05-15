@@ -1,0 +1,49 @@
+{
+  "machine_id": "QA-INSP",
+  "date": "2026-05-10",
+  "shift_pattern": "1-shift",
+  "timeline": [
+    {
+      "start": "08:00",
+      "end": "11:00",
+      "state": "idle",
+      "reason": "no_input_parts"
+    },
+    {
+      "start": "11:00",
+      "end": "13:00",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "13:00",
+      "end": "13:30",
+      "state": "idle",
+      "reason": "lunch_break"
+    },
+    {
+      "start": "13:30",
+      "end": "15:30",
+      "state": "running",
+      "reason": null
+    },
+    {
+      "start": "15:30",
+      "end": "17:00",
+      "state": "idle",
+      "reason": "no_input_parts"
+    }
+  ],
+  "total_runtime_min": 240,
+  "total_downtime_min": 300,
+  "downtime_breakdown": {
+    "no_input_parts": 270,
+    "lunch_break": 30
+  },
+  "oee_metrics": {
+    "availability_pct": 44.4,
+    "performance_pct": 100,
+    "quality_pct": 98.5
+  },
+  "last_updated": "2026-05-10T17:30:00Z"
+}

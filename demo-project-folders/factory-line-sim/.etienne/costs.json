@@ -1,0 +1,51 @@
+[
+  {
+    "timestamp": "2026-05-15T11:40:42.850Z",
+    "inputTokens": 300,
+    "outputTokens": 462,
+    "requestCosts": 0.00783,
+    "accumulatedCosts": 0.065805
+  },
+  {
+    "timestamp": "2026-05-15T11:40:37.012Z",
+    "inputTokens": 412,
+    "outputTokens": 360,
+    "requestCosts": 0.006636,
+    "accumulatedCosts": 0.057975
+  },
+  {
+    "timestamp": "2026-05-15T11:20:46.909Z",
+    "inputTokens": 367,
+    "outputTokens": 467,
+    "requestCosts": 0.008106,
+    "accumulatedCosts": 0.051338999999999996
+  },
+  {
+    "timestamp": "2026-05-15T11:20:38.894Z",
+    "inputTokens": 339,
+    "outputTokens": 495,
+    "requestCosts": 0.008442,
+    "accumulatedCosts": 0.043232999999999994
+  },
+  {
+    "timestamp": "2026-05-15T11:20:26.594Z",
+    "inputTokens": 687,
+    "outputTokens": 338,
+    "requestCosts": 0.007131,
+    "accumulatedCosts": 0.034790999999999996
+  },
+  {
+    "timestamp": "2026-05-15T11:20:20.919Z",
+    "inputTokens": 880,
+    "outputTokens": 576,
+    "requestCosts": 0.01128,
+    "accumulatedCosts": 0.027659999999999997
+  },
+  {
+    "timestamp": "2026-05-15T11:20:14.011Z",
+    "inputTokens": 1030,
+    "outputTokens": 886,
+    "requestCosts": 0.01638,
+    "accumulatedCosts": 0.01638
+  }
+]

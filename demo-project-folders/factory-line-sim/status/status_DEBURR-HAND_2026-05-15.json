@@ -1,0 +1,32 @@
+{
+  "machine_id": "DEBURR-HAND",
+  "date": "2026-05-15",
+  "shift_pattern": "1-shift",
+  "timeline": [
+    {
+      "start": "07:30",
+      "end": "08:00",
+      "state": "idle",
+      "reason": "shift_warmup"
+    },
+    {
+      "start": "08:00",
+      "end": "12:00",
+      "state": "idle",
+      "reason": "no_input_parts",
+      "note": "Waiting on CNC-5AX output for PO-1004"
+    }
+  ],
+  "total_runtime_min": 0,
+  "total_downtime_min": 270,
+  "downtime_breakdown": {
+    "shift_warmup": 30,
+    "no_input_parts": 240
+  },
+  "oee_metrics": {
+    "availability_pct": 0,
+    "performance_pct": 0,
+    "quality_pct": 98.5
+  },
+  "last_updated": "2026-05-15T17:30:00Z"
+}

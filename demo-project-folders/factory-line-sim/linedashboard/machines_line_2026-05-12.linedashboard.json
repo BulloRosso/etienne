@@ -1,0 +1,257 @@
+{
+  "date": "2026-05-12",
+  "machines": [
+    {
+      "machine_id": "CNC-5AX",
+      "name": "5-Axis CNC Mill",
+      "image": "cnc-5ax.png",
+      "orders": [
+        {
+          "order_id": "PO-1003",
+          "start_hour": 8,
+          "end_hour": 17
+        }
+      ],
+      "state_timeline": [
+        {
+          "start_hour": 7.5,
+          "end_hour": 8,
+          "state": "idle",
+          "reason": "shift_warmup"
+        },
+        {
+          "start_hour": 8,
+          "end_hour": 10.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 10.5,
+          "end_hour": 10.75,
+          "state": "idle",
+          "reason": "operator_break"
+        },
+        {
+          "start_hour": 10.75,
+          "end_hour": 12,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 12,
+          "end_hour": 12.75,
+          "state": "idle",
+          "reason": "lunch_break"
+        },
+        {
+          "start_hour": 12.75,
+          "end_hour": 14.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 14.5,
+          "end_hour": 14.833333333333334,
+          "state": "maintenance",
+          "reason": "tool_change"
+        },
+        {
+          "start_hour": 14.833333333333334,
+          "end_hour": 17,
+          "state": "running",
+          "reason": null
+        }
+      ],
+      "quality_findings": []
+    },
+    {
+      "machine_id": "DEBURR-HAND",
+      "name": "Manual Deburring Station",
+      "image": "deburr-hand.png",
+      "orders": [
+        {
+          "order_id": "PO-1005",
+          "start_hour": 8,
+          "end_hour": 11
+        }
+      ],
+      "state_timeline": [
+        {
+          "start_hour": 7.5,
+          "end_hour": 8,
+          "state": "idle",
+          "reason": "shift_warmup"
+        },
+        {
+          "start_hour": 8,
+          "end_hour": 10.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 10.5,
+          "end_hour": 10.75,
+          "state": "idle",
+          "reason": "operator_break"
+        },
+        {
+          "start_hour": 10.75,
+          "end_hour": 12,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 12,
+          "end_hour": 12.75,
+          "state": "idle",
+          "reason": "lunch_break"
+        },
+        {
+          "start_hour": 12.75,
+          "end_hour": 15.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 15.5,
+          "end_hour": 17,
+          "state": "idle",
+          "reason": "no_input_parts"
+        }
+      ],
+      "quality_findings": []
+    },
+    {
+      "machine_id": "QA-INSP",
+      "name": "3D Vision Inspection",
+      "image": "qa-insp.png",
+      "orders": [
+        {
+          "order_id": "PO-1005",
+          "start_hour": 11,
+          "end_hour": 13
+        }
+      ],
+      "state_timeline": [
+        {
+          "start_hour": 8,
+          "end_hour": 11,
+          "state": "idle",
+          "reason": "no_input_parts"
+        },
+        {
+          "start_hour": 11,
+          "end_hour": 13,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 13,
+          "end_hour": 13.5,
+          "state": "idle",
+          "reason": "lunch_break"
+        },
+        {
+          "start_hour": 13.5,
+          "end_hour": 15.5,
+          "state": "running",
+          "reason": null
+        },
+        {
+          "start_hour": 15.5,
+          "end_hour": 17,
+          "state": "idle",
+          "reason": "no_input_parts"
+        }
+      ],
+      "quality_findings": [
+        {
+          "hour": 13,
+          "severity": "major",
+          "defect_type": "dimensional",
+          "order_id": "PO-1005",
+          "attributable_to": "CNC-5AX",
+          "note": "Length tolerance exceeded; pattern matches chatter from chip-evacuation jam earlier in the run."
+        },
+        {
+          "hour": 13,
+          "severity": "major",
+          "defect_type": "dimensional",
+          "order_id": "PO-1005",
+          "attributable_to": "CNC-5AX",
+          "note": "Length tolerance exceeded; pattern matches chatter from chip-evacuation jam earlier in the run."
+        },
+        {
+          "hour": 13,
+          "severity": "major",
+          "defect_type": "dimensional",
+          "order_id": "PO-1005",
+          "attributable_to": "CNC-5AX",
+          "note": "Length tolerance exceeded; pattern matches chatter from chip-evacuation jam earlier in the run."
+        },
+        {
+          "hour": 13,
+          "severity": "major",
+          "defect_type": "dimensional",
+          "order_id": "PO-1005",
+          "attributable_to": "CNC-5AX",
+          "note": "Length tolerance exceeded; pattern matches chatter from chip-evacuation jam earlier in the run."
+        },
+        {
+          "hour": 13,
+          "severity": "major",
+          "defect_type": "edge",
+          "order_id": "PO-1005",
+          "attributable_to": "DEBURR-HAND",
+          "note": "Chipped edge on flange; consistent with damaged tool from morning chip-jam (T07 swapped EOD)."
+        },
+        {
+          "hour": 13,
+          "severity": "major",
+          "defect_type": "edge",
+          "order_id": "PO-1005",
+          "attributable_to": "DEBURR-HAND",
+          "note": "Chipped edge on flange; consistent with damaged tool from morning chip-jam (T07 swapped EOD)."
+        }
+      ]
+    }
+  ],
+  "recent_events": [
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-12T09:00:00Z",
+      "payload": {
+        "load_pct": 85,
+        "tool_id": "T12"
+      }
+    },
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-12T11:00:00Z",
+      "payload": {
+        "load_pct": 84,
+        "tool_id": "T12"
+      }
+    },
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-12T14:00:00Z",
+      "payload": {
+        "load_pct": 78,
+        "tool_id": "T12"
+      }
+    },
+    {
+      "type": "spindle_load_warn",
+      "machine": "CNC-5AX",
+      "ts": "2026-05-12T16:00:00Z",
+      "payload": {
+        "load_pct": 84,
+        "tool_id": "T12"
+      }
+    }
+  ]
+}

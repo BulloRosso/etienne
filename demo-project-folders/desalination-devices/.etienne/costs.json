@@ -1,0 +1,128 @@
+[
+  {
+    "timestamp": "2026-05-14T22:26:04.405Z",
+    "inputTokens": 334,
+    "outputTokens": 447,
+    "requestCosts": 0.007707,
+    "accumulatedCosts": 0.28432199999999996
+  },
+  {
+    "timestamp": "2026-05-14T22:25:59.044Z",
+    "inputTokens": 306,
+    "outputTokens": 507,
+    "requestCosts": 0.008523,
+    "accumulatedCosts": 0.27661499999999994
+  },
+  {
+    "timestamp": "2026-05-14T22:25:52.946Z",
+    "inputTokens": 399,
+    "outputTokens": 546,
+    "requestCosts": 0.009387000000000001,
+    "accumulatedCosts": 0.26809199999999994
+  },
+  {
+    "timestamp": "2026-05-14T22:25:47.027Z",
+    "inputTokens": 380,
+    "outputTokens": 491,
+    "requestCosts": 0.008505,
+    "accumulatedCosts": 0.25870499999999996
+  },
+  {
+    "timestamp": "2026-05-14T22:25:34.564Z",
+    "inputTokens": 926,
+    "outputTokens": 763,
+    "requestCosts": 0.014223,
+    "accumulatedCosts": 0.2502
+  },
+  {
+    "timestamp": "2026-05-14T22:25:26.925Z",
+    "inputTokens": 1205,
+    "outputTokens": 1442,
+    "requestCosts": 0.025245,
+    "accumulatedCosts": 0.23597699999999996
+  },
+  {
+    "timestamp": "2026-05-14T22:25:12.041Z",
+    "inputTokens": 1215,
+    "outputTokens": 859,
+    "requestCosts": 0.01653,
+    "accumulatedCosts": 0.21073199999999997
+  },
+  {
+    "timestamp": "2026-05-14T22:25:02.007Z",
+    "inputTokens": 1146,
+    "outputTokens": 991,
+    "requestCosts": 0.018303,
+    "accumulatedCosts": 0.19420199999999999
+  },
+  {
+    "timestamp": "2026-05-14T22:24:50.648Z",
+    "inputTokens": 704,
+    "outputTokens": 884,
+    "requestCosts": 0.015372,
+    "accumulatedCosts": 0.175899
+  },
+  {
+    "timestamp": "2026-05-14T22:24:42.889Z",
+    "inputTokens": 1141,
+    "outputTokens": 817,
+    "requestCosts": 0.015678,
+    "accumulatedCosts": 0.160527
+  },
+  {
+    "timestamp": "2026-05-14T22:24:34.748Z",
+    "inputTokens": 1162,
+    "outputTokens": 996,
+    "requestCosts": 0.018425999999999998,
+    "accumulatedCosts": 0.144849
+  },
+  {
+    "timestamp": "2026-05-14T22:24:22.571Z",
+    "inputTokens": 1344,
+    "outputTokens": 777,
+    "requestCosts": 0.015687,
+    "accumulatedCosts": 0.126423
+  },
+  {
+    "timestamp": "2026-05-14T22:24:13.668Z",
+    "inputTokens": 1408,
+    "outputTokens": 684,
+    "requestCosts": 0.014484,
+    "accumulatedCosts": 0.110736
+  },
+  {
+    "timestamp": "2026-05-14T22:24:05.084Z",
+    "inputTokens": 746,
+    "outputTokens": 852,
+    "requestCosts": 0.015018,
+    "accumulatedCosts": 0.096252
+  },
+  {
+    "timestamp": "2026-05-14T22:23:56.336Z",
+    "inputTokens": 1145,
+    "outputTokens": 921,
+    "requestCosts": 0.01725,
+    "accumulatedCosts": 0.081234
+  },
+  {
+    "timestamp": "2026-05-14T22:23:43.903Z",
+    "inputTokens": 1253,
+    "outputTokens": 1325,
+    "requestCosts": 0.023634000000000002,
+    "accumulatedCosts": 0.063984
+  },
+  {
+    "timestamp": "2026-05-14T22:23:31.616Z",
+    "inputTokens": 1408,
+    "outputTokens": 984,
+    "requestCosts": 0.018984,
+    "accumulatedCosts": 0.04035
+  },
+  {
+    "timestamp": "2026-05-14T22:23:21.715Z",
+    "inputTokens": 1407,
+    "outputTokens": 1143,
+    "requestCosts": 0.021366,
+    "accumulatedCosts": 0.021366
+  }
+]
