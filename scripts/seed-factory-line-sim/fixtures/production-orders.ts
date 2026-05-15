@@ -143,8 +143,21 @@ export const PRODUCTION_ORDERS: ProductionOrder[] = [
   },
 ];
 
+/** A single run-block: this machine ran this order from startHour..endHour on this date. */
+export interface OrderRun {
+  machine: string;
+  date: string;
+  startHour: number;
+  endHour: number;
+}
+
+/** Look up the (single) QA-INSP run for an order. Returns undefined if not scheduled. */
+export function qaInspRunFor(orderId: string): OrderRun | undefined {
+  return ORDER_SCHEDULE[orderId]?.find((r) => r.machine === 'QA-INSP');
+}
+
 /** Day each PO ran on machine M (used by status JSON generator + dashboard timeline). */
-export const ORDER_SCHEDULE: Record<string, { machine: string; date: string; startHour: number; endHour: number }[]> = {
+export const ORDER_SCHEDULE: Record<string, OrderRun[]> = {
   'PO-1001': [
     { machine: 'CNC-5AX', date: dateMinus(7), startHour: 8, endHour: 16 },
     { machine: 'DEBURR-HAND', date: dateMinus(6), startHour: 8, endHour: 12 },

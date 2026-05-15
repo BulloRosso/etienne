@@ -54,7 +54,7 @@ export const SESSIONS: ChatSession[] = [
       [
         '2026-05-14T08:30:35Z',
         true,
-        "Looking at the last 7 days of QA-INSP reports: yesterday (2026-05-14) PO-1003 had 6 surface_finish defects (Ra > 1.6 µm) and 3 surface_staining defects out of 52 inspected items, which is the largest single-PO defect cluster of the week. The originating machining ran on 2026-05-13 on CNC-5AX. Pulling the status JSON for that day — CNC-5AX shows a 'degraded' block from 12:45–15:45 with reason 'coolant_quality_degraded'. So the chain is: coolant degraded mid-afternoon Tue → parts machined in that window had marginal surface finish → surfaced at QA-INSP on Wed.",
+        "Looking at the last 7 days of QA-INSP reports: yesterday (2026-05-14) PO-1003 had 6 surface_finish defects (Ra > 1.6 µm) and 3 surface_staining defects in the post-coolant batch (items 29-37 of the 80-item PO-1003 inspection), which is the largest single-PO defect cluster of the week. The originating machining ran on 2026-05-13 on CNC-5AX. Pulling the status JSON for that day — CNC-5AX shows a 'degraded' block from 12:45–15:45 with reason 'coolant_quality_degraded'. So the chain is: coolant degraded mid-afternoon Tue → parts machined in that window had marginal surface finish → surfaced at QA-INSP on Wed.",
       ],
       [
         '2026-05-14T08:31:50Z',

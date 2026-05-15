@@ -193,9 +193,10 @@ severity: major
 # Coolant degradation drove PO-1003 surface defects
 
 PO-1003 (Acme Aerospace, TURB-AL75-65X22, IT7) finished yesterday with
-**9 defects in its second-day inspection batch** out of 52 inspected
-items: 6 \`surface_finish\` (Ra > 1.6 µm) and 3 \`surface_staining\`. This
-is the largest single-PO defect cluster of the past 7 days.
+**9 defects in the post-coolant inspection cluster (items 29–37)** out of
+80 inspected items: 6 \`surface_finish\` (Ra > 1.6 µm) and 3
+\`surface_staining\`. This is the largest single-PO defect cluster of
+the past 7 days.
 
 ## Origin
 

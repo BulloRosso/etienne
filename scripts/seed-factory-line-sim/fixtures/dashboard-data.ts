@@ -234,6 +234,29 @@ export const LINE_DASHBOARD_DAYS: LineDashboardDay[] = (() => {
   }
 
   // Attach quality findings to QA-INSP rows; mark the originating machine.
+  //
+  // Attribution rule (this line's heuristic — captured in
+  // wiki/topics/root-cause-attribution.md):
+  //
+  //   1. Default to the **earliest** upstream machine in the order's
+  //      routing that ran the order before this inspection hour. In this
+  //      3-step line that's CNC-5AX (mill → deburr → inspect). Most
+  //      defects surfaced at QA-INSP are upstream mill symptoms.
+  //
+  //   2. Override to DEBURR-HAND only when the inspector notes
+  //      explicitly point at the manual deburring step (e.g. "deburr
+  //      slip", "hand-tool", "missed deburr"). The fixture currently
+  //      has no such rows, but the rule is here so future rows can be
+  //      attributed honestly without changing code.
+  //
+  //   3. Tool-damage / coolant signatures stay on CNC-5AX even if
+  //      DEBURR-HAND ran the part later (these are mill-origin defects
+  //      that survive deburring).
+  //
+  // The validator below enforces that whichever machine we attribute to
+  // actually ran the order earlier — so we cannot silently pick a
+  // machine that never touched the part.
+  const DEBURR_RE = /deburr slip|hand[- ]tool|missed deburr/i;
   for (const file of QUALITY_REPORTS) {
     for (const row of file.rows) {
       if (row.defect_type === 'pass') continue;
@@ -243,14 +266,20 @@ export const LINE_DASHBOARD_DAYS: LineDashboardDay[] = (() => {
       const inspRow = day.machines.find((m) => m.machine_id === 'QA-INSP');
       if (!inspRow) continue;
       const hour = parseInt(row.timestamp.slice(11, 13), 10);
-      // Originating machine attribution: surface_* and dimensional/edge → CNC-5AX,
-      // unless the order's flow puts it after deburring.
-      const attributable_to =
-        row.defect_type === 'edge' && /chipped flange/i.test(row.notes)
-          ? 'CNC-5AX'
-          : row.defect_type === 'edge'
-            ? 'DEBURR-HAND'
-            : 'CNC-5AX';
+      const min = parseInt(row.timestamp.slice(14, 16), 10);
+      const hourDecimal = hour + min / 60;
+
+      // Upstream runs of this order that ended before this inspection hour.
+      const upstreamRuns = (ORDER_SCHEDULE[row.production_order_id] ?? [])
+        .filter((r) => r.machine !== 'QA-INSP')
+        .filter((r) => r.date < date || (r.date === date && r.endHour <= hourDecimal))
+        .sort((a, b) => a.date.localeCompare(b.date) || a.startHour - b.startHour);
+
+      // Earliest upstream run (= the mill, in this line). Fall back to
+      // CNC-5AX so attribution is never undefined.
+      let attributable_to = upstreamRuns[0]?.machine ?? 'CNC-5AX';
+      if (DEBURR_RE.test(row.notes)) attributable_to = 'DEBURR-HAND';
+
       inspRow.quality_findings.push({
         hour,
         severity: row.defect_severity as 'minor' | 'major' | 'critical',
@@ -261,5 +290,73 @@ export const LINE_DASHBOARD_DAYS: LineDashboardDay[] = (() => {
       });
     }
   }
+
+  // ── Consistency validator ────────────────────────────────────────────
+  // Guardrail against the class of bug where a QA-INSP finding lands at
+  // an hour QA-INSP wasn't running, or is attributed to an upstream
+  // machine that didn't actually run the order earlier the same day.
+  // If either invariant is violated, fail loudly at seed-time so the
+  // fixtures can't drift apart silently again.
+  const violations: string[] = [];
+  for (const day of days) {
+    const inspRow = day.machines.find((m) => m.machine_id === 'QA-INSP');
+    if (!inspRow) continue;
+
+    // Pre-compute the running intervals for the day (in hours, fractional).
+    const runningWindows = inspRow.state_timeline
+      .filter((s) => s.state === 'running')
+      .map((s) => ({ start: s.start_hour, end: s.end_hour }));
+
+    for (const f of inspRow.quality_findings) {
+      // Invariant 1: QA-INSP must be running at hour `f.hour`.
+      const inWindow = runningWindows.some((w) => f.hour >= Math.floor(w.start) && f.hour < Math.ceil(w.end));
+      if (!inWindow) {
+        violations.push(
+          `${day.date}: QA-INSP finding at hour ${f.hour} for ${f.order_id} ` +
+            `falls outside QA-INSP's running windows ${JSON.stringify(runningWindows)}.`,
+        );
+      }
+
+      // Invariant 2: attributed upstream machine must have run this order
+      // earlier on the same day OR on an earlier day this week.
+      const upstream = (ORDER_SCHEDULE[f.order_id] ?? []).find((r) => r.machine === f.attributable_to);
+      if (!upstream) {
+        violations.push(
+          `${day.date}: finding for ${f.order_id} attributed to ${f.attributable_to}, ` +
+            `but that machine has no run scheduled for the order.`,
+        );
+        continue;
+      }
+      // Earlier same day or any prior day is fine; same day after the
+      // inspection hour or future days are not.
+      if (upstream.date > day.date || (upstream.date === day.date && upstream.endHour > f.hour)) {
+        violations.push(
+          `${day.date}: finding at hour ${f.hour} for ${f.order_id} attributed to ` +
+            `${f.attributable_to}, but that machine's run for the order is on ` +
+            `${upstream.date} ${upstream.startHour}-${upstream.endHour} — not earlier.`,
+        );
+      }
+    }
+
+    // Invariant 3: if QA-INSP has zero running windows on a day, it must
+    // have zero findings on that day.
+    if (runningWindows.length === 0 && inspRow.quality_findings.length > 0) {
+      violations.push(
+        `${day.date}: QA-INSP has no running windows but ${inspRow.quality_findings.length} ` +
+          `findings are attached. Either the inspection date in QUALITY_REPORTS is wrong, ` +
+          `or ORDER_SCHEDULE is missing a QA-INSP run.`,
+      );
+    }
+  }
+
+  if (violations.length > 0) {
+    throw new Error(
+      `Dashboard data is internally inconsistent (${violations.length} violation${violations.length === 1 ? '' : 's'}):\n  - ` +
+        violations.join('\n  - ') +
+        `\n\nFix QUALITY_REPORTS row timestamps or ORDER_SCHEDULE entries so every QA-INSP ` +
+        `finding lands inside QA-INSP's running window and the attributed upstream ran earlier.`,
+    );
+  }
+
   return days;
 })();
