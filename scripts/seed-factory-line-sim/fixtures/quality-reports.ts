@@ -124,17 +124,20 @@ export const QUALITY_REPORTS: QualityReportFile[] = [
     rows: generateRows('PO-1001', 'BR-AL75-12X40', dateMinus(6), 50, 'INS-Maria', 0, () => ({})),
   },
 
-  // -- PO-1002: clean run, 1 dimensional reject -------------------------
+  // -- PO-1002: tool-break incident ------------------------------------
+  // T18 carbide insert fractured mid-run on TODAY-6 at 14:20. Parts cut
+  // 13:30 → 14:20 (~17 items) show progressively worse bore-diameter
+  // drift; 4 fall outside spec by inspection (next morning, TODAY-5).
   {
     filename: `${dateMinus(5)}_QA-INSP_PO-1002.xlsx`,
     rows: (() => {
-      const rows = generateRows('PO-1002', 'HSG-ST304-90', dateMinus(5), 30, 'INS-Maria', 1, (i) => ({
+      const rows = generateRows('PO-1002', 'HSG-ST304-90', dateMinus(5), 30, 'INS-Maria', 4, (i) => ({
         defect_type: 'dimensional',
         defect_severity: 'major',
-        measurement_value: jitter(89.97, 0.04),
+        measurement_value: jitter(89.92, 0.05),
         specification_min: 89.95,
         specification_max: 90.05,
-        notes: `Bore diameter below spec on item ${i}; suspected fixture clamp slip on first part of run.`,
+        notes: `Bore diameter below spec on item ${i}; chatter signature consistent with T18 deteriorating before fracture (T18 broke at 14:20 the prior day on this part lot).`,
       }));
       return rows;
     })(),
@@ -197,10 +200,21 @@ export const QUALITY_REPORTS: QualityReportFile[] = [
     })(),
   },
 
-  // -- PO-1003 day 1 (TODAY-3): clean morning before coolant problems --
+  // -- PO-1003 day 1 (TODAY-2 inspection of TODAY-3 machining) ---------
+  // T12 end-mill flute chipped at 11:15 on TODAY-3 (audible report,
+  // controller halted by spindle-load alarm). Items 8–10 of the morning
+  // batch carry the chatter signature; remaining 25 items pass clean
+  // after the swap.
   {
     filename: `${dateMinus(2)}_QA-INSP_PO-1003-day1.xlsx`,
-    rows: generateRows('PO-1003', 'TURB-AL75-65X22', dateMinus(2), 28, 'INS-Maria', 0, () => ({})),
+    rows: generateRows('PO-1003', 'TURB-AL75-65X22', dateMinus(2), 28, 'INS-Maria', 3, (i) => ({
+      defect_type: 'dimensional',
+      defect_severity: 'major',
+      measurement_value: jitter(22.04, 0.04),
+      specification_min: 21.99,
+      specification_max: 22.02,
+      notes: `Diameter above spec on item ${i}; chatter signature consistent with T12 flute chipping that triggered the 11:15 alarm.`,
+    })),
   },
 
   // -- PO-1003 day 2 (TODAY-1): inspections after the coolant-degraded day

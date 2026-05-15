@@ -181,6 +181,22 @@ function buildSeedEvents(date: string, dayOffset: number): LineDashboardDay['rec
       { type: 'coolant_temp_high', machine: 'CNC-5AX', ts: `${date}T15:30:00Z`, payload: { temp: 66.3, threshold: 65 } },
     );
   }
+  if (dayOffset === 6) {
+    // Tool-break on Steel-304: T18 carbide insert fractured at 14:20.
+    events.push(
+      { type: 'spindle_load_warn',  machine: 'CNC-5AX', ts: `${date}T14:18:00Z`, payload: { load_pct: 94, tool_id: 'T18' } },
+      { type: 'spindle_load_warn',  machine: 'CNC-5AX', ts: `${date}T14:19:30Z`, payload: { load_pct: 99, tool_id: 'T18' } },
+      { type: 'tool_breakage_alarm', machine: 'CNC-5AX', ts: `${date}T14:20:00Z`, payload: { tool_id: 'T18', material: 'Steel-304', spindle_load_pct: 99 } },
+    );
+  }
+  if (dayOffset === 3) {
+    // Tool-break on Al-7075: T12 end-mill flute chipped at 11:15.
+    events.push(
+      { type: 'spindle_load_warn',  machine: 'CNC-5AX', ts: `${date}T11:13:00Z`, payload: { load_pct: 92, tool_id: 'T12' } },
+      { type: 'tool_breakage_alarm', machine: 'CNC-5AX', ts: `${date}T11:15:00Z`, payload: { tool_id: 'T12', material: 'Al-7075', spindle_load_pct: 96 } },
+      { type: 'tool_change_overdue', machine: 'CNC-5AX', ts: `${date}T11:16:00Z`, payload: { tool_id: 'T12', cycles_used: 1003, life: 1000 } },
+    );
+  }
   return events;
 }
 

@@ -6,7 +6,8 @@ import {
 } from './events.js';
 
 interface Ctx {
-  token: string;
+  getToken: () => string;
+  refreshToken: () => Promise<string>;
   apiBase: string;
   project: string;
   intervalMs: number;
@@ -14,19 +15,9 @@ interface Ctx {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-// Escalating cadence between consecutive routine events:
-// fire immediately, then +10s, +60s, +5min, +15min, +30min, +60min, then steady at 60min.
-const ESCALATING_DELAYS_MS = [0, 10_000, 60_000, 5 * 60_000, 15 * 60_000, 30 * 60_000, 60 * 60_000];
-
-function nextDelayMs(index: number): number {
-  return ESCALATING_DELAYS_MS[Math.min(index, ESCALATING_DELAYS_MS.length - 1)];
-}
-
 /** Routine emission: weighted toward boring telemetry. */
 export async function runRoutine(ctx: Ctx): Promise<never> {
-  let i = 0;
   while (true) {
-    await sleep(nextDelayMs(i));
     const r = Math.random();
     let evt;
     if (r < 0.55) {
@@ -42,7 +33,7 @@ export async function runRoutine(ctx: Ctx): Promise<never> {
     }
     await post(ctx, evt);
     process.stdout.write(`. ${evt.type}\n`);
-    i++;
+    await sleep(ctx.intervalMs);
   }
 }
 

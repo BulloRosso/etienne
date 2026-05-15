@@ -3,18 +3,22 @@
  *
  * Day axis: TODAY-7 .. TODAY (8 days).
  *
- * Seeded incidents:
- *   - TODAY-4 on CNC-5AX: ~25 min hard downtime mid-morning labelled
- *     "chip_evacuation_jam" (the chip-bin / conveyor jam from the PRD).
- *   - TODAY-2 on CNC-5AX: ~3 h "degraded" stretch in the afternoon labelled
- *     "coolant_quality_degraded" — runs but at reduced effective performance.
+ * Single source of truth: ORDER_SCHEDULE in production-orders.ts.
+ * A machine is `running` only inside an order block; outside those
+ * blocks the timeline shows idle/break/lunch/no_active_order. This
+ * keeps the dashboard's machine-state row and production-order row
+ * always consistent.
  *
- * Other days are mostly green; small routine downtime (coffee break, tool
- * change) is included to make the dashboard look realistic.
+ * Seeded incidents (overlay on top of order-driven running blocks):
+ *   - TODAY-6 on CNC-5AX: ~35 min downtime — T18 carbide insert fracture
+ *   - TODAY-4 on CNC-5AX: ~25 min downtime — chip-evacuation jam
+ *   - TODAY-3 on CNC-5AX: ~20 min downtime — T12 end-mill flute chipped
+ *   - TODAY-2 on CNC-5AX: ~3 h `degraded` block — coolant quality degraded
  */
 
 import { TODAY } from './mission';
 import { MACHINES } from './machines';
+import { ORDER_SCHEDULE } from './production-orders';
 
 export type MachineState =
   | 'running'
@@ -81,67 +85,179 @@ function buildBreakdown(timeline: StatusTimelineEntry[]): Record<string, number>
   return out;
 }
 
-/** Standard "clean day" timeline for CNC-5AX. */
-function cncCleanDay(): StatusTimelineEntry[] {
-  return [
-    { start: '07:30', end: '08:00', state: 'idle', reason: 'shift_warmup' },
-    { start: '08:00', end: '10:30', state: 'running', reason: null },
-    { start: '10:30', end: '10:45', state: 'idle', reason: 'operator_break' },
-    { start: '10:45', end: '12:00', state: 'running', reason: null },
-    { start: '12:00', end: '12:45', state: 'idle', reason: 'lunch_break' },
-    { start: '12:45', end: '14:30', state: 'running', reason: null },
-    { start: '14:30', end: '14:50', state: 'maintenance', reason: 'tool_change', note: 'T12 swap, scheduled at 1000 cycles' },
-    { start: '14:50', end: '17:00', state: 'running', reason: null },
-  ];
+// ── Shift / break configuration ─────────────────────────────────────
+const SHIFT_START = '07:30';
+const SHIFT_WARMUP_END = '08:00';
+const SHIFT_END = '17:00';
+const BREAKS: Array<{ start: string; end: string; reason: string }> = [
+  { start: '10:30', end: '10:45', reason: 'operator_break' },
+  { start: '12:00', end: '12:45', reason: 'lunch_break' },
+];
+
+/** Convert HH:MM string to minutes since midnight. */
+function hhmmToMin(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+function minToHHMM(m: number): string {
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
-function deburrCleanDay(): StatusTimelineEntry[] {
-  return [
-    { start: '07:30', end: '08:00', state: 'idle', reason: 'shift_warmup' },
-    { start: '08:00', end: '10:30', state: 'running', reason: null },
-    { start: '10:30', end: '10:45', state: 'idle', reason: 'operator_break' },
-    { start: '10:45', end: '12:00', state: 'running', reason: null },
-    { start: '12:00', end: '12:45', state: 'idle', reason: 'lunch_break' },
-    { start: '12:45', end: '15:30', state: 'running', reason: null },
-    { start: '15:30', end: '17:00', state: 'idle', reason: 'no_input_parts', note: 'Waiting on CNC-5AX output' },
-  ];
+/** Order blocks for a given machine on a given date, sorted by startHour. */
+function orderBlocksFor(machineId: string, date: string): Array<{ start: string; end: string; order_id: string }> {
+  const blocks: Array<{ start: string; end: string; order_id: string }> = [];
+  for (const [orderId, runs] of Object.entries(ORDER_SCHEDULE)) {
+    for (const r of runs) {
+      if (r.machine !== machineId || r.date !== date) continue;
+      blocks.push({
+        start: `${String(r.startHour).padStart(2, '0')}:00`,
+        end: `${String(r.endHour).padStart(2, '0')}:00`,
+        order_id: orderId,
+      });
+    }
+  }
+  return blocks.sort((a, b) => hhmmToMin(a.start) - hhmmToMin(b.start));
 }
 
-function inspCleanDay(): StatusTimelineEntry[] {
-  return [
-    { start: '08:00', end: '11:00', state: 'idle', reason: 'no_input_parts' },
-    { start: '11:00', end: '13:00', state: 'running', reason: null },
-    { start: '13:00', end: '13:30', state: 'idle', reason: 'lunch_break' },
-    { start: '13:30', end: '15:30', state: 'running', reason: null },
-    { start: '15:30', end: '17:00', state: 'idle', reason: 'no_input_parts' },
-  ];
+/**
+ * Build a default "clean" timeline derived from the order schedule.
+ *
+ * Contract: machine is `running` only inside an order block. Breaks and
+ * lunch slice through running blocks. Outside order blocks (and during
+ * the morning warmup) the machine is `idle` with reason
+ * `no_active_order` (or `shift_warmup` / `operator_break` / `lunch_break`).
+ *
+ * The result is a fully-tiled SHIFT_START..SHIFT_END timeline with no
+ * gaps or overlaps. Incident days override slices of this with
+ * `applyIncidentOverlay`.
+ */
+function buildOrderDrivenDay(machineId: string, date: string): StatusTimelineEntry[] {
+  const orders = orderBlocksFor(machineId, date);
+  const segments: StatusTimelineEntry[] = [];
+
+  // Walk minute-by-minute through the shift, deciding the state of each
+  // span and coalescing same-state runs.
+  const shiftStart = hhmmToMin(SHIFT_START);
+  const shiftEnd = hhmmToMin(SHIFT_END);
+  const warmupEnd = hhmmToMin(SHIFT_WARMUP_END);
+
+  type SegState = { state: MachineState; reason: string | null };
+  const stateAt = (mm: number): SegState => {
+    if (mm < warmupEnd) return { state: 'idle', reason: 'shift_warmup' };
+    for (const b of BREAKS) {
+      if (mm >= hhmmToMin(b.start) && mm < hhmmToMin(b.end)) {
+        return { state: 'idle', reason: b.reason };
+      }
+    }
+    for (const o of orders) {
+      if (mm >= hhmmToMin(o.start) && mm < hhmmToMin(o.end)) {
+        return { state: 'running', reason: null };
+      }
+    }
+    return { state: 'idle', reason: 'no_active_order' };
+  };
+
+  let cur: SegState | null = null;
+  let segStart = shiftStart;
+  for (let mm = shiftStart; mm < shiftEnd; mm++) {
+    const here = stateAt(mm);
+    if (!cur) { cur = here; segStart = mm; continue; }
+    if (here.state !== cur.state || here.reason !== cur.reason) {
+      segments.push({ start: minToHHMM(segStart), end: minToHHMM(mm), state: cur.state, reason: cur.reason });
+      cur = here; segStart = mm;
+    }
+  }
+  if (cur) segments.push({ start: minToHHMM(segStart), end: minToHHMM(shiftEnd), state: cur.state, reason: cur.reason });
+  return segments;
 }
 
-/** TODAY-4 on CNC-5AX — chip-jam incident. */
-function cncChipJamDay(): StatusTimelineEntry[] {
-  return [
-    { start: '07:30', end: '08:00', state: 'idle', reason: 'shift_warmup' },
-    { start: '08:00', end: '09:50', state: 'running', reason: null },
-    { start: '09:50', end: '10:15', state: 'error', reason: 'chip_evacuation_jam', note: 'Conveyor jammed; chip bin overflow detected. Manual clear + bin empty.' },
-    { start: '10:15', end: '10:45', state: 'idle', reason: 'operator_break' },
-    { start: '10:45', end: '12:00', state: 'running', reason: null },
-    { start: '12:00', end: '12:45', state: 'idle', reason: 'lunch_break' },
-    { start: '12:45', end: '16:30', state: 'running', reason: null },
-    { start: '16:30', end: '17:00', state: 'maintenance', reason: 'tool_change', note: 'T07 swap; flagged for chip damage during morning jam' },
-  ];
+/**
+ * Splice an incident overlay onto an order-driven timeline.
+ *
+ * The incident replaces whatever state the machine had during its
+ * window (typically a `running` block) with the incident's state +
+ * reason. Surrounding segments are preserved.
+ *
+ * If the incident covers a span that was already idle (no active
+ * order), the incident still applies — useful when a coolant alarm
+ * fires during a no-PO window, for example.
+ */
+function applyIncidentOverlay(
+  base: StatusTimelineEntry[],
+  incident: { start: string; end: string; state: MachineState; reason: string; note?: string },
+): StatusTimelineEntry[] {
+  const out: StatusTimelineEntry[] = [];
+  const iStart = hhmmToMin(incident.start);
+  const iEnd = hhmmToMin(incident.end);
+  for (const seg of base) {
+    const sStart = hhmmToMin(seg.start);
+    const sEnd = hhmmToMin(seg.end);
+    if (sEnd <= iStart || sStart >= iEnd) {
+      out.push(seg);
+      continue;
+    }
+    // Segment overlaps the incident — emit the pre-overlap part, the
+    // incident slice (only once, when we hit the first overlapping seg),
+    // then the post-overlap part.
+    if (sStart < iStart) {
+      out.push({ ...seg, end: incident.start });
+    }
+    if (!out.some((s) => s.start === incident.start && s.end === incident.end && s.reason === incident.reason)) {
+      out.push({ start: incident.start, end: incident.end, state: incident.state, reason: incident.reason, note: incident.note });
+    }
+    if (sEnd > iEnd) {
+      out.push({ ...seg, start: incident.end });
+    }
+  }
+  return out;
 }
 
-/** TODAY-2 on CNC-5AX — coolant degradation; degraded state for ~3h. */
-function cncCoolantDegradedDay(): StatusTimelineEntry[] {
-  return [
-    { start: '07:30', end: '08:00', state: 'idle', reason: 'shift_warmup' },
-    { start: '08:00', end: '10:30', state: 'running', reason: null },
-    { start: '10:30', end: '10:45', state: 'idle', reason: 'operator_break' },
-    { start: '10:45', end: '12:00', state: 'running', reason: null },
-    { start: '12:00', end: '12:45', state: 'idle', reason: 'lunch_break' },
-    { start: '12:45', end: '15:45', state: 'degraded', reason: 'coolant_quality_degraded', note: 'Coolant temperature elevated (>65°C); cycle continued at reduced surface-finish quality' },
-    { start: '15:45', end: '17:00', state: 'running', reason: null },
-  ];
+// ── Incident overlays ───────────────────────────────────────────────
+// Each incident is an explicit (start, end, state, reason) span that is
+// spliced into the order-driven base timeline via applyIncidentOverlay.
+// Multiple overlays for the same day are applied in order.
+
+interface IncidentSpec {
+  start: string;
+  end: string;
+  state: MachineState;
+  reason: string;
+  note?: string;
+}
+
+/** TODAY-6 — T18 carbide insert fractured during PO-1002 steel run. */
+const INCIDENT_TOOL_BREAK_STEEL: IncidentSpec[] = [
+  { start: '14:20', end: '14:55', state: 'error', reason: 'tool_breakage',
+    note: 'T18 carbide insert fractured mid-cut on Steel-304; spindle load alarm 99%; emergency stop, debris clear, replace insert' },
+  { start: '14:55', end: '15:25', state: 'maintenance', reason: 'tool_change',
+    note: 'T18 replacement + verify next 2 parts' },
+];
+
+/** TODAY-4 — chip-evacuation jam during PO-1005 run, plus EOD tool change. */
+const INCIDENT_CHIP_JAM: IncidentSpec[] = [
+  { start: '09:50', end: '10:15', state: 'error', reason: 'chip_evacuation_jam',
+    note: 'Conveyor jammed; chip bin overflow detected. Manual clear + bin empty.' },
+  { start: '16:30', end: '17:00', state: 'maintenance', reason: 'tool_change',
+    note: 'T07 swap; flagged for chip damage during morning jam' },
+];
+
+/** TODAY-3 — T12 end-mill flute chipped early during PO-1003 run. */
+const INCIDENT_TOOL_BREAK_ALU: IncidentSpec[] = [
+  { start: '11:15', end: '11:35', state: 'error', reason: 'tool_breakage',
+    note: 'T12 end-mill flute chipped (audible report); spindle load spike 96%; controller halt' },
+  { start: '11:35', end: '12:00', state: 'maintenance', reason: 'tool_change',
+    note: 'T12 swap; inspect last 5 parts for chatter' },
+];
+
+/** TODAY-2 — coolant temperature elevated for ~3h during PO-1003 afternoon. */
+const INCIDENT_COOLANT_DEGRADED: IncidentSpec[] = [
+  { start: '12:45', end: '15:45', state: 'degraded', reason: 'coolant_quality_degraded',
+    note: 'Coolant temperature elevated (>65°C); cycle continued at reduced surface-finish quality' },
+];
+
+function applyIncidents(base: StatusTimelineEntry[], incidents: IncidentSpec[]): StatusTimelineEntry[] {
+  return incidents.reduce((tl, inc) => applyIncidentOverlay(tl, inc), base);
 }
 
 function buildReport(
@@ -169,7 +285,9 @@ function buildReport(
       ? 88.5
       : machineId === 'CNC-5AX' && timeline.some((e) => e.reason === 'chip_evacuation_jam')
         ? 85.0
-        : 98.5;
+        : machineId === 'CNC-5AX' && timeline.some((e) => e.reason === 'tool_breakage')
+          ? 91.0
+          : 98.5;
 
   return {
     machine_id: machineId,
@@ -185,52 +303,63 @@ function buildReport(
   };
 }
 
+/**
+ * For "today" we want only the morning shift to have happened — anything
+ * scheduled past 12:00 is treated as not-yet-run. We truncate the
+ * timeline at noon to reflect the current state.
+ */
+function truncateAtNoon(timeline: StatusTimelineEntry[]): StatusTimelineEntry[] {
+  const NOON = 12 * 60;
+  const out: StatusTimelineEntry[] = [];
+  for (const seg of timeline) {
+    const end = hhmmToMin(seg.end);
+    const start = hhmmToMin(seg.start);
+    if (start >= NOON) break;
+    if (end > NOON) {
+      out.push({ ...seg, end: minToHHMM(NOON) });
+      break;
+    }
+    out.push(seg);
+  }
+  return out;
+}
+
 /** Build all 24 reports. */
 export const STATUS_REPORTS: MachineStatusReport[] = (() => {
   const out: MachineStatusReport[] = [];
   for (let d = 7; d >= 0; d--) {
     const date = dateMinus(d);
 
-    // CNC-5AX
-    let cncTimeline = cncCleanDay();
+    // ── CNC-5AX ─────────────────────────────────────────────────
+    let cncTimeline = buildOrderDrivenDay('CNC-5AX', date);
     let cncExtras: Record<string, unknown> = { chip_bin_emptied_count: 1, coolant_changed: false, tool_changes: 1 };
-    if (d === 4) {
-      cncTimeline = cncChipJamDay();
+    if (d === 6) {
+      cncTimeline = applyIncidents(cncTimeline, INCIDENT_TOOL_BREAK_STEEL);
+      cncExtras = { chip_bin_emptied_count: 1, coolant_changed: false, tool_changes: 2 };
+    } else if (d === 4) {
+      cncTimeline = applyIncidents(cncTimeline, INCIDENT_CHIP_JAM);
       cncExtras = { chip_bin_emptied_count: 2, coolant_changed: false, tool_changes: 2 };
-    }
-    if (d === 2) {
-      cncTimeline = cncCoolantDegradedDay();
+    } else if (d === 3) {
+      cncTimeline = applyIncidents(cncTimeline, INCIDENT_TOOL_BREAK_ALU);
+      cncExtras = { chip_bin_emptied_count: 1, coolant_changed: false, tool_changes: 2 };
+    } else if (d === 2) {
+      cncTimeline = applyIncidents(cncTimeline, INCIDENT_COOLANT_DEGRADED);
       cncExtras = { chip_bin_emptied_count: 1, coolant_changed: false, tool_changes: 1 };
     }
     if (d === 0) {
-      // Today: only a partial day of running so far (current shift in progress)
-      cncTimeline = [
-        { start: '07:30', end: '08:00', state: 'idle', reason: 'shift_warmup' },
-        { start: '08:00', end: '10:30', state: 'running', reason: null },
-        { start: '10:30', end: '10:45', state: 'idle', reason: 'operator_break' },
-        { start: '10:45', end: '12:00', state: 'running', reason: null },
-      ];
+      cncTimeline = truncateAtNoon(cncTimeline);
       cncExtras = { chip_bin_emptied_count: 0, coolant_changed: false, tool_changes: 0 };
     }
     out.push(buildReport('CNC-5AX', date, cncTimeline, cncExtras));
 
-    // DEBURR-HAND
-    let deburrTimeline = deburrCleanDay();
-    if (d === 0) {
-      deburrTimeline = [
-        { start: '07:30', end: '08:00', state: 'idle', reason: 'shift_warmup' },
-        { start: '08:00', end: '12:00', state: 'idle', reason: 'no_input_parts', note: 'Waiting on CNC-5AX output for PO-1004' },
-      ];
-    }
+    // ── DEBURR-HAND ─────────────────────────────────────────────
+    let deburrTimeline = buildOrderDrivenDay('DEBURR-HAND', date);
+    if (d === 0) deburrTimeline = truncateAtNoon(deburrTimeline);
     out.push(buildReport('DEBURR-HAND', date, deburrTimeline));
 
-    // QA-INSP
-    let inspTimeline = inspCleanDay();
-    if (d === 0) {
-      inspTimeline = [
-        { start: '08:00', end: '12:00', state: 'idle', reason: 'no_input_parts' },
-      ];
-    }
+    // ── QA-INSP ─────────────────────────────────────────────────
+    let inspTimeline = buildOrderDrivenDay('QA-INSP', date);
+    if (d === 0) inspTimeline = truncateAtNoon(inspTimeline);
     out.push(buildReport('QA-INSP', date, inspTimeline));
   }
   return out;

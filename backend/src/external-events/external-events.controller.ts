@@ -89,6 +89,27 @@ export class ExternalEventsController {
     }
   }
 
+  @Post(':project/messages/:topic')
+  @Roles('user')
+  async injectMessage(
+    @Param('project') projectname: string,
+    @Param('topic') topic: string,
+    @Body() body: unknown,
+  ) {
+    try {
+      const projectRoot = safeRoot(this.hostRoot, projectname);
+      const decodedTopic = decodeURIComponent(topic);
+      const stored = await this.service.injectMessage(projectRoot, decodedTopic, body);
+      return { success: true, message: stored };
+    } catch (error) {
+      this.logger.error(
+        `Failed to inject message for topic ${topic} in project ${projectname}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
   @Get(':project/status')
   async getStatus(@Param('project') projectname: string) {
     try {

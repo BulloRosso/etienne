@@ -31,7 +31,24 @@
     box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   }
   .toolbar label { font-size: 12px; text-transform: uppercase; color: #78909c; letter-spacing: 0.5px; font-weight: 500; }
-  .toolbar select { font-family: 'Roboto Mono', monospace; padding: 4px 8px; border-radius: 4px; border: 1px solid #cfd8dc; }
+  .toolbar select,
+  .toolbar input[type="date"] {
+    /* Materialize hides native selects; force them visible. */
+    display: inline-block !important; height: auto !important;
+    max-width: 200px; margin-top: 8px;
+    font-family: 'Roboto Mono', monospace; font-size: 13px;
+    padding: 6px 10px; border-radius: 4px; border: 1px solid #cfd8dc;
+    background: #fff; color: #263238; cursor: pointer;
+  }
+  .toolbar input[type="date"]:focus { outline: none; border-color: #1976d2; }
+  .toolbar .day-nav-btn {
+    border: 1px solid #cfd8dc; background: #fff; color: #455a64;
+    width: 28px; height: 28px; border-radius: 4px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .toolbar .day-nav-btn:hover:not(:disabled) { background: #eceff1; border-color: #90caf9; }
+  .toolbar .day-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .toolbar .machine-filter { display: inline-flex; gap: 6px; }
   .toolbar .machine-pill {
     border: 1px solid #cfd8dc; background: #fff; color: #455a64;
@@ -157,7 +174,9 @@
 <div class="page">
   <div class="toolbar">
     <label for="day-picker">Day</label>
-    <select id="day-picker"></select>
+    <button class="day-nav-btn" id="day-prev" title="Previous day">&lsaquo;</button>
+    <input type="date" id="day-picker">
+    <button class="day-nav-btn" id="day-next" title="Next day">&rsaquo;</button>
     <span style="flex: 1"></span>
     <label>Machines</label>
     <span class="machine-filter" id="machine-filter"></span>
@@ -214,21 +233,64 @@ function startPolling() {
 }
 
 function populatePicker() {
-  const sel = document.getElementById('day-picker');
-  sel.innerHTML = STATE.days.map(d => `<option value="${d}"${d===STATE.date?' selected':''}>${d}</option>`).join('');
-  sel.addEventListener('change', (e) => { STATE.date = e.target.value; loadDay(STATE.date); });
-  document.getElementById('machine-filter').innerHTML =
+  // Date picker: bound to the seeded day range, defaulting to current STATE.date.
+  const picker = document.getElementById('day-picker');
+  const sortedDays = [...STATE.days].sort();
+  const minDay = sortedDays[0];
+  const maxDay = sortedDays[sortedDays.length - 1];
+  picker.min = minDay;
+  picker.max = maxDay;
+  picker.value = STATE.date;
+
+  // Prev/next buttons hop to the adjacent SEEDED day (skipping any
+  // gaps the calendar might allow).
+  const prev = document.getElementById('day-prev');
+  const next = document.getElementById('day-next');
+  const idx = sortedDays.indexOf(STATE.date);
+  prev.disabled = idx <= 0;
+  next.disabled = idx >= sortedDays.length - 1;
+
+  // Idempotent listener attach: only bind once per element.
+  if (!picker._bound) {
+    picker.addEventListener('change', (e) => {
+      const v = e.target.value;
+      if (v) { STATE.date = v; loadDay(v); }
+    });
+    picker._bound = true;
+  }
+  if (!prev._bound) {
+    prev.addEventListener('click', () => {
+      const i = sortedDays.indexOf(STATE.date);
+      if (i > 0) { STATE.date = sortedDays[i - 1]; loadDay(STATE.date); }
+    });
+    prev._bound = true;
+  }
+  if (!next._bound) {
+    next.addEventListener('click', () => {
+      const i = sortedDays.indexOf(STATE.date);
+      if (i < sortedDays.length - 1) { STATE.date = sortedDays[i + 1]; loadDay(STATE.date); }
+    });
+    next._bound = true;
+  }
+
+  // Machine filter pills (this part rebuilds innerHTML every call to
+  // reflect active state, so the listener has to be (re-)bound each time).
+  const mf = document.getElementById('machine-filter');
+  mf.innerHTML =
     ['all', 'CNC-5AX', 'DEBURR-HAND', 'QA-INSP'].map(m =>
       `<button class="machine-pill ${STATE.machineFilter===m?'active':''}" data-machine="${m}">${m === 'all' ? 'All' : m}</button>`
     ).join('');
-  document.getElementById('machine-filter').addEventListener('click', (e) => {
-    const b = e.target.closest('.machine-pill');
-    if (!b) return;
-    STATE.machineFilter = b.dataset.machine;
-    populatePicker(); // re-render pills
-    renderMachines();
-    renderEvents();
-  });
+  if (!mf._bound) {
+    mf.addEventListener('click', (e) => {
+      const b = e.target.closest('.machine-pill');
+      if (!b) return;
+      STATE.machineFilter = b.dataset.machine;
+      populatePicker(); // re-render pills
+      renderMachines();
+      renderEvents();
+    });
+    mf._bound = true;
+  }
 }
 
 async function loadDay(date) {

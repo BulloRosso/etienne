@@ -9,6 +9,7 @@
     "start:burst": "tsx src/simulator.ts --burst"
   },
   "dependencies": {
+    "dotenv": "^16.6.1",
     "tsx": "^4.7.0"
   }
 }

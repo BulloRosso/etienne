@@ -46,7 +46,8 @@ import {
   KEYWORDS_JSON,
   LINE_DASHBOARD_DAYS,
 } from './fixtures/dashboard-data';
-import { COOLANT_DECISION_GRAPH } from './fixtures/decision-graph';
+import { DECISION_GRAPHS } from './fixtures/decision-graph';
+import { ONTOLOGY_ENTITIES, ONTOLOGY_RELATIONSHIPS } from './fixtures/ontology';
 import { SESSIONS } from './fixtures/chats';
 import {
   CLAUDE_MD,
@@ -56,9 +57,11 @@ import {
   SEED_INSIGHT_FILENAME,
   QUICK_ACTION_INSIGHT,
   QUICK_ACTION_DASHBOARD,
+  QUICK_ACTION_DOCUMENTATION,
   EVENT_HANDLING_JSON,
   PROMPTS_JSON,
 } from './fixtures/skill-and-misc';
+import { DOCUMENTATION_MD } from './fixtures/documentation';
 import {
   PACKAGE_JSON, TSCONFIG_JSON, ENV_EXAMPLE,
   README_MD as SIM_README,
@@ -333,27 +336,54 @@ async function step9_writeDashboards(): Promise<void> {
   ok(`linedashboard: 2 HTMLs + ${4 + LINE_DASHBOARD_DAYS.length + 1} JSONs + ${realCount} real + ${placeholderCount} placeholder PNGs`);
 }
 
-async function step10_decisionGraph(ctx: ApiContext): Promise<void> {
-  header('10. Write + persist coolant-degradation decision graph');
+async function step9b_bootstrapOntology(ctx: ApiContext): Promise<void> {
+  header('9b. Bootstrap ontology entities + relationships');
+  // Must run BEFORE the decision graphs are persisted, so the graphs'
+  // targetEntityId fields resolve to real entities (no "Missing
+  // Entities" in the Decision Support Studio).
+  try {
+    const r = await apiFetch<{ success: boolean; entitiesCreated: number; relationshipsCreated: number }>(
+      ctx,
+      `/api/decision-support/ontology-bootstrap/${PROJECT_NAME}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          entities: ONTOLOGY_ENTITIES,
+          relationships: ONTOLOGY_RELATIONSHIPS,
+        }),
+      },
+    );
+    ok(`ontology bootstrapped: ${r.entitiesCreated} entities, ${r.relationshipsCreated} relationships`);
+  } catch (err) {
+    warn(`ontology-bootstrap failed (${err instanceof Error ? err.message : err}); decision graphs may show "missing entities"`);
+  }
+}
+
+async function step10_decisionGraphs(ctx: ApiContext): Promise<void> {
+  header(`10. Write + persist ${DECISION_GRAPHS.length} decision graphs`);
   const dir = join(PROJECT_ROOT, 'decision-graphs');
   await mkdir(dir, { recursive: true });
-  await writeFile(
-    join(dir, `${COOLANT_DECISION_GRAPH.id}.json`),
-    JSON.stringify(COOLANT_DECISION_GRAPH, null, 2), 'utf8',
-  );
 
-  // Try to persist via the backend so it shows up in the UI immediately.
-  // If the endpoint or its dependencies aren't available, the file on
-  // disk is still the source of truth.
-  try {
-    await apiFetch(ctx, `/api/decision-support/graphs`, {
-      method: 'POST',
-      body: JSON.stringify({ project: PROJECT_NAME, graph: COOLANT_DECISION_GRAPH }),
-    });
-    ok('decision graph persisted via /api/decision-support/graphs');
-  } catch (err) {
-    warn(`could not persist decision graph via API (${err instanceof Error ? err.message : err}). File on disk only.`);
+  let persisted = 0;
+  for (const graph of DECISION_GRAPHS) {
+    // File on disk is the source of truth (survives backend restarts).
+    await writeFile(
+      join(dir, `${graph.id}.json`),
+      JSON.stringify(graph, null, 2), 'utf8',
+    );
+    // Persist via API so the Decision Support Studio shows it immediately.
+    try {
+      await apiFetch(ctx, `/api/decision-support/graphs`, {
+        method: 'POST',
+        body: JSON.stringify({ project: PROJECT_NAME, graph }),
+      });
+      persisted++;
+      info(`persisted ${graph.id}`);
+    } catch (err) {
+      warn(`could not persist ${graph.id} via API (${err instanceof Error ? err.message : err}). File on disk.`);
+    }
   }
+  ok(`decision graphs: ${DECISION_GRAPHS.length} written, ${persisted} persisted via API`);
 }
 
 async function step11_writeInsight(): Promise<void> {
@@ -362,6 +392,34 @@ async function step11_writeInsight(): Promise<void> {
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, SEED_INSIGHT_FILENAME), SEED_INSIGHT_MD, 'utf8');
   ok(`insights/${SEED_INSIGHT_FILENAME}`);
+}
+
+/**
+ * Write documentation.md to the project root and register it as an
+ * auto-open document in .etienne/user-interface.json. The frontend
+ * reads `previewDocuments` on project open and auto-opens each entry
+ * in the preview pane.
+ */
+async function step11b_documentation(): Promise<void> {
+  header('11b. Write documentation.md + register as auto-open');
+  await writeFile(join(PROJECT_ROOT, 'documentation.md'), DOCUMENTATION_MD, 'utf8');
+
+  const uiPath = join(PROJECT_ROOT, '.etienne', 'user-interface.json');
+  let ui: any = {
+    appBar: { title: 'Line 3 / MCH Werk D', fontColor: 'white', backgroundColor: '#1976d2' },
+    welcomePage: { message: '', backgroundColor: '#f5f5f5', quickActions: [], showWelcomeMessage: true },
+    previewDocuments: [],
+    autoFilePreviewExtensions: [],
+  };
+  if (existsSync(uiPath)) {
+    try { ui = JSON.parse(await readFile(uiPath, 'utf8')); } catch { /* keep default */ }
+  }
+  const previews: string[] = Array.isArray(ui.previewDocuments) ? ui.previewDocuments : [];
+  if (!previews.includes('documentation.md')) previews.push('documentation.md');
+  ui.previewDocuments = previews;
+  await mkdir(join(PROJECT_ROOT, '.etienne'), { recursive: true });
+  await writeFile(uiPath, JSON.stringify(ui, null, 2), 'utf8');
+  ok('documentation.md written + registered in user-interface.json');
 }
 
 async function step12_writeEventSimulator(): Promise<void> {
@@ -408,18 +466,22 @@ async function step13_seedChats(): Promise<void> {
 }
 
 async function step14_quickActions(ctx: ApiContext): Promise<void> {
-  header('14. Add 2 quick-action chips (workspace store)');
+  header('14. Add 3 quick-action chips (workspace store)');
   const current = await apiFetch<{ actions: any[] }>(ctx, '/api/quick-actions');
-  // Filter out any prior chips with the same ids (idempotent re-seed).
+  const ourIds = new Set([
+    QUICK_ACTION_INSIGHT.id,
+    QUICK_ACTION_DASHBOARD.id,
+    QUICK_ACTION_DOCUMENTATION.id,
+  ]);
   const filtered = (current.actions ?? []).filter(
-    (a: any) => a.id !== QUICK_ACTION_INSIGHT.id && a.id !== QUICK_ACTION_DASHBOARD.id,
+    (a: any) => !(a.project === 'factory-line-sim' && ourIds.has(a.id)),
   );
-  const merged = [...filtered, QUICK_ACTION_DASHBOARD, QUICK_ACTION_INSIGHT];
+  const merged = [...filtered, QUICK_ACTION_DOCUMENTATION, QUICK_ACTION_DASHBOARD, QUICK_ACTION_INSIGHT];
   await apiFetch(ctx, '/api/quick-actions', {
     method: 'POST',
     body: JSON.stringify({ actions: merged }),
   });
-  ok(`quick-actions: ${merged.length} total (added "${QUICK_ACTION_INSIGHT.title}" + "${QUICK_ACTION_DASHBOARD.title}")`);
+  ok(`quick-actions: ${merged.length} total (added "${QUICK_ACTION_DOCUMENTATION.title}" + "${QUICK_ACTION_DASHBOARD.title}" + "${QUICK_ACTION_INSIGHT.title}")`);
 }
 
 async function step15_writeReadme(): Promise<void> {
@@ -503,8 +565,10 @@ async function main(): Promise<void> {
   await step7_seedRag(ctx);
   await step8_writeOperationalData();
   await step9_writeDashboards();
-  await step10_decisionGraph(ctx);
+  await step9b_bootstrapOntology(ctx);
+  await step10_decisionGraphs(ctx);
   await step11_writeInsight();
+  await step11b_documentation();
   await step12_writeEventSimulator();
   await step13_seedChats();
   await step14_quickActions(ctx);

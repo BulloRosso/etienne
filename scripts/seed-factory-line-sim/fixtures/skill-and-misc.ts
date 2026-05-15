@@ -262,6 +262,16 @@ export const QUICK_ACTION_DASHBOARD = {
   sortOrder: Date.now() - 1000,
 };
 
+export const QUICK_ACTION_DOCUMENTATION = {
+  id: 'documentation',
+  title: 'Documentation',
+  prompt: 'Open the project documentation.',
+  icon: 'MdMenuBook',
+  project: 'factory-line-sim',
+  previewFile: 'documentation.md',
+  sortOrder: Date.now() - 2000, // appear leftmost in the chip strip
+};
+
 export const EVENT_HANDLING_JSON = {
   rules: [
     {

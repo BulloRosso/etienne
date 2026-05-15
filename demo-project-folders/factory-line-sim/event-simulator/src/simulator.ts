@@ -52,17 +52,27 @@ function parseArgs(): { burst?: string } {
 async function main(): Promise<void> {
   const env = readEnv();
   console.log(`[simulator] target: ${env.apiBase} project=${env.project}`);
-  const token = await login(env);
+  let token = await login(env);
   console.log('[simulator] authenticated');
+
+  const ctx = {
+    getToken: () => token,
+    refreshToken: async () => {
+      token = await login(env);
+      console.log('[simulator] token refreshed');
+      return token;
+    },
+    ...env,
+  };
 
   const { burst } = parseArgs();
   if (burst) {
     console.log(`[simulator] running burst: ${burst}`);
-    await runBurst(burst, { token, ...env });
+    await runBurst(burst, ctx);
     console.log('[simulator] burst complete; switching to routine mode');
   }
-  console.log('[simulator] routine emission cadence: 0s, +10s, +60s, +5min, +15min, +30min, +60min, then steady at 60min (Ctrl+C to stop)');
-  await runRoutine({ token, ...env });
+  console.log(`[simulator] routine emission cadence: every ${env.intervalMs / 1000}s (Ctrl+C to stop)`);
+  await runRoutine(ctx);
 }
 
 main().catch((err) => {

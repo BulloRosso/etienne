@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
+import * as path from 'path';
 import { MqttClientService } from './mqtt-client.service';
 import { MqttStorageService } from './mqtt-storage.service';
 import { MqttConfig, MqttMessage } from './interfaces/mqtt-config.interface';
 import { MqttBrokerConfigDto, MqttSubscriptionDto } from './dto/mqtt-config.dto';
+import { EventRouterService } from '../event-handling/core/event-router.service';
 
 @Injectable()
 export class ExternalEventsService {
@@ -11,6 +13,9 @@ export class ExternalEventsService {
   constructor(
     private readonly mqttClient: MqttClientService,
     private readonly storage: MqttStorageService,
+    @Optional()
+    @Inject(forwardRef(() => EventRouterService))
+    private readonly eventRouter: EventRouterService | null,
   ) {}
 
   async getBrokerSetup(projectDir: string): Promise<MqttConfig> {
@@ -115,6 +120,46 @@ export class ExternalEventsService {
 
   async getMessages(projectDir: string, topic: string): Promise<MqttMessage[]> {
     return await this.storage.getMessages(projectDir, topic);
+  }
+
+  async injectMessage(
+    projectDir: string,
+    topic: string,
+    body: unknown,
+  ): Promise<MqttMessage> {
+    const payloadStr = typeof body === 'string' ? body : JSON.stringify(body);
+    const tsFromBody =
+      body && typeof body === 'object' && typeof (body as { ts?: unknown }).ts === 'string'
+        ? (body as { ts: string }).ts
+        : undefined;
+
+    const message: MqttMessage = {
+      topic,
+      payload: payloadStr,
+      timestamp: tsFromBody ?? new Date().toISOString(),
+      qos: 0,
+      retain: false,
+    };
+
+    await this.storage.saveMessage(projectDir, topic, message);
+
+    if (this.eventRouter) {
+      const projectName = path.basename(projectDir);
+      await this.eventRouter.publishEvent({
+        name: 'MQTT Message Received',
+        group: 'MQTT',
+        source: 'External Events HTTP',
+        topic,
+        projectName,
+        payload: {
+          message: payloadStr,
+          qos: 0,
+          retain: false,
+        },
+      });
+    }
+
+    return message;
   }
 
   async ensureConnection(projectDir: string): Promise<void> {

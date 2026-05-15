@@ -83,6 +83,7 @@ Roughs and finishes the part from raw bar stock. Performs operations
 ## What goes wrong here
 Most of the line's quality issues originate at this machine. Top hitters:
 [tool wear](./root-cause-tool-wear.md),
+[tool breakage](./root-cause-tool-breakage.md),
 [coolant degradation](./root-cause-coolant-degradation.md),
 [chip evacuation](./root-cause-chip-evacuation.md),
 [fixture drift](./root-cause-fixture-drift.md),
@@ -370,6 +371,65 @@ for an example of a "bad lot" we've seen.
 ## MQTT events
 - \`material_hardness_change\` (spindle load on first cut deviates from
   baseline by > 10 %)`,
+  },
+  {
+    title: 'Root cause — tool breakage (mid-run)',
+    slug: 'root-cause-tool-breakage',
+    bucket: 'topics',
+    status: 'stable',
+    confidence: 'high',
+    tags: ['root-cause', 'cnc', 'tooling'],
+    mission_relevance: 0.95,
+    body:
+`# Root cause — tool breakage (mid-run)
+
+A milling tool (insert or end-mill flute) fractures during a cut. Distinct
+from progressive [tool wear](./root-cause-tool-wear.md): wear is gradual
+drift; breakage is a sudden discontinuity. The CNC controller's
+spindle-load watchdog will usually halt the program within a second, but
+the parts cut in the seconds *before* the alarm carry chatter and may
+already be out of spec.
+
+## Originates at
+[CNC-5AX](./machine-cnc-5ax.md).
+
+## Quality symptom
+- \`dimensional\` defects on the parts cut immediately before the alarm,
+  often on a single tolerance feature (e.g. bore diameter, length).
+- Chatter signature visible across consecutive items as the tool
+  deteriorated before final fracture.
+
+## Status symptom
+- Status report shows a short \`state: error\` block with reason
+  \`tool_breakage\`, immediately followed by a \`maintenance\` block
+  with reason \`tool_change\` (operator swaps the broken tool before
+  resuming).
+- Total downtime typically 20–40 min: clear debris, swap, verify next
+  parts.
+
+## MQTT events
+- \`spindle_load_warn\` with \`load_pct\` ≥ 95 (the warning that often
+  precedes the break by 1–2 cuts).
+- \`tool_breakage_alarm\` carrying \`tool_id\`, \`material\`, and the
+  spindle load at the moment of fracture.
+
+## Common contributors
+- **Hard-end-of-spec material** (e.g. Al-7075 [Lot B](../sources/material-cert-al-7075-lot-b.md)
+  with HV at 172): elevated cutting energy stresses the cutting edge.
+- **Steel runs** with unfavourable feed/speed: T18 carbide inserts on
+  Steel-304 are the most common breakage path on this line.
+- **Tool already past 90 %** of nominal life and not swapped — see
+  [tool-life-policy](../sources/tool-life-policy.md).
+
+## Where to look
+1. The day's status JSON for a \`tool_breakage\` block.
+2. The \`tool_changes\` counter — should be ≥ 2 on a break day (the
+   broken tool plus any planned change).
+3. Quality report for the *next* day at QA-INSP — defects from cuts
+   that ran in the few minutes before the break.
+4. The \`spindle_load_warn\` events leading up to the alarm: a 1–2 minute
+   warning is the lead indicator that the [tool-wear preemptive swap](./root-cause-tool-wear.md)
+   pattern would have caught.`,
   },
 
   // ─── data schemas (3) ─────────────────────────────────────────────────
