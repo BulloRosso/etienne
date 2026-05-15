@@ -15,6 +15,7 @@ import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import { TbWorld } from 'react-icons/tb';
+import { LuNetwork } from 'react-icons/lu';
 import { Logout } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useTranslation } from 'react-i18next';
@@ -78,6 +79,7 @@ export default function MinimalisticSidebar({
   onExpand,
   collapsed,
   hasPublicWebsite,
+  wikiEntryPath,
   mux,
 }) {
   const { t } = useTranslation();
@@ -306,6 +308,17 @@ export default function MinimalisticSidebar({
               sx={{ color: 'text.secondary', mb: 0.5 }}
             >
               <BsCollection size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {currentProject && wikiEntryPath && (
+          <Tooltip title={t('sidebar.wiki')} placement="right">
+            <IconButton
+              onClick={() => filePreviewHandler.handlePreview(wikiEntryPath, currentProject)}
+              size="small"
+              sx={{ color: 'text.secondary', mb: 0.5 }}
+            >
+              <LuNetwork size={18} />
             </IconButton>
           </Tooltip>
         )}
@@ -567,6 +580,15 @@ export default function MinimalisticSidebar({
               >
                 <ListItemIcon sx={{ minWidth: 36 }}><BsCollection size={18} /></ListItemIcon>
                 <ListItemText primary={t('sidebar.artifacts')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
+            {currentProject && wikiEntryPath && (
+              <ListItemButton
+                onClick={() => filePreviewHandler.handlePreview(wikiEntryPath, currentProject)}
+                sx={{ borderRadius: 1, py: 0.75 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}><LuNetwork size={18} /></ListItemIcon>
+                <ListItemText primary={t('sidebar.wiki')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
               </ListItemButton>
             )}
             {imapAvailable && currentProject && (

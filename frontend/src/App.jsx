@@ -92,6 +92,7 @@ export default function App() {
   const [budgetSettings, setBudgetSettings] = useState({ enabled: false, limit: 0 });
   const [hasTasks, setHasTasks] = useState(false);
   const [hasPublicWebsite, setHasPublicWebsite] = useState(false);
+  const [wikiEntryPath, setWikiEntryPath] = useState(null);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationText, setPresentationText] = useState('');
@@ -535,6 +536,7 @@ export default function App() {
         setHasTasks((tasksData.tasks || []).length > 0);
 
         // Check if public website is available (webserver running on :4000 + /web subdir exists)
+        // and detect whether the project has a wiki/topics directory we can navigate to.
         try {
           const [webserverRes, filesRes] = await Promise.all([
             apiFetch('/api/process-manager/webserver'),
@@ -544,8 +546,32 @@ export default function App() {
           const filesData = await filesRes.json();
           const hasWebDir = Array.isArray(filesData) && filesData.some(f => f.name === 'web' && f.isDir);
           setHasPublicWebsite(webserverData.status === 'running' && hasWebDir);
+
+          const hasWikiDir = Array.isArray(filesData) && filesData.some(f => f.name === 'wiki' && f.isDir);
+          if (hasWikiDir) {
+            try {
+              const topicsRes = await apiFetch(`/api/claude/listFiles?project_dir=${encodeURIComponent(currentProject)}&sub_dir=${encodeURIComponent('wiki/topics')}`);
+              const topicsData = await topicsRes.json();
+              if (Array.isArray(topicsData) && topicsData.length > 0) {
+                const hasIndex = topicsData.some(f => !f.isDir && f.name === 'index.md');
+                if (hasIndex) {
+                  setWikiEntryPath('wiki/topics/index.md');
+                } else {
+                  const firstDoc = topicsData.find(f => !f.isDir);
+                  setWikiEntryPath(firstDoc ? `wiki/topics/${firstDoc.name}` : null);
+                }
+              } else {
+                setWikiEntryPath(null);
+              }
+            } catch {
+              setWikiEntryPath(null);
+            }
+          } else {
+            setWikiEntryPath(null);
+          }
         } catch {
           setHasPublicWebsite(false);
+          setWikiEntryPath(null);
         }
       } catch (error) {
         console.error('Failed to initialize project:', error);
@@ -2196,6 +2222,7 @@ export default function App() {
           onCollapse={() => setSidebarCollapsed(true)}
           onExpand={() => setSidebarCollapsed(false)}
           hasPublicWebsite={hasPublicWebsite}
+          wikiEntryPath={wikiEntryPath}
           mux={mux}
         />
       )}

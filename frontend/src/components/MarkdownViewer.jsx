@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Box, CircularProgress, IconButton, Tooltip, Button
+  Box, CircularProgress, IconButton, Tooltip, Button,
+  Accordion, AccordionSummary, AccordionDetails, Typography
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import ImageIcon from '@mui/icons-material/Image';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { PiFilePdf, PiFileDoc } from 'react-icons/pi';
 import Editor from '@monaco-editor/react';
 import { marked } from 'marked';
@@ -15,6 +17,31 @@ import { filePreviewHandler } from '../services/FilePreviewHandler';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import ImageGalleryModal from './ImageGalleryModal.jsx';
 import ExportFilenameModal from './ExportFilenameModal.jsx';
+
+// Extract YAML frontmatter delimited by lines of 3+ dashes.
+// Returns { frontmatter: string|null, body: string }.
+function extractFrontmatter(text) {
+  if (!text) return { frontmatter: null, body: text || '' };
+  const lines = text.split(/\r?\n/);
+  const isDelim = (line) => /^-{3,}\s*$/.test(line);
+
+  let startIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === '') continue;
+    if (isDelim(lines[i])) { startIdx = i; }
+    break;
+  }
+  if (startIdx === -1) return { frontmatter: null, body: text };
+
+  for (let j = startIdx + 1; j < lines.length; j++) {
+    if (isDelim(lines[j])) {
+      const frontmatter = lines.slice(startIdx + 1, j).join('\n');
+      const body = lines.slice(j + 1).join('\n').replace(/^\s*\n/, '');
+      return { frontmatter, body };
+    }
+  }
+  return { frontmatter: null, body: text };
+}
 
 function resolveRelativePath(parentDir, relHref) {
   const cleanHref = relHref.split('#')[0].split('?')[0];
@@ -35,6 +62,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   const { mode: themeMode } = useThemeMode();
   const isDark = themeMode === 'dark';
   const [htmlContent, setHtmlContent] = useState('');
+  const [frontmatter, setFrontmatter] = useState(null);
   const [rawContent, setRawContent] = useState('');
   const [savedContent, setSavedContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -77,8 +105,11 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
       setRawContent(markdownText);
       setSavedContent(markdownText);
 
-      // Parse markdown to HTML
-      const rawHtml = await marked.parse(markdownText);
+      // Extract frontmatter and render the body only
+      const { frontmatter: fm, body } = extractFrontmatter(markdownText);
+      setFrontmatter(fm);
+
+      const rawHtml = await marked.parse(body);
       const cleanHtml = DOMPurify.sanitize(rawHtml);
       setHtmlContent(cleanHtml);
       setLoading(false);
@@ -163,7 +194,9 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
       setSavedContent(rawContent);
 
       // Re-render HTML preview and switch back to view mode
-      const rawHtml = await marked.parse(rawContent);
+      const { frontmatter: fm, body } = extractFrontmatter(rawContent);
+      setFrontmatter(fm);
+      const rawHtml = await marked.parse(body);
       setHtmlContent(DOMPurify.sanitize(rawHtml));
       setSaving(false);
       setEditMode(false);
@@ -514,6 +547,47 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
           onClick={handleLinkClick}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
+
+        {frontmatter && (
+          <Box sx={{ px: 3, pb: 2 }}>
+            <Accordion
+              disableGutters
+              elevation={0}
+              sx={{
+                bgcolor: 'transparent',
+                border: `1px solid ${isDark ? '#30363d' : '#eaecef'}`,
+                borderRadius: 1,
+                '&:before': { display: 'none' },
+              }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle2">
+                  {t('markdownViewer.metadata', 'Metadata')}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box
+                  component="pre"
+                  sx={{
+                    m: 0,
+                    p: 1.5,
+                    borderRadius: 1,
+                    backgroundColor: isDark ? '#161b22' : '#f6f8fa',
+                    color: isDark ? '#c9d1d9' : 'inherit',
+                    fontFamily: 'monospace',
+                    fontSize: '0.85em',
+                    lineHeight: 1.45,
+                    overflow: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {frontmatter}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          </Box>
+        )}
 
         {/* Footer controls */}
         <Box
