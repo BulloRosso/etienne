@@ -279,7 +279,10 @@ function bridgeWrite(path, content) {
 
 async function loadJson(url, optional) {
   try {
-    const r = await fetch(url);
+    // Cache-bust so we always see the latest file (the seed script and
+    // the agent both rewrite these JSONs in place).
+    const sep = url.includes('?') ? '&' : '?';
+    const r = await fetch(url + sep + 't=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return await r.json();
   } catch (e) {
@@ -288,22 +291,39 @@ async function loadJson(url, optional) {
   }
 }
 
+/** Re-fetch all 4 JSONs and re-render. Called by init() and the poller. */
+async function refresh() {
+  const [categories, jobs, keywords, machines] = await Promise.all([
+    loadJson('./categories.json', false),
+    loadJson('./jobs.json',       false),
+    loadJson('./keywords.json',   true),
+    loadJson('./machines.json',   true)
+  ]);
+  DATA = buildData(categories, jobs, keywords, machines);
+  if (!DATA.hasCompanies && STATE.level1 === 'region')  STATE.level1 = 'technology';
+  if (!DATA.hasCompanies && STATE.level2 === 'country') STATE.level2 = 'ipc';
+  render();
+}
+
 async function init() {
   try {
-    const [categories, jobs, keywords, machines] = await Promise.all([
-      loadJson('./categories.json', false),
-      loadJson('./jobs.json',       false),
-      loadJson('./keywords.json',   true),
-      loadJson('./machines.json',   true)
-    ]);
-    DATA = buildData(categories, jobs, keywords, machines);
-    if (!DATA.hasCompanies && STATE.level1 === 'region')  STATE.level1 = 'technology';
-    if (!DATA.hasCompanies && STATE.level2 === 'country') STATE.level2 = 'ipc';
-    render();
+    await refresh();
+    startPolling();
   } catch (err) {
     document.getElementById('content').innerHTML =
       '<div class="error"><strong>Failed to load required data:</strong> ' + err.message + '</div>';
   }
+}
+
+const POLL_INTERVAL_MS = 20_000;
+let pollTimer = null;
+function startPolling() {
+  if (pollTimer) return;
+  const tick = async () => {
+    if (document.hidden) return; // pause when tab is in the background
+    try { await refresh(); } catch (e) { /* keep last good state */ }
+  };
+  pollTimer = setInterval(tick, POLL_INTERVAL_MS);
 }
 
 function buildData(categories, jobs, keywords, machines) {

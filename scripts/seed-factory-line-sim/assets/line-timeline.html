@@ -178,7 +178,9 @@ let STATE = { date: null, machineFilter: 'all', day: null, days: [] };
 
 async function loadJson(url, optional) {
   try {
-    const r = await fetch(url);
+    // Cache-bust so polling and live edits show through.
+    const sep = url.includes('?') ? '&' : '?';
+    const r = await fetch(url + sep + 't=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return await r.json();
   } catch (e) { if (optional) return null; throw e; }
@@ -190,6 +192,25 @@ async function init() {
   STATE.date = STATE.days[STATE.days.length - 1]; // default to latest
   populatePicker();
   await loadDay(STATE.date);
+  startPolling();
+}
+
+const POLL_INTERVAL_MS = 20_000;
+let pollTimer = null;
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(async () => {
+    if (document.hidden) return; // pause in background tabs
+    try {
+      // Re-fetch the current day's JSON only — the index rarely changes,
+      // and we deliberately don't re-call populatePicker (it would stack
+      // event listeners on the day-picker / machine-filter elements).
+      const day = await loadJson(`./machines_line_${STATE.date}.linedashboard.json`, false);
+      STATE.day = day;
+      renderMachines();
+      renderEvents();
+    } catch (e) { /* keep last good state */ }
+  }, POLL_INTERVAL_MS);
 }
 
 function populatePicker() {
