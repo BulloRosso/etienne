@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Factory Line — Quality Dashboard</title>
+<title>Line 3 / MCH Werk D — Quality Dashboard</title>
 
 <!--
 ================================================================================
@@ -184,7 +184,7 @@
   <div class="nav-wrapper" style="padding: 0 24px;">
     <a href="#" class="brand-logo" style="font-size: 1.1rem;">
       <i class="material-icons" style="vertical-align: middle; margin-right: 8px;">precision_manufacturing</i>
-      Factory Line — Quality Dashboard
+      Line 3 / MCH Werk D — Quality Dashboard
     </a>
   </div>
 </nav>
@@ -196,7 +196,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 <script>
 /* ============================================================
-   Factory Line Quality Dashboard
+   Line 3 / MCH Werk D Quality Dashboard
    - reuses the PRD's CNC dashboard structure (selections, drilldown,
      localStorage + workspace:write bridge), only relabels UI strings.
    - data-model field names are preserved verbatim (clusters/patents/
@@ -344,7 +344,7 @@ function buildData(categories, jobs, keywords, machines) {
 
   return {
     clusters: cs, patents: ps, keywords: ks, companies: cos,
-    title: (categories && categories.title) || 'Factory Line',
+    title: (categories && categories.title) || 'Line 3 / MCH Werk D',
     companyByName, clusterById, patentById, patentToClusters,
     hasCompanies: cos.length > 0, hasKeywords:  ks.length > 0
   };
