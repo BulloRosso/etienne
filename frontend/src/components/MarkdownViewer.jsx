@@ -11,9 +11,24 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
+import { filePreviewHandler } from '../services/FilePreviewHandler';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import ImageGalleryModal from './ImageGalleryModal.jsx';
 import ExportFilenameModal from './ExportFilenameModal.jsx';
+
+function resolveRelativePath(parentDir, relHref) {
+  const cleanHref = relHref.split('#')[0].split('?')[0];
+  if (!cleanHref) return null;
+
+  const baseSegments = parentDir ? parentDir.split('/').filter(Boolean) : [];
+  const relSegments = cleanHref.split('/');
+  for (const seg of relSegments) {
+    if (seg === '' || seg === '.') continue;
+    if (seg === '..') baseSegments.pop();
+    else baseSegments.push(seg);
+  }
+  return baseSegments.join('/');
+}
 
 export default function MarkdownViewer({ filename, projectName, className = '' }) {
   const { t } = useTranslation();
@@ -108,6 +123,24 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   // Handler for manual reload
   const handleReload = () => {
     setRefreshKey(prev => prev + 1);
+  };
+
+  const handleLinkClick = (e) => {
+    const anchor = e.target.closest('a');
+    if (!anchor) return;
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#')) return;
+
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
+      e.preventDefault();
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (href.startsWith('/')) return;
+
+    e.preventDefault();
+    const resolved = resolveRelativePath(parentDir, href);
+    if (resolved) filePreviewHandler.handlePreview(resolved, projectName);
   };
 
   // Save handler
@@ -475,6 +508,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
               marginBottom: '1.5em'
             }
           }}
+          onClick={handleLinkClick}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
 
