@@ -7,8 +7,8 @@ import type {
   ReviewItem,
 } from '../../memory/types';
 import { AdaptiveMemoryConfigService } from '../config/adaptive-memory-config.service';
-import { runMaintenance } from '../stages/maintenance.js';
-import { scoreSession } from '../stages/quality-scoring.js';
+import { runMaintenance } from '../stages/maintenance';
+import { scoreSession } from '../stages/quality-scoring';
 import { PersonalityStore } from '../stores/personality.store';
 import { ReviewQueueStore } from '../stores/review-queue.store';
 import { SessionsStore } from '../stores/sessions.store';

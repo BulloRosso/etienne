@@ -33,7 +33,7 @@ import { ReviewQueueStore } from './stores/review-queue.store';
 import { SessionsStore } from './stores/sessions.store';
 import { SkillsStore } from './stores/skills.store';
 import { AdaptiveMemoryController } from './adaptive-memory.controller';
-import { RagService } from '../rag/rag.service';
+import { RagModule } from '../rag/rag.module';
 
 const CRON_PREFIX = 'adaptive_memory__ponderer__';
 
@@ -60,6 +60,7 @@ const CRON_PREFIX = 'adaptive_memory__ponderer__';
     EmbeddingsModule.register(),
     MemoriesModule,
     LlmModule,
+    RagModule,
     forwardRef(() => DreamingModule),
     McpRegistryModule.forRoot({
       providers: [{ kind: 'json-file' }],

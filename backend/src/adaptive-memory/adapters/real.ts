@@ -22,7 +22,7 @@ import { KnowledgeGraphService } from '../../knowledge-graph/knowledge-graph.ser
 import { MemoriesService } from '../../memories/memories.service';
 import { RagService } from '../../rag/rag.service';
 import { WikiService } from '../../wiki/wiki.service';
-import { McpRegistryService } from '../../mcp-registry/mcp-registry.service';
+import { McpRegistryService } from '../../mcp-registry/core/mcp-registry.service';
 import type {
   Classification,
   KGEdge,
@@ -325,18 +325,19 @@ export class RealSORAdapter implements SORAdapter {
   constructor(private readonly registry: McpRegistryService) {}
 
   async listAvailable(_project: string): Promise<SORConnector[]> {
-    // McpRegistryService exposes registered servers; surface them as SOR connectors.
-    // Each MCP registry implementation is slightly different — be defensive.
-    const registry = this.registry as unknown as {
-      list?: () => Promise<Array<{ name: string; description?: string }>>;
-      getAll?: () => Promise<Array<{ name: string; description?: string }>>;
-    };
-    const list =
-      (await registry.list?.()) ?? (await registry.getAll?.()) ?? [];
-    return list.map((s) => ({
-      name: s.name,
-      description: s.description ?? '',
-    }));
+    // McpRegistryService.listServers returns McpServerEntry[]; we surface them
+    // as SOR connectors. listServers swallows provider-availability problems
+    // internally, so a top-level catch here only fires for harder errors.
+    try {
+      const entries = await this.registry.listServers();
+      return entries.map((e) => ({
+        name: e.name,
+        description: e.description ?? '',
+      }));
+    } catch (err: any) {
+      this.logger.warn(`McpRegistryService.listServers failed: ${err.message}`);
+      return [];
+    }
   }
 
   async read(
