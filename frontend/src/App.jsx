@@ -550,18 +550,25 @@ export default function App() {
           const hasWikiDir = Array.isArray(filesData) && filesData.some(f => f.name === 'wiki' && f.isDir);
           if (hasWikiDir) {
             try {
-              const topicsRes = await apiFetch(`/api/claude/listFiles?project_dir=${encodeURIComponent(currentProject)}&sub_dir=${encodeURIComponent('wiki/topics')}`);
-              const topicsData = await topicsRes.json();
-              if (Array.isArray(topicsData) && topicsData.length > 0) {
-                const hasIndex = topicsData.some(f => !f.isDir && f.name === 'index.md');
-                if (hasIndex) {
-                  setWikiEntryPath('wiki/topics/index.md');
-                } else {
-                  const firstDoc = topicsData.find(f => !f.isDir);
-                  setWikiEntryPath(firstDoc ? `wiki/topics/${firstDoc.name}` : null);
-                }
+              const wikiRes = await apiFetch(`/api/claude/listFiles?project_dir=${encodeURIComponent(currentProject)}&sub_dir=${encodeURIComponent('wiki')}`);
+              const wikiData = await wikiRes.json();
+              const hasWikiIndex = Array.isArray(wikiData) && wikiData.some(f => !f.isDir && f.name === 'index.md');
+              if (hasWikiIndex) {
+                setWikiEntryPath('wiki/index.md');
               } else {
-                setWikiEntryPath(null);
+                const topicsRes = await apiFetch(`/api/claude/listFiles?project_dir=${encodeURIComponent(currentProject)}&sub_dir=${encodeURIComponent('wiki/topics')}`);
+                const topicsData = await topicsRes.json();
+                if (Array.isArray(topicsData) && topicsData.length > 0) {
+                  const hasIndex = topicsData.some(f => !f.isDir && f.name === 'index.md');
+                  if (hasIndex) {
+                    setWikiEntryPath('wiki/topics/index.md');
+                  } else {
+                    const firstDoc = topicsData.find(f => !f.isDir);
+                    setWikiEntryPath(firstDoc ? `wiki/topics/${firstDoc.name}` : null);
+                  }
+                } else {
+                  setWikiEntryPath(null);
+                }
               }
             } catch {
               setWikiEntryPath(null);
