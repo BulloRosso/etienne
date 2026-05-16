@@ -40,10 +40,27 @@
     "empty": "Fai clic su \"Genera anteprima\" per vedere un riepilogo delle mappature.",
     "lastOutput": "Ultimo documento generato: {{path}}"
   },
+  "coverage": "{{mapped}} / {{total}} mappate · {{generated}} generate",
+  "statusLabel": {
+    "unmapped": "Non mappata",
+    "mapped": "Mappata",
+    "generated": "Generata",
+    "skipped": "Saltata",
+    "error": "Errore",
+    "reviewed": "Verificata"
+  },
+  "provenance": "Generata {{at}} — {{note}}",
+  "lastRun": {
+    "title": "Ultima esecuzione",
+    "summary": "{{at}} → {{outputFile}} · {{filled}} riempite, {{skipped}} saltate, {{error}} errori"
+  },
   "actions": {
     "generatePreview": "Genera anteprima",
     "createNow": "Crea documento ora",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "markReviewed": "Segna come verificata",
+    "showOutstanding": "Mostra solo in sospeso",
+    "refresh": "Aggiorna"
   },
   "status": {
     "saved": "Mappature salvate",

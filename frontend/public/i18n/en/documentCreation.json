@@ -40,10 +40,27 @@
     "empty": "Click \"Generate Preview\" to see a summary of the mappings.",
     "lastOutput": "Last generated document: {{path}}"
   },
+  "coverage": "{{mapped}} / {{total}} mapped · {{generated}} generated",
+  "statusLabel": {
+    "unmapped": "Unmapped",
+    "mapped": "Mapped",
+    "generated": "Generated",
+    "skipped": "Skipped",
+    "error": "Error",
+    "reviewed": "Reviewed"
+  },
+  "provenance": "Generated {{at}} — {{note}}",
+  "lastRun": {
+    "title": "Last generation run",
+    "summary": "{{at}} → {{outputFile}} · {{filled}} filled, {{skipped}} skipped, {{error}} error"
+  },
   "actions": {
     "generatePreview": "Generate Preview",
     "createNow": "Create document now",
-    "close": "Close"
+    "close": "Close",
+    "markReviewed": "Mark reviewed",
+    "showOutstanding": "Show outstanding only",
+    "refresh": "Refresh"
   },
   "status": {
     "saved": "Mappings saved",

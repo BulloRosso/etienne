@@ -40,10 +40,27 @@
     "empty": "点击“生成预览”以查看映射摘要。",
     "lastOutput": "上次生成的文档：{{path}}"
   },
+  "coverage": "已映射 {{mapped}} / {{total}} · 已生成 {{generated}}",
+  "statusLabel": {
+    "unmapped": "未映射",
+    "mapped": "已映射",
+    "generated": "已生成",
+    "skipped": "已跳过",
+    "error": "错误",
+    "reviewed": "已审核"
+  },
+  "provenance": "生成于 {{at}} — {{note}}",
+  "lastRun": {
+    "title": "上次生成运行",
+    "summary": "{{at}} → {{outputFile}} · 已填充 {{filled}}，已跳过 {{skipped}}，错误 {{error}}"
+  },
   "actions": {
     "generatePreview": "生成预览",
     "createNow": "立即创建文档",
-    "close": "关闭"
+    "close": "关闭",
+    "markReviewed": "标记为已审核",
+    "showOutstanding": "仅显示待处理",
+    "refresh": "刷新"
   },
   "status": {
     "saved": "映射已保存",

@@ -40,10 +40,27 @@
     "empty": "Klicken Sie auf \"Vorschau erstellen\", um eine Zusammenfassung der Zuordnungen zu sehen.",
     "lastOutput": "Zuletzt erstelltes Dokument: {{path}}"
   },
+  "coverage": "{{mapped}} / {{total}} zugeordnet · {{generated}} erzeugt",
+  "statusLabel": {
+    "unmapped": "Nicht zugeordnet",
+    "mapped": "Zugeordnet",
+    "generated": "Erzeugt",
+    "skipped": "Übersprungen",
+    "error": "Fehler",
+    "reviewed": "Geprüft"
+  },
+  "provenance": "Erzeugt {{at}} — {{note}}",
+  "lastRun": {
+    "title": "Letzter Generierungslauf",
+    "summary": "{{at}} → {{outputFile}} · {{filled}} gefüllt, {{skipped}} übersprungen, {{error}} Fehler"
+  },
   "actions": {
     "generatePreview": "Vorschau erstellen",
     "createNow": "Dokument jetzt erstellen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "markReviewed": "Als geprüft markieren",
+    "showOutstanding": "Nur offene anzeigen",
+    "refresh": "Aktualisieren"
   },
   "status": {
     "saved": "Zuordnungen gespeichert",

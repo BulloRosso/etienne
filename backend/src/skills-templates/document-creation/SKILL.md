@@ -50,9 +50,24 @@ This file at the project root is the single source of truth. Schema:
         "title": "Product Overview"
       },
       "transformation": "Summarize to one paragraph. Keep the key figures.",
-      "sourceLanguage": "en"
+      "sourceLanguage": "en",
+
+      "status": "generated",
+      "provenance": {
+        "generatedAt": "2026-05-16T10:22:00Z",
+        "sourceHash": "sha256:ab12cd34…",
+        "outputSection": "1 Executive Summary",
+        "note": "Summarized to one paragraph; copied from en (no translation)."
+      }
     }
-  ]
+  ],
+  "lastRun": {
+    "at": "2026-05-16T10:22:05Z",
+    "outputFile": "target/generated-document.docx",
+    "filled": 5,
+    "skipped": 1,
+    "error": 0
+  }
 }
 ```
 
@@ -61,6 +76,23 @@ This file at the project root is the single source of truth. Schema:
   it literally. Common instructions and how to handle them are below.
 - A mapping with no `source` (or an empty `source.section`) is **unmapped** —
   skip it and leave the template section untouched.
+
+### Field ownership (important)
+
+The mapping file is a **shared journal**. The dashboard owns the *user*
+fields; you own the *tracking* fields:
+
+- **User-owned (never modify):** `targetSection`, `source`, `transformation`,
+  `sourceLanguage`, and the top-level `sourceDocuments`, `templateDocument`,
+  `targetLanguage`, `mode`, `outputFile`.
+- **Skill-owned (you write these in Step 7.5):** each mapping's `status` and
+  `provenance`, and the top-level `lastRun`.
+
+`status` is one of: `unmapped` (no source), `mapped` (source set, not yet
+generated), `generated` (you wrote it into the docx), `skipped` (you
+intentionally left it — unmapped or too ambiguous), `error` (you failed on
+it), `reviewed` (the user confirmed it — **never set or clear `reviewed`
+yourself; preserve it if present and the user did not change the row**).
 
 ## Workflow
 
@@ -134,11 +166,50 @@ Content-Type: application/json; charset=utf-8
 `selectedSections` is the list of template sections you actually filled.
 Use `outputFile` from the mapping file (default `target/generated-document.docx`).
 
+### Step 7.5 — Write back results (tracking)
+
+This is what lets the dashboard show the user what was actually produced. Do
+it **after** the docx is written, **before** confirming.
+
+1. **Re-read** `source-target.sectionmappings.json` (it may have changed while
+   you worked — always re-read; never reuse the copy from Step 1).
+2. For **each** mapping, set:
+   - `status`:
+     - `generated` — you wrote this target section into the docx.
+     - `skipped` — unmapped (no source) or you deliberately left it.
+     - `error` — you attempted it but failed (say why in `note`).
+     - If the existing `status` is `reviewed` **and** the user did not change
+       this row's `source`/`transformation`, leave it `reviewed` (do not
+       downgrade a user-confirmed row).
+   - `provenance` (only for `generated`/`skipped`/`error`):
+     - `generatedAt`: current time, ISO-8601 UTC (e.g. `2026-05-16T10:22:00Z`).
+     - `sourceHash`: `sha256:` + the SHA-256 hex of the **exact source section
+       `text`** you used (the `text` field returned by
+       `extract_document_sections`). For `skipped`/unmapped rows with no
+       source, use `sha256:` + the SHA-256 of an empty string. This lets the
+       dashboard later detect when the source changed.
+     - `outputSection`: the template heading you filled, e.g.
+       `"1 Executive Summary"`.
+     - `note`: one human-readable line — the transform + translation applied,
+       or why it was skipped/errored.
+3. Set the top-level `lastRun`:
+   `{ "at": <ISO-8601 now>, "outputFile": <the outputFile you wrote>,
+   "filled": <#generated>, "skipped": <#skipped>, "error": <#error> }`.
+4. **Preserve every user-owned field unchanged** (`targetSection`, `source`,
+   `transformation`, `sourceLanguage`, and all top-level user fields). Do not
+   reorder the `mappings` array. Only add/replace `status`, `provenance`, and
+   the top-level `lastRun`.
+5. Persist the merged object:
+   `PUT /api/workspace/<project>/files/save/source-target.sectionmappings.json`
+   with `Content-Type: application/json; charset=utf-8` and body
+   `{ "content": "<the full JSON, pretty-printed>" }`.
+
 ### Step 7 — Confirm
 
 Tell the user the output path, which sections were filled, which were skipped
 (unmapped), and any transformation/translation you applied. If any instruction
-was ambiguous and you made a judgement call, say so.
+was ambiguous and you made a judgement call, say so. Mention that the section
+mapping dashboard now reflects the per-section status.
 
 ## Freestyle mode
 
@@ -146,11 +217,17 @@ When the user describes mappings conversationally instead of using the
 dashboard:
 
 - Maintain `source-target.sectionmappings.json` incrementally: every time the
-  user adds or changes a mapping, read the file, update the `mappings` array,
-  and write it back (`PUT /api/workspace/<project>/files/save/source-target.sectionmappings.json`).
+  user adds or changes a mapping, **re-read** the file, update only the
+  affected mapping's user fields, and write it back
+  (`PUT /api/workspace/<project>/files/save/source-target.sectionmappings.json`).
+- Preserve skill-owned fields when editing: keep existing `provenance` and the
+  top-level `lastRun`. When the user changes a mapping's `source` or
+  `transformation`, set that mapping's `status` to `mapped` (it must be
+  regenerated) and drop its now-stale `provenance`; leave other mappings'
+  `status`/`provenance` untouched. A mapping with no source is `unmapped`.
 - Keep `sourceDocuments`, `templateDocument`, `targetLanguage`, and `mode:
   "freestyle"` in sync.
-- Only run Steps 2–7 when the user explicitly asks you to create/build the
+- Only run Steps 2–7.5 when the user explicitly asks you to create/build the
   document.
 
 ## Requirements mode (mode = "structured-requirements")

@@ -319,7 +319,7 @@ async function testSkillProvisioning(): Promise<void> {
   }
 }
 
-function testMappingContract(): void {
+async function testMappingContract(): Promise<void> {
   const root = repoRoot();
   const mappingFile = join(
     root,
@@ -400,6 +400,30 @@ function testMappingContract(): void {
     'the seeded demo should exercise an image-handling transformation note',
   );
   pass(`${imageInstructionMappings} mapping(s) carry an explicit image instruction`);
+
+  // The seeded file must validate under the tracking schema (absent
+  // status/provenance is acceptable — backward compat). Guards against the
+  // demo file regressing once statuses get added to it.
+  const modulePath = join(
+    root,
+    'frontend',
+    'src',
+    'components',
+    'documentCreationMapping.js',
+  );
+  if (existsSync(modulePath)) {
+    const { pathToFileURL } = await import('node:url');
+    const mod: any = await import(pathToFileURL(modulePath).href);
+    const errors = mod.validateTrackingSchema(data);
+    assert.deepEqual(
+      errors,
+      [],
+      `seeded file must satisfy the tracking schema, got: ${JSON.stringify(errors)}`,
+    );
+    pass('seeded sectionmappings.json validates under the tracking schema');
+  } else {
+    skip('shared documentCreationMapping.js not found — tracking-schema check skipped');
+  }
 }
 
 async function main(): Promise<void> {
@@ -412,7 +436,7 @@ async function main(): Promise<void> {
   await testSkillProvisioning();
 
   console.log('\n## Contract: source-target.sectionmappings.json');
-  testMappingContract();
+  await testMappingContract();
 
   console.log(`\nDone. ${passed} passed, ${skipped} skipped.`);
   if (passed === 0) {
