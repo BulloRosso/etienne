@@ -41,6 +41,7 @@ import { flattenTree, getTagColor } from './fileTreeModel';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import OfferGeneratorModal from './OfferGeneratorModal';
+import DocumentCreationModal from './DocumentCreationModal';
 import { getContextMenuActions, buildExtensionMap, getViewerForFile, getFolderContextMenuActions, evaluateActionStates } from './viewerRegistry';
 import { callMcp } from '../services/mcpClient';
 import useMultiplexSSE from '../hooks/useMultiplexSSE';
@@ -51,6 +52,7 @@ import useMultiplexSSE from '../hooks/useMultiplexSSE';
  */
 const CONTEXT_MENU_MODALS = {
   OfferGeneratorModal,
+  DocumentCreationModal,
 };
 
 export default function Filesystem({ projectName, showBackgroundInfo, previewersConfig = [] }) {

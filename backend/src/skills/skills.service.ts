@@ -488,6 +488,19 @@ export class SkillsService {
   }
 
   /**
+   * Provision a built-in skill template (shipped with the backend under
+   * src/skills-templates/<name>/) into a project. Idempotent: if the skill
+   * already exists in the project it is left untouched.
+   */
+  async provisionTemplateSkill(
+    project: string,
+    skillName: string,
+  ): Promise<ProvisionResult> {
+    const sourceDir = path.join(__dirname, '..', 'skills-templates', skillName);
+    return this.provisionSingleSkill(project, skillName, sourceDir);
+  }
+
+  /**
    * Provision all standard skills to a project
    */
   async provisionStandardSkills(project: string): Promise<ProvisionResult[]> {

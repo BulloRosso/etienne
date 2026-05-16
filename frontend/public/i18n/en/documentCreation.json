@@ -1,0 +1,56 @@
+{
+  "title": "Create Document from Sections",
+  "tabs": {
+    "mappings": "Mappings",
+    "freestyle": "Freestyle",
+    "preview": "Preview & Generate"
+  },
+  "toolbar": {
+    "sourceDocument": "Source document",
+    "template": "Template",
+    "noTemplate": "No template found in target/",
+    "mode": "Mode",
+    "modeFreestyle": "Freestyle",
+    "modeStructured": "Structured",
+    "modeRequirements": "Structured + Requirements",
+    "targetLanguage": "Target language",
+    "sourceLanguage": "Source: {{language}}",
+    "detectingLanguage": "Detecting language…"
+  },
+  "sourceTree": {
+    "title": "Source sections",
+    "empty": "Select a source document to load its sections.",
+    "loading": "Extracting sections…",
+    "images": "{{count}} image",
+    "images_other": "{{count}} images"
+  },
+  "targetList": {
+    "title": "Target template sections",
+    "empty": "No template sections found.",
+    "mapTo": "Map to source section…",
+    "unmapped": "Unmapped",
+    "transformationPlaceholder": "Transformation notes (e.g. \"only take the images\", \"ignore images\", \"summarize\")"
+  },
+  "freestyle": {
+    "heading": "Freestyle mode",
+    "body": "Describe the document you want in the project chat. The agent maintains source-target.sectionmappings.json as you talk and builds the document when you ask it to.",
+    "openChat": "Open chat"
+  },
+  "preview": {
+    "empty": "Click \"Generate Preview\" to see a summary of the mappings.",
+    "lastOutput": "Last generated document: {{path}}"
+  },
+  "actions": {
+    "generatePreview": "Generate Preview",
+    "createNow": "Create document now",
+    "close": "Close"
+  },
+  "status": {
+    "saved": "Mappings saved",
+    "saveFailed": "Failed to save mappings: {{message}}",
+    "provisionFailed": "Could not provision the document-creation skill: {{message}}",
+    "createdInstructions": "Instructions written to target/document-creation-instructions.md. Continue in the project chat.",
+    "createFailed": "Failed to start document creation: {{message}}",
+    "noMappings": "Map at least one target section before creating the document."
+  }
+}

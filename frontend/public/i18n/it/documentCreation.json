@@ -1,0 +1,56 @@
+{
+  "title": "Crea documento dalle sezioni",
+  "tabs": {
+    "mappings": "Mappature",
+    "freestyle": "Libero",
+    "preview": "Anteprima e generazione"
+  },
+  "toolbar": {
+    "sourceDocument": "Documento di origine",
+    "template": "Modello",
+    "noTemplate": "Nessun modello trovato in target/",
+    "mode": "Modalità",
+    "modeFreestyle": "Libero",
+    "modeStructured": "Strutturato",
+    "modeRequirements": "Strutturato + Requisiti",
+    "targetLanguage": "Lingua di destinazione",
+    "sourceLanguage": "Origine: {{language}}",
+    "detectingLanguage": "Rilevamento lingua…"
+  },
+  "sourceTree": {
+    "title": "Sezioni di origine",
+    "empty": "Seleziona un documento di origine per caricarne le sezioni.",
+    "loading": "Estrazione sezioni…",
+    "images": "{{count}} immagine",
+    "images_other": "{{count}} immagini"
+  },
+  "targetList": {
+    "title": "Sezioni del modello",
+    "empty": "Nessuna sezione del modello trovata.",
+    "mapTo": "Mappa alla sezione di origine…",
+    "unmapped": "Non mappata",
+    "transformationPlaceholder": "Note di trasformazione (es. \"solo le immagini\", \"ignora immagini\", \"riassumi\")"
+  },
+  "freestyle": {
+    "heading": "Modalità libera",
+    "body": "Descrivi il documento desiderato nella chat del progetto. L'agente mantiene source-target.sectionmappings.json durante la conversazione e crea il documento quando richiesto.",
+    "openChat": "Apri chat"
+  },
+  "preview": {
+    "empty": "Fai clic su \"Genera anteprima\" per vedere un riepilogo delle mappature.",
+    "lastOutput": "Ultimo documento generato: {{path}}"
+  },
+  "actions": {
+    "generatePreview": "Genera anteprima",
+    "createNow": "Crea documento ora",
+    "close": "Chiudi"
+  },
+  "status": {
+    "saved": "Mappature salvate",
+    "saveFailed": "Impossibile salvare le mappature: {{message}}",
+    "provisionFailed": "Impossibile fornire la skill \"document-creation\": {{message}}",
+    "createdInstructions": "Istruzioni scritte in target/document-creation-instructions.md. Continua nella chat del progetto.",
+    "createFailed": "Impossibile avviare la creazione del documento: {{message}}",
+    "noMappings": "Mappa almeno una sezione di destinazione prima di creare il documento."
+  }
+}

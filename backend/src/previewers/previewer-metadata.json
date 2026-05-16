@@ -96,5 +96,28 @@
         }
       }
     ]
+  },
+  {
+    "viewer": "document-creation-source",
+    "type": "folder",
+    "folderPatterns": ["source"],
+    "actions": [
+      {
+        "id": "create-document-from-sections",
+        "labels": {
+          "en": "Create document from sections…",
+          "de": "Dokument aus Abschnitten erstellen…",
+          "it": "Crea documento dalle sezioni…",
+          "zh": "从章节创建文档…"
+        },
+        "icon": "codicon codicon-file-add",
+        "modalComponent": "DocumentCreationModal",
+        "params": [
+          { "name": "projectName", "source": "projectName" },
+          { "name": "sourceFolder", "source": "filePath" }
+        ],
+        "minRole": "user"
+      }
+    ]
   }
 ]

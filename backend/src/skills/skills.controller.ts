@@ -309,6 +309,26 @@ export class SkillsController {
     }
   }
 
+  @Post(':project/provision-template')
+  @Roles('user')
+  async provisionTemplateSkill(
+    @Param('project') project: string,
+    @Body() body: { skillName: string },
+  ) {
+    try {
+      const result = await this.skillsService.provisionTemplateSkill(
+        project,
+        body.skillName,
+      );
+      return { success: true, project, result };
+    } catch (error: any) {
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
   @Post(':project/provision')
   @Roles('user')
   async provisionSkills(

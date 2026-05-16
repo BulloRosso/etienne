@@ -678,6 +678,182 @@ async function translateMarkdown(
 }
 
 // ---------------------------------------------------------------------------
+// Lightweight section extraction (no EARS) — used by the Document Creation
+// dashboard. Regex-based heading detection over the parsed page text.
+// ---------------------------------------------------------------------------
+
+interface ExtractedSection {
+  number: string;
+  title: string;
+  level: number;
+  page_start: number;
+  text: string;
+  image_count: number;
+}
+
+/**
+ * Detect a heading line and return its number, title and nesting level.
+ *
+ * Recognises numbered headings ("1", "1.2", "1.2.3", "1.2.3."), optionally
+ * followed by the title on the same line, as well as short ALL-CAPS or
+ * Title-Case lines that look like unnumbered headings.
+ */
+function detectHeading(
+  line: string,
+): { number: string; title: string; level: number } | null {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.length > 160) return null;
+
+  // Numbered: "1", "1.2", "1.2.3", optionally with trailing dot and a title
+  const numbered = trimmed.match(/^(\d+(?:\.\d+){0,5})\.?\s*(.*)$/);
+  if (numbered) {
+    const number = numbered[1];
+    const title = numbered[2].trim();
+    // A heading either has a short title on the same line or none at all.
+    // Reject lines that are clearly prose (long, ends with sentence punctuation).
+    if (title.length <= 120 && !/[.!?,;:]$/.test(title)) {
+      const level = number.split('.').length;
+      return { number, title, level };
+    }
+    return null;
+  }
+
+  // Unnumbered heading: either ALL-CAPS, or a short line where (almost)
+  // every word is capitalised — i.e. real "Title Case" heading style, not
+  // a wrapped prose line that merely starts with a capital letter. We are
+  // deliberately conservative here: documents in this flow use numbered
+  // headings, and over-detecting prose as headings fragments sections.
+  const words = trimmed.split(/\s+/);
+  if (
+    words.length <= 8 &&
+    /[A-Za-zÄÖÜ]/.test(trimmed) &&
+    !/[.!?,;:]$/.test(trimmed)
+  ) {
+    const isAllCaps = trimmed === trimmed.toUpperCase();
+    const STOP = new Set([
+      'a', 'an', 'the', 'and', 'or', 'of', 'for', 'to', 'in', 'on',
+      'with', 'at', 'by', 'from', 'as', 'is', 'are',
+    ]);
+    const significant = words.filter((w) => !STOP.has(w.toLowerCase()));
+    const allSignificantCapitalised =
+      significant.length > 0 &&
+      significant.every((w) => /^[A-ZÄÖÜ0-9]/.test(w));
+    if (isAllCaps || allSignificantCapitalised) {
+      return { number: '', title: trimmed, level: 1 };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Split parsed pages into sections using regex heading detection.
+ * Each section accumulates body text until the next heading.
+ */
+function splitIntoSections(pages: PageText[]): ExtractedSection[] {
+  const sections: ExtractedSection[] = [];
+  let current: ExtractedSection | null = null;
+  let autoNumber = 0;
+
+  const pushCurrent = () => {
+    if (current) {
+      current.text = current.text.trim();
+      current.image_count = countImageRefs(current.text);
+      sections.push(current);
+    }
+  };
+
+  for (const page of pages) {
+    const lines = page.text.split('\n');
+    for (const line of lines) {
+      const heading = detectHeading(line);
+      if (heading) {
+        pushCurrent();
+        autoNumber += 1;
+        current = {
+          number: heading.number || `S${autoNumber}`,
+          title: heading.title || `Section ${autoNumber}`,
+          level: heading.level,
+          page_start: page.page_number,
+          text: '',
+          image_count: 0,
+        };
+      } else if (current) {
+        current.text += line + '\n';
+      } else {
+        // Preamble before the first heading — keep it as an intro section.
+        current = {
+          number: 'S0',
+          title: 'Introduction',
+          level: 1,
+          page_start: page.page_number,
+          text: line + '\n',
+          image_count: 0,
+        };
+      }
+    }
+  }
+  pushCurrent();
+
+  return sections;
+}
+
+/**
+ * Best-effort image-reference counter. LiteParse emits text only, but it
+ * commonly leaves markers like "[image]", "[figure]", "![](...)" or
+ * "Figure N" / "Abbildung N" captions. We count those as a hint for the UI.
+ */
+function countImageRefs(text: string): number {
+  let count = 0;
+  const patterns = [
+    /!\[[^\]]*\]\([^)]*\)/gi, // markdown image
+    /\[(?:image|img|figure|picture|grafik|abbildung|bild)\b[^\]]*\]/gi,
+    /\b(?:figure|fig\.|abbildung|abb\.|bild|grafik)\s*\d+/gi,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) count += m.length;
+  }
+  return count;
+}
+
+/**
+ * Run lightweight section extraction: parse + language detect + split.
+ */
+async function runSectionExtraction(
+  llm: LlmService,
+  documentPath: string,
+  onProgress?: ProgressCallback,
+): Promise<{
+  source_language: LanguageInfo;
+  sections: ExtractedSection[];
+}> {
+  const absolutePath = path.resolve(WORKSPACE_DIR, documentPath);
+
+  try {
+    await fs.access(absolutePath);
+  } catch {
+    throw new Error(`Document not found: ${documentPath} (resolved to ${absolutePath})`);
+  }
+
+  if (onProgress) await onProgress(0, 3, 'Parsing document…');
+  const pages = await extractDocumentText(absolutePath);
+  if (!pages.length) {
+    throw new Error(`No text could be extracted from ${path.basename(documentPath)}`);
+  }
+
+  if (onProgress) await onProgress(1, 3, 'Detecting language…');
+  const langInfo = await detectLanguage(llm, pages);
+
+  if (onProgress) await onProgress(2, 3, 'Splitting into sections…');
+  const sections = splitIntoSections(pages);
+
+  if (onProgress) await onProgress(3, 3, 'Complete');
+
+  return { source_language: langInfo, sections };
+}
+
+// ---------------------------------------------------------------------------
 // Main pipeline
 // ---------------------------------------------------------------------------
 
@@ -812,6 +988,28 @@ const tools: McpTool[] = [
       required: ['document_path'],
     },
   },
+  {
+    name: 'extract_document_sections',
+    description:
+      'Lightweight structural extraction of a PDF or Office document WITHOUT EARS ' +
+      'classification. Returns the detected source language and a flat list of ' +
+      'sections with their number, title, nesting level, starting page, body text, ' +
+      'and a best-effort image-reference count. Use this to populate a ' +
+      'source→target section mapping. Supports PDF, Word, PowerPoint and Excel ' +
+      'via LiteParse with built-in OCR.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        document_path: {
+          type: 'string',
+          description:
+            'Path to the document file, relative to the workspace root ' +
+            '(e.g. "my-project/source/spec.pdf", "my-project/source/overview.docx").',
+        },
+      },
+      required: ['document_path'],
+    },
+  },
 ];
 
 /**
@@ -838,6 +1036,14 @@ export function createDocumentAnalysisToolsService(llmService: LlmService): Tool
 
         // Default: Markdown report with appended JSON data
         return markdown + '\n\n---\n\n## Raw JSON Data\n\n```json\n' + JSON.stringify(json, null, 2) + '\n```';
+      }
+
+      case 'extract_document_sections': {
+        return await runSectionExtraction(
+          llmService,
+          args.document_path,
+          onProgress,
+        );
       }
 
       default:

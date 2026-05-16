@@ -1,0 +1,56 @@
+{
+  "title": "从章节创建文档",
+  "tabs": {
+    "mappings": "映射",
+    "freestyle": "自由模式",
+    "preview": "预览与生成"
+  },
+  "toolbar": {
+    "sourceDocument": "源文档",
+    "template": "模板",
+    "noTemplate": "在 target/ 中未找到模板",
+    "mode": "模式",
+    "modeFreestyle": "自由",
+    "modeStructured": "结构化",
+    "modeRequirements": "结构化 + 需求",
+    "targetLanguage": "目标语言",
+    "sourceLanguage": "源语言：{{language}}",
+    "detectingLanguage": "正在检测语言…"
+  },
+  "sourceTree": {
+    "title": "源章节",
+    "empty": "选择源文档以加载其章节。",
+    "loading": "正在提取章节…",
+    "images": "{{count}} 张图片",
+    "images_other": "{{count}} 张图片"
+  },
+  "targetList": {
+    "title": "模板章节",
+    "empty": "未找到模板章节。",
+    "mapTo": "映射到源章节…",
+    "unmapped": "未映射",
+    "transformationPlaceholder": "转换说明（例如“仅提取图片”、“忽略图片”、“摘要”）"
+  },
+  "freestyle": {
+    "heading": "自由模式",
+    "body": "在项目聊天中描述您想要的文档。代理会在对话过程中维护 source-target.sectionmappings.json，并在您要求时生成文档。",
+    "openChat": "打开聊天"
+  },
+  "preview": {
+    "empty": "点击“生成预览”以查看映射摘要。",
+    "lastOutput": "上次生成的文档：{{path}}"
+  },
+  "actions": {
+    "generatePreview": "生成预览",
+    "createNow": "立即创建文档",
+    "close": "关闭"
+  },
+  "status": {
+    "saved": "映射已保存",
+    "saveFailed": "保存映射失败：{{message}}",
+    "provisionFailed": "无法配置 document-creation 技能：{{message}}",
+    "createdInstructions": "说明已写入 target/document-creation-instructions.md。请在项目聊天中继续。",
+    "createFailed": "无法启动文档创建：{{message}}",
+    "noMappings": "在创建文档前，请至少映射一个目标章节。"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "title": "Dokument aus Abschnitten erstellen",
+  "tabs": {
+    "mappings": "Zuordnungen",
+    "freestyle": "Freistil",
+    "preview": "Vorschau & Erstellen"
+  },
+  "toolbar": {
+    "sourceDocument": "Quelldokument",
+    "template": "Vorlage",
+    "noTemplate": "Keine Vorlage in target/ gefunden",
+    "mode": "Modus",
+    "modeFreestyle": "Freistil",
+    "modeStructured": "Strukturiert",
+    "modeRequirements": "Strukturiert + Anforderungen",
+    "targetLanguage": "Zielsprache",
+    "sourceLanguage": "Quelle: {{language}}",
+    "detectingLanguage": "Sprache wird erkannt…"
+  },
+  "sourceTree": {
+    "title": "Quellabschnitte",
+    "empty": "Wählen Sie ein Quelldokument, um dessen Abschnitte zu laden.",
+    "loading": "Abschnitte werden extrahiert…",
+    "images": "{{count}} Bild",
+    "images_other": "{{count}} Bilder"
+  },
+  "targetList": {
+    "title": "Vorlagenabschnitte",
+    "empty": "Keine Vorlagenabschnitte gefunden.",
+    "mapTo": "Quellabschnitt zuordnen…",
+    "unmapped": "Nicht zugeordnet",
+    "transformationPlaceholder": "Transformationshinweise (z. B. \"nur die Bilder\", \"Bilder ignorieren\", \"zusammenfassen\")"
+  },
+  "freestyle": {
+    "heading": "Freistil-Modus",
+    "body": "Beschreiben Sie das gewünschte Dokument im Projekt-Chat. Der Agent pflegt source-target.sectionmappings.json während des Gesprächs und erstellt das Dokument auf Anforderung.",
+    "openChat": "Chat öffnen"
+  },
+  "preview": {
+    "empty": "Klicken Sie auf \"Vorschau erstellen\", um eine Zusammenfassung der Zuordnungen zu sehen.",
+    "lastOutput": "Zuletzt erstelltes Dokument: {{path}}"
+  },
+  "actions": {
+    "generatePreview": "Vorschau erstellen",
+    "createNow": "Dokument jetzt erstellen",
+    "close": "Schließen"
+  },
+  "status": {
+    "saved": "Zuordnungen gespeichert",
+    "saveFailed": "Zuordnungen konnten nicht gespeichert werden: {{message}}",
+    "provisionFailed": "Die Skill „document-creation“ konnte nicht bereitgestellt werden: {{message}}",
+    "createdInstructions": "Anweisungen in target/document-creation-instructions.md geschrieben. Weiter im Projekt-Chat.",
+    "createFailed": "Dokumenterstellung konnte nicht gestartet werden: {{message}}",
+    "noMappings": "Ordnen Sie mindestens einen Zielabschnitt zu, bevor Sie das Dokument erstellen."
+  }
+}
