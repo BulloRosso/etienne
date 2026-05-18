@@ -15,6 +15,7 @@ import {
   InputAdornment,
   FormControlLabel,
   Checkbox,
+  Autocomplete,
 } from '@mui/material';
 import { Close, CloudUpload, Delete, Search } from '@mui/icons-material';
 import * as FaIcons from 'react-icons/fa';
@@ -80,7 +81,7 @@ function AuthedImage({ url, alt, sx }) {
   return <Box component="img" src={objectUrl} alt={alt} sx={sx} />;
 }
 
-export default function ScrapbookNodeEdit({ open, onClose, projectName, graphName = 'default', node, parentNode, onSaved, onNodeUpdated }) {
+export default function ScrapbookNodeEdit({ open, onClose, projectName, graphName = 'default', node, parentNode, allNodes = [], onSaved, onNodeUpdated }) {
   const { t } = useTranslation(["scrapbookNodeEdit","common"]);
   const isEdit = Boolean(node?.id);
 
@@ -96,6 +97,66 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [describeImage, setDescribeImage] = useState(false);
+  const [parentId, setParentId] = useState(null);
+
+  // Tree nodes don't always carry parentId (hierarchy is implicit in nesting),
+  // so resolve the authoritative parent from the flat allNodes list.
+  const flatSelf = isEdit ? allNodes.find((n) => n.id === node.id) : null;
+  const currentParentId = flatSelf?.parentId ?? node?.parentId ?? null;
+
+  // Only the actual root (ProjectTheme) cannot be re-parented. A node with no
+  // parent that is NOT a ProjectTheme is an orphan ("freier Knoten") — those
+  // are precisely the nodes that need to be re-assignable, so do NOT treat
+  // "no parent" as root here.
+  const flatType = flatSelf?.type ?? node?.type;
+  const isRootNode = isEdit && flatType === 'ProjectTheme';
+
+  // Eligible new parents: every node except the node itself and any of its
+  // descendants (re-parenting under a descendant would create a cycle).
+  const parentOptions = useMemo(() => {
+    if (!isEdit || isRootNode) return [];
+
+    // Collect this node's descendant ids from the flat allNodes list.
+    const descendantIds = new Set();
+    const collect = (id) => {
+      allNodes.forEach((n) => {
+        if (n.parentId === id && !descendantIds.has(n.id)) {
+          descendantIds.add(n.id);
+          collect(n.id);
+        }
+      });
+    };
+    collect(node.id);
+
+    // Build the ancestor path label so options are identifiable. Many nodes
+    // share generic labels ("Hypothesis: …"); showing the parent chain (e.g.
+    // "Compliance › Boron <= EU 1.5 mg/L") lets the user pick a specific
+    // child of a given node.
+    const byId = new Map(allNodes.map((n) => [n.id, n]));
+    const pathLabel = (n) => {
+      const parts = [];
+      let cur = n;
+      const guard = new Set();
+      while (cur && !guard.has(cur.id)) {
+        parts.unshift(cur.label || cur.id);
+        guard.add(cur.id);
+        cur = cur.parentId ? byId.get(cur.parentId) : null;
+      }
+      return parts.join(' › ');
+    };
+
+    return allNodes
+      .filter((n) => n.id !== node.id && !descendantIds.has(n.id))
+      .map((n) => ({
+        id: n.id,
+        label: n.label,
+        type: n.type,
+        pathLabel: pathLabel(n),
+      }))
+      .sort((a, b) => a.pathLabel.localeCompare(b.pathLabel));
+  }, [isEdit, isRootNode, allNodes, node]);
+
+  const selectedParent = parentOptions.find((p) => p.id === parentId) || null;
 
   // Initialize form when node changes
   useEffect(() => {
@@ -107,6 +168,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
       setIconName(node.iconName || '');
       setWikiSlug(node.wikiSlug || '');
       setImages(node.images || []);
+      setParentId(currentParentId);
     } else {
       setLabel('');
       setDescription('');
@@ -115,8 +177,10 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
       setIconName('');
       setWikiSlug('');
       setImages([]);
+      setParentId(null);
     }
-  }, [node, open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node, open, currentParentId]);
 
   // Search icons
   const filteredIcons = useMemo(() => {
@@ -171,6 +235,24 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
         const errorText = await response.text();
         console.error('Failed to save node:', errorText);
         return;
+      }
+
+      // Re-parent if the parent was changed in the dialog (edit mode only,
+      // never for the root node, and only when an actual parent is chosen).
+      if (isEdit && !isRootNode && parentId && parentId !== currentParentId) {
+        const parentResp = await apiFetch(
+          `/api/workspace/${projectName}/scrapbook/${graphName}/nodes/${node.id}/parent`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ parentId }),
+          },
+        );
+        if (!parentResp.ok) {
+          const errorText = await parentResp.text();
+          console.error('Failed to reassign parent:', errorText);
+          return;
+        }
       }
 
       onSaved();
@@ -266,6 +348,39 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
               multiline
               rows={3}
             />
+
+            {/* Parent assignment (edit mode, non-root only). The root node has
+                no parent and cannot be re-parented, so the selector is hidden
+                for it. */}
+            {isEdit && !isRootNode && (
+              <Autocomplete
+                options={parentOptions}
+                value={selectedParent}
+                onChange={(_e, val) => setParentId(val ? val.id : null)}
+                getOptionLabel={(o) => o.pathLabel || o.label || o.id}
+                isOptionEqualToValue={(o, v) => o.id === v.id}
+                renderOption={(props, o) => (
+                  <li {...props} key={o.id}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="body2">{o.label || o.id}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {o.pathLabel}
+                      </Typography>
+                    </Box>
+                  </li>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={t('scrapbookNodeEdit:parent', 'Parent node')}
+                    helperText={t(
+                      'scrapbookNodeEdit:parentHelp',
+                      'Move this node under a different parent. Search by name; the path shows where each node sits.',
+                    )}
+                  />
+                )}
+              />
+            )}
 
             {/* Wiki page link */}
             <TextField

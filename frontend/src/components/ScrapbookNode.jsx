@@ -34,14 +34,27 @@ const getIcon = (iconName) => {
  * tooltip with the full text ONLY when it is actually clipped. The `minWidth: 0`
  * is required for text-overflow to engage inside a flex row.
  */
-const TruncatedText = ({ text, typographyProps = {}, tooltipPlacement = 'top' }) => {
+const TruncatedText = ({ text, typographyProps = {}, tooltipPlacement = 'top', clampLines }) => {
   const ref = useRef(null);
   const [isTruncated, setIsTruncated] = useState(false);
 
   const measure = useCallback(() => {
     const el = ref.current;
-    if (el) setIsTruncated(el.scrollWidth > el.clientWidth);
-  }, []);
+    if (!el) return;
+    // Single-line mode clips horizontally; clamped mode clips vertically.
+    setIsTruncated(
+      clampLines ? el.scrollHeight > el.clientHeight : el.scrollWidth > el.clientWidth,
+    );
+  }, [clampLines]);
+
+  const clampSx = clampLines
+    ? {
+        display: '-webkit-box',
+        WebkitBoxOrient: 'vertical',
+        WebkitLineClamp: clampLines,
+        whiteSpace: 'normal',
+      }
+    : { whiteSpace: 'nowrap' };
 
   const content = (
     <Typography
@@ -52,7 +65,7 @@ const TruncatedText = ({ text, typographyProps = {}, tooltipPlacement = 'top' })
         minWidth: 0,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        ...clampSx,
         ...(typographyProps.sx || {}),
       }}
     >
@@ -134,10 +147,24 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
 
   return (
     <>
-      <Handle type="target" position={Position.Left} id="left" style={{ background: '#555' }} />
-      <Handle type="target" position={Position.Right} id="right" style={{ background: '#555' }} />
-      <Handle type="target" position={Position.Top} id="top" style={{ background: '#555' }} />
-      <Handle type="target" position={Position.Bottom} id="bottom" style={{ background: '#555' }} />
+      {/* Center-anchored handles for floating edges. Positioned at the node's
+          true geometric center and hidden — the floating edge clips the line
+          to the border, so these are never visually seen but give edges a
+          stable handle that always resolves to the node's middle. */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="center"
+        style={{ left: '50%', top: '50%', opacity: 0, pointerEvents: 'none' }}
+        isConnectable={false}
+      />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="center"
+        style={{ left: '50%', top: '50%', opacity: 0, pointerEvents: 'none' }}
+        isConnectable={false}
+      />
 
       <Box
         onClick={onNodeClick}
@@ -199,6 +226,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
             flex: 1,
             minWidth: 0,
             pb: IconComponent ? 3 : 1,
+            position: 'relative',
           }}
         >
         {/* Row 1: Drag Handle, Title, Expand Button */}
@@ -242,11 +270,11 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
           )}
         </Box>
 
-        {/* Row 2: Description, Context Menu */}
+        {/* Row 2: Description (up to 3 lines), Context Menu */}
         <Box
           sx={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             minWidth: 0,
             px: 1,
             pb: 0.5,
@@ -254,26 +282,19 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
         >
           <TruncatedText
             text={description}
+            clampLines={3}
             typographyProps={{
               variant: 'caption',
               sx: {
                 flex: 1,
+                ml: '20px',
+                mr: '28px', // reserve room for the bottom-anchored menu button
                 color: 'text.secondary',
                 fontFamily: 'Roboto',
                 fontSize: '12px',
               },
             }}
           />
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onContextMenu(e);
-            }}
-            sx={{ p: 0.25 }}
-          >
-            <MoreVert fontSize="small" />
-          </IconButton>
         </Box>
 
         {/* Priority Bar - single segment showing the highest priority level */}
@@ -290,24 +311,32 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
           return activeSegment ? (
             <Box
               sx={{
-                px: 1,
-                pb: 0.5,
-                position: 'relative',
-                top: '10px',
-                left: '-20px',
+                position: 'absolute',
+                left: 8,
+                bottom: 8,
+                width: 15,
+                height: 5,
+                backgroundColor: activeSegment.color,
+                borderRadius: 0,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.35)',
               }}
-            >
-              <Box
-                sx={{
-                  width: 30,
-                  height: 5,
-                  backgroundColor: activeSegment.color,
-                  borderRadius: 0,
-                }}
-              />
-            </Box>
+            />
           ) : null;
         })()}
+
+        {/* Context menu button — anchored to the bottom-right of the content
+            box so it stays card-bottom-aligned regardless of how many lines
+            the description occupies or whether the priority bar is shown. */}
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onContextMenu(e);
+          }}
+          sx={{ p: 0.25, position: 'absolute', right: 4, bottom: 4 }}
+        >
+          <MoreVert fontSize="small" />
+        </IconButton>
         </Box>
 
         {/* Row 3: Icon Badge (overlapping bottom border) */}
@@ -337,29 +366,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
           </Tooltip>
         )}
 
-        {/* Empty icon placeholder */}
-        {!IconComponent && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: -12,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              backgroundColor: '#f5f5f5',
-              border: '1px dashed #ccc',
-              cursor: 'pointer',
-              zIndex: 4000,
-            }}
-          />
-        )}
       </Box>
-
-      <Handle type="source" position={Position.Left} id="left" style={{ background: '#555' }} />
-      <Handle type="source" position={Position.Right} id="right" style={{ background: '#555' }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" style={{ background: '#555' }} />
     </>
   );
 });

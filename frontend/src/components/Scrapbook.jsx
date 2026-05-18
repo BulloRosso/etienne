@@ -97,6 +97,13 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
   const saveTimeoutRef = useRef(null);
   const reactFlowInstance = useReactFlow();
 
+  // Mirror of the state the unmount flush needs. The flush effect must have
+  // empty deps (so its cleanup fires ONLY on real unmount, not on every
+  // savedPositions/expandedNodes change — which would beacon stale default
+  // positions over the restored layout). It reads the latest values from
+  // this ref instead of closing over them.
+  const flushStateRef = useRef({});
+
   // Load canvas settings from backend
   const loadCanvasSettings = useCallback(async () => {
     try {
@@ -325,12 +332,47 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     }
   }, [projectName, canvasSettingsLoaded, fetchTree, fetchAllNodes]);
 
-  // Save immediately on unmount (flush pending saves)
+  // Keep the latest state available to the unmount flush without making it a
+  // dependency of the flush effect.
+  flushStateRef.current = {
+    projectName,
+    graphName,
+    expandedNodes,
+    reactFlowInstance,
+    autoLayoutMode,
+    customProperties,
+    columnConfig,
+    savedPositions,
+    canvasSettingsLoaded,
+  };
+
+  // Save immediately on unmount (flush pending saves). Empty deps: the cleanup
+  // must run ONLY when the component truly unmounts (dialog closed), never on
+  // intermediate dependency changes — otherwise it beacons the pre-restore
+  // default layout over the good saved positions.
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      const {
+        projectName,
+        graphName,
+        expandedNodes,
+        reactFlowInstance,
+        autoLayoutMode,
+        customProperties,
+        columnConfig,
+        savedPositions,
+        canvasSettingsLoaded,
+      } = flushStateRef.current;
+
+      // Never flush before settings finished loading — at that point the
+      // canvas still holds default positions and would clobber stored data.
+      if (!canvasSettingsLoaded) {
+        return;
+      }
+
       // Flush save on unmount - save current state immediately
       if (reactFlowInstance && projectName) {
         const currentNodes = reactFlowInstance.getNodes();
@@ -400,7 +442,8 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
         );
       }
     };
-  }, [projectName, graphName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, savedPositions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle edge (connection) deletion - orphan the child node
   const handleEdgeDelete = useCallback(async (childId) => {
@@ -475,105 +518,74 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     const flowEdges = [];
 
     if (autoLayoutMode) {
-      // Auto-layout mode:
-      // - Categories connected bottom of root to top of category
-      // - Categories rendered left to right, centered under parent
-      // - Subcategories connected bottom of parent to left of subcategory
-      // - Subcategories rendered top to bottom with 50px X indent
-      const NODE_WIDTH = 260;
-      const CATEGORY_SPACING = 280; // Horizontal spacing between categories
-      const VERTICAL_SPACING = 120; // Vertical spacing between levels
-      const SUBCATEGORY_INDENT = 50; // X indent for subcategories
-      const ROOT_Y = 50;
+      // Radial-tree auto-layout:
+      // - Root sits at the canvas center.
+      // - Each level is placed on a ring at an increasing radius.
+      // - Every subtree is given an angular sector sized in proportion to how
+      //   many visible leaves it contains, so siblings (and their descendants)
+      //   fan out without overlapping. A node is drawn at the mid-angle of its
+      //   own sector; its children subdivide that same sector on the next ring.
+      const RING_RADIUS = 320;   // distance added per level
+      const ROOT_CENTER_X = 0;
+      const ROOT_CENTER_Y = 0;
 
-      // Add root node
       const rootNode = tree;
-      const categories = rootNode.children || [];
-
-      // Calculate positions for categories (left to right)
-      // First category starts at x=100, each subsequent category is CATEGORY_SPACING apart
-      const firstCategoryX = 100;
-      const lastCategoryX = firstCategoryX + (categories.length - 1) * CATEGORY_SPACING;
-
-      // Root node X is centered between first and last category
-      // Account for node width: center of root should align with center of category span
-      // Apply -3px offset for visual alignment
-      const ROOT_X = (firstCategoryX + lastCategoryX) / 2 - 3;
-
       const rootExpanded = expandedNodes.has(rootNode.id);
-      flowNodes.push(createFlowNode(rootNode, ROOT_X, ROOT_Y, rootExpanded));
 
-      // Process categories left to right (double spacing from root)
-      const categoryY = ROOT_Y + VERTICAL_SPACING * 2;
+      flowNodes.push(createFlowNode(rootNode, ROOT_CENTER_X, ROOT_CENTER_Y, rootExpanded));
 
-      // Only process categories if root is expanded
-      if (rootExpanded) {
-        categories.forEach((category, catIndex) => {
-          // Position categories from left to right
-          const catX = firstCategoryX + catIndex * CATEGORY_SPACING;
-          const catExpanded = expandedNodes.has(category.id);
+      // Angular "weight" of a subtree = number of leaf slots it needs. A leaf
+      // (or collapsed/childless node) counts as 1 so every node gets room.
+      const angularWeight = (node) => {
+        const children =
+          expandedNodes.has(node.id) && node.children ? node.children : [];
+        if (children.length === 0) return 1;
+        return children.reduce((sum, c) => sum + angularWeight(c), 0);
+      };
 
-          flowNodes.push(createFlowNode(category, catX, categoryY, catExpanded));
-          // Connect root bottom to category (default: top, or saved connector position)
+      // Place `node`'s children on the ring at `depth`, spread across the
+      // [startAngle, endAngle] sector this node owns. Recurses so each child
+      // subdivides its slice of the parent's sector on the next ring out.
+      const placeChildren = (node, depth, startAngle, endAngle) => {
+        if (!expandedNodes.has(node.id)) return;
+        const children = node.children || [];
+        if (children.length === 0) return;
+
+        const radius = RING_RADIUS * depth;
+        const totalWeight = children.reduce((sum, c) => sum + angularWeight(c), 0);
+
+        let cursor = startAngle;
+        children.forEach((child) => {
+          const slice = ((endAngle - startAngle) * angularWeight(child)) / totalWeight;
+          const childStart = cursor;
+          const childEnd = cursor + slice;
+          const midAngle = (childStart + childEnd) / 2;
+
+          const x = ROOT_CENTER_X + radius * Math.cos(midAngle);
+          const y = ROOT_CENTER_Y + radius * Math.sin(midAngle);
+
+          const childExpanded = expandedNodes.has(child.id);
+          flowNodes.push(createFlowNode(child, x, y, childExpanded));
           flowEdges.push({
-            id: `${rootNode.id}-${category.id}`,
-            source: rootNode.id,
-            target: category.id,
-            sourceHandle: 'bottom',
-            targetHandle: savedPositions[category.id]?.childConnectorPosition?.toLowerCase() || 'top',
+            id: `${node.id}-${child.id}`,
+            source: node.id,
+            target: child.id,
+            sourceHandle: 'center',
+            targetHandle: 'center',
             type: 'scrapbookEdge',
             data: { onDelete: handleEdgeDelete },
           });
 
-          // Process subcategories only if category is expanded
-          if (catExpanded) {
-            const subcategories = category.children || [];
-            let subY = categoryY + VERTICAL_SPACING;
-
-            subcategories.forEach((sub, subIndex) => {
-              const subX = catX + SUBCATEGORY_INDENT; // Indent from parent
-              const subExpanded = expandedNodes.has(sub.id);
-              flowNodes.push(createFlowNode(sub, subX, subY, subExpanded));
-              // Connect category bottom to subcategory (default: left, or saved connector position)
-              flowEdges.push({
-                id: `${category.id}-${sub.id}`,
-                source: category.id,
-                target: sub.id,
-                sourceHandle: 'bottom',
-                targetHandle: savedPositions[sub.id]?.childConnectorPosition?.toLowerCase() || 'left',
-                type: 'scrapbookEdge',
-                data: { onDelete: handleEdgeDelete },
-              });
-
-              // Process deeper levels recursively with same indent pattern
-              const processDeeper = (node, parentX, parentY, depth) => {
-                if (!expandedNodes.has(node.id)) return; // Only process if parent is expanded
-                const children = node.children || [];
-                let childY = parentY + VERTICAL_SPACING;
-                children.forEach((child) => {
-                  const childX = parentX + SUBCATEGORY_INDENT; // Further indent
-                  const childExpanded = expandedNodes.has(child.id);
-                  flowNodes.push(createFlowNode(child, childX, childY, childExpanded));
-                  // Connect parent bottom to child (default: left, or saved connector position)
-                  flowEdges.push({
-                    id: `${node.id}-${child.id}`,
-                    source: node.id,
-                    target: child.id,
-                    sourceHandle: 'bottom',
-                    targetHandle: savedPositions[child.id]?.childConnectorPosition?.toLowerCase() || 'left',
-                    type: 'scrapbookEdge',
-                    data: { onDelete: handleEdgeDelete },
-                  });
-                  processDeeper(child, childX, childY, depth + 1);
-                  childY += VERTICAL_SPACING;
-                });
-              };
-
-              processDeeper(sub, subX, subY, 3);
-              subY += VERTICAL_SPACING * (1 + countVisibleDescendants(sub));
-            });
-          }
+          placeChildren(child, depth + 1, childStart, childEnd);
+          cursor = childEnd;
         });
+      };
+
+      // Distribute the root's whole subtree around a full 360° circle. Start
+      // at -90° (12 o'clock) so the first branch points straight up.
+      if (rootExpanded) {
+        const start = -Math.PI / 2;
+        placeChildren(rootNode, 1, start, start + 2 * Math.PI);
       }
     } else {
       // Standard layout mode - use saved positions exclusively
@@ -603,14 +615,12 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
         // depth 2+ = subcategories - default: left
         // Use saved connector position if available
         if (parentId) {
-          const isCategory = depth === 1;
-          const defaultHandle = isCategory ? 'top' : 'left';
           flowEdges.push({
             id: `${parentId}-${nodeId}`,
             source: parentId,
             target: nodeId,
-            sourceHandle: 'bottom',
-            targetHandle: savedPositions[nodeId]?.childConnectorPosition?.toLowerCase() || defaultHandle,
+            sourceHandle: 'center',
+            targetHandle: 'center',
             type: 'scrapbookEdge',
             data: { onDelete: handleEdgeDelete },
           });
@@ -673,8 +683,8 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
             id: `${node.id}-${child.id}`,
             source: node.id,
             target: child.id,
-            sourceHandle: 'bottom',
-            targetHandle: savedPositions[child.id]?.childConnectorPosition?.toLowerCase() || 'left',
+            sourceHandle: 'center',
+            targetHandle: 'center',
             type: 'scrapbookEdge',
             data: { onDelete: handleEdgeDelete },
           });
@@ -1064,62 +1074,70 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     setExpandedNodes(allExpanded);
     setOptionsAnchor(null);
 
-    // Calculate positions deterministically using the same algorithm as auto-layout mode
-    // This avoids race conditions by computing positions directly rather than waiting for React Flow
-    const NODE_WIDTH = 260;
-    const CATEGORY_SPACING = 280;
-    const VERTICAL_SPACING = 120;
-    const SUBCATEGORY_INDENT = 50;
-    const ROOT_Y = 50;
+    // Radial-tree layout computed deterministically (same algorithm as the
+    // autoLayoutMode render branch). Computing positions directly here and
+    // writing them into savedPositions avoids race conditions with React Flow.
+    const RING_RADIUS = 320;   // distance added per level
+    const ROOT_CENTER_X = 0;
+    const ROOT_CENTER_Y = 0;
 
     const newPositions = {};
     const rootNode = tree;
-    const categories = rootNode.children || [];
 
-    // Calculate root position (centered above categories)
-    const firstCategoryX = 100;
-    const lastCategoryX = firstCategoryX + (categories.length - 1) * CATEGORY_SPACING;
-    const ROOT_X = (firstCategoryX + lastCategoryX) / 2 - 3;
+    newPositions[rootNode.id] = { x: ROOT_CENTER_X, y: ROOT_CENTER_Y };
 
-    newPositions[rootNode.id] = { x: ROOT_X, y: ROOT_Y };
+    // Angular "weight" of a subtree = number of leaf slots it needs. Every
+    // node counts at least 1 so it always gets room. All nodes are expanded
+    // here (expandAllNodes above), so the full hierarchy is laid out.
+    const angularWeight = (node) => {
+      const children = node.children || [];
+      if (children.length === 0) return 1;
+      return children.reduce((sum, c) => sum + angularWeight(c), 0);
+    };
 
-    // Process categories left to right
-    const categoryY = ROOT_Y + VERTICAL_SPACING * 2;
+    // Place node's children on the ring at `depth`, each child taking a slice
+    // of [startAngle, endAngle] proportional to its weight, then recursing so
+    // grandchildren fan out within their parent's slice on the next ring.
+    const placeChildren = (node, depth, startAngle, endAngle) => {
+      const children = node.children || [];
+      if (children.length === 0) return;
 
-    categories.forEach((category, catIndex) => {
-      const catX = firstCategoryX + catIndex * CATEGORY_SPACING;
-      newPositions[category.id] = { x: catX, y: categoryY };
+      const radius = RING_RADIUS * depth;
+      const totalWeight = children.reduce((sum, c) => sum + angularWeight(c), 0);
 
-      // Process subcategories recursively
-      const processChildren = (node, parentX, parentY) => {
-        const children = node.children || [];
-        let childY = parentY + VERTICAL_SPACING;
+      let cursor = startAngle;
+      children.forEach((child) => {
+        const slice = ((endAngle - startAngle) * angularWeight(child)) / totalWeight;
+        const childStart = cursor;
+        const childEnd = cursor + slice;
+        const midAngle = (childStart + childEnd) / 2;
 
-        children.forEach((child) => {
-          const childX = parentX + SUBCATEGORY_INDENT;
-          newPositions[child.id] = { x: childX, y: childY };
+        newPositions[child.id] = {
+          x: ROOT_CENTER_X + radius * Math.cos(midAngle),
+          y: ROOT_CENTER_Y + radius * Math.sin(midAngle),
+        };
 
-          // Count visible descendants to calculate next sibling's Y position
-          const descendantCount = countAllDescendants(child);
-          processChildren(child, childX, childY);
-          childY += VERTICAL_SPACING * (1 + descendantCount);
-        });
-      };
+        placeChildren(child, depth + 1, childStart, childEnd);
+        cursor = childEnd;
+      });
+    };
 
-      processChildren(category, catX, categoryY);
-    });
-
-    // Helper to count all descendants (not just visible ones, since we expand all)
-    function countAllDescendants(node) {
-      if (!node.children || node.children.length === 0) return 0;
-      return node.children.reduce((sum, child) => sum + 1 + countAllDescendants(child), 0);
-    }
+    // Spread the whole tree around a full 360° circle, first branch at
+    // 12 o'clock (-90°) going clockwise.
+    const start = -Math.PI / 2;
+    placeChildren(rootNode, 1, start, start + 2 * Math.PI);
 
     // Update saved positions with the calculated layout
     setSavedPositions(newPositions);
     setSavedViewport(null);
     // Keep autoLayoutMode false - we're using saved positions now
     setAutoLayoutMode(false);
+
+    // The radial layout is centered on (0,0) with negative coordinates, so
+    // re-frame the canvas once React Flow has applied the new positions.
+    setTimeout(() => {
+      reactFlowInstance?.fitView({ padding: 0.2, duration: 400 });
+    }, 150);
 
     // Save to backend after state updates
     setTimeout(saveCanvasSettings, 100);
@@ -1637,6 +1655,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
         graphName={graphName}
         node={editNode}
         parentNode={editParentNode}
+        allNodes={allNodes}
         onSaved={handleNodeSaved}
         onNodeUpdated={handleNodeUpdated}
       />

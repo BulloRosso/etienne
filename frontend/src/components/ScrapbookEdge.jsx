@@ -1,30 +1,41 @@
 import React from 'react';
-import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, useInternalNode } from '@xyflow/react';
 import { IconButton } from '@mui/material';
 import { Close } from '@mui/icons-material';
+import { getFloatingEdgeParams } from './floatingEdgeUtils';
 
 export default function ScrapbookEdge({
   id,
   source,
   target,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
   style = {},
   markerEnd,
   selected,
   data,
 }) {
+  // Floating edge: resolve geometry from the live node positions/sizes rather
+  // than fixed side handles, so the line is aimed at each node's center and
+  // clipped to its border (auto-picks the nearest side as nodes move).
+  const sourceNode = useInternalNode(source);
+  const targetNode = useInternalNode(target);
+
+  if (!sourceNode || !targetNode) {
+    return null;
+  }
+
+  const { sx, sy, tx, ty, sourcePos, targetPos } = getFloatingEdgeParams(
+    sourceNode,
+    targetNode,
+  );
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
+    sourceX: sx,
+    sourceY: sy,
+    sourcePosition: sourcePos,
+    targetX: tx,
+    targetY: ty,
+    targetPosition: targetPos,
+    borderRadius: 12,
   });
 
   const onEdgeDelete = (evt) => {
