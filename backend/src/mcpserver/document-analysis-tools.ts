@@ -679,7 +679,9 @@ async function translateMarkdown(
 
 // ---------------------------------------------------------------------------
 // Lightweight section extraction (no EARS) — used by the Document Creation
-// dashboard. Regex-based heading detection over the parsed page text.
+// dashboard. LLM-based: an analyst model identifies the real section
+// structure from the parsed (often OCR'd, noisy) page text. This is far more
+// robust than regex heading detection on scanned documents.
 // ---------------------------------------------------------------------------
 
 interface ExtractedSection {
@@ -691,111 +693,158 @@ interface ExtractedSection {
   image_count: number;
 }
 
+/** One LLM-returned section before page attribution / image counting. */
+interface LlmSection {
+  number: string;
+  title: string;
+  level: number;
+  text: string;
+}
+
+/** How many pages of text to send to the LLM per extraction call. */
+const SECTION_PAGES_PER_CHUNK = 8;
+
 /**
- * Detect a heading line and return its number, title and nesting level.
- *
- * Recognises numbered headings ("1", "1.2", "1.2.3", "1.2.3."), optionally
- * followed by the title on the same line, as well as short ALL-CAPS or
- * Title-Case lines that look like unnumbered headings.
+ * Extract sections from a single chunk of pages via the LLM.
+ * Returns the sections plus whether the chunk looked like OCR garbage.
  */
-function detectHeading(
-  line: string,
-): { number: string; title: string; level: number } | null {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.length > 160) return null;
+async function extractSectionsChunk(
+  llm: LlmService,
+  chunk: PageText[],
+  systemPrompt: string,
+): Promise<{ sections: LlmSection[]; lowQuality: boolean }> {
+  const body = chunk
+    .map((p) => `[PAGE ${p.page_number}]\n${p.text}`)
+    .join('\n\n');
 
-  // Numbered: "1", "1.2", "1.2.3", optionally with trailing dot and a title
-  const numbered = trimmed.match(/^(\d+(?:\.\d+){0,5})\.?\s*(.*)$/);
-  if (numbered) {
-    const number = numbered[1];
-    const title = numbered[2].trim();
-    // A heading either has a short title on the same line or none at all.
-    // Reject lines that are clearly prose (long, ends with sentence punctuation).
-    if (title.length <= 120 && !/[.!?,;:]$/.test(title)) {
-      const level = number.split('.').length;
-      return { number, title, level };
-    }
-    return null;
+  const raw = await llm.generateTextWithMessages({
+    tier: 'regular',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: body },
+    ],
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
+  });
+
+  try {
+    const parsed = parseLlmJson<{
+      sections?: LlmSection[];
+      low_text_quality?: boolean;
+    }>(raw);
+    const sections = Array.isArray(parsed.sections) ? parsed.sections : [];
+    return {
+      sections: sections
+        .filter((s) => s && (s.title || s.text))
+        .map((s) => ({
+          number: typeof s.number === 'string' ? s.number : '',
+          title: typeof s.title === 'string' ? s.title : '',
+          level:
+            typeof s.level === 'number' && s.level >= 1
+              ? Math.floor(s.level)
+              : 1,
+          text: typeof s.text === 'string' ? s.text : '',
+        })),
+      lowQuality: parsed.low_text_quality === true,
+    };
+  } catch {
+    // Unparseable model output for this chunk — treat as low quality, no
+    // sections (the caller's fallback will handle a fully-empty result).
+    return { sections: [], lowQuality: true };
   }
-
-  // Unnumbered heading: either ALL-CAPS, or a short line where (almost)
-  // every word is capitalised — i.e. real "Title Case" heading style, not
-  // a wrapped prose line that merely starts with a capital letter. We are
-  // deliberately conservative here: documents in this flow use numbered
-  // headings, and over-detecting prose as headings fragments sections.
-  const words = trimmed.split(/\s+/);
-  if (
-    words.length <= 8 &&
-    /[A-Za-zÄÖÜ]/.test(trimmed) &&
-    !/[.!?,;:]$/.test(trimmed)
-  ) {
-    const isAllCaps = trimmed === trimmed.toUpperCase();
-    const STOP = new Set([
-      'a', 'an', 'the', 'and', 'or', 'of', 'for', 'to', 'in', 'on',
-      'with', 'at', 'by', 'from', 'as', 'is', 'are',
-    ]);
-    const significant = words.filter((w) => !STOP.has(w.toLowerCase()));
-    const allSignificantCapitalised =
-      significant.length > 0 &&
-      significant.every((w) => /^[A-ZÄÖÜ0-9]/.test(w));
-    if (isAllCaps || allSignificantCapitalised) {
-      return { number: '', title: trimmed, level: 1 };
-    }
-  }
-
-  return null;
 }
 
 /**
- * Split parsed pages into sections using regex heading detection.
- * Each section accumulates body text until the next heading.
+ * Extract sections from all pages using the LLM, chunk by chunk.
+ *
+ * Pages are attributed by matching a section's text back to the chunk's
+ * first page (best effort; the page is a hint, not load-bearing). When the
+ * model finds no real structure anywhere, fall back to a single
+ * "Full document" section so the user can still map the document wholesale,
+ * and surface `lowTextQuality` so the UI/skill can warn about the scan.
  */
-function splitIntoSections(pages: PageText[]): ExtractedSection[] {
-  const sections: ExtractedSection[] = [];
-  let current: ExtractedSection | null = null;
-  let autoNumber = 0;
+async function llmExtractSections(
+  llm: LlmService,
+  pages: PageText[],
+  onProgress?: ProgressCallback,
+): Promise<{ sections: ExtractedSection[]; lowTextQuality: boolean }> {
+  const systemPrompt = await loadPrompt('section-extraction-system.md');
+  const chunks = chunkPages(pages, SECTION_PAGES_PER_CHUNK);
 
-  const pushCurrent = () => {
-    if (current) {
-      current.text = current.text.trim();
-      current.image_count = countImageRefs(current.text);
-      sections.push(current);
+  const all: ExtractedSection[] = [];
+  let lowQualityChunks = 0;
+  let processed = 0;
+
+  for (const chunk of chunks) {
+    if (onProgress) {
+      await onProgress(
+        processed,
+        chunks.length,
+        `Analysing pages ${chunk[0].page_number}–${
+          chunk[chunk.length - 1].page_number
+        }…`,
+      );
     }
-  };
 
-  for (const page of pages) {
-    const lines = page.text.split('\n');
-    for (const line of lines) {
-      const heading = detectHeading(line);
-      if (heading) {
-        pushCurrent();
-        autoNumber += 1;
-        current = {
-          number: heading.number || `S${autoNumber}`,
-          title: heading.title || `Section ${autoNumber}`,
-          level: heading.level,
-          page_start: page.page_number,
-          text: '',
-          image_count: 0,
-        };
-      } else if (current) {
-        current.text += line + '\n';
-      } else {
-        // Preamble before the first heading — keep it as an intro section.
-        current = {
-          number: 'S0',
-          title: 'Introduction',
-          level: 1,
-          page_start: page.page_number,
-          text: line + '\n',
-          image_count: 0,
-        };
+    const { sections, lowQuality } = await extractSectionsChunk(
+      llm,
+      chunk,
+      systemPrompt,
+    );
+    if (lowQuality) lowQualityChunks += 1;
+
+    for (const s of sections) {
+      // Best-effort page attribution: find the chunk page whose text shares
+      // the section's title or a body prefix; default to the chunk's start.
+      let pageStart = chunk[0].page_number;
+      const probe = (s.title || s.text || '').slice(0, 24).trim();
+      if (probe) {
+        const hit = chunk.find((p) => p.text.includes(probe));
+        if (hit) pageStart = hit.page_number;
       }
+      all.push({
+        number: s.number || '',
+        title: s.title || `Section ${all.length + 1}`,
+        level: s.level,
+        page_start: pageStart,
+        text: (s.text || '').trim(),
+        image_count: countImageRefs(s.text || ''),
+      });
+    }
+
+    processed += 1;
+  }
+
+  // Renumber unnumbered sections so every section has a stable handle.
+  let auto = 0;
+  for (const s of all) {
+    if (!s.number) {
+      auto += 1;
+      s.number = `S${auto}`;
     }
   }
-  pushCurrent();
 
-  return sections;
+  const mostlyLowQuality =
+    chunks.length > 0 && lowQualityChunks >= Math.ceil(chunks.length / 2);
+
+  if (all.length === 0) {
+    // No structure at all — let the user still map the whole document.
+    const fullText = pages.map((p) => p.text).join('\n\n').trim();
+    return {
+      sections: [
+        {
+          number: 'S1',
+          title: 'Full document',
+          level: 1,
+          page_start: pages[0]?.page_number ?? 1,
+          text: fullText,
+          image_count: countImageRefs(fullText),
+        },
+      ],
+      lowTextQuality: true,
+    };
+  }
+
+  return { sections: all, lowTextQuality: mostlyLowQuality };
 }
 
 /**
@@ -827,6 +876,7 @@ async function runSectionExtraction(
 ): Promise<{
   source_language: LanguageInfo;
   sections: ExtractedSection[];
+  low_text_quality: boolean;
 }> {
   const absolutePath = path.resolve(WORKSPACE_DIR, documentPath);
 
@@ -836,21 +886,27 @@ async function runSectionExtraction(
     throw new Error(`Document not found: ${documentPath} (resolved to ${absolutePath})`);
   }
 
-  if (onProgress) await onProgress(0, 3, 'Parsing document…');
+  if (onProgress) await onProgress(0, 1, 'Parsing document…');
   const pages = await extractDocumentText(absolutePath);
   if (!pages.length) {
     throw new Error(`No text could be extracted from ${path.basename(documentPath)}`);
   }
 
-  if (onProgress) await onProgress(1, 3, 'Detecting language…');
+  if (onProgress) await onProgress(0, 1, 'Detecting language…');
   const langInfo = await detectLanguage(llm, pages);
 
-  if (onProgress) await onProgress(2, 3, 'Splitting into sections…');
-  const sections = splitIntoSections(pages);
+  // LLM-based section extraction (robust on noisy / scanned OCR text).
+  const { sections, lowTextQuality } = await llmExtractSections(
+    llm,
+    pages,
+    onProgress,
+  );
 
-  if (onProgress) await onProgress(3, 3, 'Complete');
-
-  return { source_language: langInfo, sections };
+  return {
+    source_language: langInfo,
+    sections,
+    low_text_quality: lowTextQuality,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -991,12 +1047,16 @@ const tools: McpTool[] = [
   {
     name: 'extract_document_sections',
     description:
-      'Lightweight structural extraction of a PDF or Office document WITHOUT EARS ' +
-      'classification. Returns the detected source language and a flat list of ' +
-      'sections with their number, title, nesting level, starting page, body text, ' +
-      'and a best-effort image-reference count. Use this to populate a ' +
-      'source→target section mapping. Supports PDF, Word, PowerPoint and Excel ' +
-      'via LiteParse with built-in OCR.',
+      'Structural extraction of a PDF or Office document WITHOUT EARS ' +
+      'classification. An analyst LLM identifies the real section structure ' +
+      'from the parsed text (robust on noisy / scanned OCR documents). ' +
+      'Returns the detected source language, a flat list of sections with ' +
+      'their number, title, nesting level, starting page, body text and a ' +
+      'best-effort image-reference count, and a `low_text_quality` flag that ' +
+      'is true when the document is mostly unreadable OCR (in which case the ' +
+      'whole document is returned as a single fallback section). Use this to ' +
+      'populate a source→target section mapping. Supports PDF, Word, ' +
+      'PowerPoint and Excel via LiteParse with built-in OCR.',
     inputSchema: {
       type: 'object',
       properties: {

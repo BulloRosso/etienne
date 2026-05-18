@@ -119,7 +119,9 @@
       "Bash(agent-browser install)",
       "Bash(wc -l /c/Data/GitHub/claude-multitenant/frontend/public/i18n/*.json)",
       "WebFetch(domain:opencode.ai)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(cp src/mcpserver/document-analysis-tools.ts /tmp/dat.bak)",
+      "Bash(sed -i '850,956d' src/mcpserver/document-analysis-tools.ts)"
     ],
     "deny": [],
     "ask": []
