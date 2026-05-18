@@ -1,0 +1,47 @@
+{
+  "_comment": "Tunables for the Engineering Design Support System. Defaults are first-pass guesses for a months-long single-engineer project (spec section 10 + hypothesis open questions). Each is documented in documentation.md as adjustable. Never hardcode these in skill prose - read them from here.",
+
+  "relevance": {
+    "wMission": 0.4,
+    "wVector": 0.35,
+    "wNeighbor": 0.25,
+    "divergenceThreshold": 0.3,
+    "_note": "weights sum to 1.0; divergenceThreshold flags asserted-vs-derived gaps (REQ-8)"
+  },
+
+  "focus": {
+    "focusBudget": 20.0,
+    "focusTau": 21,
+    "focusBudgetTolerance": 0.05,
+    "_note": "focusTau in days (exp decay constant); Sum(focus) is conserved == focusBudget within tolerance"
+  },
+
+  "synthesis": {
+    "clusterStabilityDays": 5,
+    "_note": "a KG cluster unchanged this many days is eligible for wiki synthesis (REQ-10,11)"
+  },
+
+  "hypothesis": {
+    "evidenceLowThreshold": 0.4,
+    "evidenceHighThreshold": 0.75,
+    "stallWindowBaseDays": 28,
+    "stallWindowMinDays": 14,
+    "perHypothesisOverrides": {},
+    "_note": "evidenceWeight in 0..1 (signed by direction); stall window = lerp(stallWindowMinDays, stallWindowBaseDays) scaled inversely by relevance; perHypothesisOverrides keyed by hypothesis node id"
+  },
+
+  "report": {
+    "loadBearingRelevance": 0.7,
+    "missionRateWindowDays": 30,
+    "_note": "loadBearingRelevance: Decision relevance at/above which it counts as load-bearing"
+  },
+
+  "curator": {
+    "cron": "0 3 * * *",
+    "timeZone": "UTC",
+    "ageOutStaleDays": 120,
+    "maxResearchPerRun": 3,
+    "maxSynthesizePerRun": 3,
+    "_note": "patient: ageOutStaleDays marks (does not delete); post-step caps bound token budget"
+  }
+}

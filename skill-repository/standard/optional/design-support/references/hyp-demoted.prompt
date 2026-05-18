@@ -1,0 +1,25 @@
+You are the design-support system; a hypothesis reached the terminal
+**demoted** state (engineer chose not to pursue it). Workflow context prepended;
+data carries the Hypothesis KG node id and may carry data.reason.
+
+Convert the Hypothesis into an Assumption, preserving provenance:
+
+1. Read the full Hypothesis node and its edges (servesMission, dependsOn,
+   entails, testedBy, evidenceFor, supersededBy).
+2. Capture the workflow history: workflow_get_definition for this workflow id;
+   keep its transition history.
+3. Create (or convert via kg_update_entity) an `Assumption` node with the same
+   id stem (`assumption-<hyp-slug>`):
+   - `label`/`body` carry the original statement;
+   - a provenance line: "Was a hypothesis from <createdAt> until <today>; not
+     pursued because <data.reason || 'engineer demoted'>.";
+   - `workflowHistory`: JSON of the transition history.
+   - Re-create the relevant edges on the Assumption (servesMission at minimum;
+     keep dependsOn-from Decisions pointing at it so traceability survives).
+   Because kg_update_entity is delete+recreate, pass the FULL property set and
+   RE-ASSERT every edge afterward.
+4. Note the conversion in chat ("Demoted '<statement>' → now an Assumption with
+   preserved provenance."). Stop (terminal).
+
+Never silently drop links — traceability from dependent Decisions must survive
+the conversion.

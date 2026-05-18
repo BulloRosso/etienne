@@ -12,6 +12,19 @@
  *   7. Write three JSONL session histories + update chat.sessions.json.
  *   8. Enable dreaming + POST /run-now.
  *   9. Wait for workspace/<project>/dreaming/dream-YYYY-MM-DD.dreams.json.
+ *  10. Install design-support + scrapbook + stateful-workflows optional skills
+ *      and scaffold the runtime dirs.
+ *  11. POST the design-support typed graph (mission + working + hypothesis
+ *      nodes; entails / dependsOn / testedBy / evidenceFor edges).
+ *  12. Create one workflow per hypothesis and drive it to its target state
+ *      (incl. one Refuted→cascade and one mission-derived); + the
+ *      mission-derivation singleton.
+ *  12b. Create the named scrapbook (.scbk metadata so the open dialog lists
+ *      it) + the mission-aligned projection (root → Engineering/Compliance/
+ *      Economics → decisions + hypotheses tagged by lifecycle state).
+ *  13. Write documentation.md + register it auto-open in user-interface.json.
+ *  14. Seed the critic-mission-contradiction event rule + prompt.
+ *  15. Register the nightly curator cron.
  *
  * Run with:
  *
@@ -33,12 +46,28 @@ import { WIKI_PAGES } from './fixtures/wiki-pages';
 import { KG_ENTITIES, KG_RELATIONSHIPS } from './fixtures/kg';
 import { RAG_DOCS } from './fixtures/rag-docs';
 import { SESSIONS } from './fixtures/chats';
+import {
+  DS_MISSION_NODES,
+  DS_MISSION_EDGES,
+  DS_WORKING_NODES,
+  DS_WORKING_EDGES,
+  DS_HYPOTHESIS_EDGES,
+  DS_TEST_NODES,
+  DS_TEST_EDGES,
+  HYPOTHESES,
+  USER_INTERFACE_JSON,
+  DOCUMENTATION_SOURCE_REL,
+} from './fixtures/hypotheses';
 
 const WORKSPACE_ROOT =
   process.env.WORKSPACE_ROOT ||
   'C:/Data/GitHub/claude-multitenant/workspace';
 
 const PROJECT_ROOT = join(WORKSPACE_ROOT, PROJECT_NAME);
+
+const REPO_ROOT = join(WORKSPACE_ROOT, '..');
+const SKILL_REPO = join(REPO_ROOT, 'skill-repository', 'standard', 'optional');
+const DS_OPTIONAL_SKILLS = ['design-support', 'scrapbook', 'stateful-workflows'];
 
 const NOW = '2026-05-14T09:00:00Z';
 const PROV = {
@@ -382,6 +411,351 @@ async function step9_waitForDream(runId: string): Promise<string> {
   return expectedFile;
 }
 
+async function step10_installDesignSupport(): Promise<void> {
+  header('10. Install design-support + scrapbook + stateful-workflows skills');
+  const skillsDir = join(PROJECT_ROOT, '.claude', 'skills');
+  await mkdir(skillsDir, { recursive: true });
+  for (const skill of DS_OPTIONAL_SKILLS) {
+    const src = join(SKILL_REPO, skill);
+    const dst = join(skillsDir, skill);
+    if (!existsSync(src)) {
+      throw new Error(`optional skill not found in repo: ${src}`);
+    }
+    cpSync(src, dst, { recursive: true });
+    info(`installed ${skill}/`);
+  }
+
+  // The hypothesis/derivation onEntry prompt files must be reachable at
+  // workspace/<project>/workflows/<promptFile> — that is where the workflow
+  // entry-action runner resolves them.
+  const wfDir = join(PROJECT_ROOT, 'workflows');
+  await mkdir(wfDir, { recursive: true });
+  const refDir = join(skillsDir, 'design-support', 'references');
+  for (const f of [
+    'hyp-proposed.prompt', 'hyp-sharpened.prompt', 'hyp-under-test.prompt',
+    'hyp-provisional-support.prompt', 'hyp-provisional-refute.prompt',
+    'hyp-stalled.prompt', 'hyp-supported.prompt', 'hyp-refuted.prompt',
+    'hyp-demoted.prompt', 'hyp-superseded.prompt',
+    'derivation-pending.prompt', 'derivation-triage.prompt',
+  ]) {
+    cpSync(join(refDir, f), join(wfDir, f));
+  }
+
+  // Scaffold the runtime dirs the skill writes into.
+  for (const d of ['mission/history', 'reports', 'design-support', '.attachments/design']) {
+    await mkdir(join(PROJECT_ROOT, d), { recursive: true });
+  }
+  // Project-level tunable config copy (engineer edits this one).
+  cpSync(
+    join(skillsDir, 'design-support', 'config.json'),
+    join(PROJECT_ROOT, 'design-support', 'config.json'),
+  );
+  ok('design-support installed + runtime dirs scaffolded');
+}
+
+async function step11_seedDesignSupportGraph(ctx: ApiContext): Promise<void> {
+  header('11. Seed design-support typed graph (mission + working + hypotheses)');
+  const entities = [
+    ...DS_MISSION_NODES,
+    ...DS_WORKING_NODES,
+    ...DS_TEST_NODES,
+    // Hypothesis nodes derived from the HYPOTHESES fixture.
+    ...HYPOTHESES.map((h) => ({
+      id: h.id,
+      type: 'Document' as const,
+      properties: {
+        dsType: 'Hypothesis',
+        label: h.statement,
+        statement: h.statement,
+        confirmationCriteria: h.confirmationCriteria,
+        refutationCriteria: h.refutationCriteria,
+        predictions: h.predictions,
+        missionDerived: String(h.missionDerived),
+        workflowId: h.workflowId,
+        evidenceWeight: '0',
+        confidence: 'open',
+        relevance: h.relevance,
+        focus: h.focus,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    })),
+  ];
+  let ec = 0;
+  for (const e of entities) {
+    await apiFetch(ctx, `/api/knowledge-graph/${PROJECT_NAME}/entities`, {
+      method: 'POST',
+      body: JSON.stringify(e),
+    });
+    ec += 1;
+  }
+  ok(`ds graph: ${ec} entities`);
+
+  const edges = [
+    ...DS_MISSION_EDGES,
+    ...DS_WORKING_EDGES,
+    ...DS_HYPOTHESIS_EDGES,
+    ...DS_TEST_EDGES,
+  ];
+  let rc = 0;
+  for (const r of edges) {
+    await apiFetch(ctx, `/api/knowledge-graph/${PROJECT_NAME}/relationships`, {
+      method: 'POST',
+      body: JSON.stringify(r),
+    });
+    rc += 1;
+  }
+  ok(`ds graph: ${rc} relationships (incl. entails / dependsOn / testedBy / evidenceFor)`);
+}
+
+/**
+ * Write a workflow file directly to workspace/<project>/workflows/.
+ * The engine reads these on demand; persistedSnapshot:null means XState
+ * starts the machine at `initial`. We then drive real transitions via the
+ * REST event endpoint so the onEntry side-effects actually fire.
+ */
+async function writeWorkflowFile(workflowId: string, name: string, machineConfig: unknown): Promise<void> {
+  const wfDir = join(PROJECT_ROOT, 'workflows');
+  await mkdir(wfDir, { recursive: true });
+  const initial = (machineConfig as { initial: string }).initial;
+  const file = {
+    id: workflowId,
+    name,
+    description: `Hypothesis lifecycle for ${workflowId}`,
+    createdAt: NOW,
+    updatedAt: NOW,
+    version: 1,
+    machineConfig,
+    persistedSnapshot: null,
+    currentState: initial,
+    history: [] as unknown[],
+    tags: ['design-support', 'hypothesis'],
+  };
+  await writeFile(join(wfDir, `${workflowId}.workflow.json`), JSON.stringify(file, null, 2), 'utf8');
+}
+
+async function step12_seedHypothesisWorkflows(ctx: ApiContext): Promise<void> {
+  header('12. Create hypothesis workflows + advance to target states');
+  const machinePath = join(
+    PROJECT_ROOT, '.claude', 'skills', 'design-support', 'references', 'hypothesis-machine.json',
+  );
+  const machineConfig = JSON.parse(await readFile(machinePath, 'utf8'));
+
+  for (const h of HYPOTHESES) {
+    await writeWorkflowFile(h.workflowId, `Hypothesis: ${h.statement.slice(0, 48)}`, machineConfig);
+    info(`workflow ${h.workflowId} (target: ${h.targetState})`);
+    // Drive the documented event path. Each event runs a real transition;
+    // onEntry side-effects (e.g. the refuted cascade) fire via the backend.
+    for (const ev of h.eventPath) {
+      try {
+        await apiFetch(ctx, `/api/workspace/${PROJECT_NAME}/workflows/${h.workflowId}/event`, {
+          method: 'POST',
+          body: JSON.stringify({ event: ev, data: { hypothesisId: h.id, source: 'seed' } }),
+        });
+      } catch (err) {
+        if (err instanceof ApiError) {
+          warn(`  ${h.workflowId} event ${ev} → HTTP ${err.status} (continuing)`);
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  // The mission-derivation singleton, parked in `closed`.
+  const mdPath = join(
+    PROJECT_ROOT, '.claude', 'skills', 'design-support', 'references', 'mission-derivation-machine.json',
+  );
+  const mdConfig = JSON.parse(await readFile(mdPath, 'utf8'));
+  await writeWorkflowFile('mission-derivation', 'Mission derivation', mdConfig);
+  ok(`${HYPOTHESES.length} hypothesis workflows + mission-derivation created`);
+}
+
+/**
+ * Create the named scrapbook so it is discoverable in the open dialog (the
+ * dialog scans for *.scbk metadata files) AND build the mission-aligned
+ * projection of the design-support graph (root → Engineering/Compliance/
+ * Economics → decisions + hypotheses tagged by lifecycle state, with
+ * [kg:<id>] round-trip tokens).
+ *
+ * The .scbk file is written directly to disk (matching the shape
+ * ScrapbookService.createScrapbook writes) so discoverability does not depend
+ * on API reachability. The node projection is built via the scrapbook API;
+ * if the API is unreachable the .scbk + root still make the scrapbook
+ * openable and the design-support skill can rebuild the projection later.
+ */
+async function step12b_seedScrapbookProjection(ctx: ApiContext): Promise<void> {
+  header('12b. Create scrapbook + mission-aligned projection');
+  const graphName = 'design';
+  const sbName = 'Desalination Pilot — Design Scrapbook';
+
+  // 1. .scbk metadata (discoverability) — written directly to disk.
+  const scbk = { name: sbName, graphName, createdAt: NOW, version: 1 };
+  await writeFile(
+    join(PROJECT_ROOT, `scrapbook.${graphName}.scbk`),
+    JSON.stringify(scbk, null, 2),
+    'utf8',
+  );
+  info(`scrapbook.${graphName}.scbk written`);
+
+  // 2. Build the projection via the scrapbook API.
+  const base = `/api/workspace/${PROJECT_NAME}/scrapbook/${graphName}/nodes`;
+  const mk = async (body: Record<string, unknown>): Promise<string | null> => {
+    try {
+      const r = await apiFetch<{ id?: string }>(ctx, base, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      return r?.id ?? null;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        warn(`scrapbook node POST → HTTP ${err.status} (projection skipped; .scbk still openable)`);
+        return null;
+      }
+      throw err;
+    }
+  };
+
+  const rootId = await mk({
+    type: 'ProjectTheme',
+    label: 'Desalination Pilot',
+    description: 'Mission-aligned projection of the design-support knowledge graph. [kg:mv-1]',
+    priority: 10,
+    attentionWeight: 1.0,
+  });
+  if (!rootId) {
+    warn('scrapbook root not created (API unreachable) — .scbk present; skill will project on first run');
+    return;
+  }
+
+  const cat = async (label: string, desc: string, prio: number, att: number) =>
+    mk({ type: 'Category', label, description: desc, priority: prio, attentionWeight: att, parentId: rootId });
+  const eng = await cat('Engineering', 'Buildable system from COTS components. [kg:mi-buildable]', 10, 0.7);
+  const cmp = await cat('Compliance', 'WHO GDWQ + EU DWD 2020/2184. [kg:mc-who-eu]', 10, 0.6);
+  const eco = await cat('Economics', 'Defensible 10-year TCO. [kg:mc-tco]', 9, 0.5);
+
+  const child = async (parent: string | null, type: string, label: string, desc: string, prio: number, att: number) => {
+    if (!parent) return;
+    await mk({ type, label, description: desc, priority: prio, attentionWeight: att, parentId: parent });
+  };
+
+  await child(eng, 'Decision', '2-element SW30 train (38% recovery)', 'Load-bearing for boron compliance; depends on hypothesis-boron-single-pass. [kg:decision-sw30-train]', 9, 0.7);
+  await child(eng, 'Decision', 'Multimedia + cartridge pre-treatment', 'Targets SDI < 3. [kg:decision-multimedia-pretreat]', 9, 0.6);
+  await child(eng, 'Concept', '⚠ Hypothesis: single-pass clears boron (REFUTED)', 'Refuted — see cascade report; entails second-pass; sw30-train depends on it. [kg:hypothesis-boron-single-pass]', 10, 0.8);
+  await child(eng, 'Concept', 'Hypothesis: partial second pass clears boron (PROVISIONAL)', 'Reopened by the single-pass cascade. [kg:hypothesis-second-pass-clears-boron]', 9, 0.7);
+  await child(eng, 'Concept', 'Hypothesis: pre-treatment sustains 5y membrane (UNDER TEST)', 'Under test. [kg:hypothesis-pretreat-5y-membrane]', 9, 0.6);
+  await child(cmp, 'Constraint', 'Boron <= EU 1.5 mg/L', 'Acceptance criterion. [kg:mac-boron]', 10, 0.6);
+  await child(cmp, 'OpenQuestion', 'Second pass needed at high feed pH?', 'Boron is the weak spot. [kg:openq-boron-second-pass]', 9, 0.6);
+  await child(eco, 'Concept', 'Hypothesis: ERD pays back within 10y (SUPPORTED)', 'Supported; confidence frozen. [kg:hypothesis-erd-payback]', 8, 0.5);
+  await child(eco, 'Concept', 'Hypothesis: solar-only feasible (STALLED)', 'Stalled — commit to a test or demote. [kg:hypothesis-solar-only-feasible]', 7, 0.3);
+
+  ok(`scrapbook "${sbName}" created with mission-aligned projection (13 nodes)`);
+}
+
+async function step13_documentationAndUi(): Promise<void> {
+  header('13. Write documentation.md + register as auto-open');
+  const docSrc = join(PROJECT_ROOT, DOCUMENTATION_SOURCE_REL);
+  const docBody = await readFile(docSrc, 'utf8');
+  await writeFile(join(PROJECT_ROOT, 'documentation.md'), docBody, 'utf8');
+
+  const uiPath = join(PROJECT_ROOT, '.etienne', 'user-interface.json');
+  await mkdir(join(PROJECT_ROOT, '.etienne'), { recursive: true });
+  let ui: any = { ...USER_INTERFACE_JSON };
+  if (existsSync(uiPath)) {
+    try {
+      const cur = JSON.parse(await readFile(uiPath, 'utf8'));
+      const previews: string[] = Array.isArray(cur.previewDocuments) ? cur.previewDocuments : [];
+      if (!previews.includes('documentation.md')) previews.unshift('documentation.md');
+      ui = { ...cur, previewDocuments: previews };
+    } catch {
+      /* keep fixture default */
+    }
+  }
+  await writeFile(uiPath, JSON.stringify(ui, null, 2), 'utf8');
+  ok('documentation.md written + registered in user-interface.json');
+}
+
+async function step14_seedEventRules(): Promise<void> {
+  header('14. Seed critic-mission-contradiction event rule + prompt');
+  const etienne = join(PROJECT_ROOT, '.etienne');
+  await mkdir(etienne, { recursive: true });
+
+  const ehPath = join(etienne, 'event-handling.json');
+  let eh: { rules: any[] } = { rules: [] };
+  if (existsSync(ehPath)) {
+    try { eh = JSON.parse(await readFile(ehPath, 'utf8')); } catch { eh = { rules: [] }; }
+  }
+  if (!Array.isArray(eh.rules)) eh.rules = [];
+  if (!eh.rules.some((r) => r.id === 'critic-mission-contradiction')) {
+    eh.rules.push({
+      id: 'critic-mission-contradiction',
+      name: 'Critic: surface a node contradicting the current mission',
+      // Seeded DISABLED on purpose. The seed drives a hypothesis to a
+      // Refuted→cascade state, which creates a kg:contradicts edge to a
+      // Mission node — making this knowledge-graph condition permanently
+      // true. A knowledge-graph rule re-evaluates on EVERY event and its
+      // prompt action's SDK session emits its own events, so left enabled
+      // against an unresolved contradiction it re-fires indefinitely (the
+      // rule-engine cooldown bounds the rate but never stops it). The
+      // operator enables it intentionally once they want the critic live.
+      enabled: false,
+      condition: {
+        type: 'knowledge-graph',
+        sparqlQuery:
+          'PREFIX kg: <http://example.org/kg/> SELECT ?node ?mission WHERE { ?node kg:contradicts ?mission . { ?mission kg:type "MissionIntent" } UNION { ?mission kg:type "MissionConstraint" } UNION { ?mission kg:type "MissionAcceptanceCriterion" } } LIMIT 1',
+      },
+      action: { type: 'prompt', promptId: 'critic-interrupt' },
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+  }
+  await writeFile(ehPath, JSON.stringify(eh, null, 2), 'utf8');
+
+  const prPath = join(etienne, 'prompts.json');
+  let pr: { prompts: any[] } = { prompts: [] };
+  if (existsSync(prPath)) {
+    try { pr = JSON.parse(await readFile(prPath, 'utf8')); } catch { pr = { prompts: [] }; }
+  }
+  if (!Array.isArray(pr.prompts)) pr.prompts = [];
+  if (!pr.prompts.some((p) => p.id === 'critic-interrupt')) {
+    pr.prompts.push({
+      id: 'critic-interrupt',
+      title: 'Critic: mission contradiction detected',
+      content:
+        'The design-support critic detected a node in the knowledge graph that CONTRADICTS the current mission. This is the one permitted pull-based exception. Invoke the design-support skill in `critic` mode: identify the contradicting node and the mission element it conflicts with, state the conflict to the engineer plainly and specifically, and record a Gap node. Do not resolve it unilaterally; do not push anything else.',
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+  }
+  await writeFile(prPath, JSON.stringify(pr, null, 2), 'utf8');
+  ok('event rule + prompt seeded');
+}
+
+async function step15_registerCuratorCron(ctx: ApiContext): Promise<void> {
+  header('15. Register nightly curator cron');
+  try {
+    await apiFetch(ctx, `/api/scheduler/${PROJECT_NAME}/task`, {
+      method: 'POST',
+      body: JSON.stringify({
+        id: 'design-support-curator',
+        name: 'Design-support nightly curator',
+        prompt:
+          'Run the design-support skill in curator mode: recompute relevance, decay+renormalize focus (conserve the budget), dedupe, refresh the gap/whitespot registers, fire STALL on stale under_test hypotheses, refresh the scrapbook projection, then bounded research/synthesize/critic post-steps. Append a summary to design-support/curator-log.md.',
+        cronExpression: '0 3 * * *',
+        timeZone: 'UTC',
+        type: 'recurring',
+      }),
+    });
+    ok('curator cron registered (0 3 * * * UTC)');
+  } catch (err) {
+    if (err instanceof ApiError) {
+      warn(`curator cron registration → HTTP ${err.status} (register manually if needed)`);
+      return;
+    }
+    throw err;
+  }
+}
+
 // ─── entry ─────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -398,9 +772,19 @@ async function main(): Promise<void> {
   const runId = await step8_enableAndRunDreaming(ctx);
   const dreamPath = await step9_waitForDream(runId);
 
+  // Engineering Design Support System + hypothesis subsystem.
+  await step10_installDesignSupport();
+  await step11_seedDesignSupportGraph(ctx);
+  await step12_seedHypothesisWorkflows(ctx);
+  await step12b_seedScrapbookProjection(ctx);
+  await step13_documentationAndUi();
+  await step14_seedEventRules();
+  await step15_registerCuratorCron(ctx);
+
   console.log(`\n\x1b[32m✓ done\x1b[0m`);
   console.log(`  inspect:  ${dreamPath}`);
-  console.log(`  ui:       open the Adaptive Memory tile on the dashboard and pick "${PROJECT_NAME}"`);
+  console.log(`  docs:     workspace/${PROJECT_NAME}/documentation.md (auto-opens in the UI)`);
+  console.log(`  ui:       open the project and explore the scrapbook + status report`);
 }
 
 main().catch((err) => {

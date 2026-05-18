@@ -1,0 +1,109 @@
+{
+  "initial": "proposed",
+  "states": {
+    "proposed": {
+      "on": { "SHARPEN": "sharpened", "DEMOTE": "demoted", "SUPERSEDE": "superseded" },
+      "meta": {
+        "label": "Proposed",
+        "description": "Claim stated; needs confirmation + refutation criteria before it can progress (anti-vagueness gate).",
+        "onEntry": { "promptFile": "hyp-proposed.prompt", "maxTurns": 12 }
+      }
+    },
+    "sharpened": {
+      "on": { "START_TEST": "under_test", "DEMOTE": "demoted", "SUPERSEDE": "superseded" },
+      "meta": {
+        "label": "Sharpened",
+        "description": "Criteria exist; a test queue is generated and the engineer picks the first test.",
+        "onEntry": { "promptFile": "hyp-sharpened.prompt", "maxTurns": 12 }
+      }
+    },
+    "under_test": {
+      "on": {
+        "PROVISIONAL_SUPPORT": "provisional_support",
+        "PROVISIONAL_REFUTE": "provisional_refute",
+        "STALL": "stalled",
+        "DEMOTE": "demoted",
+        "SUPERSEDE": "superseded"
+      },
+      "meta": {
+        "label": "Under test",
+        "description": "Researcher pursues low-cost tests; critic runs falsification probes; evidence accumulates.",
+        "onEntry": { "promptFile": "hyp-under-test.prompt", "maxTurns": 20 }
+      }
+    },
+    "provisional_support": {
+      "on": {
+        "CONFIRM_SUPPORT": "supported",
+        "REOPEN": "under_test",
+        "STALL": "stalled",
+        "DEMOTE": "demoted",
+        "SUPERSEDE": "superseded"
+      },
+      "meta": {
+        "label": "Provisional support",
+        "description": "Evidence leans confirm; not yet closed. May reopen if an entailing hypothesis is refuted.",
+        "onEntry": { "promptFile": "hyp-provisional-support.prompt", "maxTurns": 12 }
+      }
+    },
+    "provisional_refute": {
+      "on": {
+        "CONFIRM_REFUTE": "refuted",
+        "REOPEN": "under_test",
+        "STALL": "stalled",
+        "DEMOTE": "demoted",
+        "SUPERSEDE": "superseded"
+      },
+      "meta": {
+        "label": "Provisional refutation",
+        "description": "Evidence leans refute; critic annotates dependent decisions as weakening (no invalidation yet).",
+        "onEntry": { "promptFile": "hyp-provisional-refute.prompt", "maxTurns": 12 }
+      }
+    },
+    "stalled": {
+      "on": {
+        "RESUME": "under_test",
+        "DEMOTE": "demoted",
+        "SUPERSEDE": "superseded"
+      },
+      "meta": {
+        "label": "Stalled",
+        "description": "Evidence dried up. Added to the next review offer with a specific question.",
+        "waitingFor": "human_chat",
+        "waitingMessage": "This hypothesis has stalled (no new evidence). Commit to a real test (RESUME), or demote it (DEMOTE)?",
+        "onEntry": { "promptFile": "hyp-stalled.prompt", "maxTurns": 8 }
+      }
+    },
+    "supported": {
+      "type": "final",
+      "meta": {
+        "label": "Supported",
+        "description": "Confidence frozen. Synthesizer removes hedging from dependent wiki claims.",
+        "onEntry": { "promptFile": "hyp-supported.prompt", "maxTurns": 16 }
+      }
+    },
+    "refuted": {
+      "type": "final",
+      "meta": {
+        "label": "Refuted",
+        "description": "Cascade report scopes the downstream revision work (the keystone side-effect).",
+        "onEntry": { "promptFile": "hyp-refuted.prompt", "maxTurns": 24 }
+      }
+    },
+    "demoted": {
+      "type": "final",
+      "meta": {
+        "label": "Demoted",
+        "description": "Converted to an Assumption with provenance + workflow history preserved.",
+        "onEntry": { "promptFile": "hyp-demoted.prompt", "maxTurns": 12 }
+      }
+    },
+    "superseded": {
+      "type": "final",
+      "meta": {
+        "label": "Superseded",
+        "description": "Reformulated; replacement started in Proposed inheriting links.",
+        "onEntry": { "promptFile": "hyp-superseded.prompt", "maxTurns": 12 }
+      }
+    }
+  }
+}

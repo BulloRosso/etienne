@@ -19,12 +19,23 @@ import * as path from 'path';
 
 const SIMILARITY_THRESHOLD = 0.86;
 
+// Loop guard: minimum interval between two fires of the same rule in the same
+// project. A prompt action spawns an SDK session that emits its own events
+// (UserPromptSubmit, File Modified on data/session.id, ...). Those re-enter the
+// router and re-match the rule. For `knowledge-graph`/`semantic` rules the
+// condition does not even inspect the event, so it stays true and the rule
+// fans out unboundedly until the API credit balance is exhausted. The cooldown
+// caps each rule to at most one fire per window; env-overridable for tests.
+const RULE_COOLDOWN_MS = parseInt(process.env.RULE_FIRE_COOLDOWN_MS || '30000', 10);
+
 @Injectable()
 export class RuleEngineService {
   private readonly logger = new Logger(RuleEngineService.name);
   // Rules are now scoped per project: Map<projectName, Map<ruleId, EventRule>>
   private rulesByProject: Map<string, Map<string, EventRule>> = new Map();
   private eventHistory: Map<string, InternalEvent[]> = new Map(); // For compound conditions
+  // Loop guard: last fire time per `${projectName}:${ruleId}` (epoch ms).
+  private lastFiredAt: Map<string, number> = new Map();
 
   constructor(
     private readonly vectorStore: VectorStoreService,
@@ -160,6 +171,25 @@ export class RuleEngineService {
   }
 
   /**
+   * Self-event suppression: an event emitted BY a prompt action's SDK session
+   * (group "Claude Code", source "Claude Agent SDK") must not re-trigger a rule
+   * whose condition ignores the event payload — `knowledge-graph` and
+   * `semantic` rules match on graph/vector state, not the event, so an
+   * SDK-echoed event keeps them true and creates a feedback loop. `simple`
+   * rules that deliberately target `group: "Claude Code"` are intentional and
+   * are NOT suppressed here (the cooldown still bounds their rate).
+   */
+  private isSelfEchoedSdkEvent(event: InternalEvent, rule: EventRule): boolean {
+    const fromSdk =
+      event.source === 'Claude Agent SDK' || event.group === 'Claude Code';
+    if (!fromSdk) return false;
+    return (
+      rule.condition.type === 'knowledge-graph' ||
+      rule.condition.type === 'semantic'
+    );
+  }
+
+  /**
    * Evaluate an event against all rules for a specific project
    */
   async evaluateEvent(
@@ -186,6 +216,16 @@ export class RuleEngineService {
     for (const rule of projectRules.values()) {
       if (!rule.enabled) continue;
 
+      // Loop guard 1 — self-event suppression: skip events echoed back by a
+      // prompt action's own SDK session for rules whose condition ignores the
+      // event payload (knowledge-graph/semantic).
+      if (this.isSelfEchoedSdkEvent(event, rule)) {
+        this.logger.debug(
+          `Rule ${rule.id} skipped for SDK-echoed event ${event.id} (self-event suppression)`,
+        );
+        continue;
+      }
+
       try {
         const matches = await this.evaluateCondition(
           event,
@@ -195,6 +235,21 @@ export class RuleEngineService {
         );
 
         if (matches) {
+          // Loop guard 2 — per-rule cooldown: even if the condition is still
+          // true, do not re-fire within RULE_COOLDOWN_MS of the last fire.
+          const cooldownKey = `${projectName}:${rule.id}`;
+          const now = Date.now();
+          const last = this.lastFiredAt.get(cooldownKey) ?? 0;
+          if (now - last < RULE_COOLDOWN_MS) {
+            this.logger.warn(
+              `Rule ${rule.name} (${rule.id}) matched but is in cooldown ` +
+                `(${Math.round((RULE_COOLDOWN_MS - (now - last)) / 1000)}s remaining) ` +
+                `— suppressing re-fire for event ${event.id}`,
+            );
+            continue;
+          }
+          this.lastFiredAt.set(cooldownKey, now);
+
           this.logger.log(`Rule matched: ${rule.name} (${rule.id}) for event ${event.id}`);
           results.push({
             ruleId: rule.id,

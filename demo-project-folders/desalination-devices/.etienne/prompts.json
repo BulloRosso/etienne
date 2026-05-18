@@ -6,6 +6,13 @@
       "content": "A new document was added at {{payload.path}}. Index it for semantic search by calling the rag_index_document tool with scope_name='project_{{projectName}}' and document_path='{{payload.path}}'.",
       "createdAt": "2026-04-07T00:00:00.000Z",
       "updatedAt": "2026-04-07T00:00:00.000Z"
+    },
+    {
+      "id": "critic-interrupt",
+      "title": "Critic: mission contradiction detected",
+      "content": "The design-support critic detected a node in the knowledge graph that CONTRADICTS the current mission. This is the one permitted pull-based exception — the engineer should be made aware now. Invoke the design-support skill in `critic` mode: identify the contradicting node and the mission element it conflicts with (a `contradicts` edge to a current Mission* node), state the conflict to the engineer plainly and specifically, and record a Gap node for it. Do not resolve it unilaterally — surface it and let the engineer decide. Do not push anything else.",
+      "createdAt": "2026-05-18T00:00:00.000Z",
+      "updatedAt": "2026-05-18T00:00:00.000Z"
     }
   ]
 }

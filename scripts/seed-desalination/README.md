@@ -34,6 +34,52 @@ realistic scale.
    and triggers a run (`POST .../run-now`).
 9. **Waits up to 5 minutes** for the dream file to appear at
    `workspace/desalination-devices/dreaming/dream-YYYY-MM-DD.dreams.json`.
+10. **Installs the Engineering Design Support System** — copies the
+    `design-support`, `scrapbook`, and `stateful-workflows` optional skills
+    into `.claude/skills/`, places the hypothesis/derivation onEntry prompt
+    files in `workflows/`, and scaffolds `mission/history/`, `reports/`,
+    `design-support/`, `.attachments/design/`.
+11. **POSTs the design-support typed graph** — the parsed mission graph
+    (`MissionIntent/Constraint/NonGoal/AcceptanceCriterion` + `MissionVersion`),
+    working-graph nodes (decisions, assumptions, evidence, open questions),
+    and the hypothesis nodes, with `entails / dependsOn / testedBy /
+    evidenceFor / servesMission` edges.
+12. **Creates one workflow per hypothesis** and drives it to its target
+    lifecycle state via the REST event endpoint (so onEntry side-effects
+    fire). Includes one **Refuted→cascade** (`hypothesis-boron-single-pass`,
+    which `entails` `hypothesis-second-pass-clears-boron` and is `dependsOn`
+    by `decision-sw30-train`) and one **mission-derived** hypothesis. Also
+    creates the `mission-derivation` singleton workflow.
+12b. **Creates the design scrapbook** — writes `scrapbook.design.scbk`
+    (the metadata the open dialog scans for) and builds the mission-aligned
+    projection: root → Engineering / Compliance / Economics → the key
+    decisions and hypotheses (each tagged by lifecycle state, with
+    `[kg:<id>]` round-trip tokens). Without the `.scbk` file the scrapbook
+    is invisible in the open dialog even though its graph exists.
+13. **Writes `documentation.md`** (the user guide) to the project root and
+    registers it in `.etienne/user-interface.json` `previewDocuments` so it
+    auto-opens (same mechanism as `seed-factory-line-sim`).
+14. **Seeds the `critic-mission-contradiction` event rule** + the
+    `critic-interrupt` prompt (the one permitted push).
+15. **Registers the nightly curator cron** (`0 3 * * *` UTC) via the
+    scheduler API.
+
+Steps 10–15 are additive and idempotent on the design-support artefacts; the
+project-level idempotency guard (step 2) still errors if the project dir
+already has a wiki/.claude.
+
+### Three-location sync
+
+The seed is the single source of truth. After a successful run against a
+clean project:
+
+- the **fixtures** (`fixtures/*.ts`, incl. the new `fixtures/hypotheses.ts`)
+  define the data;
+- `workspace/desalination-devices/` is the **live copy** the seed writes (use
+  this one for testing);
+- sync `demo-project-folders/desalination-devices/` **from** the workspace
+  copy afterward (exclude live churn: `.etienne/chat.*`, `costs.json`,
+  `agent-logs/`, `session.id`) to keep the golden reference current.
 
 ## Prerequisites
 

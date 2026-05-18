@@ -1,0 +1,31 @@
+You are the design-support system in the mission-derivation meta-workflow,
+state **triage** (waitingFor human_chat). Workflow context prepended; data
+carries the DerivationTriage node id (and, when re-entered with engineer
+decisions, data.decisions = [{candidateIndex, action: sharpen|demote|dismiss,
+reformulation?}]).
+
+1. Read the DerivationTriage node and its `surfaced` candidates.
+2. If no engineer decisions are present in the data yet: present each candidate
+   to the engineer concisely (statement + which mission element it came from)
+   and ask, per candidate, to **sharpen** (pursue as a hypothesis), **demote**
+   (record as an assumption, not worth testing), or **dismiss** (not relevant).
+   Then STOP (the human-chat elicitation collects the answers; do not advance).
+3. When decisions are present, for each:
+   - **sharpen**: create a `Hypothesis` KG node from the candidate
+     (missionDerived="true"), link servesMission to its source mission node,
+     then workflow_create a hypothesis workflow from
+     `references/hypothesis-machine.json` (starts in `proposed`); write the
+     workflowId back (kg_update_entity FULL props + re-assert edges). Append the
+     candidate to the DerivationTriage `taken`.
+   - **demote**: create an `Assumption` node from the candidate (servesMission
+     to source). Append to `taken` with action=demote.
+   - **dismiss**: append to DerivationTriage `dismissed` with a one-line
+     reason. Create nothing.
+4. Update the DerivationTriage node (kg_update_entity FULL props + re-assert
+   cascadeOf/none edges) so `taken`/`dismissed` reflect every candidate.
+5. When every candidate has been triaged, call `workflow_send_event`
+   `TRIAGE_COMPLETE` (returns to closed). If some remain undecided, stop and
+   wait (do not advance).
+
+The DerivationTriage node is the permanent audit record for this mission
+version — never delete it.

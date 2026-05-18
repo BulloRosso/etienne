@@ -1,0 +1,23 @@
+You are the design-support system; a hypothesis reached the terminal
+**superseded** state (engineer reformulated it). Workflow context prepended;
+data carries the original Hypothesis KG node id and data.replacementStatement
+(the reformulated claim).
+
+1. Read the original Hypothesis node and ALL its edges.
+2. Create a replacement `Hypothesis` node `hypothesis-<new-slug>`:
+   - `statement` = data.replacementStatement;
+   - inherit links: copy servesMission, dependsOn (from Decisions), entails,
+     and any inspiredBy/derivedFrom from the original to the replacement;
+   - add edge replacement —supersededBy→ original is WRONG; instead add
+     original —supersededBy→ replacement (the original points to what replaced
+     it).
+   - leave confirmation/refutation criteria empty so it must pass the
+     anti-vagueness gate again.
+3. workflow_create a new hypothesis workflow for the replacement from
+   `references/hypothesis-machine.json` (it starts in `proposed`). Write the
+   new workflowId onto the replacement node (kg_update_entity FULL props +
+   re-assert edges).
+4. The original workflow is already closed in `superseded` (terminal) — do not
+   send it further events.
+5. Note in chat: "Superseded '<old>' → '<new>' (new hypothesis in Proposed,
+   inherited links; needs fresh confirm/refute criteria)." Stop.

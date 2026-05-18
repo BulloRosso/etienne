@@ -15,9 +15,10 @@ import { KnowledgeGraphModule } from '../knowledge-graph/knowledge-graph.module'
 import { ProcessManagerModule } from '../process-manager/process-manager.module';
 import { StatefulWorkflowsModule } from '../stateful-workflows/stateful-workflows.module';
 import { AgentBusModule } from '../agent-bus/agent-bus.module';
+import { BudgetMonitoringModule } from '../budget-monitoring/budget-monitoring.module';
 
 @Module({
-  imports: [KnowledgeGraphModule, ProcessManagerModule, forwardRef(() => StatefulWorkflowsModule), forwardRef(() => AgentBusModule)],
+  imports: [KnowledgeGraphModule, ProcessManagerModule, forwardRef(() => StatefulWorkflowsModule), forwardRef(() => AgentBusModule), BudgetMonitoringModule],
   controllers: [EventsController, RulesController, PromptsController],
   providers: [
     EventRouterService,

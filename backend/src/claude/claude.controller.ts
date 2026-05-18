@@ -294,6 +294,8 @@ export class ClaudeController {
     const messages: any[] = [];
     let fullResponse = '';
     let tokenUsage = { input_tokens: 0, output_tokens: 0 };
+    let usageModel: string | undefined;
+    let sawApiError = false;
 
     try {
       const orchestrator = this.activeCodingAgent === 'open-code'
@@ -336,6 +338,13 @@ export class ClaudeController {
               if (data.type === 'completed' && data.data?.usage) {
                 tokenUsage.input_tokens += data.data.usage.input_tokens || 0;
                 tokenUsage.output_tokens += data.data.usage.output_tokens || 0;
+                if (data.data.usage.model) usageModel = data.data.usage.model;
+              }
+
+              // Track API errors (e.g. billing_error / "Credit balance is
+              // too low") so we never record cost for a failed turn.
+              if (data.type === 'api_error') {
+                sawApiError = true;
               }
             } catch (e) {
               console.error('[Unattended] Error parsing message:', e);
@@ -390,6 +399,44 @@ export class ClaudeController {
         }
       } catch (persistError: any) {
         console.error(`[Unattended] Failed to persist chat history: ${persistError.message}`);
+      }
+
+      // Record token costs. The unattended path (rule-triggered prompts,
+      // condition monitors, scheduled tasks) previously NEVER called
+      // trackCosts, so a runaway rule loop burned API credit invisibly —
+      // costs.json showed nothing. Record real usage here, but skip
+      // synthetic/billing-error/zero-token turns so failed loop iterations
+      // don't pollute the ledger.
+      const isSynthetic = usageModel === '<synthetic>';
+      const hasRealUsage =
+        tokenUsage.input_tokens > 0 || tokenUsage.output_tokens > 0;
+      if (sawApiError || isSynthetic || !hasRealUsage) {
+        console.log(
+          `[Unattended] Skipping cost recording for project ${project} ` +
+            `(apiError=${sawApiError}, synthetic=${isSynthetic}, ` +
+            `tokens=${tokenUsage.input_tokens}/${tokenUsage.output_tokens})`
+        );
+      } else {
+        try {
+          // Pass the bare project name (not projectRoot) — trackCosts runs it
+          // through safeRoot(workspaceRoot, project), matching how
+          // checkBudgetLimit(project) is called above and the scheduler path.
+          const entry = await this.budgetMonitoringService.trackCosts(
+            project,
+            tokenUsage.input_tokens,
+            tokenUsage.output_tokens,
+            sessionName ? `named--${sessionName}` : undefined,
+          );
+          console.log(
+            `[Unattended] Recorded cost for project ${project}: ` +
+              `${entry.requestCosts.toFixed(6)} (accumulated ` +
+              `${entry.accumulatedCosts.toFixed(4)})`
+          );
+        } catch (costError: any) {
+          console.error(
+            `[Unattended] Failed to record costs: ${costError.message}`
+          );
+        }
       }
 
       return {

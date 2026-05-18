@@ -1,0 +1,30 @@
+{
+  "initial": "closed",
+  "states": {
+    "closed": {
+      "on": { "MISSION_EDITED": "pending_derivation" },
+      "meta": {
+        "label": "Closed",
+        "description": "No derivation in progress. Waits for the next mission edit."
+      }
+    },
+    "pending_derivation": {
+      "on": { "CANDIDATES_READY": "triage", "NO_CANDIDATES": "closed" },
+      "meta": {
+        "label": "Pending derivation",
+        "description": "A mission edit fired; scan changed mission elements and propose candidate hypotheses.",
+        "onEntry": { "promptFile": "derivation-pending.prompt", "maxTurns": 16 }
+      }
+    },
+    "triage": {
+      "on": { "TRIAGE_COMPLETE": "closed" },
+      "meta": {
+        "label": "Triage",
+        "description": "Each candidate presented: sharpen (new Hypothesis), demote (Assumption), or dismiss.",
+        "waitingFor": "human_chat",
+        "waitingMessage": "Mission edit produced candidate hypotheses. For each: sharpen, demote, or dismiss.",
+        "onEntry": { "promptFile": "derivation-triage.prompt", "maxTurns": 20 }
+      }
+    }
+  }
+}

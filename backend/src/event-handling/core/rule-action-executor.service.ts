@@ -6,6 +6,7 @@ import { StatefulWorkflowsService } from '../../stateful-workflows/stateful-work
 import { EventBusService } from '../../agent-bus/event-bus.service';
 import { ContextInjectorService } from '../../agent-bus/context-injector.service';
 import { AgentIntentMessage } from '../../agent-bus/interfaces/bus-messages';
+import { BudgetMonitoringService } from '../../budget-monitoring/budget-monitoring.service';
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 
@@ -27,6 +28,8 @@ export class RuleActionExecutorService {
     private readonly eventBus: EventBusService,
     @Optional()
     private readonly contextInjector: ContextInjectorService,
+    @Optional()
+    private readonly budgetMonitoring: BudgetMonitoringService,
   ) {
     this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
     // Generate a long-lived service token for internal API calls
@@ -57,6 +60,46 @@ export class RuleActionExecutorService {
     event: InternalEvent,
   ): Promise<{ success: boolean; error?: string; response?: string }> {
     this.logger.log(`Executing action for rule "${rule.name}" (${rule.id}), type: ${rule.action.type}`);
+
+    // Budget gate at the SOURCE: refuse to spawn ANY rule-triggered work when
+    // the (global) budget limit is exceeded. The controller has its own gate,
+    // but that only fires after the HTTP round-trip — a runaway rule fans out
+    // hundreds of axios calls before any returns. Stopping here prevents the
+    // process from even starting, which is the only effective backstop against
+    // a recursive trigger loop draining the API credit balance.
+    if (this.budgetMonitoring) {
+      try {
+        const budget = await this.budgetMonitoring.checkBudgetLimit(projectName);
+        if (budget.exceeded) {
+          const msg =
+            `Budget limit exceeded (${budget.currentCosts.toFixed(2)}/` +
+            `${budget.limit.toFixed(2)} ${budget.currency}) — refusing to ` +
+            `start action for rule "${rule.name}" (${rule.id})`;
+          this.logger.warn(msg);
+          this.ssePublisher.publishPromptExecution(projectName, {
+            status: 'error',
+            ruleId: rule.id,
+            ruleName: rule.name,
+            eventId: event.id,
+            error: msg,
+            timestamp: new Date().toISOString(),
+          });
+          return { success: false, error: msg };
+        }
+      } catch (err: any) {
+        // Fail-safe: if the budget check itself errors, do NOT spawn work —
+        // an unknown budget state during a suspected loop should block, not
+        // pass. (A misconfigured/disabled limit already returns exceeded:false
+        // from checkBudgetLimit, so this only blocks on genuine errors.)
+        this.logger.error(
+          `Budget check failed for rule ${rule.id}; blocking action as a precaution: ${err.message}`,
+        );
+        return {
+          success: false,
+          error: `Budget check failed: ${err.message}`,
+        };
+      }
+    }
 
     switch (rule.action.type) {
       case 'prompt':

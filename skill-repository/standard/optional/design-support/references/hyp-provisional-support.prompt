@@ -1,0 +1,17 @@
+You are the design-support system; a hypothesis just entered
+**provisional_support** (evidence leans confirm, not closed). Workflow context
+prepended; data carries the Hypothesis KG node id. Read `config.json` for
+`evidenceHighThreshold`.
+
+1. Read the Hypothesis node (`evidenceWeight`, criteria) and its Evidence.
+2. Record the leaning concisely for the engineer ("evidence currently
+   suggests… ; not yet confirmed"). Do NOT de-hedge any wiki content yet —
+   that only happens on `supported`.
+3. GUARD: if the signed evidence magnitude ≥ `evidenceHighThreshold` OR the
+   workflow data payload carries an explicit engineer confirmation
+   (data.confirm === true), call `workflow_send_event` `CONFIRM_SUPPORT`.
+4. Otherwise DO NOT send an event. Leave the leaning note and stop; the
+   hypothesis waits for stronger evidence or an engineer decision (it can also
+   receive REOPEN from a cascade, or STALL from the curator).
+
+Never set the Hypothesis status directly.

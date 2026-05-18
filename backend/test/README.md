@@ -128,3 +128,44 @@ external service gets an integration test that exercises a real round-trip.
 
 A reasonable per-assertion `console.log('  PASS …')` is the convention; the
 final line should be `All <thing> tests passed.` on success.
+
+---
+
+## Design-support integration tests (Engineering Design Support System)
+
+These prove the **information-flow dependencies** of the Engineering Design
+Support System (spec §4) actually propagate. They are HTTP-driven against the
+live backend (`:6060`) + OAuth (`:5950`) + Quadstore (`:7000`), use a unique
+throwaway project per run, and **auto-`SKIP` (exit 0)** when a required
+service is unreachable — safe in any "run everything" loop. Shared harness:
+`test/lib/ds-harness.ts`.
+
+| File | Dependency edge proven | Spec |
+|---|---|---|
+| `integration-ds-relevance-propagation.test.ts` | mission edit → relevance recompute + Gap materialization | §4.1/§4.2, REQ-3,6,8 |
+| `integration-ds-focus-budget.test.ts` | focus decay + Σfocus conservation invariant | §4.1, REQ-7 |
+| `integration-ds-scrapbook-mirror.test.ts` | KG ⇄ scrapbook projection (forward + reverse, divergence flag) | REQ-5,8,9 |
+| `integration-ds-hypothesis-lifecycle.test.ts` | workflow drives lifecycle; onEntry-prompt anti-vagueness gate | optional component, REQ-18 |
+| `integration-ds-cascade-on-refutation.test.ts` | **keystone**: refute → CascadeReport + entailed-hypothesis REOPEN + mission-revision Gap | hypothesis side-effects |
+| `integration-ds-mission-derivation.test.ts` | mission edit → derivation workflow triage + DerivationTriage audit | §4.2, meta-workflow |
+| `integration-ds-report-snapshot.test.ts` | report = query over state; internal vs external filter; immutable snapshots; delta | REQ-23..30 |
+| `integration-ds-critic-push.test.ts` | the single push: critic mission-contradiction; pull-only invariant | REQ-20,21 |
+| `integration-ds-seed-smoke.test.ts` | seed → workspace reproducibility (design-support artefacts present) | reproducibility |
+
+Run the whole suite in order (PASS/SKIP/FAIL aggregated, non-zero on any FAIL):
+
+```bash
+cd backend
+node test/run-ds-integration.mjs
+```
+
+Or a single edge:
+
+```bash
+cd backend
+npx tsx test/integration-ds-cascade-on-refutation.test.ts
+```
+
+The cascade-on-refutation test passing is the decisive proof that "proving
+things wrong" scopes the downstream revision work rather than leaving it
+implicit.

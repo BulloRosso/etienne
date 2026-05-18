@@ -18,6 +18,21 @@
       },
       "createdAt": "2026-04-07T00:00:00.000Z",
       "updatedAt": "2026-04-07T00:00:00.000Z"
+    },
+    {
+      "id": "critic-mission-contradiction",
+      "name": "Critic: surface a node contradicting the current mission",
+      "enabled": true,
+      "condition": {
+        "type": "knowledge-graph",
+        "sparqlQuery": "PREFIX kg: <http://example.org/kg/> SELECT ?node ?mission WHERE { ?node kg:contradicts ?mission . { ?mission kg:type \"MissionIntent\" } UNION { ?mission kg:type \"MissionConstraint\" } UNION { ?mission kg:type \"MissionAcceptanceCriterion\" } } LIMIT 1"
+      },
+      "action": {
+        "type": "prompt",
+        "promptId": "critic-interrupt"
+      },
+      "createdAt": "2026-05-18T00:00:00.000Z",
+      "updatedAt": "2026-05-18T00:00:00.000Z"
     }
   ]
 }

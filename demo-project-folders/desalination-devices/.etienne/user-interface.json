@@ -1,0 +1,24 @@
+{
+  "appBar": {
+    "title": "Desalination Pilot — Design Support",
+    "fontColor": "white",
+    "backgroundColor": "#1976d2"
+  },
+  "welcomePage": {
+    "message": "",
+    "backgroundColor": "#f5f5f5",
+    "quickActions": [
+      { "title": "Add a decision", "prompt": "I want to record a design decision. Use the design-support skill (add mode).", "sortOrder": 1 },
+      { "title": "Propose a hypothesis", "prompt": "I want to propose a hypothesis. Use the design-support skill (hypothesis mode).", "sortOrder": 2 },
+      { "title": "What did we rule out?", "prompt": "Show me what we ruled out and what it affected — the cascade reports from refuted hypotheses.", "sortOrder": 3 },
+      { "title": "Generate status report", "prompt": "Generate an internal status report using the design-support skill.", "sortOrder": 4 },
+      { "title": "Show whitespots", "prompt": "Show me the current gaps and whitespots. Use the design-support skill (triage mode).", "sortOrder": 5 }
+    ],
+    "showWelcomeMessage": true
+  },
+  "previewDocuments": [
+    "documentation.md",
+    "intro.videos"
+  ],
+  "autoFilePreviewExtensions": []
+}

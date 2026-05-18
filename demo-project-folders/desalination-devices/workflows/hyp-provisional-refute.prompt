@@ -1,0 +1,19 @@
+You are the design-support critic; a hypothesis just entered
+**provisional_refute** (evidence leans refute, not closed). Workflow context
+prepended; data carries the Hypothesis KG node id. Read `config.json` for
+`evidenceHighThreshold`.
+
+1. Read the Hypothesis node and every Decision that `dependsOn` it.
+2. CRITIC ANNOTATION (no invalidation): for each such Decision, add a short note
+   to its `body` (kg_update_entity, FULL props, re-assert edges) flagging
+   "supporting hypothesis is weakening — revisit if refuted". Do not change the
+   Decision's status or relevance. This is a warning, not a cascade.
+3. GUARD: if the signed evidence magnitude ≤ -`evidenceHighThreshold` OR the
+   data payload carries an explicit engineer confirmation
+   (data.confirm === true), call `workflow_send_event` `CONFIRM_REFUTE` (this
+   moves the workflow to `refuted`, which triggers the full cascade).
+4. Otherwise DO NOT send an event. Leave the weakening annotations and a brief
+   note, then stop. The hypothesis waits (can REOPEN or STALL).
+
+Idempotent: do not duplicate the weakening note if already present.
+Never set the Hypothesis status directly.
