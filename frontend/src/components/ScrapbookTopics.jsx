@@ -29,16 +29,21 @@ import * as MdIcons from 'react-icons/md';
 import * as IoIcons from 'react-icons/io5';
 import * as BiIcons from 'react-icons/bi';
 import * as AiIcons from 'react-icons/ai';
+import * as GiIcons from 'react-icons/gi';
+import * as FiIcons from 'react-icons/fi';
+import * as TbIcons from 'react-icons/tb';
 import * as XLSX from 'xlsx';
 import ScrapbookNodeEdit from './ScrapbookNodeEdit';
 import ColumnSettingsDialog from './ColumnSettingsDialog';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 
-// Icon resolver - tries to find icon from various react-icons libraries
+// Icon resolver - must resolve from the SAME libraries the icon picker
+// (ScrapbookNodeEdit allIcons) offers, else selectable icons (e.g. TbSalt)
+// won't render in the topics table.
 const getIcon = (iconName) => {
   if (!iconName) return null;
-  const libraries = [FaIcons, MdIcons, IoIcons, BiIcons, AiIcons];
+  const libraries = [FaIcons, MdIcons, IoIcons, BiIcons, AiIcons, GiIcons, FiIcons, TbIcons];
   for (const lib of libraries) {
     if (lib[iconName]) {
       return lib[iconName];
@@ -46,6 +51,44 @@ const getIcon = (iconName) => {
   }
   return null;
 };
+
+/**
+ * Scrapbook images are served from a bearer-token authenticated endpoint; a
+ * plain <img src> cannot send the Authorization header (→ 401 → broken image).
+ * Fetch through the authenticated apiFetch and render via an object URL.
+ */
+function AuthedImage({ url, alt, sx, onClick }) {
+  const [objectUrl, setObjectUrl] = useState(null);
+  useEffect(() => {
+    if (!url) {
+      setObjectUrl(null);
+      return;
+    }
+    let cancelled = false;
+    let created = null;
+    (async () => {
+      try {
+        const resp = await apiFetch(url);
+        if (!resp.ok) throw new Error(`image fetch failed: HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        if (cancelled) return;
+        created = URL.createObjectURL(blob);
+        setObjectUrl(created);
+      } catch {
+        if (!cancelled) setObjectUrl(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [url]);
+
+  if (!objectUrl) {
+    return <Box onClick={onClick} sx={{ ...sx, backgroundColor: 'action.hover' }} />;
+  }
+  return <Box component="img" src={objectUrl} alt={alt} onClick={onClick} sx={sx} />;
+}
 
 // Default column configuration
 const DEFAULT_COLUMN_CONFIG = [
@@ -512,10 +555,9 @@ export default function ScrapbookTopics({
             {displayImages.length > 0 ? (
               <>
                 {displayImages.map((img, idx) => (
-                  <Box
+                  <AuthedImage
                     key={idx}
-                    component="img"
-                    src={`/api/workspace/${projectName}/scrapbook/${graphName}/images/${img}`}
+                    url={`/api/workspace/${projectName}/scrapbook/${graphName}/images/${img}`}
                     alt={`${node.label} ${idx + 1}`}
                     onClick={() => openLightbox(images, idx)}
                     sx={{
@@ -930,9 +972,8 @@ export default function ScrapbookTopics({
             </IconButton>
           )}
           {lightboxImages.length > 0 && (
-            <Box
-              component="img"
-              src={`/api/workspace/${projectName}/scrapbook/${graphName}/images/${lightboxImages[lightboxIndex]}`}
+            <AuthedImage
+              url={`/api/workspace/${projectName}/scrapbook/${graphName}/images/${lightboxImages[lightboxIndex]}`}
               alt={`Image ${lightboxIndex + 1}`}
               sx={{ maxWidth: '90%', maxHeight: '80vh', objectFit: 'contain' }}
             />

@@ -1,20 +1,26 @@
-import React, { memo, useRef, useState, useCallback } from 'react';
+import React, { memo, useRef, useState, useCallback, useEffect } from 'react';
 import { Handle, Position, NodeToolbar } from '@xyflow/react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { ExpandMore, ExpandLess, MoreVert, DragIndicator } from '@mui/icons-material';
+import { apiFetch } from '../services/api';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
 import * as IoIcons from 'react-icons/io5';
 import * as BiIcons from 'react-icons/bi';
 import * as AiIcons from 'react-icons/ai';
+import * as GiIcons from 'react-icons/gi';
+import * as FiIcons from 'react-icons/fi';
+import * as TbIcons from 'react-icons/tb';
 import { useTranslation } from 'react-i18next';
 
-// Icon resolver - tries to find icon from various react-icons libraries
+// Icon resolver - must resolve from the SAME react-icons libraries the icon
+// picker (ScrapbookNodeEdit) offers, or a selectable icon (e.g. TbSalt) will
+// render in the picker but not on the canvas node.
 const getIcon = (iconName) => {
   if (!iconName) return null;
 
-  // Try different icon libraries
-  const libraries = [FaIcons, MdIcons, IoIcons, BiIcons, AiIcons];
+  // Try different icon libraries (keep in sync with ScrapbookNodeEdit allIcons)
+  const libraries = [FaIcons, MdIcons, IoIcons, BiIcons, AiIcons, GiIcons, FiIcons, TbIcons];
   for (const lib of libraries) {
     if (lib[iconName]) {
       return lib[iconName];
@@ -90,6 +96,37 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
   // Get the first image if available
   const firstImage = images && images.length > 0 ? images[0] : null;
 
+  // The image endpoint is bearer-token authenticated; a plain <img src> can't
+  // send the Authorization header (→ 401 → broken image). Fetch it through the
+  // authenticated apiFetch and render via an object URL, mirroring ImageViewer.
+  const [imageObjectUrl, setImageObjectUrl] = useState(null);
+  useEffect(() => {
+    if (!firstImage || !projectName) {
+      setImageObjectUrl(null);
+      return;
+    }
+    let revoked = false;
+    let urlToRevoke = null;
+    (async () => {
+      try {
+        const resp = await apiFetch(
+          `/api/workspace/${projectName}/scrapbook/${graphName || 'default'}/images/${firstImage}`,
+        );
+        if (!resp.ok) throw new Error(`image fetch failed: HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        if (revoked) return;
+        urlToRevoke = URL.createObjectURL(blob);
+        setImageObjectUrl(urlToRevoke);
+      } catch (e) {
+        if (!revoked) setImageObjectUrl(null);
+      }
+    })();
+    return () => {
+      revoked = true;
+      if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
+    };
+  }, [firstImage, projectName, graphName]);
+
   // Ensure priority is a number (default to 5 if undefined)
   const priority = typeof rawPriority === 'number' ? rawPriority : 5;
 
@@ -124,7 +161,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
         }}
       >
         {/* Image thumbnail on the left - spans both rows */}
-        {firstImage && projectName && (
+        {firstImage && projectName && imageObjectUrl && (
           <Box
             sx={{
               width: 120,
@@ -142,7 +179,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
             }}
           >
             <img
-              src={`/api/workspace/${projectName}/scrapbook/${graphName || 'default'}/images/${firstImage}`}
+              src={imageObjectUrl}
               alt=""
               style={{
                 width: '100%',
@@ -154,12 +191,13 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
           </Box>
         )}
 
-        {/* Node content */}
+        {/* Node content. NOTE: no `overflow: hidden` here — the icon badge
+            below overhangs the bottom border (bottom: -16) and must not be
+            clipped. Text truncation is handled per-row + in TruncatedText. */}
         <Box
           sx={{
             flex: 1,
             minWidth: 0,
-            overflow: 'hidden',
             pb: IconComponent ? 3 : 1,
           }}
         >
@@ -168,6 +206,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
           sx={{
             display: 'flex',
             alignItems: 'center',
+            minWidth: 0,
             p: 1,
             pb: 0.5,
           }}
@@ -208,6 +247,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
           sx={{
             display: 'flex',
             alignItems: 'center',
+            minWidth: 0,
             px: 1,
             pb: 0.5,
           }}

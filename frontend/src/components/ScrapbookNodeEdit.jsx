@@ -42,6 +42,44 @@ const allIcons = {
 
 const iconNames = Object.keys(allIcons);
 
+/**
+ * Scrapbook images are served from a bearer-token authenticated endpoint; a
+ * plain <img src> cannot send the Authorization header (→ 401 → broken image).
+ * Fetch through the authenticated apiFetch and render via an object URL.
+ */
+function AuthedImage({ url, alt, sx }) {
+  const [objectUrl, setObjectUrl] = useState(null);
+  useEffect(() => {
+    if (!url) {
+      setObjectUrl(null);
+      return;
+    }
+    let cancelled = false;
+    let created = null;
+    (async () => {
+      try {
+        const resp = await apiFetch(url);
+        if (!resp.ok) throw new Error(`image fetch failed: HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        if (cancelled) return;
+        created = URL.createObjectURL(blob);
+        setObjectUrl(created);
+      } catch {
+        if (!cancelled) setObjectUrl(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [url]);
+
+  if (!objectUrl) {
+    return <Box sx={{ ...sx, backgroundColor: 'action.hover' }} />;
+  }
+  return <Box component="img" src={objectUrl} alt={alt} sx={sx} />;
+}
+
 export default function ScrapbookNodeEdit({ open, onClose, projectName, graphName = 'default', node, parentNode, onSaved, onNodeUpdated }) {
   const { t } = useTranslation(["scrapbookNodeEdit","common"]);
   const isEdit = Boolean(node?.id);
@@ -310,9 +348,8 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
                         height: 80,
                       }}
                     >
-                      <Box
-                        component="img"
-                        src={`/api/workspace/${projectName}/scrapbook/${graphName}/images/${filename}`}
+                      <AuthedImage
+                        url={`/api/workspace/${projectName}/scrapbook/${graphName}/images/${filename}`}
                         alt={filename}
                         sx={{
                           width: '100%',
