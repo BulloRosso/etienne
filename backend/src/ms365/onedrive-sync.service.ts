@@ -428,7 +428,6 @@ export class OneDriveSyncService implements OnModuleDestroy {
       } catch (err: any) {
         if (/MS365 not connected/.test(err.message)) {
           // Project hasn't connected MS365 — nothing to sync, not an error.
-          this.logger.debug(`delta for root ${root.label} skipped: ${err.message}`);
         } else {
           this.logger.error(`delta for root ${root.label} failed: ${err.message}`);
         }

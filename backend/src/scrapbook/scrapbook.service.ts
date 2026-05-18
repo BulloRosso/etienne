@@ -271,13 +271,19 @@ export class ScrapbookService {
         return [];
       }
 
-      // Filter to only scrapbook types
-      const scrapbookTypes = ['ProjectTheme', 'Category', 'Subcategory', 'Concept', 'Attribute'];
+      // A node belongs to this scrapbook if its rdf:type is a type in the
+      // scrapbook namespace (i.e. the type URI is under this.baseUri). The
+      // original code used a fixed 5-name allowlist
+      // (ProjectTheme/Category/Subcategory/Concept/Attribute), but nodes
+      // created via knowledge-graph extraction carry richer ontology types
+      // such as `Constraint` or `OpenQuestion`. Those were silently dropped
+      // here while their `hasParent` edges still rendered in the tree —
+      // leaving children that the tree shows but getAllNodes() never returns
+      // (invisible in the parent picker, collapse state not persisted).
+      // Filtering by the namespace prefix keeps real scrapbook nodes of any
+      // type while still excluding foreign RDF types (rdf:, owl:, etc.).
       const nodeUris = response.data.results
-        .filter((quad: any) => {
-          const type = quad.object.value.replace(this.baseUri, '');
-          return scrapbookTypes.includes(type);
-        })
+        .filter((quad: any) => quad.object.value.startsWith(this.baseUri))
         .map((quad: any) => quad.subject.value);
 
       // Get full details for each node
