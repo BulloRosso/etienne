@@ -141,7 +141,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     } finally {
       setCanvasSettingsLoaded(true);
     }
-  }, [projectName]);
+  }, [projectName, graphName]);
 
   // Save canvas settings to backend (debounced)
   const saveCanvasSettings = useCallback(() => {
@@ -275,7 +275,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
         console.error('Failed to save canvas settings:', error);
       }
     }, 500); // Debounce 500ms
-  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, canvasSettingsLoaded, savedPositions]);
+  }, [projectName, graphName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, canvasSettingsLoaded, savedPositions]);
 
   // Fetch tree data
   const fetchTree = useCallback(async () => {
@@ -294,7 +294,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     } finally {
       setLoading(false);
     }
-  }, [projectName]);
+  }, [projectName, graphName]);
 
   // Fetch all nodes as flat list with group info
   const fetchAllNodes = useCallback(async () => {
@@ -307,7 +307,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     } catch (error) {
       console.error('Failed to fetch nodes:', error);
     }
-  }, [projectName]);
+  }, [projectName, graphName]);
 
   // Load canvas settings first, then fetch tree data
   useEffect(() => {
@@ -398,7 +398,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
         );
       }
     };
-  }, [projectName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, savedPositions]);
+  }, [projectName, graphName, expandedNodes, reactFlowInstance, autoLayoutMode, stickyNotes, customProperties, columnConfig, savedPositions]);
 
   // Handle edge (connection) deletion - orphan the child node
   const handleEdgeDelete = useCallback(async (childId) => {
@@ -419,7 +419,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     } catch (error) {
       console.error('Failed to delete connection:', error);
     }
-  }, [projectName, fetchTree, fetchAllNodes]);
+  }, [projectName, graphName, fetchTree, fetchAllNodes]);
 
   // Handle new connection between nodes
   const handleConnect = useCallback(async (connection) => {
@@ -459,7 +459,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     } catch (error) {
       console.error('Failed to create connection:', error);
     }
-  }, [projectName, allNodes, fetchTree, fetchAllNodes]);
+  }, [projectName, graphName, allNodes, fetchTree, fetchAllNodes]);
 
   // Convert tree to React Flow nodes and edges
   useEffect(() => {
@@ -1233,7 +1233,7 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     } catch (error) {
       console.error('Failed to delete node:', error);
     }
-  }, [projectName, fetchTree, fetchAllNodes, selectedNode]);
+  }, [projectName, graphName, fetchTree, fetchAllNodes, selectedNode]);
 
   // Keyboard shortcuts for DEL key to delete selected node and Space to cycle connector position
   useEffect(() => {

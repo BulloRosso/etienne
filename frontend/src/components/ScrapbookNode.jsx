@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useRef, useState, useCallback } from 'react';
 import { Handle, Position, NodeToolbar } from '@xyflow/react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { ExpandMore, ExpandLess, MoreVert, DragIndicator } from '@mui/icons-material';
@@ -21,6 +21,46 @@ const getIcon = (iconName) => {
     }
   }
   return null;
+};
+
+/**
+ * Single-line text that ellipsis-truncates inside its flex parent and shows a
+ * tooltip with the full text ONLY when it is actually clipped. The `minWidth: 0`
+ * is required for text-overflow to engage inside a flex row.
+ */
+const TruncatedText = ({ text, typographyProps = {}, tooltipPlacement = 'top' }) => {
+  const ref = useRef(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (el) setIsTruncated(el.scrollWidth > el.clientWidth);
+  }, []);
+
+  const content = (
+    <Typography
+      ref={ref}
+      onMouseEnter={measure}
+      {...typographyProps}
+      sx={{
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        ...(typographyProps.sx || {}),
+      }}
+    >
+      {text || ' '}
+    </Typography>
+  );
+
+  if (!text || !isTruncated) return content;
+
+  return (
+    <Tooltip title={text} placement={tooltipPlacement} arrow enterDelay={300}>
+      {content}
+    </Tooltip>
+  );
 };
 
 const ScrapbookNode = memo(({ data, selected, id }) => {
@@ -54,7 +94,6 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
   const priority = typeof rawPriority === 'number' ? rawPriority : 5;
 
   const IconComponent = getIcon(iconName);
-  const shortDescription = description ? description.substring(0, 30) + (description.length > 30 ? '...' : '') : '';
 
   return (
     <>
@@ -68,6 +107,7 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
         sx={{
           display: 'flex',
           flexDirection: 'row',
+          width: firstImage ? 360 : 240,
           minWidth: firstImage ? 320 : 200,
           maxWidth: firstImage ? 380 : 260,
           backgroundColor: backgroundColor || '#ffffff',
@@ -118,6 +158,8 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
         <Box
           sx={{
             flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
             pb: IconComponent ? 3 : 1,
           }}
         >
@@ -134,21 +176,19 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
             className="drag-handle"
             sx={{ fontSize: 16, color: 'text.secondary', cursor: 'grab', mr: 0.5 }}
           />
-          <Typography
-            variant="body2"
-            sx={{
-              flex: 1,
-              fontWeight: (type === 'ProjectTheme' || type === 'Category') ? 600 : 400,
-              fontFamily: 'Roboto',
-              fontSize: '14px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: borderColor,
+          <TruncatedText
+            text={label}
+            typographyProps={{
+              variant: 'body2',
+              sx: {
+                flex: 1,
+                fontWeight: (type === 'ProjectTheme' || type === 'Category') ? 600 : 400,
+                fontFamily: 'Roboto',
+                fontSize: '14px',
+                color: borderColor,
+              },
             }}
-          >
-            {label}
-          </Typography>
+          />
           {hasChildren && (
             <IconButton
               size="small"
@@ -172,20 +212,18 @@ const ScrapbookNode = memo(({ data, selected, id }) => {
             pb: 0.5,
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{
-              flex: 1,
-              color: 'text.secondary',
-              fontFamily: 'Roboto',
-              fontSize: '12px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+          <TruncatedText
+            text={description}
+            typographyProps={{
+              variant: 'caption',
+              sx: {
+                flex: 1,
+                color: 'text.secondary',
+                fontFamily: 'Roboto',
+                fontSize: '12px',
+              },
             }}
-          >
-            {shortDescription || '\u00A0'}
-          </Typography>
+          />
           <IconButton
             size="small"
             onClick={(e) => {
