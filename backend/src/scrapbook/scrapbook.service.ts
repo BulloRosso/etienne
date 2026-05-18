@@ -32,6 +32,7 @@ export interface ScrapbookNode {
   updatedAt: string;
   createdAt: string;
   iconName?: string;
+  wikiSlug?: string; // optional link to a wiki page (wiki/topics/<slug>.md)
   images?: string[];
   parentId?: string;
   customProperties?: Record<string, string | number>; // key = property id, value = property value
@@ -165,6 +166,7 @@ export class ScrapbookService {
       updatedAt: now,
       createdAt: now,
       iconName: node.iconName,
+      wikiSlug: node.wikiSlug,
       images: node.images || [],
       parentId: parentId,
       customProperties: node.customProperties || {},
@@ -191,6 +193,7 @@ export class ScrapbookService {
       updatedAt: newNode.updatedAt,
       createdAt: newNode.createdAt,
       iconName: newNode.iconName || '',
+      wikiSlug: newNode.wikiSlug || '',
       images: JSON.stringify(newNode.images || []),
       customProperties: JSON.stringify(newNode.customProperties || {}),
     };
@@ -382,6 +385,7 @@ export class ScrapbookService {
       updatedAt: updatedNode.updatedAt,
       createdAt: updatedNode.createdAt,
       iconName: updatedNode.iconName || '',
+      wikiSlug: updatedNode.wikiSlug || '',
       images: JSON.stringify(updatedNode.images || []),
       customProperties: JSON.stringify(updatedNode.customProperties || {}),
     };
@@ -926,6 +930,9 @@ export class ScrapbookService {
           break;
         case 'iconName':
           node.iconName = value || undefined;
+          break;
+        case 'wikiSlug':
+          node.wikiSlug = value || undefined;
           break;
         case 'images':
           try {

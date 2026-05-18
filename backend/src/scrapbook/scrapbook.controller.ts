@@ -31,6 +31,7 @@ interface CreateNodeDto {
   priority?: number;
   attentionWeight?: number;
   iconName?: string;
+  wikiSlug?: string;
   parentId?: string;
 }
 
@@ -43,6 +44,7 @@ interface UpdateNodeDto {
   priority?: number;
   attentionWeight?: number;
   iconName?: string;
+  wikiSlug?: string;
   images?: string[];
   customProperties?: Record<string, string | number>;
 }
@@ -118,6 +120,7 @@ export class ScrapbookController {
         priority: dto.priority,
         attentionWeight: dto.attentionWeight,
         iconName: dto.iconName,
+        wikiSlug: dto.wikiSlug,
       },
       dto.parentId,
     );
@@ -446,6 +449,7 @@ export class ScrapbookGraphController {
         priority: dto.priority,
         attentionWeight: dto.attentionWeight,
         iconName: dto.iconName,
+        wikiSlug: dto.wikiSlug,
       },
       dto.parentId,
       graphName,

@@ -51,6 +51,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
   const [priority, setPriority] = useState(5);
   const [attentionWeight, setAttentionWeight] = useState(0.5);
   const [iconName, setIconName] = useState('');
+  const [wikiSlug, setWikiSlug] = useState('');
   const [iconSearch, setIconSearch] = useState('');
   const [iconSelectorOpen, setIconSelectorOpen] = useState(false);
   const [images, setImages] = useState([]);
@@ -66,6 +67,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
       setPriority(node.priority || 5);
       setAttentionWeight(node.attentionWeight || 0.5);
       setIconName(node.iconName || '');
+      setWikiSlug(node.wikiSlug || '');
       setImages(node.images || []);
     } else {
       setLabel('');
@@ -73,6 +75,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
       setPriority(5);
       setAttentionWeight(0.5);
       setIconName('');
+      setWikiSlug('');
       setImages([]);
     }
   }, [node, open]);
@@ -102,6 +105,7 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
         priority,
         attentionWeight,
         iconName: iconName || undefined,
+        wikiSlug: wikiSlug.trim() || undefined,
         images,
       };
 
@@ -223,6 +227,19 @@ export default function ScrapbookNodeEdit({ open, onClose, projectName, graphNam
               fullWidth
               multiline
               rows={3}
+            />
+
+            {/* Wiki page link */}
+            <TextField
+              label={t('scrapbookNodeEdit:wikiSlug', 'Wiki page slug (optional)')}
+              value={wikiSlug}
+              onChange={(e) => setWikiSlug(e.target.value)}
+              fullWidth
+              placeholder="reverse-osmosis"
+              helperText={t(
+                'scrapbookNodeEdit:wikiSlugHelp',
+                'Links this node to wiki/topics/<slug>.md. Used by "Open wiki page" in the node menu.',
+              )}
             />
 
             {/* Priority */}

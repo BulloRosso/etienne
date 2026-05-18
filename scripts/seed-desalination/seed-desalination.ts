@@ -634,20 +634,30 @@ async function step12b_seedScrapbookProjection(ctx: ApiContext): Promise<void> {
   const cmp = await cat('Compliance', 'WHO GDWQ + EU DWD 2020/2184. [kg:mc-who-eu]', 10, 0.6);
   const eco = await cat('Economics', 'Defensible 10-year TCO. [kg:mc-tco]', 9, 0.5);
 
-  const child = async (parent: string | null, type: string, label: string, desc: string, prio: number, att: number) => {
+  const child = async (
+    parent: string | null,
+    type: string,
+    label: string,
+    desc: string,
+    prio: number,
+    att: number,
+    wikiSlug?: string,
+  ) => {
     if (!parent) return;
-    await mk({ type, label, description: desc, priority: prio, attentionWeight: att, parentId: parent });
+    await mk({ type, label, description: desc, priority: prio, attentionWeight: att, parentId: parent, ...(wikiSlug ? { wikiSlug } : {}) });
   };
 
-  await child(eng, 'Decision', '2-element SW30 train (38% recovery)', 'Load-bearing for boron compliance; depends on hypothesis-boron-single-pass. [kg:decision-sw30-train]', 9, 0.7);
-  await child(eng, 'Decision', 'Multimedia + cartridge pre-treatment', 'Targets SDI < 3. [kg:decision-multimedia-pretreat]', 9, 0.6);
-  await child(eng, 'Concept', '⚠ Hypothesis: single-pass clears boron (REFUTED)', 'Refuted — see cascade report; entails second-pass; sw30-train depends on it. [kg:hypothesis-boron-single-pass]', 10, 0.8);
-  await child(eng, 'Concept', 'Hypothesis: partial second pass clears boron (PROVISIONAL)', 'Reopened by the single-pass cascade. [kg:hypothesis-second-pass-clears-boron]', 9, 0.7);
-  await child(eng, 'Concept', 'Hypothesis: pre-treatment sustains 5y membrane (UNDER TEST)', 'Under test. [kg:hypothesis-pretreat-5y-membrane]', 9, 0.6);
-  await child(cmp, 'Constraint', 'Boron <= EU 1.5 mg/L', 'Acceptance criterion. [kg:mac-boron]', 10, 0.6);
-  await child(cmp, 'OpenQuestion', 'Second pass needed at high feed pH?', 'Boron is the weak spot. [kg:openq-boron-second-pass]', 9, 0.6);
-  await child(eco, 'Concept', 'Hypothesis: ERD pays back within 10y (SUPPORTED)', 'Supported; confidence frozen. [kg:hypothesis-erd-payback]', 8, 0.5);
-  await child(eco, 'Concept', 'Hypothesis: solar-only feasible (STALLED)', 'Stalled — commit to a test or demote. [kg:hypothesis-solar-only-feasible]', 7, 0.3);
+  // wikiSlug links a projected node to wiki/topics/<slug>.md so the
+  // "Open wiki page" node context-menu item is enabled for it.
+  await child(eng, 'Decision', '2-element SW30 train (38% recovery)', 'Load-bearing for boron compliance; depends on hypothesis-boron-single-pass. [kg:decision-sw30-train]', 9, 0.7, 'ro-membrane-spiral-wound');
+  await child(eng, 'Decision', 'Multimedia + cartridge pre-treatment', 'Targets SDI < 3. [kg:decision-multimedia-pretreat]', 9, 0.6, 'pre-treatment');
+  await child(eng, 'Concept', '⚠ Hypothesis: single-pass clears boron (REFUTED)', 'Refuted — see cascade report; entails second-pass; sw30-train depends on it. [kg:hypothesis-boron-single-pass]', 10, 0.8, 'reverse-osmosis');
+  await child(eng, 'Concept', 'Hypothesis: partial second pass clears boron (PROVISIONAL)', 'Reopened by the single-pass cascade. [kg:hypothesis-second-pass-clears-boron]', 9, 0.7, 'reverse-osmosis');
+  await child(eng, 'Concept', 'Hypothesis: pre-treatment sustains 5y membrane (UNDER TEST)', 'Under test. [kg:hypothesis-pretreat-5y-membrane]', 9, 0.6, 'maintenance-schedule');
+  await child(cmp, 'Constraint', 'Boron <= EU 1.5 mg/L', 'Acceptance criterion. [kg:mac-boron]', 10, 0.6, 'parameter-boron');
+  await child(cmp, 'OpenQuestion', 'Second pass needed at high feed pH?', 'Boron is the weak spot. [kg:openq-boron-second-pass]', 9, 0.6, 'parameter-boron');
+  await child(eco, 'Concept', 'Hypothesis: ERD pays back within 10y (SUPPORTED)', 'Supported; confidence frozen. [kg:hypothesis-erd-payback]', 8, 0.5, 'energy-recovery-device');
+  await child(eco, 'Concept', 'Hypothesis: solar-only feasible (STALLED)', 'Stalled — commit to a test or demote. [kg:hypothesis-solar-only-feasible]', 7, 0.3, 'pv-array-sizing');
 
   ok(`scrapbook "${sbName}" created with mission-aligned projection (13 nodes)`);
 }

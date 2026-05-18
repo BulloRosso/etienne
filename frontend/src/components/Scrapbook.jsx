@@ -18,6 +18,7 @@ import {
   Paper,
   Snackbar,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import { MoreVert, DataObject, AccountTree, NoteAdd, Download, TextFields } from '@mui/icons-material';
 import {
@@ -42,6 +43,7 @@ import ScrapbookNodeEdit from './ScrapbookNodeEdit';
 import CreateFromTextDialog from './CreateFromTextDialog';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
 
 const nodeTypes = {
   scrapbookNode: ScrapbookNode,
@@ -1184,6 +1186,27 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
     setAnchorEl(null); // Close menu but keep editNode
   };
 
+  // The root (ProjectTheme) node always links to the wiki's well-known entry
+  // page (wiki/index.md). Any other node links to its mapped topic page.
+  const resolveWikiFilePath = (node) => {
+    if (!node) return null;
+    if (node.type === 'ProjectTheme') return 'wiki/index.md';
+    const slug = node.wikiSlug?.trim();
+    return slug ? `wiki/topics/${slug}.md` : null;
+  };
+
+  const handleOpenWikiPage = () => {
+    const filePath = resolveWikiFilePath(editNode);
+    if (filePath) {
+      claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+        action: 'markdown-preview',
+        filePath,
+        projectName,
+      });
+    }
+    handleMenuClose();
+  };
+
   const handleAddSubcategory = () => {
     setEditParentNode(editNode); // Current node becomes the parent
     setEditNode(null); // No node to edit (creating new)
@@ -1571,6 +1594,31 @@ function ScrapbookInner({ projectName, graphName = 'default', onClose, embedded 
         <MenuItem onClick={handleEdit}>
           <ListItemText>{t('scrapbook:contextEdit')}</ListItemText>
         </MenuItem>
+        {resolveWikiFilePath(editNode) ? (
+          <MenuItem onClick={handleOpenWikiPage}>
+            <ListItemText>
+              {editNode?.type === 'ProjectTheme'
+                ? t('scrapbook:contextOpenWikiIndex', 'Open wiki')
+                : t('scrapbook:contextOpenWikiPage', 'Open wiki page')}
+            </ListItemText>
+          </MenuItem>
+        ) : (
+          <Tooltip
+            title={t(
+              'scrapbook:contextOpenWikiPageDisabled',
+              'No wiki page linked. Set a wiki slug in Edit.',
+            )}
+            placement="right"
+          >
+            <span>
+              <MenuItem disabled>
+                <ListItemText>
+                  {t('scrapbook:contextOpenWikiPage', 'Open wiki page')}
+                </ListItemText>
+              </MenuItem>
+            </span>
+          </Tooltip>
+        )}
         <MenuItem onClick={handleAddSubcategory}>
           <ListItemText>{t('scrapbook:contextAddSubcategory')}</ListItemText>
         </MenuItem>

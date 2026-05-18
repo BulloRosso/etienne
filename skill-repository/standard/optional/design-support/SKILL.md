@@ -103,6 +103,11 @@ The scrapbook is a deterministic view of the KG:
   `priority = round(relevance*10)` (clamp 1–10) and `attentionWeight = clamp(focus
   normalized, 0.01, 1)`.
 - Append `[kg:<entityId>]` to each scrapbook node description so it round-trips.
+- When the node maps to a synthesized wiki page, set the scrapbook node's
+  `wikiSlug` to that page's slug (the file is `wiki/topics/<slug>.md`). This
+  enables the "Open wiki page" item in the node's context menu. Keep it in
+  sync: when the synthesizer creates/renames the page for a cluster, update
+  `wikiSlug` on the projected node(s) for that cluster.
 - Contradictions/gaps get a `⚠` icon; hypotheses get a state-tagged icon.
 - After any KG change that affects projected nodes, refresh the affected subtree
   via `scrapbook_add_node`/`scrapbook_update_node`.
