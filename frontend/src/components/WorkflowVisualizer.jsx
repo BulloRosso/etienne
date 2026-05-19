@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -6,10 +6,13 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useNodesInitialized,
+  useReactFlow,
   ReactFlowProvider,
   Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import dagre from '@dagrejs/dagre';
 import {
   Box,
   Typography,
@@ -55,6 +58,11 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Two-pass layout: re-run dagre with measured node sizes once mounted.
+  const nodesInitialized = useNodesInitialized();
+  const { getNodes, fitView } = useReactFlow();
+  const relaidOutForRef = useRef(null);
 
   // Extract workflow ID from file path if provided
   const fileWorkflowId = useMemo(() => {
@@ -122,8 +130,11 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
 
     const { nodes: graphNodes, edges: graphEdges, currentState } = graphData;
 
-    // Simple topological layout: arrange left-to-right
-    const stateOrder = computeLayout(graphNodes, graphEdges);
+    // Provisional layered layout with default node sizes. A second pass
+    // (see the relayout effect below) re-runs dagre once React Flow has
+    // measured the real node dimensions, so variable-height nodes pack
+    // without overlap.
+    const stateOrder = layoutWithDagre(graphNodes, graphEdges);
 
     const rfNodes = graphNodes.map((node) => {
       const pos = stateOrder.get(node.id) || { x: 0, y: 0 };
@@ -148,17 +159,51 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
       target: edge.target,
       label: edge.label,
       type: 'smoothstep',
+      pathOptions: { borderRadius: 12 },
       animated: edge.source === currentState,
       style: { strokeWidth: 2, stroke: edge.source === currentState ? '#1976d2' : '#9e9e9e' },
       labelStyle: { fontSize: 11, fontWeight: 600, fill: '#555' },
-      labelBgStyle: { fill: '#fff', fillOpacity: 0.85 },
+      labelShowBg: true,
+      // Opaque background so an overlapping label stays fully readable
+      // rather than translucently merging with the one beneath it.
+      labelBgStyle: { fill: '#fff', fillOpacity: 1 },
       labelBgPadding: [6, 3],
       labelBgBorderRadius: 3,
     }));
 
+    // New graph -> allow the measured relayout pass to run again.
+    relaidOutForRef.current = null;
     setNodes(rfNodes);
     setEdges(rfEdges);
   }, [graphData]);
+
+  // Pass 2: once React Flow has measured the real node sizes, re-run dagre
+  // with those dimensions so variable-height nodes pack without overlap.
+  // Guarded to run once per graphData (avoids measure -> layout -> measure loop).
+  useEffect(() => {
+    if (!graphData || !nodesInitialized) return;
+    if (relaidOutForRef.current === graphData) return;
+
+    const measured = getNodes();
+    const nodeSize = {};
+    for (const n of measured) {
+      const w = n.measured?.width;
+      const h = n.measured?.height;
+      if (w && h) nodeSize[n.id] = { width: w, height: h };
+    }
+    if (Object.keys(nodeSize).length === 0) return;
+
+    const positions = layoutWithDagre(graphData.nodes, graphData.edges, nodeSize);
+    relaidOutForRef.current = graphData;
+    setNodes((prev) =>
+      prev.map((node) => {
+        const p = positions.get(node.id);
+        return p ? { ...node, position: p } : node;
+      })
+    );
+    // Frame the freshly laid-out graph on the next tick.
+    window.requestAnimationFrame(() => fitView({ padding: 0.3 }));
+  }, [graphData, nodesInitialized, getNodes, setNodes, fitView]);
 
   // Refresh handler
   const handleRefresh = useCallback(() => {
@@ -283,72 +328,49 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
   );
 }
 
+// Default node box used before React Flow has measured the real DOM size.
+const DEFAULT_NODE_SIZE = { width: 210, height: 96 };
+
 /**
- * Simple left-to-right layout using BFS from initial state.
- * Returns a Map of stateId -> { x, y }
+ * Layered left-to-right layout via dagre (Sugiyama: rank assignment +
+ * barycenter crossing minimization). `nodeSize` is a map of
+ * stateId -> { width, height } measured from the DOM; missing entries fall
+ * back to DEFAULT_NODE_SIZE (used for the provisional pre-measurement pass).
+ * Returns a Map of stateId -> { x, y } (top-left, for React Flow).
  */
-function computeLayout(nodes, edges) {
+function layoutWithDagre(nodes, edges, nodeSize = {}) {
   const positions = new Map();
   if (nodes.length === 0) return positions;
 
-  const HORIZONTAL_GAP = 280;
-  const VERTICAL_GAP = 120;
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({
+    rankdir: 'LR',
+    nodesep: 36, // gap between nodes within the same rank
+    ranksep: 90, // gap between ranks
+    edgesep: 24, // separation between parallel edges (DEMOTE/SUPERSEDE fan-in)
+    marginx: 16,
+    marginy: 16,
+  });
+  g.setDefaultEdgeLabel(() => ({}));
 
-  // Build adjacency list
-  const adjacency = new Map();
-  for (const edge of edges) {
-    if (!adjacency.has(edge.source)) adjacency.set(edge.source, []);
-    adjacency.get(edge.source).push(edge.target);
+  for (const n of nodes) {
+    const s = nodeSize[n.id] || DEFAULT_NODE_SIZE;
+    g.setNode(n.id, { width: s.width, height: s.height });
   }
-
-  // Find initial node
-  const initialNode = nodes.find(n => n.type === 'initial') || nodes[0];
-
-  // BFS to assign columns
-  const visited = new Set();
-  const columns = new Map(); // stateId -> column index
-  const queue = [{ id: initialNode.id, col: 0 }];
-  visited.add(initialNode.id);
-  columns.set(initialNode.id, 0);
-
-  while (queue.length > 0) {
-    const { id, col } = queue.shift();
-    const neighbors = adjacency.get(id) || [];
-    for (const neighbor of neighbors) {
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        columns.set(neighbor, col + 1);
-        queue.push({ id: neighbor, col: col + 1 });
-      }
+  for (const e of edges) {
+    // dagre ignores edges to/from unknown nodes; guard anyway
+    if (g.hasNode(e.source) && g.hasNode(e.target)) {
+      g.setEdge(e.source, e.target);
     }
   }
 
-  // Handle any disconnected nodes
-  for (const node of nodes) {
-    if (!columns.has(node.id)) {
-      const maxCol = Math.max(...columns.values(), -1);
-      columns.set(node.id, maxCol + 1);
-    }
-  }
+  dagre.layout(g);
 
-  // Group nodes by column
-  const columnGroups = new Map();
-  for (const [nodeId, col] of columns) {
-    if (!columnGroups.has(col)) columnGroups.set(col, []);
-    columnGroups.get(col).push(nodeId);
+  for (const n of nodes) {
+    const dn = g.node(n.id);
+    if (!dn) continue;
+    // dagre positions are node centers; React Flow wants top-left
+    positions.set(n.id, { x: dn.x - dn.width / 2, y: dn.y - dn.height / 2 });
   }
-
-  // Assign positions
-  for (const [col, nodeIds] of columnGroups) {
-    const totalHeight = (nodeIds.length - 1) * VERTICAL_GAP;
-    const startY = -totalHeight / 2;
-    nodeIds.forEach((nodeId, idx) => {
-      positions.set(nodeId, {
-        x: col * HORIZONTAL_GAP,
-        y: startY + idx * VERTICAL_GAP,
-      });
-    });
-  }
-
   return positions;
 }

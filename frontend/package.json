@@ -8,6 +8,7 @@
   "dependencies": {
     "@a2ui/react": "^0.9.1",
     "@a2ui/web_core": "^0.9.2",
+    "@dagrejs/dagre": "^1.1.8",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mcp-ui/client": "^6.1.0",

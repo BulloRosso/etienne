@@ -195,6 +195,45 @@ async function step2_createProject(ctx: ApiContext): Promise<void> {
   }
 }
 
+async function step2b_provisionMcpServers(ctx: ApiContext): Promise<void> {
+  header('2b. Provision MCP servers (.mcp.json + settings.json)');
+  // Define the project's MCP servers explicitly so a from-scratch re-seed does
+  // not depend on the backend's auto-configuration worker eventually writing
+  // .mcp.json. The backend (saveMcpConfig) injects the project query param into
+  // each HTTP URL and syncs .claude/settings.json (enabledMcpjsonServers +
+  // allowedTools), so we send relative-clean URLs and let it own the rest.
+  const mcpServers = {
+    kg: {
+      type: 'http',
+      url: 'http://localhost:6060/mcp/knowledge-graph',
+      headers: { Authorization: 'test123' },
+      description: 'Knowledge Graph Tools',
+    },
+    workflows: {
+      type: 'http',
+      url: 'http://localhost:6060/mcp/workflows',
+      headers: { Authorization: 'Bearer test123' },
+      description: 'Workflow Tools',
+    },
+    scrapbook: {
+      type: 'http',
+      url: 'http://localhost:6060/mcp/scrapbook',
+      headers: { Authorization: 'test123' },
+      description: 'Scrapbook tools for mindmap',
+    },
+  };
+  await apiFetch(ctx, `/api/claude/mcp/config/save`, {
+    method: 'POST',
+    body: JSON.stringify({ projectName: PROJECT_NAME, mcpServers }),
+  });
+  // Verify the file landed where Claude Code expects it (project root).
+  const mcpPath = join(PROJECT_ROOT, '.mcp.json');
+  if (!existsSync(mcpPath)) {
+    throw new Error(`.mcp.json not written at ${mcpPath}`);
+  }
+  ok(`mcp servers provisioned: ${Object.keys(mcpServers).join(', ')}`);
+}
+
 async function step3_writeMission(): Promise<void> {
   header('3. Write wiki/_meta/mission.md');
   const dir = join(PROJECT_ROOT, 'wiki', '_meta');
@@ -774,6 +813,7 @@ async function main(): Promise<void> {
 
   const ctx = await step1_authenticate();
   await step2_createProject(ctx);
+  await step2b_provisionMcpServers(ctx);
   await step3_writeMission();
   await step4_seedWiki();
   await step5_seedKG(ctx);

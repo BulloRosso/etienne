@@ -3,5 +3,10 @@
   "loadingWorkflows": "Loading workflows...",
   "noWorkflows": "No workflows found for this project",
   "waitingFor": "Waiting for {{target}}",
-  "workflowLabel": "Workflow"
+  "workflowLabel": "Workflow",
+  "stateCurrent": "Current",
+  "stateChat": "Chat",
+  "stateEmail": "Email",
+  "stateExternal": "External",
+  "stateFinal": "Final"
 }

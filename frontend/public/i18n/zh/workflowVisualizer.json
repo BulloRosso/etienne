@@ -3,5 +3,10 @@
   "loadingWorkflows": "正在加载工作流...",
   "noWorkflows": "此项目未找到工作流",
   "waitingFor": "等待 {{target}}",
-  "workflowLabel": "工作流"
+  "workflowLabel": "工作流",
+  "stateCurrent": "当前",
+  "stateChat": "对话",
+  "stateEmail": "邮件",
+  "stateExternal": "外部",
+  "stateFinal": "终态"
 }

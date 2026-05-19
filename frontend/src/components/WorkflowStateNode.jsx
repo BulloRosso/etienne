@@ -5,7 +5,7 @@ import { HourglassEmpty, CheckCircle, PlayArrow, RadioButtonChecked, Email, Open
 import { useTranslation } from 'react-i18next';
 
 const WorkflowStateNode = memo(({ data }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["workflowVisualizer"]);
   const { label, description, nodeType, isCurrent, waitingFor } = data;
 
   const borderColor = isCurrent ? '#1976d2'
@@ -52,7 +52,7 @@ const WorkflowStateNode = memo(({ data }) => {
           {isCurrent && (
             <Chip
               icon={<RadioButtonChecked sx={{ fontSize: 14 }} />}
-              label={t('workflowStateNode.current')}
+              label={t('workflowVisualizer:stateCurrent')}
               size="small"
               color="primary"
               sx={{ height: 20, '& .MuiChip-label': { fontSize: 10, px: 0.5 } }}
@@ -61,7 +61,7 @@ const WorkflowStateNode = memo(({ data }) => {
           {waitingFor && (
             <Chip
               icon={waitingIcon}
-              label={waitingFor === 'human_chat' ? t('workflowStateNode.chat') : waitingFor === 'human_email' ? t('workflowStateNode.email') : t('workflowStateNode.external')}
+              label={waitingFor === 'human_chat' ? t('workflowVisualizer:stateChat') : waitingFor === 'human_email' ? t('workflowVisualizer:stateEmail') : t('workflowVisualizer:stateExternal')}
               size="small"
               color="warning"
               sx={{ height: 20, '& .MuiChip-label': { fontSize: 10, px: 0.5 } }}
@@ -70,7 +70,7 @@ const WorkflowStateNode = memo(({ data }) => {
           {nodeType === 'final' && (
             <Chip
               icon={<CheckCircle sx={{ fontSize: 14 }} />}
-              label={t('workflowStateNode.final')}
+              label={t('workflowVisualizer:stateFinal')}
               size="small"
               color="success"
               sx={{ height: 20, '& .MuiChip-label': { fontSize: 10, px: 0.5 } }}

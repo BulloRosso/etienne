@@ -288,14 +288,15 @@ export default function ArtifactsForSession({ filename, projectName }) {
                   border: '1px solid #ccc',
                   borderRadius: 1.5,
                   maxHeight: 80,
+                  minWidth: 0,
                   transition: 'background-color 0.15s',
                   '&:hover': {
                     backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
                   },
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ color: 'text.secondary', display: 'flex' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, maxWidth: '100%', minWidth: 0 }}>
+                  <Box sx={{ color: 'text.secondary', display: 'flex', flexShrink: 0 }}>
                     {getFileIcon(ext)}
                   </Box>
                   <Typography

@@ -16,6 +16,11 @@ realistic scale.
 2. **Creates the project** via `POST /api/projects/create` — this auto-
    provisions every standard skill including `wiki` and `dreaming`. No
    separate skill-provisioning step is needed.
+2b. **Provisions MCP servers** via `POST /api/claude/mcp/config/save`,
+   writing `.mcp.json` (`kg`, `workflows`, `scrapbook`) at the project root
+   and syncing `.claude/settings.json` (`enabledMcpjsonServers` +
+   `allowedTools`). Done explicitly so a from-scratch re-seed does not
+   depend on the backend auto-configuration worker.
 3. **Writes `wiki/_meta/mission.md`** (the wiki skill anchors mission
    relevance on this file).
 4. **Writes 25 substantive wiki pages** (20 in `topics/`, 5 in `sources/`)
