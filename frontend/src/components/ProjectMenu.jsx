@@ -40,6 +40,7 @@ import SkillCatalog from './SkillCatalog';
 import DashboardGrid from './DashboardGrid';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
+import WorkflowVisualizer from './WorkflowVisualizer';
 import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
 
 import ChangePasswordDialog from './ChangePasswordDialog';
@@ -75,6 +76,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   const [skillCatalogOpen, setSkillCatalogOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
+  const [workflowsOpen, setWorkflowsOpen] = useState(false);
   const [ontologyCoreOpen, setOntologyCoreOpen] = useState(false);
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [scrapbookListOpen, setScrapbookListOpen] = useState(false);
@@ -177,6 +179,9 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
         break;
       case 'conditionmonitoring':
         handleConditionMonitoringOpen();
+        break;
+      case 'workflows':
+        handleWorkflowsOpen();
         break;
       case 'issues':
         handleIssuesOpen();
@@ -387,6 +392,15 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
 
   const handleConditionMonitoringClose = () => {
     setConditionMonitoringOpen(false);
+  };
+
+  const handleWorkflowsOpen = () => {
+    setWorkflowsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleWorkflowsClose = () => {
+    setWorkflowsOpen(false);
   };
 
   const handleOntologyCoreOpen = () => {
@@ -911,6 +925,42 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
           selectedProject={currentProject}
           onClose={handleConditionMonitoringClose}
         />
+      </Dialog>
+
+      <Dialog
+        open={workflowsOpen}
+        onClose={handleWorkflowsClose}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '90vh',
+            maxHeight: '90vh',
+            ...(themeMode === 'dark' && { border: '1px solid #999' })
+          }
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              px: 2,
+              py: 1.5,
+              borderBottom: 1,
+              borderColor: 'divider'
+            }}
+          >
+            <Typography variant="h6">{t('dashboard:itemWorkflows')}</Typography>
+            <IconButton onClick={handleWorkflowsClose} size="small" aria-label="close">
+              <Close />
+            </IconButton>
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <WorkflowVisualizer projectName={currentProject} />
+          </Box>
+        </Box>
       </Dialog>
 
       <Dialog

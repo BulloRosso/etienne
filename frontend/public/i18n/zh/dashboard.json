@@ -18,6 +18,7 @@
   "itemSkillStore": "技能商店",
   "itemSkills": "技能",
   "itemSubagents": "子智能体",
+  "itemWorkflows": "工作流",
   "serviceControl": "服务控制",
   "subagentsUnsupportedPiMono": "pi-mono 编码智能体不支持子智能体。"
 }

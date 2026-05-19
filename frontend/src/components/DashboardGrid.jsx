@@ -98,6 +98,12 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
       disabled: !currentProject
     },
     {
+      id: 'workflows',
+      image: '/workflows.png',
+      label: t('dashboard:itemWorkflows'),
+      disabled: !currentProject
+    },
+    {
       id: 'scrapbook',
       image: '/scrapbook.png',
       label: t('dashboard:itemScrapbook'),

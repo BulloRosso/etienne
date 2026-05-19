@@ -18,6 +18,7 @@
   "itemSkillStore": "Negozio skill",
   "itemSkills": "Skill",
   "itemSubagents": "Sottoagenti",
+  "itemWorkflows": "Flussi di lavoro",
   "serviceControl": "Controllo servizi",
   "subagentsUnsupportedPiMono": "I sottoagenti non sono supportati dall'agente di codifica pi-mono."
 }

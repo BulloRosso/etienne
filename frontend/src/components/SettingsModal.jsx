@@ -37,6 +37,7 @@ import SkillsSettings from './SkillsSettings';
 import SkillCatalog from './SkillCatalog';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
+import WorkflowVisualizer from './WorkflowVisualizer';
 import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import TeamUpDialog from './TeamUpDialog';
@@ -82,6 +83,7 @@ export default function SettingsModal({
   const [skillCatalogOpen, setSkillCatalogOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
   const [conditionMonitoringOpen, setConditionMonitoringOpen] = useState(false);
+  const [workflowsOpen, setWorkflowsOpen] = useState(false);
   const [ontologyCoreOpen, setOntologyCoreOpen] = useState(false);
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [scrapbookListOpen, setScrapbookListOpen] = useState(false);
@@ -119,6 +121,7 @@ export default function SettingsModal({
       case 'externalevents': closeSettingsAndOpen(setExternalEventsOpen); break;
       case 'contexts': closeSettingsAndOpen(setContextsOpen); break;
       case 'conditionmonitoring': closeSettingsAndOpen(setConditionMonitoringOpen); break;
+      case 'workflows': closeSettingsAndOpen(setWorkflowsOpen); break;
       case 'issues': closeSettingsAndOpen(setIssuesOpen); break;
       case 'ontologycore': closeSettingsAndOpen(setOntologyCoreOpen); break;
       case 'scrapbook': fetchScrapbooks(); closeSettingsAndOpen(setScrapbookListOpen); break;
@@ -418,6 +421,20 @@ export default function SettingsModal({
 
       <Dialog open={conditionMonitoringOpen} onClose={() => setConditionMonitoringOpen(false)} maxWidth="xl" fullWidth PaperProps={{ sx: { height: '90vh', maxHeight: '90vh', ...(themeMode === 'dark' && { border: '1px solid #999' }) } }}>
         <EventHandling selectedProject={currentProject} onClose={() => setConditionMonitoringOpen(false)} />
+      </Dialog>
+
+      <Dialog open={workflowsOpen} onClose={() => setWorkflowsOpen(false)} maxWidth="xl" fullWidth PaperProps={{ sx: { height: '90vh', maxHeight: '90vh', ...(themeMode === 'dark' && { border: '1px solid #999' }) } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h6">{t('dashboard:itemWorkflows')}</Typography>
+            <IconButton onClick={() => setWorkflowsOpen(false)} size="small" aria-label="close">
+              <Close />
+            </IconButton>
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <WorkflowVisualizer projectName={currentProject} />
+          </Box>
+        </Box>
       </Dialog>
 
       <Dialog open={ontologyCoreOpen} onClose={() => setOntologyCoreOpen(false)} maxWidth="xl" fullWidth PaperProps={{ sx: { height: '90vh', maxHeight: '90vh', ...(themeMode === 'dark' && { border: '1px solid #999' }) } }}>

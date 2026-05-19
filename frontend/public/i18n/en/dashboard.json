@@ -19,6 +19,7 @@
   "itemSkillStore": "Skill Store",
   "itemSkills": "Skills",
   "itemSubagents": "Subagents",
+  "itemWorkflows": "Workflows",
   "serviceControl": "Service Control",
   "subagentsUnsupportedPiMono": "Subagents are not supported by the pi-mono coding agent."
 }
