@@ -18,6 +18,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import ImageGalleryModal from './ImageGalleryModal.jsx';
 import ExportFilenameModal from './ExportFilenameModal.jsx';
 import { initMermaid, renderMermaidBlocks } from '../utils/mermaidRenderer';
+import MermaidZoomModal from './MermaidZoomModal.jsx';
 
 // Extract YAML frontmatter delimited by lines of 3+ dashes.
 // Returns { frontmatter: string|null, body: string }.
@@ -77,6 +78,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [zoomModal, setZoomModal] = useState({ open: false, svg: '' });
   const editorRef = useRef(null);
   const renderedRef = useRef(null);
 
@@ -263,8 +265,32 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
 
   useEffect(() => {
     if (!htmlContent || !renderedRef.current) return;
+    const container = renderedRef.current;
     initMermaid(isDark ? 'dark' : 'light');
-    renderMermaidBlocks(renderedRef.current);
+
+    let cancelled = false;
+    const cleanups = [];
+
+    (async () => {
+      await renderMermaidBlocks(container);
+      if (cancelled) return;
+      const wrappers = container.querySelectorAll('.mermaid-rendered');
+      wrappers.forEach((wrapper) => {
+        if (wrapper.dataset.mermaidClickWired === 'true') return;
+        wrapper.dataset.mermaidClickWired = 'true';
+        wrapper.setAttribute('title', 'Click to zoom');
+        const handler = () => {
+          setZoomModal({ open: true, svg: wrapper.innerHTML });
+        };
+        wrapper.addEventListener('click', handler);
+        cleanups.push(() => wrapper.removeEventListener('click', handler));
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      cleanups.forEach((fn) => fn());
+    };
   }, [htmlContent, isDark]);
 
   // Extract first heading from markdown for default export filename
@@ -519,6 +545,12 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
               marginTop: '1em',
               marginBottom: '1em',
               overflow: 'auto',
+              cursor: 'zoom-in',
+              borderRadius: '4px',
+              transition: 'background-color 0.15s ease',
+              '&:hover': {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
+              },
               '& svg': { maxWidth: '100%', height: 'auto' }
             },
             '& blockquote': {
@@ -663,6 +695,11 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
         />
         </>
       )}
+      <MermaidZoomModal
+        open={zoomModal.open}
+        svg={zoomModal.svg}
+        onClose={() => setZoomModal({ open: false, svg: '' })}
+      />
     </Box>
   );
 }
