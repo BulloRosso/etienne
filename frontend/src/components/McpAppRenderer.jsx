@@ -153,9 +153,6 @@ export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolIn
       height: `${iframeHeight}px`,
       minHeight: '200px',
       maxHeight: '800px',
-      border: '1px solid',
-      borderColor: themeMode === 'dark' ? '#555' : '#fff',
-      borderRadius: '8px',
       overflow: 'hidden',
     }}>
       <AppRenderer

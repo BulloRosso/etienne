@@ -38,21 +38,19 @@ export default function AppTypeModalHost() {
         </IconButton>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
-        <Box sx={{ p: 1 }}>
-          {mcpGroup && resourceUri ? (
-            <McpAppRenderer
-              mcpGroup={mcpGroup}
-              toolName={toolName}
-              resourceUri={resourceUri}
-              toolInput={{ project_name: project }}
-              hostContext={{ project }}
-            />
-          ) : (
-            <Box sx={{ p: 2, color: 'text.secondary' }}>
-              Modal payload is missing mcpGroup or resourceUri.
-            </Box>
-          )}
-        </Box>
+        {mcpGroup && resourceUri ? (
+          <McpAppRenderer
+            mcpGroup={mcpGroup}
+            toolName={toolName}
+            resourceUri={resourceUri}
+            toolInput={{ project_name: project }}
+            hostContext={{ project }}
+          />
+        ) : (
+          <Box sx={{ p: 2, color: 'text.secondary' }}>
+            Modal payload is missing mcpGroup or resourceUri.
+          </Box>
+        )}
       </DialogContent>
     </Dialog>
   );
