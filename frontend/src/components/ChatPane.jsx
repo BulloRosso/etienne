@@ -18,12 +18,14 @@ import SessionPane from './SessionPane';
 import NotificationMenu from './NotificationMenu';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { apiFetch } from '../services/api';
 
 export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false }) {
   const { t } = useTranslation(["chatPane","common"]);
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
+  const { isMinimalistic } = useUxMode();
   const isAdmin = hasRole('admin');
   const isGuest = hasRole('guest');
   const messagesEndRef = useRef(null);
@@ -457,7 +459,11 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
       </Box>
 
       <Box sx={{ p: 0, pb: 0 }}>
-        <QuickActions onSelectAction={(prompt) => setEditingMessage(prompt)} currentProject={projectName} />
+        <QuickActions
+          onSelectAction={(prompt) => setEditingMessage(prompt)}
+          currentProject={projectName}
+          extraActions={isMinimalistic ? (uiConfig?.welcomePage?.quickActions || []) : []}
+        />
         <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} initialMessage={editingMessage} onInitialMessageConsumed={() => setEditingMessage(null)} />
       </Box>
 

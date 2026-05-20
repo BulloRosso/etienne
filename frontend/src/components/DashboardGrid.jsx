@@ -322,7 +322,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
                 transform: 'translateY(-2px)',
                 boxShadow: 6
               },
-              minHeight: '100px',
+              minHeight: isMinimalistic ? '100px' : '120px',
               minWidth: 0,
               overflow: 'hidden'
             }}
@@ -333,7 +333,7 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
                 src={item.image}
                 alt={item.label}
                 style={{
-                  height: '60px',
+                  height: isMinimalistic ? '50px' : '60px',
                   width: 'auto',
                   objectFit: 'contain',
                   filter: item.disabled ? 'grayscale(100%)' : 'none'

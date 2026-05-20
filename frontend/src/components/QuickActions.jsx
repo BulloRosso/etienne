@@ -4,7 +4,7 @@ import { apiFetch } from '../services/api';
 import { getIcon } from '../utils/iconRegistry';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 
-export default function QuickActions({ onSelectAction, currentProject }) {
+export default function QuickActions({ onSelectAction, currentProject, extraActions = [] }) {
   const [actions, setActions] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -36,12 +36,16 @@ export default function QuickActions({ onSelectAction, currentProject }) {
   }, [actions, currentProject]);
 
   const sorted = useMemo(() => {
-    return [...visible].sort((a, b) => {
+    const tagged = [
+      ...visible,
+      ...extraActions.map((a, i) => ({ ...a, id: a.id || `extra-${i}-${a.title}` })),
+    ];
+    return tagged.sort((a, b) => {
       const ao = typeof a.sortOrder === 'number' ? a.sortOrder : Number.MAX_SAFE_INTEGER;
       const bo = typeof b.sortOrder === 'number' ? b.sortOrder : Number.MAX_SAFE_INTEGER;
       return ao - bo;
     });
-  }, [visible]);
+  }, [visible, extraActions]);
 
   if (sorted.length === 0) return null;
 
@@ -57,13 +61,12 @@ export default function QuickActions({ onSelectAction, currentProject }) {
     <Box
       sx={{
         display: 'flex',
-        flexWrap: 'nowrap',
+        flexWrap: 'wrap',
         gap: 1,
         alignItems: 'center',
-        overflowX: 'auto',
         ml: '20px',
         mb: 0,
-        pb: 0,
+        pb: 0.75,
         pt: 0.75,
         pr: 1.5,
       }}
@@ -95,7 +98,16 @@ export default function QuickActions({ onSelectAction, currentProject }) {
             variant="outlined"
             size="small"
             onClick={() => handleClick(action)}
-            sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+            sx={{
+              textTransform: 'none',
+              whiteSpace: 'nowrap',
+              color: 'text.secondary',
+              borderColor: 'divider',
+              '&:hover': {
+                borderColor: 'text.secondary',
+                backgroundColor: 'action.hover',
+              },
+            }}
           >
             {action.title}
           </Button>

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Box, Typography, Chip, TextField, IconButton, Paper } from '@mui/material';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { apiFetch } from '../services/api';
 import { SlMicrophone } from 'react-icons/sl';
 import { GoArrowUp, GoPlus, GoX } from 'react-icons/go';
@@ -11,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
   const { t } = useTranslation(["welcome"]);
   const { mode: themeMode } = useThemeMode();
+  const { isMinimalistic } = useUxMode();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -361,8 +363,8 @@ const WelcomePage = ({ welcomeConfig, onSendMessage, onReturnToDefault }) => {
           </Box>
         )}
 
-        {/* Quick Actions */}
-        {sortedQuickActions.length > 0 && (
+        {/* Quick Actions — hidden in minimalistic mode (rendered in QuickActions bar instead) */}
+        {!isMinimalistic && sortedQuickActions.length > 0 && (
           <Box
             sx={{
               display: 'flex',
