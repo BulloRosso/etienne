@@ -1,4 +1,6 @@
 {
+  "applicationTypeLabel": "应用类型",
+  "applicationTypeNoneOption": "无",
   "agentNameDescription": "智能体名称（显示在应用栏中）：",
   "agentNamePlaceholder": "输入智能体名称...",
   "benefitDescStep1": "一个清晰的项目名称有助于您组织工作并快速找到所需内容。请选择一个能反映项目目的的名称。",

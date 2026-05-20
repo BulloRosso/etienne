@@ -71,6 +71,7 @@ import { createMs365BridgeToolsService } from '../ms365/ms365-bridge-tools';
 import { GraphClientService } from '../ms365/graph-client.service';
 import { OneDriveSyncService } from '../ms365/onedrive-sync.service';
 import { WritebackWatcherService } from '../ms365/writeback-watcher.service';
+import { ApplicationTypesService } from '../application-types/application-types.service';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -110,6 +111,7 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly graphClient: GraphClientService,
     private readonly oneDriveSync: OneDriveSyncService,
     private readonly writebackWatcher: WritebackWatcherService,
+    private readonly applicationTypesService: ApplicationTypesService,
   ) {
     const scopedLlm = this.createProjectScopedLlm();
     this.groupConfigs = {
@@ -208,6 +210,14 @@ export class McpServerFactoryService implements OnModuleInit {
       'image-generation': {
         toolServices: [createImageGenerationToolsService()],
       },
+      'app-types': {
+        // Resources are populated lazily at module init (see onModuleInit).
+        // Tool services mirror the workflows group so sandboxed app-type
+        // resources can call workflow_list / workflow_send_event via the
+        // App.callServerTool bridge without needing to span MCP groups.
+        toolServices: [createWorkflowToolsService(workflowsService, ruleEngineService)],
+        resources: [],
+      },
       'ms365': {
         toolServices: [createMs365BridgeToolsService(
           graphClient,
@@ -224,9 +234,35 @@ export class McpServerFactoryService implements OnModuleInit {
     };
   }
 
-  onModuleInit() {
+  async onModuleInit() {
+    await this.loadApplicationTypeResources();
+
     const groupNames = Object.keys(this.groupConfigs);
     this.logger.log(`MCP Server Factory initialized with ${groupNames.length} groups: ${groupNames.join(', ')}`);
+  }
+
+  /**
+   * Discover MCP UI resources contributed by application types.
+   * Each application-types-repository/<type>/resources/<file>.html becomes
+   * an MCP resource at ui://app-types/<type>/<file>.html under the
+   * synthetic 'app-types' group.
+   */
+  private async loadApplicationTypeResources(): Promise<void> {
+    try {
+      const refs = await this.applicationTypesService.listAllResources();
+      const group = this.groupConfigs['app-types'];
+      if (!group) return;
+      group.resources = refs.map((ref) => ({
+        uri: ref.uri,
+        name: ref.fileName,
+        mimeType: 'text/html;profile=mcp-app',
+        loadContent: () =>
+          this.applicationTypesService.getResourceHtml(ref.typeId, ref.fileName),
+      }));
+      this.logger.log(`Loaded ${refs.length} application-type MCP resource(s) under 'app-types' group`);
+    } catch (err: any) {
+      this.logger.warn(`Failed to load application-type resources: ${err.message}`);
+    }
   }
 
   /**

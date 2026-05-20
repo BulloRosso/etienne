@@ -7,6 +7,7 @@ import { AgentRoleRegistryModule } from '../agent-role-registry/agent-role-regis
 import { A2ASettingsModule } from '../a2a-settings/a2a-settings.module';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
 import { CodingAgentConfigurationModule } from '../coding-agent-configuration/coding-agent-configuration.module';
+import { ApplicationTypesModule } from '../application-types/application-types.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CodingAgentConfigurationModule } from '../coding-agent-configuration/co
     AgentRoleRegistryModule,
     A2ASettingsModule,
     CodingAgentConfigurationModule,
+    ApplicationTypesModule,
   ],
   controllers: [ProjectsController],
   providers: [ProjectsService, McpServerConfigService],

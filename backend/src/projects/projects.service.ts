@@ -10,6 +10,7 @@ import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.con
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 import { LlmService } from '../llm/llm.service';
 import { McpRegistryService } from '../mcp-registry/core/mcp-registry.service';
+import { ApplicationTypesService } from '../application-types/application-types.service';
 
 @Injectable()
 export class ProjectsService {
@@ -32,6 +33,7 @@ export class ProjectsService {
     private readonly codingAgentConfigService: CodingAgentConfigurationService,
     private readonly llmService: LlmService,
     private readonly mcpRegistryService: McpRegistryService,
+    private readonly applicationTypesService: ApplicationTypesService,
   ) {}
 
   /**
@@ -133,6 +135,19 @@ export class ProjectsService {
           this.logger.log(`Configured ${dto.a2aAgents.length} A2A agents for ${dto.projectName}`);
         } catch (error: any) {
           warnings.push(`Failed to configure A2A agents: ${error.message}`);
+        }
+      }
+
+      // 7b. Apply application type if selected (writes .etienne/application-type.json and provisions subagents)
+      if (dto.applicationType) {
+        try {
+          await this.applicationTypesService.setProjectApplicationType(
+            dto.projectName,
+            dto.applicationType,
+          );
+          this.logger.log(`Set application type '${dto.applicationType}' for ${dto.projectName}`);
+        } catch (error: any) {
+          warnings.push(`Failed to set application type: ${error.message}`);
         }
       }
 

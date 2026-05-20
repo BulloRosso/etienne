@@ -16,6 +16,7 @@ import AskUserQuestionModal from './components/AskUserQuestionModal';
 import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
 import HITLApprovalModal from './components/HITLApprovalModal';
+import AppTypeModalHost from './components/AppTypeModalHost';
 import LoginDialog from './components/LoginDialog';
 import ServiceHealthGate from './components/ServiceHealthGate';
 import { TbCalendarTime, TbPresentation, TbWorld } from 'react-icons/tb';
@@ -189,11 +190,18 @@ export default function App() {
   // Auto-prompt from viewers (e.g. Gantt drag emits a synthetic chat message
   // describing the move). Reuses handleSendMessage so the regular viewer-state
   // POST + SSE pipeline runs unchanged.
+  // If detail.fresh === true, reset the current session first so the prompt
+  // starts a brand-new chat (used by application-type sidebar subagent links).
   useEffect(() => {
     const handler = (event) => {
       const msg = event.detail?.message;
       if (!msg) return;
-      handleSendMessage(msg);
+      if (event.detail?.fresh) {
+        handleSessionChange(null);
+        requestAnimationFrame(() => handleSendMessage(msg));
+      } else {
+        handleSendMessage(msg);
+      }
     };
     window.addEventListener('viewer-auto-prompt', handler);
     return () => window.removeEventListener('viewer-auto-prompt', handler);
@@ -2604,6 +2612,9 @@ export default function App() {
         onRespond={handleHITLResponse}
         onClose={() => setPendingHITL(null)}
       />
+
+      {/* Application-type modal host (sandboxed MCP UI resources) */}
+      <AppTypeModalHost />
     </Box>
     </MuxSSEProvider>
   );

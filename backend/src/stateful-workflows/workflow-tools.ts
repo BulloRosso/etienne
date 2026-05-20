@@ -219,6 +219,25 @@ const tools: McpTool[] = [
       required: ['project_name'],
     },
   },
+  {
+    name: 'render_workflows_list',
+    description: 'Render an interactive list of running workflows for a project as an MCP App UI. The UI shows id, name, current state, and transition buttons. Use when the user asks to see, view, or open the workflows panel.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_name: {
+          type: 'string',
+          description: 'The project name (directory name in workspace)',
+        },
+      },
+      required: ['project_name'],
+    },
+    _meta: {
+      ui: {
+        resourceUri: 'ui://app-types/research-project/workflows-list.html',
+      },
+    },
+  } as McpTool & { _meta?: any },
 ];
 
 /**
@@ -422,6 +441,14 @@ export function createWorkflowToolsService(
           })),
         };
       }
+
+      case 'render_workflows_list':
+        // Returns the list payload; the UI iframe will also fetch via tools/call.
+        // Including data here makes the modal usable when invoked from chat.
+        return {
+          project: args.project_name,
+          workflows: await workflowsService.listWorkflows(args.project_name),
+        };
 
       default:
         throw new Error(`Unknown tool: ${toolName}`);

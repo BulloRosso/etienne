@@ -22,7 +22,7 @@ const SANDBOX_PROXY_URL = new URL('/sandbox-proxy', window.location.origin);
  * @param {object} toolInput - Tool input arguments
  * @param {object} toolResult - Tool execution result (MCP CallToolResult format)
  */
-export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolInput, toolResult }) {
+export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolInput, toolResult, hostContext: extraHostContext }) {
   const { t } = useTranslation(["mcpAppRenderer"]);
   const [client, setClient] = useState(null);
   const [error, setError] = useState(null);
@@ -171,6 +171,7 @@ export default function McpAppRenderer({ mcpGroup, toolName, resourceUri, toolIn
         hostContext={{
           theme: themeMode === 'dark' ? 'dark' : 'light',
           platform: 'web',
+          ...(extraHostContext || {}),
         }}
       />
     </Box>

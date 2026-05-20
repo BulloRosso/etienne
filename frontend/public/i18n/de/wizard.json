@@ -1,4 +1,6 @@
 {
+  "applicationTypeLabel": "Anwendungstyp",
+  "applicationTypeNoneOption": "Keiner",
   "agentNameDescription": "Agentenname (wird in der App-Leiste angezeigt):",
   "agentNamePlaceholder": "Agentennamen eingeben...",
   "benefitDescStep1": "Ein klarer Projektname hilft Ihnen, Ihre Arbeit zu organisieren und schnell zu finden, was Sie brauchen. Wählen Sie einen Namen, der den Zweck des Projekts widerspiegelt.",

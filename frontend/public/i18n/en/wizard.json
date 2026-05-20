@@ -1,4 +1,6 @@
 {
+  "applicationTypeLabel": "Application type",
+  "applicationTypeNoneOption": "None",
   "agentNameDescription": "Agent Name (displayed in the app bar):",
   "agentNamePlaceholder": "Enter agent name...",
   "benefitDescStep1": "A clear project name helps you organize your work and quickly find what you need. Choose a name that reflects the project's purpose.",

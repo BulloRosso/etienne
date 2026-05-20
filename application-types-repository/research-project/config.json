@@ -1,0 +1,98 @@
+{
+  "id": "research-project",
+  "version": "1.0",
+  "labels": {
+    "en": "Research project",
+    "de": "Forschungsprojekt",
+    "it": "Progetto di ricerca",
+    "zh": "研究项目"
+  },
+  "sidebar": {
+    "bgColor": "#E3F2FD",
+    "headingLabels": {
+      "en": "Research project",
+      "de": "Forschungsprojekt",
+      "it": "Progetto di ricerca",
+      "zh": "研究项目"
+    }
+  },
+  "menuItems": [
+    {
+      "id": "running-workflows",
+      "type": "modal",
+      "icon": "AccountTree",
+      "labels": {
+        "en": "Running workflows",
+        "de": "Laufende Workflows",
+        "it": "Workflow in esecuzione",
+        "zh": "运行中的工作流"
+      },
+      "payload": {
+        "mcpGroup": "app-types",
+        "resourceUri": "ui://app-types/research-project/workflows-list.html",
+        "toolName": "render_workflows_list",
+        "dialog": { "maxWidth": "lg", "fullWidth": true }
+      }
+    },
+    {
+      "id": "report-executive-briefing",
+      "type": "subagent",
+      "icon": "Summarize",
+      "labels": {
+        "en": "Executive briefing",
+        "de": "Management-Briefing",
+        "it": "Briefing esecutivo",
+        "zh": "高管简报"
+      },
+      "payload": {
+        "subagent": "executive-briefing",
+        "prompt": "Generate the Executive Briefing report for this project. Use the Task tool to delegate to the executive-briefing subagent. The subagent will read the wiki and knowledge graph and produce a one-page status report (top 3 risks, decisions made this week, blocking open questions). Save the result under out/reports/."
+      }
+    },
+    {
+      "id": "report-engineering-faq",
+      "type": "subagent",
+      "icon": "QuestionAnswer",
+      "labels": {
+        "en": "Engineering FAQ",
+        "de": "Engineering-FAQ",
+        "it": "FAQ ingegneristiche",
+        "zh": "工程 FAQ"
+      },
+      "payload": {
+        "subagent": "engineering-faq",
+        "prompt": "Generate the Engineering FAQ report. Use the Task tool to delegate to the engineering-faq subagent. The subagent will traverse the knowledge graph's open-question nodes and answer each from connected decisions and evidence. Save the result under out/reports/."
+      }
+    },
+    {
+      "id": "report-onboarding",
+      "type": "subagent",
+      "icon": "School",
+      "labels": {
+        "en": "Onboarding study guide",
+        "de": "Onboarding-Leitfaden",
+        "it": "Guida di onboarding",
+        "zh": "入职指南"
+      },
+      "payload": {
+        "subagent": "onboarding-study-guide",
+        "prompt": "Generate the Onboarding Study Guide. Use the Task tool to delegate to the onboarding-study-guide subagent. The subagent will traverse the project's knowledge graph in dependency order from the mission root, suitable for a new team member. Save the result under out/reports/."
+      }
+    },
+    {
+      "id": "report-decision-register",
+      "type": "subagent",
+      "icon": "Gavel",
+      "labels": {
+        "en": "Decision register",
+        "de": "Entscheidungsregister",
+        "it": "Registro decisioni",
+        "zh": "决策登记册"
+      },
+      "payload": {
+        "subagent": "decision-register",
+        "prompt": "Generate the Decision Register. Use the Task tool to delegate to the decision-register subagent. The subagent will output every Decision node as a table row with supporting Evidence and contradicting Risks. Save the result under out/reports/."
+      }
+    }
+  ]
+}

@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import Editor from '@monaco-editor/react';
 import { apiAxios } from '../services/api';
+import { listApplicationTypes } from '../services/applicationTypes';
 import SkillsSelector from './SkillsSelector';
 import McpToolsSelector from './McpToolsSelector';
 import A2AAgentsSelector from './A2AAgentsSelector';
@@ -99,6 +100,10 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
   const [availableTemplates, setAvailableTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
 
+  // Step 1: Application Type
+  const [availableApplicationTypes, setAvailableApplicationTypes] = useState([]);
+  const [selectedApplicationType, setSelectedApplicationType] = useState('');
+
   // Step 1: Feature toggles (checkboxes)
   const [useSpecializedRole, setUseSpecializedRole] = useState(false);
   const [connectDataSources, setConnectDataSources] = useState(false);
@@ -145,6 +150,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
       fetchA2ARegistry();
       fetchProjectsWithUI();
       fetchAvailableTemplates();
+      fetchAvailableApplicationTypes();
     }
   }, [open]);
 
@@ -152,6 +158,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     setActiveStep(0);
     setProjectName('');
     setSelectedTemplate('');
+    setSelectedApplicationType('');
     setUseSpecializedRole(false);
     setConnectDataSources(false);
     setUseExternalAgents(false);
@@ -243,6 +250,16 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
     }
   };
 
+  const fetchAvailableApplicationTypes = async () => {
+    try {
+      const lng = (i18n.language || 'en').split('-')[0];
+      const types = await listApplicationTypes(lng);
+      setAvailableApplicationTypes(types);
+    } catch (error) {
+      console.error('Failed to fetch application types:', error);
+    }
+  };
+
   const fetchAvailableTemplates = async () => {
     try {
       const response = await apiAxios.get('/api/projects/templates');
@@ -327,6 +344,7 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
         projectName,
         missionBrief,
         templateName: selectedTemplate || undefined,
+        applicationType: selectedApplicationType || undefined,
         agentRole: !useSpecializedRole
           ? { type: 'registry', roleId: 'general-assistant' }
           : roleType === 'registry' && selectedRoleId
@@ -390,6 +408,25 @@ export default function CreateProjectWizard({ open, onClose, onProjectCreated, e
                   {availableTemplates.map(tmpl => (
                     <MenuItem key={tmpl} value={tmpl}>
                       {tmpl}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+            {availableApplicationTypes.length > 0 && (
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>{t('wizard:applicationTypeLabel', 'Application type')}</InputLabel>
+                <Select
+                  value={selectedApplicationType}
+                  onChange={(e) => setSelectedApplicationType(e.target.value)}
+                  label={t('wizard:applicationTypeLabel', 'Application type')}
+                >
+                  <MenuItem value="">
+                    <em>{t('wizard:applicationTypeNoneOption', 'None')}</em>
+                  </MenuItem>
+                  {availableApplicationTypes.map(at => (
+                    <MenuItem key={at.id} value={at.id}>
+                      {at.label || at.id}
                     </MenuItem>
                   ))}
                 </Select>

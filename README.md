@@ -161,6 +161,14 @@ For the full lifecycle (admin curation → user pick → agent use → in-projec
 
 Skills can also grow autonomously: Etienne's offline **dreaming** process reflects nightly on recent sessions and proposes new strategy SKILL.md cards for human review. See [Dreaming: How an Agent Learns From Itself While You Sleep](docs/dreaming.md) for the full pipeline, the wiki dual-store layout, and the human-in-the-loop feedback model.
 
+## Application Types — Domain UI Layered on a Project
+
+Where skills give an agent capabilities, **application types** give a project a custom UI affordance. Attaching `research-project` to a project, for example, surfaces a coloured sidebar section above the regular Projects list with one click each for: a *Running workflows* modal, an *Executive Briefing* report, an *Engineering FAQ*, an *Onboarding Study Guide* and a *Decision Register*. The report links trigger preregistered subagents through the Task tool.
+
+Application types are version-controlled drop-in folders under `application-types-repository/`. Modal UIs are MCP UI resources rendered in a sandboxed iframe — framework-agnostic, decoupled from the host's React/MUI versions, no shared-package constraints.
+
+See [Application Types: Domain UI Layered on a Project](docs/application-types.md) for the config schema, the four menu-item types (`url`, `document`, `modal`, `subagent`), the MCP UI resource model, and how to author a new type.
+
 ## Built for Connectivity
 
 See [Event Bus Components — Integrated AI Agent Architecture](event-bus-architecture.md).

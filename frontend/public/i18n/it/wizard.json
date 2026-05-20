@@ -1,4 +1,6 @@
 {
+  "applicationTypeLabel": "Tipo di applicazione",
+  "applicationTypeNoneOption": "Nessuno",
   "agentNameDescription": "Nome dell'agente (visualizzato nella barra dell'app):",
   "agentNamePlaceholder": "Inserisci il nome dell'agente...",
   "benefitDescStep1": "Un nome di progetto chiaro ti aiuta a organizzare il tuo lavoro e trovare rapidamente ciò che ti serve. Scegli un nome che rifletta lo scopo del progetto.",

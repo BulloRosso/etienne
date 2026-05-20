@@ -458,6 +458,8 @@ export class StatefulWorkflowsService implements OnModuleInit {
     name: string;
     description: string;
     currentState: string;
+    stateLabel: string;
+    availableEvents: string[];
     tags: string[];
     updatedAt: string;
     isWaiting: boolean;
@@ -486,6 +488,8 @@ export class StatefulWorkflowsService implements OnModuleInit {
           name: workflow.name,
           description: workflow.description,
           currentState: workflow.currentState,
+          stateLabel: meta.label || workflow.currentState,
+          availableEvents: this.getAvailableEvents(workflow.machineConfig, workflow.currentState),
           tags: workflow.tags || [],
           updatedAt: workflow.updatedAt,
           isWaiting: !!meta.waitingFor,

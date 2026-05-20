@@ -31,6 +31,7 @@ import SkillIndicator from './SkillIndicator';
 import McpToolsIndicator from './McpToolsIndicator';
 import BudgetIndicator from './BudgetIndicator';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
+import ApplicationSection from './ApplicationSection';
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -605,6 +606,9 @@ export default function MinimalisticSidebar({
         </Box>
 
         <Divider />
+
+        {/* Application-type section (rendered only if currentProject has an effective config) */}
+        <ApplicationSection currentProject={currentProject} />
 
         {/* Section 2: Projects */}
         <Box>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Running Workflows</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0; padding: 16px;
+      color: inherit;
+    }
+    .empty, .err, .loading { padding: 16px; color: #777; font-size: 0.9rem; }
+    .err { color: #c33; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid rgba(127,127,127,0.25); text-align: left; vertical-align: top; }
+    th { font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #777; }
+    .state {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(63,81,181,0.12);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .state.waiting { background: rgba(255,152,0,0.18); }
+    .state.final { background: rgba(76,175,80,0.18); }
+    .actions { display: flex; flex-wrap: wrap; gap: 4px; }
+    button.evt {
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border: 1px solid rgba(127,127,127,0.4);
+      background: transparent;
+      color: inherit;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button.evt:hover { background: rgba(127,127,127,0.12); }
+    button.evt:disabled { opacity: 0.4; cursor: wait; }
+    .meta { color: #888; font-size: 0.78rem; }
+    .toolbar { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px; }
+    button.refresh {
+      background: none; border: 1px solid rgba(127,127,127,0.4);
+      color: inherit; padding: 4px 12px; border-radius: 4px; cursor: pointer;
+      font-size: 0.8rem;
+    }
+    button.refresh:hover { background: rgba(127,127,127,0.12); }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="refresh" id="refresh-btn">Refresh</button>
+  </div>
+  <div id="content" class="loading">Connecting to host…</div>
+
+  <!--
+    Inlined MCP Apps SDK bundle (app-with-deps.js with its trailing `export { ... }`
+    rewritten by the backend into `window.__mcpApps = { App, PostMessageTransport, ... }`).
+    Classic <script> (not type="module") so the rewritten window assignment is observable.
+    The sandbox runs with allow-scripts only (no allow-same-origin and no network for
+    relative URLs) — inlining is required.
+  -->
+  <script>
+    __EXT_APPS_BUNDLE__
+  </script>
+
+  <script>
+  (function () {
+    function whenReady(cb) {
+      if (window.__mcpApps && window.__mcpApps.App) return cb();
+      let tries = 0;
+      const t = setInterval(() => {
+        if (window.__mcpApps && window.__mcpApps.App) {
+          clearInterval(t);
+          cb();
+        } else if (++tries > 50) {
+          clearInterval(t);
+          render({ error: 'MCP Apps SDK did not load' });
+        }
+      }, 50);
+    }
+
+    let app = null;
+    let project = null;
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      ));
+    }
+
+    function render(state) {
+      const root = document.getElementById('content');
+      if (state.error) {
+        root.className = 'err';
+        root.textContent = state.error;
+        return;
+      }
+      if (state.loading) {
+        root.className = 'loading';
+        root.textContent = state.loading;
+        return;
+      }
+      const workflows = state.workflows || [];
+      if (workflows.length === 0) {
+        root.className = 'empty';
+        root.textContent = project
+          ? 'No workflows in project "' + project + '".'
+          : 'No workflows.';
+        return;
+      }
+      root.className = '';
+      const rows = workflows.map(wf => {
+        const stateClass = wf.isFinal ? 'state final' : wf.isWaiting ? 'state waiting' : 'state';
+        const buttons = (wf.availableEvents || []).map(ev =>
+          '<button class="evt" data-id="' + escapeHtml(wf.id) + '" data-evt="' + escapeHtml(ev) + '">' + escapeHtml(ev) + '</button>'
+        ).join('');
+        const updated = wf.updatedAt ? new Date(wf.updatedAt).toLocaleString() : '';
+        return '<tr>'
+          + '<td><div>' + escapeHtml(wf.name || wf.id) + '</div><div class="meta">' + escapeHtml(wf.id) + '</div></td>'
+          + '<td><span class="' + stateClass + '">' + escapeHtml(wf.stateLabel || wf.currentState) + '</span></td>'
+          + '<td class="meta">' + escapeHtml(updated) + '</td>'
+          + '<td><div class="actions">' + (buttons || '<span class="meta">—</span>') + '</div></td>'
+          + '</tr>';
+      }).join('');
+      root.innerHTML = '<table>'
+        + '<thead><tr><th>Workflow</th><th>State</th><th>Updated</th><th>Actions</th></tr></thead>'
+        + '<tbody>' + rows + '</tbody>'
+        + '</table>';
+
+      root.querySelectorAll('button.evt').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const evt = btn.getAttribute('data-evt');
+          root.querySelectorAll('button.evt').forEach(b => b.disabled = true);
+          try {
+            await app.callServerTool({
+              name: 'workflow_send_event',
+              arguments: { project_name: project, workflow_id: id, event: evt }
+            });
+            await refresh();
+          } catch (err) {
+            console.error('workflow_send_event failed', err);
+            render({ error: 'Failed to send event: ' + (err && err.message || err) });
+          }
+        });
+      });
+    }
+
+    function extractResult(result) {
+      const content = result && result.content;
+      if (!Array.isArray(content)) return null;
+      const text = content.find(c => c && c.type === 'text');
+      if (!text) return null;
+      try {
+        let parsed = JSON.parse(text.text);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0] && parsed[0].type === 'text' && parsed[0].text) {
+          parsed = JSON.parse(parsed[0].text);
+        }
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    async function refresh() {
+      render({ loading: 'Loading workflows…' });
+      try {
+        const result = await app.callServerTool({
+          name: 'workflow_list',
+          arguments: { project_name: project }
+        });
+        const payload = extractResult(result);
+        const workflows = Array.isArray(payload) ? payload : (payload && payload.workflows) || [];
+        render({ workflows });
+      } catch (err) {
+        console.error('workflow_list failed', err);
+        render({ error: 'Failed to load workflows: ' + (err && err.message || err) });
+      }
+    }
+
+    whenReady(async () => {
+      const { App, PostMessageTransport } = window.__mcpApps;
+      try {
+        app = new App(
+          { name: 'workflows-list', version: '1.0.0' },
+          { tools: {} }
+        );
+        await app.connect(new PostMessageTransport(window.parent, window.parent));
+        const hostCtx = app.getHostContext() || {};
+        // Project name is delivered via toolInfo (toolInput) or via hostContext.project
+        const toolArgs = hostCtx.toolInfo && hostCtx.toolInfo.tool && hostCtx.toolInfo.tool.input
+          ? hostCtx.toolInfo.tool.input
+          : (hostCtx.toolInfo && hostCtx.toolInfo.args) || {};
+        project = toolArgs.project_name || hostCtx.project || null;
+
+        // Listen for runtime tool input updates
+        app.ontoolinput = (params) => {
+          const args = params && params.arguments;
+          if (args && args.project_name) {
+            project = args.project_name;
+            refresh();
+          }
+        };
+
+        if (project) {
+          await refresh();
+        } else {
+          render({ error: 'No project context provided' });
+        }
+
+        document.getElementById('refresh-btn').addEventListener('click', refresh);
+      } catch (err) {
+        console.error('MCP App connect failed', err);
+        render({ error: 'Connect failed: ' + (err && err.message || err) });
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
