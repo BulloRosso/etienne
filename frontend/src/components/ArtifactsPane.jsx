@@ -10,6 +10,7 @@ import PermissionList from './PermissionList';
 import Interceptors from './Interceptors';
 import ConnectivitySettings from './ConnectivitySettings';
 import Mission from './Mission';
+import ArtifactsForSession from './ArtifactsForSession';
 import MemoryPanel from './MemoryPanel';
 import CheckpointsPane from './CheckpointsPane';
 import GuardrailsSettings from './GuardrailsSettings';
@@ -147,6 +148,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
           <Tab label={t('artifacts:tabArtifacts')} />
           {projectExists && !isMinimalistic && <Tab label={t('artifacts:tabRole')} />}
           {projectExists && isUser && <Tab label={t('artifacts:tabMission')} />}
+          {projectExists && isUser && !isMinimalistic && <Tab label="Artifacts" />}
           {projectExists && isAdmin && <Tab label={t('artifacts:tabPermissions')} />}
           {projectExists && isAdmin && <Tab label={t('artifacts:tabConnectivity')} />}
           {projectExists && isAdmin && <Tab label={t('artifacts:tabObservability')} />}
@@ -211,6 +213,14 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
           {isUser && (
             <TabPanel value={tabValue} index={isMinimalistic ? 1 : 2}>
               <Mission projectName={projectName} />
+            </TabPanel>
+          )}
+          {isUser && !isMinimalistic && (
+            <TabPanel value={tabValue} index={3}>
+              <ArtifactsForSession
+                filename=".etienne/.agent-created-files.artifacts.md"
+                projectName={projectName}
+              />
             </TabPanel>
           )}
           {isAdmin && (
