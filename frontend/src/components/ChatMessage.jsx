@@ -10,6 +10,7 @@ import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
+import { initMermaid, renderMermaidBlocks } from '../utils/mermaidRenderer';
 
 export default function ChatMessage({ role, text, timestamp, usage, contextName, reasoningSteps = [], isStreaming = false, spanId = null, traceId = null, source = null, sourceMetadata = null, minimal = false, onEditMessage }) {
   const { t } = useTranslation(["chatMessage"]);
@@ -149,6 +150,13 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
 
     return null;
   };
+
+  // Render mermaid code blocks as SVG diagrams
+  useEffect(() => {
+    if (!contentRef.current) return;
+    initMermaid(themeMode === 'dark' ? 'dark' : 'light');
+    renderMermaidBlocks(contentRef.current);
+  }, [renderedContent, themeMode]);
 
   // Make file paths in the content clickable
   useEffect(() => {
@@ -485,6 +493,14 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
               '& pre code': {
                 backgroundColor: 'transparent',
                 padding: 0
+              },
+              '& .mermaid-rendered': {
+                display: 'flex',
+                justifyContent: 'center',
+                marginTop: '0.5em',
+                marginBottom: '0.5em',
+                overflow: 'auto',
+                '& svg': { maxWidth: '100%', height: 'auto' }
               },
               '& strong': { fontWeight: 'bold' },
               '& em': { fontStyle: 'italic' },

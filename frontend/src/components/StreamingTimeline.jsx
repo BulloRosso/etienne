@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { Box } from '@mui/material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -10,6 +10,7 @@ import useMcpAppMeta from '../hooks/useMcpAppMeta';
 import { useActiveMcpViewers } from '../hooks/useActiveMcpViewers.js';
 import { LuBrain } from "react-icons/lu";
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { initMermaid, renderMermaidBlocks } from '../utils/mermaidRenderer';
 
 /**
  * Unified timeline component that renders a sequence of text chunks, tool calls, and TodoWrite
@@ -237,6 +238,13 @@ export default function StreamingTimeline({
  */
 function ThinkingTimeline({ content, showBullet = true }) {
   const { mode: themeMode } = useThemeMode();
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+    initMermaid(themeMode === 'dark' ? 'dark' : 'light');
+    renderMermaidBlocks(contentRef.current);
+  }, [content, themeMode]);
 
   return (
     <Box sx={{ mb: 2, position: 'relative' }}>
@@ -283,6 +291,7 @@ function ThinkingTimeline({ content, showBullet = true }) {
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
             <LuBrain size={18} style={{ color: '#1976d2', flexShrink: 0, marginTop: '2px' }} />
           <Box
+            ref={contentRef}
             sx={{
               color: themeMode === 'dark' ? '#aaa' : '#000',
               fontSize: '14px',
@@ -311,6 +320,14 @@ function ThinkingTimeline({ content, showBullet = true }) {
                 marginBottom: '0.5em'
               },
               '& pre code': { backgroundColor: 'transparent', padding: 0 },
+              '& .mermaid-rendered': {
+                display: 'flex',
+                justifyContent: 'center',
+                marginTop: '0.5em',
+                marginBottom: '0.5em',
+                overflow: 'auto',
+                '& svg': { maxWidth: '100%', height: 'auto' }
+              },
             }}
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(content, { breaks: true, gfm: true })) }}
           />

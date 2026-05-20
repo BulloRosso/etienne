@@ -100,6 +100,38 @@ optional but should be supplied whenever the page is written through Adaptive Me
 
 Use relative markdown links: `[Walnut wood](../topics/walnut-wood.md)`. Every page ends with a `## Backlinks` section maintained by `wiki-add` — never edit it by hand.
 
+## Diagrams — when to embed mermaid
+
+Wiki pages render in the project frontend, which displays ```` ```mermaid ```` fenced blocks as inline SVG. You may embed mermaid diagrams in any `topics/`, `sources/`, or `queries/` page when a diagram conveys structure that prose obscures.
+
+Reach for a diagram in exactly these three situations:
+
+- **Sequences** — interactions over time across multiple actors or components (request flows, ingest pipelines, auth handshakes, lifecycle of an event). Use `sequenceDiagram`.
+- **Dependencies** — directed relationships between modules, services, packages, or concepts ("X depends on Y", call graphs, build order, blocker chains). Use `graph LR` or `graph TD`.
+- **Data models** — entity shapes and relationships (tables, records, domain objects, message schemas). Use `erDiagram` or `classDiagram`.
+
+Discipline — diagrams must earn their place:
+
+1. **Prose first.** A diagram is justified only when it makes a relationship clearer than three sentences of prose would. If you can write the relationship out cleanly, do that and skip the diagram.
+2. **One diagram per concept**, not per page. A page with five diagrams is doing prose's job badly.
+3. **Keep diagrams small** — aim for under ~12 nodes. Split into multiple focused diagrams rather than one mega-graph.
+4. **Supplement, don't replace.** A reader who can't render mermaid (terminal, plain-text export, grep) must still get the full story from the surrounding text. The diagram is a visual aid, not the source of truth.
+5. **No diagrams on `status: stub` or `confidence: low` pages.** Diagram-worthy structure implies you've actually researched it.
+
+Minimal worked snippet for a `sequenceDiagram` inside a page body:
+
+````markdown
+The upload handler validates the file, persists it to the workspace, then notifies the ingest worker:
+
+```mermaid
+sequenceDiagram
+    Client->>API: POST /upload
+    API->>Workspace: write file
+    API->>Ingest: enqueue(file)
+    Ingest-->>API: ack
+```
+````
+
 ## The six scripts
 
 All scripts live at `.claude/skills/wiki/scripts/` and run with `tsx`. Their stdout is structured (single JSON object per call). Always parse the JSON; do not rely on prose output.
@@ -171,6 +203,6 @@ User says: *"We decided on a mid-century modern sofa from Brand X."*
 
 ## What does not go in the wiki
 
-Transient chitchat, unverified speculation marked clearly as such, the user's typos and self-corrections, anything outside the mission, anything the user asks not to record, anything that would be obsolete in a week.
+Transient chitchat, unverified speculation marked clearly as such, the user's typos and self-corrections, anything outside the mission, anything the user asks not to record, anything that would be obsolete in a week, and decorative diagrams that restate the surrounding prose without adding structural clarity.
 
 For more depth on any step, read `references/conventions.md`, `references/workflows.md`, or `references/pitfalls.md`.

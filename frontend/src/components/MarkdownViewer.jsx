@@ -17,6 +17,7 @@ import { filePreviewHandler } from '../services/FilePreviewHandler';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import ImageGalleryModal from './ImageGalleryModal.jsx';
 import ExportFilenameModal from './ExportFilenameModal.jsx';
+import { initMermaid, renderMermaidBlocks } from '../utils/mermaidRenderer';
 
 // Extract YAML frontmatter delimited by lines of 3+ dashes.
 // Returns { frontmatter: string|null, body: string }.
@@ -77,6 +78,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   const [exportFormat, setExportFormat] = useState(null);
   const [exporting, setExporting] = useState(false);
   const editorRef = useRef(null);
+  const renderedRef = useRef(null);
 
   const isDirty = rawContent !== savedContent;
 
@@ -259,6 +261,12 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
     };
   }, [filename, editMode]);
 
+  useEffect(() => {
+    if (!htmlContent || !renderedRef.current) return;
+    initMermaid(isDark ? 'dark' : 'light');
+    renderMermaidBlocks(renderedRef.current);
+  }, [htmlContent, isDark]);
+
   // Extract first heading from markdown for default export filename
   const getDefaultFilename = () => {
     const match = rawContent.match(/^#+\s+(.+)/m);
@@ -415,6 +423,7 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
         <>
         {/* Rendered markdown view */}
         <Box
+          ref={renderedRef}
           sx={{
             flex: 1,
             overflow: 'auto',
@@ -503,6 +512,14 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
               padding: 0,
               fontSize: '0.85em',
               lineHeight: '1.45'
+            },
+            '& .mermaid-rendered': {
+              display: 'flex',
+              justifyContent: 'center',
+              marginTop: '1em',
+              marginBottom: '1em',
+              overflow: 'auto',
+              '& svg': { maxWidth: '100%', height: 'auto' }
             },
             '& blockquote': {
               borderLeft: `4px solid ${isDark ? '#3b434b' : '#dfe2e5'}`,
