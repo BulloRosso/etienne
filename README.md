@@ -10,6 +10,33 @@ Meet Etienne — a proactive AI coworker built to work alongside you on your loc
 <img src="/docs/images/core-workflow.jpg" alt="Core Workflow" style="marginBottom: 24px" width="900">
 </div> 
 
+## Quick Install (Developer Setup)
+
+One-line bootstrap that installs the **developer** (non-Docker) version of Etienne. It will:
+
+- Install **Node 22** (via `winget` / `brew` / NodeSource) if not already present
+- Install **uv** and then **Python 3.14** (falls back to 3.13) if not already present
+- Clone this repo to a directory you choose
+- Prompt you for your **Anthropic API key** and write it into `backend/.env`
+- `npm install` / `uv sync` all seven services (backend, frontend, oauth-server, vector-store, knowledge-graph, webserver, rdf-store)
+- Start every service in its own terminal window and open http://localhost:5000
+
+You will need: **an Anthropic API key**, plus `git` already installed.
+
+### Windows (PowerShell)
+
+```powershell
+iwr https://raw.githubusercontent.com/bullorosso/etienne/master/scripts/install.ps1 -OutFile install.ps1; .\install.ps1
+```
+
+### macOS / Linux (bash)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bullorosso/etienne/master/scripts/install.sh | bash -s -- ~/etienne
+```
+
+Sources: [scripts/install.ps1](scripts/install.ps1), [scripts/install.sh](scripts/install.sh). For manual setup, see [Starting up the services](#starting-up-the-services) below.
+
 ## How it technically composed in one sentence
 
 Etienne is an **integration harness** around a **coding harness** to build user friendly agent interactions:
