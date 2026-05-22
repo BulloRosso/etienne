@@ -576,4 +576,87 @@ export class SubagentsService {
   getSubagentThumbnailPath(name: string, source: 'standard' | 'optional'): string {
     return path.join(this.getRepoSubagentDir(name, source), 'thumbnail.png');
   }
+
+  /**
+   * Source directory for a repository subagent (used by resolver and
+   * materializer to read SUBAGENT.md / hash content).
+   */
+  getRepoSubagentSourceDir(name: string, source: 'standard' | 'optional'): string {
+    return this.getRepoSubagentDir(name, source);
+  }
+
+  /**
+   * Provision all standard subagents into <targetProjectDir>/.claude/agents/.
+   * Equivalent to provisionStandardSubagents(project) but the caller controls
+   * the destination — used by the package builder.
+   *
+   * Only the Claude path is supported here; the Codex path remains coupled to
+   * named projects and is reached only through the legacy methods.
+   */
+  async provisionStandardSubagentsToDir(targetProjectDir: string): Promise<ProvisionSubagentResult[]> {
+    const standardDir = this.getStandardSubagentsDir();
+    const results: ProvisionSubagentResult[] = [];
+
+    try {
+      const entries = await fs.readdir(standardDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== 'optional') {
+          results.push(
+            await this.provisionSingleSubagentToDir(targetProjectDir, entry.name, 'standard'),
+          );
+        }
+      }
+    } catch {
+      this.logger.warn('Subagent repository not available for provisioning');
+    }
+
+    return results;
+  }
+
+  /**
+   * Provision specific named subagents into an arbitrary target directory.
+   */
+  async provisionSubagentsToDir(
+    targetProjectDir: string,
+    names: string[],
+    source: 'standard' | 'optional',
+  ): Promise<ProvisionSubagentResult[]> {
+    const results: ProvisionSubagentResult[] = [];
+    for (const name of names) {
+      results.push(await this.provisionSingleSubagentToDir(targetProjectDir, name, source));
+    }
+    return results;
+  }
+
+  private async provisionSingleSubagentToDir(
+    targetProjectDir: string,
+    name: string,
+    source: 'standard' | 'optional',
+  ): Promise<ProvisionSubagentResult> {
+    try {
+      const agentsDir = path.join(targetProjectDir, '.claude', 'agents');
+      await fs.mkdir(agentsDir, { recursive: true });
+
+      const targetFile = path.join(agentsDir, `${name}.md`);
+      try {
+        await fs.access(targetFile);
+        return { subagentName: name, success: true }; // already present, skip
+      } catch {
+        // not present — continue
+      }
+
+      const subagentDir = this.getRepoSubagentDir(name, source);
+      const config = await this.readRepoSubagentConfig(subagentDir);
+      if (!config) {
+        return { subagentName: name, success: false, error: 'SUBAGENT.md not found or invalid' };
+      }
+
+      const content = this.formatClaudeSubagentFile(config);
+      await fs.writeFile(targetFile, content, 'utf-8');
+      return { subagentName: name, success: true };
+    } catch (error: any) {
+      this.logger.error(`Failed to provision subagent ${name} to dir:`, error);
+      return { subagentName: name, success: false, error: error.message };
+    }
+  }
 }

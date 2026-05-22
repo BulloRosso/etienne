@@ -3,14 +3,14 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { CreateProjectDto, CreateProjectResult } from './dto/create-project.dto';
 import { SkillsService } from '../skills/skills.service';
-import { SubagentsService } from '../subagents/subagents.service';
-import { AgentRoleRegistryService } from '../agent-role-registry/agent-role-registry.service';
-import { A2ASettingsService } from '../a2a-settings/a2a-settings.service';
 import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
 import { CodingAgentConfigurationService } from '../coding-agent-configuration/coding-agent-configuration.service';
 import { LlmService } from '../llm/llm.service';
 import { McpRegistryService } from '../mcp-registry/core/mcp-registry.service';
-import { ApplicationTypesService } from '../application-types/application-types.service';
+import { PackageMaterializerService } from '../packages/materializer/package-materializer.service';
+import { PackageManifest, ManifestMcpServer } from '../packages/dto/manifest.dto';
+import { PackageLockfile } from '../packages/dto/lockfile.dto';
+import { hashManifest } from '../packages/resolver/lockfile-hash';
 
 @Injectable()
 export class ProjectsService {
@@ -26,177 +26,115 @@ export class ProjectsService {
 
   constructor(
     private readonly skillsService: SkillsService,
-    private readonly subagentsService: SubagentsService,
-    private readonly agentRoleRegistryService: AgentRoleRegistryService,
-    private readonly a2aSettingsService: A2ASettingsService,
     private readonly mcpServerConfigService: McpServerConfigService,
     private readonly codingAgentConfigService: CodingAgentConfigurationService,
     private readonly llmService: LlmService,
     private readonly mcpRegistryService: McpRegistryService,
-    private readonly applicationTypesService: ApplicationTypesService,
+    private readonly materializer: PackageMaterializerService,
   ) {}
 
   /**
-   * Create a new project with full configuration
+   * Adapter that converts the existing CreateProjectDto into a PackageManifest.
+   * This is the single point of compatibility between the wizard path and the
+   * shared materializer — keep it stable or back-compat tests will fail.
+   */
+  dtoToManifest(dto: CreateProjectDto): PackageManifest {
+    const mcpServers: ManifestMcpServer[] = dto.mcpServers
+      ? Object.entries(dto.mcpServers).map(([name, config]) => ({
+          name,
+          config: config as Record<string, unknown>,
+        }))
+      : [];
+
+    return {
+      schemaVersion: 1,
+      name: dto.projectName,
+      agentName: dto.agentName,
+      language: dto.language,
+      missionBrief: dto.missionBrief,
+      agentRole: dto.agentRole
+        ? {
+            type: dto.agentRole.type,
+            roleId: dto.agentRole.roleId,
+            customContent: dto.agentRole.customContent,
+          }
+        : undefined,
+      applicationType: dto.applicationType ? { id: dto.applicationType } : undefined,
+      template: dto.templateName ? { name: dto.templateName } : undefined,
+      // Wizard only knows "optional" skills today — standard skills are
+      // always provisioned regardless of selection.
+      skills: (dto.selectedSkills ?? []).map((name) => ({ name, source: 'optional' as const })),
+      // Wizard does not surface per-subagent selection separately; subagents
+      // come exclusively from standard provisioning + application-type bundle.
+      subagents: [],
+      mcpServers,
+      a2aAgents: dto.a2aAgents,
+      copyUIFrom: dto.copyUIFrom,
+    };
+  }
+
+  /**
+   * Create a new project with full configuration.
+   *
+   * Thin adapter around the shared PackageMaterializerService: builds a
+   * manifest from the DTO, materializes into /workspace/<name>/, then runs
+   * workspace-only steps (LLM welcome message, session invalidation through
+   * saveMcpConfig).
    */
   async createProject(dto: CreateProjectDto): Promise<CreateProjectResult> {
-    const errors: string[] = [];
-    const warnings: string[] = [];
     const projectPath = path.join(this.workspaceDir, dto.projectName);
 
+    if (await fs.pathExists(projectPath)) {
+      return {
+        success: false,
+        projectName: dto.projectName,
+        errors: [`Project '${dto.projectName}' already exists`],
+      };
+    }
+
+    const manifest = this.dtoToManifest(dto);
+    // Phase 1: skip the resolver in the wizard path so behavior stays
+    // byte-equivalent. A future phase will route through resolve+materialize.
+    const lockfile: PackageLockfile = {
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      manifestHash: hashManifest(manifest),
+      items: [],
+      conflicts: [],
+      warnings: [],
+    };
+
     try {
-      // 1. Check if project already exists
-      if (await fs.pathExists(projectPath)) {
-        return {
-          success: false,
-          projectName: dto.projectName,
-          errors: [`Project '${dto.projectName}' already exists`],
-        };
-      }
+      const result = await this.materializer.materialize(manifest, lockfile, projectPath, {
+        copyIntroVideos: true,
+      });
+      const warnings: string[] = [...result.warnings];
 
-      // 2. Create project directory structure
-      await this.createProjectStructure(projectPath);
-      this.logger.log(`Created project structure for ${dto.projectName}`);
-
-      // 2b. Apply project template if selected
-      let templatePreviewDocs: string[] = [];
-      if (dto.templateName) {
-        try {
-          templatePreviewDocs = await this.applyProjectTemplate(projectPath, dto.templateName);
-          this.logger.log(`Applied template '${dto.templateName}' to ${dto.projectName}`);
-        } catch (error: any) {
-          warnings.push(`Failed to apply template '${dto.templateName}': ${error.message}`);
-        }
-      }
-
-      // 3. Write mission brief and agent role using agent-appropriate filenames
-      const missionFileName = this.codingAgentConfigService.getMissionFileName();
-      await this.writeMissionBrief(projectPath, dto);
-      await this.writeAgentRole(projectPath, dto);
-      this.logger.log(`Wrote ${missionFileName} files for ${dto.projectName}`);
-
-      // 4. Provision standard skills
-      try {
-        const standardResults = await this.skillsService.provisionStandardSkills(dto.projectName);
-        const failedStandard = standardResults.filter((r) => !r.success);
-        if (failedStandard.length > 0) {
-          warnings.push(`Failed to provision ${failedStandard.length} standard skills`);
-        }
-      } catch (error: any) {
-        warnings.push(`Failed to provision standard skills: ${error.message}`);
-      }
-
-      // 4b. Provision standard subagents
-      try {
-        const subagentResults = await this.subagentsService.provisionStandardSubagents(dto.projectName);
-        const failedSubagents = subagentResults.filter((r) => !r.success);
-        if (failedSubagents.length > 0) {
-          warnings.push(`Failed to provision ${failedSubagents.length} standard subagents`);
-        }
-      } catch (error: any) {
-        warnings.push(`Failed to provision standard subagents: ${error.message}`);
-      }
-
-      // 5. Provision optional skills if selected
-      if (dto.selectedSkills && dto.selectedSkills.length > 0) {
-        try {
-          const optionalResults = await this.skillsService.provisionSkillsFromRepository(
-            dto.projectName,
-            dto.selectedSkills,
-            'optional',
-          );
-          const failedOptional = optionalResults.filter((r) => !r.success);
-          if (failedOptional.length > 0) {
-            warnings.push(`Failed to provision ${failedOptional.length} optional skills`);
-          }
-        } catch (error: any) {
-          warnings.push(`Failed to provision optional skills: ${error.message}`);
-        }
-      }
-
-      // 6. Configure MCP servers
+      // MCP config write — the materializer wrote .mcp.json and
+      // .claude/settings.json directly via saveMcpConfigToDir. We additionally
+      // call the legacy saveMcpConfig to trigger session invalidation, which
+      // only applies to live workspace projects.
       if (dto.mcpServers && Object.keys(dto.mcpServers).length > 0) {
         try {
           await this.mcpServerConfigService.saveMcpConfig(dto.projectName, {
             mcpServers: dto.mcpServers,
           });
-          this.logger.log(`Configured MCP servers for ${dto.projectName}`);
         } catch (error: any) {
-          warnings.push(`Failed to configure MCP servers: ${error.message}`);
+          warnings.push(`Failed to invalidate MCP session: ${error.message}`);
         }
       }
 
-      // 7. Configure A2A agents
-      if (dto.a2aAgents && dto.a2aAgents.length > 0) {
-        try {
-          for (const agent of dto.a2aAgents) {
-            await this.a2aSettingsService.addAgent(projectPath, agent);
-          }
-          this.logger.log(`Configured ${dto.a2aAgents.length} A2A agents for ${dto.projectName}`);
-        } catch (error: any) {
-          warnings.push(`Failed to configure A2A agents: ${error.message}`);
-        }
-      }
-
-      // 7b. Apply application type if selected (writes .etienne/application-type.json and provisions subagents)
-      if (dto.applicationType) {
-        try {
-          await this.applicationTypesService.setProjectApplicationType(
-            dto.projectName,
-            dto.applicationType,
-          );
-          this.logger.log(`Set application type '${dto.applicationType}' for ${dto.projectName}`);
-        } catch (error: any) {
-          warnings.push(`Failed to set application type: ${error.message}`);
-        }
-      }
-
-      // 8. Create intro video reference file and copy video assets
-      try {
-        const frontendPublicDir = path.resolve(process.cwd(), '..', 'frontend', 'public');
-        const introVideoFiles = ['etienne-intro-1.mp4', 'etienne-intro-2.mp4', 'etienne-intro-3.mp4'];
-        const copiedVideos: string[] = [];
-
-        for (const videoFile of introVideoFiles) {
-          const videoSource = path.join(frontendPublicDir, videoFile);
-          if (await fs.pathExists(videoSource)) {
-            await fs.copy(videoSource, path.join(projectPath, videoFile));
-            copiedVideos.push(videoFile);
-          }
-        }
-
-        const introVideosContent =
-          '# These videos introduce the key features of your agent\n' +
-          copiedVideos.map((v) => v + '\n').join('');
-        await fs.writeFile(path.join(projectPath, 'intro.videos'), introVideosContent, 'utf-8');
-
-        if (copiedVideos.length > 0) {
-          this.logger.log(`Copied ${copiedVideos.length} intro video(s) to ${dto.projectName}`);
-        } else {
-          warnings.push('No intro video files found in frontend/public');
-        }
-
-        this.logger.log(`Created intro.videos for ${dto.projectName}`);
-      } catch (error: any) {
-        warnings.push(`Failed to create intro.videos: ${error.message}`);
-      }
-
-      // 9. Create or copy UI config with agent name
-      try {
-        await this.createUIConfig(dto, projectPath, templatePreviewDocs);
-        this.logger.log(`Created UI config for ${dto.projectName}`);
-      } catch (error: any) {
-        warnings.push(`Failed to create UI config: ${error.message}`);
-      }
-
-      // 10. Generate chat greeting message from mission brief
+      // Workspace-only step: LLM-generated welcome message.
       if (dto.missionBrief && dto.missionBrief.trim().length > 0) {
         try {
           const greetingMessage = await this.generateWelcomeMessage(dto, projectPath);
           if (greetingMessage) {
             const assistantPath = path.join(projectPath, 'data', 'assistant.json');
-            const assistantConfig = { assistant: { greeting: greetingMessage } };
-            await fs.writeJson(assistantPath, assistantConfig, { spaces: 2 });
+            await fs.writeJson(
+              assistantPath,
+              { assistant: { greeting: greetingMessage } },
+              { spaces: 2 },
+            );
             this.logger.log(`Generated chat greeting for ${dto.projectName}`);
           }
         } catch (error: any) {
@@ -205,207 +143,26 @@ export class ProjectsService {
         }
       }
 
-      // 11. Collect guidance documents from provisioned skills
-      const guidanceDocuments = await this.findGuidanceDocuments(projectPath);
-
       return {
         success: true,
         projectName: dto.projectName,
         warnings: warnings.length > 0 ? warnings : undefined,
-        guidanceDocuments: guidanceDocuments.length > 0 ? guidanceDocuments : undefined,
+        guidanceDocuments:
+          result.guidanceDocuments.length > 0 ? result.guidanceDocuments : undefined,
       };
     } catch (error: any) {
       this.logger.error(`Failed to create project ${dto.projectName}:`, error);
-
-      // Clean up on failure
       try {
         await fs.remove(projectPath);
       } catch {
-        // Ignore cleanup errors
+        // ignore cleanup errors
       }
-
       return {
         success: false,
         projectName: dto.projectName,
         errors: [error.message],
       };
     }
-  }
-
-  /**
-   * Create the project directory structure
-   */
-  private async createProjectStructure(projectPath: string): Promise<void> {
-    // Create main directories
-    await fs.ensureDir(path.join(projectPath, '.claude'));
-    await fs.ensureDir(path.join(projectPath, '.claude', 'skills'));
-    await fs.ensureDir(path.join(projectPath, '.etienne'));
-    await fs.ensureDir(path.join(projectPath, 'data'));
-    await fs.ensureDir(path.join(projectPath, 'out'));
-    await fs.ensureDir(path.join(projectPath, '.attachments'));
-
-    // Write coding agent configuration from custom override or default template
-    const activeAgent = this.codingAgentConfigService.getActiveAgentType();
-    try {
-      if (activeAgent === 'openai') {
-        // For Codex: write .codex/config.toml with project trust path replaced
-        let codexConfig = await this.codingAgentConfigService.getConfigForProject('openai');
-        codexConfig = codexConfig.replaceAll('{{PROJECT_PATH}}', projectPath.replace(/\\/g, '/'));
-        await fs.ensureDir(path.join(projectPath, '.codex'));
-        await fs.writeFile(path.join(projectPath, '.codex', 'config.toml'), codexConfig, 'utf-8');
-        // Also create a minimal .claude/settings.json for structure compatibility
-        await fs.writeJson(
-          path.join(projectPath, '.claude', 'settings.json'),
-          { hooks: {}, enabledMcpjsonServers: [], allowedTools: [] },
-          { spaces: 2 },
-        );
-      } else {
-        // For Claude: write .claude/settings.json from template/custom
-        const claudeConfig = await this.codingAgentConfigService.getConfigForProject('anthropic');
-        await fs.writeFile(path.join(projectPath, '.claude', 'settings.json'), claudeConfig, 'utf-8');
-      }
-    } catch (error: any) {
-      this.logger.warn(`Failed to write coding agent config: ${error.message}`);
-      // Fallback to minimal defaults
-      await fs.writeJson(
-        path.join(projectPath, '.claude', 'settings.json'),
-        { hooks: {}, enabledMcpjsonServers: [], allowedTools: [] },
-        { spaces: 2 },
-      );
-    }
-
-    // Create default permissions.json
-    const defaultPermissions = {
-      allowedTools: [],
-    };
-    await fs.writeJson(
-      path.join(projectPath, 'data', 'permissions.json'),
-      defaultPermissions,
-      { spaces: 2 },
-    );
-  }
-
-  /**
-   * Write the mission brief to the root mission file (CLAUDE.md or AGENTS.md)
-   */
-  private async writeMissionBrief(projectPath: string, dto: CreateProjectDto): Promise<void> {
-    let content = '# Mission Brief\n\n';
-    content += dto.missionBrief;
-
-    const missionFileName = this.codingAgentConfigService.getMissionFileName();
-    const missionPath = path.join(projectPath, missionFileName);
-    await fs.writeFile(missionPath, content.trim(), 'utf-8');
-  }
-
-  /**
-   * Write the agent role to the agent config directory
-   * (.claude/CLAUDE.md for anthropic, .codex/AGENTS.md for openai/others)
-   */
-  private async writeAgentRole(projectPath: string, dto: CreateProjectDto): Promise<void> {
-    if (!dto.agentRole) return;
-
-    let content = '';
-
-    if (dto.agentRole.type === 'registry' && dto.agentRole.roleId) {
-      const roleContent = await this.agentRoleRegistryService.getRoleContent(dto.agentRole.roleId);
-      if (roleContent) {
-        content = roleContent;
-      }
-    } else if (dto.agentRole.type === 'custom' && dto.agentRole.customContent) {
-      content = dto.agentRole.customContent;
-    }
-
-    if (content) {
-      const agentConfigDir = this.codingAgentConfigService.getAgentConfigDir();
-      const missionFileName = this.codingAgentConfigService.getMissionFileName();
-      const rolePath = path.join(projectPath, agentConfigDir, missionFileName);
-      await fs.ensureDir(path.join(projectPath, agentConfigDir));
-      await fs.writeFile(rolePath, content.trim(), 'utf-8');
-    }
-  }
-
-  /**
-   * Create UI configuration for the new project
-   * Either copies from another project or creates a new one with the agent name
-   */
-  private async createUIConfig(dto: CreateProjectDto, projectPath: string, templatePreviewDocs: string[] = []): Promise<void> {
-    const etienneDir = path.join(projectPath, '.etienne');
-    await fs.ensureDir(etienneDir);
-    const uiConfigPath = path.join(etienneDir, 'user-interface.json');
-
-    if (dto.copyUIFrom) {
-      // Copy from existing project
-      const fromPath = path.join(this.workspaceDir, dto.copyUIFrom, '.etienne', 'user-interface.json');
-      if (await fs.pathExists(fromPath)) {
-        const existingConfig = await fs.readJson(fromPath);
-        // Override the title with the new agent name if provided
-        if (dto.agentName && existingConfig.appBar) {
-          existingConfig.appBar.title = dto.agentName;
-        }
-        // Ensure intro.videos is in the auto-open documents
-        const previewDocs: string[] = existingConfig.previewDocuments || [];
-        if (!previewDocs.includes('intro.videos')) {
-          previewDocs.push('intro.videos');
-        }
-        for (const doc of templatePreviewDocs) {
-          if (!previewDocs.includes(doc)) {
-            previewDocs.push(doc);
-          }
-        }
-        existingConfig.previewDocuments = previewDocs;
-        await fs.writeJson(uiConfigPath, existingConfig, { spaces: 2 });
-        return;
-      }
-    }
-
-    // Create a new UI config with the agent name
-    const uiConfig = {
-      appBar: {
-        title: dto.agentName || 'Etienne',
-        fontColor: 'white',
-        backgroundColor: '#1976d2',
-      },
-      welcomePage: {
-        message: '',
-        backgroundColor: '#f5f5f5',
-        quickActions: [],
-        showWelcomeMessage: true,
-      },
-      previewDocuments: ['intro.videos', ...templatePreviewDocs],
-      autoFilePreviewExtensions: [],
-    };
-
-    await fs.writeJson(uiConfigPath, uiConfig, { spaces: 2 });
-  }
-
-  /**
-   * Find user-guidance.md files in provisioned skills
-   * Returns paths relative to the project root (e.g., ".claude/skills/rag-search/user-guidance.md")
-   */
-  private async findGuidanceDocuments(projectPath: string): Promise<string[]> {
-    const guidanceDocs: string[] = [];
-
-    try {
-      const skillsDir = path.join(projectPath, '.claude', 'skills');
-      if (!(await fs.pathExists(skillsDir))) {
-        return guidanceDocs;
-      }
-
-      const skillEntries = await fs.readdir(skillsDir, { withFileTypes: true });
-      for (const entry of skillEntries) {
-        if (entry.isDirectory()) {
-          const guidancePath = path.join(skillsDir, entry.name, 'user-guidance.md');
-          if (await fs.pathExists(guidancePath)) {
-            // Return path relative to project root
-            guidanceDocs.push(`.claude/skills/${entry.name}/user-guidance.md`);
-          }
-        }
-      }
-    } catch (error: any) {
-      this.logger.warn(`Failed to scan for guidance documents: ${error.message}`);
-    }
-
-    return guidanceDocs;
   }
 
   /**
@@ -476,54 +233,6 @@ export class ProjectsService {
       this.logger.error(`Failed to list project templates: ${error.message}`);
       return [];
     }
-  }
-
-  /**
-   * Apply a project template by copying its directory structure and files.
-   * - Files starting with '.' are skipped
-   * - Files ending with '.docu' are copied without the extension and returned for auto-open
-   * - All other files are copied as-is
-   * Returns an array of relative paths for .docu files (to be added to previewDocuments)
-   */
-  private async applyProjectTemplate(projectPath: string, templateName: string): Promise<string[]> {
-    const templateSourcePath = path.join(this.templateRepositoryDir, templateName);
-    if (!(await fs.pathExists(templateSourcePath))) {
-      throw new Error(`Template '${templateName}' not found`);
-    }
-
-    const previewDocs: string[] = [];
-
-    const copyRecursive = async (srcDir: string, destDir: string): Promise<void> => {
-      const entries = await fs.readdir(srcDir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const srcPath = path.join(srcDir, entry.name);
-
-        if (entry.isDirectory()) {
-          const destPath = path.join(destDir, entry.name);
-          await fs.ensureDir(destPath);
-          await copyRecursive(srcPath, destPath);
-        } else if (!entry.name.startsWith('.')) {
-          if (entry.name.endsWith('.docu')) {
-            const destFileName = entry.name.slice(0, -5); // strip '.docu'
-            const destPath = path.join(destDir, destFileName);
-            if (!(await fs.pathExists(destPath))) {
-              await fs.copy(srcPath, destPath);
-            }
-            const relativePath = path.relative(projectPath, destPath).replace(/\\/g, '/');
-            previewDocs.push(relativePath);
-          } else {
-            const destPath = path.join(destDir, entry.name);
-            if (!(await fs.pathExists(destPath))) {
-              await fs.copy(srcPath, destPath);
-            }
-          }
-        }
-      }
-    };
-
-    await copyRecursive(templateSourcePath, projectPath);
-    return previewDocs;
   }
 
   /**

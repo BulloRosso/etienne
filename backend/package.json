@@ -2,7 +2,9 @@
   "name": "claude-backend",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_ENV=development node -r ts-node/register/transpile-only src/main.ts 2>&1 | tee -a runtime.log"
+    "dev": "cross-env NODE_ENV=development node -r ts-node/register/transpile-only src/main.ts 2>&1 | tee -a runtime.log",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch --preserveWatchOutput"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",

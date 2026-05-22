@@ -4,7 +4,10 @@ import { SSEPublisherService } from '../publishers/sse-publisher.service';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 import { spawn, execSync } from 'child_process';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
 // Python 3.12 standard library modules (subset of the most common ones)
 const PYTHON_STDLIB = new Set([
@@ -47,6 +50,7 @@ export class WorkflowEntryActionService implements OnModuleInit {
   private readonly activeEntryActions = new Set<string>();
   private pythonCommand: string | null = null;
   private pythonChecked = false;
+  private readonly serviceToken: string;
 
   constructor(
     private readonly workflowsService: StatefulWorkflowsService,
@@ -54,6 +58,17 @@ export class WorkflowEntryActionService implements OnModuleInit {
     private readonly ssePublisher: SSEPublisherService,
   ) {
     this.backendUrl = process.env.BACKEND_URL || 'http://localhost:6060';
+    this.serviceToken = jwt.sign(
+      {
+        sub: 'workflow-entry-action',
+        username: 'system',
+        role: 'admin',
+        displayName: 'Workflow Entry Action',
+        type: 'access',
+      },
+      JWT_SECRET,
+      { expiresIn: '365d' },
+    );
   }
 
   onModuleInit(): void {
@@ -123,7 +138,13 @@ export class WorkflowEntryActionService implements OnModuleInit {
           source: `Workflow Entry: ${info.workflowName} → ${info.newState}`,
           sessionName: 'Workflow Actions',
         },
-        { timeout: 300000 },
+        {
+          timeout: 300000,
+          headers: {
+            Authorization: `Bearer ${this.serviceToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
       );
 
       const result = response.data?.response || 'Prompt executed successfully';

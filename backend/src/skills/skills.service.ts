@@ -504,31 +504,7 @@ export class SkillsService {
    * Provision all standard skills to a project
    */
   async provisionStandardSkills(project: string): Promise<ProvisionResult[]> {
-    const standardDir = this.getStandardSkillsDir();
-    const results: ProvisionResult[] = [];
-
-    try {
-      const entries = await fs.readdir(standardDir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        // Skip the 'optional' subdirectory
-        if (entry.isDirectory() && entry.name !== 'optional') {
-          const result = await this.provisionSingleSkill(
-            project,
-            entry.name,
-            path.join(standardDir, entry.name),
-          );
-          results.push(result);
-        }
-      }
-    } catch (error: any) {
-      // If standard directory doesn't exist, return empty results
-      if (error.code !== 'ENOENT') {
-        throw error;
-      }
-    }
-
-    return results;
+    return this.provisionStandardSkillsToDir(this.getProjectDir(project));
   }
 
   /**
@@ -539,60 +515,99 @@ export class SkillsService {
     skillNames: string[],
     source: 'standard' | 'optional',
   ): Promise<ProvisionResult[]> {
-    const sourceDir = source === 'standard'
-      ? this.getStandardSkillsDir()
-      : this.getOptionalSkillsDir();
+    return this.provisionSkillsFromRepositoryToDir(this.getProjectDir(project), skillNames, source);
+  }
 
+  /**
+   * Resolve a project's root directory on disk.
+   * Exposed so the materializer can pass arbitrary target dirs through the
+   * *ToDir helpers below without duplicating workspace path logic.
+   */
+  getProjectDir(project: string): string {
+    return path.join(this.workspaceDir, project);
+  }
+
+  /**
+   * Source directory for a repository skill (used by resolver for hashing
+   * and dependency inspection).
+   */
+  getRepoSkillSourceDir(skillName: string, source: 'standard' | 'optional'): string {
+    return this.getRepoSkillDir(skillName, source);
+  }
+
+  /**
+   * Provision all standard skills into an arbitrary target directory.
+   * Equivalent to provisionStandardSkills(project) but the caller controls
+   * the destination — used by the package builder to materialize into a
+   * tmp dir before zipping.
+   */
+  async provisionStandardSkillsToDir(targetProjectDir: string): Promise<ProvisionResult[]> {
+    const standardDir = this.getStandardSkillsDir();
     const results: ProvisionResult[] = [];
 
-    for (const skillName of skillNames) {
-      const skillSourceDir = path.join(sourceDir, skillName);
-      const result = await this.provisionSingleSkill(project, skillName, skillSourceDir);
-      results.push(result);
+    try {
+      const entries = await fs.readdir(standardDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== 'optional') {
+          const result = await this.provisionSingleSkillToDir(
+            targetProjectDir,
+            entry.name,
+            path.join(standardDir, entry.name),
+          );
+          results.push(result);
+        }
+      }
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') throw error;
     }
 
     return results;
   }
 
   /**
-   * Provision a single skill from a source directory to a project
+   * Provision specific named skills into an arbitrary target directory.
    */
-  private async provisionSingleSkill(
-    project: string,
+  async provisionSkillsFromRepositoryToDir(
+    targetProjectDir: string,
+    skillNames: string[],
+    source: 'standard' | 'optional',
+  ): Promise<ProvisionResult[]> {
+    const sourceDir = source === 'standard' ? this.getStandardSkillsDir() : this.getOptionalSkillsDir();
+    const results: ProvisionResult[] = [];
+    for (const skillName of skillNames) {
+      const skillSourceDir = path.join(sourceDir, skillName);
+      results.push(await this.provisionSingleSkillToDir(targetProjectDir, skillName, skillSourceDir));
+    }
+    return results;
+  }
+
+  /**
+   * Copy one skill directory into <targetProjectDir>/<skills-config-dir>/<skillName>
+   * and merge its .dependencies.json into <targetProjectDir>/.etienne/{event-handling,prompts}.json.
+   */
+  private async provisionSingleSkillToDir(
+    targetProjectDir: string,
     skillName: string,
     sourceDir: string,
   ): Promise<ProvisionResult> {
     try {
-      // Check if source skill exists
       await fs.access(sourceDir);
 
-      // Ensure project skills directory exists
-      await this.ensureSkillsDir(project);
+      const skillsDir = path.join(targetProjectDir, this.getSkillsConfigDir());
+      await fs.mkdir(skillsDir, { recursive: true });
 
-      const targetDir = path.join(this.getSkillsDir(project), skillName);
-
-      // Check if skill already exists in project
+      const targetDir = path.join(skillsDir, skillName);
       try {
         await fs.access(targetDir);
-        return {
-          skillName,
-          success: false,
-          error: `Skill '${skillName}' already exists in project`,
-        };
+        return { skillName, success: false, error: `Skill '${skillName}' already exists in project` };
       } catch {
-        // Target doesn't exist, which is what we want
+        // not present — continue
       }
 
-      // Copy the skill directory
       await this.copyDirectory(sourceDir, targetDir);
+      await this.provisionSkillResourcesToDir(targetProjectDir, sourceDir);
 
-      // Post-copy hook: provision event rules and prompts from .dependencies.json
-      await this.provisionSkillResources(project, sourceDir);
-
-      return {
-        skillName,
-        success: true,
-      };
+      return { skillName, success: true };
     } catch (error: any) {
       return {
         skillName,
@@ -603,10 +618,30 @@ export class SkillsService {
   }
 
   /**
+   * Provision a single skill from a source directory to a project
+   * (legacy adapter — delegates to provisionSingleSkillToDir).
+   */
+  private async provisionSingleSkill(
+    project: string,
+    skillName: string,
+    sourceDir: string,
+  ): Promise<ProvisionResult> {
+    return this.provisionSingleSkillToDir(this.getProjectDir(project), skillName, sourceDir);
+  }
+
+  /**
    * Provision event rules and prompts declared in a skill's .dependencies.json.
    * Merges into the project's .etienne/ config files, skipping duplicates by id.
    */
   private async provisionSkillResources(project: string, skillSourceDir: string): Promise<void> {
+    return this.provisionSkillResourcesToDir(this.getProjectDir(project), skillSourceDir);
+  }
+
+  /**
+   * Same as provisionSkillResources but writes into <targetProjectDir>/.etienne/
+   * instead of resolving by workspace project name.
+   */
+  private async provisionSkillResourcesToDir(targetProjectDir: string, skillSourceDir: string): Promise<void> {
     const depsPath = path.join(skillSourceDir, '.dependencies.json');
     try {
       await fs.access(depsPath);
@@ -617,8 +652,7 @@ export class SkillsService {
     const depsContent = await fs.readFile(depsPath, 'utf-8');
     const deps = JSON.parse(depsContent);
 
-    const workspaceDir = path.join(process.cwd(), '..', 'workspace');
-    const etienneDir = path.join(workspaceDir, project, '.etienne');
+    const etienneDir = path.join(targetProjectDir, '.etienne');
 
     // Provision event rules
     if (deps.provisionEventRules && Array.isArray(deps.provisionEventRules) && deps.provisionEventRules.length > 0) {

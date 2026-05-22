@@ -40,6 +40,7 @@ import FileTreeVirtualList from './FileTreeVirtualList';
 import { flattenTree, getTagColor } from './fileTreeModel';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
+import useFileSelectionStore from '../stores/useFileSelectionStore';
 import OfferGeneratorModal from './OfferGeneratorModal';
 import DocumentCreationModal from './DocumentCreationModal';
 import { getContextMenuActions, buildExtensionMap, getViewerForFile, getFolderContextMenuActions, evaluateActionStates } from './viewerRegistry';
@@ -97,12 +98,56 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
   const [folderMenuLoading, setFolderMenuLoading] = useState(false);
 
   // ── Copy-to-project selection mode ──
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedPaths, setSelectedPaths] = useState(new Set());
+  // Rehydrate from the cross-component file-selection store so the user's
+  // ticks survive navigating away from and back to the file explorer.
+  // Without this, every Filesystem remount would reset selectedPaths and
+  // (via the publish effect below) wipe the store before the user reaches
+  // the dashboard's "Promote to package" link.
+  const [selectionMode, setSelectionMode] = useState(() => {
+    const s = useFileSelectionStore.getState();
+    return s.project === projectName ? s.selectionMode : false;
+  });
+  const [selectedPaths, setSelectedPaths] = useState(() => {
+    const s = useFileSelectionStore.getState();
+    return s.project === projectName ? new Set(s.paths) : new Set();
+  });
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [availableProjects, setAvailableProjects] = useState([]);
   const [destinationProject, setDestinationProject] = useState('');
   const [copying, setCopying] = useState(false);
+
+  // When the user switches projects, rehydrate local selection state from
+  // whatever the store has for the new project (likely empty). Keeps the
+  // file explorer's checkboxes consistent across project navigation.
+  useEffect(() => {
+    const s = useFileSelectionStore.getState();
+    if (s.project === projectName) {
+      setSelectedPaths(new Set(s.paths));
+      setSelectionMode(s.selectionMode);
+    } else {
+      setSelectedPaths(new Set());
+      setSelectionMode(false);
+    }
+    // We intentionally only react to projectName — the publish effect
+    // below keeps the store in sync with local edits, not the other way.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectName]);
+
+  // Publish the current selection so distant features (e.g. "Promote to
+  // package" on the dashboard) can snapshot it without prop-drilling.
+  //
+  // No cleanup on unmount: the selection must survive the user navigating
+  // away from the file explorer (that's literally when they go to the
+  // dashboard to click "Promote to package"). The store gets overwritten
+  // when the user opens another project, cancels selection mode, or when
+  // a consuming action (promote/copy) explicitly calls clear().
+  useEffect(() => {
+    useFileSelectionStore.getState().publish(
+      projectName,
+      Array.from(selectedPaths),
+      selectionMode,
+    );
+  }, [projectName, selectedPaths, selectionMode]);
 
   // ── Release comments (compliance) ──
   const [releaseComments, setReleaseComments] = useState({});

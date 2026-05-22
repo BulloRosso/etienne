@@ -1,13 +1,13 @@
 import React from 'react';
 import { Box, Paper, Typography, IconButton, Tooltip } from '@mui/material';
-import { InfoOutlined, Logout, Settings } from '@mui/icons-material';
+import { InfoOutlined, Logout, Settings, Inventory2Outlined } from '@mui/icons-material';
 import { TbDeviceAirtag } from 'react-icons/tb';
 import { VscServerProcess } from 'react-icons/vsc';
 import { RiRobot2Line } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 
-const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, codingAgent = 'anthropic', fluid = false, hideHeader = false }) => {
+const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick, onClose, onAboutClick, user, onLogout, onSettingsClick, onServiceControlClick, onAgentPersonaClick, onPromotePackageClick, onComposePackageClick, codingAgent = 'anthropic', fluid = false, hideHeader = false }) => {
   const { t } = useTranslation(["dashboard","common"]);
   const { isMinimalistic } = useUxMode();
   const dashboardItems = [
@@ -372,11 +372,22 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: isMinimalistic ? 'flex-start' : 'center',
+            // Verbose mode: scrollable horizontal strip so a growing link
+            // set never wraps or pushes content off-screen. Minimalistic
+            // mode keeps its left-aligned flow layout.
+            justifyContent: isMinimalistic ? 'flex-start' : 'flex-start',
             gap: 3,
             px: 2,
             py: 1.5,
             mt: 'auto',
+            ...(isMinimalistic
+              ? {}
+              : {
+                  overflowX: 'auto',
+                  flexWrap: 'nowrap',
+                  '&::-webkit-scrollbar': { height: 6 },
+                  '&::-webkit-scrollbar-thumb': { backgroundColor: '#ccc', borderRadius: 3 },
+                }),
           }}
         >
           <Box
@@ -391,12 +402,13 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
               alignItems: 'center',
               gap: 0.5,
               cursor: 'pointer',
+              flexShrink: 0,
               color: 'text.secondary',
               '&:hover': { color: 'primary.main' }
             }}
           >
             <VscServerProcess size={16} />
-            <Typography variant="caption" sx={{ fontWeight: 500 }}>
+            <Typography variant="caption" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
               {t('dashboard:serviceControl')}
             </Typography>
           </Box>
@@ -412,15 +424,64 @@ const DashboardGrid = ({ currentProject, sessionId, onCopySessionId, onItemClick
               alignItems: 'center',
               gap: 0.5,
               cursor: 'pointer',
+              flexShrink: 0,
               color: 'text.secondary',
               '&:hover': { color: '#9c27b0' }
             }}
           >
             <RiRobot2Line size={16} />
-            <Typography variant="caption" sx={{ fontWeight: 500 }}>
+            <Typography variant="caption" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
               {t('projectMenu.agentPersona')}
             </Typography>
           </Box>
+          {onComposePackageClick && (
+            <Tooltip title="Compose a new Agent Package from scratch" arrow>
+              <Box
+                onClick={() => {
+                  onComposePackageClick();
+                  onClose();
+                }}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  color: 'text.secondary',
+                  '&:hover': { color: '#5c6bc0' },
+                }}
+              >
+                <Inventory2Outlined sx={{ fontSize: 16 }} />
+                <Typography variant="caption" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  Compose package
+                </Typography>
+              </Box>
+            </Tooltip>
+          )}
+          {user.role === 'admin' && currentProject && onPromotePackageClick && (
+            <Tooltip title="Promote this project to a reusable Agent Package" arrow>
+              <Box
+                onClick={() => {
+                  onPromotePackageClick();
+                  onClose();
+                }}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  color: 'text.secondary',
+                  '&:hover': { color: '#5c6bc0' },
+                }}
+              >
+                <Inventory2Outlined sx={{ fontSize: 16 }} />
+                <Typography variant="caption" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  Promote to package
+                </Typography>
+              </Box>
+            </Tooltip>
+          )}
         </Box>
       )}
     </Box>

@@ -48,6 +48,9 @@ import PreviewersManager from './PreviewersManager';
 import DreamingSettings from './DreamingSettings';
 import AdaptiveMemoryDialog from './AdaptiveMemoryDialog';
 import MS365Connect from './MS365Connect';
+import PackageComposer from './PackageComposer/Composer';
+import usePackageDraftStore from '../stores/usePackageDraftStore';
+import useFileSelectionStore from '../stores/useFileSelectionStore';
 
 export default function SettingsModal({
   open,
@@ -98,6 +101,7 @@ export default function SettingsModal({
   const [dreamingOpen, setDreamingOpen] = useState(false);
   const [adaptiveMemoryOpen, setAdaptiveMemoryOpen] = useState(false);
   const [ms365Open, setMs365Open] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [skillsInitialSkill, setSkillsInitialSkill] = useState(null);
   const [useGraphLayer, setUseGraphLayer] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
@@ -106,6 +110,32 @@ export default function SettingsModal({
   const closeSettingsAndOpen = (setter) => {
     onClose();
     setter(true);
+  };
+
+  const handlePromotePackage = async () => {
+    if (!currentProject) return;
+    try {
+      const response = await apiFetch(
+        `/api/packages/from-project/${encodeURIComponent(currentProject)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to derive manifest (HTTP ${response.status})`);
+      }
+      const data = await response.json();
+      const manifest = data.manifest;
+      // Attach the file selection from the explorer (if any) as extraFiles.
+      const selectedPaths = useFileSelectionStore
+        .getState()
+        .snapshotFor(currentProject);
+      if (selectedPaths.length > 0) {
+        manifest.extraFiles = { sourceProject: currentProject, paths: selectedPaths };
+      }
+      usePackageDraftStore.getState().loadManifest(manifest);
+      closeSettingsAndOpen(setComposerOpen);
+    } catch (err) {
+      console.error('Failed to promote project to package:', err);
+      window.alert(`Failed to start promotion: ${err.message || err}`);
+    }
   };
 
   const handleDashboardItemClick = (itemId) => {
@@ -213,6 +243,8 @@ export default function SettingsModal({
             onSettingsClick={() => { onClose(); setChangePasswordOpen(true); }}
             onServiceControlClick={() => closeSettingsAndOpen(setServiceControlOpen)}
             onAgentPersonaClick={() => closeSettingsAndOpen(setPersonaDialogOpen)}
+            onComposePackageClick={() => closeSettingsAndOpen(setComposerOpen)}
+            onPromotePackageClick={handlePromotePackage}
           />
 
           {/* Keyboard Shortcuts */}
@@ -477,6 +509,17 @@ export default function SettingsModal({
 
       <ChangePasswordDialog open={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
       <ServiceControlDrawer open={serviceControlOpen} onClose={() => setServiceControlOpen(false)} />
+
+      <PackageComposer
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        onDeployed={(result) => {
+          setComposerOpen(false);
+          if (onProjectChange) {
+            onProjectChange(result.projectName, result.guidanceDocuments);
+          }
+        }}
+      />
 
       <DreamingSettings
         open={dreamingOpen}

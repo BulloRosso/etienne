@@ -45,6 +45,9 @@ import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
 
 import ChangePasswordDialog from './ChangePasswordDialog';
 import CreateProjectWizard from './CreateProjectWizard';
+import PackageComposer from './PackageComposer/Composer';
+import usePackageDraftStore from '../stores/usePackageDraftStore';
+import useFileSelectionStore from '../stores/useFileSelectionStore';
 import TeamUpDialog from './TeamUpDialog';
 import AgentPersonaPersonality from './AgentPersonaPersonality';
 import ServiceControlDrawer from './ServiceControlDrawer';
@@ -63,6 +66,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   const [anchorEl, setAnchorEl] = useState(null);
   const [projects, setProjects] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [budgetSettingsOpen, setBudgetSettingsOpen] = useState(false);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
@@ -142,6 +146,41 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
   const handleNewProject = () => {
     setDialogOpen(true);
     handleMenuClose();
+  };
+
+  const handlePromotePackage = async () => {
+    if (!currentProject) return;
+    try {
+      const response = await apiFetch(
+        `/api/packages/from-project/${encodeURIComponent(currentProject)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to derive manifest (HTTP ${response.status})`);
+      }
+      const data = await response.json();
+      const manifest = data.manifest;
+
+      // If the admin has files ticked in the explorer for this project,
+      // attach them to the manifest as extraFiles so the builder bundles
+      // them alongside the catalog-derived items.
+      const selectedPaths = useFileSelectionStore
+        .getState()
+        .snapshotFor(currentProject);
+      if (selectedPaths.length > 0) {
+        manifest.extraFiles = {
+          sourceProject: currentProject,
+          paths: selectedPaths,
+        };
+      }
+
+      // Load into the composer draft store, then open it for review/edit
+      // before Build/Deploy.
+      usePackageDraftStore.getState().loadManifest(manifest);
+      setComposerOpen(true);
+    } catch (err) {
+      console.error('Failed to promote project to package:', err);
+      window.alert(`Failed to start promotion: ${err.message || err}`);
+    }
   };
 
   const handleDashboardItemClick = (itemId) => {
@@ -589,6 +628,8 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
               onSettingsClick={handleChangePasswordOpen}
               onServiceControlClick={handleServiceControlOpen}
               onAgentPersonaClick={() => setPersonaDialogOpen(true)}
+              onPromotePackageClick={handlePromotePackage}
+              onComposePackageClick={() => setComposerOpen(true)}
             />
           </Box>
 
@@ -664,6 +705,16 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
           handleDialogClose();
           await fetchProjects();
           onProjectChange(projectName, guidanceDocuments);
+        }}
+      />
+
+      <PackageComposer
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        onDeployed={async (result) => {
+          setComposerOpen(false);
+          await fetchProjects();
+          onProjectChange(result.projectName, result.guidanceDocuments);
         }}
       />
 

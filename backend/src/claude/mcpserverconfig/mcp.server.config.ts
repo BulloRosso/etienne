@@ -55,6 +55,46 @@ export class McpServerConfigService {
     return this.saveMcpConfigClaude(root, projectName, config);
   }
 
+  /**
+   * Save MCP configuration into an arbitrary target project directory.
+   * Skips the session-invalidation side-effect that `saveMcpConfig` does for
+   * live workspace projects — used by the package builder to materialize
+   * into a tmp dir before zipping.
+   */
+  public async saveMcpConfigToDir(
+    targetProjectDir: string,
+    config: McpConfiguration,
+  ): Promise<{ success: boolean }> {
+    await fs.mkdir(targetProjectDir, { recursive: true });
+
+    if (this.codingAgentConfigService.getActiveAgentType() === 'openai') {
+      return this.saveMcpConfigCodex(targetProjectDir, config);
+    }
+
+    // Claude path — write .mcp.json and update .claude/settings.json in place.
+    const mcpConfigPath = join(targetProjectDir, '.mcp.json');
+    await fs.writeFile(mcpConfigPath, JSON.stringify(config, null, 2), 'utf8');
+
+    const settingsJsonPath = join(targetProjectDir, '.claude', 'settings.json');
+    const serverNames = Object.keys(config.mcpServers || {});
+    let settingsJson: any = {};
+    try {
+      const content = await fs.readFile(settingsJsonPath, 'utf8');
+      settingsJson = JSON.parse(content);
+    } catch {
+      // start fresh — materializer always lays down .claude/settings.json first
+    }
+    settingsJson.enabledMcpjsonServers = serverNames;
+    const existingAllowedTools = settingsJson.allowedTools || [];
+    const nonMcpTools = existingAllowedTools.filter((tool: string) => !tool.startsWith('mcp__'));
+    const mcpServerPermissions = serverNames.map((s) => `mcp__${s}`);
+    settingsJson.allowedTools = [...nonMcpTools, ...mcpServerPermissions];
+    await fs.mkdir(join(targetProjectDir, '.claude'), { recursive: true });
+    await fs.writeFile(settingsJsonPath, JSON.stringify(settingsJson, null, 2), 'utf8');
+
+    return { success: true };
+  }
+
   // ── Claude (anthropic) path ──────────────────────────────────────────
 
   private async getMcpConfigClaude(root: string): Promise<McpConfiguration> {

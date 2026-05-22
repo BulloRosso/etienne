@@ -153,23 +153,61 @@ export class ApplicationTypesService {
       return;
     }
 
+    const targetProjectDir = path.join(this.workspaceDir, project);
+    await this.applyApplicationTypeToDir(targetProjectDir, id);
+    this.logger.log(`Set application type "${id}" for project ${project}`);
+  }
+
+  /**
+   * Apply an application type to an arbitrary target project directory.
+   * Writes <targetProjectDir>/.etienne/application-type.json and provisions
+   * any bundled subagents into <targetProjectDir>/.claude/agents/.
+   *
+   * Used by the package materializer so both workspace project creation and
+   * package builds share one application-type apply path.
+   */
+  async applyApplicationTypeToDir(targetProjectDir: string, id: string): Promise<void> {
     const config = await this.readConfig(id);
     if (!config) {
       throw new Error(`Application type "${id}" not found`);
     }
 
+    const markerPath = path.join(targetProjectDir, '.etienne', 'application-type.json');
     await fs.ensureDir(path.dirname(markerPath));
     await fs.writeJson(markerPath, { id }, { spaces: 2 });
-    this.logger.log(`Set application type "${id}" for project ${project}`);
 
-    await this.provisionSubagents(project, id);
+    await this.provisionSubagentsToDir(targetProjectDir, id);
+  }
+
+  /**
+   * List subagent filenames bundled with this application type.
+   * Used by the resolver to surface them as transitively-added items in the
+   * lockfile with provenance pointing at this application type.
+   */
+  async listBundledSubagentFiles(typeId: string): Promise<string[]> {
+    const sourceDir = path.join(this.getTypeDir(typeId), 'subagents');
+    if (!(await fs.pathExists(sourceDir))) return [];
+    const files = await fs.readdir(sourceDir);
+    return files.filter((f) => f.endsWith('.md'));
+  }
+
+  /**
+   * Source directory for an application type's bundled subagents — used by
+   * the resolver for content hashing.
+   */
+  getBundledSubagentsDir(typeId: string): string {
+    return path.join(this.getTypeDir(typeId), 'subagents');
   }
 
   private async provisionSubagents(project: string, typeId: string): Promise<void> {
+    return this.provisionSubagentsToDir(path.join(this.workspaceDir, project), typeId);
+  }
+
+  private async provisionSubagentsToDir(targetProjectDir: string, typeId: string): Promise<void> {
     const sourceDir = path.join(this.getTypeDir(typeId), 'subagents');
     if (!(await fs.pathExists(sourceDir))) return;
 
-    const targetDir = this.getProjectAgentsDir(project);
+    const targetDir = path.join(targetProjectDir, '.claude', 'agents');
     await fs.ensureDir(targetDir);
 
     const files = await fs.readdir(sourceDir);
@@ -177,11 +215,11 @@ export class ApplicationTypesService {
       if (!file.endsWith('.md')) continue;
       const target = path.join(targetDir, file);
       if (await fs.pathExists(target)) {
-        this.logger.log(`Subagent "${file}" already exists in project ${project} — skipping`);
+        this.logger.log(`Subagent "${file}" already exists in ${targetProjectDir} — skipping`);
         continue;
       }
       await fs.copy(path.join(sourceDir, file), target);
-      this.logger.log(`Provisioned subagent "${file}" into project ${project}`);
+      this.logger.log(`Provisioned subagent "${file}" into ${targetProjectDir}`);
     }
   }
 

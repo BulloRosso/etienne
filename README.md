@@ -529,7 +529,24 @@ Etienne can mirror a user's OneDrive (and SharePoint, in org mode) into a projec
 
 For the architecture, sync strategy (pull-auto + push-manual), Entra app registration, env vars, and limitations see [OneDrive / Microsoft 365 Integration](one-drive.md).
 
-## PDF and Office Format Documents
+## Agent Package Composer — Distribute Agents Between Instances
+
+The composer turns a working agent project into a portable **Agent Package** — a manifest + lockfile + materialized `.claude/` tree bundled into a single zip. The intended use is **moving complete agent apps between Etienne instances**: an agency builds a specialized agent for a customer (legal intake, sales discovery, condition monitoring, …), promotes the working project to a package, and ships the zip. The customer imports it on their own Etienne instance and gets the same agent — same skills, same MCP servers, same subagents, same example files.
+
+<div align="center">
+<img src="/docs/images/agent-package-composer.jpg" alt="Agent Package Composer" width="900">
+</div>
+
+Two roundtrip paths, same materializer underneath:
+
+- **Compose from scratch** — pick an application type, ticking skills / subagents / MCP servers / project templates from the five central catalogs. The composer continuously resolves dependencies (e.g. an application type may bundle subagents) and shows transitively-added items with a *provenance* badge so the user can tell what's theirs and what was pulled in automatically.
+- **Promote a project** — an admin loads a project, opens the file explorer, ticks any *user-uploaded example files* (sample inputs in `data/`, reference docs, pre-populated databases) that should travel with the agent, and clicks **“Promote to package”** on the dashboard. The composer opens pre-populated from the project's existing state (application type, skills, subagents, MCP servers re-fetched from the registry — never from `.mcp.json`, so secrets don't leak) plus the ticked files as `extraFiles`.
+
+From either entry point the user can then **Build zip** (portable artifact) or **Deploy** directly into a new local project. A built zip is applied on another instance via the **Import package…** dialog (or `curl` for headless servers). The lockfile is preserved verbatim on import, so identical packages produce identical projects regardless of catalog drift on the target.
+
+Compositions can be saved as named **profiles** for reuse — `legal-intake`, `legal-litigation`, and `legal-compliance` typically share 80% of their selections, and profiles make that reuse cheap.
+
+
 
 Document parsing is provided by the standard skill **office-and-pdf-documents** (PDF, Word, PowerPoint, Excel, images via OCR). Non-PDF formats require **LibreOffice** (`soffice`) on the host. See [CLAUDE.md](CLAUDE.md#working-with-pdf-and-office-format-documents) for the full format list and the binary dependency.
 
