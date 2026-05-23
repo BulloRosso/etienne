@@ -8,8 +8,8 @@ The system consists of three microservices:
 
 1. **Backend API** (`/backend` - NestJS on port 6060)
    - Coordinates between vector store and RDF store services
-   - Handles entity extraction using OpenAI GPT-4.1-mini
-   - Generates embeddings using OpenAI text-embedding-3-small
+   - Handles entity extraction via the central `LlmService`
+   - Generates embeddings via the central `EmbeddingsService` (defaults to local self-hosted transformers; OpenAI is opt-in)
    - Provides unified REST API for knowledge graph operations
 
 2. **Vector Store Service** (`/vector-store` - Python FastAPI on port 7100)
@@ -31,7 +31,7 @@ The system consists of three microservices:
 Documents uploaded to the Knowledge Base are automatically processed:
 
 1. **Upload** → Backend API receives markdown content
-2. **Embedding Generation** → OpenAI creates vector embeddings (text-embedding-3-small)
+2. **Embedding Generation** → `EmbeddingsService` produces vector embeddings (default: local `Xenova/multilingual-e5-base`; `EMBEDDING_PROVIDER=openai` switches to `text-embedding-3-small`)
 3. **Vector Storage** → Document + embedding stored in ChromaDB via HTTP API
 4. **Entity Extraction** (optional, if "Use Graph Layer" enabled):
    - OpenAI GPT-4.1-mini extracts entities using custom or default schema
@@ -68,14 +68,14 @@ The Knowledge Base supports multiple query interfaces:
 
 1. **Similarity Search** (Primary Interface)
    - Semantic search using ChromaDB cosine similarity
-   - OpenAI embeddings for query vectorization
+   - Query vectorization via `EmbeddingsService` (same provider used for indexing)
    - Configurable threshold filter (default: 20% minimum similarity)
    - Results sorted by similarity descending
    - Displays: Document ID, content preview, similarity score, graph layer status
 
 2. **Natural Language Search** (Graph Layer)
    - Translates natural language to SPARQL automatically
-   - Uses GPT-4 for query translation
+   - Uses `LlmService` (small tier) for query translation
    - Example: "Who works at which company?"
 
 3. **SPARQL Queries** (Graph Layer)
@@ -122,8 +122,8 @@ The frontend provides an interactive graph visualization:
    - SPARQL 1.1 query support
 
 **External API Dependencies**:
-- OpenAI API: Required for embeddings (`text-embedding-3-small`) and entity extraction (`gpt-4.1-mini`)
-- Configured via `OPENAI_API_KEY` in backend `.env`
+- Embeddings: self-hosted by default via `EmbeddingsService` (`Xenova/multilingual-e5-base`, no API key). Set `EMBEDDING_PROVIDER=openai` + `OPENAI_API_KEY` to use `text-embedding-3-small` instead.
+- Entity extraction: routed through `LlmService`, which picks up keys for the configured provider (Anthropic / OpenAI / DeepSeek).
 
 **Data Location**:
 ```

@@ -8,6 +8,12 @@
 
 The goal of the the project is to manage isolated projects in a central mounted volume /workspace.
 
+## Embeddings
+
+All embedding generation MUST go through `EmbeddingsService` in [backend/src/embeddings](backend/src/embeddings). Do not import `openai`, `@huggingface/transformers`, or any other embedding library directly from feature modules — inject `EmbeddingsService` and call `embed(text)` / `embedBatch(texts)`.
+
+Default provider is the local self-hosted `transformers` (`Xenova/multilingual-e5-base`, ~768-dim, no API key required). OpenAI is opt-in via `EMBEDDING_PROVIDER=openai` (requires `OPENAI_API_KEY`). ChromaDB collections are dimension-namespaced (`documents_${dimension}`), so switching providers starts with empty collections — documents must be re-ingested.
+
 ## Project Structure
 
 Each project in the workspace follows this structure:
