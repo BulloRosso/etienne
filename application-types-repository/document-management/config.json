@@ -1,0 +1,77 @@
+{
+  "id": "document-management",
+  "version": "1.0",
+  "labels": {
+    "en": "Document management",
+    "de": "Dokumentenmanagement",
+    "it": "Gestione documenti",
+    "zh": "文档管理"
+  },
+  "sidebar": {
+    "bgColor": "#FFF3E0",
+    "headingLabels": {
+      "en": "Document management",
+      "de": "Dokumentenmanagement",
+      "it": "Gestione documenti",
+      "zh": "文档管理"
+    }
+  },
+  "menuItems": [
+    {
+      "id": "coverage-matrix",
+      "type": "document",
+      "icon": "GridView",
+      "labels": {
+        "en": "Coverage matrix",
+        "de": "Abdeckungsmatrix",
+        "it": "Matrice di copertura",
+        "zh": "覆盖矩阵"
+      },
+      "payload": {
+        "path": "out/requirements-analysis/sample-customer-requirements.requirements.json"
+      }
+    },
+    {
+      "id": "analyze-requirements",
+      "type": "subagent",
+      "icon": "Rule",
+      "labels": {
+        "en": "Analyze requirements",
+        "de": "Anforderungen analysieren",
+        "it": "Analizza requisiti",
+        "zh": "分析需求"
+      },
+      "payload": {
+        "prompt": "Run the EARS requirements analysis on the customer requirements document. Use the `document_analysis_ears` MCP tool (group `document-analysis`) with `document_path` set to `<project>/source/sample-customer-requirements.pdf`. Save the JSON output to `out/requirements-analysis/sample-customer-requirements.requirements.json`. When the analysis is done, briefly summarise what was extracted (requirement count, ambiguity count, any contradictions) and remind the user to mark requirements Done / ToDo / Ignore in the Coverage matrix view — only the user makes those decisions."
+      }
+    },
+    {
+      "id": "draft-responses",
+      "type": "subagent",
+      "icon": "Edit",
+      "labels": {
+        "en": "Draft responses",
+        "de": "Antworten entwerfen",
+        "it": "Bozze di risposta",
+        "zh": "起草响应"
+      },
+      "payload": {
+        "prompt": "Use the Task tool to delegate to the response-drafter subagent. The subagent will read the extracted requirements, find the ones marked ToDo in progress/tracking.md, retrieve relevant passages from knowledge/past-deliverables/, and write one draft per ToDo requirement to out/drafts/. The subagent must never modify progress/tracking.md and must never mark a requirement Done. Status transitions belong to the human via the Coverage matrix view."
+      }
+    },
+    {
+      "id": "export-deliverable",
+      "type": "subagent",
+      "icon": "Download",
+      "labels": {
+        "en": "Export deliverable",
+        "de": "Lieferdokument exportieren",
+        "it": "Esporta documento",
+        "zh": "导出交付文档"
+      },
+      "payload": {
+        "prompt": "Use the Task tool to delegate to the deliverable-exporter subagent. The subagent will refuse to run unless every requirement is in Done or Ignore state. If any requirement is still ToDo, it will print the count and stop. Otherwise it will assemble the deliverable from out/drafts/ following the outline in target/deliverable-template.md, stamp each section with the requirement IDs it answers, append the compliance matrix, and write the result into target/."
+      }
+    }
+  ]
+}

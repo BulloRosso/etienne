@@ -11,7 +11,7 @@ import * as MuiIcons from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { getEffectiveApplicationType } from '../services/applicationTypes';
 import useAppTypeModalStore from '../stores/useAppTypeModalStore';
-import useTabStore from '../stores/useTabStore';
+import { filePreviewHandler } from '../services/FilePreviewHandler';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 
 function resolveIcon(name) {
@@ -54,14 +54,7 @@ export default function ApplicationSection({ currentProject, collapsed = false }
       }
       case 'document': {
         if (payload.path && currentProject) {
-          const tabState = useTabStore.getState();
-          const existing = tabState.tabPaths?.[currentProject] || [];
-          if (!existing.includes(payload.path)) {
-            tabState.setTabPaths(currentProject, [...existing, payload.path]);
-            tabState.setActiveTab(currentProject, existing.length);
-          } else {
-            tabState.setActiveTab(currentProject, existing.indexOf(payload.path));
-          }
+          filePreviewHandler.handlePreview(payload.path, currentProject);
         }
         break;
       }

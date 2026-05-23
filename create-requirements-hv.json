@@ -1,0 +1,17 @@
+{
+  "projectName": "requirements-hv",
+  "agentName": "Etienne",
+  "missionBrief": "Demo of the document-management seed: a customer requirements document arrives as a PDF, the agent extracts EARS-normalized requirements from it, drafts responses from past deliverables, and the engineer commits each one by hand. Sample input and pre-baked outputs are pre-loaded so the workflow is visible on first open.",
+  "language": "en",
+  "applicationType": "document-management",
+  "templateName": "document-management",
+  "mcpServers": {
+    "document-analysis": {
+      "type": "http",
+      "url": "http://localhost:6060/mcp/document-analysis",
+      "headers": {
+        "Authorization": "test123"
+      }
+    }
+  }
+}

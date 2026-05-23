@@ -873,7 +873,7 @@ function SectionContentPane({ section, subsections, requirements, selectedReqs, 
       {requirements.length > 0 ? (
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-            {t(requirements.length !== 1 ? 'reqViewer.section.requirementCount_plural' : 'reqViewer.section.requirementCount', { count: requirements.length })}
+            {t('reqViewer:section.requirementCount', { count: requirements.length })}
           </Typography>
           {requirements.map((req) => (
             <Box
