@@ -145,31 +145,33 @@ All scripts live at `.claude/skills/wiki/scripts/` and run with `tsx`. Their std
 | `wiki-taxonomy.ts` | Diffs current pages against `_meta/taxonomy.md` and the mission. Reports orphan tags, missing pages, oversized categories. Use `--bootstrap` on first run. | `tsx <skill>/scripts/wiki-taxonomy.ts --diff` |
 | `wiki-ingest-file.ts` | Heuristic extraction of mission-relevant chunks from a codebase file. Produces a *draft* JSON you review and pass to `wiki-add`. | `tsx <skill>/scripts/wiki-ingest-file.ts --path src/foo.ts` |
 
-Resolve `<skill>` as `.claude/skills/wiki`. The wiki root is always `<cwd>/wiki/`.
+**Invocation contract.** The scripts assume the current working directory is the **project root** (the directory containing `wiki/`). In the examples below, `<skill>` resolves to `.claude/skills/wiki` (relative to the project root). The wiki root is always `<cwd>/wiki/`.
+
+Always invoke as `tsx <skill>/scripts/<script>.ts ...` — i.e. `tsx .claude/skills/wiki/scripts/<script>.ts ...`. Never write `tsx scripts/<script>.ts ...`; there is no top-level `scripts/` directory in a project. The backend sets cwd correctly when it spawns these scripts; when invoking them yourself from a terminal or Bash tool, `cd` to the project root first.
 
 ## Standard workflows
 
 ### Bootstrap (first activation)
 1. `cat wiki/_meta/mission.md` — confirm it exists and has content. If missing or empty, ask the user/host to populate it; do nothing else.
-2. `tsx scripts/wiki-taxonomy.ts --bootstrap` — get a proposal.
+2. `tsx <skill>/scripts/wiki-taxonomy.ts --bootstrap` — get a proposal.
 3. Review semantically, edit, write the final `taxonomy.md`.
 4. Create stub pages for each proposed topic via `wiki-add` (`status: stub`).
-5. `tsx scripts/wiki-index.ts`.
+5. `tsx <skill>/scripts/wiki-index.ts`.
 6. Append a `bootstrap` entry to `_meta/changelog.md`.
 
 ### Conversation-fact ingest
-1. Run `wiki-search` with the fact's key terms.
+1. Run `tsx <skill>/scripts/wiki-search.ts --query "<terms>"` with the fact's key terms.
 2. Decide: update / cross-link / create / stub.
 3. Build the page JSON (title, slug, body, tags, mission_relevance, sources entry of kind `conversation`).
-4. `wiki-add` with `--update` or `--create`.
-5. `wiki-index` and changelog entry.
+4. `tsx <skill>/scripts/wiki-add.ts --input <page.json>` with `mode: "update"` or `mode: "create"` set in the JSON.
+5. `tsx <skill>/scripts/wiki-index.ts` and changelog entry.
 
 ### File ingest
-1. `wiki-ingest-file --path <file>` — get the heuristic draft.
+1. `tsx <skill>/scripts/wiki-ingest-file.ts --path <file>` — get the heuristic draft.
 2. Review the chunks; discard noise; keep mission-relevant facts.
-3. For each kept chunk: run `wiki-search` (deduplication), then `wiki-add`.
+3. For each kept chunk: run `tsx <skill>/scripts/wiki-search.ts --query "<terms>"` (deduplication), then `tsx <skill>/scripts/wiki-add.ts --input <page.json>`.
 4. Create one summary page in `wiki/sources/` linking back to all topic pages it touched.
-5. `wiki-index` and changelog.
+5. `tsx <skill>/scripts/wiki-index.ts` and changelog.
 
 ### Question answering
 1. Read `wiki/index.md`.
@@ -179,7 +181,7 @@ Resolve `<skill>` as `.claude/skills/wiki`. The wiki root is always `<cwd>/wiki/
 5. Changelog entry of kind `query`.
 
 ### Lint / health-check
-Run `wiki-taxonomy --diff` plus `wiki-index --report-orphans`. Investigate stubs older than the configured threshold, oversized categories, contradictions visible in `## History` sections, and pages with no inbound links. File a lint report at `wiki/queries/<date>-lint.md`.
+Run `tsx <skill>/scripts/wiki-taxonomy.ts --diff` plus `tsx <skill>/scripts/wiki-index.ts --report-orphans`. Investigate stubs older than the configured threshold, oversized categories, contradictions visible in `## History` sections, and pages with no inbound links. File a lint report at `wiki/queries/<date>-lint.md`.
 
 ## Conflict resolution
 
@@ -195,10 +197,10 @@ When the conversation contradicts a file, or when two files contradict each othe
 
 User says: *"We decided on a mid-century modern sofa from Brand X."*
 
-1. `tsx scripts/wiki-search.ts --query "sofa Brand X mid-century"` — returns no exact match, one related page `mid-century-style-direction.md`.
+1. `tsx <skill>/scripts/wiki-search.ts --query "sofa Brand X mid-century"` — returns no exact match, one related page `mid-century-style-direction.md`.
 2. Build the new page JSON. Title: `Brand X mid-century sofa (selected)`. Slug: `brand-x-mid-century-sofa`. Status: `stable`. Confidence: `high` (explicit user decision). Tags: `[furniture, sofa, brand:brand-x, style:mid-century, decision]`. Source: conversation, current turn. Body explains the decision and links to `mid-century-style-direction.md` and the to-be-created `brand-x.md` (stub).
-3. `tsx scripts/wiki-add.ts --input /tmp/sofa.json --create` — creates the page; auto-creates the `brand-x` stub because the body links to it; updates backlinks on `mid-century-style-direction.md`.
-4. `tsx scripts/wiki-index.ts`.
+3. `tsx <skill>/scripts/wiki-add.ts --input /tmp/sofa.json --create` — creates the page; auto-creates the `brand-x` stub because the body links to it; updates backlinks on `mid-century-style-direction.md`.
+4. `tsx <skill>/scripts/wiki-index.ts`.
 5. `cat >> wiki/_meta/changelog.md` with a `decision` entry.
 
 ## What does not go in the wiki
