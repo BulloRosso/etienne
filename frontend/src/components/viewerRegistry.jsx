@@ -19,6 +19,7 @@ import IMAPInboxViewer from './IMAPInboxViewer';
 import GanttDiagram from './GanttDiagram';
 import A2UIAppViewer from './A2UIAppViewer';
 import DreamsPreviewViewer from './DreamsPreviewViewer';
+import QuarterlyViewer from './QuarterlyViewer';
 import { agentBus } from '../services/agentBus';
 
 /**
@@ -70,6 +71,7 @@ export const VIEWER_COMPONENT_NAMES = {
   gantt: 'GanttDiagram',
   a2ui: 'A2UIAppViewer',
   dreams: 'DreamsPreviewViewer',
+  quarterly: 'QuarterlyViewer',
 };
 
 /**
@@ -140,6 +142,9 @@ export const VIEWER_COMPONENTS = {
   dreams: (file, projectName) => (
     <DreamsPreviewViewer filename={file.path} projectName={projectName} />
   ),
+  quarterly: (file, projectName) => (
+    <QuarterlyViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -168,6 +173,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'gantt', extensions: ['.gantt.json'] },
   { viewer: 'a2ui', extensions: ['.a2ui'] },
   { viewer: 'dreams', extensions: ['.dreams.json'] },
+  { viewer: 'quarterly', extensions: ['.quarterly.json'] },
 ];
 
 /**

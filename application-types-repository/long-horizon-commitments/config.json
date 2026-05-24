@@ -18,17 +18,31 @@
   },
   "menuItems": [
     {
+      "id": "quarterly-packet-dashboard",
+      "type": "document",
+      "icon": "Dashboard",
+      "labels": {
+        "en": "Quarterly packet (dashboard)",
+        "de": "Quartalspaket (Dashboard)",
+        "it": "Pacchetto trimestrale (dashboard)",
+        "zh": "季度报告包（仪表板）"
+      },
+      "payload": {
+        "path": "out/quarterly-packets/2026-Q2.quarterly.json"
+      }
+    },
+    {
       "id": "quarterly-packet",
       "type": "subagent",
       "icon": "Assignment",
       "labels": {
-        "en": "Open the quarterly packet",
-        "de": "Quartalspaket öffnen",
-        "it": "Apri il pacchetto trimestrale",
-        "zh": "打开季度报告包"
+        "en": "Re-generate the quarterly packet",
+        "de": "Quartalspaket neu generieren",
+        "it": "Rigenera il pacchetto trimestrale",
+        "zh": "重新生成季度报告包"
       },
       "payload": {
-        "prompt": "Open the current quarterly review packet. List expired assumptions, approaching gates (<= 18 months), breached projections, and vessels off-strategy. Do not propose actions — convene the conversation."
+        "prompt": "Re-generate the current quarterly review packet. Read out/quarterly-packets/2026-Q2.quarterly.json as the prior state. Inspect the knowledge graph for any new expired assumptions, gates that crossed the 18-month threshold since last refresh, projection breaches, or vessel-alignment changes. Write the updated packet back to the same path preserving its schema (packetId, status, expiredAssumptions, ageingAssumptions, freshAssumptions, approachingGates, breachedProjections, vessels, hypotheses, openQuestions, callout). Do not propose actions — convene the conversation."
       }
     },
     {

@@ -27,10 +27,16 @@
  *  12b. Create the fleet scrapbook (.scbk metadata) + the mission-aligned
  *      projection (root → Assumptions-expired / Gates-approaching /
  *      Projection-breached / Drift → leaves).
- *  13. Write documentation.md + register it auto-open in user-interface.json.
+ *  13. Write documentation.md + register it (along with the quarterly
+ *      packet path) in .etienne/user-interface.json previewDocuments so
+ *      both auto-open in the preview pane.
  *  13b. Assign the long-horizon-commitments application type — writes
  *      .etienne/application-type.json so the MinimalisticSidebar's
- *      ApplicationSection renders the 5-item Fleet commitments menu.
+ *      ApplicationSection renders the 6-item Fleet commitments menu.
+ *  13c. Write the canonical Q2 2026 quarterly packet at
+ *      out/quarterly-packets/2026-Q2.quarterly.json. The frontend renders
+ *      this through QuarterlyViewer (registered against .quarterly.json
+ *      in viewerRegistry.jsx).
  *  14. Seed three event rules: rag-auto-index, assumption-expired-triggers-
  *      review, gate-approaching-triggers-redteam.
  *  15. Register the nightly curator cron (the no-silent-default heartbeat).
@@ -67,6 +73,9 @@ import {
   USER_INTERFACE_JSON,
   DOCUMENTATION_MD,
 } from './fixtures/hypotheses';
+import { QUARTERLY_PACKET_Q2_2026 } from './fixtures/quarterly-packet';
+
+const QUARTERLY_PACKET_REL = 'out/quarterly-packets/2026-Q2.quarterly.json';
 
 const WORKSPACE_ROOT =
   process.env.WORKSPACE_ROOT ||
@@ -674,14 +683,35 @@ async function step13_documentationAndUi(): Promise<void> {
     try {
       const cur = JSON.parse(await readFile(uiPath, 'utf8'));
       const previews: string[] = Array.isArray(cur.previewDocuments) ? cur.previewDocuments : [];
-      if (!previews.includes('documentation.md')) previews.unshift('documentation.md');
-      ui = { ...cur, previewDocuments: previews };
+      // Quarterly packet first (it's the load-bearing artefact), then docs.
+      if (!previews.includes(QUARTERLY_PACKET_REL)) previews.unshift(QUARTERLY_PACKET_REL);
+      if (!previews.includes('documentation.md')) {
+        // Put documentation.md right after the packet, not before it.
+        const filtered = previews.filter((p) => p !== 'documentation.md');
+        const packetIdx = filtered.indexOf(QUARTERLY_PACKET_REL);
+        filtered.splice(packetIdx + 1, 0, 'documentation.md');
+        ui = { ...cur, previewDocuments: filtered };
+      } else {
+        ui = { ...cur, previewDocuments: previews };
+      }
     } catch {
-      /* keep fixture default */
+      /* keep fixture default, but inject the packet path */
+      ui = { ...USER_INTERFACE_JSON, previewDocuments: [QUARTERLY_PACKET_REL, 'documentation.md'] };
     }
+  } else {
+    ui = { ...USER_INTERFACE_JSON, previewDocuments: [QUARTERLY_PACKET_REL, 'documentation.md'] };
   }
   await writeFile(uiPath, JSON.stringify(ui, null, 2), 'utf8');
-  ok('documentation.md written + registered in user-interface.json');
+  ok(`documentation.md + ${QUARTERLY_PACKET_REL} registered in user-interface.json`);
+}
+
+async function step13c_writeQuarterlyPacket(): Promise<void> {
+  header('13c. Write the canonical Q2 2026 quarterly packet (.quarterly.json)');
+  const dir = join(PROJECT_ROOT, 'out', 'quarterly-packets');
+  await mkdir(dir, { recursive: true });
+  const path = join(PROJECT_ROOT, QUARTERLY_PACKET_REL);
+  await writeFile(path, JSON.stringify(QUARTERLY_PACKET_Q2_2026, null, 2), 'utf8');
+  ok(`packet written: ${QUARTERLY_PACKET_REL} (rendered by QuarterlyViewer)`);
 }
 
 async function step13b_assignApplicationType(): Promise<void> {
@@ -855,6 +885,7 @@ async function main(): Promise<void> {
   await step12b_seedScrapbookProjection(ctx);
   await step13_documentationAndUi();
   await step13b_assignApplicationType();
+  await step13c_writeQuarterlyPacket();
   await step14_seedEventRules();
   await step15_registerCuratorCron(ctx);
 
