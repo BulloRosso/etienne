@@ -6,6 +6,7 @@ import { CodexSdkService, AppServerMessage } from './codex-sdk.service';
 import { CodexSessionManagerService } from './codex-session-manager.service';
 import { CodexPermissionService } from './codex-permission.service';
 import { SdkHookEmitterService } from '../sdk/sdk-hook-emitter.service';
+import { getContextLimit } from '../sdk/model-context-limits';
 import { MessageEvent, Usage } from '../types';
 import { GuardrailsService } from '../../input-guardrails/guardrails.service';
 import { OutputGuardrailsService } from '../../output-guardrails/output-guardrails.service';
@@ -651,6 +652,21 @@ export class CodexSdkOrchestratorService {
                     totalTokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
                   });
                 }
+
+                // Emit context_state for live meter
+                const sessionForContext = threadId ? this.sessionManager.getSession(threadId) : undefined;
+                const usedTokens = sessionForContext?.totalTokens
+                  ?? ((usage.input_tokens ?? 0) + (usage.output_tokens ?? 0));
+                const maxTokens = getContextLimit(currentModel);
+                observer.next({
+                  type: 'context_state',
+                  data: {
+                    percentFull: Math.min(100, (usedTokens / maxTokens) * 100),
+                    usedTokens,
+                    maxTokens,
+                    model: currentModel ?? 'unknown',
+                  }
+                });
               }
 
               // === Output Guardrails ===
@@ -720,9 +736,30 @@ export class CodexSdkOrchestratorService {
               break;
             }
 
+            // === Context compaction (Codex auto-summarizes the thread) ===
+            case 'thread/compacted': {
+              const params = notification.params ?? {};
+              this.logger.log(`🗜️ thread/compacted received for thread: ${threadId}`);
+              this.hookEmitter.emitPreCompact(projectDir, {
+                session_id: threadId,
+                message_count: params.messageCount,
+                timestamp: new Date().toISOString()
+              });
+              observer.next({
+                type: 'compaction',
+                data: {
+                  trigger: 'auto',
+                  tokensBefore: params.tokensBefore,
+                  tokensAfter: params.tokensAfter,
+                  messageCount: params.messageCount,
+                  timestamp: new Date().toISOString()
+                }
+              });
+              break;
+            }
+
             // === Other notifications (logged but not forwarded) ===
             case 'thread/name/updated':
-            case 'thread/compacted':
             case 'sessionConfigured':
             case 'authStatusChange':
             case 'turn/diff/updated':

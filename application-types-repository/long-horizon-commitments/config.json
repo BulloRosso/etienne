@@ -1,0 +1,91 @@
+{
+  "id": "long-horizon-commitments",
+  "version": "1.0",
+  "labels": {
+    "en": "Long-horizon commitments",
+    "de": "Langfristige Verpflichtungen",
+    "it": "Impegni a lungo termine",
+    "zh": "长期承诺"
+  },
+  "sidebar": {
+    "bgColor": "#FFEBEE",
+    "headingLabels": {
+      "en": "Fleet commitments",
+      "de": "Flottenverpflichtungen",
+      "it": "Impegni della flotta",
+      "zh": "船队承诺"
+    }
+  },
+  "menuItems": [
+    {
+      "id": "quarterly-packet",
+      "type": "subagent",
+      "icon": "Assignment",
+      "labels": {
+        "en": "Open the quarterly packet",
+        "de": "Quartalspaket öffnen",
+        "it": "Apri il pacchetto trimestrale",
+        "zh": "打开季度报告包"
+      },
+      "payload": {
+        "prompt": "Open the current quarterly review packet. List expired assumptions, approaching gates (<= 18 months), breached projections, and vessels off-strategy. Do not propose actions — convene the conversation."
+      }
+    },
+    {
+      "id": "meridian-lifeline",
+      "type": "subagent",
+      "icon": "Timeline",
+      "labels": {
+        "en": "Why is the Meridian off-strategy?",
+        "de": "Warum ist die Meridian off-strategy?",
+        "it": "Perché la Meridian è fuori strategia?",
+        "zh": "Meridian 为何偏离战略？"
+      },
+      "payload": {
+        "prompt": "Walk the Meridian commitment lifeline. Show every historical decision, the assumptions beneath each, their current ageing state, and the source evidence for any expired one."
+      }
+    },
+    {
+      "id": "gate-countdown",
+      "type": "subagent",
+      "icon": "Schedule",
+      "labels": {
+        "en": "Gate countdown",
+        "de": "Gate-Countdown",
+        "it": "Conto alla rovescia gate",
+        "zh": "节点倒计时"
+      },
+      "payload": {
+        "prompt": "Show me every scheduled dry-dock / special-survey gate within 36 months. For each, list the deferred items parked at it, the months remaining, and the cost-out-of-cycle multiplier."
+      }
+    },
+    {
+      "id": "red-team-retrofit",
+      "type": "subagent",
+      "icon": "Balance",
+      "labels": {
+        "en": "Red-team the Meridian retrofit",
+        "de": "Red-Team zur Meridian-Umrüstung",
+        "it": "Red-team sul retrofit della Meridian",
+        "zh": "对 Meridian 改装进行红队评审"
+      },
+      "payload": {
+        "prompt": "Run the red-team workflow on the Meridian 2027 scrubber retrofit decision. Lay out the case-for and case-against side-by-side, with evidence and rebuttal for each pillar. Do not adjudicate."
+      }
+    },
+    {
+      "id": "score-fleet",
+      "type": "subagent",
+      "icon": "Insights",
+      "labels": {
+        "en": "Score the fleet",
+        "de": "Flotte bewerten",
+        "it": "Valuta la flotta",
+        "zh": "为船队打分"
+      },
+      "payload": {
+        "prompt": "Run nightly fleet alignment. Score each vessel against the stated strategy (compliant + charter-ready through 2035). Flag drift and show the chain of provenance."
+      }
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { SdkMessageTransformer } from './sdk-message-transformer';
 import { SdkHookEmitterService } from './sdk-hook-emitter.service';
 import { SdkPermissionService } from './sdk-permission.service';
 import { CanUseTool } from './sdk-permission.types';
+import { getContextLimit } from './model-context-limits';
 import { MessageEvent, Usage } from '../types';
 import { GuardrailsService } from '../../input-guardrails/guardrails.service';
 import { OutputGuardrailsService } from '../../output-guardrails/output-guardrails.service';
@@ -616,10 +617,36 @@ export class ClaudeSdkOrchestratorService {
         }
       };
 
+      const preCompactHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          const messageCount = input?.message_count ?? input?.messages?.length;
+          this.logger.log(`🪝 PreCompact hook called (messageCount: ${messageCount ?? 'n/a'})`);
+
+          this.hookEmitter.emitPreCompact(projectDir, {
+            session_id: sessionId,
+            message_count: messageCount,
+            timestamp: new Date().toISOString()
+          });
+
+          observer.next({
+            type: 'compaction',
+            data: {
+              trigger: 'auto',
+              messageCount,
+              timestamp: new Date().toISOString()
+            }
+          });
+        } catch (hookError: any) {
+          this.logger.error(`Error in PreCompact hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
       // Correct hook configuration format per official SDK documentation
       const hooks = {
         PreToolUse: [{ hooks: [preToolUseHook] }],  // No matcher = match all tools
-        PostToolUse: [{ hooks: [postToolUseHook] }]
+        PostToolUse: [{ hooks: [postToolUseHook] }],
+        PreCompact: [{ hooks: [preCompactHook] }]
       };
 
       // Create canUseTool callback for handling user interaction tools
@@ -820,6 +847,23 @@ export class ClaudeSdkOrchestratorService {
             if (sessionId && usage.input_tokens && usage.output_tokens) {
               this.sessionManager.updateTokenUsage(sessionId, usage.input_tokens, usage.output_tokens);
             }
+
+            // Emit context_state for live meter (read post-update session total)
+            const sessionForContext = sessionId ? this.sessionManager.getSession(sessionId) : undefined;
+            const usedTokens = sessionForContext?.totalTokens
+              ?? ((usage.input_tokens ?? 0) + (usage.output_tokens ?? 0));
+            const maxTokens = getContextLimit(currentModel);
+            observer.next({
+              type: 'context_state',
+              data: {
+                percentFull: Math.min(100, (usedTokens / maxTokens) * 100),
+                usedTokens,
+                maxTokens,
+                model: currentModel ?? 'unknown',
+                cacheReadTokens: (usage as any).cache_read_input_tokens,
+                cacheCreationTokens: (usage as any).cache_creation_input_tokens,
+              }
+            });
 
             // Record usage in telemetry
             if (this.telemetryService.isEnabled() && processId) {

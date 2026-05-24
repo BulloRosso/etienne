@@ -83,6 +83,7 @@ export default function App() {
   const streamSessions = useStreamingSessions();
   const [messages, setMessages] = useState([]);
   const [structuredMessages, setStructuredMessages] = useState([]);
+  const [contextState, setContextState] = useState(null);
   const [files, setFiles] = useState([]);
   const { getTabPaths, setTabPaths } = useTabStore();
   const [sessionId, setSessionId] = useState('');
@@ -1566,6 +1567,26 @@ export default function App() {
       });
     });
 
+    es.addEventListener('context_state', (e) => {
+      const data = JSON.parse(e.data);
+      ctx.contextState = data;
+      if (ctx.targetRef.current === 'state') {
+        setContextState(data);
+      }
+    });
+
+    es.addEventListener('compaction', (e) => {
+      const data = JSON.parse(e.data);
+      const compactionMsg = {
+        id: `compaction_${Date.now()}`,
+        role: 'system',
+        kind: 'compaction',
+        compaction: data,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateMessages(prev => [...prev, compactionMsg]);
+    });
+
     es.addEventListener('telemetry', (e) => {
       const data = JSON.parse(e.data);
       // Store spanId and traceId with the current assistant message for feedback
@@ -1936,6 +1957,7 @@ export default function App() {
       // Restore buffered state from the background stream into React state
       setMessages(targetCtx.messages);
       setStructuredMessages(targetCtx.structuredMessages);
+      setContextState(targetCtx.contextState ?? null);
       setCurrentProcessId(targetCtx.processId);
       // Restore the per-stream message ref so the MuxSSE Stop handler reads the right text
       if (targetCtx.streamMsg) {
@@ -2390,7 +2412,7 @@ export default function App() {
           />
         ) : (
           <SplitLayout
-            left={<ChatPane messages={messages} structuredMessages={structuredMessages} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} />}
+            left={<ChatPane messages={messages} structuredMessages={structuredMessages} contextState={contextState} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} />}
             right={<ArtifactsPane files={files} projectName={currentProject} sessionId={sessionId} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} previewersConfig={previewersConfig} autoFilePreviewExtensions={uiConfig?.autoFilePreviewExtensions} onUpdateViewerState={updateViewerState} />}
           />
         )}

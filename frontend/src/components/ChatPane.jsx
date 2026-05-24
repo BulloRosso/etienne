@@ -15,13 +15,14 @@ import QuickActions from './QuickActions';
 import TypingIndicator from './TypingIndicator';
 import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
+import ContextMeterBar from './ContextMeterBar';
 import NotificationMenu from './NotificationMenu';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatPane({ messages, structuredMessages = [], onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false }) {
+export default function ChatPane({ messages, structuredMessages = [], contextState = null, onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false }) {
   const { t } = useTranslation(["chatPane","common"]);
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -382,6 +383,8 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
           }
         `}</style>
       )}
+      {/* Live context window meter (Agent SDK / Codex SDK) */}
+      <ContextMeterBar state={contextState} />
       {/* Messages Area */}
       <Box
         className={hideHeader ? 'minimal-scrollbar' : undefined}
@@ -412,6 +415,36 @@ export default function ChatPane({ messages, structuredMessages = [], onSendMess
         )}
 
         {messages.map((msg, idx) => {
+          if (msg.kind === 'compaction') {
+            const c = msg.compaction || {};
+            const haveBoth = typeof c.tokensBefore === 'number' && typeof c.tokensAfter === 'number';
+            const detail = haveBoth
+              ? `Context compacted — reduced from ${c.tokensBefore.toLocaleString()} to ${c.tokensAfter.toLocaleString()} tokens`
+              : (typeof c.messageCount === 'number'
+                  ? `Context compacted (${c.messageCount} messages summarized)`
+                  : 'Context compacted');
+            return (
+              <Box
+                key={msg.id || `compaction_${idx}`}
+                sx={{
+                  mx: 2, my: 1.5, px: 2, py: 1,
+                  border: '1px solid #f0d27a',
+                  backgroundColor: '#fff8e1',
+                  borderRadius: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+                title={`Trigger: ${c.trigger || 'auto'} • ${msg.timestamp || ''}`}
+              >
+                <Box sx={{ fontSize: 18 }}>🗜️</Box>
+                <Typography sx={{ fontFamily: 'Roboto', fontSize: '12px', color: '#5d4500' }}>
+                  {detail}
+                </Typography>
+              </Box>
+            );
+          }
+
           const isLastMessage = idx === messages.length - 1;
           const isAssistant = msg.role === 'assistant';
 
