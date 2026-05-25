@@ -2,9 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
-import { CodexSdkService, AppServerMessage } from './codex-sdk.service';
+import { CodexSdkService } from './codex-sdk.service';
 import { CodexSessionManagerService } from './codex-session-manager.service';
-import { CodexPermissionService } from './codex-permission.service';
 import { SdkHookEmitterService } from '../sdk/sdk-hook-emitter.service';
 import { getContextLimit } from '../sdk/model-context-limits';
 import { MessageEvent, Usage } from '../types';
@@ -39,13 +38,13 @@ export class CodexSdkOrchestratorService {
     );
   }
 
-  // Active turn tracking for interruption (replaces AbortController)
-  private readonly activeTurns = new Map<string, { threadId: string; turnId: string }>();
+  // Abort controllers per processId — typed SDK uses AbortSignal for turn interruption,
+  // replacing the previous JSON-RPC turn/interrupt + activeTurns map.
+  private readonly abortControllers = new Map<string, AbortController>();
 
   constructor(
     private readonly codexSdkService: CodexSdkService,
     private readonly sessionManager: CodexSessionManagerService,
-    private readonly codexPermissionService: CodexPermissionService,
     private readonly hookEmitter: SdkHookEmitterService,
     private readonly guardrailsService: GuardrailsService,
     private readonly outputGuardrailsService: OutputGuardrailsService,
@@ -120,7 +119,6 @@ export class CodexSdkOrchestratorService {
   ): Promise<void> {
     const userId = 'user';
     let threadId: string | undefined;
-    let turnId: string | undefined;
     let assistantText = '';
     let usage: Usage = {};
     const startTime = Date.now();
@@ -268,87 +266,45 @@ export class CodexSdkOrchestratorService {
       const outputGuardrailsConfig = await this.outputGuardrailsService.getConfig(projectDir);
       const shouldBufferOutput = outputGuardrailsConfig.enabled;
 
-      // === Stream Codex app-server conversation ===
+      // === Stream Codex via typed SDK ===
       this.logger.log(`Starting Codex stream for project: ${projectDir}, thread: ${threadId || 'new'}`);
 
-      for await (const message of this.codexSdkService.streamConversation(
+      // Per-process AbortController for turn interruption.
+      const abortController = new AbortController();
+      if (processId) {
+        this.abortControllers.set(processId, abortController);
+      }
+
+      // The typed SDK has no delta event — it emits item.updated with the full
+      // agent_message text growing each time. Track what we've already sent so
+      // we can compute the delta and forward it as 'stdout' chunks.
+      let agentMessageSoFar = '';
+
+      for await (const event of this.codexSdkService.streamConversation(
         projectDir,
         finalPrompt,
-        { threadId, processId }
+        { threadId, abortController }
       )) {
         try {
-          // === Handle server-initiated requests (approval/elicitation) ===
-          if (message._type === 'request') {
-            this.logger.log(`Codex server request: ${message.method} (id=${message.id})`);
-
-            // Fire-and-forget: the permission service handles the full lifecycle
-            // (emit SSE event → wait for frontend response → send JSON-RPC response back)
-            this.codexPermissionService.handleServerRequest(projectDir, {
-              id: message.id,
-              method: message.method,
-              params: message.params,
-            }).catch((err) => {
-              this.logger.error(`Error handling server request ${message.method}: ${err.message}`);
-            });
-
-            // Emit a "running" tool event so the frontend shows visual feedback
-            if (message.method === 'item/commandExecution/requestApproval') {
-              const parsedCmd = message.params?.parsedCmd || {};
-              const cmdStr = [parsedCmd.command, ...(parsedCmd.args || [])].join(' ');
-              observer.next({
-                type: 'tool',
-                data: {
-                  toolName: 'Bash',
-                  status: 'running',
-                  callId: message.params?.itemId || `approval_${message.id}`,
-                  input: { command: cmdStr, description: 'Awaiting approval...' },
-                },
-              });
-            } else if (message.method === 'item/fileChange/requestApproval') {
-              const changes = message.params?.changes || [];
-              const primaryPath = changes[0]?.path || '';
-              observer.next({
-                type: 'tool',
-                data: {
-                  toolName: 'Edit',
-                  status: 'running',
-                  callId: message.params?.itemId || `approval_${message.id}`,
-                  input: { file_path: primaryPath, description: 'Awaiting approval...' },
-                },
-              });
-            }
-
-            continue; // Don't fall through to notification handling
-          }
-
-          // === Handle notifications ===
-          const notification = message;
-          this.logger.debug(`Codex notification: ${notification.method}`);
-
-          switch (notification.method) {
-
-            // === Thread started ===
-            case 'thread/started': {
-              const thread = notification.params?.thread;
-              const newThreadId = thread?.id;
+          switch (event.type) {
+            // Thread started — persist sessionId, emit 'session' event
+            case 'thread.started': {
+              const newThreadId = event.thread_id;
               if (newThreadId) {
                 threadId = newThreadId;
-                currentModel = this.config.defaultModel;
+                currentModel = currentModel ?? this.config.defaultModel;
                 await this.sessionManager.createSession(projectDir, newThreadId, currentModel);
-
                 this.hookEmitter.emitSessionStart(projectDir, {
                   session_id: newThreadId,
                   model: currentModel,
                   timestamp: new Date().toISOString()
                 });
-
                 if (this.telemetryService.isEnabled() && processId) {
                   this.telemetryService.updateConversationSpan(processId, {
                     sessionId: newThreadId,
                     model: currentModel,
                   });
                 }
-
                 observer.next({
                   type: 'session',
                   data: { session_id: newThreadId, model: currentModel }
@@ -357,303 +313,85 @@ export class CodexSdkOrchestratorService {
               break;
             }
 
-            // === Turn started — store turnId for abort ===
-            case 'turn/started': {
-              const turn = notification.params?.turn;
-              if (turn?.id) {
-                turnId = turn.id;
-                if (processId && threadId && turnId) {
-                  this.activeTurns.set(processId, { threadId, turnId });
-                }
-              }
+            // Turn started — no payload of interest beyond marking the start
+            case 'turn.started': {
               break;
             }
 
-            // === Agent message delta — true delta text streaming ===
-            case 'item/agentMessage/delta': {
-              const rawDelta = notification.params?.delta;
-              if (rawDelta) {
-                const delta = this.stripCitations(rawDelta);
-                assistantText += delta;
-
-                if (delta) {
-                  structuredMessages.push({
-                    type: 'text_chunk',
-                    content: delta,
-                    timestamp: Date.now()
-                  });
-
-                  if (!shouldBufferOutput) {
-                    observer.next({ type: 'stdout', data: { chunk: delta } });
-                  }
-                }
-              }
+            // Item started — emit tool 'running' for command/file/mcp/web items.
+            case 'item.started': {
+              this.emitItemRunning(observer, event.item);
               break;
             }
 
-            // === Item started — emit "running" indicator ===
-            case 'item/started': {
-              const item = notification.params?.item;
-              if (!item) break;
-
-              if (item.type === 'commandExecution') {
-                observer.next({
-                  type: 'tool',
-                  data: {
-                    toolName: 'Bash', status: 'running', callId: item.id,
-                    input: { command: item.command || '', description: this.extractCommandDescription(item.command || '') }
-                  }
-                });
-              } else if (item.type === 'fileChange') {
-                const firstPath = item.changes?.[0]?.path || '';
-                observer.next({
-                  type: 'tool',
-                  data: {
-                    toolName: 'Edit', status: 'running', callId: item.id,
-                    input: { file_path: firstPath }
-                  }
-                });
-              } else if (item.type === 'mcpToolCall') {
-                const toolName = `mcp__${item.server}__${item.tool}`;
-                observer.next({
-                  type: 'tool',
-                  data: { toolName, status: 'running', callId: item.id, input: item.arguments }
-                });
-              } else if (item.type === 'webSearch') {
-                observer.next({
-                  type: 'tool',
-                  data: { toolName: 'WebSearch', status: 'running', callId: item.id, input: { query: item.query } }
-                });
-              }
-              break;
-            }
-
-            // === Item completed ===
-            case 'item/completed': {
-              const item = notification.params?.item;
-              this.logger.debug(`item/completed: type=${item?.type}`);
-              if (!item) break;
-
-              // commandExecution completed
-              if (item.type === 'commandExecution') {
-                const callId = item.id;
-                this.hookEmitter.emitPostToolUse(projectDir, {
-                  tool_name: 'Bash',
-                  tool_output: item.aggregatedOutput,
-                  call_id: callId,
-                  session_id: threadId,
-                  timestamp: new Date().toISOString()
-                });
-                observer.next({
-                  type: 'tool',
-                  data: {
-                    toolName: 'Bash',
-                    status: 'complete',
-                    callId,
-                    input: { command: item.command, description: this.extractCommandDescription(item.command) },
-                    result: item.aggregatedOutput || `Exit code: ${item.exitCode ?? 'unknown'}`
-                  }
-                });
-                structuredMessages.push({
-                  id: callId,
-                  type: 'tool_call',
-                  toolName: 'Bash',
-                  args: { command: item.command, description: this.extractCommandDescription(item.command) },
-                  status: 'complete',
-                  result: item.aggregatedOutput,
-                  timestamp: Date.now()
-                });
-              }
-
-              // fileChange completed
-              if (item.type === 'fileChange' && item.changes) {
-                const callId = item.id;
-                for (const change of item.changes) {
-                  if (change.kind === 'add') {
-                    this.hookEmitter.emitFileAdded(projectDir, {
-                      path: change.path,
-                      session_id: threadId,
-                      timestamp: new Date().toISOString()
+            // Item updated — typed SDK uses this to grow agent_message text and
+            // mutate todo_list. Compute delta for agent_message → stdout.
+            case 'item.updated': {
+              const item = event.item as any;
+              if (item.type === 'agent_message') {
+                const full = this.stripCitations(item.text || '');
+                if (full.length > agentMessageSoFar.length) {
+                  const delta = full.slice(agentMessageSoFar.length);
+                  agentMessageSoFar = full;
+                  assistantText = full;
+                  if (delta) {
+                    structuredMessages.push({
+                      type: 'text_chunk',
+                      content: delta,
+                      timestamp: Date.now()
                     });
-                    observer.next({ type: 'file_added', data: { path: change.path } });
-                  } else {
-                    this.hookEmitter.emitFileChanged(projectDir, {
-                      path: change.path,
-                      session_id: threadId,
-                      timestamp: new Date().toISOString()
-                    });
-                    observer.next({ type: 'file_changed', data: { path: change.path } });
+                    if (!shouldBufferOutput) {
+                      observer.next({ type: 'stdout', data: { chunk: delta } });
+                    }
                   }
                 }
-                this.hookEmitter.emitPostToolUse(projectDir, {
-                  tool_name: 'Edit',
-                  tool_output: item.changes.map((c: any) => `${c.kind}: ${c.path}`).join(', '),
-                  call_id: callId,
-                  session_id: threadId,
-                  timestamp: new Date().toISOString()
-                });
-                const filePaths = item.changes.map((c: any) => c.path);
-                const primaryPath = filePaths[0] || '';
-                const description = filePaths.length === 1
-                  ? primaryPath
-                  : `${primaryPath} (+${filePaths.length - 1} more)`;
+              } else if (item.type === 'todo_list') {
+                // Forward the full list each update — frontend can dedupe by id.
                 observer.next({
                   type: 'tool',
                   data: {
-                    toolName: 'Edit',
-                    status: 'complete',
-                    callId,
-                    input: { file_path: primaryPath, description },
-                    result: item.changes.map((c: any) => `${c.kind}: ${c.path}`).join('\n')
+                    toolName: 'TodoList',
+                    status: 'running',
+                    callId: item.id,
+                    input: { items: item.items }
                   }
                 });
-                structuredMessages.push({
-                  id: callId,
-                  type: 'tool_call',
-                  toolName: 'Edit',
-                  args: { file_path: primaryPath, description },
-                  status: 'complete',
-                  result: item.changes.map((c: any) => `${c.kind}: ${c.path}`).join('\n'),
-                  timestamp: Date.now()
-                });
               }
-
-              // mcpToolCall completed
-              if (item.type === 'mcpToolCall') {
-                const callId = item.id;
-                const toolName = `mcp__${item.server}__${item.tool}`;
-                this.hookEmitter.emitPostToolUse(projectDir, {
-                  tool_name: toolName,
-                  tool_output: item.error?.message || JSON.stringify(item.result || ''),
-                  call_id: callId,
-                  session_id: threadId,
-                  timestamp: new Date().toISOString()
-                });
-                observer.next({
-                  type: 'tool',
-                  data: {
-                    toolName,
-                    status: 'complete',
-                    callId,
-                    input: item.arguments,
-                    result: item.error?.message || JSON.stringify(item.result || '')
-                  }
-                });
-                structuredMessages.push({
-                  id: callId,
-                  type: 'tool_call',
-                  toolName,
-                  args: item.arguments,
-                  status: 'complete',
-                  result: item.error?.message || JSON.stringify(item.result || ''),
-                  timestamp: Date.now()
-                });
-              }
-
-              // webSearch completed
-              if (item.type === 'webSearch') {
-                const callId = item.id;
-                observer.next({
-                  type: 'tool',
-                  data: {
-                    toolName: 'WebSearch',
-                    status: 'complete',
-                    callId,
-                    input: { query: item.query },
-                    result: 'Search completed'
-                  }
-                });
-                structuredMessages.push({
-                  id: callId,
-                  type: 'tool_call',
-                  toolName: 'WebSearch',
-                  args: { query: item.query },
-                  status: 'complete',
-                  timestamp: Date.now()
-                });
-              }
-
-              // reasoning item — emit as thinking event
-              if (item.type === 'reasoning') {
-                const summaryText = Array.isArray(item.summary) ? item.summary.join('\n') : '';
-                const contentText = Array.isArray(item.content) ? item.content.join('\n') : '';
-                const reasoningText = summaryText || contentText;
-                if (reasoningText) {
-                  observer.next({ type: 'thinking', data: { content: reasoningText } });
-                  structuredMessages.push({
-                    type: 'thinking',
-                    content: reasoningText,
-                    timestamp: Date.now()
-                  });
-                }
-              }
-
-              // agentMessage completed — capture final text for persistence
-              if (item.type === 'agentMessage') {
-                if (item.text) {
-                  assistantText = this.stripCitations(item.text);
-                }
-              }
-
               break;
             }
 
-            // === Command execution output delta (live streaming) ===
-            case 'item/commandExecution/outputDelta': {
-              // Optional: could stream live command output to frontend
-              // For now, just log it
+            // Item completed — terminal state for each thread item
+            case 'item.completed': {
+              this.emitItemComplete(observer, structuredMessages, event.item, projectDir, threadId);
+              const item = event.item as any;
+              if (item.type === 'agent_message' && item.text) {
+                // Final text — wins over any partial accumulation
+                assistantText = this.stripCitations(item.text);
+              }
               break;
             }
 
-            // === Token usage updated ===
-            case 'thread/tokenUsage/updated': {
-              const tokenUsage = notification.params?.tokenUsage;
-              if (tokenUsage?.last) {
+            // Turn completed — emit usage, context_state, completed; run output guardrails
+            case 'turn.completed': {
+              if (event.usage) {
                 usage = {
-                  input_tokens: tokenUsage.last.inputTokens,
-                  output_tokens: tokenUsage.last.outputTokens,
+                  input_tokens: event.usage.input_tokens,
+                  output_tokens: event.usage.output_tokens,
                   model: currentModel
                 };
-              }
-              break;
-            }
-
-            // === Turn completed ===
-            case 'turn/completed': {
-              const turn = notification.params?.turn;
-              this.logger.debug(`turn/completed: status=${turn?.status}, assistantTextLen=${assistantText.length}, structuredMsgs=${structuredMessages.length}, shouldBuffer=${shouldBufferOutput}`);
-
-              // Check for failure
-              if (turn?.status === 'failed') {
-                const errorMsg = turn.error?.message || 'Turn failed';
-                this.logger.error(`Codex turn failed: ${errorMsg}`);
-                observer.next({
-                  type: 'error',
-                  data: { message: errorMsg, recoverable: false }
-                });
-                observer.next({
-                  type: 'stdout',
-                  data: { chunk: `\n\n**Error:** ${errorMsg}\n` }
-                });
-              }
-
-              // Emit usage
-              if (usage.input_tokens || usage.output_tokens) {
                 observer.next({ type: 'usage', data: usage });
 
                 if (threadId && usage.input_tokens && usage.output_tokens) {
                   this.sessionManager.updateTokenUsage(threadId, usage.input_tokens, usage.output_tokens);
                 }
-
                 if (this.telemetryService.isEnabled() && processId) {
                   this.telemetryService.recordUsage(processId, {
-                    inputTokens: usage.input_tokens,
-                    outputTokens: usage.output_tokens,
-                    totalTokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
+                    inputTokens: usage.input_tokens ?? 0,
+                    outputTokens: usage.output_tokens ?? 0,
+                    totalTokens: (usage.input_tokens ?? 0) + (usage.output_tokens ?? 0),
                   });
                 }
 
-                // Emit context_state for live meter
                 const sessionForContext = threadId ? this.sessionManager.getSession(threadId) : undefined;
                 const usedTokens = sessionForContext?.totalTokens
                   ?? ((usage.input_tokens ?? 0) + (usage.output_tokens ?? 0));
@@ -669,7 +407,7 @@ export class CodexSdkOrchestratorService {
                 });
               }
 
-              // === Output Guardrails ===
+              // Output guardrails on the buffered final text
               if (shouldBufferOutput && assistantText) {
                 try {
                   const guardrailResult = await this.outputGuardrailsService.checkGuardrail(assistantText, projectDir);
@@ -690,7 +428,6 @@ export class CodexSdkOrchestratorService {
                 }
               }
 
-              // Emit Stop event
               this.hookEmitter.emitStop(projectDir, {
                 reason: 'completed',
                 session_id: threadId,
@@ -698,7 +435,6 @@ export class CodexSdkOrchestratorService {
                 usage
               });
 
-              // Emit telemetry
               if (this.telemetryService.isEnabled() && processId) {
                 const spanIds = this.telemetryService.getSpanIds(processId);
                 if (spanIds) {
@@ -710,110 +446,53 @@ export class CodexSdkOrchestratorService {
                 this.telemetryService.endConversationSpan(processId, assistantText);
               }
 
-              // Emit completed
               observer.next({
                 type: 'completed',
-                data: { exitCode: turn?.status === 'failed' ? 1 : 0, usage }
+                data: { exitCode: 0, usage }
               });
-
               break;
             }
 
-            // === Reasoning deltas (live streaming) ===
-            case 'item/reasoning/summaryTextDelta':
-            case 'item/reasoning/textDelta': {
-              // Could stream live reasoning to frontend
-              break;
-            }
-
-            // === Error notification ===
-            case 'error': {
-              const errorParams = notification.params;
+            // Turn failed — surface the error and emit completed with non-zero exit
+            case 'turn.failed': {
+              const errorMsg = event.error?.message || 'Turn failed';
+              this.logger.error(`Codex turn failed: ${errorMsg}`);
               observer.next({
                 type: 'error',
-                data: { message: errorParams?.message || 'Unknown error', recoverable: false }
-              });
-              break;
-            }
-
-            // === Context compaction (Codex auto-summarizes the thread) ===
-            case 'thread/compacted': {
-              const params = notification.params ?? {};
-              this.logger.log(`🗜️ thread/compacted received for thread: ${threadId}`);
-              this.hookEmitter.emitPreCompact(projectDir, {
-                session_id: threadId,
-                message_count: params.messageCount,
-                timestamp: new Date().toISOString()
+                data: { message: errorMsg, recoverable: false }
               });
               observer.next({
-                type: 'compaction',
-                data: {
-                  trigger: 'auto',
-                  tokensBefore: params.tokensBefore,
-                  tokensAfter: params.tokensAfter,
-                  messageCount: params.messageCount,
-                  timestamp: new Date().toISOString()
-                }
+                type: 'stdout',
+                data: { chunk: `\n\n**Error:** ${errorMsg}\n` }
+              });
+              observer.next({
+                type: 'completed',
+                data: { exitCode: 1, usage }
               });
               break;
             }
 
-            // === Other notifications (logged but not forwarded) ===
-            case 'thread/name/updated':
-            case 'sessionConfigured':
-            case 'authStatusChange':
-            case 'turn/diff/updated':
-            case 'turn/plan/updated':
-            case 'item/plan/delta':
-            case 'item/fileChange/outputDelta':
-            case 'item/mcpToolCall/progress':
-            case 'item/commandExecution/terminalInteraction':
-            case 'deprecationNotice':
-            case 'configWarning':
-            case 'windows/worldWritableWarning':
-            case 'account/updated':
-            case 'account/rateLimits/updated':
-            case 'account/login/completed':
-            // Legacy codex/event/* notifications (v1 format sent alongside v2)
-            case 'codex/event/item_started':
-            case 'codex/event/item_completed':
-            case 'codex/event/task_started':
-            case 'codex/event/task_complete':
-            case 'codex/event/user_message':
-            case 'codex/event/mcp_startup_complete':
-            case 'codex/event/error':
-            case 'codex/event/agent_message_delta':
-            case 'codex/event/agent_message_content_delta':
-            case 'codex/event/agent_message':
-            case 'codex/event/token_count':
-            case 'codex/event/exec_command_begin':
-            case 'codex/event/exec_command_output_delta':
-            case 'codex/event/exec_command_end':
-              // Known notifications that don't need frontend forwarding
+            // Fatal stream error
+            case 'error': {
+              const errorMsg = (event as any).message || 'Codex stream error';
+              this.logger.error(`Codex stream error event: ${errorMsg}`);
+              observer.next({
+                type: 'error',
+                data: { message: errorMsg, recoverable: false }
+              });
               break;
+            }
 
-            // Approval/elicitation methods — normally handled as server requests
-            // (with id field) above. If they arrive here as pure notifications
-            // (no id), it means the approval policy is 'never' or the app-server
-            // sent them without an id.
-            case 'item/commandExecution/requestApproval':
-            case 'item/fileChange/requestApproval':
-            case 'tool/requestUserInput':
-            case 'agent/requestUserInput':
-            case 'agent/askUserQuestion':
-              this.logger.debug(`Received ${notification.method} as notification (no id) — ignoring`);
+            default: {
+              this.logger.debug(`Unhandled Codex event: ${(event as any).type}`);
               break;
-
-            default:
-              this.logger.debug(`Unhandled Codex notification: ${notification.method}`);
-              break;
+            }
           }
-
-        } catch (messageError: any) {
-          this.logger.error(`Error processing Codex notification: ${messageError.message}`, messageError.stack);
+        } catch (eventError: any) {
+          this.logger.error(`Error processing Codex event: ${eventError.message}`, eventError.stack);
           observer.next({
             type: 'error',
-            data: { message: `Event processing error: ${messageError.message}`, recoverable: true }
+            data: { message: `Event processing error: ${eventError.message}`, recoverable: true }
           });
         }
       }
@@ -879,9 +558,9 @@ export class CodexSdkOrchestratorService {
         await this.sessionManager.touchSession(threadId);
       }
 
-      // Clean up active turn tracking
+      // Clean up abort controller tracking
       if (processId) {
-        this.activeTurns.delete(processId);
+        this.abortControllers.delete(processId);
       }
 
       const duration = Date.now() - startTime;
@@ -898,22 +577,22 @@ export class CodexSdkOrchestratorService {
       observer.next({ type: 'error', data: { message: error.message } });
       observer.complete();
     } finally {
-      // Clean up active turn tracking
+      // Clean up abort controller tracking
       if (processId) {
-        this.activeTurns.delete(processId);
+        this.abortControllers.delete(processId);
       }
     }
   }
 
   /**
-   * Abort a running Codex turn
+   * Abort a running Codex turn by signalling its AbortController.
    */
   public async abortProcess(processId: string) {
-    const turnInfo = this.activeTurns.get(processId);
-    if (turnInfo) {
-      this.logger.log(`Aborting Codex process: ${processId} (thread=${turnInfo.threadId}, turn=${turnInfo.turnId})`);
-      await this.codexSdkService.interruptTurn(turnInfo.threadId, turnInfo.turnId);
-      this.activeTurns.delete(processId);
+    const controller = this.abortControllers.get(processId);
+    if (controller) {
+      this.logger.log(`Aborting Codex process: ${processId}`);
+      controller.abort();
+      this.abortControllers.delete(processId);
       return { success: true, message: 'Codex turn interrupted' };
     }
     this.logger.warn(`No active Codex turn found for process: ${processId}`);
@@ -967,5 +646,222 @@ export class CodexSdkOrchestratorService {
     if (shellMatch) return shellMatch[1];
 
     return command;
+  }
+
+  /**
+   * Map a typed ThreadItem to a 'tool' SSE event with status 'running'.
+   * Mirrors the previous behavior of the item/started case in the JSON-RPC switch.
+   */
+  private emitItemRunning(observer: any, item: any): void {
+    if (!item) return;
+    switch (item.type) {
+      case 'command_execution':
+        observer.next({
+          type: 'tool',
+          data: {
+            toolName: 'Bash',
+            status: 'running',
+            callId: item.id,
+            input: { command: item.command || '', description: this.extractCommandDescription(item.command || '') }
+          }
+        });
+        break;
+      case 'file_change': {
+        const firstPath = item.changes?.[0]?.path || '';
+        observer.next({
+          type: 'tool',
+          data: { toolName: 'Edit', status: 'running', callId: item.id, input: { file_path: firstPath } }
+        });
+        break;
+      }
+      case 'mcp_tool_call': {
+        const toolName = `mcp__${item.server}__${item.tool}`;
+        observer.next({
+          type: 'tool',
+          data: { toolName, status: 'running', callId: item.id, input: item.arguments }
+        });
+        break;
+      }
+      case 'web_search':
+        observer.next({
+          type: 'tool',
+          data: { toolName: 'WebSearch', status: 'running', callId: item.id, input: { query: item.query } }
+        });
+        break;
+      case 'reasoning': {
+        // Initial reasoning text — surface as a thinking block
+        const text = item.text;
+        if (text) {
+          observer.next({ type: 'thinking', data: { content: text } });
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Map a completed typed ThreadItem to the corresponding SSE event(s) +
+   * hookEmitter.emitPostToolUse + structuredMessages push.
+   */
+  private emitItemComplete(
+    observer: any,
+    structuredMessages: any[],
+    item: any,
+    projectDir: string,
+    threadId: string | undefined,
+  ): void {
+    if (!item) return;
+    const callId = item.id;
+    switch (item.type) {
+      case 'command_execution':
+        this.hookEmitter.emitPostToolUse(projectDir, {
+          tool_name: 'Bash',
+          tool_output: item.aggregated_output,
+          call_id: callId,
+          session_id: threadId,
+          timestamp: new Date().toISOString()
+        });
+        observer.next({
+          type: 'tool',
+          data: {
+            toolName: 'Bash',
+            status: 'complete',
+            callId,
+            input: { command: item.command, description: this.extractCommandDescription(item.command) },
+            result: item.aggregated_output || `Exit code: ${item.exit_code ?? 'unknown'}`
+          }
+        });
+        structuredMessages.push({
+          id: callId,
+          type: 'tool_call',
+          toolName: 'Bash',
+          args: { command: item.command, description: this.extractCommandDescription(item.command) },
+          status: 'complete',
+          result: item.aggregated_output,
+          timestamp: Date.now()
+        });
+        break;
+      case 'file_change': {
+        const changes = item.changes || [];
+        for (const change of changes) {
+          if (change.kind === 'add') {
+            this.hookEmitter.emitFileAdded(projectDir, {
+              path: change.path,
+              session_id: threadId,
+              timestamp: new Date().toISOString()
+            });
+            observer.next({ type: 'file_added', data: { path: change.path } });
+          } else {
+            this.hookEmitter.emitFileChanged(projectDir, {
+              path: change.path,
+              session_id: threadId,
+              timestamp: new Date().toISOString()
+            });
+            observer.next({ type: 'file_changed', data: { path: change.path } });
+          }
+        }
+        this.hookEmitter.emitPostToolUse(projectDir, {
+          tool_name: 'Edit',
+          tool_output: changes.map((c: any) => `${c.kind}: ${c.path}`).join(', '),
+          call_id: callId,
+          session_id: threadId,
+          timestamp: new Date().toISOString()
+        });
+        const filePaths = changes.map((c: any) => c.path);
+        const primaryPath = filePaths[0] || '';
+        const description = filePaths.length === 1
+          ? primaryPath
+          : `${primaryPath} (+${filePaths.length - 1} more)`;
+        observer.next({
+          type: 'tool',
+          data: {
+            toolName: 'Edit',
+            status: 'complete',
+            callId,
+            input: { file_path: primaryPath, description },
+            result: changes.map((c: any) => `${c.kind}: ${c.path}`).join('\n')
+          }
+        });
+        structuredMessages.push({
+          id: callId,
+          type: 'tool_call',
+          toolName: 'Edit',
+          args: { file_path: primaryPath, description },
+          status: 'complete',
+          result: changes.map((c: any) => `${c.kind}: ${c.path}`).join('\n'),
+          timestamp: Date.now()
+        });
+        break;
+      }
+      case 'mcp_tool_call': {
+        const toolName = `mcp__${item.server}__${item.tool}`;
+        const result = item.error?.message || JSON.stringify(item.result || '');
+        this.hookEmitter.emitPostToolUse(projectDir, {
+          tool_name: toolName,
+          tool_output: result,
+          call_id: callId,
+          session_id: threadId,
+          timestamp: new Date().toISOString()
+        });
+        observer.next({
+          type: 'tool',
+          data: { toolName, status: 'complete', callId, input: item.arguments, result }
+        });
+        structuredMessages.push({
+          id: callId,
+          type: 'tool_call',
+          toolName,
+          args: item.arguments,
+          status: 'complete',
+          result,
+          timestamp: Date.now()
+        });
+        break;
+      }
+      case 'web_search':
+        observer.next({
+          type: 'tool',
+          data: {
+            toolName: 'WebSearch',
+            status: 'complete',
+            callId,
+            input: { query: item.query },
+            result: 'Search completed'
+          }
+        });
+        structuredMessages.push({
+          id: callId,
+          type: 'tool_call',
+          toolName: 'WebSearch',
+          args: { query: item.query },
+          status: 'complete',
+          timestamp: Date.now()
+        });
+        break;
+      case 'reasoning': {
+        const text = item.text;
+        if (text) {
+          observer.next({ type: 'thinking', data: { content: text } });
+          structuredMessages.push({ type: 'thinking', content: text, timestamp: Date.now() });
+        }
+        break;
+      }
+      case 'todo_list':
+        observer.next({
+          type: 'tool',
+          data: { toolName: 'TodoList', status: 'complete', callId, input: { items: item.items }, result: '' }
+        });
+        break;
+      case 'error':
+        observer.next({
+          type: 'error',
+          data: { message: item.message || 'Item error', recoverable: true }
+        });
+        break;
+      default:
+        break;
+    }
   }
 }

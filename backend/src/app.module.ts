@@ -11,8 +11,6 @@ import { SdkPermissionController } from './claude/sdk/sdk-permission.controller'
 import { CodexSdkService } from './claude/codex-sdk/codex-sdk.service';
 import { CodexSdkOrchestratorService } from './claude/codex-sdk/codex-sdk-orchestrator.service';
 import { CodexSessionManagerService } from './claude/codex-sdk/codex-session-manager.service';
-import { CodexPermissionService } from './claude/codex-sdk/codex-permission.service';
-import { CodexPermissionController } from './claude/codex-sdk/codex-permission.controller';
 import { OpenAIAgentsSdkService } from './claude/openai-agent-sdk/openai-agents-sdk.service';
 import { OpenAIAgentsOrchestratorService } from './claude/openai-agent-sdk/openai-agents-orchestrator.service';
 import { OpenAIAgentsSessionManagerService } from './claude/openai-agent-sdk/openai-agents-session-manager.service';
@@ -86,7 +84,7 @@ import { PackagesModule } from './packages/packages.module';
 
 @Module({
   imports: [SecretsManagerModule, EmbeddingsModule.register(), AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, QuickActionsModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule.forRoot({ providers: [{ kind: 'json-file' }], secrets: { keyVaultUrl: process.env.AZURE_KEY_VAULT_URL } }), AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, RecentItemsModule, SseMultiplexModule, CollaborationModule, HitlProtocolModule, FoundryAdapterModule.register(), DreamingModule, Ms365Module, WikiModule, AdaptiveMemoryModule, ApplicationTypesModule, PackagesModule],
-  controllers: [ClaudeController, SdkPermissionController, CodexPermissionController, OpenAIAgentsPermissionController],
+  controllers: [ClaudeController, SdkPermissionController, OpenAIAgentsPermissionController],
   providers: [
     ClaudeService,
     ClaudeSdkService,
@@ -97,7 +95,6 @@ import { PackagesModule } from './packages/packages.module';
     CodexSdkService,
     CodexSdkOrchestratorService,
     CodexSessionManagerService,
-    CodexPermissionService,
     OpenAIAgentsSdkService,
     OpenAIAgentsOrchestratorService,
     OpenAIAgentsSessionManagerService,
