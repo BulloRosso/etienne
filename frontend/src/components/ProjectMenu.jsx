@@ -40,7 +40,7 @@ import SkillCatalog from './SkillCatalog';
 import DashboardGrid from './DashboardGrid';
 import ContextManager from './ContextManager';
 import EventHandling from './EventHandling';
-import WorkflowVisualizer from './WorkflowVisualizer';
+import WorkflowModalLayout from './WorkflowModalLayout';
 import OntologyCoreEditor from './ontology-core/OntologyCoreEditor';
 
 import ChangePasswordDialog from './ChangePasswordDialog';
@@ -1009,7 +1009,7 @@ export default function ProjectMenu({ currentProject, sessionId, onCopySessionId
             </IconButton>
           </Box>
           <Box sx={{ flex: 1, minHeight: 0 }}>
-            <WorkflowVisualizer projectName={currentProject} />
+            <WorkflowModalLayout projectName={currentProject} />
           </Box>
         </Box>
       </Dialog>

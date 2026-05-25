@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Typography, Chip, Stack, Paper } from '@mui/material';
+import { Box, Typography, Stack, Paper } from '@mui/material';
 import { Description, Person } from '@mui/icons-material';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import WikiLinkTree from './workflows/WikiLinkTree';
 
 /**
  * RationaleCard — renders a DecisionRationale (shared between workflow
@@ -12,8 +13,16 @@ import { claudeEventBus, ClaudeEvents } from '../eventBus';
  *   projectName: string
  *   variant: 'card' | 'inline'   (card = elevated paper, inline = flat)
  *   title?: string               (optional heading shown above the reasoning)
+ *   onOpenDocument?: (docPath) => boolean   intercept link clicks; return true to
+ *                                           suppress the default eventBus publish
  */
-export default function RationaleCard({ rationale, projectName, variant = 'card', title }) {
+export default function RationaleCard({
+  rationale,
+  projectName,
+  variant = 'card',
+  title,
+  onOpenDocument,
+}) {
   if (!rationale || !rationale.reasoning) return null;
 
   const docs = Array.isArray(rationale.evidenceDocuments) ? rationale.evidenceDocuments : [];
@@ -21,6 +30,7 @@ export default function RationaleCard({ rationale, projectName, variant = 'card'
 
   const handleOpenDocument = (docPath) => {
     if (!projectName || !docPath) return;
+    if (onOpenDocument && onOpenDocument(docPath) === true) return;
     const action = docPath.endsWith('.quarterly.json') ? 'quarterly-preview' : 'markdown-preview';
     claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
       action,
@@ -40,19 +50,22 @@ export default function RationaleCard({ rationale, projectName, variant = 'card'
         {rationale.reasoning}
       </Typography>
       {docs.length > 0 && (
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" sx={{ gap: 0.75 }}>
-          {docs.map((docPath) => (
-            <Chip
-              key={docPath}
-              icon={<Description />}
-              label={docPath.split('/').pop()}
-              size="small"
-              variant="outlined"
-              onClick={() => handleOpenDocument(docPath)}
-              title={docPath}
-            />
-          ))}
-        </Stack>
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+            <Description sx={{ fontSize: 16, color: 'text.secondary' }} />
+            <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+              Evidence
+            </Typography>
+          </Stack>
+          <WikiLinkTree
+            items={docs.map((docPath) => ({
+              key: docPath,
+              label: docPath.split('/').pop(),
+              title: docPath,
+            }))}
+            onClick={(item) => handleOpenDocument(item.key)}
+          />
+        </Box>
       )}
       {(recordedAt || rationale.recordedBy) && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
