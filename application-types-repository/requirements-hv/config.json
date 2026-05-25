@@ -1,0 +1,91 @@
+{
+  "id": "requirements-hv",
+  "version": "1.0",
+  "labels": {
+    "en": "Requirements → Specification",
+    "de": "Anforderungen → Spezifikation",
+    "it": "Requisiti → Specifica",
+    "zh": "需求 → 规范"
+  },
+  "sidebar": {
+    "bgColor": "#E3F2FD",
+    "headingLabels": {
+      "en": "Bid pipeline",
+      "de": "Angebots-Pipeline",
+      "it": "Pipeline d'offerta",
+      "zh": "投标流水线"
+    }
+  },
+  "menuItems": [
+    {
+      "id": "coverage-dashboard",
+      "type": "document",
+      "icon": "Dashboard",
+      "labels": {
+        "en": "Open the coverage dashboard",
+        "de": "Coverage-Dashboard öffnen",
+        "it": "Apri la dashboard di copertura",
+        "zh": "打开覆盖仪表板"
+      },
+      "payload": {
+        "path": "out/coverage/current.coverage.json"
+      }
+    },
+    {
+      "id": "open-requirements",
+      "type": "subagent",
+      "icon": "ListAlt",
+      "labels": {
+        "en": "Which requirements are still open?",
+        "de": "Welche Anforderungen sind noch offen?",
+        "it": "Quali requisiti sono ancora aperti?",
+        "zh": "哪些需求尚未处理？"
+      },
+      "payload": {
+        "prompt": "List every requirement currently in state \"open\". For each one, name the source volume + section, the responsible engineer, the gate it is blocking, and any candidate reuse source from the knowledge base. Do not draft yet — surface the queue so the responsible engineer can prioritise."
+      }
+    },
+    {
+      "id": "late-clarification-overrides",
+      "type": "subagent",
+      "icon": "ChangeHistory",
+      "labels": {
+        "en": "Show me the late-clarification overrides",
+        "de": "Spät-Klarstellungen anzeigen",
+        "it": "Mostra le precisazioni tardive",
+        "zh": "显示延迟澄清"
+      },
+      "payload": {
+        "prompt": "List every requirement amended by the 2026-04-18 late-clarifications memo. For each one, show the original clause text, the amended text, the cited reason, and the responsible engineer. Highlight any row where the current draft was pulled from a reuse passage that answered the ORIGINAL (pre-amendment) clause — those are the rows at highest risk of silent commitment. Do not advance any state on the agent's authority."
+      }
+    },
+    {
+      "id": "draft-next-open",
+      "type": "subagent",
+      "icon": "Edit",
+      "labels": {
+        "en": "Draft a response for the next open requirement",
+        "de": "Entwurf für die nächste offene Anforderung",
+        "it": "Bozza per il prossimo requisito aperto",
+        "zh": "为下一个待处理需求起草"
+      },
+      "payload": {
+        "prompt": "Pick the highest-priority requirement in state \"open\" (load-bearing first, then by source volume order). Run the transform step: retrieve the matching reuse passage from the knowledge base, adapt it to this requirement's specifics, translate the draft into German per the internal style guide, and move the row to \"drafted\". Do NOT commit. Show me which reuse source you used, what you adapted, and any standard references the draft now carries. If the requirement is genuinely ambiguous — no measurable acceptance criterion — move it to the clarify queue instead of inventing a number."
+      }
+    },
+    {
+      "id": "export-specification",
+      "type": "subagent",
+      "icon": "FileDownload",
+      "labels": {
+        "en": "Export the current specification",
+        "de": "Aktuelle Spezifikation exportieren",
+        "it": "Esporta la specifica corrente",
+        "zh": "导出当前规范"
+      },
+      "payload": {
+        "prompt": "Run the export step on the current coverage matrix. Refuse to render if any row is still in state open / drafted / reviewed and list the blockers with owners. Otherwise render the technical specification + compliance matrix into the customer's required Word/PDF template, stamping every section with the requirement IDs it answers and any override edges. Traceability must survive the export."
+      }
+    }
+  ]
+}
