@@ -177,6 +177,7 @@ function WorkflowVisualizerInner({
   onWorkflowsLoaded,
   onSelectWorkflow,
   onOpenWiki,
+  onOpenEvidence,
   viewMode,
   hideInternalDropdown,
 }) {
@@ -414,6 +415,7 @@ function WorkflowVisualizerInner({
             definitionData={definitionData}
             projectName={projectName}
             onOpenWiki={handleOpenWikiSlug}
+            onOpenEvidence={onOpenEvidence}
           />
         </Box>
       )}
@@ -432,6 +434,7 @@ function StatusPane({
   selectedWorkflowId: controlledSelectedId,
   onWorkflowsLoaded,
   onOpenWiki,
+  onOpenEvidence,
   onProgressClick,
 }) {
   const { t } = useTranslation(['workflowVisualizer']);
@@ -510,6 +513,7 @@ function StatusPane({
             definitionData={definitionData}
             projectName={projectName}
             onOpenWiki={handleOpenWikiSlug}
+            onOpenEvidence={onOpenEvidence}
           />
         ) : (
           <Typography variant="caption" color="text.secondary">
@@ -539,7 +543,7 @@ function computeHasContextContent(definitionData) {
   );
 }
 
-function StatusContent({ definitionData, projectName, onOpenWiki }) {
+function StatusContent({ definitionData, projectName, onOpenWiki, onOpenEvidence }) {
   const assumptionSlugs = definitionData?.assumptionWikiSlugs || [];
   const initialRationale = definitionData?.initialRationale;
   const history = Array.isArray(definitionData?.history) ? definitionData.history : [];
@@ -571,7 +575,7 @@ function StatusContent({ definitionData, projectName, onOpenWiki }) {
             projectName={projectName}
             variant="card"
             title="Initial rationale"
-            onOpenDocument={onOpenWiki ? makeDocOpener(onOpenWiki) : undefined}
+            onOpenDocument={makeDocOpener(onOpenWiki, onOpenEvidence)}
           />
         </Box>
       )}
@@ -608,7 +612,7 @@ function StatusContent({ definitionData, projectName, onOpenWiki }) {
                     rationale={entry.rationale}
                     projectName={projectName}
                     variant="inline"
-                    onOpenDocument={onOpenWiki ? makeDocOpener(onOpenWiki) : undefined}
+                    onOpenDocument={makeDocOpener(onOpenWiki, onOpenEvidence)}
                   />
                 </Paper>
               ))}
@@ -619,16 +623,19 @@ function StatusContent({ definitionData, projectName, onOpenWiki }) {
   );
 }
 
-/**
- * Map a RationaleCard evidence-document path (e.g. "wiki/topics/foo.md") to
- * a wiki slug ("foo") so the in-modal wiki pane can render it. Documents
- * outside wiki/topics/ fall through to the default eventBus behavior.
- */
-function makeDocOpener(onOpenWiki) {
+// Route evidence-document paths into the workflow modal's right pane instead of
+// falling through to the global eventBus (which opens behind the modal).
+function makeDocOpener(onOpenWiki, onOpenEvidence) {
+  if (!onOpenWiki && !onOpenEvidence) return undefined;
   return (docPath) => {
-    const m = /^wiki\/topics\/(.+)\.md$/.exec(docPath || '');
-    if (m) {
+    if (!docPath) return false;
+    const m = /^wiki\/topics\/(.+)\.md$/.exec(docPath);
+    if (m && onOpenWiki) {
       onOpenWiki(m[1]);
+      return true;
+    }
+    if (onOpenEvidence) {
+      onOpenEvidence(docPath);
       return true;
     }
     return false;

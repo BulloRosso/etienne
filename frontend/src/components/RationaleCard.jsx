@@ -86,7 +86,7 @@ export default function RationaleCard({
     return inner;
   }
   return (
-    <Paper variant="outlined" sx={{ p: 1.5 }}>
+    <Paper elevation={4} sx={{ p: 1.5 }}>
       {inner}
     </Paper>
   );

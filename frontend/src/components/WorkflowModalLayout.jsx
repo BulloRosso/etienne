@@ -31,7 +31,9 @@ export default function WorkflowModalLayout({ projectName }) {
   const [listError, setListError] = useState(null);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
   const [activeTab, setActiveTab] = useState('status');
-  const [wikiSlug, setWikiSlug] = useState(null);
+  // Right-pane content: either a wiki slug (rendered as wiki/topics/<slug>.md)
+  // or an arbitrary project-relative file path (evidence documents).
+  const [rightPaneTarget, setRightPaneTarget] = useState(null); // { kind: 'wiki'|'path', value: string }
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
@@ -79,7 +81,11 @@ export default function WorkflowModalLayout({ projectName }) {
   }, [fetchWorkflows]);
 
   const handleOpenWiki = useCallback((slug) => {
-    setWikiSlug(slug);
+    if (slug) setRightPaneTarget({ kind: 'wiki', value: slug });
+  }, []);
+
+  const handleOpenEvidence = useCallback((filePath) => {
+    if (filePath) setRightPaneTarget({ kind: 'path', value: filePath });
   }, []);
 
   const refreshAfterAction = useCallback(async () => {
@@ -137,6 +143,7 @@ export default function WorkflowModalLayout({ projectName }) {
             selectedWorkflowId={selectedWorkflowId}
             onSelectWorkflow={setSelectedWorkflowId}
             onOpenWiki={handleOpenWiki}
+            onOpenEvidence={handleOpenEvidence}
             onProgressClick={(eventName) => {
               const w = workflows.find((wf) => wf.id === selectedWorkflowId);
               if (w) setProgressTarget({ workflow: w, initialEvent: eventName });
@@ -164,6 +171,15 @@ export default function WorkflowModalLayout({ projectName }) {
     </Box>
   );
 
+  const rightPaneFilename = rightPaneTarget
+    ? (rightPaneTarget.kind === 'wiki'
+        ? `wiki/topics/${rightPaneTarget.value}.md`
+        : rightPaneTarget.value)
+    : null;
+  const rightPaneLabel = rightPaneTarget
+    ? (rightPaneTarget.kind === 'wiki' ? rightPaneTarget.value : rightPaneTarget.value)
+    : null;
+
   const rightPane = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'background.paper' }}>
       <Box
@@ -181,30 +197,30 @@ export default function WorkflowModalLayout({ projectName }) {
           variant="caption"
           sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}
         >
-          Wiki
+          {rightPaneTarget?.kind === 'path' ? 'Evidence' : 'Wiki'}
         </Typography>
-        {wikiSlug && (
+        {rightPaneLabel && (
           <Typography
             variant="caption"
             sx={{ ml: 1, color: 'text.secondary' }}
             noWrap
-            title={`wiki/topics/${wikiSlug}.md`}
+            title={rightPaneFilename}
           >
-            / {wikiSlug}
+            / {rightPaneLabel}
           </Typography>
         )}
       </Box>
       <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {wikiSlug ? (
+        {rightPaneFilename ? (
           <MarkdownViewer
-            key={wikiSlug}
-            filename={`wiki/topics/${wikiSlug}.md`}
+            key={rightPaneFilename}
+            filename={rightPaneFilename}
             projectName={projectName}
           />
         ) : (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 3 }}>
             <Typography variant="body2" color="text.secondary" align="center">
-              Click a wiki link in the Status tab to view its content here.
+              Click a wiki or evidence link in the Status tab to view its content here.
             </Typography>
           </Box>
         )}
