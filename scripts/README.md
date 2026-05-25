@@ -1,6 +1,6 @@
 # scripts/
 
-Utility scripts for the claude-multitenant repo. The four **seed scripts**
+Utility scripts for the etienne workspace population with demo data. The four **seed scripts**
 under this folder each populate a fresh example project that demonstrates one
 end-to-end pattern from the *Agents that help humans decide* article series.
 
