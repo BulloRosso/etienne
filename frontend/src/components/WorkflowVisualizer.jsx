@@ -25,8 +25,15 @@ import {
   Chip,
   Paper,
   Stack,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tooltip,
 } from '@mui/material';
-import { AccountTree, MenuBook, History as HistoryIcon } from '@mui/icons-material';
+import { AccountTree, MenuBook, History as HistoryIcon, InfoOutlined, Close as CloseIcon } from '@mui/icons-material';
 import WorkflowStateNode from './WorkflowStateNode';
 import RationaleCard from './RationaleCard';
 import ProgressFooter from './workflows/ProgressFooter';
@@ -460,6 +467,7 @@ function StatusPane({
     },
     [projectName, onOpenWiki]
   );
+  const [infoOpen, setInfoOpen] = useState(false);
 
   if (loading) {
     return (
@@ -492,7 +500,7 @@ function StatusPane({
           </Typography>
         )}
         {statusData && (
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: '40px' }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: infoOpen ? 1 : '40px' }}>
             <Chip
               label={statusData.stateLabel}
               size="small"
@@ -506,7 +514,55 @@ function StatusPane({
               </Typography>
             )}
             <Typography variant="caption" color="text.secondary">v{statusData.version}</Typography>
+            <Box sx={{ flex: 1 }} />
+            <Tooltip title="What do these sections mean?">
+              <IconButton
+                size="small"
+                onClick={() => setInfoOpen((v) => !v)}
+                sx={{ color: 'text.secondary' }}
+              >
+                <InfoOutlined fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Stack>
+        )}
+        {statusData && infoOpen && (
+          <Paper variant="outlined" sx={{ p: 1.5, mb: '40px' }}>
+            <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ mb: 1 }}>
+              <Typography variant="subtitle2" sx={{ flex: 1 }}>
+                Status sections
+              </Typography>
+              <IconButton size="small" onClick={() => setInfoOpen(false)} sx={{ mt: '-4px', mr: '-4px' }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+            <Table size="small" sx={{ '& td, & th': { px: 1, py: 0.5, verticalAlign: 'top' } }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600, width: '30%' }}>Section</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: '40%' }}>Captures</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>When</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow>
+                  <TableCell>Starting assumption</TableCell>
+                  <TableCell>The hypothesis itself (wiki pages)</TableCell>
+                  <TableCell>Defined by the wiki, referenced at creation</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Initial rationale</TableCell>
+                  <TableCell>Why we decided to test it <em>now</em> + supporting evidence</TableCell>
+                  <TableCell>Recorded at workflow creation, once</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><code>history[].rationale</code></TableCell>
+                  <TableCell>Why a specific state transition was made</TableCell>
+                  <TableCell>Recorded on each human-decided transition</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Paper>
         )}
         {hasContextContent ? (
           <StatusContent
