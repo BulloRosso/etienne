@@ -9,8 +9,27 @@ export type MessageEvent = {
   type: 'session' | 'stdout' | 'usage' | 'file_added' | 'file_changed' | 'completed' | 'error' |
         'user_message' | 'tool_call' | 'tool' | 'permission_request' | 'subagent_start' | 'subagent_end' |
         'thinking' | 'tool_result' | 'guardrails_triggered' | 'output_guardrails_triggered' |
-        'api_error' | 'telemetry' | 'context_state' | 'compaction';
+        'api_error' | 'telemetry' | 'context_state' | 'compaction' |
+        'session_end' | 'stop' | 'session_state';
   data: any;
+};
+
+export type SessionEndData = {
+  reason: string;
+  session_id?: string;
+  duration_ms?: number;
+};
+
+export type StopData = {
+  stop_hook_active: boolean;
+  last_assistant_message?: string;
+  background_tasks?: Array<{ task_id?: string; description?: string; status?: string }>;
+  session_crons?: Array<{ id?: string; cron?: string; prompt?: string }>;
+};
+
+export type SessionStateData = {
+  state: 'idle' | 'running' | 'requires_action';
+  session_id?: string;
 };
 
 export type ContextStateData = {

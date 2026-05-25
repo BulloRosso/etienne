@@ -642,11 +642,68 @@ export class ClaudeSdkOrchestratorService {
         return { continue: true };
       };
 
+      const sessionEndHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          const reason = input?.reason ?? 'completed';
+          this.logger.log(`🪝 SessionEnd hook called (reason: ${reason})`);
+          observer.next({
+            type: 'session_end',
+            data: {
+              reason,
+              session_id: input?.session_id ?? sessionId,
+              duration_ms: Date.now() - startTime
+            }
+          });
+        } catch (hookError: any) {
+          this.logger.error(`Error in SessionEnd hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
+      const stopHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          this.logger.log(`🪝 Stop hook called (stop_hook_active: ${!!input?.stop_hook_active}, background_tasks: ${input?.background_tasks?.length ?? 0}, session_crons: ${input?.session_crons?.length ?? 0})`);
+          observer.next({
+            type: 'stop',
+            data: {
+              stop_hook_active: !!input?.stop_hook_active,
+              last_assistant_message: input?.last_assistant_message,
+              background_tasks: input?.background_tasks ?? [],
+              session_crons: input?.session_crons ?? []
+            }
+          });
+        } catch (hookError: any) {
+          this.logger.error(`Error in Stop hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
+      const stopFailureHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          const message = input?.error?.message ?? input?.error_details ?? 'Stop hook failed';
+          this.logger.warn(`🪝 StopFailure hook called: ${message}`);
+          observer.next({
+            type: 'error',
+            data: {
+              message: `Stop hook failed: ${message}`,
+              recoverable: true,
+              source: 'stop_failure'
+            }
+          });
+        } catch (hookError: any) {
+          this.logger.error(`Error in StopFailure hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
       // Correct hook configuration format per official SDK documentation
       const hooks = {
         PreToolUse: [{ hooks: [preToolUseHook] }],  // No matcher = match all tools
         PostToolUse: [{ hooks: [postToolUseHook] }],
-        PreCompact: [{ hooks: [preCompactHook] }]
+        PreCompact: [{ hooks: [preCompactHook] }],
+        SessionEnd: [{ hooks: [sessionEndHook] }],
+        Stop: [{ hooks: [stopHook] }],
+        StopFailure: [{ hooks: [stopFailureHook] }]
       };
 
       // Create canUseTool callback for handling user interaction tools
@@ -747,6 +804,21 @@ export class ClaudeSdkOrchestratorService {
         }
 
         // Note: Tool result handling is now done via SDK hooks (PreToolUse/PostToolUse)
+
+        // Forward session state transitions (idle / running / requires_action).
+        // 'idle' is the SDK's authoritative turn-over signal — fires after background flush.
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'session_state_changed') {
+          const state = (sdkMessage as any).state;
+          this.logger.log(`🔄 Session state changed: ${state}`);
+          observer.next({
+            type: 'session_state',
+            data: {
+              state,
+              session_id: (sdkMessage as any).session_id ?? sessionId
+            }
+          });
+          continue;
+        }
 
         // Collect assistant text (but don't emit it - we already streamed it via deltas)
         if (SdkMessageTransformer.isAssistant(sdkMessage)) {
