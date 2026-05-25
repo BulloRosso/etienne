@@ -11,25 +11,11 @@ Each seed creates a self-contained project under `workspace/<project-name>/`
 workflows, scrapbook projection, dreaming run). They are designed to be
 explored from the frontend at http://localhost:5000 after seeding.
 
-| Seed | Project | Article it implements |
-|---|---|---|
-| [`seed-factory-line-sim/`](seed-factory-line-sim/) | `factory-line-sim` — a quality production line with line-dashboard, event simulator, and decision graphs | [Part 1 — Quality Production Line](https://www.linkedin.com/pulse/agents-help-humans-decide-part-1-quality-production-line-navasardyan-r9kcf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BLax6UkZOQbarJqL5ffu5Fw%3D%3D) |
-| [`seed-desalination/`](seed-desalination/) | `desalination-devices` — Engineering Design Support System for a small-island desalination device, with mission→hypothesis→decision graph and a Refuted→cascade workflow | [Part 2 — Engineering Device](https://www.linkedin.com/pulse/agents-help-humans-decide-part-2-engineering-device-ralph-navasardyan-5oecf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BLax6UkZOQbarJqL5ffu5Fw%3D%3D) |
-| [`seed-long-horizon-commitments/`](seed-long-horizon-commitments/) | `tanker-long-horizon` — a 5-vessel midsize crude tanker fleet whose only job is to keep multi-year bets honest (expired assumptions, breached projection cones, gate countdown) | [Part 4 — Projection vs. reality on a tanker fleet](https://www.linkedin.com/pulse/agents-help-humans-decide-part-4-projection-vs-tanker-navasardyan-h545f/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BLax6UkZOQbarJqL5ffu5Fw%3D%3D) |
-
-### Screenshots
-
-**factory-line-sim** — Part 1: Quality Production Line
-
-![factory-line-sim](factory-line-sim.jpg)
-
-**desalination-devices** — Part 2: Engineering Device
-
-![desalination](desalination.jpg)
-
-**tanker-long-horizon** — Part 4: Projection vs. reality on a tanker fleet
-
-![long-horizon-commitments](long-horizon-commitments.jpg)
+| Preview | Seed | Project | Article it implements |
+|---|---|---|---|
+| <img src="factory-line-sim.jpg" height="250" alt="factory-line-sim"/> | [`seed-factory-line-sim/`](seed-factory-line-sim/) | `factory-line-sim` — a quality production line with line-dashboard, event simulator, and decision graphs | [Part 1 — Quality Production Line](https://www.linkedin.com/pulse/agents-help-humans-decide-part-1-quality-production-line-navasardyan-r9kcf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BLax6UkZOQbarJqL5ffu5Fw%3D%3D) |
+| <img src="desalination.jpg" height="250" alt="desalination"/> | [`seed-desalination/`](seed-desalination/) | `desalination-devices` — Engineering Design Support System for a small-island desalination device, with mission→hypothesis→decision graph and a Refuted→cascade workflow | [Part 2 — Engineering Device](https://www.linkedin.com/pulse/agents-help-humans-decide-part-2-engineering-device-ralph-navasardyan-5oecf/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BLax6UkZOQbarJqL5ffu5Fw%3D%3D) |
+| <img src="long-horizon-commitments.jpg" height="250" alt="long-horizon-commitments"/> | [`seed-long-horizon-commitments/`](seed-long-horizon-commitments/) | `tanker-long-horizon` — a 5-vessel midsize crude tanker fleet whose only job is to keep multi-year bets honest (expired assumptions, breached projection cones, gate countdown) | [Part 4 — Projection vs. reality on a tanker fleet](https://www.linkedin.com/pulse/agents-help-humans-decide-part-4-projection-vs-tanker-navasardyan-h545f/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BLax6UkZOQbarJqL5ffu5Fw%3D%3D) |
 
 ## Setup
 
