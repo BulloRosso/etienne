@@ -5,6 +5,26 @@ import * as fs from 'fs-extra';
 import { createMachine, createActor } from 'xstate';
 import { EventBusService } from '../agent-bus/event-bus.service';
 import { WorkflowTriggerMessage } from '../agent-bus/interfaces/bus-messages';
+import { DecisionRationale } from '../hitl-protocol/interfaces/hitl-protocol.interface';
+import {
+  DecisionRationaleValidationError,
+  validateDecisionRationale,
+} from '../hitl-protocol/decision-rationale.validator';
+
+const WIKI_SLUG_RE = /^[a-z0-9-]+$/;
+
+function validateAssumptionWikiSlugs(slugs: string[] | undefined): string[] | undefined {
+  if (slugs === undefined) return undefined;
+  if (!Array.isArray(slugs)) {
+    throw new Error('assumptionWikiSlugs must be an array of strings');
+  }
+  for (const slug of slugs) {
+    if (typeof slug !== 'string' || !WIKI_SLUG_RE.test(slug)) {
+      throw new Error(`Invalid wiki slug "${slug}" — must match ${WIKI_SLUG_RE}`);
+    }
+  }
+  return slugs;
+}
 
 // ============================================
 // Types
@@ -60,6 +80,8 @@ export interface WorkflowHistoryEntry {
   toState: string;
   event: string;
   data?: any;
+  decidedBy?: 'agent' | 'human';
+  rationale?: DecisionRationale;
 }
 
 export interface WorkflowFile {
@@ -74,6 +96,10 @@ export interface WorkflowFile {
   currentState: string;
   history: WorkflowHistoryEntry[];
   tags: string[];
+  /** Wiki page slugs that captured the starting assumption(s) this workflow tests. */
+  assumptionWikiSlugs?: string[];
+  /** Rationale recorded at workflow creation, when the workflow was created by a human. */
+  initialRationale?: DecisionRationale;
 }
 
 export interface GraphNode {
@@ -252,6 +278,10 @@ export class StatefulWorkflowsService implements OnModuleInit {
     description: string,
     machineConfig: WorkflowMachineConfig,
     tags?: string[],
+    options?: {
+      assumptionWikiSlugs?: string[];
+      initialRationale?: DecisionRationale;
+    },
   ): Promise<WorkflowFile> {
     // Validate required fields
     if (!machineConfig.initial) {
@@ -287,6 +317,22 @@ export class StatefulWorkflowsService implements OnModuleInit {
     actor.stop();
 
     const now = new Date().toISOString();
+
+    // Validate new optional fields (assumption slugs + initial rationale).
+    const assumptionWikiSlugs = validateAssumptionWikiSlugs(options?.assumptionWikiSlugs);
+    if (options?.initialRationale) {
+      try {
+        validateDecisionRationale(options.initialRationale, {
+          projectRoot: path.join(this.workspaceDir, project),
+        });
+      } catch (err) {
+        if (err instanceof DecisionRationaleValidationError) {
+          throw new Error(`initialRationale: ${err.message}`);
+        }
+        throw err;
+      }
+    }
+
     const workflow: WorkflowFile = {
       id,
       name,
@@ -299,6 +345,8 @@ export class StatefulWorkflowsService implements OnModuleInit {
       currentState: machineConfig.initial,
       history: [],
       tags: tags || [],
+      ...(assumptionWikiSlugs ? { assumptionWikiSlugs } : {}),
+      ...(options?.initialRationale ? { initialRationale: options.initialRationale } : {}),
     };
 
     await this.writeWorkflow(project, workflow);
@@ -327,9 +375,28 @@ export class StatefulWorkflowsService implements OnModuleInit {
     workflowId: string,
     event: string,
     data?: any,
-    options?: { ignoreInvalidTransitions?: boolean },
+    options?: {
+      ignoreInvalidTransitions?: boolean;
+      rationale?: DecisionRationale;
+      decidedBy?: 'agent' | 'human';
+    },
   ): Promise<{ previousState: string; currentState: string; transitioned: boolean; ignored?: boolean; reason?: string; workflow: WorkflowFile }> {
     const workflow = await this.readWorkflow(project, workflowId);
+
+    // Validate rationale up front so callers get a clear error before any
+    // state machine work is done.
+    if (options?.rationale) {
+      try {
+        validateDecisionRationale(options.rationale, {
+          projectRoot: path.join(this.workspaceDir, project),
+        });
+      } catch (err) {
+        if (err instanceof DecisionRationaleValidationError) {
+          throw new Error(`rationale: ${err.message}`);
+        }
+        throw err;
+      }
+    }
 
     if (this.isStateFinal(workflow.machineConfig, workflow.currentState)) {
       if (options?.ignoreInvalidTransitions) {
@@ -405,6 +472,8 @@ export class StatefulWorkflowsService implements OnModuleInit {
       toState: newState,
       event: resolvedEvent,
       data,
+      ...(options?.decidedBy ? { decidedBy: options.decidedBy } : {}),
+      ...(options?.rationale ? { rationale: options.rationale } : {}),
     });
 
     await this.writeWorkflow(project, workflow);

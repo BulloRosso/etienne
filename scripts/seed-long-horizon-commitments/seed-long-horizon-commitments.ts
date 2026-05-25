@@ -520,11 +520,24 @@ async function step11_seedDesignSupportGraph(ctx: ApiContext): Promise<void> {
   ok(`ds graph: ${rc} relationships (incl. entails / dependsOn / contradicts / evidenceFor / testedBy)`);
 }
 
-async function writeWorkflowFile(workflowId: string, name: string, machineConfig: unknown): Promise<void> {
+interface InitialRationaleDraft {
+  reasoning: string;
+  evidenceDocuments: string[];
+}
+
+async function writeWorkflowFile(
+  workflowId: string,
+  name: string,
+  machineConfig: unknown,
+  extras: {
+    assumptionWikiSlugs?: string[];
+    initialRationale?: InitialRationaleDraft;
+  } = {},
+): Promise<void> {
   const wfDir = join(PROJECT_ROOT, 'workflows');
   await mkdir(wfDir, { recursive: true });
   const initial = (machineConfig as { initial: string }).initial;
-  const file = {
+  const file: Record<string, unknown> = {
     id: workflowId,
     name,
     description: `Hypothesis lifecycle for ${workflowId}`,
@@ -537,6 +550,17 @@ async function writeWorkflowFile(workflowId: string, name: string, machineConfig
     history: [] as unknown[],
     tags: ['design-support', 'hypothesis'],
   };
+  if (extras.assumptionWikiSlugs && extras.assumptionWikiSlugs.length > 0) {
+    file.assumptionWikiSlugs = extras.assumptionWikiSlugs;
+  }
+  if (extras.initialRationale) {
+    file.initialRationale = {
+      reasoning: extras.initialRationale.reasoning,
+      evidenceDocuments: extras.initialRationale.evidenceDocuments,
+      recordedAt: NOW,
+      recordedBy: 'seed',
+    };
+  }
   await writeFile(join(wfDir, `${workflowId}.workflow.json`), JSON.stringify(file, null, 2), 'utf8');
 }
 
@@ -548,13 +572,35 @@ async function step12_seedHypothesisWorkflows(ctx: ApiContext): Promise<void> {
   const machineConfig = JSON.parse(await readFile(machinePath, 'utf8'));
 
   for (const h of HYPOTHESES) {
-    await writeWorkflowFile(h.workflowId, `Hypothesis: ${h.statement.slice(0, 48)}`, machineConfig);
+    await writeWorkflowFile(
+      h.workflowId,
+      `Hypothesis: ${h.statement.slice(0, 48)}`,
+      machineConfig,
+      {
+        assumptionWikiSlugs: h.assumptionWikiSlugs,
+        initialRationale: h.initialRationale,
+      },
+    );
     info(`workflow ${h.workflowId} (target: ${h.targetState})`);
     for (const ev of h.eventPath) {
+      const transitionRationale = h.transitionRationale?.[ev];
+      const body: Record<string, unknown> = {
+        event: ev,
+        data: { hypothesisId: h.id, source: 'seed' },
+      };
+      if (transitionRationale) {
+        body.rationale = {
+          reasoning: transitionRationale.reasoning,
+          evidenceDocuments: transitionRationale.evidenceDocuments,
+          recordedAt: NOW,
+          recordedBy: 'seed',
+        };
+        body.decidedBy = 'human';
+      }
       try {
         await apiFetch(ctx, `/api/workspace/${PROJECT_NAME}/workflows/${h.workflowId}/event`, {
           method: 'POST',
-          body: JSON.stringify({ event: ev, data: { hypothesisId: h.id, source: 'seed' } }),
+          body: JSON.stringify(body),
         });
       } catch (err) {
         if (err instanceof ApiError) {

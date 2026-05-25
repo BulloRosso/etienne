@@ -157,6 +157,11 @@ export const DS_WORKING_EDGES: DsRelationshipDraft[] = [
 
 // --- hypotheses ----------------------------------------------------------
 
+export interface HypothesisRationaleDraft {
+  reasoning: string;
+  evidenceDocuments: string[];
+}
+
 export interface HypothesisDraft {
   /** KG node id (hypothesis-<slug>). */
   id: string;
@@ -179,6 +184,12 @@ export interface HypothesisDraft {
   eventPath: string[];
   relevance: string;
   focus: string;
+  /** Wiki page slugs that captured the starting assumption(s) this hypothesis tests. */
+  assumptionWikiSlugs: string[];
+  /** Rationale recorded at workflow creation, if any. */
+  initialRationale?: HypothesisRationaleDraft;
+  /** Per-transition rationale, keyed by event name. */
+  transitionRationale?: Partial<Record<string, HypothesisRationaleDraft>>;
 }
 
 export const HYPOTHESES: HypothesisDraft[] = [
@@ -198,6 +209,24 @@ export const HYPOTHESES: HypothesisDraft[] = [
     eventPath: ['SHARPEN', 'START_TEST', 'PROVISIONAL_REFUTE', 'CONFIRM_REFUTE'],
     relevance: '0.95',
     focus: '0.85',
+    assumptionWikiSlugs: ['eu-ets-and-fueleu', 'commitment-lifeline-meridian'],
+    initialRationale: {
+      reasoning: 'EUA-price-stable underpins the 2025 comply-via-allowances decision on the Meridian. Plan band set at €60-90/t against 2025 forwards.',
+      evidenceDocuments: ['documents/analyst-eua-price-2026.md'],
+    },
+    transitionRationale: {
+      PROVISIONAL_REFUTE: {
+        reasoning: 'Q1 2026 average EUA price €103/t; two consecutive quarters above the €100/t refutation threshold.',
+        evidenceDocuments: ['documents/analyst-eua-price-2026.md'],
+      },
+      CONFIRM_REFUTE: {
+        reasoning: 'Refutation ratified at the Q2 2026 review. Cascade to hypothesis-retrofit-payback-2027 opens.',
+        evidenceDocuments: [
+          'documents/analyst-eua-price-2026.md',
+          'out/quarterly-packets/2026-Q2.quarterly.json',
+        ],
+      },
+    },
   },
   // The live retrofit-payback question — the central red-team item.
   {
@@ -213,6 +242,11 @@ export const HYPOTHESES: HypothesisDraft[] = [
     eventPath: ['SHARPEN', 'START_TEST'],
     relevance: '0.95',
     focus: '0.8',
+    assumptionWikiSlugs: ['scrubber-retrofit', 'meridian', 'dry-dock-windows'],
+    initialRationale: {
+      reasoning: 'Retrofit-payback was deferred in 2018 on a narrowing-spread premise that has since reversed; the 2027 dry-dock is the cheap window to re-decide.',
+      evidenceDocuments: ['documents/analyst-fuel-spread-2024.md'],
+    },
   },
   // Fuel-pathway-uncertain. Drives the fuel-system-prep deferred item.
   {
@@ -228,6 +262,7 @@ export const HYPOTHESES: HypothesisDraft[] = [
     eventPath: ['SHARPEN', 'START_TEST'],
     relevance: '0.85',
     focus: '0.6',
+    assumptionWikiSlugs: ['eu-ets-and-fueleu'],
   },
   // Strategy-alignment-supported across the modern hulls.
   {
@@ -243,6 +278,7 @@ export const HYPOTHESES: HypothesisDraft[] = [
     eventPath: ['SHARPEN', 'START_TEST', 'PROVISIONAL_SUPPORT', 'CONFIRM_SUPPORT'],
     relevance: '0.8',
     focus: '0.5',
+    assumptionWikiSlugs: ['fleet-overview', 'aurora', 'nordic-star', 'orion'],
   },
   // Meridian-off-strategy — mission-derived from the drift score breaking
   // the acceptance criterion.
@@ -259,6 +295,11 @@ export const HYPOTHESES: HypothesisDraft[] = [
     eventPath: ['SHARPEN', 'START_TEST'],
     relevance: '0.95',
     focus: '0.8',
+    assumptionWikiSlugs: ['meridian', 'drift-against-fleet-strategy', 'projection-vs-reality'],
+    initialRationale: {
+      reasoning: 'Mission-derived from a drift score that breaks the mac-one-off-strategy acceptance criterion; broker valuation has glided below plan.',
+      evidenceDocuments: ['documents/valuation-meridian-2026.md'],
+    },
   },
   // Cape Pioneer early-mover hypothesis — proposed state, not yet sharpened.
   {
@@ -274,6 +315,7 @@ export const HYPOTHESES: HypothesisDraft[] = [
     eventPath: [],
     relevance: '0.7',
     focus: '0.4',
+    assumptionWikiSlugs: ['cape-pioneer', 'dry-dock-windows'],
   },
 ];
 
@@ -307,6 +349,17 @@ export const DS_HYPOTHESIS_EDGES: DsRelationshipDraft[] = [
     properties: { strength: '0.6', direction: 'support' } },
   { subject: 'evidence-broker-valuation-2026', predicate: 'evidenceFor', object: 'hypothesis-retrofit-payback-2027',
     properties: { strength: '0.5', direction: 'refute' } },
+
+  // Hypotheses are described by the wiki pages that captured their starting
+  // assumptions. The `wiki:<slug>` id convention is shared with scrapbook
+  // nodes (see seed-long-horizon-commitments.ts wikiSlug usage).
+  ...HYPOTHESES.flatMap(h =>
+    h.assumptionWikiSlugs.map(slug => ({
+      subject: h.id,
+      predicate: 'describedBy',
+      object: `wiki:${slug}`,
+    })),
+  ),
 ];
 
 // --- tests attached to sharpened+ hypotheses ----------------------------

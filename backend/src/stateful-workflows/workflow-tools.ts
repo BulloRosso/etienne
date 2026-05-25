@@ -39,6 +39,15 @@ const tools: McpTool[] = [
           items: { type: 'string' },
           description: 'Optional tags for categorization and filtering',
         },
+        assumption_wiki_slugs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional wiki page slugs that captured the starting assumption(s) this workflow tests. Each slug must match /^[a-z0-9-]+$/.',
+        },
+        initial_rationale: {
+          type: 'object',
+          description: 'Optional DecisionRationale recorded at workflow creation when the workflow was created by a human. Must contain reasoning (non-empty, ≤2000 chars), evidenceDocuments (array of project-relative POSIX paths under workspace/<project>/ that exist on disk), and recordedAt (ISO 8601). Optional recordedBy.',
+        },
       },
       required: ['project_name', 'name', 'machine_config'],
     },
@@ -64,6 +73,15 @@ const tools: McpTool[] = [
         data: {
           type: 'object',
           description: 'Optional event payload data',
+        },
+        rationale: {
+          type: 'object',
+          description: 'Optional DecisionRationale recorded against this transition when the transition was driven by a human. Must contain reasoning (non-empty, ≤2000 chars), evidenceDocuments (array of project-relative POSIX paths under workspace/<project>/ that exist on disk), and recordedAt (ISO 8601). Optional recordedBy.',
+        },
+        decided_by: {
+          type: 'string',
+          enum: ['agent', 'human'],
+          description: 'Optional attribution for the transition. Defaults unset.',
         },
       },
       required: ['project_name', 'workflow_id', 'event'],
@@ -257,6 +275,10 @@ export function createWorkflowToolsService(
           args.description || '',
           args.machine_config,
           args.tags,
+          {
+            assumptionWikiSlugs: args.assumption_wiki_slugs,
+            initialRationale: args.initial_rationale,
+          },
         );
 
       case 'workflow_send_event': {
@@ -265,6 +287,10 @@ export function createWorkflowToolsService(
           args.workflow_id,
           args.event,
           args.data,
+          {
+            rationale: args.rationale,
+            decidedBy: args.decided_by,
+          },
         );
 
         // Check if new state is waiting for human chat input

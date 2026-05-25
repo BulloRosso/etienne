@@ -53,6 +53,23 @@ export interface HITLVerificationResponse {
   decision: HITLDecision;
   proof_of_human: ProofOfHuman;
   modified_payload?: any;
+  rationale?: DecisionRationale;
+}
+
+// ---------------------------------------------------------------------------
+// Shared decision rationale — used by both HITL responses and stateful
+// workflow transitions whenever a human is recorded as the decider.
+// ---------------------------------------------------------------------------
+
+export interface DecisionRationale {
+  /** Short free-text reasoning the human attached. */
+  reasoning: string;
+  /** Workspace-relative POSIX paths to documents the human relied on. */
+  evidenceDocuments: string[];
+  /** ISO 8601 timestamp the rationale was recorded. */
+  recordedAt: string;
+  /** Optional user id; falls back to the auth context if not set. */
+  recordedBy?: string;
 }
 
 // ---------------------------------------------------------------------------

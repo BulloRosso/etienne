@@ -1,6 +1,6 @@
 # seed-long-horizon-commitments
 
-Seeds a fresh `long-horizon-commitments` example project: a 5-vessel
+Seeds a fresh `tanker-long-horizon` example project: a 5-vessel
 midsize crude tanker fleet whose only job for the agent is to keep multi-
 year bets honest. Built as the worked example for *Agents that help humans
 decide — Part 4: Projection vs. reality on a tanker fleet*.
@@ -95,9 +95,9 @@ The seed is the single source of truth. After a successful run against a
 clean project:
 
 - the **fixtures** (`fixtures/*.ts`) define the data;
-- `workspace/long-horizon-commitments/` is the **live copy** the seed writes
+- `workspace/tanker-long-horizon/` is the **live copy** the seed writes
   (use this one for testing);
-- sync `demo-project-folders/long-horizon-commitments/` **from** the
+- sync `demo-project-folders/tanker-long-horizon/` **from** the
   workspace copy afterward (exclude live churn: `.etienne/chat.*`,
   `costs.json`, `agent-logs/`, `session.id`) to keep the golden reference
   current.
@@ -150,7 +150,7 @@ To re-seed cleanly:
 
 ```bash
 # 1. Delete the project directory.
-rm -rf workspace/long-horizon-commitments
+rm -rf workspace/tanker-long-horizon
 
 # 2. Drop the Chroma collections for this project.
 
@@ -158,6 +158,36 @@ rm -rf workspace/long-horizon-commitments
 
 # 4. Re-run.
 ```
+
+## What the workflows now carry (new)
+
+Each hypothesis workflow now ships with the assumption it tests and the
+evidence behind any human-attributed transition:
+
+- **`assumptionWikiSlugs`** on the workflow file — wiki slugs of the pages
+  that captured the starting assumption. The workflow detail view shows
+  these as chips at the top of the side panel; clicking opens the wiki
+  page in the preview pane.
+- **`initialRationale`** — `DecisionRationale` recorded at workflow
+  creation (`reasoning` + `evidenceDocuments[]`). Renders as the
+  *Initial rationale* card with clickable document chips.
+- **`history[].rationale` + `history[].decidedBy: 'human'`** — attached
+  to transitions the human drove. The `hypothesis-eua-price-stable`
+  workflow has two: `PROVISIONAL_REFUTE` cites `analyst-eua-price-2026.md`;
+  `CONFIRM_REFUTE` cites the same document plus the
+  `out/quarterly-packets/2026-Q2.quarterly.json` packet.
+
+These fields are also mirrored into the KG as `describedBy` edges
+(`hypothesis-<id> describedBy wiki:<slug>`), so anything that reads the
+graph sees the workflow → assumption link without re-fetching the
+workflow file.
+
+The shared `DecisionRationale` type lives in
+[backend/src/hitl-protocol/interfaces/hitl-protocol.interface.ts](../../backend/src/hitl-protocol/interfaces/hitl-protocol.interface.ts)
+and is validated via
+[backend/src/hitl-protocol/decision-rationale.validator.ts](../../backend/src/hitl-protocol/decision-rationale.validator.ts)
+— evidence paths must be project-relative, resolve under
+`workspace/<project>/`, and exist on disk.
 
 ## Smoke test after seeding
 

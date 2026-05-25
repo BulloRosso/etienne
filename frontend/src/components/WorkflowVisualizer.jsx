@@ -24,11 +24,14 @@ import {
   Alert,
   Chip,
   Paper,
+  Stack,
 } from '@mui/material';
-import { AccountTree, Refresh } from '@mui/icons-material';
+import { AccountTree, Refresh, MenuBook, History as HistoryIcon } from '@mui/icons-material';
 import WorkflowStateNode from './WorkflowStateNode';
+import RationaleCard from './RationaleCard';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
 
 const nodeTypes = { workflowState: WorkflowStateNode };
 
@@ -54,6 +57,7 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
   const [graphData, setGraphData] = useState(null);
   const [statusData, setStatusData] = useState(null);
+  const [definitionData, setDefinitionData] = useState(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(true);
@@ -98,11 +102,12 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
       .finally(() => setLoading(false));
   }, [projectName, fileWorkflowId]);
 
-  // Fetch graph + status for selected workflow
+  // Fetch graph + status + full definition for selected workflow
   useEffect(() => {
     if (!projectName || !selectedWorkflowId) {
       setGraphData(null);
       setStatusData(null);
+      setDefinitionData(null);
       return;
     }
 
@@ -111,10 +116,12 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     Promise.all([
       apiFetch(`${base}/graph`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load graph'))),
       apiFetch(`${base}/status`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load status'))),
+      apiFetch(base).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load workflow definition'))),
     ])
-      .then(([graph, status]) => {
+      .then(([graph, status, definition]) => {
         setGraphData(graph);
         setStatusData(status);
+        setDefinitionData(definition);
         setError(null);
       })
       .catch(err => setError(err.message));
@@ -212,11 +219,22 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     Promise.all([
       apiFetch(`${base}/graph`).then(r => r.json()),
       apiFetch(`${base}/status`).then(r => r.json()),
-    ]).then(([graph, status]) => {
+      apiFetch(base).then(r => r.json()),
+    ]).then(([graph, status, definition]) => {
       setGraphData(graph);
       setStatusData(status);
+      setDefinitionData(definition);
     }).catch(err => setError(err.message));
   }, [projectName, selectedWorkflowId]);
+
+  const handleOpenWikiSlug = useCallback((slug) => {
+    if (!slug || !projectName) return;
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      action: 'markdown-preview',
+      filePath: `wiki/topics/${slug}.md`,
+      projectName,
+    });
+  }, [projectName]);
 
   // Listen for claudeHook events to auto-refresh
   useEffect(() => {
@@ -255,8 +273,17 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
     );
   }
 
+  const assumptionSlugs = definitionData?.assumptionWikiSlugs || [];
+  const initialRationale = definitionData?.initialRationale;
+  const history = Array.isArray(definitionData?.history) ? definitionData.history : [];
+  const hasContextContent =
+    assumptionSlugs.length > 0 ||
+    !!initialRationale ||
+    history.some((h) => h?.rationale);
+
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row' }}>
+      <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -324,6 +351,95 @@ function WorkflowVisualizerInner({ projectName, workflowFile }) {
           style={{ height: 80, width: 120 }}
         />
       </ReactFlow>
+      </Box>
+      {hasContextContent && (
+        <Box
+          sx={{
+            width: 340,
+            borderLeft: 1,
+            borderColor: 'divider',
+            overflowY: 'auto',
+            p: 1.5,
+            backgroundColor: 'background.paper',
+          }}
+        >
+          {assumptionSlugs.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+                <MenuBook sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+                  Starting assumption
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap" sx={{ gap: 0.75 }}>
+                {assumptionSlugs.map((slug) => (
+                  <Chip
+                    key={slug}
+                    label={slug}
+                    size="small"
+                    variant="outlined"
+                    onClick={() => handleOpenWikiSlug(slug)}
+                    title={`Open wiki page: ${slug}`}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
+          {initialRationale && (
+            <Box sx={{ mb: 2 }}>
+              <RationaleCard
+                rationale={initialRationale}
+                projectName={projectName}
+                variant="card"
+                title="Initial rationale"
+              />
+            </Box>
+          )}
+          {history.some((h) => h?.rationale) && (
+            <Box>
+              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+                <HistoryIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+                  Human decisions
+                </Typography>
+              </Stack>
+              <Stack spacing={1}>
+                {history
+                  .map((entry, idx) => ({ entry, idx }))
+                  .filter(({ entry }) => entry?.rationale)
+                  .map(({ entry, idx }) => (
+                    <Paper key={idx} variant="outlined" sx={{ p: 1.25 }}>
+                      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+                        <Chip
+                          label={entry.event}
+                          size="small"
+                          sx={{ height: 18, fontSize: 10 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {entry.fromState} → {entry.toState}
+                        </Typography>
+                        {entry.decidedBy === 'human' && (
+                          <Chip
+                            label="human"
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ height: 18, fontSize: 10, ml: 'auto' }}
+                          />
+                        )}
+                      </Stack>
+                      <RationaleCard
+                        rationale={entry.rationale}
+                        projectName={projectName}
+                        variant="inline"
+                      />
+                    </Paper>
+                  ))}
+              </Stack>
+            </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

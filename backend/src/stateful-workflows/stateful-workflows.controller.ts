@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Delete, Param, Query, Body, Logger } from '@nestjs/common';
-import { StatefulWorkflowsService } from './stateful-workflows.service';
+import { StatefulWorkflowsService, WorkflowMachineConfig } from './stateful-workflows.service';
 import { Roles } from '../auth/roles.decorator';
+import { DecisionRationale } from '../hitl-protocol/interfaces/hitl-protocol.interface';
 
 @Controller('api/workspace/:projectName/workflows')
 export class StatefulWorkflowsController {
@@ -43,16 +44,53 @@ export class StatefulWorkflowsController {
   }
 
   @Roles('user')
+  @Post()
+  async createWorkflow(
+    @Param('projectName') projectName: string,
+    @Body() body: {
+      name: string;
+      description?: string;
+      machineConfig: WorkflowMachineConfig;
+      tags?: string[];
+      assumptionWikiSlugs?: string[];
+      initialRationale?: DecisionRationale;
+    },
+  ) {
+    if (!body.name || !body.machineConfig) {
+      return { error: true, message: 'Missing required fields: name, machineConfig' };
+    }
+    return this.workflowsService.createWorkflow(
+      projectName,
+      body.name,
+      body.description || '',
+      body.machineConfig,
+      body.tags,
+      {
+        assumptionWikiSlugs: body.assumptionWikiSlugs,
+        initialRationale: body.initialRationale,
+      },
+    );
+  }
+
+  @Roles('user')
   @Post(':workflowId/event')
   async sendEvent(
     @Param('projectName') projectName: string,
     @Param('workflowId') workflowId: string,
-    @Body() body: { event: string; data?: any },
+    @Body() body: {
+      event: string;
+      data?: any;
+      rationale?: DecisionRationale;
+      decidedBy?: 'agent' | 'human';
+    },
   ) {
     if (!body.event) {
       return { error: true, message: 'Missing required field: event' };
     }
-    return this.workflowsService.sendEvent(projectName, workflowId, body.event, body.data);
+    return this.workflowsService.sendEvent(projectName, workflowId, body.event, body.data, {
+      rationale: body.rationale,
+      decidedBy: body.decidedBy,
+    });
   }
 
   @Roles('user')
