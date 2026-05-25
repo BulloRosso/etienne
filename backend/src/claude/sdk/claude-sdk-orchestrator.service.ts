@@ -696,14 +696,77 @@ export class ClaudeSdkOrchestratorService {
         return { continue: true };
       };
 
+      const subagentStartHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          this.logger.log(`🪝 SubagentStart hook called (agent_id: ${input?.agent_id}, agent_type: ${input?.agent_type})`);
+          observer.next({
+            type: 'subagent_start',
+            data: {
+              agent_id: input?.agent_id,
+              agent_type: input?.agent_type,
+              source: 'hook'
+            }
+          });
+        } catch (hookError: any) {
+          this.logger.error(`Error in SubagentStart hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
+      const subagentStopHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          this.logger.log(`🪝 SubagentStop hook called (agent_id: ${input?.agent_id}, agent_type: ${input?.agent_type})`);
+          observer.next({
+            type: 'subagent_end',
+            data: {
+              agent_id: input?.agent_id,
+              agent_type: input?.agent_type,
+              agent_transcript_path: input?.agent_transcript_path,
+              source: 'hook'
+            }
+          });
+        } catch (hookError: any) {
+          this.logger.error(`Error in SubagentStop hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
+      const postCompactHook = async (_input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          this.logger.log(`🪝 PostCompact hook called`);
+          // The richer compaction payload (pre/post tokens, duration) arrives on the
+          // following system:compact_boundary message and is emitted from there.
+        } catch (hookError: any) {
+          this.logger.error(`Error in PostCompact hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
+      // No-op SDK-side UserPromptSubmit hook. Pre-SDK prompt emission still happens
+      // via hookEmitter.emitUserPromptSubmit() above. This stub is here so future
+      // redaction / variable-expansion logic has a place to live (return
+      // { hookSpecificOutput: { hookEventName: 'UserPromptSubmit', ... } }).
+      const userPromptSubmitHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
+        try {
+          this.logger.debug(`🪝 UserPromptSubmit hook called (prompt length: ${input?.prompt?.length ?? 0})`);
+        } catch (hookError: any) {
+          this.logger.error(`Error in UserPromptSubmit hook: ${hookError.message}`, hookError.stack);
+        }
+        return { continue: true };
+      };
+
       // Correct hook configuration format per official SDK documentation
       const hooks = {
         PreToolUse: [{ hooks: [preToolUseHook] }],  // No matcher = match all tools
         PostToolUse: [{ hooks: [postToolUseHook] }],
         PreCompact: [{ hooks: [preCompactHook] }],
+        PostCompact: [{ hooks: [postCompactHook] }],
         SessionEnd: [{ hooks: [sessionEndHook] }],
         Stop: [{ hooks: [stopHook] }],
-        StopFailure: [{ hooks: [stopFailureHook] }]
+        StopFailure: [{ hooks: [stopFailureHook] }],
+        SubagentStart: [{ hooks: [subagentStartHook] }],
+        SubagentStop: [{ hooks: [subagentStopHook] }],
+        UserPromptSubmit: [{ hooks: [userPromptSubmitHook] }]
       };
 
       // Create canUseTool callback for handling user interaction tools
@@ -816,6 +879,141 @@ export class ClaudeSdkOrchestratorService {
               state,
               session_id: (sdkMessage as any).session_id ?? sessionId
             }
+          });
+          continue;
+        }
+
+        // Sub-agent / Bash-background task lifecycle (Task tool + foreground tasks).
+        // Hooks cover SubagentStart/Stop; these messages cover task_id-keyed work that
+        // arrives outside hook firing (e.g., backgrounded Bash, structured Task tool turns).
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'task_started') {
+          const m = sdkMessage as any;
+          this.logger.log(`🧑‍🤝‍🧑 task_started: ${m.task_id} (${m.subagent_type ?? 'task'})`);
+          observer.next({
+            type: 'subagent_start',
+            data: {
+              task_id: m.task_id,
+              tool_use_id: m.tool_use_id,
+              agent_type: m.subagent_type,
+              description: m.description,
+              source: 'task_message'
+            }
+          });
+          continue;
+        }
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'task_progress') {
+          const m = sdkMessage as any;
+          observer.next({
+            type: 'subagent_progress',
+            data: {
+              task_id: m.task_id,
+              tool_use_id: m.tool_use_id,
+              description: m.description,
+              subagent_type: m.subagent_type,
+              last_tool_name: m.last_tool_name,
+              summary: m.summary,
+              total_tokens: m.usage?.total_tokens,
+              tool_uses: m.usage?.tool_uses,
+              duration_ms: m.usage?.duration_ms
+            }
+          });
+          continue;
+        }
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'task_notification') {
+          const m = sdkMessage as any;
+          this.logger.log(`🧑‍🤝‍🧑 task_notification: ${m.task_id} → ${m.status}`);
+          observer.next({
+            type: 'subagent_end',
+            data: {
+              task_id: m.task_id,
+              tool_use_id: m.tool_use_id,
+              status: m.status,
+              summary: m.summary,
+              output_file: m.output_file,
+              total_tokens: m.usage?.total_tokens,
+              tool_uses: m.usage?.tool_uses,
+              duration_ms: m.usage?.duration_ms,
+              source: 'task_message'
+            }
+          });
+          continue;
+        }
+
+        // Status: 'compacting' / 'requesting' / null + optional compact_result + permissionMode.
+        // Drives the UI's spinner state and surfaces mid-session permission-mode changes.
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'status') {
+          const m = sdkMessage as any;
+          observer.next({
+            type: 'status',
+            data: {
+              status: m.status,
+              permissionMode: m.permissionMode,
+              compact_result: m.compact_result,
+              compact_error: m.compact_error
+            }
+          });
+          continue;
+        }
+
+        // Richer compaction payload (pre/post tokens + duration). Replaces the partial
+        // data the PreCompact hook gives us — emit as 'compaction' so existing consumers
+        // see the extended fields without a new event type.
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'compact_boundary') {
+          const m = sdkMessage as any;
+          this.logger.log(`📚 compact_boundary: ${m.pre_tokens} → ${m.post_tokens} tokens (${m.duration_ms}ms, trigger: ${m.trigger})`);
+          observer.next({
+            type: 'compaction',
+            data: {
+              trigger: m.trigger,
+              tokensBefore: m.pre_tokens,
+              tokensAfter: m.post_tokens,
+              durationMs: m.duration_ms,
+              timestamp: new Date().toISOString()
+            }
+          });
+          continue;
+        }
+
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'permission_denied') {
+          observer.next({
+            type: 'permission_denied',
+            data: sdkMessage
+          });
+          continue;
+        }
+
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'rate_limit') {
+          this.logger.warn(`⏱️ rate_limit notification from SDK`);
+          observer.next({
+            type: 'rate_limit',
+            data: sdkMessage
+          });
+          continue;
+        }
+
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'notification') {
+          observer.next({
+            type: 'notification',
+            data: sdkMessage
+          });
+          continue;
+        }
+
+        if (sdkMessage.type === 'system' && (sdkMessage as any).subtype === 'memory_recall') {
+          observer.next({
+            type: 'memory_recall',
+            data: sdkMessage
+          });
+          continue;
+        }
+
+        // Top-level prompt_suggestion message. Per SDK docs, arrives AFTER the result
+        // message — the for-await loop must not break on result (it doesn't today).
+        if (sdkMessage.type === 'prompt_suggestion') {
+          this.logger.log(`💡 prompt_suggestion received`);
+          observer.next({
+            type: 'prompt_suggestion',
+            data: sdkMessage
           });
           continue;
         }

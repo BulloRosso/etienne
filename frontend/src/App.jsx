@@ -1587,6 +1587,108 @@ export default function App() {
       updateMessages(prev => [...prev, compactionMsg]);
     });
 
+    // Push a structured-message into the timeline for the generic SystemEventMessage renderer.
+    const pushSystemEvent = (eventType, summary, raw) => {
+      updateStructuredMessages(prev => [...prev, {
+        id: `${eventType}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type: 'system_event',
+        eventType,
+        summary,
+        raw,
+        timestamp: Date.now()
+      }]);
+    };
+
+    // Phase 1 events — post-stream callbacks
+    es.addEventListener('session_end', (e) => {
+      const data = JSON.parse(e.data);
+      pushSystemEvent('session_end', `${data.reason} (${data.duration_ms}ms)`, data);
+    });
+    es.addEventListener('stop', (e) => {
+      const data = JSON.parse(e.data);
+      const bg = data.background_tasks?.length || 0;
+      const crons = data.session_crons?.length || 0;
+      const detail = bg || crons
+        ? `${bg} background task(s), ${crons} scheduled cron(s)`
+        : 'no background work';
+      pushSystemEvent('stop', detail, data);
+    });
+    es.addEventListener('session_state', (e) => {
+      const data = JSON.parse(e.data);
+      pushSystemEvent('session_state', data.state, data);
+    });
+
+    // Phase 2 events — sub-agent lifecycle (reuse existing SubagentActivityMessage renderer)
+    es.addEventListener('subagent_start', (e) => {
+      const data = JSON.parse(e.data);
+      updateStructuredMessages(prev => [...prev, {
+        id: `subagent_start_${data.task_id || data.agent_id || Date.now()}`,
+        type: 'subagent_start',
+        name: data.agent_type || data.description || 'subagent',
+        status: 'active',
+        content: data.description,
+        timestamp: Date.now()
+      }]);
+    });
+    es.addEventListener('subagent_end', (e) => {
+      const data = JSON.parse(e.data);
+      updateStructuredMessages(prev => [...prev, {
+        id: `subagent_end_${data.task_id || data.agent_id || Date.now()}`,
+        type: 'subagent_end',
+        name: data.agent_type || 'subagent',
+        status: 'complete',
+        content: data.summary,
+        timestamp: Date.now()
+      }]);
+    });
+    es.addEventListener('subagent_progress', (e) => {
+      const data = JSON.parse(e.data);
+      const summary = [data.last_tool_name, data.total_tokens && `${data.total_tokens} tok`].filter(Boolean).join(' · ');
+      pushSystemEvent('subagent_progress', summary || data.description || data.task_id, data);
+    });
+
+    // Phase 3 events — status / quality-of-life
+    es.addEventListener('status', (e) => {
+      const data = JSON.parse(e.data);
+      const parts = [data.status, data.permissionMode && `mode: ${data.permissionMode}`, data.compact_result && `compact: ${data.compact_result}`].filter(Boolean);
+      pushSystemEvent('status', parts.join(' · ') || 'idle', data);
+    });
+    es.addEventListener('rate_limit', (e) => {
+      const data = JSON.parse(e.data);
+      pushSystemEvent('rate_limit', data.message || 'Rate limit hit', data);
+    });
+    es.addEventListener('notification', (e) => {
+      const data = JSON.parse(e.data);
+      pushSystemEvent('notification', data.message || data.title || '', data);
+    });
+    es.addEventListener('prompt_suggestion', (e) => {
+      const data = JSON.parse(e.data);
+      pushSystemEvent('prompt_suggestion', data.suggestion || data.prompt || '', data);
+    });
+
+    // Aliased — render via existing renderers
+    es.addEventListener('permission_denied', (e) => {
+      const data = JSON.parse(e.data);
+      updateStructuredMessages(prev => [...prev, {
+        id: `permission_denied_${Date.now()}`,
+        type: 'permission_request',
+        permissionId: data.permissionId || `denied_${Date.now()}`,
+        message: `Denied: ${data.tool_name || data.reason || 'tool use auto-denied'}`,
+        timestamp: Date.now()
+      }]);
+    });
+    es.addEventListener('memory_recall', (e) => {
+      const data = JSON.parse(e.data);
+      const facts = data.facts || data.items || data.memories || [];
+      updateStructuredMessages(prev => [...prev, {
+        id: `memory_recall_${Date.now()}`,
+        type: 'memory_extracted',
+        facts,
+        count: facts.length || data.count,
+        timestamp: Date.now()
+      }]);
+    });
+
     es.addEventListener('telemetry', (e) => {
       const data = JSON.parse(e.data);
       // Store spanId and traceId with the current assistant message for feedback

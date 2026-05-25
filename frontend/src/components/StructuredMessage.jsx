@@ -372,6 +372,50 @@ export const ApiErrorMessageComponent = ({ message, fullError }) => {
 );
 };
 
+// Visual config per system-event subtype. Keep all 7 in one map so the renderer
+// stays tiny — the only differences are the badge color, border accent, and icon glyph.
+const SYSTEM_EVENT_STYLE = {
+  session_end:       { color: '#4caf50', bg: '#e8f5e9', icon: '🏁', label: 'Session ended' },
+  stop:              { color: '#9c27b0', bg: '#f3e5f5', icon: '⏸', label: 'Stop hook' },
+  session_state:     { color: '#607d8b', bg: '#eceff1', icon: '🔄', label: 'Session state' },
+  status:            { color: '#03a9f4', bg: '#e1f5fe', icon: '⏳', label: 'Status' },
+  rate_limit:        { color: '#ff9800', bg: '#fff3e0', icon: '⏱', label: 'Rate limit' },
+  notification:      { color: '#3f51b5', bg: '#e8eaf6', icon: '🔔', label: 'Notification' },
+  prompt_suggestion: { color: '#009688', bg: '#e0f2f1', icon: '💡', label: 'Suggestion' },
+  subagent_progress: { color: '#2196f3', bg: '#e3f2fd', icon: '📊', label: 'Subagent progress' },
+};
+
+// Generic renderer for system events that don't warrant a bespoke UI (yet).
+// Shows a colored badge + one-line summary + collapsible raw JSON.
+export const SystemEventMessage = ({ eventType, summary, raw }) => {
+  const [expanded, setExpanded] = useState(false);
+  const style = SYSTEM_EVENT_STYLE[eventType] || { color: '#757575', bg: '#fafafa', icon: 'ℹ', label: eventType };
+  return (
+    <Paper variant="outlined" sx={{ p: 1.5, mb: 2, backgroundColor: style.bg, borderLeft: `4px solid ${style.color}` }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: style.color }}>
+          {style.icon} {style.label}
+        </Typography>
+        {summary && (
+          <Typography variant="body2" sx={{ color: '#555', flexGrow: 1 }}>
+            {summary}
+          </Typography>
+        )}
+        {raw && (
+          <Button size="small" onClick={() => setExpanded(e => !e)} sx={{ minWidth: 'auto', textTransform: 'none', fontSize: '0.75rem' }}>
+            {expanded ? 'hide' : 'details'}
+          </Button>
+        )}
+      </Box>
+      {expanded && raw && (
+        <Box component="pre" sx={{ mt: 1, p: 1, backgroundColor: 'rgba(0,0,0,0.04)', fontSize: '0.75rem', overflow: 'auto', borderRadius: 1, fontFamily: 'monospace' }}>
+          {JSON.stringify(raw, null, 2)}
+        </Box>
+      )}
+    </Paper>
+  );
+};
+
 // Subagent activity component
 export const SubagentActivityMessage = ({ name, status, content }) => (
   <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: '#e3f2fd', borderLeft: '4px solid #2196f3' }}>
@@ -694,6 +738,15 @@ export const StructuredMessage = ({ message, onPermissionResponse, projectName }
         <ResearchErrorMessage
           outputFile={message.outputFile}
           error={message.error}
+        />
+      );
+
+    case 'system_event':
+      return (
+        <SystemEventMessage
+          eventType={message.eventType}
+          summary={message.summary}
+          raw={message.raw}
         />
       );
 

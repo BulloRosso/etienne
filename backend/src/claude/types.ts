@@ -10,8 +10,45 @@ export type MessageEvent = {
         'user_message' | 'tool_call' | 'tool' | 'permission_request' | 'subagent_start' | 'subagent_end' |
         'thinking' | 'tool_result' | 'guardrails_triggered' | 'output_guardrails_triggered' |
         'api_error' | 'telemetry' | 'context_state' | 'compaction' |
-        'session_end' | 'stop' | 'session_state';
+        'session_end' | 'stop' | 'session_state' | 'subagent_progress' |
+        'status' | 'permission_denied' | 'rate_limit' | 'notification' | 'memory_recall' | 'prompt_suggestion';
   data: any;
+};
+
+export type SubagentStartData = {
+  agent_id?: string;
+  agent_type?: string;
+  task_id?: string;
+  tool_use_id?: string;
+  description?: string;
+  source?: 'hook' | 'task_message';
+};
+
+export type SubagentProgressData = {
+  task_id: string;
+  tool_use_id?: string;
+  description?: string;
+  subagent_type?: string;
+  last_tool_name?: string;
+  summary?: string;
+  total_tokens?: number;
+  tool_uses?: number;
+  duration_ms?: number;
+};
+
+export type SubagentEndData = {
+  agent_id?: string;
+  agent_type?: string;
+  agent_transcript_path?: string;
+  task_id?: string;
+  tool_use_id?: string;
+  status?: 'completed' | 'failed' | 'stopped';
+  summary?: string;
+  output_file?: string;
+  total_tokens?: number;
+  tool_uses?: number;
+  duration_ms?: number;
+  source?: 'hook' | 'task_message';
 };
 
 export type SessionEndData = {
