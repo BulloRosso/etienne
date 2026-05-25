@@ -19,19 +19,23 @@ import {
   Alert,
 } from '@mui/material';
 import {
-  Warning as WarningIcon,
-  Schedule as ScheduleIcon,
-  ShowChart as ShowChartIcon,
-  Flag as FlagIcon,
-  Science as ScienceIcon,
-  HelpOutline as HelpOutlineIcon,
   Refresh as RefreshIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
   ReportProblem as ReportProblemIcon,
   AssignmentLate as AssignmentLateIcon,
+  AccountTree as AccountTreeIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import { apiFetch } from '../services/api';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { filePreviewHandler } from '../services/FilePreviewHandler';
+
+/** Workflow states from which a STALL event is a legal transition,
+ *  per .claude/skills/design-support/references/hypothesis-machine.json.
+ *  STALL lands the workflow in `stalled`, which carries waitingFor:
+ *  human_chat — exactly the "needs adjudication" signal we want.
+ */
+const STALLABLE_STATES = new Set(['under_test', 'provisional_support', 'provisional_refute']);
 
 /**
  * QuarterlyViewer — dashboard for `*.quarterly.json` files.
@@ -54,12 +58,19 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
  *     breachedProjections: [{ vessel, label, status, detail }],
  *     vessels: [{ name, alignment, status, note }],
  *     hypotheses: [{ id, statement, state }],
- *     openQuestions: [{ id, label }],
+ *     openQuestions: [{ id, label, linkedWorkflowId?, linkedWorkflowState? }],
  *     callout: string,
  *   }
  *
- * The three action buttons mutate `status` on disk via PUT
- * /api/workspace/<project>/files/save/<path>. No backend changes needed.
+ * Action buttons:
+ *  - Escalate / Acknowledge: mutate `status` on disk via PUT
+ *    /api/workspace/<project>/files/save/<path>.
+ *  - Open Decisions: ALSO opens each open question's linked workflow file
+ *    in the preview pane (via filePreviewHandler), POSTs a STALL event to
+ *    every linked workflow whose current state allows it (under_test /
+ *    provisional_*), and dispatches a single chat message recording the
+ *    action. No backend changes; uses the existing
+ *    /api/workspace/<project>/workflows/<id>/event endpoint.
  */
 export default function QuarterlyViewer({ filename, projectName }) {
   const { mode: themeMode } = useThemeMode();
@@ -88,35 +99,132 @@ export default function QuarterlyViewer({ filename, projectName }) {
 
   useEffect(() => { fetchPacket(); }, [fetchPacket]);
 
+  const writeStatus = useCallback(async (state, note) => {
+    if (!data) return null;
+    const next = {
+      ...data,
+      status: {
+        state,
+        actionedAt: new Date().toISOString(),
+        actionedBy: 'user',
+        ...(note ? { note } : {}),
+      },
+    };
+    const resp = await apiFetch(
+      `/api/workspace/${encodeURIComponent(projectName)}/files/save/${filename}`,
+      {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ content: JSON.stringify(next, null, 2) }),
+      }
+    );
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    setData(next);
+    return next;
+  }, [data, projectName, filename]);
+
   const setStatus = useCallback(async (state, note) => {
-    if (!data) return;
     setActioning(true);
     try {
-      const next = {
-        ...data,
-        status: {
-          state,
-          actionedAt: new Date().toISOString(),
-          actionedBy: 'user',
-          ...(note ? { note } : {}),
-        },
-      };
-      const resp = await apiFetch(
-        `/api/workspace/${encodeURIComponent(projectName)}/files/save/${filename}`,
-        {
-          method: 'PUT',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ content: JSON.stringify(next, null, 2) }),
-        }
-      );
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      setData(next);
+      await writeStatus(state, note);
     } catch (err) {
       setError(`Failed to update status: ${err.message}`);
     } finally {
       setActioning(false);
     }
-  }, [data, projectName, filename]);
+  }, [writeStatus]);
+
+  /**
+   * Open one linked workflow file in the preview pane. Uses the shared
+   * filePreviewHandler so this routes through the same dispatcher as a
+   * sidebar `type: document` menu item — no special-case wiring.
+   */
+  const openWorkflowInPreview = useCallback((workflowId) => {
+    if (!workflowId) return;
+    filePreviewHandler.handlePreview(`workflows/${workflowId}.workflow.json`, projectName);
+  }, [projectName]);
+
+  /**
+   * STALL a workflow if its current state allows the transition. The
+   * STALL state carries waitingFor: human_chat with a documented
+   * waitingMessage — exactly the "needs human" signal we want for an
+   * adjudication queue. Silently no-ops when STALL is not legal (e.g. a
+   * `proposed` workflow only accepts SHARPEN / DEMOTE / SUPERSEDE).
+   */
+  const stallWorkflowIfAllowed = useCallback(async (workflowId, currentState) => {
+    if (!workflowId || !STALLABLE_STATES.has(currentState)) return { skipped: true };
+    try {
+      const resp = await apiFetch(
+        `/api/workspace/${encodeURIComponent(projectName)}/workflows/${encodeURIComponent(workflowId)}/event`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            event: 'STALL',
+            data: { source: 'quarterly-viewer-open-decisions', packetId: data?.packetId },
+          }),
+        }
+      );
+      if (!resp.ok) return { skipped: false, error: `HTTP ${resp.status}` };
+      return { skipped: false };
+    } catch (err) {
+      return { skipped: false, error: err.message };
+    }
+  }, [projectName, data]);
+
+  /**
+   * Open Decisions = the full adjudication side-effect:
+   *  1. Mark status decisions-opened (auditable on disk).
+   *  2. STALL every workflow whose current state allows it (formal
+   *     adjudication signal; the workflow's stalled.onEntry runs).
+   *  3. Open every linked workflow file in the preview pane (so the
+   *     human can see what they're adjudicating). The last one wins
+   *     because each handlePreview replaces the pane.
+   *  4. Dispatch a single non-fresh chat message recording the action +
+   *     listing the linked workflows so chat history reflects it.
+   */
+  const openDecisions = useCallback(async () => {
+    if (!data) return;
+    setActioning(true);
+    try {
+      await writeStatus('decisions-opened', 'Opened for decision from quarterly viewer');
+
+      const linked = (data.openQuestions || []).filter((q) => q.linkedWorkflowId);
+      const stallResults = await Promise.all(
+        linked.map((q) => stallWorkflowIfAllowed(q.linkedWorkflowId, q.linkedWorkflowState))
+      );
+      const stalled = linked.filter((_, i) => stallResults[i] && !stallResults[i].skipped && !stallResults[i].error);
+
+      // Open each workflow in sequence so a workflow that briefly errors
+      // out doesn't block the others. The final one stays visible.
+      for (const q of linked) {
+        openWorkflowInPreview(q.linkedWorkflowId);
+      }
+
+      const summary = linked.length === 0
+        ? `Q${data.packetId.split('-Q')[1] || ''} ${data.packetId.split('-')[0]} packet: opening decisions (no workflows linked to open questions).`
+        : [
+            `Opening Q${data.packetId.split('-Q')[1] || ''} ${data.packetId.split('-')[0]} packet decisions.`,
+            ``,
+            `Linked workflows now visible in the preview pane:`,
+            ...linked.map((q) => `  • ${q.linkedWorkflowId}  →  ${q.label}`),
+            ``,
+            stalled.length > 0
+              ? `STALL'd ${stalled.length} workflow(s) (now waiting on human chat per the hypothesis machine's stalled state): ${stalled.map((q) => q.linkedWorkflowId).join(', ')}.`
+              : `(No workflows in a state where STALL applies — the rest are open in the pane for review.)`,
+            ``,
+            `Per the no-silent-default rule, the affected commitments freeze at the next gate if no decision is recorded.`,
+          ].join('\n');
+
+      window.dispatchEvent(new CustomEvent('viewer-auto-prompt', {
+        detail: { message: summary, fresh: false },
+      }));
+    } catch (err) {
+      setError(`Open Decisions failed: ${err.message}`);
+    } finally {
+      setActioning(false);
+    }
+  }, [data, writeStatus, stallWorkflowIfAllowed, openWorkflowInPreview]);
 
   const isDark = themeMode === 'dark';
   const palette = useMemo(() => ({
@@ -187,18 +295,18 @@ export default function QuarterlyViewer({ filename, projectName }) {
         </Stack>
         <Divider sx={{ my: 2 }} />
         <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
-          <Scorecard label="Expired" value={data.expiredAssumptions?.length || 0} color={palette.red} bg={palette.redBg} />
-          <Scorecard label="Ageing" value={data.ageingAssumptions?.length || 0} color={palette.amber} bg={palette.amberBg} />
-          <Scorecard label="Fresh" value={data.freshAssumptions?.length || 0} color={palette.green} bg={palette.greenBg} />
-          <Scorecard label="Gates ≤18mo" value={data.approachingGates?.length || 0} color={palette.amber} bg={palette.amberBg} />
-          <Scorecard label="Breached projections" value={(data.breachedProjections || []).filter((p) => /review|breached/i.test(p.status)).length} color={palette.red} bg={palette.redBg} />
-          <Scorecard label="Off-strategy" value={(data.vessels || []).filter((v) => /off-strategy/i.test(v.status)).length} color={palette.red} bg={palette.redBg} />
+          <Scorecard label="Expired" value={data.expiredAssumptions?.length || 0} color={palette.red} bg={palette.redBg} iconSrc="/expired-assumptions.png" />
+          <Scorecard label="Ageing" value={data.ageingAssumptions?.length || 0} color={palette.amber} bg={palette.amberBg} iconSrc="/expired-assumptions.png" />
+          <Scorecard label="Fresh" value={data.freshAssumptions?.length || 0} color={palette.green} bg={palette.greenBg} iconSrc="/expired-assumptions.png" />
+          <Scorecard label="Gates ≤18mo" value={data.approachingGates?.length || 0} color={palette.amber} bg={palette.amberBg} iconSrc="/approaching-gates.png" />
+          <Scorecard label="Breached projections" value={(data.breachedProjections || []).filter((p) => /review|breached/i.test(p.status)).length} color={palette.red} bg={palette.redBg} iconSrc="/breached-projections.png" />
+          <Scorecard label="Off-strategy" value={(data.vessels || []).filter((v) => /off-strategy/i.test(v.status)).length} color={palette.red} bg={palette.redBg} iconSrc="/vessels-off-strategy.png" />
         </Stack>
       </Paper>
 
       {/* 1 · Expired assumptions */}
       <Section
-        icon={<WarningIcon sx={{ color: palette.red }} />}
+        iconSrc="/expired-assumptions.png"
         title="1 · Expired Assumptions"
         subtitle={`${(data.expiredAssumptions || []).length} red · ${(data.ageingAssumptions || []).length} amber · ${(data.freshAssumptions || []).length} green`}
         headerBg={palette.headerBg}
@@ -242,7 +350,7 @@ export default function QuarterlyViewer({ filename, projectName }) {
 
       {/* 2 · Approaching gates */}
       <Section
-        icon={<ScheduleIcon sx={{ color: palette.amber }} />}
+        iconSrc="/approaching-gates.png"
         title="2 · Approaching Gates (≤ 18 months)"
         subtitle="Cheap windows to act — out-of-cycle costs multiples"
         headerBg={palette.headerBg}
@@ -288,7 +396,7 @@ export default function QuarterlyViewer({ filename, projectName }) {
 
       {/* 3 · Breached projections */}
       <Section
-        icon={<ShowChartIcon sx={{ color: palette.red }} />}
+        iconSrc="/breached-projections.png"
         title="3 · Breached Projections"
         subtitle="Actuals vs the original uncertainty cone"
         headerBg={palette.headerBg}
@@ -328,7 +436,7 @@ export default function QuarterlyViewer({ filename, projectName }) {
 
       {/* 4 · Vessels off-strategy */}
       <Section
-        icon={<FlagIcon sx={{ color: palette.red }} />}
+        iconSrc="/vessels-off-strategy.png"
         title="4 · Vessels Off-Strategy"
         subtitle="Mission accepts ≤1 off-strategy at any time"
         headerBg={palette.headerBg}
@@ -380,7 +488,7 @@ export default function QuarterlyViewer({ filename, projectName }) {
 
       {/* 5 · Hypotheses */}
       <Section
-        icon={<ScienceIcon sx={{ color: palette.blue }} />}
+        iconSrc="/active-hypothesis-workflows.png"
         title="5 · Active Hypothesis Workflows"
         subtitle={`${(data.hypotheses || []).length} live`}
         headerBg={palette.headerBg}
@@ -418,17 +526,51 @@ export default function QuarterlyViewer({ filename, projectName }) {
 
       {/* 6 · Open questions */}
       <Section
-        icon={<HelpOutlineIcon sx={{ color: palette.amber }} />}
+        iconSrc="/open-questions.png"
         title="6 · Open Questions Requiring Human Decision"
+        subtitle="Each links to a hypothesis workflow"
         headerBg={palette.headerBg}
       >
         <Stack spacing={1}>
-          {(data.openQuestions || []).map((q) => (
-            <Box key={q.id} sx={{ p: 1.5, bgcolor: palette.amberBg, borderRadius: 1, borderLeft: 4, borderColor: palette.amber }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{q.label}</Typography>
-              <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>{q.id}</Typography>
-            </Box>
-          ))}
+          {(data.openQuestions || []).map((q) => {
+            const stallable = q.linkedWorkflowId && STALLABLE_STATES.has(q.linkedWorkflowState);
+            return (
+              <Box key={q.id} sx={{ p: 1.5, bgcolor: palette.amberBg, borderRadius: 1, borderLeft: 4, borderColor: palette.amber }}>
+                <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-start' }} justifyContent="space-between" spacing={1}>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{q.label}</Typography>
+                    <Stack direction="row" spacing={1} sx={{ mt: 0.5 }} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>{q.id}</Typography>
+                      {q.linkedWorkflowId && (
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          icon={<AccountTreeIcon sx={{ fontSize: 14 }} />}
+                          label={`${q.linkedWorkflowId} · ${q.linkedWorkflowState || '?'}`}
+                          sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}
+                        />
+                      )}
+                      {stallable && (
+                        <Chip size="small" label="STALL allowed" sx={{ bgcolor: palette.blueBg, color: palette.blue, fontSize: '0.7rem' }} />
+                      )}
+                    </Stack>
+                  </Box>
+                  {q.linkedWorkflowId && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<OpenInNewIcon />}
+                      onClick={() => openWorkflowInPreview(q.linkedWorkflowId)}
+                      disabled={actioning}
+                      sx={{ flexShrink: 0 }}
+                    >
+                      Open workflow
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
+            );
+          })}
         </Stack>
       </Section>
 
@@ -460,12 +602,27 @@ export default function QuarterlyViewer({ filename, projectName }) {
               disabled={actioning}
               onClick={() => setStatus('acknowledged', 'Acknowledged from quarterly viewer')}
             >Acknowledge</Button>
-            <Button
-              variant="contained"
-              color="primary"
-              disabled={actioning}
-              onClick={() => setStatus('decisions-opened', 'Opened for decision from quarterly viewer')}
-            >Open Decisions</Button>
+            <Tooltip
+              arrow
+              title={
+                <Box>
+                  <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>Open Decisions does:</Typography>
+                  <Typography variant="caption" sx={{ display: 'block' }}>1. Marks the packet status &laquo;decisions-opened&raquo; on disk.</Typography>
+                  <Typography variant="caption" sx={{ display: 'block' }}>2. Opens every linked hypothesis workflow in the preview pane.</Typography>
+                  <Typography variant="caption" sx={{ display: 'block' }}>3. STALLs every workflow whose state allows it (formal &laquo;needs human&raquo; signal).</Typography>
+                  <Typography variant="caption" sx={{ display: 'block' }}>4. Posts an audit message to the chat.</Typography>
+                </Box>
+              }
+            >
+              <span>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  disabled={actioning}
+                  onClick={openDecisions}
+                >Open Decisions</Button>
+              </span>
+            </Tooltip>
           </Stack>
         </Stack>
       </Paper>
@@ -482,24 +639,41 @@ const STATUS_CHIPS = {
   'decisions-opened': { label: 'Decisions opened', bg: '#E8F5E9', fg: '#2e7d32', icon: <CheckCircleOutlineIcon fontSize="small" /> },
 };
 
-function Scorecard({ label, value, color, bg }) {
+function Scorecard({ label, value, color, bg, iconSrc }) {
   return (
-    <Box sx={{ minWidth: 130, p: 1.5, bgcolor: bg, borderRadius: 1 }}>
-      <Typography variant="caption" sx={{ color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
-      <Typography variant="h4" sx={{ color, fontWeight: 700, lineHeight: 1.2 }}>{value}</Typography>
+    <Box sx={{ minWidth: 130, p: 1.5, bgcolor: bg, borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5 }}>
+      <Box sx={{ minWidth: 0, textAlign: 'right' }}>
+        <Typography variant="caption" sx={{ color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', lineHeight: 1.1 }}>{label}</Typography>
+        <Typography variant="h4" sx={{ color, fontWeight: 700, lineHeight: 1.1 }}>{value}</Typography>
+      </Box>
+      {iconSrc && (
+        <Box
+          component="img"
+          src={iconSrc}
+          alt=""
+          sx={{ height: 48, width: 'auto', flexShrink: 0, display: 'block' }}
+        />
+      )}
     </Box>
   );
 }
 
-function Section({ icon, title, subtitle, children, headerBg }) {
+function Section({ iconSrc, title, subtitle, children, headerBg }) {
   return (
     <Paper elevation={1} sx={{ mb: 2, overflow: 'hidden' }}>
       <Box sx={{ p: 1.5, bgcolor: headerBg, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        {icon}
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
           {subtitle && <Typography variant="caption" color="text.secondary">{subtitle}</Typography>}
         </Box>
+        {iconSrc && (
+          <Box
+            component="img"
+            src={iconSrc}
+            alt=""
+            sx={{ height: 65, width: 'auto', flexShrink: 0, display: 'block' }}
+          />
+        )}
       </Box>
       <Box sx={{ p: 1 }}>{children}</Box>
     </Paper>

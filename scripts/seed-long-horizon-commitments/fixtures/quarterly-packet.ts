@@ -32,7 +32,16 @@ export interface QuarterlyPacket {
   breachedProjections: Array<{ vessel: string; label: string; status: string; detail: string }>;
   vessels: Array<{ name: string; alignment: number; status: string; note?: string }>;
   hypotheses: Array<{ id: string; statement: string; state: string }>;
-  openQuestions: Array<{ id: string; label: string }>;
+  openQuestions: Array<{
+    id: string;
+    label: string;
+    /** workflows/<id>.workflow.json — opened in the preview pane on Open Decisions. */
+    linkedWorkflowId?: string;
+    /** Last-known state of the linked workflow at packet-write time. The viewer
+     * uses this to decide whether to attempt a STALL transition (which is
+     * only legal from under_test / provisional_*). */
+    linkedWorkflowState?: string;
+  }>;
   callout: string;
 }
 
@@ -157,9 +166,24 @@ export const QUARTERLY_PACKET_Q2_2026: QuarterlyPacket = {
   ],
 
   openQuestions: [
-    { id: 'openq-meridian-rebaseline', label: 'Meridian re-baseline — re-baseline lifetime-earnings projection now, or wait for the retrofit decision?' },
-    { id: 'openq-meridian-retrofit', label: 'Meridian retrofit — retrofit / defer + plan / sell + scrap at the 2027 dry-dock. The red-team artefact is being built.' },
-    { id: 'openq-cape-pioneer-fuel-system', label: "Cape Pioneer fuel-system prep — bring forward to 2028 or defer to 2033?" },
+    {
+      id: 'openq-meridian-rebaseline',
+      label: 'Meridian re-baseline — re-baseline lifetime-earnings projection now, or wait for the retrofit decision?',
+      linkedWorkflowId: 'hypothesis-meridian-off-strategy',
+      linkedWorkflowState: 'under_test',
+    },
+    {
+      id: 'openq-meridian-retrofit',
+      label: 'Meridian retrofit — retrofit / defer + plan / sell + scrap at the 2027 dry-dock. The red-team artefact is being built.',
+      linkedWorkflowId: 'hypothesis-retrofit-payback-2027',
+      linkedWorkflowState: 'under_test',
+    },
+    {
+      id: 'openq-cape-pioneer-fuel-system',
+      label: "Cape Pioneer fuel-system prep — bring forward to 2028 or defer to 2033?",
+      linkedWorkflowId: 'hypothesis-cape-pioneer-early-fuel-prep',
+      linkedWorkflowState: 'proposed',
+    },
   ],
 
   callout:
