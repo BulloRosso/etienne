@@ -642,6 +642,10 @@ export class ClaudeSdkOrchestratorService {
         return { continue: true };
       };
 
+      // Observer-only hooks: never influence SDK flow control.
+      // CRITICAL: return {} not { continue: true }. For Stop/SubagentStop hooks the
+      // SDK interprets `continue: true` as "don't stop yet — keep looping", which
+      // hangs the turn. Plain {} (or no decision field) lets the SDK proceed normally.
       const sessionEndHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
         try {
           const reason = input?.reason ?? 'completed';
@@ -657,7 +661,7 @@ export class ClaudeSdkOrchestratorService {
         } catch (hookError: any) {
           this.logger.error(`Error in SessionEnd hook: ${hookError.message}`, hookError.stack);
         }
-        return { continue: true };
+        return {};
       };
 
       const stopHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
@@ -675,7 +679,7 @@ export class ClaudeSdkOrchestratorService {
         } catch (hookError: any) {
           this.logger.error(`Error in Stop hook: ${hookError.message}`, hookError.stack);
         }
-        return { continue: true };
+        return {};
       };
 
       const stopFailureHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
@@ -693,7 +697,7 @@ export class ClaudeSdkOrchestratorService {
         } catch (hookError: any) {
           this.logger.error(`Error in StopFailure hook: ${hookError.message}`, hookError.stack);
         }
-        return { continue: true };
+        return {};
       };
 
       const subagentStartHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
@@ -710,7 +714,7 @@ export class ClaudeSdkOrchestratorService {
         } catch (hookError: any) {
           this.logger.error(`Error in SubagentStart hook: ${hookError.message}`, hookError.stack);
         }
-        return { continue: true };
+        return {};
       };
 
       const subagentStopHook = async (input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
@@ -728,18 +732,7 @@ export class ClaudeSdkOrchestratorService {
         } catch (hookError: any) {
           this.logger.error(`Error in SubagentStop hook: ${hookError.message}`, hookError.stack);
         }
-        return { continue: true };
-      };
-
-      const postCompactHook = async (_input: any, _toolUseID: string | undefined, _options: { signal: AbortSignal }) => {
-        try {
-          this.logger.log(`🪝 PostCompact hook called`);
-          // The richer compaction payload (pre/post tokens, duration) arrives on the
-          // following system:compact_boundary message and is emitted from there.
-        } catch (hookError: any) {
-          this.logger.error(`Error in PostCompact hook: ${hookError.message}`, hookError.stack);
-        }
-        return { continue: true };
+        return {};
       };
 
       // No-op SDK-side UserPromptSubmit hook. Pre-SDK prompt emission still happens
@@ -752,7 +745,7 @@ export class ClaudeSdkOrchestratorService {
         } catch (hookError: any) {
           this.logger.error(`Error in UserPromptSubmit hook: ${hookError.message}`, hookError.stack);
         }
-        return { continue: true };
+        return {};
       };
 
       // Correct hook configuration format per official SDK documentation
@@ -760,7 +753,6 @@ export class ClaudeSdkOrchestratorService {
         PreToolUse: [{ hooks: [preToolUseHook] }],  // No matcher = match all tools
         PostToolUse: [{ hooks: [postToolUseHook] }],
         PreCompact: [{ hooks: [preCompactHook] }],
-        PostCompact: [{ hooks: [postCompactHook] }],
         SessionEnd: [{ hooks: [sessionEndHook] }],
         Stop: [{ hooks: [stopHook] }],
         StopFailure: [{ hooks: [stopFailureHook] }],

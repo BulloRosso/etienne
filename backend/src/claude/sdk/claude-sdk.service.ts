@@ -210,10 +210,15 @@ export class ClaudeSdkService {
     const normalizedProjectRoot = projectRoot.replace(/\\/g, '/');
     const normalizedWorkspaceRoot = workspaceRoot.replace(/\\/g, '/');
 
+    // failIfUnavailable: false — SDK 0.3 made this a hard error on Windows where
+    // OS-level sandboxing isn't supported. Falling back to unsandboxed execution
+    // is safe here because tool allow/deny lists (defaultAllowedTools /
+    // defaultDeniedTools) already restrict what the agent can touch.
     if (forceScope) {
       // Strict: deny both read and write outside the project
       return {
         enabled: true,
+        failIfUnavailable: false,
         autoAllowBashIfSandboxed: true,
         filesystem: {
           allowWrite: [`${normalizedProjectRoot}/**`],
@@ -225,6 +230,7 @@ export class ClaudeSdkService {
       // Relaxed: allow reading siblings, deny writing to them
       return {
         enabled: true,
+        failIfUnavailable: false,
         autoAllowBashIfSandboxed: true,
         filesystem: {
           allowWrite: [`${normalizedProjectRoot}/**`],
