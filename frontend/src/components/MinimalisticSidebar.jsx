@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer, CircularProgress, Collapse } from '@mui/material';
+import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer, CircularProgress, Collapse, Dialog } from '@mui/material';
 import { ExpandMore, ExpandLess } from '@mui/icons-material';
 import { AddOutlined, Close as CloseIcon } from '@mui/icons-material';
 import { RiChatNewLine } from 'react-icons/ri';
@@ -15,7 +15,7 @@ import { IoSunnyOutline, IoMoonOutline } from 'react-icons/io5';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { LiaHatCowboySideSolid } from 'react-icons/lia';
 import { TbWorld } from 'react-icons/tb';
-import { LuNetwork } from 'react-icons/lu';
+import { LuNetwork, LuWorkflow } from 'react-icons/lu';
 import { Logout } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ import McpToolsIndicator from './McpToolsIndicator';
 import BudgetIndicator from './BudgetIndicator';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 import ApplicationSection from './ApplicationSection';
+import WorkflowModalLayout from './WorkflowModalLayout';
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -83,7 +84,7 @@ export default function MinimalisticSidebar({
   wikiEntryPath,
   mux,
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'dashboard']);
   const { mode: themeMode, toggleMode } = useThemeMode();
   const { user, logout } = useAuth();
 
@@ -100,6 +101,8 @@ export default function MinimalisticSidebar({
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false);
   const [agentClassIcon, setAgentClassIcon] = useState(null);
   const [imapAvailable, setImapAvailable] = useState(false);
+  const [activeWorkflowCount, setActiveWorkflowCount] = useState(0);
+  const [workflowsOpen, setWorkflowsOpen] = useState(false);
 
   // Check IMAP availability
   useEffect(() => {
@@ -230,6 +233,33 @@ export default function MinimalisticSidebar({
     prevStreamingRef.current = streaming;
   }, [streaming, fetchProjectSessions]);
 
+  // Active = not in final state (running + waiting).
+  const fetchActiveWorkflowCount = useCallback(() => {
+    if (!currentProject) {
+      setActiveWorkflowCount(0);
+      return;
+    }
+    apiFetch(`/api/workspace/${encodeURIComponent(currentProject)}/workflows`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        setActiveWorkflowCount(list.filter(w => !w.isFinal).length);
+      })
+      .catch(() => setActiveWorkflowCount(0));
+  }, [currentProject]);
+
+  useEffect(() => {
+    fetchActiveWorkflowCount();
+  }, [fetchActiveWorkflowCount]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.detail?.hook === 'PostHook') fetchActiveWorkflowCount();
+    };
+    window.addEventListener('claudeHook', handler);
+    return () => window.removeEventListener('claudeHook', handler);
+  }, [fetchActiveWorkflowCount]);
+
   const handleNewProjectClick = () => {
     apiFetch('/api/claude/listProjects')
       .then(res => res.json())
@@ -320,6 +350,13 @@ export default function MinimalisticSidebar({
               sx={{ color: 'text.secondary', mb: 0.5 }}
             >
               <LuNetwork size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {currentProject && activeWorkflowCount > 0 && (
+          <Tooltip title={t('dashboard:itemWorkflows')} placement="right">
+            <IconButton onClick={() => setWorkflowsOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+              <LuWorkflow size={18} />
             </IconButton>
           </Tooltip>
         )}
@@ -446,6 +483,25 @@ export default function MinimalisticSidebar({
             onExternalClose={() => setBudgetDrawerOpen(false)}
           />
         )}
+        <Dialog
+          open={workflowsOpen}
+          onClose={() => setWorkflowsOpen(false)}
+          maxWidth="xl"
+          fullWidth
+          PaperProps={{ sx: { height: '90vh', maxHeight: '90vh', ...(isDark && { border: '1px solid #999' }) } }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+              <Typography variant="h6">{t('dashboard:itemWorkflows')}</Typography>
+              <IconButton onClick={() => setWorkflowsOpen(false)} size="small" aria-label="close">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Box sx={{ flex: 1, minHeight: 0 }}>
+              <WorkflowModalLayout projectName={currentProject} />
+            </Box>
+          </Box>
+        </Dialog>
       </Box>
     );
   }
@@ -590,6 +646,15 @@ export default function MinimalisticSidebar({
               >
                 <ListItemIcon sx={{ minWidth: 36 }}><LuNetwork size={18} /></ListItemIcon>
                 <ListItemText primary={t('sidebar.wiki')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
+            {currentProject && activeWorkflowCount > 0 && (
+              <ListItemButton
+                onClick={() => setWorkflowsOpen(true)}
+                sx={{ borderRadius: 1, py: 0.75 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}><LuWorkflow size={18} /></ListItemIcon>
+                <ListItemText primary={t('dashboard:itemWorkflows')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
               </ListItemButton>
             )}
             {imapAvailable && currentProject && (
@@ -954,6 +1019,26 @@ export default function MinimalisticSidebar({
             onExternalClose={() => setBudgetDrawerOpen(false)}
           />
         )}
+
+        <Dialog
+          open={workflowsOpen}
+          onClose={() => setWorkflowsOpen(false)}
+          maxWidth="xl"
+          fullWidth
+          PaperProps={{ sx: { height: '90vh', maxHeight: '90vh', ...(isDark && { border: '1px solid #999' }) } }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+              <Typography variant="h6">{t('dashboard:itemWorkflows')}</Typography>
+              <IconButton onClick={() => setWorkflowsOpen(false)} size="small" aria-label="close">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Box sx={{ flex: 1, minHeight: 0 }}>
+              <WorkflowModalLayout projectName={currentProject} />
+            </Box>
+          </Box>
+        </Dialog>
 
       </Box>
 
