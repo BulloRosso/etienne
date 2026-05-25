@@ -144,11 +144,20 @@ export class ClaudeSdkService {
         this.logger.log(`Using alternative AI model: ${altModelConfig.model} @ ${altModelConfig.baseUrl}`);
       }
 
-      // Add stderr handler to capture subprocess errors
+      // Add stderr handler to capture subprocess errors.
+      // Known benign noise from SDK 0.3.x teardown: when compaction-related hooks
+      // (PreCompact / PostCompact) fire after the stream has already closed, the
+      // SDK throws 'Error in hook callback hook_N: ... Stream closed' from its
+      // internal sendRequest. The agent has already completed by this point —
+      // demote to debug to keep ERROR logs meaningful.
       queryOptions.stderr = (data: string) => {
-        if (data.trim()) {
-          this.logger.error(`[Claude Code stderr] ${data.trim()}`);
+        const trimmed = data.trim();
+        if (!trimmed) return;
+        if (/Error in hook callback hook_\d+:/.test(trimmed) && /Stream closed/.test(trimmed)) {
+          this.logger.debug(`[Claude Code stderr — benign teardown] ${trimmed.substring(0, 200)}…`);
+          return;
         }
+        this.logger.error(`[Claude Code stderr] ${trimmed}`);
       };
 
       this.logger.log(`Starting SDK conversation for project: ${projectDir} (cwd: ${projectRoot}), session: ${sessionId || 'new'}`);
