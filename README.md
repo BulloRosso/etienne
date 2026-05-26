@@ -10,6 +10,26 @@ Meet Etienne — a proactive AI coworker built to work alongside you on your loc
 <img src="/docs/images/core-workflow.jpg" alt="Core Workflow" style="marginBottom: 24px" width="900">
 </div> 
 
+## Sample Projects
+
+Technologies are easier to understand when you can follow a storyline that shows how they work together.
+
+To get you started, we've included 4 project templates preloaded with ready-to-go sample data. Each one comes with a storyline explained in its own LinkedIn article.
+
+
+<div align="center">
+<img src="/docs/images/time-horizons.jpg" alt="Project Templates" style="marginBottom: 24px" width="900">
+</div> 
+
+## Mission
+
+Etienne is all about one thing: turning a general-purpose generative agent into a specialist that can handle the everyday tsunami of business information for you.
+
+
+<div align="center">
+<img src="/docs/images/tsumami.jpg" alt="Tsunami of information" style="marginBottom: 24px" width="800">
+</div> 
+
 ## Quick Install (Developer Setup)
 
 One-line bootstrap that installs the **developer** (non-Docker) version of Etienne. It will:
