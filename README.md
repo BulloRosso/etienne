@@ -21,6 +21,8 @@ To get you started, we've included [4 project templates](scripts/readme.md) prel
 <img src="/docs/images/time-horizons.jpg" alt="Project Templates" style="marginBottom: 24px" width="900">
 </div> 
 
+These projects showcase how to setup and maintain agentic memory for real-life projects - and how to solve all the UI related integration problems you will face on the way.
+
 ## Mission
 
 Etienne is all about one thing: turning a general-purpose generative agent into a specialist that can handle the everyday tsunami of business information for you.
@@ -29,6 +31,8 @@ Etienne is all about one thing: turning a general-purpose generative agent into 
 <div align="center">
 <img src="/docs/images/tsunami.jpg" alt="Tsunami of information" style="marginBottom: 24px" width="800">
 </div> 
+
+As a forward deployed engineer (FDE) this would be my job together with you and your team. But this repository gives you the basic tooling to tackle complex tasks in harness engineering.
 
 ## Quick Install (Developer Setup)
 
