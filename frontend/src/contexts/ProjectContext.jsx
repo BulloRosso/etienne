@@ -16,13 +16,23 @@ export const ProjectProvider = ({ children }) => {
   const [projectExists, setProjectExists] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load currentProject from localStorage on mount
+  // Load currentProject from localStorage on mount. Re-run when an auth token appears
+  // (login completes) so a stored project gets verified once we can actually call the API.
   useEffect(() => {
+    let cancelled = false;
     const loadCurrentProject = async () => {
+      const token =
+        localStorage.getItem('auth_accessToken') || sessionStorage.getItem('auth_accessToken');
+      if (cancelled) return;
       setLoading(true);
       const storedProject = localStorage.getItem('currentProject');
 
       if (storedProject) {
+        if (!token) {
+          // Not logged in yet — defer project verification until after login.
+          setLoading(false);
+          return;
+        }
         // Verify project exists
         try {
           const response = await apiFetch('/api/claude/listProjects');
@@ -49,6 +59,15 @@ export const ProjectProvider = ({ children }) => {
     };
 
     loadCurrentProject();
+    // Re-verify when login completes (storage event fires from same-window updates we dispatch).
+    const onAuthChange = () => loadCurrentProject();
+    window.addEventListener('auth:login', onAuthChange);
+    window.addEventListener('auth:logout', onAuthChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('auth:login', onAuthChange);
+      window.removeEventListener('auth:logout', onAuthChange);
+    };
   }, []);
 
   const setProject = async (projectName) => {

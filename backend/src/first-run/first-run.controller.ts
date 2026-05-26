@@ -72,12 +72,15 @@ export class FirstRunController {
   @Sse('diagnostics/stream')
   diagnosticsStream(@Req() req: Request): Observable<MessageEvent> {
     const user = (req as any).user as JwtUser | undefined;
+    this.logger.log(`Diagnostics stream opened for user ${user?.sub ?? 'unknown'}`);
     return new Observable((observer) => {
       (async () => {
         const accumulated: any[] = [];
+        // Important: emit events WITHOUT `type` so they arrive as default `message`
+        // events in the browser's EventSource. The discriminator lives inside `data.kind`.
         for await (const result of this.runner.runAllStreaming()) {
           accumulated.push(result);
-          observer.next({ type: 'tool', data: { kind: 'check_result', result } } as any);
+          observer.next({ data: { kind: 'check_result', result } } as any);
         }
         const summary = this.summarize(accumulated);
         const report: DiagnosticsReport = {
@@ -91,11 +94,11 @@ export class FirstRunController {
             .sort(),
         };
         if (user?.sub) this.reportCache.set(user.sub, { report, storedAt: Date.now() });
-        observer.next({ type: 'completed', data: { report } } as any);
+        observer.next({ data: { kind: 'completed', report } } as any);
         observer.complete();
       })().catch((err) => {
         this.logger.error(`Streaming diagnostics failed: ${err.message}`, err.stack);
-        observer.next({ type: 'error', data: { message: err.message } } as any);
+        observer.next({ data: { kind: 'error', message: err.message } } as any);
         observer.complete();
       });
       return () => {
@@ -113,7 +116,7 @@ export class FirstRunController {
     const user = (req as any).user as JwtUser | undefined;
     if (!user) {
       return new Observable((observer) => {
-        observer.next({ type: 'error', data: { message: 'Unauthorized' } } as any);
+        observer.next({ data: { kind: 'error', message: 'Unauthorized' } } as any);
         observer.complete();
       });
     }
@@ -121,8 +124,7 @@ export class FirstRunController {
     if (!cached || Date.now() - cached.storedAt > REPORT_TTL_MS) {
       return new Observable((observer) => {
         observer.next({
-          type: 'error',
-          data: { message: 'No recent diagnostics report. Run diagnostics first.' },
+          data: { kind: 'error', message: 'No recent diagnostics report. Run diagnostics first.' },
         } as any);
         observer.complete();
       });

@@ -105,6 +105,7 @@ export const AuthProvider = ({ children }) => {
           const userData = await response.json();
           setUser(userData);
           setIsAuthenticated(true);
+          window.dispatchEvent(new Event('auth:login'));
         } else if (response.status === 401) {
           // Try to refresh token
           const refreshed = await refreshToken();
@@ -196,6 +197,7 @@ export const AuthProvider = ({ children }) => {
 
     setUser(userData);
     setIsAuthenticated(true);
+    window.dispatchEvent(new Event('auth:login'));
 
     return userData;
   };

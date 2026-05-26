@@ -46,10 +46,10 @@ export class SupportAgentService {
   ): Observable<MessageEvent> {
     const processId = `support_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     return new Observable<MessageEvent>((observer) => {
-      observer.next({ type: 'session', data: { process_id: processId } } as any);
+      observer.next({ data: { kind: 'session', process_id: processId } } as any);
       this.runSession(observer, report, processId, options).catch((err) => {
         this.logger.error(`Support session failed: ${err.message}`, err.stack);
-        observer.next({ type: 'error', data: { message: err.message } } as any);
+        observer.next({ data: { kind: 'error', message: err.message } } as any);
         observer.complete();
       });
       return () => {
@@ -136,12 +136,12 @@ export class SupportAgentService {
         if (t === 'stream_event') {
           const ev = (sdkMessage as any).event;
           if (ev?.type === 'content_block_delta' && ev?.delta?.type === 'text_delta') {
-            observer.next({ type: 'stdout', data: { chunk: ev.delta.text } } as any);
+            observer.next({ data: { kind: 'stdout', chunk: ev.delta.text } } as any);
           }
           continue;
         }
         if (t === 'system' && (sdkMessage as any).subtype === 'init') {
-          observer.next({ type: 'session', data: { session_id: (sdkMessage as any).session_id } } as any);
+          observer.next({ data: { kind: 'session', session_id: (sdkMessage as any).session_id } } as any);
           continue;
         }
         if (sdkMessage?.message?.content) {
@@ -150,8 +150,7 @@ export class SupportAgentService {
             for (const block of content) {
               if (block.type === 'tool_use') {
                 observer.next({
-                  type: 'tool',
-                  data: { toolName: block.name, status: 'running', callId: block.id, input: block.input },
+                  data: { kind: 'tool', toolName: block.name, status: 'running', callId: block.id, input: block.input },
                 } as any);
               }
             }
@@ -161,18 +160,18 @@ export class SupportAgentService {
           const isError = (sdkMessage as any).is_error === true;
           const text = (sdkMessage as any).result;
           if (isError && text) {
-            observer.next({ type: 'error', data: { message: text } } as any);
+            observer.next({ data: { kind: 'error', message: text } } as any);
           } else if (text) {
-            observer.next({ type: 'stdout', data: { chunk: `\n\n${text}` } } as any);
+            observer.next({ data: { kind: 'stdout', chunk: `\n\n${text}` } } as any);
           }
-          observer.next({ type: 'completed', data: { phase } } as any);
+          observer.next({ data: { kind: 'completed', phase } } as any);
           break;
         }
       }
       observer.complete();
     } catch (err: any) {
       this.logger.error(`Support agent SDK stream error: ${err.message}`, err.stack);
-      observer.next({ type: 'error', data: { message: err.message } } as any);
+      observer.next({ data: { kind: 'error', message: err.message } } as any);
       observer.complete();
     }
   }

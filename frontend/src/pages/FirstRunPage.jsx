@@ -19,6 +19,7 @@ import {
   openSupportSessionStream,
   runDiagnostics,
 } from '../services/firstRunService';
+// runDiagnostics is used by the SSE error fallback.
 
 const STATUS_ICON = {
   ok: <IoCheckmarkCircle color="#2e7d32" size={20} />,
@@ -104,7 +105,7 @@ export default function FirstRunPage({ onComplete }) {
   const esRef = useRef(null);
   const agentEsRef = useRef(null);
 
-  const startStreaming = () => {
+  const startStreaming = async () => {
     setRunning(true);
     setError(null);
     setChecks([]);
@@ -112,32 +113,47 @@ export default function FirstRunPage({ onComplete }) {
     if (esRef.current) esRef.current.close();
     const es = openDiagnosticsStream();
     esRef.current = es;
+    let finished = false;
+
     es.onmessage = (event) => {
       try {
-        const payload = JSON.parse(event.data);
-        const data = payload?.data;
-        if (payload?.type === 'tool' && data?.kind === 'check_result' && data.result) {
+        const data = JSON.parse(event.data);
+        if (!data?.kind) return;
+        if (data.kind === 'check_result' && data.result) {
           setChecks((prev) => [...prev, data.result]);
-        } else if (payload?.type === 'completed' && data?.report) {
+        } else if (data.kind === 'completed' && data.report) {
           setOverall(data.report.overall);
           setRunning(false);
+          finished = true;
           es.close();
           esRef.current = null;
-        } else if (payload?.type === 'error') {
-          setError(data?.message || 'Diagnostic stream error');
+        } else if (data.kind === 'error') {
+          setError(data.message || 'Diagnostic stream error');
           setRunning(false);
+          finished = true;
           es.close();
           esRef.current = null;
         }
-      } catch (err) {
-        // swallow parse error — the SSE wrapper may send keepalive lines
+      } catch {
+        // swallow parse error — keepalives etc.
       }
     };
-    es.onerror = () => {
-      // Fallback to non-streaming endpoint to make sure we always finish.
+    es.onerror = async () => {
       if (esRef.current === es) {
         es.close();
         esRef.current = null;
+      }
+      if (finished) return;
+      // SSE failed before completing. Fall back to the synchronous POST so the user
+      // still sees results even when the streaming path is unhappy.
+      try {
+        const report = await runDiagnostics();
+        setChecks(report.checks || []);
+        setOverall(report.overall);
+      } catch (fallbackErr) {
+        setError(fallbackErr.message || 'Diagnostics failed');
+      } finally {
+        setRunning(false);
       }
     };
   };
@@ -180,15 +196,16 @@ export default function FirstRunPage({ onComplete }) {
     agentEsRef.current = es;
     es.onmessage = (event) => {
       try {
-        const payload = JSON.parse(event.data);
-        if (payload?.type === 'stdout' && payload?.data?.chunk) {
-          setAgentChunks((prev) => [...prev, payload.data.chunk]);
-        } else if (payload?.type === 'completed') {
+        const data = JSON.parse(event.data);
+        if (!data?.kind) return;
+        if (data.kind === 'stdout' && data.chunk) {
+          setAgentChunks((prev) => [...prev, data.chunk]);
+        } else if (data.kind === 'completed') {
           setAgentRunning(false);
           es.close();
           agentEsRef.current = null;
-        } else if (payload?.type === 'error') {
-          setAgentChunks((prev) => [...prev, `\n\n[error] ${payload?.data?.message || 'unknown error'}`]);
+        } else if (data.kind === 'error') {
+          setAgentChunks((prev) => [...prev, `\n\n[error] ${data.message || 'unknown error'}`]);
           setAgentRunning(false);
           es.close();
           agentEsRef.current = null;

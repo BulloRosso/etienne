@@ -339,8 +339,9 @@ export default function App() {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
-  // Fetch any existing pending pairings on mount
+  // Fetch any existing pending pairings — only once authenticated, to avoid pre-login 401s.
   useEffect(() => {
+    if (!isAuthenticated) return;
     const fetchPendingPairings = async () => {
       try {
         const res = await apiFetch('/api/remote-sessions/pairing/pending');
@@ -361,7 +362,7 @@ export default function App() {
       }
     };
     fetchPendingPairings();
-  }, []);
+  }, [isAuthenticated]);
 
   // Global interceptor events (pairing requests) via multiplexed SSE
   useEffect(() => {
