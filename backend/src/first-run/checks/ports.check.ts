@@ -13,7 +13,7 @@ const SERVICES: ExpectedService[] = [
   { port: 3000, name: 'aux-service-3000', healthUrl: 'http://localhost:3000' },
   { port: 4000, name: 'webserver', healthUrl: 'http://localhost:4000' },
   { port: 5000, name: 'frontend', healthUrl: 'http://localhost:5000' },
-  { port: 5950, name: 'oauth-server', healthUrl: 'http://localhost:5950/auth/health' },
+  { port: 5950, name: 'oauth-server', healthUrl: 'http://localhost:5950/health' },
   { port: 6060, name: 'backend', healthUrl: 'http://localhost:6060/api/claude/health' },
   { port: 7000, name: 'aux-service-7000' },
   { port: 7100, name: 'aux-service-7100' },

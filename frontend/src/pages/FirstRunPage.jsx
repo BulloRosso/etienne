@@ -10,9 +10,23 @@ import {
   Divider,
   IconButton,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
-import { IoCheckmarkCircle, IoCloseCircle, IoWarning, IoRefresh, IoOpenOutline } from 'react-icons/io5';
+import {
+  IoCheckmarkCircle,
+  IoCloseCircle,
+  IoWarning,
+  IoRefresh,
+  IoOpenOutline,
+  IoKeyOutline,
+  IoCloudOutline,
+  IoFolderOutline,
+  IoHardwareChipOutline,
+  IoStarOutline,
+  IoLockClosedOutline,
+  IoEyeOutline,
+} from 'react-icons/io5';
 import {
   completeFirstRun,
   openDiagnosticsStream,
@@ -34,7 +48,23 @@ const SEVERITY_COLOR = {
   low: 'default',
 };
 
+const CATEGORY_ICON = {
+  connectivity: { Icon: IoCloudOutline, label: 'Connectivity' },
+  env: { Icon: IoKeyOutline, label: 'Environment' },
+  fs: { Icon: IoFolderOutline, label: 'Filesystem' },
+  runtime: { Icon: IoHardwareChipOutline, label: 'Runtime' },
+  optional: { Icon: IoStarOutline, label: 'Optional' },
+};
+
+// Per-check overrides that win over the category icon.
+const CHECK_ICON_OVERRIDES = {
+  'oauth.reachable': { Icon: IoLockClosedOutline, label: 'Authentication' },
+  'frontend.reachable': { Icon: IoEyeOutline, label: 'Frontend' },
+};
+
 function CheckRow({ check }) {
+  const meta = CHECK_ICON_OVERRIDES[check.id] || CATEGORY_ICON[check.category];
+  const CategoryIcon = meta?.Icon;
   return (
     <Card variant="outlined" sx={{ mb: 1 }}>
       <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
@@ -62,6 +92,13 @@ function CheckRow({ check }) {
               </Typography>
             )}
           </Box>
+          {CategoryIcon && (
+            <Tooltip title={meta.label} placement="left">
+              <Box sx={{ pt: 0.25, color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+                <CategoryIcon size={20} />
+              </Box>
+            </Tooltip>
+          )}
         </Stack>
       </CardContent>
     </Card>

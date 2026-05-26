@@ -12,7 +12,7 @@ export class OauthReachableCheck implements DiagnosticCheck {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 2500);
     try {
-      const res = await fetch(`${url}/auth/health`, {
+      const res = await fetch(`${url}/health`, {
         method: 'GET',
         signal: ctrl.signal,
       });
