@@ -34,6 +34,19 @@ Etienne is all about one thing: turning a general-purpose generative agent into 
 
 As a forward deployed engineer (FDE) this would be my job together with you and your team. But this repository gives you the basic tooling to tackle complex tasks in harness engineering.
 
+## Enterprise Perspective
+
+This project is a starting point to address **integration challenges** in typical enterprise environments:
+
+* Identity and Access Management (e. g. AWS Cognitor or Microsoft EntraID)
+* Compliance with Standards and how to build bridges between them (e. g. MCP, MCP UI, A2A, AG-UI)
+* Deployments (e. g. Azure App Service and Foundry Hosted Agents)
+* Secrets Management (e. g. Azure KeyVault)
+* Budget Monitoring and Limiting
+* Security Considerations (e. g. RBAC role based access)
+
+Because of all these adapters/integrations this project is large and it IS NOT for you if you want to get started with harness engineering for hobby projects.
+
 ## Quick Install (Developer Setup)
 
 One-line bootstrap that installs the **developer** (non-Docker) version of Etienne. It will:
