@@ -14,7 +14,7 @@ Meet Etienne — a proactive AI coworker built to work alongside you on your loc
 
 Technologies are easier to understand when you can follow a storyline that shows how they work together.
 
-To get you started, we've included [4 project templates](scripts/readme.md) preloaded with ready-to-go sample data. Each one comes with a storyline explained in its own LinkedIn article.
+To get you started, we've included [4 project templates](/scripts/readme.md) preloaded with ready-to-go sample data. Each one comes with a storyline explained in its own LinkedIn article.
 
 
 <div align="center">
