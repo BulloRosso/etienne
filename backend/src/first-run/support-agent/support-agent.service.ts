@@ -7,7 +7,7 @@ import { ClaudeConfig } from '../../claude/config/claude.config';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 import { MessageEvent } from '../../claude/types';
 import { DiagnosticsReport } from '../types';
-import { SUPPORT_AGENT_SYSTEM_PROMPT, buildContextMessage } from './support-agent.prompts';
+import { SUPPORT_AGENT_SYSTEM_PROMPT, buildContextMessage, buildFixItNowMessage } from './support-agent.prompts';
 import { createSupportAgentCanUseTool } from './support-agent.policy';
 
 /**
@@ -85,23 +85,22 @@ export class SupportAgentService {
     if (phase === 'plan') {
       userMessage = buildContextMessage(report);
     } else {
-      userMessage = [
-        `Apply the remediation item with id "${options.applyItemId}" from the plan you proposed earlier.`,
-        '',
-        'Reminders:',
-        '- You may only Write/Edit backend/.env or oauth-server/.env.',
-        '- Bash install commands will be routed through human approval. Do not bypass.',
-        '- Never touch files under WORKSPACE_ROOT.',
-        '',
-        'Diagnostic report (for reference):',
-        '```json',
-        JSON.stringify(report, null, 2),
-        '```',
-        '',
-        options.userPrompt ? `Additional user instruction: ${options.userPrompt}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
+      // Apply phase: locate the targeted check by id and build a focused fix-it-now message.
+      const target = report.checks.find((c) => c.id === options.applyItemId);
+      if (!target) {
+        observer.next({
+          data: {
+            kind: 'error',
+            message: `Cannot fix: no check with id "${options.applyItemId}" in the current report. Re-run diagnostics and try again.`,
+          },
+        } as any);
+        observer.complete();
+        return;
+      }
+      userMessage = buildFixItNowMessage(target, report);
+      if (options.userPrompt) {
+        userMessage += `\n\nAdditional user instruction: ${options.userPrompt}`;
+      }
     }
 
     // The SDK's streamConversation derives cwd from projectDir via safeRoot(hostRoot, ...).
@@ -113,10 +112,14 @@ export class SupportAgentService {
       model: process.env.SUPPORT_AGENT_MODEL || 'claude-sonnet-4-6',
       cwd: repoRoot,
       systemPrompt: SUPPORT_AGENT_SYSTEM_PROMPT,
-      permissionMode: phase === 'plan' ? 'plan' : 'default',
+      // 'default' mode for both phases: there is no separate planning UI. The agent
+      // either lays out a plan in text (phase: plan) or executes directly (phase: apply).
+      permissionMode: 'default',
+      // Explicitly exclude AskUserQuestion and ExitPlanMode — there is no chat input
+      // in the first-run UI to answer them, so they would just hang the session.
       allowedTools: ['Read', 'Grep', 'Glob', 'Bash', 'Write', 'Edit'],
-      disallowedTools: [],
-      maxTurns: phase === 'plan' ? 6 : 20,
+      disallowedTools: ['AskUserQuestion', 'ExitPlanMode'],
+      maxTurns: phase === 'plan' ? 6 : 30,
       includePartialMessages: true,
       canUseTool,
       env: {
@@ -128,6 +131,7 @@ export class SupportAgentService {
 
     this.logger.log(`Starting first-run support session (processId=${processId}, phase=${phase})`);
 
+    let streamedAnyText = false;
     try {
       for await (const sdkMessage of sdk.query({ prompt: userMessage, options: queryOptions })) {
         // Forward a minimal subset of SDK messages. Mirrors ClaudeSdkOrchestratorService at a high level
@@ -136,6 +140,7 @@ export class SupportAgentService {
         if (t === 'stream_event') {
           const ev = (sdkMessage as any).event;
           if (ev?.type === 'content_block_delta' && ev?.delta?.type === 'text_delta') {
+            streamedAnyText = true;
             observer.next({ data: { kind: 'stdout', chunk: ev.delta.text } } as any);
           }
           continue;
@@ -161,8 +166,10 @@ export class SupportAgentService {
           const text = (sdkMessage as any).result;
           if (isError && text) {
             observer.next({ data: { kind: 'error', message: text } } as any);
-          } else if (text) {
-            observer.next({ data: { kind: 'stdout', chunk: `\n\n${text}` } } as any);
+          } else if (text && !streamedAnyText) {
+            // Only emit the result text if we did NOT already stream it via content_block_delta —
+            // otherwise the frontend shows the agent's final answer twice.
+            observer.next({ data: { kind: 'stdout', chunk: text } } as any);
           }
           observer.next({ data: { kind: 'completed', phase } } as any);
           break;

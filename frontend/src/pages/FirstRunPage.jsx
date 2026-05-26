@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import {
   Alert,
   Box,
@@ -62,9 +64,61 @@ const CHECK_ICON_OVERRIDES = {
   'frontend.reachable': { Icon: IoEyeOutline, label: 'Frontend' },
 };
 
-function CheckRow({ check }) {
+// Renders agent output (markdown) safely. Uses the same marked + DOMPurify
+// pipeline as MarkdownViewer elsewhere in the app for consistency.
+function MarkdownBlock({ source, sx }) {
+  const html = useMemo(() => {
+    if (!source) return '';
+    try {
+      const raw = marked.parse(source, { breaks: true, gfm: true });
+      return DOMPurify.sanitize(raw);
+    } catch {
+      return '';
+    }
+  }, [source]);
+  return (
+    <Box
+      sx={{
+        fontSize: 13,
+        lineHeight: 1.5,
+        wordBreak: 'break-word',
+        '& p': { my: 0.5 },
+        '& ul, & ol': { my: 0.5, pl: 3 },
+        '& li': { mb: 0.25 },
+        '& code': {
+          fontFamily: 'monospace',
+          fontSize: 12,
+          backgroundColor: 'action.selected',
+          px: 0.5,
+          py: 0.1,
+          borderRadius: 0.5,
+        },
+        '& pre': {
+          fontFamily: 'monospace',
+          fontSize: 12,
+          backgroundColor: 'action.selected',
+          p: 1,
+          borderRadius: 1,
+          overflow: 'auto',
+          my: 0.5,
+        },
+        '& pre code': { backgroundColor: 'transparent', p: 0 },
+        '& h1, & h2, & h3, & h4': { my: 0.5, fontSize: '1em', fontWeight: 600 },
+        '& a': { color: 'primary.main' },
+        ...sx,
+      }}
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+function CheckRow({ check, onFixIt, fixState }) {
   const meta = CHECK_ICON_OVERRIDES[check.id] || CATEGORY_ICON[check.category];
   const CategoryIcon = meta?.Icon;
+  const showFix = check.status === 'fail';
+  const isRunning = fixState?.running;
+  const chunks = fixState?.chunks || [];
   return (
     <Card variant="outlined" sx={{ mb: 1 }}>
       <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
@@ -79,9 +133,6 @@ function CheckRow({ check }) {
                 color={SEVERITY_COLOR[check.severity] || 'default'}
                 variant="outlined"
               />
-              <Typography variant="caption" color="text.secondary">
-                ({check.id})
-              </Typography>
             </Stack>
             <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
               {check.message}
@@ -90,6 +141,40 @@ function CheckRow({ check }) {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                 Suggested fix: {check.remediation.summary}
               </Typography>
+            )}
+            {showFix && (
+              <Box sx={{ mt: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  disabled={isRunning}
+                  onClick={() => onFixIt(check.id)}
+                  startIcon={isRunning ? <CircularProgress size={14} /> : null}
+                >
+                  {isRunning ? 'Agent working…' : 'Fix it now'}
+                </Button>
+              </Box>
+            )}
+            {(isRunning || chunks.length > 0) && (
+              <Box
+                sx={{
+                  mt: 1,
+                  maxHeight: 320,
+                  overflow: 'auto',
+                  p: 1,
+                  backgroundColor: 'action.hover',
+                  borderRadius: 1,
+                }}
+              >
+                {chunks.length > 0 ? (
+                  <MarkdownBlock source={chunks.join('')} />
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    Waiting for agent response…
+                  </Typography>
+                )}
+              </Box>
             )}
           </Box>
           {CategoryIcon && (
@@ -106,25 +191,21 @@ function CheckRow({ check }) {
 }
 
 function AgentTranscript({ chunks }) {
+  const text = chunks.join('');
   return (
     <Card variant="outlined" sx={{ mt: 2 }}>
       <CardContent>
         <Typography variant="subtitle2" gutterBottom>
           Support agent
         </Typography>
-        <Box
-          component="pre"
-          sx={{
-            fontFamily: 'monospace',
-            fontSize: 13,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            margin: 0,
-            maxHeight: 400,
-            overflow: 'auto',
-          }}
-        >
-          {chunks.join('') || 'Waiting for agent response…'}
+        <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
+          {text ? (
+            <MarkdownBlock source={text} />
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              Waiting for agent response…
+            </Typography>
+          )}
         </Box>
       </CardContent>
     </Card>
@@ -139,8 +220,11 @@ export default function FirstRunPage({ onComplete }) {
   const [agentRunning, setAgentRunning] = useState(false);
   const [agentChunks, setAgentChunks] = useState([]);
   const [completing, setCompleting] = useState(false);
+  // Per-check fix sessions: { [checkId]: { running, chunks: string[] } }
+  const [fixState, setFixState] = useState({});
   const esRef = useRef(null);
   const agentEsRef = useRef(null);
+  const fixEsRef = useRef({}); // { [checkId]: EventSource }
 
   const startStreaming = async () => {
     setRunning(true);
@@ -200,9 +284,64 @@ export default function FirstRunPage({ onComplete }) {
     return () => {
       if (esRef.current) esRef.current.close();
       if (agentEsRef.current) agentEsRef.current.close();
+      Object.values(fixEsRef.current).forEach((es) => es?.close?.());
+      fixEsRef.current = {};
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleFixIt = (checkId) => {
+    // Close any prior fix session for this check id
+    const prior = fixEsRef.current[checkId];
+    if (prior) prior.close();
+    setFixState((prev) => ({ ...prev, [checkId]: { running: true, chunks: [] } }));
+    const es = openSupportSessionStream({ applyItemId: checkId });
+    fixEsRef.current[checkId] = es;
+
+    const appendChunk = (chunk) =>
+      setFixState((prev) => ({
+        ...prev,
+        [checkId]: {
+          running: prev[checkId]?.running ?? true,
+          chunks: [...(prev[checkId]?.chunks || []), chunk],
+        },
+      }));
+    const stop = () =>
+      setFixState((prev) => ({
+        ...prev,
+        [checkId]: { running: false, chunks: prev[checkId]?.chunks || [] },
+      }));
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (!data?.kind) return;
+        if (data.kind === 'stdout' && data.chunk) {
+          appendChunk(data.chunk);
+        } else if (data.kind === 'tool') {
+          appendChunk(`\n[tool: ${data.toolName}]\n`);
+        } else if (data.kind === 'completed') {
+          stop();
+          es.close();
+          delete fixEsRef.current[checkId];
+        } else if (data.kind === 'error') {
+          appendChunk(`\n\n[error] ${data.message || 'unknown error'}`);
+          stop();
+          es.close();
+          delete fixEsRef.current[checkId];
+        }
+      } catch {
+        /* keepalive */
+      }
+    };
+    es.onerror = () => {
+      if (fixEsRef.current[checkId] === es) {
+        es.close();
+        delete fixEsRef.current[checkId];
+      }
+      stop();
+    };
+  };
 
   const grouped = useMemo(() => {
     const byStatus = { fail: [], warn: [], ok: [] };
@@ -273,12 +412,34 @@ export default function FirstRunPage({ onComplete }) {
       }}
     >
       <Box sx={{ maxWidth: 900, mx: 'auto' }}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-          <Typography variant="h5">Welcome — let's check your setup</Typography>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={2}
+          sx={{ mb: 3 }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h5" gutterBottom>
+              Welcome — let's check your setup
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Running diagnostics on your environment. This usually takes a few seconds.
+            </Typography>
+          </Box>
+          <Box
+            component="img"
+            src={overall === 'ok' ? '/claude-is-charged.png' : '/claude-needs-charging.png'}
+            alt={overall === 'ok' ? 'Claude is charged' : 'Claude needs charging'}
+            sx={{
+              width: 200,
+              height: 'auto',
+              flexShrink: 0,
+              opacity: overall ? 1 : 0.4,
+              transition: 'opacity 200ms',
+            }}
+          />
         </Stack>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Running diagnostics on your environment. This usually takes a few seconds.
-        </Typography>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -297,6 +458,7 @@ export default function FirstRunPage({ onComplete }) {
           <Typography variant="body2" color="text.secondary">
             {running ? 'Running checks…' : `Completed (${checks.length} checks)`}
           </Typography>
+          <Box sx={{ flex: 1 }} />
           {overall && (
             <Chip
               label={`Overall: ${overall}`}
@@ -312,7 +474,7 @@ export default function FirstRunPage({ onComplete }) {
               Failed ({grouped.fail.length})
             </Typography>
             {grouped.fail.map((c) => (
-              <CheckRow key={c.id} check={c} />
+              <CheckRow key={c.id} check={c} onFixIt={handleFixIt} fixState={fixState[c.id]} />
             ))}
           </Box>
         )}

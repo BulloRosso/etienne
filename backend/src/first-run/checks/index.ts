@@ -7,7 +7,9 @@ import { FrontendReachableCheck } from './frontend-reachable.check';
 import { NodeVersionCheck } from './node-version.check';
 import { OauthReachableCheck } from './oauth-reachable.check';
 import { PortsCheck } from './ports.check';
+import { PythonCheck } from './python.check';
 import { SofficeCheck } from './soffice.check';
+import { UvCheck } from './uv.check';
 import { DiskFreeCheck, WorkspaceCheck } from './workspace.check';
 
 export const CHECK_PROVIDERS: Provider[] = [
@@ -19,7 +21,9 @@ export const CHECK_PROVIDERS: Provider[] = [
   NodeVersionCheck,
   OauthReachableCheck,
   PortsCheck,
+  PythonCheck,
   SofficeCheck,
+  UvCheck,
   WorkspaceCheck,
   DiskFreeCheck,
 ];
@@ -33,7 +37,9 @@ export const CHECK_CLASSES = [
   NodeVersionCheck,
   OauthReachableCheck,
   PortsCheck,
+  PythonCheck,
   SofficeCheck,
+  UvCheck,
   WorkspaceCheck,
   DiskFreeCheck,
 ] as const;
