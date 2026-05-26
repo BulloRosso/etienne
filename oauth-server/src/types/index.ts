@@ -1,5 +1,10 @@
 export type UserRole = 'guest' | 'user' | 'admin';
 
+export interface FirstRunReportSummary {
+  ranAt: string;
+  overall: 'pass' | 'warn' | 'fail';
+}
+
 export interface User {
   id: string;
   username: string;
@@ -7,6 +12,8 @@ export interface User {
   role: UserRole;
   displayName: string;
   enabled: boolean;
+  firstRunCompletedAt?: string;
+  firstRunReportSummary?: FirstRunReportSummary;
 }
 
 export interface UserConfig {

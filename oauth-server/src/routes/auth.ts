@@ -1,11 +1,15 @@
 import { Hono } from 'hono';
 import { userService, UserService } from '../services/user.service.js';
 import { tokenService } from '../services/token.service.js';
-import type { LoginRequest, RefreshRequest } from '../types/index.js';
+import type { LoginRequest, RefreshRequest, FirstRunReportSummary } from '../types/index.js';
 
 interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
+}
+
+interface MarkFirstRunRequest {
+  summary?: FirstRunReportSummary;
 }
 
 const auth = new Hono();
@@ -166,6 +170,73 @@ auth.post('/change-password', async (c) => {
   }
 
   return c.json({ message: 'Password changed successfully' });
+});
+
+// GET /auth/first-run/status - Get first-run status for the authenticated user
+auth.get('/first-run/status', async (c) => {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'Authorization header required' }, 401);
+  }
+
+  const token = authHeader.substring(7);
+  const payload = tokenService.verifyAccessToken(token);
+  if (!payload) {
+    return c.json({ error: 'Invalid or expired token' }, 401);
+  }
+
+  return c.json(userService.getFirstRunStatus(payload.sub));
+});
+
+// POST /auth/first-run/complete - Mark first-run complete for the authenticated user
+auth.post('/first-run/complete', async (c) => {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'Authorization header required' }, 401);
+  }
+
+  const token = authHeader.substring(7);
+  const payload = tokenService.verifyAccessToken(token);
+  if (!payload) {
+    return c.json({ error: 'Invalid or expired token' }, 401);
+  }
+
+  let body: MarkFirstRunRequest = {};
+  try {
+    body = await c.req.json<MarkFirstRunRequest>();
+  } catch {
+    // body is optional
+  }
+
+  const success = userService.markFirstRunComplete(payload.sub, body.summary);
+  if (!success) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+  return c.json(userService.getFirstRunStatus(payload.sub));
+});
+
+// POST /auth/first-run/reset/:userId - Admin-only: clear a user's first-run flag
+auth.post('/first-run/reset/:userId', async (c) => {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'Authorization header required' }, 401);
+  }
+
+  const token = authHeader.substring(7);
+  const payload = tokenService.verifyAccessToken(token);
+  if (!payload) {
+    return c.json({ error: 'Invalid or expired token' }, 401);
+  }
+  if (payload.role !== 'admin') {
+    return c.json({ error: 'Admin role required' }, 403);
+  }
+
+  const targetUserId = c.req.param('userId');
+  const success = userService.resetFirstRun(targetUserId);
+  if (!success) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+  return c.json({ ok: true });
 });
 
 export default auth;

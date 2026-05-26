@@ -19,6 +19,8 @@ import HITLApprovalModal from './components/HITLApprovalModal';
 import AppTypeModalHost from './components/AppTypeModalHost';
 import LoginDialog from './components/LoginDialog';
 import ServiceHealthGate from './components/ServiceHealthGate';
+import FirstRunPage from './pages/FirstRunPage';
+import HealthBanner from './components/HealthBanner';
 import { TbCalendarTime, TbPresentation, TbWorld } from 'react-icons/tb';
 import { IoInformationCircle, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
 import { useProject } from './contexts/ProjectContext.jsx';
@@ -44,7 +46,8 @@ import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 export default function App() {
   const { t, i18n } = useTranslation();
   const { currentProject, projectExists, setProject, loading: projectLoading } = useProject();
-  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const { isAuthenticated, loading: authLoading, user, firstRunStatus, markFirstRunComplete } = useAuth();
+  const [firstRunOverride, setFirstRunOverride] = useState(false);
   const { mode: themeMode, toggleMode } = useThemeMode();
   const { isMinimalistic, uxType, toggleUxMode } = useUxMode();
 
@@ -2307,6 +2310,26 @@ export default function App() {
     return <LoginDialog onSuccess={() => {}} />;
   }
 
+  // First-run self-diagnostic — shown once per user (unless re-opened via banner).
+  // Waits for firstRunStatus to load; falsy status means we don't know yet.
+  if (firstRunStatus === null) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  if (!firstRunStatus.completed || firstRunOverride) {
+    return (
+      <FirstRunPage
+        onComplete={() => {
+          markFirstRunComplete();
+          setFirstRunOverride(false);
+        }}
+      />
+    );
+  }
+
   // Show loading while checking configuration
   if (showConfigurationRequired === null) {
     return (
@@ -2333,6 +2356,12 @@ export default function App() {
   return (
     <MuxSSEProvider mux={mux}>
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: isMinimalistic ? 'row' : 'column' }}>
+      {firstRunStatus?.lastReportSummary && firstRunStatus.lastReportSummary.overall !== 'pass' && (
+        <HealthBanner
+          summary={firstRunStatus.lastReportSummary}
+          onResolve={() => setFirstRunOverride(true)}
+        />
+      )}
       {isMinimalistic && (
         <MinimalisticSidebar
           onNewChat={() => handleSessionChange(null)}

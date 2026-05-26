@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authProvider, setAuthProvider] = useState('local');
+  const [firstRunStatus, setFirstRunStatus] = useState(null); // { completed, completedAt?, lastReportSummary? }
 
   // Listen for forced logout from API client (e.g. unrecoverable 401)
   useEffect(() => {
@@ -129,7 +130,42 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('auth_refreshToken');
     setUser(null);
     setIsAuthenticated(false);
+    setFirstRunStatus(null);
   };
+
+  const refreshFirstRunStatus = useCallback(async () => {
+    const storage = getStorage();
+    const accessToken = storage.getItem('auth_accessToken');
+    if (!accessToken) return null;
+    try {
+      const res = await fetch('/api/first-run/status', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFirstRunStatus(data);
+        return data;
+      }
+    } catch (err) {
+      console.error('first-run status fetch failed:', err);
+    }
+    return null;
+  }, []);
+
+  const markFirstRunComplete = useCallback(() => {
+    setFirstRunStatus((prev) => ({
+      ...(prev || {}),
+      completed: true,
+      completedAt: new Date().toISOString(),
+    }));
+  }, []);
+
+  // Fetch first-run status whenever the user becomes authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshFirstRunStatus();
+    }
+  }, [isAuthenticated, refreshFirstRunStatus]);
 
   const login = async (username, password, rememberMe = false) => {
     const response = await fetch('/auth/login', {
@@ -255,6 +291,9 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     canAccess,
     getAccessToken,
+    firstRunStatus,
+    refreshFirstRunStatus,
+    markFirstRunComplete,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

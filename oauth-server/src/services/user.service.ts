@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import type { User, UserConfig } from '../types/index.js';
+import type { User, UserConfig, FirstRunReportSummary } from '../types/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -81,6 +81,40 @@ export class UserService {
    */
   private saveConfig(): void {
     writeFileSync(CONFIG_PATH, JSON.stringify(this.config, null, 2), 'utf-8');
+  }
+
+  public getFirstRunStatus(userId: string): {
+    completed: boolean;
+    completedAt?: string;
+    lastReportSummary?: FirstRunReportSummary;
+  } {
+    const user = this.config.users.find((u) => u.id === userId);
+    if (!user) return { completed: false };
+    return {
+      completed: !!user.firstRunCompletedAt,
+      completedAt: user.firstRunCompletedAt,
+      lastReportSummary: user.firstRunReportSummary,
+    };
+  }
+
+  public markFirstRunComplete(userId: string, summary?: FirstRunReportSummary): boolean {
+    const userIndex = this.config.users.findIndex((u) => u.id === userId);
+    if (userIndex === -1) return false;
+    this.config.users[userIndex].firstRunCompletedAt = new Date().toISOString();
+    if (summary) {
+      this.config.users[userIndex].firstRunReportSummary = summary;
+    }
+    this.saveConfig();
+    return true;
+  }
+
+  public resetFirstRun(userId: string): boolean {
+    const userIndex = this.config.users.findIndex((u) => u.id === userId);
+    if (userIndex === -1) return false;
+    delete this.config.users[userIndex].firstRunCompletedAt;
+    delete this.config.users[userIndex].firstRunReportSummary;
+    this.saveConfig();
+    return true;
   }
 }
 

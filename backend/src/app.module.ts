@@ -81,10 +81,14 @@ import { WikiModule } from './wiki/wiki.module';
 import { AdaptiveMemoryModule } from './adaptive-memory/adaptive-memory.module';
 import { ApplicationTypesModule } from './application-types/application-types.module';
 import { PackagesModule } from './packages/packages.module';
+import { FirstRunController } from './first-run/first-run.controller';
+import { DiagnosticsRunnerService } from './first-run/diagnostics-runner.service';
+import { SupportAgentService } from './first-run/support-agent/support-agent.service';
+import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
 
 @Module({
   imports: [SecretsManagerModule, EmbeddingsModule.register(), AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, QuickActionsModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule.forRoot({ providers: [{ kind: 'json-file' }], secrets: { keyVaultUrl: process.env.AZURE_KEY_VAULT_URL } }), AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, RecentItemsModule, SseMultiplexModule, CollaborationModule, HitlProtocolModule, FoundryAdapterModule.register(), DreamingModule, Ms365Module, WikiModule, AdaptiveMemoryModule, ApplicationTypesModule, PackagesModule],
-  controllers: [ClaudeController, SdkPermissionController, OpenAIAgentsPermissionController],
+  controllers: [ClaudeController, SdkPermissionController, OpenAIAgentsPermissionController, FirstRunController],
   providers: [
     ClaudeService,
     ClaudeSdkService,
@@ -107,7 +111,14 @@ import { PackagesModule } from './packages/packages.module';
     GuardrailsService,
     OutputGuardrailsService,
     CodingAgentConfigurationService,
-    McpServerConfigService
+    McpServerConfigService,
+    SupportAgentService,
+    ...CHECK_PROVIDERS,
+    {
+      provide: DiagnosticsRunnerService,
+      useFactory: (...checks: any[]) => new DiagnosticsRunnerService(checks),
+      inject: [...CHECK_CLASSES],
+    },
   ],
 })
 export class AppModule {}
