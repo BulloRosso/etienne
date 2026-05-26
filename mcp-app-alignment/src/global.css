@@ -1,0 +1,23 @@
+/*
+ * Minimal reset — MUI's CssBaseline does most of the work, but we still need
+ * html/body to fill the iframe so MUI's container can stretch to the full
+ * available host width.
+ */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  color-scheme: light dark;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Slim scrollbars to match the host shell. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(127, 127, 127, 0.4); border-radius: 3px; }
+* { scrollbar-width: thin; }

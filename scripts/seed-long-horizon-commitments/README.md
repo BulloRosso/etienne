@@ -81,6 +81,12 @@ content differ.
       want the live wire).
     - `gate-approaching-triggers-redteam` (seeded DISABLED for the same
       reason — the Meridian gate is 14 months out).
+13d. **Writes the canonical nightly fleet-alignment report** at
+    `out/nightly-alignment/2026-05-26.alignment.json`. Rendered by the
+    Fleet Alignment MCP UI previewer (`mcp-app-alignment/` + backend
+    `alignment-tools.ts`; registered against `.alignment.json` in
+    `backend/src/previewers/previewer-metadata.json`). The curator cron
+    (step 15) overwrites this each night.
 15. **Registers the nightly curator cron** (`0 3 * * *` UTC) with a prompt
     that operationalises the no-silent-default rule: re-age, score, freeze
     any commitment whose packet went un-actioned past its gate.

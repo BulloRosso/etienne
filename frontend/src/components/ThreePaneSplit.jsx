@@ -70,11 +70,22 @@ export default function ThreePaneSplit({ left, middle, right, storageKey = 'thre
     document.addEventListener('mouseup', handleUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
+
+    // While dragging, neutralise pointer events on every iframe in the
+    // document. Otherwise, the moment the cursor enters an iframe (e.g. an
+    // MCP UI previewer in the right pane), the iframe captures mousemove
+    // and the splitter handler stops receiving them — so the drag freezes
+    // until the cursor exits the iframe.
+    const iframes = Array.from(document.querySelectorAll('iframe'));
+    const previousPointerEvents = iframes.map((f) => f.style.pointerEvents);
+    iframes.forEach((f) => { f.style.pointerEvents = 'none'; });
+
     return () => {
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      iframes.forEach((f, i) => { f.style.pointerEvents = previousPointerEvents[i] || ''; });
     };
   }, [draggingGutter]);
 

@@ -54,3 +54,9 @@ export function openSupportSessionStream({ applyItemId, userPrompt } = {}) {
   const url = authSSEUrl(`/api/first-run/support-session/stream${qs ? `?${qs}` : ''}`);
   return new EventSource(url);
 }
+
+export function openSeedStream(seedIds) {
+  const ids = (seedIds || []).filter(Boolean).join(',');
+  const url = authSSEUrl(`/api/first-run/seed/stream?seedIds=${encodeURIComponent(ids)}`);
+  return new EventSource(url);
+}

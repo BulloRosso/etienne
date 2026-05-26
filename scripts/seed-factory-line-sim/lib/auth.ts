@@ -18,6 +18,24 @@ export async function login(opts?: {
   username?: string;
   password?: string;
 }): Promise<AuthResult> {
+  // If a pre-issued access token is available (e.g. spawned from the backend's
+  // first-run wizard), use it instead of POST /auth/login. Avoids the seed
+  // script needing the user's password.
+  const preIssued = process.env.SEED_ACCESS_TOKEN;
+  if (preIssued) {
+    const meResp = await fetch(`${OAUTH_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${preIssued}` },
+    });
+    if (!meResp.ok) {
+      const body = await meResp.text().catch(() => '');
+      throw new Error(
+        `SEED_ACCESS_TOKEN is set but /auth/me failed: HTTP ${meResp.status} ${body.slice(0, 200)}`,
+      );
+    }
+    const user = (await meResp.json()) as AuthResult['user'];
+    return { accessToken: preIssued, refreshToken: '', user };
+  }
+
   const username = opts?.username ?? process.env.SEED_USERNAME ?? 'admin';
   const password = opts?.password ?? process.env.SEED_PASSWORD ?? 'admin123';
   const resp = await fetch(`${OAUTH_BASE}/auth/login`, {

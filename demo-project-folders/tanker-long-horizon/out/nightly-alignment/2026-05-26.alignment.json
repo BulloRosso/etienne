@@ -1,0 +1,656 @@
+{
+  "reportId": "nightly-alignment-2026-05-26",
+  "runDate": "2026-05-26T20:26:00+02:00",
+  "mission": "Compliant and charter-ready through 2035",
+  "strategy": "Every vessel stays compliant (EU ETS full coverage 2026, FuelEU Maritime 2025+, IMO 2027 net-zero) and charter-ready through 2035",
+  "scoringAxes": {
+    "compliance_envelope": {
+      "weight": 0.30,
+      "description": "EU ETS + FuelEU + IMO 2027 cost vs revenue"
+    },
+    "charter_ability": {
+      "weight": 0.25,
+      "description": "Emissions intensity, scrubber fit, fuel flexibility — how the vessel scores in charterer screening"
+    },
+    "residual_value_glide": {
+      "weight": 0.25,
+      "description": "Broker valuation vs the original residual-value glide path"
+    },
+    "hull_maintenance_state": {
+      "weight": 0.20,
+      "description": "Survey condition, deferred items, time to next gate"
+    }
+  },
+  "fleetSummary": {
+    "totalVessels": 5,
+    "aligned": 3,
+    "watch": 1,
+    "offStrategy": 1,
+    "weightedFleetAlignment": 68,
+    "acceptanceCriterion": "<=1 vessel off-strategy at any time",
+    "criterionMet": true,
+    "driftFlags": [
+      "Meridian remains off-strategy (38%) — 4 expired assumptions, approaching gate in 13 months",
+      "Cape Pioneer on watch (55%) — compliance envelope shrinking, fuel-prep conversation not opened",
+      "hypothesis-cape-pioneer-early-fuel-prep still in PROPOSED state — no sharpening action taken since creation"
+    ]
+  },
+  "vessels": [
+    {
+      "name": "Meridian",
+      "imo": 9712334,
+      "built": 2015,
+      "dwt": 113200,
+      "alignment": 38,
+      "status": "Off-strategy",
+      "trend": "stable-low",
+      "priorAlignment": 38,
+      "delta": 0,
+      "axes": {
+        "compliance_envelope": {
+          "score": 25,
+          "rationale": "No scrubber fitted. EUA cost at EUR 103/t vs EUR 75/t plan band — 37% above plan. FuelEU 2035 -14.5% intensity step hits this vessel squarely without fuel-system flexibility. IMO 2027 framework adds further cost uncertainty. Continued 'comply via allowances' strategy becoming untenable at EUR 100+/t EUA prices.",
+          "provenance": [
+            {
+              "source": "documents/analyst-eua-price-2026.md",
+              "claim": "EUA 2026 H1 average EUR 103/t; forward curve EUR 110-140/t through 2028",
+              "freshness": "fresh (2026 data)"
+            },
+            {
+              "source": "wiki/topics/eu-ets-and-fueleu.md",
+              "claim": "EU ETS 100% coverage from 2026; FuelEU -14.5% by 2035",
+              "freshness": "stable"
+            },
+            {
+              "source": "documents/memo-no-scrubber-2018-rationale.md",
+              "claim": "2018 decision: no scrubber, premised on spread narrowing",
+              "freshness": "historical — assumption expired"
+            }
+          ]
+        },
+        "charter_ability": {
+          "score": 30,
+          "rationale": "VLSFO-only operation limits appeal as charterers screen on emissions intensity. 2021 charter had no EU ETS/FuelEU clause at signing; 2024 side-letter partially covers EUA pass-through but FuelEU intensity costs remain with owner. Charterer screening increasingly penalises non-scrubber vessels.",
+          "provenance": [
+            {
+              "source": "documents/charter-meridian-2021.md",
+              "claim": "5-year TC at USD 22,500/day; no EU ETS clause at signing; 2024 side-letter partial",
+              "freshness": "current charter terms"
+            },
+            {
+              "source": "wiki/topics/charter-strategy.md",
+              "claim": "Rate did not hold at planned level; counterparty strong (AA-rated)",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "residual_value_glide": {
+          "score": 40,
+          "rationale": "Broker valuation trajectory: USD 38.5M (2018) -> USD 31.2M (2023) -> USD 26.8M (2026). Decline is faster than the glide path underpinning the 2023 refinancing. Actuals left the original uncertainty cone in 2023 and remain below the lower band. No human re-baseline recorded. Retrofit-fitted theoretical value USD 30-32M shows potential recovery but with wide broker spread.",
+          "provenance": [
+            {
+              "source": "documents/valuation-meridian-2026.md",
+              "claim": "Charter-free market value USD 26.8M; 10-year residual USD 11.0M; retrofit-fitted USD 30-32M",
+              "freshness": "fresh (Q1 2026)"
+            },
+            {
+              "source": "documents/valuation-meridian-2023.md",
+              "claim": "Charter-free USD 31.2M; 10-year residual USD 14.5M — erosion faster than projected at 2023 refinancing",
+              "freshness": "historical (Q2 2023)"
+            },
+            {
+              "source": "documents/valuation-meridian-2018.md",
+              "claim": "Charter-free USD 38.5M; 10-year residual USD 18.5M — the baseline all subsequent decisions built on",
+              "freshness": "historical (late 2018)"
+            },
+            {
+              "source": "wiki/topics/projection-vs-reality.md",
+              "claim": "Actuals left uncertainty cone in 2023, stayed below lower band; no re-baseline recorded",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "hull_maintenance_state": {
+          "score": 55,
+          "rationale": "2022 intermediate survey: hull satisfactory, light coating breakdown. 12% ballast tank coating breakdown flagged for 2027 rework. Three deferred items at approaching gate: scrubber retrofit, ballast-water treatment, fuel-system prep. Surveyor notes 'solid condition' and 'remaining useful life exceeds 8-year horizon' but deferred item count is the highest in the fleet.",
+          "provenance": [
+            {
+              "source": "documents/survey-meridian-intermediate-2022.md",
+              "claim": "Hull satisfactory; 12% ballast tank coating breakdown; BWT deferred to 2027; main engine within 2% of trial figures",
+              "freshness": "ageing (2022 survey; next survey 2027)"
+            },
+            {
+              "source": "wiki/topics/dry-dock-windows.md",
+              "claim": "Meridian dry-dock mid-2027 (~13 months); 3 deferred items",
+              "freshness": "stable"
+            },
+            {
+              "source": "documents/retrofit-quote-2026-in-window.md",
+              "claim": "In-window hybrid scrubber quote USD 3.6M — 30% cheaper than 2023 out-of-cycle quote",
+              "freshness": "fresh (February 2026)"
+            }
+          ]
+        }
+      },
+      "assumptions": {
+        "expired": [
+          {
+            "id": "assumption-fuel-spread-narrows",
+            "label": "Fuel spread narrows",
+            "cohort": 2018,
+            "evidence": "documents/analyst-fuel-spread-2024.md — 2024 actual spread USD 165/t vs forecast USD 80/t"
+          },
+          {
+            "id": "assumption-low-sulphur-premium-small",
+            "label": "Low-sulphur premium small",
+            "cohort": 2018,
+            "evidence": "documents/analyst-fuel-spread-2024.md — same cohort falsification"
+          },
+          {
+            "id": "assumption-rates-below-plan",
+            "label": "Refi rates stay below plan",
+            "cohort": 2023,
+            "evidence": "wiki/topics/commitment-lifeline-meridian.md — rates above plan since Q3 2023"
+          },
+          {
+            "id": "assumption-eua-price-stable",
+            "label": "EUA price stable at 2025 plan",
+            "cohort": 2025,
+            "evidence": "documents/analyst-eua-price-2026.md — EUR 103/t vs EUR 75/t plan"
+          }
+        ],
+        "ageing": [
+          {
+            "id": "assumption-charter-rate-holds",
+            "label": "Charter rate holds",
+            "cohort": 2021,
+            "note": "Rate did not hold at planned level"
+          },
+          {
+            "id": "assumption-residual-value",
+            "label": "Residual value glide holds",
+            "cohort": 2023,
+            "note": "Broker valuations drifting down — documents/valuation-meridian-2026.md"
+          },
+          {
+            "id": "assumption-no-retrofit-yet",
+            "label": "No retrofit needed yet",
+            "cohort": 2025,
+            "note": "Becomes forced choice at 2027 gate"
+          }
+        ],
+        "fresh": [
+          {
+            "id": "assumption-counterparty-solid",
+            "label": "Counterparty solid (AA-rated)",
+            "cohort": 2021
+          }
+        ]
+      },
+      "linkedHypotheses": [
+        {
+          "id": "hypothesis-meridian-off-strategy",
+          "statement": "The Meridian can be returned to >=70% alignment by the 2027 dry-dock decision",
+          "state": "under_test",
+          "stale": false
+        },
+        {
+          "id": "hypothesis-retrofit-payback-2027",
+          "statement": "A scrubber retrofit at the 2027 dry-dock pays back within remaining hull life",
+          "state": "under_test",
+          "stale": false
+        },
+        {
+          "id": "hypothesis-eua-price-stable",
+          "statement": "EUA prices stay within the 2025 plan band through the 2027 window",
+          "state": "refuted",
+          "stale": false
+        }
+      ],
+      "approachingGate": {
+        "kind": "Special survey + dry-dock",
+        "opensIso": "2027-06-15",
+        "monthsAway": 13,
+        "deferredItems": ["Scrubber retrofit", "Ballast-water treatment", "Fuel-system prep"],
+        "note": "Cheap window to act. Same work out-of-cycle costs multiples. Gate countdown: 13 months."
+      },
+      "openQuestions": [
+        "Meridian re-baseline — re-baseline lifetime-earnings projection now, or wait for the retrofit decision?",
+        "Meridian retrofit — retrofit / defer + plan / sell + scrap at the 2027 dry-dock. Red-team artefact being built."
+      ]
+    },
+    {
+      "name": "Cape Pioneer",
+      "imo": 9723145,
+      "built": 2016,
+      "dwt": 108400,
+      "alignment": 55,
+      "status": "Watch",
+      "trend": "gradual-decline",
+      "priorAlignment": 55,
+      "delta": 0,
+      "axes": {
+        "compliance_envelope": {
+          "score": 45,
+          "rationale": "Allowance cost trending up year-on-year. FuelEU intensity steps shrink the compliance envelope each period. No fuel-system flexibility. At current EUA trajectory (EUR 110-140/t forward), annual allowance cost will exceed the charter-rate margin headroom within 2-3 years if no action is taken.",
+          "provenance": [
+            {
+              "source": "documents/analyst-eua-price-2026.md",
+              "claim": "EUA forward curve EUR 110-140/t through 2028",
+              "freshness": "fresh (2026)"
+            },
+            {
+              "source": "wiki/topics/eu-ets-and-fueleu.md",
+              "claim": "FuelEU 2030 step: -6%; 2035 step: -14.5% — a 2016 vessel without fuel prep hits this squarely",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "charter_ability": {
+          "score": 50,
+          "rationale": "Legacy long-term charter likely faces renegotiation as allowance costs step up. No fuel flexibility for tighter charterer screening rules. Not yet unchareterable but trajectory is negative.",
+          "provenance": [
+            {
+              "source": "wiki/topics/charter-strategy.md",
+              "claim": "Long-term legacy charter; renegotiation likely if allowance costs step up",
+              "freshness": "stable"
+            },
+            {
+              "source": "wiki/topics/cape-pioneer.md",
+              "claim": "Compliance envelope shrinking year-on-year under FuelEU; fuel-prep conversation not opened",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "residual_value_glide": {
+          "score": 60,
+          "rationale": "Lifetime earnings actuals on the lower edge of the uncertainty cone. Not breached but on watch. Continued deterioration without action could push below the band within 12-18 months.",
+          "provenance": [
+            {
+              "source": "out/quarterly-packets/2026-Q2.quarterly.json",
+              "claim": "Cape Pioneer lifetime earnings: 'On lower edge' of cone — not breached but on watch",
+              "freshness": "fresh (Q2 2026 packet)"
+            }
+          ]
+        },
+        "hull_maintenance_state": {
+          "score": 65,
+          "rationale": "Next dry-dock late 2028. Fuel-system prep is an open question that has not been formally opened as a conversation. The hypothesis (bring forward to 2028) is PROPOSED but not yet SHARPENED — two days without advancement.",
+          "provenance": [
+            {
+              "source": "wiki/topics/dry-dock-windows.md",
+              "claim": "Cape Pioneer dry-dock late 2028; deferred: fuel-system prep (open question)",
+              "freshness": "stable"
+            },
+            {
+              "source": "workflow: hypothesis-cape-pioneer-early-fuel-prep",
+              "claim": "State: PROPOSED (since 2026-05-24); available events: SHARPEN, DEMOTE, SUPERSEDE",
+              "freshness": "stale — no advancement since creation"
+            }
+          ]
+        }
+      },
+      "assumptions": {
+        "expired": [],
+        "ageing": [
+          {
+            "id": "assumption-fleet-wide-eua-exposure",
+            "label": "Fleet-wide EUA price assumption",
+            "note": "EUA hypothesis REFUTED — affects all non-scrubber vessels; Cape Pioneer compliance cost rising"
+          }
+        ],
+        "fresh": []
+      },
+      "linkedHypotheses": [
+        {
+          "id": "hypothesis-cape-pioneer-early-fuel-prep",
+          "statement": "Bringing Cape Pioneer's fuel-system prep forward to 2028 is cheaper over total life",
+          "state": "proposed",
+          "stale": true,
+          "note": "PROPOSED since 2026-05-24, not yet sharpened — flag for attention"
+        }
+      ],
+      "approachingGate": {
+        "kind": "Dry-dock",
+        "opensIso": "2028-10-01",
+        "monthsAway": 29,
+        "deferredItems": ["Fuel-system prep (open question)"]
+      },
+      "openQuestions": [
+        "Cape Pioneer fuel-system prep — bring forward to 2028 or defer to 2033?"
+      ]
+    },
+    {
+      "name": "Nordic Star",
+      "imo": 9745667,
+      "built": 2017,
+      "dwt": 110100,
+      "alignment": 72,
+      "status": "Aligned",
+      "trend": "stable",
+      "priorAlignment": 72,
+      "delta": 0,
+      "axes": {
+        "compliance_envelope": {
+          "score": 68,
+          "rationale": "Scrubber fitted. EU ETS cost absorbed within charter envelope so far. However, at EUA forward curve EUR 110-140/t, renegotiation trigger becomes likely. Compliance cost is manageable today but upward trajectory is a watchpoint.",
+          "provenance": [
+            {
+              "source": "wiki/topics/nordic-star.md",
+              "claim": "EU ETS cost absorbed within charter envelope — for now; renegotiation trigger if EUA prices step up",
+              "freshness": "stable"
+            },
+            {
+              "source": "documents/analyst-eua-price-2026.md",
+              "claim": "EUA forward curve EUR 110-140/t through 2028",
+              "freshness": "fresh (2026)"
+            }
+          ]
+        },
+        "charter_ability": {
+          "score": 78,
+          "rationale": "Long-term charter to AA counterparty. Scrubber fitted. Solid emissions profile. If EUA cost triggers renegotiation, the counterparty quality mitigates risk of charter break.",
+          "provenance": [
+            {
+              "source": "wiki/topics/charter-strategy.md",
+              "claim": "Long-term charter to AA counterparty; EU ETS cost absorbed within envelope so far",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "residual_value_glide": {
+          "score": 72,
+          "rationale": "Lifetime earnings within the uncertainty band. No action required.",
+          "provenance": [
+            {
+              "source": "out/quarterly-packets/2026-Q2.quarterly.json",
+              "claim": "Nordic Star lifetime earnings: 'Within band'",
+              "freshness": "fresh (Q2 2026 packet)"
+            }
+          ]
+        },
+        "hull_maintenance_state": {
+          "score": 70,
+          "rationale": "Next dry-dock mid-2028. One deferred item: ballast-water upgrade. No structural concerns flagged.",
+          "provenance": [
+            {
+              "source": "wiki/topics/dry-dock-windows.md",
+              "claim": "Nordic Star dry-dock mid-2028; deferred: ballast-water upgrade",
+              "freshness": "stable"
+            }
+          ]
+        }
+      },
+      "assumptions": {
+        "expired": [],
+        "ageing": [
+          {
+            "id": "assumption-fleet-wide-eua-exposure",
+            "label": "Fleet-wide EUA price assumption",
+            "note": "EUA hypothesis REFUTED — Nordic Star absorbing cost for now but upward EUA trajectory is a watch item"
+          }
+        ],
+        "fresh": []
+      },
+      "linkedHypotheses": [
+        {
+          "id": "hypothesis-charter-ready-2035",
+          "statement": "Aurora, Nordic Star and Orion stay charter-ready through 2035 under current pathway",
+          "state": "supported",
+          "stale": false
+        }
+      ],
+      "approachingGate": {
+        "kind": "Dry-dock",
+        "opensIso": "2028-06-15",
+        "monthsAway": 25,
+        "deferredItems": ["Ballast-water upgrade"]
+      },
+      "openQuestions": []
+    },
+    {
+      "name": "Aurora",
+      "imo": 9788321,
+      "built": 2018,
+      "dwt": 104800,
+      "alignment": 84,
+      "status": "Aligned",
+      "trend": "stable",
+      "priorAlignment": 84,
+      "delta": 0,
+      "axes": {
+        "compliance_envelope": {
+          "score": 85,
+          "rationale": "Hybrid scrubber fitted (upgraded from open-loop in 2024 dock). EU ETS/FuelEU monitoring stack installed and operational. Compliance costs manageable within current charter terms.",
+          "provenance": [
+            {
+              "source": "documents/survey-aurora-special-2024.md",
+              "claim": "Scrubber upgraded to hybrid; monitoring stack installed; data feed operational",
+              "freshness": "fresh (Q1 2024 survey)"
+            },
+            {
+              "source": "wiki/topics/aurora.md",
+              "claim": "Scrubber paid back inside three years; no active drift",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "charter_ability": {
+          "score": 88,
+          "rationale": "2+2 year charter preserves optionality. Hybrid scrubber passes charterer emissions screening. Fuel-spread bet that hurt Meridian helped Aurora. The fleet's example of 'decided to act inside the window'.",
+          "provenance": [
+            {
+              "source": "wiki/topics/charter-strategy.md",
+              "claim": "2+2 year structure; optionality preserved",
+              "freshness": "stable"
+            },
+            {
+              "source": "documents/survey-aurora-special-2024.md",
+              "claim": "The example the fleet uses for 'decided to act inside the window'",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "residual_value_glide": {
+          "score": 82,
+          "rationale": "Lifetime earnings actuals inside the uncertainty cone. No action required.",
+          "provenance": [
+            {
+              "source": "out/quarterly-packets/2026-Q2.quarterly.json",
+              "claim": "Aurora lifetime earnings: 'Within band'",
+              "freshness": "fresh (Q2 2026 packet)"
+            }
+          ]
+        },
+        "hull_maintenance_state": {
+          "score": 90,
+          "rationale": "2024 special survey: hull and machinery excellent. All items addressed in-window. BWT in service, no remarks. Next dry-dock Q1 2029 — only deferred item is hybrid scrubber service.",
+          "provenance": [
+            {
+              "source": "documents/survey-aurora-special-2024.md",
+              "claim": "Hull and machinery excellent; all items addressed; BWT in service",
+              "freshness": "fresh (2024 survey)"
+            },
+            {
+              "source": "wiki/topics/dry-dock-windows.md",
+              "claim": "Aurora dry-dock Q1 2029; deferred: hybrid scrubber service",
+              "freshness": "stable"
+            }
+          ]
+        }
+      },
+      "assumptions": {
+        "expired": [],
+        "ageing": [],
+        "fresh": []
+      },
+      "linkedHypotheses": [
+        {
+          "id": "hypothesis-charter-ready-2035",
+          "statement": "Aurora, Nordic Star and Orion stay charter-ready through 2035 under current pathway",
+          "state": "supported",
+          "stale": false
+        }
+      ],
+      "approachingGate": {
+        "kind": "Dry-dock",
+        "opensIso": "2029-01-15",
+        "monthsAway": 32,
+        "deferredItems": ["Hybrid scrubber service"]
+      },
+      "openQuestions": []
+    },
+    {
+      "name": "Orion",
+      "imo": 9831226,
+      "built": 2020,
+      "dwt": 114900,
+      "alignment": 91,
+      "status": "Aligned",
+      "trend": "stable",
+      "priorAlignment": 91,
+      "delta": 0,
+      "axes": {
+        "compliance_envelope": {
+          "score": 95,
+          "rationale": "FuelEU-ready engine room. Scrubber fitted at delivery. Best-positioned vessel in the fleet for tightening regulatory regime through 2035.",
+          "provenance": [
+            {
+              "source": "wiki/topics/orion.md",
+              "claim": "Newest hull (2020); scrubber fitted at delivery; FuelEU-ready engine room; long-dated charter",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "charter_ability": {
+          "score": 92,
+          "rationale": "Long-dated charter at fresh terms. Newest hull with best emissions profile. No charterer screening risk.",
+          "provenance": [
+            {
+              "source": "wiki/topics/charter-strategy.md",
+              "claim": "Long-dated charter at fresh terms",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "residual_value_glide": {
+          "score": 88,
+          "rationale": "Lifetime earnings within the uncertainty band. Only periodic revalidation item is the residual-value glide path beyond 2030.",
+          "provenance": [
+            {
+              "source": "out/quarterly-packets/2026-Q2.quarterly.json",
+              "claim": "Orion lifetime earnings: 'Within band'",
+              "freshness": "fresh (Q2 2026 packet)"
+            },
+            {
+              "source": "wiki/topics/orion.md",
+              "claim": "Only assumption needing periodic revalidation: residual-value glide path beyond 2030",
+              "freshness": "stable"
+            }
+          ]
+        },
+        "hull_maintenance_state": {
+          "score": 90,
+          "rationale": "Newest hull in the fleet (2020). Next dry-dock Q3 2030 — no deferred items. Excellent baseline condition.",
+          "provenance": [
+            {
+              "source": "wiki/topics/dry-dock-windows.md",
+              "claim": "Orion dry-dock Q3 2030; no deferred items",
+              "freshness": "stable"
+            }
+          ]
+        }
+      },
+      "assumptions": {
+        "expired": [],
+        "ageing": [],
+        "fresh": []
+      },
+      "linkedHypotheses": [
+        {
+          "id": "hypothesis-charter-ready-2035",
+          "statement": "Aurora, Nordic Star and Orion stay charter-ready through 2035 under current pathway",
+          "state": "supported",
+          "stale": false
+        }
+      ],
+      "approachingGate": {
+        "kind": "Dry-dock",
+        "opensIso": "2030-07-15",
+        "monthsAway": 50,
+        "deferredItems": []
+      },
+      "openQuestions": []
+    }
+  ],
+  "hypothesisRegistry": [
+    {
+      "id": "hypothesis-meridian-off-strategy",
+      "statement": "The Meridian can be returned to >=70% alignment by the 2027 dry-dock decision",
+      "state": "under_test",
+      "lastUpdated": "2026-05-25T11:40:55.415Z",
+      "isFinal": false
+    },
+    {
+      "id": "hypothesis-retrofit-payback-2027",
+      "statement": "A scrubber retrofit at the 2027 dry-dock pays back within remaining hull life",
+      "state": "under_test",
+      "lastUpdated": "2026-05-25T11:40:55.249Z",
+      "isFinal": false
+    },
+    {
+      "id": "hypothesis-eua-price-stable",
+      "statement": "EUA prices stay within the 2025 plan band (EUR 60-90/t) through the 2027 window",
+      "state": "refuted",
+      "lastUpdated": "2026-05-25T11:40:55.202Z",
+      "isFinal": true
+    },
+    {
+      "id": "hypothesis-fuel-pathway-uncertain",
+      "statement": "The IMO 2027 framework implementation lands within the 2025 plan envelope",
+      "state": "under_test",
+      "lastUpdated": "2026-05-25T11:40:55.292Z",
+      "isFinal": false
+    },
+    {
+      "id": "hypothesis-charter-ready-2035",
+      "statement": "Aurora, Nordic Star and Orion stay charter-ready through 2035 under current pathway",
+      "state": "supported",
+      "lastUpdated": "2026-05-25T11:40:55.352Z",
+      "isFinal": true
+    },
+    {
+      "id": "hypothesis-cape-pioneer-early-fuel-prep",
+      "statement": "Bringing Cape Pioneer's fuel-system prep forward to 2028 is cheaper over total life",
+      "state": "proposed",
+      "lastUpdated": "2026-05-24T09:00:00Z",
+      "isFinal": false,
+      "staleness_flag": "No advancement since creation on 2026-05-24"
+    }
+  ],
+  "hardRuleCompliance": {
+    "no_silent_rebaseline": {
+      "compliant": true,
+      "note": "Meridian projection breached since 2023 — no agent re-baseline performed. Awaiting human decision."
+    },
+    "no_expired_marked_fresh": {
+      "compliant": true,
+      "note": "All 4 Meridian expired assumptions remain expired. Ageing is monotonic."
+    },
+    "no_unactioned_past_gate": {
+      "compliant": true,
+      "note": "Q2 2026 packet is open; no gate has passed un-actioned. Meridian gate is 13 months out."
+    },
+    "no_irreversible_without_redteam": {
+      "compliant": true,
+      "note": "Meridian retrofit/defer/scrap decision has active red-team workflow (hypothesis-retrofit-payback-2027, under_test)."
+    }
+  },
+  "agentNotes": [
+    "This is the nightly alignment run for 2026-05-26. No new evidence has arrived since the Q2 2026 quarterly packet (2026-05-24); scores are consistent with the packet.",
+    "Meridian gate countdown: 13 months (was 14 months at packet time). The clock is ticking.",
+    "Cape Pioneer's hypothesis-cape-pioneer-early-fuel-prep has sat in PROPOSED state since creation (2026-05-24) with no SHARPEN event. If the fuel-prep conversation is to influence the 2028 dry-dock decision, it needs to advance.",
+    "EUA forward curve (EUR 110-140/t) implies pressure on all non-scrubber vessels is increasing. The refuted hypothesis-eua-price-stable cascades most heavily to Meridian but also affects Cape Pioneer and Nordic Star's charter envelope margin.",
+    "The agent surfaces; the agent does not decide. The Meridian retrofit/defer/scrap call, the Cape Pioneer fuel-prep timing, and the Meridian projection re-baseline are all open questions awaiting human adjudication."
+  ]
+}

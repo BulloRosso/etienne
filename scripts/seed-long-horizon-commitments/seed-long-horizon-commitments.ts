@@ -37,6 +37,13 @@
  *      out/quarterly-packets/2026-Q2.quarterly.json. The frontend renders
  *      this through QuarterlyViewer (registered against .quarterly.json
  *      in viewerRegistry.jsx).
+ *  13d. Write the canonical nightly fleet-alignment report at
+ *      out/nightly-alignment/2026-05-26.alignment.json. The frontend
+ *      renders this through the alignment MCP UI previewer
+ *      (backend/src/mcpserver/alignment-tools.ts; previewer-metadata.json
+ *      viewer=alignment, ext=.alignment.json). The curator cron overwrites
+ *      this each night; the seed fixture gives a fresh project something
+ *      to preview immediately.
  *  14. Seed three event rules: rag-auto-index, assumption-expired-triggers-
  *      review, gate-approaching-triggers-redteam.
  *  15. Register the nightly curator cron (the no-silent-default heartbeat).
@@ -76,6 +83,8 @@ import {
 import { QUARTERLY_PACKET_Q2_2026 } from './fixtures/quarterly-packet';
 
 const QUARTERLY_PACKET_REL = 'out/quarterly-packets/2026-Q2.quarterly.json';
+const ALIGNMENT_REPORT_REL = 'out/nightly-alignment/2026-05-26.alignment.json';
+const ALIGNMENT_FIXTURE_FILENAME = '2026-05-26.alignment.json';
 
 const WORKSPACE_ROOT =
   process.env.WORKSPACE_ROOT ||
@@ -760,6 +769,22 @@ async function step13c_writeQuarterlyPacket(): Promise<void> {
   ok(`packet written: ${QUARTERLY_PACKET_REL} (rendered by QuarterlyViewer)`);
 }
 
+async function step13d_writeNightlyAlignment(): Promise<void> {
+  header('13d. Write the canonical nightly fleet-alignment report (.alignment.json)');
+  // The frontend renders this through the alignment MCP UI previewer
+  // (backend/src/mcpserver/alignment-tools.ts +
+  // previewer-metadata.json viewer=alignment, ext=.alignment.json).
+  // The curator cron will overwrite this each night; the seed fixture is
+  // there so a fresh project has something to preview immediately.
+  const dir = join(PROJECT_ROOT, 'out', 'nightly-alignment');
+  await mkdir(dir, { recursive: true });
+  const fixturePath = join(__dirname, 'fixtures', ALIGNMENT_FIXTURE_FILENAME);
+  const content = await readFile(fixturePath, 'utf8');
+  const destPath = join(PROJECT_ROOT, ALIGNMENT_REPORT_REL);
+  await writeFile(destPath, content, 'utf8');
+  ok(`alignment report written: ${ALIGNMENT_REPORT_REL} (rendered by the Fleet Alignment MCP UI)`);
+}
+
 async function step13b_assignApplicationType(): Promise<void> {
   header('13b. Assign long-horizon-commitments application type (sidebar menu)');
   // The backend's ApplicationTypesService reads this marker file on demand
@@ -932,6 +957,7 @@ async function main(): Promise<void> {
   await step13_documentationAndUi();
   await step13b_assignApplicationType();
   await step13c_writeQuarterlyPacket();
+  await step13d_writeNightlyAlignment();
   await step14_seedEventRules();
   await step15_registerCuratorCron(ctx);
 

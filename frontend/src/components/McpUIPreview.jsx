@@ -174,21 +174,12 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
     return () => window.removeEventListener('mcp-viewer-command', handler);
   }, [mcpGroup, mcpToolName]);
 
-  // Style the AppRenderer iframe for minimal scrollbar once it appears
-  useEffect(() => {
-    if (!iframeRef.current) return;
-    const observer = new MutationObserver(() => {
-      const iframe = iframeRef.current?.querySelector('iframe');
-      if (iframe) {
-        iframe.style.scrollbarWidth = 'none';
-        iframe.style.overflow = 'hidden';
-        observer.disconnect();
-      }
-    });
-    observer.observe(iframeRef.current, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [client]);
-
+  // The host iframe is forced to fill 100% of the preview pane via CSS
+  // `!important` on the container's iframe selector (see the sx prop on
+  // the wrapping Box below). That beats the inline `style.width` / `style.height`
+  // pixel values the @mcp-ui/client AppFrame writes from sizeChanged
+  // notifications. We keep sizeChanged in debug state, but don't drive
+  // layout from it.
   const handleSizeChanged = useCallback((params) => {
     if (params.height) {
       setIframeHeight(Math.min(params.height, 800));
@@ -262,6 +253,15 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
       height: '100%',
       overflow: 'hidden',
       position: 'relative',
+      // Force every iframe in this container (the @mcp-ui/client AppFrame's
+      // sandbox iframe + any nested proxy iframe) to fill the pane.
+      // `!important` beats the inline `style.width` / `style.height` pixel
+      // values AppFrame writes from sizeChanged notifications.
+      '& iframe': {
+        width: '100% !important',
+        height: '100% !important',
+        border: 'none',
+      },
     }}>
       <AppRenderer
         client={client}

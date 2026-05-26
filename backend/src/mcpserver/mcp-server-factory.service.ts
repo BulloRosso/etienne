@@ -55,6 +55,12 @@ import {
   BUDGET_RESOURCE_URI,
   BUDGET_RESOURCE_MIME,
 } from './budget-tools';
+import {
+  createAlignmentToolsService,
+  loadAlignmentResourceHtml,
+  ALIGNMENT_RESOURCE_URI,
+  ALIGNMENT_RESOURCE_MIME,
+} from './alignment-tools';
 import { ProcessManagerService } from '../process-manager/process-manager.service';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
@@ -182,6 +188,18 @@ export class McpServerFactoryService implements OnModuleInit {
             description: 'Interactive donut chart for .budget.json files',
             mimeType: BUDGET_RESOURCE_MIME,
             loadContent: loadBudgetResourceHtml,
+          },
+        ],
+      },
+      'alignment': {
+        toolServices: [createAlignmentToolsService()],
+        resources: [
+          {
+            uri: ALIGNMENT_RESOURCE_URI,
+            name: 'Fleet Alignment Dashboard',
+            description: 'Interactive dashboard for .alignment.json fleet-alignment reports',
+            mimeType: ALIGNMENT_RESOURCE_MIME,
+            loadContent: loadAlignmentResourceHtml,
           },
         ],
       },

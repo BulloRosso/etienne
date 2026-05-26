@@ -70,23 +70,27 @@ export default function SplitLayout({ left, right }) {
   };
 
   useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
+    if (!isDragging) return;
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    // While dragging, neutralise pointer events on every iframe so the
+    // splitter keeps receiving mousemove. Otherwise the iframe (e.g. an
+    // MCP UI previewer) swallows the mouse the moment the cursor crosses
+    // into it, and the drag stops following the cursor.
+    const iframes = Array.from(document.querySelectorAll('iframe'));
+    const previousPointerEvents = iframes.map((f) => f.style.pointerEvents);
+    iframes.forEach((f) => { f.style.pointerEvents = 'none'; });
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      iframes.forEach((f, i) => { f.style.pointerEvents = previousPointerEvents[i] || ''; });
     };
   }, [isDragging]);
 

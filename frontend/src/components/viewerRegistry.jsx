@@ -174,6 +174,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'a2ui', extensions: ['.a2ui'] },
   { viewer: 'dreams', extensions: ['.dreams.json'] },
   { viewer: 'quarterly', extensions: ['.quarterly.json'] },
+  { viewer: 'alignment', extensions: ['.alignment.json'] },
 ];
 
 /**

@@ -52,6 +52,16 @@
     ]
   },
   {
+    "viewer": "alignment",
+    "type": "mcpui",
+    "mcpGroup": "alignment",
+    "mcpToolName": "render_alignment",
+    "extensions": [
+      ".alignment.json"
+    ],
+    "actions": []
+  },
+  {
     "viewer": "onedrive",
     "type": "folder",
     "folderPatterns": ["onedrive*"],

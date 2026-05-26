@@ -17,6 +17,7 @@ import { map, mergeMap } from 'rxjs/operators';
 import { Roles } from '../auth/roles.decorator';
 import { DiagnosticsRunnerService } from './diagnostics-runner.service';
 import { SupportAgentService } from './support-agent/support-agent.service';
+import { SeedRunnerService, DEMO_SEEDS } from './seed-runner.service';
 import { DiagnosticsReport } from './types';
 import { MessageEvent } from '../claude/types';
 import { JwtUser } from '../auth/jwt-auth.guard';
@@ -36,6 +37,7 @@ export class FirstRunController {
   constructor(
     private readonly runner: DiagnosticsRunnerService,
     private readonly supportAgent: SupportAgentService,
+    private readonly seedRunner: SeedRunnerService,
   ) {}
 
   private get oauthServerUrl(): string {
@@ -130,6 +132,45 @@ export class FirstRunController {
       });
     }
     return this.supportAgent.startSession(cached.report, { applyItemId, userPrompt });
+  }
+
+  @Get('seeds')
+  listSeeds() {
+    return {
+      seeds: DEMO_SEEDS.map((s) => ({
+        id: s.id,
+        displayName: s.displayName,
+        description: s.description,
+        estimatedDurationLabel: s.estimatedDurationLabel,
+      })),
+    };
+  }
+
+  @Sse('seed/stream')
+  seedStream(@Req() req: Request, @Query('seedIds') seedIds?: string): Observable<MessageEvent> {
+    const user = (req as any).user as JwtUser | undefined;
+    if (!user) {
+      return new Observable((observer) => {
+        observer.next({ data: { kind: 'error', message: 'Unauthorized' } } as any);
+        observer.complete();
+      });
+    }
+    const auth = this.extractAuthHeader(req) || '';
+    const token = auth.startsWith('Bearer ') ? auth.substring(7) : '';
+    if (!token) {
+      return new Observable((observer) => {
+        observer.next({ data: { kind: 'error', message: 'Missing access token' } } as any);
+        observer.complete();
+      });
+    }
+    const ids = (seedIds || '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (ids.length === 0) {
+      return new Observable((observer) => {
+        observer.next({ data: { kind: 'error', message: 'No seedIds provided' } } as any);
+        observer.complete();
+      });
+    }
+    return this.seedRunner.runSeeds(ids, token, user.sub);
   }
 
   @Post('complete')

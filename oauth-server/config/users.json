@@ -14,7 +14,12 @@
       "passwordHash": "$2b$10$2bLYTxKM8eQG2CMwdBmgy.fx4.PwViLuOhLbYfVp0WW1BTglxf.0a",
       "role": "user",
       "displayName": "Standard User",
-      "enabled": true
+      "enabled": true,
+      "firstRunCompletedAt": "2026-05-26T18:43:52.801Z",
+      "firstRunReportSummary": {
+        "ranAt": "2026-05-26T18:43:52.794Z",
+        "overall": "pass"
+      }
     },
     {
       "id": "u3",

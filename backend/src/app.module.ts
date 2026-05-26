@@ -84,6 +84,7 @@ import { PackagesModule } from './packages/packages.module';
 import { FirstRunController } from './first-run/first-run.controller';
 import { DiagnosticsRunnerService } from './first-run/diagnostics-runner.service';
 import { SupportAgentService } from './first-run/support-agent/support-agent.service';
+import { SeedRunnerService } from './first-run/seed-runner.service';
 import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
 
 @Module({
@@ -113,6 +114,7 @@ import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
     CodingAgentConfigurationService,
     McpServerConfigService,
     SupportAgentService,
+    SeedRunnerService,
     ...CHECK_PROVIDERS,
     {
       provide: DiagnosticsRunnerService,

@@ -7,9 +7,11 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   CircularProgress,
   Divider,
+  FormControlLabel,
   IconButton,
   Stack,
   Tooltip,
@@ -33,9 +35,43 @@ import {
   completeFirstRun,
   openDiagnosticsStream,
   openSupportSessionStream,
+  openSeedStream,
   runDiagnostics,
 } from '../services/firstRunService';
 // runDiagnostics is used by the SSE error fallback.
+
+// Mirrors backend/src/first-run/seed-runner.service.ts DEMO_SEEDS registry.
+// Keep in sync — backend rejects unknown ids.
+const DEMO_SEEDS = [
+  {
+    id: 'factory-line-sim',
+    displayName: 'Factory line simulation',
+    description:
+      'Manufacturing line with CNC dashboards, quality reports, event simulator, and insights.',
+    estimatedDurationLabel: '~3 min',
+  },
+  {
+    id: 'desalination-devices',
+    displayName: 'Desalination devices',
+    description:
+      'Water treatment pilot with design-support, hypotheses, scrapbook projection, and curator cron.',
+    estimatedDurationLabel: '~4 min',
+  },
+  {
+    id: 'long-horizon-commitments',
+    displayName: 'Long-horizon commitments',
+    description:
+      'Fleet vessel commitments with quarterly packets, assumptions/gates/drift tracking.',
+    estimatedDurationLabel: '~4 min',
+  },
+  {
+    id: 'requirements-hv',
+    displayName: 'HV requirements',
+    description:
+      'German HVDC grid-connection requirements with coverage dashboard, EARS requirements.',
+    estimatedDurationLabel: '~3 min',
+  },
+];
 
 const STATUS_ICON = {
   ok: <IoCheckmarkCircle color="#2e7d32" size={20} />,
@@ -213,6 +249,7 @@ function AgentTranscript({ chunks }) {
 }
 
 export default function FirstRunPage({ onComplete }) {
+  const [step, setStep] = useState('diagnostics'); // 'diagnostics' | 'seed'
   const [checks, setChecks] = useState([]);
   const [overall, setOverall] = useState(null); // 'ok' | 'warn' | 'fail' | null
   const [running, setRunning] = useState(false);
@@ -222,9 +259,15 @@ export default function FirstRunPage({ onComplete }) {
   const [completing, setCompleting] = useState(false);
   // Per-check fix sessions: { [checkId]: { running, chunks: string[] } }
   const [fixState, setFixState] = useState({});
+  // Seed step state.
+  const [selectedSeedIds, setSelectedSeedIds] = useState([]); // none checked by default
+  const [seedRunning, setSeedRunning] = useState(false);
+  // { [seedId]: { status: 'pending'|'running'|'success'|'failed', chunks: string[] } }
+  const [seedProgress, setSeedProgress] = useState({});
   const esRef = useRef(null);
   const agentEsRef = useRef(null);
   const fixEsRef = useRef({}); // { [checkId]: EventSource }
+  const seedEsRef = useRef(null);
 
   const startStreaming = async () => {
     setRunning(true);
@@ -284,6 +327,7 @@ export default function FirstRunPage({ onComplete }) {
     return () => {
       if (esRef.current) esRef.current.close();
       if (agentEsRef.current) agentEsRef.current.close();
+      if (seedEsRef.current) seedEsRef.current.close();
       Object.values(fixEsRef.current).forEach((es) => es?.close?.());
       fixEsRef.current = {};
     };
@@ -349,7 +393,15 @@ export default function FirstRunPage({ onComplete }) {
     return byStatus;
   }, [checks]);
 
-  const handleContinue = async () => {
+  // Diagnostics → Seed step transition. NO API call; first-run is only marked
+  // complete after the seed step (or skip).
+  const handleAdvanceToSeed = () => {
+    setError(null);
+    setStep('seed');
+  };
+
+  // Final completion — called from the seed step (skip or after seeds finish).
+  const finalizeFirstRun = async () => {
     setCompleting(true);
     try {
       await completeFirstRun({
@@ -363,6 +415,96 @@ export default function FirstRunPage({ onComplete }) {
       setCompleting(false);
     }
   };
+
+  const toggleSeed = (id) => {
+    setSelectedSeedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const startSeedRun = (ids) => {
+    if (!ids || ids.length === 0) return;
+    if (seedEsRef.current) seedEsRef.current.close();
+    setError(null);
+    setSeedRunning(true);
+    // Initialise per-seed state for the ones we're about to run.
+    setSeedProgress((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        next[id] = { status: 'pending', chunks: [] };
+      });
+      return next;
+    });
+    const es = openSeedStream(ids);
+    seedEsRef.current = es;
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (!data?.kind) return;
+        const seedId = data.seedId;
+        if (data.kind === 'seed_started' && seedId) {
+          setSeedProgress((prev) => ({
+            ...prev,
+            [seedId]: { status: 'running', chunks: prev[seedId]?.chunks || [] },
+          }));
+        } else if ((data.kind === 'stdout' || data.kind === 'stderr') && seedId && data.chunk) {
+          setSeedProgress((prev) => ({
+            ...prev,
+            [seedId]: {
+              status: prev[seedId]?.status === 'running' ? 'running' : 'running',
+              chunks: [...(prev[seedId]?.chunks || []), data.chunk],
+            },
+          }));
+        } else if (data.kind === 'seed_completed' && seedId) {
+          setSeedProgress((prev) => ({
+            ...prev,
+            [seedId]: { status: 'success', chunks: prev[seedId]?.chunks || [] },
+          }));
+        } else if (data.kind === 'seed_failed' && seedId) {
+          setSeedProgress((prev) => ({
+            ...prev,
+            [seedId]: {
+              status: 'failed',
+              chunks: [...(prev[seedId]?.chunks || []), `\n[failed] ${data.error || `exit code ${data.exitCode}`}\n`],
+            },
+          }));
+        } else if (data.kind === 'completed') {
+          setSeedRunning(false);
+          es.close();
+          seedEsRef.current = null;
+        } else if (data.kind === 'error') {
+          setError(data.message || 'Seed run error');
+          setSeedRunning(false);
+          es.close();
+          seedEsRef.current = null;
+        }
+      } catch {
+        /* heartbeat / keepalive */
+      }
+    };
+    es.onerror = () => {
+      if (seedEsRef.current === es) {
+        es.close();
+        seedEsRef.current = null;
+      }
+      setSeedRunning(false);
+    };
+  };
+
+  const handleSeedSelected = () => {
+    startSeedRun(selectedSeedIds);
+  };
+
+  const handleSkipSeed = () => {
+    finalizeFirstRun();
+  };
+
+  const failedSeedIds = useMemo(
+    () => Object.entries(seedProgress).filter(([, v]) => v.status === 'failed').map(([id]) => id),
+    [seedProgress],
+  );
+
+  const seedRunStarted = Object.keys(seedProgress).length > 0;
 
   const handleAskAgent = () => {
     if (agentEsRef.current) agentEsRef.current.close();
@@ -402,50 +544,42 @@ export default function FirstRunPage({ onComplete }) {
   const hasCriticalIssue = overall === 'fail';
   const hasAnyIssue = overall === 'fail' || overall === 'warn';
 
-  return (
-    <Box
-      sx={{
-        height: '100vh',
-        overflow: 'auto',
-        backgroundColor: 'background.default',
-        p: { xs: 2, md: 4 },
-      }}
-    >
-      <Box sx={{ maxWidth: 900, mx: 'auto' }}>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ mb: 3 }}
-        >
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h5" gutterBottom>
-              Welcome — let's check your setup
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Running diagnostics on your environment. This usually takes a few seconds.
-            </Typography>
-          </Box>
-          <Box
-            component="img"
-            src={overall === 'ok' ? '/claude-is-charged.png' : '/claude-needs-charging.png'}
-            alt={overall === 'ok' ? 'Claude is charged' : 'Claude needs charging'}
-            sx={{
-              width: 200,
-              height: 'auto',
-              flexShrink: 0,
-              opacity: overall ? 1 : 0.4,
-              transition: 'opacity 200ms',
-            }}
-          />
-        </Stack>
+  const renderDiagnosticsView = () => (
+    <>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        spacing={2}
+        sx={{ mb: 3 }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="h5" gutterBottom>
+            Welcome — let's check your setup
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Running diagnostics on your environment. This usually takes a few seconds.
+          </Typography>
+        </Box>
+        <Box
+          component="img"
+          src={overall === 'ok' ? '/claude-is-charged.png' : '/claude-needs-charging.png'}
+          alt={overall === 'ok' ? 'Claude is charged' : 'Claude needs charging'}
+          sx={{
+            width: 200,
+            height: 'auto',
+            flexShrink: 0,
+            opacity: overall ? 1 : 0.4,
+            transition: 'opacity 200ms',
+          }}
+        />
+      </Stack>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
           {running ? (
@@ -538,12 +672,183 @@ export default function FirstRunPage({ onComplete }) {
           <Button
             variant="contained"
             color={hasCriticalIssue ? 'warning' : 'primary'}
-            onClick={handleContinue}
-            disabled={running || completing || overall === null}
+            onClick={handleAdvanceToSeed}
+            disabled={running || overall === null}
           >
-            {completing ? 'Saving…' : hasCriticalIssue ? 'Continue anyway' : 'Continue to app'}
+            {hasCriticalIssue ? 'Continue anyway' : 'Next'}
           </Button>
         </Stack>
+      </>
+    );
+
+  const renderSeedView = () => (
+    <>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        spacing={2}
+        sx={{ mb: 3 }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="h5" gutterBottom>
+            Seed demo projects?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Pick any projects you'd like pre-loaded with content. Nothing is selected by default — skip if you want a clean workspace.
+          </Typography>
+        </Box>
+        <Box
+          component="img"
+          src="/claude-is-walking-color.png"
+          alt="Claude is walking"
+          sx={{ width: 200, height: 'auto', flexShrink: 0 }}
+          onError={(e) => {
+            e.currentTarget.src = '/claude-is-charged.png';
+          }}
+        />
+      </Stack>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {!seedRunStarted && (
+        <Box sx={{ mb: 2 }}>
+          {DEMO_SEEDS.map((seed) => (
+            <Card key={seed.id} variant="outlined" sx={{ mb: 1 }}>
+              <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={selectedSeedIds.includes(seed.id)}
+                      onChange={() => toggleSeed(seed.id)}
+                      disabled={seedRunning}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="subtitle2">{seed.displayName}</Typography>
+                        <Chip label={seed.estimatedDurationLabel} size="small" variant="outlined" />
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">
+                        {seed.description}
+                      </Typography>
+                    </Box>
+                  }
+                  sx={{ alignItems: 'flex-start', m: 0 }}
+                />
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      )}
+
+      {seedRunStarted && (
+        <Box sx={{ mb: 2 }}>
+          {DEMO_SEEDS.filter((s) => seedProgress[s.id]).map((seed) => {
+            const sp = seedProgress[seed.id];
+            const Status = sp.status === 'success'
+              ? <IoCheckmarkCircle color="#2e7d32" size={20} />
+              : sp.status === 'failed'
+                ? <IoCloseCircle color="#d32f2f" size={20} />
+                : sp.status === 'running'
+                  ? <CircularProgress size={18} />
+                  : <CircularProgress size={18} variant="determinate" value={0} />;
+            return (
+              <Card key={seed.id} variant="outlined" sx={{ mb: 1 }}>
+                <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    <Box sx={{ pt: 0.25 }}>{Status}</Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                        <Typography variant="subtitle2">{seed.displayName}</Typography>
+                        <Chip label={sp.status} size="small" variant="outlined" />
+                      </Stack>
+                      {(sp.chunks?.length > 0) && (
+                        <Box
+                          component="pre"
+                          sx={{
+                            mt: 1,
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            margin: 0,
+                            maxHeight: 220,
+                            overflow: 'auto',
+                            p: 1,
+                            backgroundColor: 'action.hover',
+                            borderRadius: 1,
+                          }}
+                        >
+                          {sp.chunks.join('')}
+                        </Box>
+                      )}
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
+      )}
+
+      <Divider sx={{ my: 3 }} />
+
+      <Stack direction="row" spacing={2} alignItems="center" justifyContent="flex-end">
+        <Button onClick={() => setStep('diagnostics')} disabled={seedRunning || completing}>
+          Back
+        </Button>
+        {!seedRunStarted && (
+          <>
+            <Button onClick={handleSkipSeed} disabled={completing}>
+              {completing ? 'Saving…' : 'Skip seeding'}
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSeedSelected}
+              disabled={selectedSeedIds.length === 0 || seedRunning}
+            >
+              Seed selected ({selectedSeedIds.length})
+            </Button>
+          </>
+        )}
+        {seedRunStarted && !seedRunning && (
+          <>
+            {failedSeedIds.length > 0 && (
+              <Button onClick={() => startSeedRun(failedSeedIds)} disabled={seedRunning}>
+                Retry failed ({failedSeedIds.length})
+              </Button>
+            )}
+            <Button variant="contained" onClick={finalizeFirstRun} disabled={completing}>
+              {completing ? 'Saving…' : 'Continue to app'}
+            </Button>
+          </>
+        )}
+        {seedRunning && (
+          <Typography variant="caption" color="text.secondary">
+            Seeding…
+          </Typography>
+        )}
+      </Stack>
+    </>
+  );
+
+  return (
+    <Box
+      sx={{
+        height: '100vh',
+        overflow: 'auto',
+        backgroundColor: 'background.default',
+        p: { xs: 2, md: 4 },
+      }}
+    >
+      <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+        {step === 'diagnostics' ? renderDiagnosticsView() : renderSeedView()}
       </Box>
     </Box>
   );
