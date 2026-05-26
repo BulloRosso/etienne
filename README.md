@@ -38,7 +38,7 @@ As a forward deployed engineer (FDE) this would be my job together with you and 
 
 This project is a starting point to address **integration challenges** in typical enterprise environments:
 
-* Identity and Access Management (e. g. AWS Cognitor or Microsoft EntraID)
+* Identity and Access Management (e. g. AWS Cognito or Microsoft EntraID)
 * Compliance with Standards and how to build bridges between them (e. g. MCP, MCP UI, A2A, AG-UI)
 * Deployments (e. g. Azure App Service and Foundry Hosted Agents)
 * Data Governance (e. g. local files vs. cloud, Microsoft OneDrive, Sharepoint)
