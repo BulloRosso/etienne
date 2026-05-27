@@ -354,6 +354,28 @@ export function createComplianceMatrixToolsService(
         const team = teamMd ? parseTeamMarkdown(teamMd) : [];
 
         const rows: any[] = Array.isArray(coverage?.rows) ? coverage.rows : [];
+        // Probe wiki/topics/<slug>.md for every row that claims a
+        // plannedResponseSlug, and tag the row with plannedResponseExists.
+        // The cockpit uses this to distinguish "row references a wiki page
+        // that's actually on disk" from "slug exists in coverage but no
+        // page was ever authored" — the latter is hidden so the user can
+        // tell at a glance which items are really prepared.
+        const projectRoot = join(WORKSPACE_ROOT, projectName);
+        await Promise.all(
+          rows.map(async (r) => {
+            if (!r?.plannedResponseSlug) {
+              r.plannedResponseExists = false;
+              return;
+            }
+            const pagePath = join(projectRoot, 'wiki', 'topics', `${r.plannedResponseSlug}.md`);
+            try {
+              await fs.access(pagePath);
+              r.plannedResponseExists = true;
+            } catch {
+              r.plannedResponseExists = false;
+            }
+          }),
+        );
         // Filter facets — the cockpit's left rail enumerates these.
         const statuses = unique(rows.map((r) => r.state).filter(Boolean));
         const reviews = unique(rows.map((r) => r.reviewStatus).filter(Boolean));

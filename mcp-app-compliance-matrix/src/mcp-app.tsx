@@ -95,6 +95,10 @@ interface MatrixRow {
   notes?: string;
   reviewStatus?: ReviewStatus;
   plannedResponseSlug?: string;
+  // Backend-side probe: is wiki/topics/<slug>.md actually on disk? If the
+  // row carries a slug but the page was never authored we want to hide it
+  // so the user can see which items have a real planned response.
+  plannedResponseExists?: boolean;
   sourceCitation?: SourceCitation;
 }
 
@@ -307,9 +311,9 @@ function ComplianceMatrixApp() {
       if (typeof window === "undefined") return 340;
       const stored = window.localStorage.getItem("compliance-matrix.rightPaneWidth");
       const parsed = stored ? Number(stored) : NaN;
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : 340;
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 680;
     } catch {
-      return 340;
+      return 680;
     }
   });
   useEffect(() => {
@@ -332,7 +336,7 @@ function ComplianceMatrixApp() {
       // Splitter on the LEFT side of the right pane → dragging RIGHT
       // shrinks the right pane; dragging LEFT widens it.
       const delta = e.clientX - state.startX;
-      const next = Math.min(800, Math.max(220, state.startWidth - delta));
+      const next = Math.min(1200, Math.max(220, state.startWidth - delta));
       setRightPaneWidth(next);
     };
     const handleMouseUp = () => {
@@ -937,21 +941,15 @@ function ComplianceMatrixApp() {
                 <TableRow>
                   {/* Below `lg` the matrix collapses to: ID (with status
                       dot under it) · EARS · Owner/review · kebab.
-                      Source, Planned response, and Status appear only at
-                      `lg` and up. The hidden info is still reachable via
-                      the row's right-pane info card. */}
+                      Source/Response appears only at `lg` and up. The
+                      hidden info is still reachable via the row's
+                      right-pane info card. */}
                   <TableCell sx={{ width: { xs: 60, sm: 70, md: 80 } }}>ID</TableCell>
                   <TableCell>Requirement (EARS)</TableCell>
-                  <TableCell sx={{ width: 140, display: { xs: "none", lg: "table-cell" } }}>
-                    Source
+                  <TableCell sx={{ width: 200, display: { xs: "none", lg: "table-cell" } }}>
+                    Source / Response
                   </TableCell>
-                  <TableCell sx={{ width: 160, display: { xs: "none", lg: "table-cell" } }}>
-                    Planned response
-                  </TableCell>
-                  <TableCell sx={{ width: 110, display: { xs: "none", lg: "table-cell" } }}>
-                    Status
-                  </TableCell>
-                  <TableCell sx={{ width: { xs: 80, sm: 95, md: 110 } }}>
+                  <TableCell sx={{ width: { xs: 80, sm: 95, md: 110 }, whiteSpace: "nowrap" }}>
                     Owner / review
                   </TableCell>
                   <TableCell sx={{ width: 36, p: 0 }} aria-label="Row actions" />
@@ -964,7 +962,14 @@ function ComplianceMatrixApp() {
                   const { initials, entry } = ownerInitials(row.responsibleEngineer, payload.team);
                   const isSelected = row.requirementId === selectedId;
                   const sourceDocPath = row.sourceCitation?.docPath;
-                  const plannedResponseFile = row.plannedResponseSlug
+                  // Treat the slug as "has a planned response" only when
+                  // the backend confirmed the wiki page exists on disk.
+                  // Coverage data sometimes lists slugs whose pages were
+                  // never authored — surfacing those as live links would
+                  // mislead the user about preparation progress.
+                  const plannedResponseAvailable =
+                    Boolean(row.plannedResponseSlug) && row.plannedResponseExists !== false;
+                  const plannedResponseFile = plannedResponseAvailable
                     ? `wiki/topics/${row.plannedResponseSlug}.md`
                     : null;
                   return (
@@ -977,10 +982,10 @@ function ComplianceMatrixApp() {
                     >
                       <TableCell sx={{ fontFamily: "monospace", fontWeight: 600, verticalAlign: "top" }}>
                         {row.requirementId}
-                        {/* Compact status indicator — visible only below
-                            `lg`, where the dedicated Status column is
-                            hidden. Tooltip carries the state label. */}
-                        <Box sx={{ mt: 0.5, display: { xs: "block", lg: "none" } }}>
+                        {/* Status indicator under the ID — replaces the
+                            former dedicated Status column. Tooltip carries
+                            the state label. */}
+                        <Box sx={{ mt: 0.5 }}>
                           <Tooltip title={row.state} placement="right">
                             <Box
                               sx={{
@@ -1017,89 +1022,126 @@ function ComplianceMatrixApp() {
                         sx={{
                           verticalAlign: "top",
                           display: { xs: "none", lg: "table-cell" },
-                          cursor: sourceDocPath ? "pointer" : "default",
-                          "&:hover": sourceDocPath ? { bgcolor: "action.hover" } : {},
                         }}
-                        onClick={(e) => {
-                          if (!sourceDocPath || !workspaceProject) return;
-                          e.stopPropagation();
-                          setSelectedId(row.requirementId);
-                          loadMarkdown(sourceDocPath, workspaceProject);
-                        }}
-                        title={sourceDocPath ? `Open ${sourceDocPath} in right pane` : ""}
                       >
-                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                          {row.sourceLocation}
-                        </Typography>
-                        <br />
-                        <Typography variant="caption" color="text.secondary">
-                          {row.sourceVolume.replace(/^source-volume-/, "vol. ")}
-                        </Typography>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          verticalAlign: "top",
-                          display: { xs: "none", lg: "table-cell" },
-                          cursor: plannedResponseFile ? "pointer" : "default",
-                          "&:hover": plannedResponseFile ? { bgcolor: "action.hover" } : {},
-                        }}
-                        onClick={(e) => {
-                          if (!plannedResponseFile || !workspaceProject) return;
-                          e.stopPropagation();
-                          setSelectedId(row.requirementId);
-                          loadMarkdown(plannedResponseFile, workspaceProject);
-                        }}
-                        title={
-                          plannedResponseFile ? `Open ${plannedResponseFile} in right pane` : ""
-                        }
-                      >
-                        {row.plannedResponseSlug ? (
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <ArticleIcon fontSize="inherit" sx={{ color: palette.blue }} />
-                            <Typography
-                              variant="caption"
-                              sx={{ fontFamily: "monospace", color: palette.blue }}
-                            >
-                              {row.plannedResponseSlug}
-                            </Typography>
-                          </Stack>
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">
-                            (none)
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ verticalAlign: "top", display: { xs: "none", lg: "table-cell" } }}>
-                        <Chip
-                          size="small"
-                          label={row.state}
-                          sx={{ bgcolor: sTone.bg, color: sTone.fg, fontWeight: 600 }}
-                        />
+                        <Stack spacing={0.5}>
+                          {/* Source line — click opens the source doc. */}
+                          <Box
+                            onClick={(e) => {
+                              if (!sourceDocPath || !workspaceProject) return;
+                              e.stopPropagation();
+                              setSelectedId(row.requirementId);
+                              loadMarkdown(sourceDocPath, workspaceProject);
+                            }}
+                            title={sourceDocPath ? `Open ${sourceDocPath} in right pane` : ""}
+                            sx={{
+                              cursor: sourceDocPath ? "pointer" : "default",
+                              borderRadius: 0.5,
+                              px: 0.5,
+                              mx: -0.5,
+                              "&:hover": sourceDocPath ? { bgcolor: "action.hover" } : {},
+                            }}
+                          >
+                            <Stack direction="row" spacing={0.5} alignItems="flex-start">
+                              <ArticleIcon
+                                sx={{ color: "text.primary", flexShrink: 0, fontSize: "0.95rem", lineHeight: 1 }}
+                              />
+                              <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="caption" sx={{ fontFamily: "monospace", display: "block", lineHeight: 1 }}>
+                                  {row.sourceLocation}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ display: "block", mt: 0.25 }}
+                                >
+                                  {row.sourceVolume.replace(/^source-volume-/, "vol. ")}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Box>
+                          {/* Planned-response line — click opens the wiki page. */}
+                          <Box
+                            onClick={(e) => {
+                              if (!plannedResponseFile || !workspaceProject) return;
+                              e.stopPropagation();
+                              setSelectedId(row.requirementId);
+                              loadMarkdown(plannedResponseFile, workspaceProject);
+                            }}
+                            title={
+                              plannedResponseFile ? `Open ${plannedResponseFile} in right pane` : ""
+                            }
+                            sx={{
+                              cursor: plannedResponseFile ? "pointer" : "default",
+                              borderRadius: 0.5,
+                              px: 0.5,
+                              mx: -0.5,
+                              "&:hover": plannedResponseFile ? { bgcolor: "action.hover" } : {},
+                            }}
+                          >
+                            {plannedResponseAvailable ? (
+                              <Stack direction="row" spacing={0.5} alignItems="flex-start" sx={{ minWidth: 0 }}>
+                                <ArticleIcon
+                                  sx={{ color: palette.blue, flexShrink: 0, fontSize: "0.95rem", lineHeight: 1 }}
+                                />
+                                {/* Prefix ellipsis: text-overflow only puts
+                                    the ellipsis at the *end*, so we flip the
+                                    text direction to rtl (truncation now
+                                    happens on the left) and override
+                                    text-align so the characters still flow
+                                    left-to-right. */}
+                                <Typography
+                                  variant="caption"
+                                  title={row.plannedResponseSlug}
+                                  sx={{
+                                    fontFamily: "monospace",
+                                    color: palette.blue,
+                                    minWidth: 0,
+                                    flex: 1,
+                                    overflow: "hidden",
+                                    whiteSpace: "nowrap",
+                                    textOverflow: "ellipsis",
+                                    direction: "rtl",
+                                    textAlign: "left",
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  {row.plannedResponseSlug}
+                                </Typography>
+                              </Stack>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">
+                                (no planned response)
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
                       </TableCell>
                       <TableCell sx={{ verticalAlign: "top" }}>
-                        <Tooltip
-                          title={entry ? `${entry.name} — ${entry.role}` : "Not in team page"}
-                          placement="left"
-                        >
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, lineHeight: 1.2 }}
+                        <Stack direction="row" spacing={0.5} alignItems="center" useFlexGap flexWrap="wrap">
+                          <Tooltip
+                            title={entry ? `${entry.name} — ${entry.role}` : "Not in team page"}
+                            placement="left"
                           >
-                            {initials}
-                          </Typography>
-                        </Tooltip>
-                        <Chip
-                          size="small"
-                          label={row.reviewStatus ?? "pending"}
-                          sx={{
-                            mt: 0.25,
-                            bgcolor: rTone.bg,
-                            color: rTone.fg,
-                            fontWeight: 500,
-                            height: 18,
-                            fontSize: "0.65rem",
-                          }}
-                        />
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600, lineHeight: 1.2 }}
+                            >
+                              {initials}
+                            </Typography>
+                          </Tooltip>
+                          <Chip
+                            size="small"
+                            label={row.reviewStatus ?? "pending"}
+                            sx={{
+                              bgcolor: rTone.bg,
+                              color: rTone.fg,
+                              fontWeight: 500,
+                              height: 18,
+                              fontSize: "0.65rem",
+                            }}
+                          />
+                        </Stack>
                       </TableCell>
                       <TableCell sx={{ verticalAlign: "top", p: 0, width: 36 }}>
                         <IconButton
@@ -1118,7 +1160,7 @@ function ComplianceMatrixApp() {
                 })}
                 {filteredRows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                       <Typography variant="body2" color="text.secondary">
                         No rows match the current filters.
                       </Typography>
@@ -1305,7 +1347,7 @@ function ComplianceMatrixApp() {
 
                     <Divider />
 
-                    {selectedRow.plannedResponseSlug ? (
+                    {selectedRow.plannedResponseSlug && selectedRow.plannedResponseExists !== false ? (
                       <Box>
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
                           Planned response
