@@ -23,6 +23,43 @@
           "value": "inbox"
         },
         "minRole": "user"
+      },
+      {
+        "id": "extract-sections-into-wiki",
+        "labels": {
+          "en": "Extract sections into wiki (planned responses)",
+          "de": "Abschnitte ins Wiki extrahieren (geplante Antworten)",
+          "it": "Estrai sezioni nel wiki (risposte pianificate)",
+          "zh": "将章节提取到 wiki(计划响应)"
+        },
+        "icon": "codicon codicon-list-tree",
+        "modalComponent": "ExtractSectionsModal",
+        "params": [
+          { "name": "projectName", "source": "projectName" },
+          { "name": "documentPath", "source": "filePath" }
+        ],
+        "minRole": "user"
+      }
+    ]
+  },
+  {
+    "viewer": "docx",
+    "actions": [
+      {
+        "id": "extract-sections-into-wiki",
+        "labels": {
+          "en": "Extract sections into wiki (planned responses)",
+          "de": "Abschnitte ins Wiki extrahieren (geplante Antworten)",
+          "it": "Estrai sezioni nel wiki (risposte pianificate)",
+          "zh": "将章节提取到 wiki(计划响应)"
+        },
+        "icon": "codicon codicon-list-tree",
+        "modalComponent": "ExtractSectionsModal",
+        "params": [
+          { "name": "projectName", "source": "projectName" },
+          { "name": "documentPath", "source": "filePath" }
+        ],
+        "minRole": "user"
       }
     ]
   },
@@ -58,6 +95,16 @@
     "mcpToolName": "render_alignment",
     "extensions": [
       ".alignment.json"
+    ],
+    "actions": []
+  },
+  {
+    "viewer": "compliance-matrix",
+    "type": "mcpui",
+    "mcpGroup": "compliance-matrix",
+    "mcpToolName": "render_compliance_matrix",
+    "extensions": [
+      ".compliance.json"
     ],
     "actions": []
   },

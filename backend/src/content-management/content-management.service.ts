@@ -632,6 +632,381 @@ export class ContentManagementService {
     return { success: true, message: `Exported to ${outputPath}` };
   }
 
+  // ─── Extract sections into wiki (planned-response stubs) ──────────────────
+
+  /**
+   * Parse a PDF / DOC / DOCX file via LiteParse, split it on heading
+   * boundaries, and create one wiki/topics/planned-response/<slug>.md per
+   * section. Used by the filesystem context-menu item on PDF/Word rows so
+   * users don't have to manually transcribe past-bid sections to reuse
+   * them as planned responses.
+   *
+   * Returns the list of created/updated slugs. Each page gets frontmatter
+   * pointing back at the source document for traceability.
+   */
+  async extractSectionsToWiki(
+    projectName: string,
+    documentPath: string,
+    opts?: { maxSections?: number },
+  ): Promise<{
+    success: boolean;
+    sourceDocument: string;
+    created: Array<{ slug: string; title: string; path: string }>;
+    skipped: number;
+    message: string;
+  }> {
+    const root = safeRoot(this.config.hostRoot, projectName);
+    const absoluteSource = join(root, documentPath);
+
+    try {
+      await fs.access(absoluteSource);
+    } catch {
+      throw new NotFoundException(`Source document not found: ${documentPath}`);
+    }
+
+    const ext = extname(absoluteSource).toLowerCase();
+    const supported = new Set(['.pdf', '.doc', '.docx', '.docm', '.odt', '.rtf']);
+    if (!supported.has(ext)) {
+      throw new BadRequestException(
+        `Unsupported extension ${ext}. Supported: ${[...supported].join(', ')}`,
+      );
+    }
+
+    // Reuse the same LiteParse import the RAG pipeline uses. ESM-only, so
+    // the `new Function(...)` trick keeps ts-node from rewriting it to require().
+    const { LiteParse } = await (new Function(
+      'return import("@llamaindex/liteparse")',
+    ))();
+    const parser = new LiteParse({ ocrEnabled: true, outputFormat: 'text' });
+    const result = await parser.parse(absoluteSource, true /* quiet */);
+    const text: string = result?.text ?? '';
+    if (!text.trim()) {
+      throw new BadRequestException('LiteParse returned empty content.');
+    }
+
+    const sections = splitIntoSections(text, opts?.maxSections ?? 40);
+    if (sections.length === 0) {
+      return {
+        success: true,
+        sourceDocument: documentPath,
+        created: [],
+        skipped: 0,
+        message: 'No section headings detected — nothing to extract.',
+      };
+    }
+
+    const wikiDir = join(root, 'wiki', 'topics', 'planned-response');
+    await fs.mkdir(wikiDir, { recursive: true });
+
+    const sourceBaseSlug = basename(documentPath, ext)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const created: Array<{ slug: string; title: string; path: string }> = [];
+    let skipped = 0;
+    const now = new Date().toISOString();
+
+    for (const [idx, section] of sections.entries()) {
+      const titleSlug = section.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60) || `section-${idx + 1}`;
+      const slug = `${sourceBaseSlug}-${titleSlug}`;
+      const filename = `${slug}.md`;
+      const outPath = join(wikiDir, filename);
+
+      // Skip if a page with this slug already exists — caller can rerun
+      // safely without overwriting curated content.
+      try {
+        await fs.access(outPath);
+        skipped += 1;
+        continue;
+      } catch {
+        /* doesn't exist — write it */
+      }
+
+      const frontmatter =
+        '---\n' +
+        `title: ${JSON.stringify(section.title)}\n` +
+        `slug: ${slug}\n` +
+        `bucket: topics\n` +
+        `status: stub\n` +
+        `confidence: low\n` +
+        `mission_relevance: 0.5\n` +
+        `tags: ["planned-response", "extracted", "stub"]\n` +
+        `classification: private\n` +
+        `created: ${now}\n` +
+        `last_updated: ${now}\n` +
+        `provenance:\n` +
+        `  sourceSessions: []\n` +
+        `  sourceEntries: []\n` +
+        `  createdBy: user\n` +
+        `  createdAt: ${now}\n` +
+        `  updatedAt: ${now}\n` +
+        `extracted_from:\n` +
+        `  document: ${JSON.stringify(documentPath)}\n` +
+        `  section_heading: ${JSON.stringify(section.title)}\n` +
+        `---\n\n`;
+
+      const body =
+        `# ${section.title}\n\n` +
+        `> Extracted from \`${documentPath}\`. Review, adapt, and link the\n` +
+        `> corresponding requirement(s) before treating this as a planned\n` +
+        `> response.\n\n` +
+        section.body.trim() +
+        '\n';
+
+      await fs.writeFile(outPath, frontmatter + body, 'utf-8');
+      created.push({
+        slug: `planned-response/${slug}`,
+        title: section.title,
+        path: `wiki/topics/planned-response/${filename}`,
+      });
+    }
+
+    this.logger.log(
+      `extractSectionsToWiki: ${created.length} pages from ${documentPath} (skipped ${skipped})`,
+    );
+    return {
+      success: true,
+      sourceDocument: documentPath,
+      created,
+      skipped,
+      message:
+        `Created ${created.length} planned-response wiki stub(s) from ` +
+        `${documentPath}${skipped ? ` (skipped ${skipped} already-existing)` : ''}.`,
+    };
+  }
+
+  // ─── Fill-back: write committed responses into the original RFP ───────────
+
+  /**
+   * Iterate the coverage matrix and inject each committed row's planned-
+   * response text into the original RFP DOCX. Two modes:
+   *
+   *   - `annotate`: insert a Word comment at the matched locator
+   *     (`word/comments.xml`), leaving the body untouched. Safest default.
+   *   - `replace`: insert the planned-response text as a styled "Response"
+   *     paragraph immediately after the matched locator paragraph.
+   *
+   * In both cases, the output goes to `out/fill-back/<basename>.responded.docx`
+   * — we never overwrite the original under `documents/`.
+   *
+   * Locator matching is paragraph-level regex on the rendered text per
+   * `<w:p>` element. Rows whose locator can't be found are reported back
+   * in `unfilled` so the export dialog can surface them. We never silently
+   * skip.
+   */
+  async fillBackResponsesIntoSource(
+    projectName: string,
+    sourceDocPath: string,
+    mode: 'annotate' | 'replace',
+    opts?: { coverageRef?: string; includeNonCommitted?: boolean },
+  ): Promise<{
+    success: boolean;
+    outputPath: string;
+    filled: Array<{ requirementId: string; locator: string }>;
+    unfilled: Array<{ requirementId: string; locator: string; reason: string }>;
+    message: string;
+  }> {
+    const root = safeRoot(this.config.hostRoot, projectName);
+    const absoluteSource = join(root, sourceDocPath);
+    try {
+      await fs.access(absoluteSource);
+    } catch {
+      throw new NotFoundException(`Source RFP document not found: ${sourceDocPath}`);
+    }
+    if (extname(absoluteSource).toLowerCase() !== '.docx') {
+      throw new BadRequestException(
+        'Fill-back requires a .docx source. Convert the source first if it is a .doc / .pdf.',
+      );
+    }
+
+    const coverageRel = opts?.coverageRef ?? 'out/coverage/current.coverage.json';
+    const coveragePath = join(root, coverageRel);
+    let coverage: any;
+    try {
+      coverage = JSON.parse(await fs.readFile(coveragePath, 'utf-8'));
+    } catch (err) {
+      throw new BadRequestException(
+        `Cannot read coverage at ${coverageRel}: ${(err as Error).message}`,
+      );
+    }
+    const rows: any[] = Array.isArray(coverage?.rows) ? coverage.rows : [];
+
+    // Filter rows: by default, only `committed` (the only state where the
+    // response is locked). Caller can opt in to all states via flag.
+    const eligible = rows.filter((r) =>
+      opts?.includeNonCommitted ? true : r.state === 'committed',
+    );
+
+    // Load the planned-response body for each row from the wiki — needed
+    // for both modes (annotate puts it in the comment, replace inserts it
+    // as a paragraph). Pages without bodies become `unfilled` entries.
+    const rowsWithBodies = await Promise.all(
+      eligible.map(async (row) => {
+        const slug: string | undefined = row.plannedResponseSlug;
+        if (!slug) return { row, body: null as string | null };
+        const wikiPath = join(root, 'wiki', 'topics', `${slug}.md`);
+        try {
+          const raw = await fs.readFile(wikiPath, 'utf-8');
+          // Strip YAML frontmatter
+          const body = raw.replace(/^---[\s\S]*?---\r?\n?/, '').trim();
+          return { row, body };
+        } catch {
+          return { row, body: null };
+        }
+      }),
+    );
+
+    // ── DOCX surgery ───────────────────────────────────────────────────
+    const templateBuffer = await fs.readFile(absoluteSource);
+    const zip = new AdmZip(templateBuffer);
+
+    const docEntry = zip.getEntry('word/document.xml');
+    if (!docEntry) throw new BadRequestException('Source DOCX has no word/document.xml');
+    let docXml = docEntry.getData().toString('utf-8');
+
+    const filled: Array<{ requirementId: string; locator: string }> = [];
+    const unfilled: Array<{ requirementId: string; locator: string; reason: string }> = [];
+
+    if (mode === 'annotate') {
+      // Build / extend word/comments.xml. Comments are positioned in
+      // document.xml via commentRangeStart / commentRangeEnd / commentReference
+      // markers; we wrap each matched paragraph's runs in those.
+      const commentsEntry = zip.getEntry('word/comments.xml');
+      let commentsXml = commentsEntry
+        ? commentsEntry.getData().toString('utf-8')
+        : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n` +
+          `<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"></w:comments>`;
+
+      // Next id — scan for existing <w:comment w:id="N"
+      let nextCommentId = 0;
+      const existingIds = [...commentsXml.matchAll(/<w:comment\s+[^>]*w:id="(\d+)"/g)].map(
+        (m) => parseInt(m[1], 10),
+      );
+      if (existingIds.length > 0) nextCommentId = Math.max(...existingIds) + 1;
+
+      const newCommentXml: string[] = [];
+
+      for (const { row, body } of rowsWithBodies) {
+        const locator: string | undefined = row.sourceCitation?.locator || row.sourceLocation;
+        if (!locator) {
+          unfilled.push({
+            requirementId: row.requirementId,
+            locator: '',
+            reason: 'no locator on coverage row',
+          });
+          continue;
+        }
+        if (!body) {
+          unfilled.push({
+            requirementId: row.requirementId,
+            locator,
+            reason: 'no planned-response page found',
+          });
+          continue;
+        }
+        const { matched, newDocXml, commentId } = injectAnnotation(
+          docXml,
+          locator,
+          row.requirementId,
+          body,
+          nextCommentId,
+        );
+        if (!matched) {
+          unfilled.push({
+            requirementId: row.requirementId,
+            locator,
+            reason: 'locator not found in source body',
+          });
+          continue;
+        }
+        docXml = newDocXml;
+        newCommentXml.push(
+          buildCommentXml(commentId, row.requirementId, body),
+        );
+        filled.push({ requirementId: row.requirementId, locator });
+        nextCommentId += 1;
+      }
+
+      // Insert new comments before </w:comments>
+      commentsXml = commentsXml.replace(
+        /<\/w:comments>\s*$/,
+        `${newCommentXml.join('\n')}</w:comments>`,
+      );
+      if (commentsEntry) {
+        zip.updateFile('word/comments.xml', Buffer.from(commentsXml, 'utf-8'));
+      } else {
+        zip.addFile('word/comments.xml', Buffer.from(commentsXml, 'utf-8'));
+        // Also need to register comments part in [Content_Types].xml and
+        // word/_rels/document.xml.rels if absent.
+        ensureCommentsPartRegistered(zip);
+      }
+    } else {
+      // replace mode: locate paragraph, insert a styled "Response" block
+      // immediately after it.
+      for (const { row, body } of rowsWithBodies) {
+        const locator: string | undefined = row.sourceCitation?.locator || row.sourceLocation;
+        if (!locator) {
+          unfilled.push({
+            requirementId: row.requirementId,
+            locator: '',
+            reason: 'no locator on coverage row',
+          });
+          continue;
+        }
+        if (!body) {
+          unfilled.push({
+            requirementId: row.requirementId,
+            locator,
+            reason: 'no planned-response page found',
+          });
+          continue;
+        }
+        const { matched, newDocXml } = injectReplacementParagraph(
+          docXml,
+          locator,
+          row.requirementId,
+          body,
+        );
+        if (!matched) {
+          unfilled.push({
+            requirementId: row.requirementId,
+            locator,
+            reason: 'locator not found in source body',
+          });
+          continue;
+        }
+        docXml = newDocXml;
+        filled.push({ requirementId: row.requirementId, locator });
+      }
+    }
+
+    zip.updateFile('word/document.xml', Buffer.from(docXml, 'utf-8'));
+
+    const outDir = join(root, 'out', 'fill-back');
+    await fs.mkdir(outDir, { recursive: true });
+    const outputRel = `out/fill-back/${basename(sourceDocPath, '.docx')}.responded.docx`;
+    const outputAbs = join(root, outputRel);
+    await fs.writeFile(outputAbs, zip.toBuffer());
+
+    this.logger.log(
+      `fillBackResponsesIntoSource[${mode}]: ${filled.length} filled, ${unfilled.length} unfilled → ${outputRel}`,
+    );
+    return {
+      success: true,
+      outputPath: outputRel,
+      filled,
+      unfilled,
+      message:
+        `Filled ${filled.length} response(s) into ${outputRel}. ` +
+        `${unfilled.length} row(s) could not be filled — see \`unfilled\`.`,
+    };
+  }
+
   /**
    * Create a new folder
    */
@@ -1409,4 +1784,211 @@ function markdownTableToOoxml(tableLines: string[]): string {
 
   xml += '</w:tbl>';
   return xml;
+}
+
+// ─── Helpers for extractSectionsToWiki + fillBackResponsesIntoSource ────────
+
+interface ExtractedSection {
+  title: string;
+  body: string;
+}
+
+/**
+ * Cheap heading detector: LiteParse `outputFormat: 'text'` gives plain
+ * text with structure flattened. We split on:
+ *   - lines that look like a clause locator (e.g. "§4.2", "Annex A §3.1")
+ *   - lines that look like a numbered heading ("3.2 ", "3.2.1 ")
+ *   - lines in ALL CAPS followed by a blank line
+ *
+ * Not perfect, but good enough to seed a wiki of stubs from a past bid.
+ * The user reviews each stub anyway.
+ */
+function splitIntoSections(text: string, maxSections: number): ExtractedSection[] {
+  const lines = text.split(/\r?\n/);
+  const sections: ExtractedSection[] = [];
+  let current: ExtractedSection | null = null;
+
+  const looksLikeHeading = (line: string): string | null => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.length > 120) return null;
+    // Numbered: "3", "3.2", "3.2.1" optionally followed by title.
+    const numbered = trimmed.match(/^(\d+(?:\.\d+){0,3})\s+(.{3,})$/);
+    if (numbered) return trimmed;
+    // Clause locator: "§4.2", "Annex C §3.3"
+    if (/^(§|Annex\s+[A-Z])/.test(trimmed)) return trimmed;
+    // ALL CAPS heading
+    if (/^[A-ZÄÖÜ0-9][A-ZÄÖÜ0-9 \-,:'/&()]{5,}$/.test(trimmed)) return trimmed;
+    return null;
+  };
+
+  for (const line of lines) {
+    const headingMaybe = looksLikeHeading(line);
+    if (headingMaybe) {
+      if (current) sections.push(current);
+      if (sections.length >= maxSections) break;
+      current = { title: headingMaybe, body: '' };
+      continue;
+    }
+    if (current) current.body += line + '\n';
+  }
+  if (current && sections.length < maxSections) sections.push(current);
+
+  // Drop sections with no body — heading-only artefacts from TOCs etc.
+  return sections.filter((s) => s.body.trim().length > 20);
+}
+
+function xmlEscapeAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/**
+ * Render the rendered text of a single `<w:p>` paragraph by concatenating
+ * the `<w:t>` runs inside it.
+ */
+function renderedTextOf(paragraphXml: string): string {
+  let out = '';
+  const re = /<w:t[^>]*>([\s\S]*?)<\/w:t>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(paragraphXml)) !== null) {
+    out += m[1];
+  }
+  return out;
+}
+
+/**
+ * Find the first `<w:p>...</w:p>` whose rendered text contains the
+ * locator string (case-insensitive). Returns the absolute index range in
+ * the docXml string, or null on miss.
+ */
+function findParagraphByLocator(
+  docXml: string,
+  locator: string,
+): { start: number; end: number; xml: string } | null {
+  const needle = locator.toLowerCase();
+  const pRe = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
+  let m: RegExpExecArray | null;
+  while ((m = pRe.exec(docXml)) !== null) {
+    const rendered = renderedTextOf(m[0]).toLowerCase();
+    if (rendered.includes(needle)) {
+      return { start: m.index, end: m.index + m[0].length, xml: m[0] };
+    }
+  }
+  return null;
+}
+
+/** Wrap the matched paragraph's runs in commentRangeStart/End markers. */
+function injectAnnotation(
+  docXml: string,
+  locator: string,
+  requirementId: string,
+  _body: string,
+  commentId: number,
+): { matched: boolean; newDocXml: string; commentId: number } {
+  const found = findParagraphByLocator(docXml, locator);
+  if (!found) return { matched: false, newDocXml: docXml, commentId };
+  const rangeStart = `<w:commentRangeStart w:id="${commentId}"/>`;
+  const rangeEnd = `<w:commentRangeEnd w:id="${commentId}"/>` +
+    `<w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr>` +
+    `<w:commentReference w:id="${commentId}"/></w:r>`;
+  // Insert rangeStart right after the opening <w:p ...>, rangeEnd right
+  // before its </w:p>. Keep the requirementId in a tooltip-ish position
+  // via the body of the comment itself; tag isn't used here.
+  void requirementId;
+  const pTagMatch = found.xml.match(/^(<w:p\b[^>]*>)([\s\S]*)(<\/w:p>)$/);
+  if (!pTagMatch) return { matched: false, newDocXml: docXml, commentId };
+  const newP = `${pTagMatch[1]}${rangeStart}${pTagMatch[2]}${rangeEnd}${pTagMatch[3]}`;
+  const newDocXml = docXml.slice(0, found.start) + newP + docXml.slice(found.end);
+  return { matched: true, newDocXml, commentId };
+}
+
+/** Insert a styled "Response — <reqId>" block immediately after the matched paragraph. */
+function injectReplacementParagraph(
+  docXml: string,
+  locator: string,
+  requirementId: string,
+  body: string,
+): { matched: boolean; newDocXml: string } {
+  const found = findParagraphByLocator(docXml, locator);
+  if (!found) return { matched: false, newDocXml: docXml };
+  const headingP =
+    `<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>` +
+    `<w:r><w:t xml:space="preserve">${xmlEscape(`Response — ${requirementId}`)}</w:t></w:r>` +
+    `</w:p>`;
+  const bodyParagraphs = body
+    .split(/\n{2,}/)
+    .map((para) => para.trim())
+    .filter(Boolean)
+    .map(
+      (para) =>
+        `<w:p><w:r><w:t xml:space="preserve">${xmlEscape(para)}</w:t></w:r></w:p>`,
+    )
+    .join('');
+  const insertion = headingP + bodyParagraphs;
+  const newDocXml =
+    docXml.slice(0, found.end) + insertion + docXml.slice(found.end);
+  return { matched: true, newDocXml };
+}
+
+function buildCommentXml(commentId: number, requirementId: string, body: string): string {
+  const author = `compliance-matrix-cockpit`;
+  const initials = `CM`;
+  const date = new Date().toISOString();
+  // Word's comments allow multiple `<w:p>` paragraphs inside <w:comment>.
+  const safeRequirement = xmlEscape(`Response — ${requirementId}`);
+  const paragraphs = body
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map(
+      (p) =>
+        `<w:p><w:r><w:t xml:space="preserve">${xmlEscape(p)}</w:t></w:r></w:p>`,
+    )
+    .join('');
+  return (
+    `<w:comment w:id="${commentId}" w:author="${xmlEscapeAttr(author)}" ` +
+    `w:date="${xmlEscapeAttr(date)}" w:initials="${xmlEscapeAttr(initials)}">` +
+    `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${safeRequirement}</w:t></w:r></w:p>` +
+    paragraphs +
+    `</w:comment>`
+  );
+}
+
+/**
+ * Ensure [Content_Types].xml + word/_rels/document.xml.rels register the
+ * comments part. Called only when we ADD comments.xml to a doc that
+ * didn't have one — both files are present in every valid DOCX, so we
+ * patch them in-place.
+ */
+function ensureCommentsPartRegistered(zip: AdmZip): void {
+  const ctEntry = zip.getEntry('[Content_Types].xml');
+  if (ctEntry) {
+    let ct = ctEntry.getData().toString('utf-8');
+    if (!/comments\.xml/.test(ct)) {
+      ct = ct.replace(
+        /<\/Types>\s*$/,
+        '<Override PartName="/word/comments.xml" ' +
+          'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>' +
+          '</Types>',
+      );
+      zip.updateFile('[Content_Types].xml', Buffer.from(ct, 'utf-8'));
+    }
+  }
+  const relsEntry = zip.getEntry('word/_rels/document.xml.rels');
+  if (relsEntry) {
+    let rels = relsEntry.getData().toString('utf-8');
+    if (!/comments\.xml/.test(rels)) {
+      // Pick the next id (rIdN)
+      const ids = [...rels.matchAll(/Id="rId(\d+)"/g)].map((m) =>
+        parseInt(m[1], 10),
+      );
+      const nextId = (ids.length > 0 ? Math.max(...ids) : 0) + 1;
+      rels = rels.replace(
+        /<\/Relationships>\s*$/,
+        `<Relationship Id="rId${nextId}" ` +
+          `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" ` +
+          `Target="comments.xml"/></Relationships>`,
+      );
+      zip.updateFile('word/_rels/document.xml.rels', Buffer.from(rels, 'utf-8'));
+    }
+  }
 }

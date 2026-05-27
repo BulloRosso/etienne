@@ -12,6 +12,7 @@
     "start": "npm run build && npm run serve"
   },
   "dependencies": {
+    "@fontsource/roboto": "^5.2.10",
     "@modelcontextprotocol/ext-apps": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "cors": "^2.8.5",

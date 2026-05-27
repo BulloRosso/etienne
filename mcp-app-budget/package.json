@@ -8,6 +8,7 @@
     "watch": "cross-env INPUT=mcp-app.html vite build --watch"
   },
   "dependencies": {
+    "@fontsource/roboto": "^5.2.10",
     "@modelcontextprotocol/ext-apps": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "react": "^19.2.0",

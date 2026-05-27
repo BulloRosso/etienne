@@ -18,6 +18,20 @@
   },
   "menuItems": [
     {
+      "id": "compliance-matrix",
+      "type": "document",
+      "icon": "TableView",
+      "labels": {
+        "en": "Open the compliance matrix",
+        "de": "Konformitätsmatrix öffnen",
+        "it": "Apri la matrice di conformità",
+        "zh": "打开合规矩阵"
+      },
+      "payload": {
+        "path": "out/compliance/current.compliance.json"
+      }
+    },
+    {
       "id": "coverage-dashboard",
       "type": "document",
       "icon": "Dashboard",

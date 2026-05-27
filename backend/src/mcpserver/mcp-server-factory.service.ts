@@ -61,6 +61,12 @@ import {
   ALIGNMENT_RESOURCE_URI,
   ALIGNMENT_RESOURCE_MIME,
 } from './alignment-tools';
+import {
+  createComplianceMatrixToolsService,
+  loadComplianceMatrixResourceHtml,
+  COMPLIANCE_MATRIX_RESOURCE_URI,
+  COMPLIANCE_MATRIX_RESOURCE_MIME,
+} from './compliance-matrix-tools';
 import { ProcessManagerService } from '../process-manager/process-manager.service';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.service';
@@ -78,6 +84,7 @@ import { GraphClientService } from '../ms365/graph-client.service';
 import { OneDriveSyncService } from '../ms365/onedrive-sync.service';
 import { WritebackWatcherService } from '../ms365/writeback-watcher.service';
 import { ApplicationTypesService } from '../application-types/application-types.service';
+import { WikiService } from '../wiki/wiki.service';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -118,6 +125,7 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly oneDriveSync: OneDriveSyncService,
     private readonly writebackWatcher: WritebackWatcherService,
     private readonly applicationTypesService: ApplicationTypesService,
+    private readonly wikiService: WikiService,
   ) {
     const scopedLlm = this.createProjectScopedLlm();
     this.groupConfigs = {
@@ -200,6 +208,18 @@ export class McpServerFactoryService implements OnModuleInit {
             description: 'Interactive dashboard for .alignment.json fleet-alignment reports',
             mimeType: ALIGNMENT_RESOURCE_MIME,
             loadContent: loadAlignmentResourceHtml,
+          },
+        ],
+      },
+      'compliance-matrix': {
+        toolServices: [createComplianceMatrixToolsService(this.wikiService)],
+        resources: [
+          {
+            uri: COMPLIANCE_MATRIX_RESOURCE_URI,
+            name: 'Compliance Matrix Cockpit',
+            description: 'Interactive compliance-matrix cockpit for .compliance.json files',
+            mimeType: COMPLIANCE_MATRIX_RESOURCE_MIME,
+            loadContent: loadComplianceMatrixResourceHtml,
           },
         ],
       },

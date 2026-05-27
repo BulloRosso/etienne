@@ -1,0 +1,313 @@
+- generic [ref=e1]:
+  - generic [ref=e24]:
+    - banner [ref=e25]:
+      - generic [ref=e26]:
+        - heading [level=6] [ref=e132]: "Etienne: ein Coding-Agent-Harness"
+        - button [ref=e133] [cursor=pointer]:
+          - img [ref=e29]
+        - generic [ref=e32] [cursor=pointer]:
+          - img [ref=e34]
+          - img [ref=e38]
+        - heading [level=6] [ref=e134]: "[Projekt auswählen/erstellen]"
+        - button [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+    - generic [ref=e45]:
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - button [ref=e135] [cursor=pointer]:
+            - img [ref=e50]
+          - generic [ref=e52]:
+            - generic [ref=e53] [cursor=pointer]:
+              - img [ref=e55]
+              - img [ref=e66]
+            - generic [ref=e69]: Arbeitsmodus
+          - button [ref=e138] [cursor=pointer]:
+            - img [ref=e72]
+        - generic [ref=e77]:
+          - generic [ref=e78]:
+            - button [disabled]:
+              - img
+          - generic [ref=e80]:
+            - textbox [disabled] [ref=e139]:
+              - /placeholder: Nachricht eingeben und @ verwenden, um Dateien zu erwähnen...
+            - group
+          - button [disabled]:
+            - img
+          - button [disabled]:
+            - img
+      - generic [ref=e87]:
+        - tablist [ref=e91]:
+          - tab [selected] [ref=e140] [cursor=pointer]: Arbeitsbereich
+        - tabpanel [ref=e94]:
+          - generic [ref=e96]:
+            - generic [ref=e99]:
+              - img [ref=e101]
+              - paragraph [ref=e128]: Ihre letzten Aufträge
+            - generic [ref=e129]:
+              - img [ref=e141]
+              - paragraph [ref=e131]: Hier werden ausgewählte Dokumente aus Ihrem Workspace als Vorschau angezeigt
+  - menu [ref=e144]:
+    - generic [ref=e145]:
+      - generic [ref=e147]:
+        - generic [ref=e149]:
+          - heading "Etienne" [level=6] [ref=e150]
+          - button [ref=e151] [cursor=pointer]:
+            - img [ref=e152]
+        - generic [ref=e155] [cursor=pointer]:
+          - button "Passwort ändern" [ref=e157]:
+            - img [ref=e158]
+          - generic [ref=e160]:
+            - paragraph [ref=e161]: Standard User
+            - text: user
+          - img [ref=e162]
+        - generic [ref=e164]:
+          - generic [ref=e165]:
+            - img "Subagenten" [ref=e167]
+            - generic "Subagenten" [ref=e168]
+          - generic [ref=e169]:
+            - img "Skills" [ref=e171]
+            - generic "Skills" [ref=e172]
+          - generic [ref=e173]:
+            - img "Wissensdatenbank" [ref=e175]
+            - generic "Wissensdatenbank" [ref=e176]
+          - generic [ref=e177]:
+            - img "Externe Ereignisse" [ref=e179]
+            - generic "Externe Ereignisse" [ref=e180]
+          - generic [ref=e181]:
+            - img "Zeitplanung" [ref=e183]
+            - generic "Zeitplanung" [ref=e184]
+          - generic [ref=e185]:
+            - img "Budget-Einstellungen" [ref=e187]
+            - generic "Budget-Einstellungen" [ref=e188]
+          - generic [ref=e189]:
+            - img "Träumen" [ref=e191]
+            - generic "Träumen" [ref=e192]
+          - generic [ref=e193]:
+            - img "Adaptives Gedächtnis" [ref=e195]
+            - generic "Adaptives Gedächtnis" [ref=e196]
+          - generic [ref=e197]:
+            - img "Benutzeroberfläche anpassen" [ref=e199]
+            - generic "Benutzeroberfläche anpassen" [ref=e200]
+          - generic [ref=e201] [cursor=pointer]:
+            - img "Schnellaktionen" [ref=e203]
+            - generic "Schnellaktionen" [ref=e204]
+          - generic [ref=e205]:
+            - img "Kontext/Tagging" [ref=e207]
+            - generic "Kontext/Tagging" [ref=e208]
+          - generic [ref=e209]:
+            - img "Zustandsüberwachung" [ref=e211]
+            - generic "Zustandsüberwachung" [ref=e212]
+          - generic [ref=e213]:
+            - img "Workflows" [ref=e215]
+            - generic "Workflows" [ref=e216]
+          - generic [ref=e217]:
+            - img "Notizbuch" [ref=e219]
+            - generic "Notizbuch" [ref=e220]
+          - generic [ref=e221]:
+            - img "Probleme" [ref=e223]
+            - generic "Probleme" [ref=e224]
+          - generic [ref=e225]:
+            - img "Entscheidungsunterstützung" [ref=e227]
+            - generic "Entscheidungsunterstützung" [ref=e228]
+          - generic [ref=e229]:
+            - img "Team up!" [ref=e231]
+            - generic "Team up!" [ref=e232]
+          - generic [ref=e233]:
+            - img "OneDrive" [ref=e235]
+            - generic "OneDrive" [ref=e236]
+        - generic [ref=e237]:
+          - generic [ref=e238] [cursor=pointer]:
+            - img [ref=e239]
+            - generic [ref=e241]: Dienstesteuerung
+          - generic [ref=e242] [cursor=pointer]:
+            - img [ref=e243]
+            - generic [ref=e245]: Agent Persona
+          - generic "Compose a new Agent Package from scratch" [ref=e246] [cursor=pointer]:
+            - img [ref=e247]
+            - generic [ref=e250]: Compose package
+      - generic [ref=e251]:
+        - menuitem "Deine Projekte" [disabled]:
+          - generic:
+            - generic:
+              - generic: Deine Projekte
+        - generic [ref=e252]:
+          - menuitem "acme" [ref=e253] [cursor=pointer]:
+            - img [ref=e255]
+            - generic [ref=e258]: acme
+          - menuitem "agent-browser-3" [ref=e259] [cursor=pointer]:
+            - img [ref=e261]
+            - generic [ref=e264]: agent-browser-3
+          - menuitem "agent-sdk" [ref=e265] [cursor=pointer]:
+            - img [ref=e267]
+            - generic [ref=e270]: agent-sdk
+          - menuitem "agent-sdk-petstore" [ref=e271] [cursor=pointer]:
+            - img [ref=e273]
+            - generic [ref=e276]: agent-sdk-petstore
+          - menuitem "analysis" [ref=e277] [cursor=pointer]:
+            - img [ref=e279]
+            - generic [ref=e282]: analysis
+          - menuitem "analysis-copy" [ref=e283] [cursor=pointer]:
+            - img [ref=e285]
+            - generic [ref=e288]: analysis-copy
+          - menuitem "compliance" [ref=e289] [cursor=pointer]:
+            - img [ref=e291]
+            - generic [ref=e294]: compliance
+          - menuitem "condition-monitoring" [ref=e295] [cursor=pointer]:
+            - img [ref=e297]
+            - generic [ref=e300]: condition-monitoring
+          - menuitem "data" [ref=e301] [cursor=pointer]:
+            - img [ref=e303]
+            - generic [ref=e306]: data
+          - menuitem "desalination-devices" [ref=e307] [cursor=pointer]:
+            - img [ref=e309]
+            - generic [ref=e312]: desalination-devices
+          - menuitem "diffbot" [ref=e313] [cursor=pointer]:
+            - img [ref=e315]
+            - generic [ref=e318]: diffbot
+          - menuitem "document-creation-demo" [ref=e319] [cursor=pointer]:
+            - img [ref=e321]
+            - generic [ref=e324]: document-creation-demo
+          - menuitem "document-demo" [ref=e325] [cursor=pointer]:
+            - img [ref=e327]
+            - generic [ref=e330]: document-demo
+          - menuitem "ev-exploration" [ref=e331] [cursor=pointer]:
+            - img [ref=e333]
+            - generic [ref=e336]: ev-exploration
+          - menuitem "factory-line-sim" [ref=e337] [cursor=pointer]:
+            - img [ref=e339]
+            - generic [ref=e342]: factory-line-sim
+          - menuitem "global" [ref=e343] [cursor=pointer]:
+            - img [ref=e345]
+            - generic [ref=e348]: global
+          - menuitem "guiding-documents" [ref=e349] [cursor=pointer]:
+            - img [ref=e351]
+            - generic [ref=e354]: guiding-documents
+          - menuitem "image-generation" [ref=e355] [cursor=pointer]:
+            - img [ref=e357]
+            - generic [ref=e360]: image-generation
+          - menuitem "int-ds-5632c2d5" [ref=e361] [cursor=pointer]:
+            - img [ref=e363]
+            - generic [ref=e366]: int-ds-5632c2d5
+          - menuitem "int-ds-7d71c4dc" [ref=e367] [cursor=pointer]:
+            - img [ref=e369]
+            - generic [ref=e372]: int-ds-7d71c4dc
+          - menuitem "int-ds-96a36ffd" [ref=e373] [cursor=pointer]:
+            - img [ref=e375]
+            - generic [ref=e378]: int-ds-96a36ffd
+          - menuitem "int-ds-d16e43c3" [ref=e379] [cursor=pointer]:
+            - img [ref=e381]
+            - generic [ref=e384]: int-ds-d16e43c3
+          - menuitem "int-ds-f31427c5" [ref=e385] [cursor=pointer]:
+            - img [ref=e387]
+            - generic [ref=e390]: int-ds-f31427c5
+          - menuitem "int-kg-7af5cc53" [ref=e391] [cursor=pointer]:
+            - img [ref=e393]
+            - generic [ref=e396]: int-kg-7af5cc53
+          - menuitem "int-kg-a35a54ee" [ref=e397] [cursor=pointer]:
+            - img [ref=e399]
+            - generic [ref=e402]: int-kg-a35a54ee
+          - menuitem "int-kg-b8cb2ed4" [ref=e403] [cursor=pointer]:
+            - img [ref=e405]
+            - generic [ref=e408]: int-kg-b8cb2ed4
+          - menuitem "int-pond-987d483b" [ref=e409] [cursor=pointer]:
+            - img [ref=e411]
+            - generic [ref=e414]: int-pond-987d483b
+          - menuitem "int-pond-a47bd303" [ref=e415] [cursor=pointer]:
+            - img [ref=e417]
+            - generic [ref=e420]: int-pond-a47bd303
+          - menuitem "learning-agent-3" [ref=e421] [cursor=pointer]:
+            - img [ref=e423]
+            - generic [ref=e426]: learning-agent-3
+          - menuitem "mb-config" [ref=e427] [cursor=pointer]:
+            - img [ref=e429]
+            - generic [ref=e432]: mb-config
+          - menuitem "notifications" [ref=e433] [cursor=pointer]:
+            - img [ref=e435]
+            - generic [ref=e438]: notifications
+          - menuitem "office-parser" [ref=e439] [cursor=pointer]:
+            - img [ref=e441]
+            - generic [ref=e444]: office-parser
+          - menuitem "onboarding" [ref=e445] [cursor=pointer]:
+            - img [ref=e447]
+            - generic [ref=e450]: onboarding
+          - menuitem "ontology" [ref=e451] [cursor=pointer]:
+            - img [ref=e453]
+            - generic [ref=e456]: ontology
+          - menuitem "opencode-deepseek-v4-pro" [ref=e457] [cursor=pointer]:
+            - img [ref=e459]
+            - generic [ref=e462]: opencode-deepseek-v4-pro
+          - menuitem "pet-store" [ref=e463] [cursor=pointer]:
+            - img [ref=e465]
+            - generic [ref=e468]: pet-store
+          - menuitem "public-dashboard" [ref=e469] [cursor=pointer]:
+            - img [ref=e471]
+            - generic [ref=e474]: public-dashboard
+          - menuitem "quote-configurator" [ref=e475] [cursor=pointer]:
+            - img [ref=e477]
+            - generic [ref=e480]: quote-configurator
+          - menuitem "rag-example" [ref=e481] [cursor=pointer]:
+            - img [ref=e483]
+            - generic [ref=e486]: rag-example
+          - menuitem "requirements-hv" [ref=e487] [cursor=pointer]:
+            - img [ref=e489]
+            - generic [ref=e492]: requirements-hv
+          - menuitem "scrapbook-desalination-devices" [ref=e493] [cursor=pointer]:
+            - img [ref=e495]
+            - generic [ref=e498]: scrapbook-desalination-devices
+          - menuitem "scrapbook-desalination-devices-design" [ref=e499] [cursor=pointer]:
+            - img [ref=e501]
+            - generic [ref=e504]: scrapbook-desalination-devices-design
+          - menuitem "scrapbook-diffbot" [ref=e505] [cursor=pointer]:
+            - img [ref=e507]
+            - generic [ref=e510]: scrapbook-diffbot
+          - menuitem "scrapbook-guiding-documents" [ref=e511] [cursor=pointer]:
+            - img [ref=e513]
+            - generic [ref=e516]: scrapbook-guiding-documents
+          - menuitem "scrapbook-int-ds-d16e43c3" [ref=e517] [cursor=pointer]:
+            - img [ref=e519]
+            - generic [ref=e522]: scrapbook-int-ds-d16e43c3
+          - menuitem "scrapbook-ontology-house-planning" [ref=e523] [cursor=pointer]:
+            - img [ref=e525]
+            - generic [ref=e528]: scrapbook-ontology-house-planning
+          - menuitem "scrapbook-scrapbook-crawler" [ref=e529] [cursor=pointer]:
+            - img [ref=e531]
+            - generic [ref=e534]: scrapbook-scrapbook-crawler
+          - menuitem "scrapbook-scrapbook-ontology" [ref=e535] [cursor=pointer]:
+            - img [ref=e537]
+            - generic [ref=e540]: scrapbook-scrapbook-ontology
+          - menuitem "scrapbook-scrapbook-scrapbook-todo-list" [ref=e541] [cursor=pointer]:
+            - img [ref=e543]
+            - generic [ref=e546]: scrapbook-scrapbook-scrapbook-todo-list
+          - menuitem "scrapbook-scraper-3" [ref=e547] [cursor=pointer]:
+            - img [ref=e549]
+            - generic [ref=e552]: scrapbook-scraper-3
+          - menuitem "scrapbook-tanker-long-horizon" [ref=e553] [cursor=pointer]:
+            - img [ref=e555]
+            - generic [ref=e558]: scrapbook-tanker-long-horizon
+          - menuitem "scrapbook-tanker-long-horizon-fleet" [ref=e559] [cursor=pointer]:
+            - img [ref=e561]
+            - generic [ref=e564]: scrapbook-tanker-long-horizon-fleet
+          - menuitem "scraper-3" [ref=e565] [cursor=pointer]:
+            - img [ref=e567]
+            - generic [ref=e570]: scraper-3
+          - menuitem "tanker-long-horizon" [ref=e571] [cursor=pointer]:
+            - img [ref=e573]
+            - generic [ref=e576]: tanker-long-horizon
+          - menuitem "tender-basics" [ref=e577] [cursor=pointer]:
+            - img [ref=e579]
+            - generic [ref=e582]: tender-basics
+          - menuitem "test-ux" [ref=e583] [cursor=pointer]:
+            - img [ref=e585]
+            - generic [ref=e588]: test-ux
+          - menuitem "vapi-demo" [ref=e589] [cursor=pointer]:
+            - img [ref=e591]
+            - generic [ref=e594]: vapi-demo
+          - menuitem "web-test" [ref=e595] [cursor=pointer]:
+            - img [ref=e597]
+            - generic [ref=e600]: web-test
+          - menuitem "wiki-test" [ref=e601] [cursor=pointer]:
+            - img [ref=e603]
+            - generic [ref=e606]: wiki-test
+        - button "Neues Projekt erstellen" [ref=e608] [cursor=pointer]:
+          - img [ref=e609]
+          - img [ref=e611]

@@ -123,7 +123,9 @@
       "Bash(cp src/mcpserver/document-analysis-tools.ts /tmp/dat.bak)",
       "Bash(sed -i '850,956d' src/mcpserver/document-analysis-tools.ts)",
       "WebFetch(domain:docs.ag-ui.com)",
-      "Bash(NODE_OPTIONS=\"--max-old-space-size=12288\" npx tsc --noEmit --skipLibCheck)"
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=12288\" npx tsc --noEmit --skipLibCheck)",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_snapshot"
     ],
     "deny": [],
     "ask": []

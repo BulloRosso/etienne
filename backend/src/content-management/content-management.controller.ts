@@ -196,6 +196,40 @@ export class ContentManagementController {
   }
 
   @Roles('user')
+  @Post(':project/documents/extract-sections/*')
+  async extractSections(
+    @Param('project') project: string,
+    @Param('0') filepath: string,
+    @Body() body: { maxSections?: number },
+  ) {
+    return await this.contentManagementService.extractSectionsToWiki(
+      project,
+      filepath,
+      { maxSections: body?.maxSections },
+    );
+  }
+
+  @Roles('user')
+  @Post(':project/documents/fill-back')
+  async fillBackResponses(
+    @Param('project') project: string,
+    @Body()
+    body: {
+      sourceDocPath: string;
+      mode: 'annotate' | 'replace';
+      coverageRef?: string;
+      includeNonCommitted?: boolean;
+    },
+  ) {
+    return await this.contentManagementService.fillBackResponsesIntoSource(
+      project,
+      body.sourceDocPath,
+      body.mode,
+      { coverageRef: body.coverageRef, includeNonCommitted: body.includeNonCommitted },
+    );
+  }
+
+  @Roles('user')
   @Post(':project/files/create-folder')
   async createFolder(
     @Param('project') project: string,

@@ -1315,6 +1315,38 @@ export default function App() {
     };
   }, []);
 
+  // Listen for postMessage actions from MCP App iframes (compliance-matrix
+  // cockpit so far). Mounted here at the app root so they fire regardless
+  // of which artifact tab is active — Filesystem can unmount between
+  // tab switches, and we don't want the cockpit's host-bound buttons to
+  // silently fail when it does.
+  useEffect(() => {
+    function handler(event) {
+      if (event.data?.type !== 'compliance-cockpit-action') return;
+      const { action, payload } = event.data;
+      if (action === 'open-wiki-editor') {
+        const slug = payload?.slug;
+        if (slug && currentProject) {
+          filePreviewHandler.handlePreview(`wiki/topics/${slug}.md`, currentProject);
+        }
+      } else if (action === 'open-host-preview') {
+        const path = payload?.path;
+        if (path && currentProject) {
+          filePreviewHandler.handlePreview(path, currentProject);
+        }
+      } else if (action === 'open-external') {
+        const url = payload?.url;
+        if (url && /^https?:/i.test(url)) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      }
+      // `open-export` is handled in Filesystem.jsx where the modal infra
+      // lives; we ignore it here to avoid double-handling.
+    }
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [currentProject]);
+
   const handleShowBackgroundInfoChange = (value) => {
     setShowBackgroundInfo(value);
     localStorage.setItem('showBackgroundInfo', value.toString());

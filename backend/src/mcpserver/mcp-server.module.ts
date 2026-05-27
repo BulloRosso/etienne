@@ -19,9 +19,10 @@ import { CollaborationModule } from '../collaboration/collaboration.module';
 import { RagModule } from '../rag/rag.module';
 import { Ms365Module } from '../ms365/ms365.module';
 import { ApplicationTypesModule } from '../application-types/application-types.module';
+import { WikiModule } from '../wiki/wiki.module';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule, RagModule, Ms365Module, ApplicationTypesModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule, RagModule, Ms365Module, ApplicationTypesModule, WikiModule],
   controllers: [McpServerController],
   providers: [McpServerFactoryService, McpAuthGuard],
   exports: [McpServerFactoryService],

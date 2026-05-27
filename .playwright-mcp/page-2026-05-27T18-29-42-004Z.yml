@@ -1,0 +1,48 @@
+- generic [ref=e24]:
+  - banner [ref=e25]:
+    - generic [ref=e26]:
+      - 'heading "Etienne: ein Coding-Agent-Harness" [level=6] [ref=e27]'
+      - button "Präsentation" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+      - generic [ref=e32] [cursor=pointer]:
+        - img [ref=e34]
+        - img [ref=e38]
+      - heading "[Projekt auswählen/erstellen]" [level=6] [ref=e40]
+      - button [ref=e41] [cursor=pointer]:
+        - img [ref=e42]
+  - generic [ref=e45]:
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - button "Neue Sitzung starten" [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+        - generic [ref=e52]:
+          - generic [ref=e53] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=e54]:
+              - img [ref=e55]
+            - generic "Arbeitsmodus" [ref=e65]:
+              - img [ref=e66]
+          - generic [ref=e69]: Arbeitsmodus
+        - button "Benachrichtigungen" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - button "Dateianhänge hinzufügen" [disabled]:
+            - img
+        - generic [ref=e80]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [disabled] [ref=e81]
+          - group
+        - button [disabled]:
+          - img
+        - button [disabled]:
+          - img
+    - generic [ref=e87]:
+      - tablist [ref=e91]:
+        - tab "Arbeitsbereich" [selected] [ref=e92] [cursor=pointer]
+      - tabpanel [ref=e94]:
+        - generic [ref=e96]:
+          - generic [ref=e99]:
+            - img [ref=e101]
+            - paragraph [ref=e128]: Ihre letzten Aufträge
+          - generic [ref=e129]:
+            - img "Workspace-Platzhalter" [ref=e130]
+            - paragraph [ref=e131]: Hier werden ausgewählte Dokumente aus Ihrem Workspace als Vorschau angezeigt

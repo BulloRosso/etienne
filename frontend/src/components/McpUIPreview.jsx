@@ -78,10 +78,13 @@ export default function McpUIPreview({ filename, content, mcpGroup, mcpToolName,
         setClient(mcpClient);
         setConnecting(false);
 
-        // Call the tool with the file content
+        // Call the tool with the file content. We also pass projectName
+        // so tools that need to resolve project-relative paths server-side
+        // (e.g. compliance-matrix reading wiki/topics/team.md) can do so
+        // without parsing it out of the file content.
         const result = await mcpClient.callTool({
           name: mcpToolName,
-          arguments: { filename, content },
+          arguments: { filename, content, projectName },
         });
 
         if (!cancelled) {

@@ -609,6 +609,278 @@ not that it papers over it. The [normalize step
 each source clause falls on.
 `,
   },
+  // -- Team (single source of truth for owner initials → engineer) -------
+  //
+  // The compliance-matrix previewer looks this page up by slug
+  // (`team`, bucket `topics`) via WikiService.getPage and resolves the
+  // "Initials" column to render owner cells. Rows whose
+  // `responsibleEngineer` kg-id is not represented here fall back to the
+  // raw id and get a "no team entry" hint chip in the cockpit.
+  {
+    title: 'Team',
+    slug: 'team',
+    bucket: 'topics',
+    status: 'stable',
+    confidence: 'high',
+    tags: ['team', 'owners'],
+    mission_relevance: 1.0,
+    body: `# Team
+
+The bid team. The [compliance matrix previewer](../topics/coverage-dashboard.md)
+resolves owner cells against this page — edit the table to change which
+initials the cockpit recognises. One row per kg engineer-id keeps the
+Owner filter free of duplicates.
+
+| Initials | Engineer id              | Name              | Role                                                 | Areas                                  |
+|----------|--------------------------|-------------------|------------------------------------------------------|----------------------------------------|
+| E1       | engineer-anke-vogt       | Engineer One      | principal engineer — controls & protection           | REQ-241..268, FRT-250ms                |
+| E2       | engineer-bernd-haag      | Engineer Two      | principal engineer — power-quality                   | REQ-301..308 (Annex C), harmonic filter|
+| E3       | engineer-clara-mueller   | Engineer Three    | lead engineer — primary equipment                    | REQ-101..184 (Volume 1 + Annex A)      |
+| E4       | engineer-dirk-stein      | Engineer Four     | proposal-desk lead                                   | coverage + commit-gate G3              |
+
+## How the cockpit uses this
+
+- Owner column on every requirement row resolves \`responsibleEngineer\`
+  (a kg entity id like \`engineer-anke-vogt\`) → the **Initials** column
+  here. The header on the matrix shows the initials; the tooltip on hover
+  shows name + role.
+- The Owner filter in the left rail enumerates this table.
+- Removing a row from this table does not remove the engineer from the
+  knowledge graph — it only stops the cockpit from resolving them. Rows
+  whose owner cannot be resolved render with a "no team entry" hint chip.
+- If you want one real person to own the workload of several fictional
+  engineers, put a single row whose **Engineer id** cell lists multiple
+  ids separated by commas. The cockpit's parser handles that — but each
+  id still surfaces once in the Owner filter dropdown.
+`,
+  },
+
+  // -- Planned-response pages (reuse content for committed/drafted rows) -
+  //
+  // Convention: \`planned-response/<req-id-lowercase>\`. The cockpit links
+  // every CoverageRow to its slug; clicking a row in the matrix shows the
+  // page in the right pane via WikiService.getPage. Pages for rows that
+  // haven't been drafted yet are not seeded — the "Create planned
+  // response" button in the cockpit calls create_planned_response_page to
+  // stub them on first click.
+  {
+    title: 'Planned response — REQ-101 (rated DC voltage)',
+    slug: 'planned-response/req-101',
+    bucket: 'topics',
+    status: 'stable',
+    confidence: 'high',
+    tags: ['planned-response', 'req-101', 'reuse-northshore-2022'],
+    mission_relevance: 0.9,
+    body: `# Planned response — REQ-101
+
+> **Requirement (EARS):** The converter station shall be designed for a
+> continuous rated DC voltage of ±525 kV.
+> [[doc:documents/source-volume-1-functional-spec-excerpt.md]]
+
+## Response (DE)
+
+Die Umrichterstation wird für eine kontinuierliche Nenn-DC-Spannung von
+**±525 kV** ausgelegt. Die Auslegung folgt der bewährten MMC-Topologie aus
+dem Northshore-2022-Projekt und ist für den Dauerbetrieb am 525-kV-DC-Bus
+qualifiziert.
+
+## Reuse provenance
+
+Drafted from the [Northshore-2022 MMC control scheme
+](../topics/mmc-control-scheme.md). The rated-voltage section reuses the
+type-tested envelope of the Northshore HVDC link bipoles (operational
+since 2022).
+
+## Status
+
+Committed. Locked by C. Müller; carries no override or mismatch chip.
+`,
+  },
+  {
+    title: 'Planned response — REQ-184 (reactive-power range, amended)',
+    slug: 'planned-response/req-184',
+    bucket: 'topics',
+    status: 'draft',
+    confidence: 'medium',
+    tags: ['planned-response', 'req-184', 'override', 'reuse-aurora-2024'],
+    mission_relevance: 1.0,
+    body: `# Planned response — REQ-184
+
+> **Requirement (EARS, amended):** The converter shall provide reactive-power
+> range of **±0.90 leading / ±0.95 lagging** at full active-power output,
+> as amended by the 2026-04-18 clarifications memo.
+> [[doc:documents/source-volume-1-functional-spec-excerpt.md]]
+> [[doc:documents/source-late-clarifications-2026-04-18.md]]
+
+## Response (DE) — DRAFT, awaiting principal-engineer decision
+
+Der Umrichter stellt am Punkt des Netzanschlusses einen Blindleistungs-
+bereich von **±0,90 voreilend / ±0,95 nacheilend** bei voller
+Wirkleistungsabgabe bereit. Die Auslegung berücksichtigt die enger
+gefasste voreilende Grenze aus der Klarstellungsmitteilung vom
+2026-04-18.
+
+## Reuse provenance — and the override edge
+
+Drafted from the [Aurora-2024 reactive-power capability curve
+](../topics/reuse-base.md). Aurora-2024 answered the **original**
+±0.95/±0.95 envelope; the amended ±0.90 leading limit needs the
+capability curve re-cut. See [late-clarification overrides
+](../topics/late-clarification-overrides.md).
+
+## What still needs to happen
+
+- Re-cut the PQ envelope at ±0.90 leading; produce updated capability
+  plot and verify thermal envelope at the new operating boundary.
+- Confirm protection-coordination interaction at the narrowed
+  leading-side limit.
+- C. Müller signs off; row moves \`drafted → reviewed → committed\`.
+`,
+  },
+  {
+    title: 'Planned response — REQ-247 (FRT-250ms)',
+    slug: 'planned-response/req-247',
+    bucket: 'topics',
+    status: 'draft',
+    confidence: 'high',
+    tags: ['planned-response', 'req-247', 'frt', 'load-bearing', 'reuse-northshore-2022'],
+    mission_relevance: 1.0,
+    body: `# Planned response — REQ-247
+
+> **Requirement (EARS):** When a three-phase fully-depressed-voltage fault
+> occurs at the converter AC bus, the converter shall remain connected
+> and resume pre-fault active-power output within **250 ms**.
+> [[doc:documents/source-volume-2-annex-a-electrical-performance-excerpt.md]]
+
+## Response (DE) — DRAFT
+
+Bei einem dreiphasigen Spannungseinbruch auf null Spannung am
+AC-Sammelschienenanschluss bleibt der Umrichter am Netz und führt die
+Wirkleistungsabgabe innerhalb von **250 ms** auf den Vorstörwert zurück.
+Der Nachweis stützt sich auf das im Northshore-2022-Projekt typgeprüfte
+MMC-Regelschema.
+
+## Reuse provenance — type-test evidence on file
+
+- Reference design: [MMC control scheme (Northshore-2022)
+  ](../topics/mmc-control-scheme.md).
+- Type-test evidence: [northshore-2022-frt-type-test
+  ](../sources/source-northshore-2022-frt-type-test.md) — certified
+  3-phase fully-depressed-voltage, 250 ms ride-through.
+
+## State
+
+Drafted by the agent (reuse + adaptation + DE translation). Awaiting
+A. Vogt's review. Carries the *load-bearing* chip on the
+[coverage dashboard](../topics/coverage-dashboard.md).
+
+See also [case-frt-250ms](../topics/case-frt-250ms.md).
+`,
+  },
+  {
+    title: 'Planned response — REQ-303 (THD ≤ 0.9% at PCC)',
+    slug: 'planned-response/req-303',
+    bucket: 'topics',
+    status: 'draft',
+    confidence: 'low',
+    tags: ['planned-response', 'req-303', 'reuse-mismatch', 'load-bearing'],
+    mission_relevance: 1.0,
+    body: `# Planned response — REQ-303
+
+> **Requirement (EARS):** Total harmonic distortion at the point of common
+> coupling shall not exceed **0.9%** at any operating point.
+> [[doc:documents/source-volume-4-annex-c-harmonics-excerpt.md]]
+
+## Response (DE) — DRAFT (reuse mismatch, not safe to commit)
+
+Die Gesamtoberschwingungsverzerrung (THD) am Netzanschlusspunkt wird in
+allen Betriebspunkten **≤ 0,9 %** gehalten. Hierfür wird die
+Filterauslegung gegenüber der Reefnet-2020-Referenz neu abgestimmt; der
+Nachweis erfolgt durch Site-Acceptance-Messung gemäss IEC 61000-4-7.
+
+## Reuse provenance — and the cascade
+
+- Initial draft pulled from [Reefnet-2020 harmonic-filter design
+  ](../topics/reuse-base.md), which delivered **THD ≤ 1.5 %** — does
+  *not* meet NSÜN's 0.9 % limit. See [reuse mismatch — harmonic filter
+  ](../topics/reuse-mismatch-harmonic-filter.md).
+- Three downstream requirements share the same filter topology and
+  inherit the rework: REQ-304, REQ-305, REQ-307. The compliance matrix
+  flags all four with the *reuse-mismatch* chip.
+
+## Three paths (no agent recommendation)
+
+1. Re-tune from a different past project's filter topology.
+2. Formally deviate; document the rationale and commercial implication.
+3. Clarify with the customer whether the THD limit applies at the PCC
+   or at the converter terminals.
+
+B. Haag owns the call. Row stays \`drafted\` with the *reuse-mismatch*
+chip until the decision is on the record.
+`,
+  },
+  {
+    title: 'Planned response — REQ-211 (redundant differential protection)',
+    slug: 'planned-response/req-211',
+    bucket: 'topics',
+    status: 'stable',
+    confidence: 'high',
+    tags: ['planned-response', 'req-211', 'reuse-capeline-2023'],
+    mission_relevance: 0.85,
+    body: `# Planned response — REQ-211
+
+> **Requirement (EARS):** The protection system shall include redundant
+> differential protection per IEC 61850-9-2.
+> [[doc:documents/source-volume-3-annex-b-protection-control-excerpt.md]]
+
+## Response (DE)
+
+Das Schutzsystem umfasst eine **redundante Differentialschutzfunktion**
+gemäss IEC 61850-9-2. Beide Pfade nutzen die Sampled-Value-Topologie
+und werden durch unabhängige Merging Units mit getrennten
+Zeitsynchronisations-Quellen versorgt.
+
+## Reuse provenance
+
+Drafted from the [Capeline-2023 protection philosophy
+](../topics/reuse-base.md). The Capeline reference design implements
+the same redundancy pattern and is type-test certified.
+
+## Status
+
+Committed by A. Vogt.
+`,
+  },
+  {
+    title: 'Planned response — REQ-601 (NC-HVDC compliance)',
+    slug: 'planned-response/req-601',
+    bucket: 'topics',
+    status: 'stable',
+    confidence: 'high',
+    tags: ['planned-response', 'req-601', 'standards', 'nc-hvdc'],
+    mission_relevance: 0.85,
+    body: `# Planned response — REQ-601
+
+> **Requirement (EARS):** The converter station shall comply with all
+> mandatory provisions of EU Regulation 2016/1447 (NC-HVDC).
+> [[doc:documents/source-volume-6-grid-code-excerpt.md]]
+
+## Response (DE)
+
+Die Umrichterstation erfüllt alle verbindlichen Anforderungen der
+EU-Verordnung 2016/1447 (NC-HVDC). Der Konformitätsnachweis wird in der
+[Konformitätsmatrix](../topics/coverage-dashboard.md) abschnittsweise
+geführt, mit Verweis auf den jeweiligen Erfüllungsabschnitt des
+technischen Pflichtenheftes.
+
+## Status
+
+Committed by D. Stein — load-bearing for the connection-prerequisite.
+See [standards & regulatory backdrop
+](../topics/standards-regulatory-backdrop.md).
+`,
+  },
+
   {
     title: 'Agent operating rule — traceability survives export',
     slug: 'rule-traceability-survives-export',

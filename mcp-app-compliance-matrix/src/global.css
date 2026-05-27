@@ -1,28 +1,28 @@
 /*
- * Minimal reset — MUI's CssBaseline does most of the work, but we still need
- * html/body to fill the iframe so MUI's container can stretch to the full
- * available host width.
- */
-/*
  * Roboto webfont — bundled into the single-file build via @fontsource/roboto
- * because the sandboxed MCP App iframe can't reach the host's font CDN.
+ * because the sandboxed MCP App iframe can't reach the host's font CDN. We
+ * pull the four weights MUI uses (300/400/500/700).
  */
 @import "@fontsource/roboto/300.css";
 @import "@fontsource/roboto/400.css";
 @import "@fontsource/roboto/500.css";
 @import "@fontsource/roboto/700.css";
 
+/*
+ * Minimal reset — MUI's CssBaseline does most of the work, but we still need
+ * html/body to fill the iframe so the three-pane flex layout can stretch.
+ */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   color-scheme: light dark;
 }
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 /* Slim scrollbars to match the host shell. */

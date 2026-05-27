@@ -712,8 +712,10 @@ function AlignmentApp() {
       createTheme({
         palette: { mode: isDark ? "dark" : "light" },
         typography: {
-          fontFamily:
-            'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          // Roboto is loaded via @fontsource/roboto in global.css. We
+          // declare it explicitly here so MUI doesn't fall through to
+          // the platform default before the webfont is parsed.
+          fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif',
         },
       }),
     [isDark],

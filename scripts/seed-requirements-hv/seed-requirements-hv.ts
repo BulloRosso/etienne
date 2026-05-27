@@ -236,9 +236,10 @@ async function step3_writeMission(): Promise<void> {
   ok('mission.md written');
 }
 
-async function step4_seedWiki(): Promise<{ writtenSlugs: string[]; stubsCreated: number }> {
+async function step4_seedWiki(): Promise<{ writtenSlugs: string[]; stubsCreated: number; bucketsTouched: Set<string> }> {
   header('4. Seed wiki pages via provisioned wiki-add.ts');
   const writtenSlugs: string[] = [];
+  const bucketsTouched = new Set<string>();
   let stubsCreated = 0;
 
   for (const draft of WIKI_PAGES) {
@@ -263,13 +264,60 @@ async function step4_seedWiki(): Promise<{ writtenSlugs: string[]; stubsCreated:
       throw new Error(`wiki-add failed for ${draft.slug}: ${result.error ?? 'unknown'}`);
     }
     writtenSlugs.push(result.slug ?? draft.slug);
+    bucketsTouched.add(draft.bucket);
     stubsCreated += result.stubsCreated?.length ?? 0;
     info(`${draft.bucket}/${result.slug} (${result.mode})`);
   }
   ok(
     `wiki: ${writtenSlugs.length} pages written + ${stubsCreated} auto-stubs created`,
   );
-  return { writtenSlugs, stubsCreated };
+  return { writtenSlugs, stubsCreated, bucketsTouched };
+}
+
+/**
+ * Index every newly-written wiki page into RAG so the chat assistant can
+ * cite them via `[[wiki:<slug>]]` chips. Step 6 already indexes documents/;
+ * this is the analogous pass for wiki/. We pass each page through the same
+ * `/rag/index-document` endpoint (the RAG service is content-agnostic — it
+ * detects wiki pages by path prefix and extracts slug/title/section into
+ * the chunk metadata).
+ */
+async function step4b_indexWikiForRag(
+  ctx: ApiContext,
+  bucketsTouched: Set<string>,
+): Promise<void> {
+  header('4b. Index seeded wiki pages into RAG (so [[wiki:…]] citations resolve)');
+  const wikiRoot = join(PROJECT_ROOT, 'wiki');
+  let indexed = 0;
+  let skipped = 0;
+  for (const bucket of bucketsTouched) {
+    const dir = join(wikiRoot, bucket);
+    let entries: string[] = [];
+    try {
+      entries = await (await import('node:fs/promises')).readdir(dir, { recursive: true } as any) as unknown as string[];
+    } catch {
+      continue;
+    }
+    for (const rel of entries) {
+      if (typeof rel !== 'string' || !rel.endsWith('.md')) continue;
+      const documentPath = `wiki/${bucket}/${rel.replace(/\\/g, '/')}`;
+      try {
+        await apiFetch(ctx, `/api/workspace/${PROJECT_NAME}/rag/index-document`, {
+          method: 'POST',
+          body: JSON.stringify({ documentPath }),
+        });
+        indexed += 1;
+      } catch (err) {
+        if (err instanceof ApiError) {
+          warn(`wiki index failed for ${documentPath}: HTTP ${err.status}`);
+          skipped += 1;
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+  ok(`rag: ${indexed} wiki page(s) indexed${skipped ? `, ${skipped} skipped` : ''}`);
 }
 
 async function step5_seedKG(ctx: ApiContext): Promise<void> {
@@ -432,6 +480,25 @@ async function step10_writeCoverageDashboard(): Promise<void> {
   const path = join(PROJECT_ROOT, COVERAGE_DASHBOARD_REL);
   await writeFile(path, JSON.stringify(COVERAGE_DASHBOARD, null, 2), 'utf8');
   ok(`coverage dashboard written: ${COVERAGE_DASHBOARD_REL} (${COVERAGE_DASHBOARD.rows.length} rows)`);
+
+  // Sentinel for the compliance-matrix MCP App previewer.
+  // The `.compliance.json` extension routes through previewer-metadata.json
+  // → mcpGroup 'compliance-matrix' → tool 'render_compliance_matrix'. The
+  // file payload is small (the cockpit hits the tool with the project name
+  // and reads coverage + wiki team page server-side), but it must exist for
+  // the file-tree-driven preview path to open it.
+  const complianceDir = join(PROJECT_ROOT, 'out', 'compliance');
+  await mkdir(complianceDir, { recursive: true });
+  const compliancePath = join(complianceDir, 'current.compliance.json');
+  const sentinel = {
+    schema: 'compliance-matrix.v1',
+    generatedAt: COVERAGE_DASHBOARD.generatedAt,
+    project: COVERAGE_DASHBOARD.project,
+    coverageRef: COVERAGE_DASHBOARD_REL,
+    teamRef: 'wiki/topics/team.md',
+  };
+  await writeFile(compliancePath, JSON.stringify(sentinel, null, 2), 'utf8');
+  ok(`compliance-matrix sentinel written: out/compliance/current.compliance.json`);
 }
 
 async function step11_documentationAndUi(): Promise<void> {
@@ -614,9 +681,10 @@ async function main(): Promise<void> {
   await step2_createProject(ctx);
   await step2b_provisionMcpServers(ctx);
   await step3_writeMission();
-  await step4_seedWiki();
+  const wikiResult = await step4_seedWiki();
   await step5_seedKG(ctx);
   await step6_seedRag(ctx);
+  await step4b_indexWikiForRag(ctx, wikiResult.bucketsTouched);
   await step7_seedChats();
   const runId = await step8_enableAndRunDreaming(ctx);
   const dreamPath = await step9_waitForDream(runId);

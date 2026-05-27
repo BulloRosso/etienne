@@ -1,3 +1,12 @@
+/*
+ * Roboto webfont — bundled into the single-file build via @fontsource/roboto
+ * because the sandboxed MCP App iframe can't reach the host's font CDN.
+ */
+@import "@fontsource/roboto/300.css";
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/700.css";
+
 :root {
   color-scheme: light dark;
 
@@ -25,7 +34,7 @@
   --border-radius-lg: 8px;
   --border-width-regular: 1px;
 
-  --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-sans: 'Roboto', 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-weight-normal: 400;
   --font-weight-medium: 500;

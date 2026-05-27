@@ -339,6 +339,8 @@ export class PreviewersService {
       { viewer: 'artifacts', extensions: ['.artifacts.md'] },
       { viewer: 'budget', extensions: ['.budget.json'] },
       { viewer: 'a2ui', extensions: ['.a2ui'] },
+      { viewer: 'compliance-matrix', extensions: ['.compliance.json'] },
+      { viewer: 'coverage', extensions: ['.coverage.json'] },
     ];
   }
 }

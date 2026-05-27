@@ -1,8 +1,8 @@
 {
-  "name": "mcp-app-alignment",
+  "name": "mcp-app-compliance-matrix",
   "version": "1.0.0",
   "type": "module",
-  "description": "MCP App for rendering .alignment.json fleet-alignment reports (tanker-long-horizon)",
+  "description": "MCP App — compliance-matrix cockpit for .compliance.json files (requirements-hv)",
   "scripts": {
     "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build",
     "watch": "cross-env INPUT=mcp-app.html vite build --watch"
@@ -16,7 +16,8 @@
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-markdown": "^9.1.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",

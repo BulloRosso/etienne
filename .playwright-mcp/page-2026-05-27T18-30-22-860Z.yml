@@ -1,0 +1,570 @@
+- generic [ref=e24]:
+  - banner [ref=e25]:
+    - generic [ref=e26]:
+      - heading "Requirements → Specification (NU-525-Lot-3)" [level=6] [ref=e613]
+      - button "10.72€ global ausgegeben (5%)" [ref=e614] [cursor=pointer]:
+        - img [ref=e615]
+      - button "Geplante Aufgaben" [ref=e617] [cursor=pointer]:
+        - img [ref=e618]
+      - button "Präsentation" [ref=e622] [cursor=pointer]:
+        - img [ref=e29]
+      - generic [ref=e32] [cursor=pointer]:
+        - img [ref=e34]
+        - img [ref=e38]
+      - heading "[requirements-hv]" [level=6] [ref=e623]
+      - button [active] [ref=e41] [cursor=pointer]:
+        - img [ref=e42]
+  - generic [ref=e45]:
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - button "Neue Sitzung starten" [ref=e624] [cursor=pointer]:
+          - img [ref=e50]
+        - generic [ref=e52]:
+          - generic [ref=e53] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=e625]:
+              - img [ref=e55]
+            - generic "Arbeitsmodus" [ref=e626]:
+              - img [ref=e66]
+          - generic [ref=e69]: Arbeitsmodus
+        - generic [ref=e70]:
+          - button "Benachrichtigungen" [ref=e627] [cursor=pointer]:
+            - img [ref=e72]
+          - button "Sitzung fortsetzen" [ref=e628] [cursor=pointer]:
+            - img [ref=e629]
+      - generic [ref=e74]:
+        - img "Agent avatar" [ref=e632]
+        - generic [ref=e634]:
+          - paragraph [ref=e636]:
+            - strong [ref=e637]: Palmero
+            - text: ": Welcome to another session with your friendly general agent Etienne."
+            - text: Remember to adjust the role prompt if required and then start to describe your
+            - text: project using the
+            - link "Scrapbook" [ref=e638] [cursor=pointer]:
+              - /url: "#scrapbook"
+          - generic [ref=e640]: 20:30
+        - generic [ref=e642]:
+          - paragraph [ref=e645]: List every requirement currently in state "open". For each one, name the source volume + section, the responsible engineer, the gate it is blocking, and any candidate reuse source from the knowledge base. Do not draft yet — surface the queue so the responsible engineer can prioritise.
+          - generic [ref=e646]: 20:13
+        - generic [ref=e648]:
+          - generic [ref=e649]:
+            - paragraph [ref=e655]: I'll search the project's knowledge sources for open requirements. Let me query both the RAG index and the wiki in parallel.
+            - generic [ref=e658]:
+              - paragraph [ref=e660]: ToolSearch
+              - paragraph [ref=e661]: "{\"query\":\"select:mcp__kg__kg_search_document\",\"max_results\":1}"
+              - button [ref=e662] [cursor=pointer]:
+                - img [ref=e663]
+            - generic [ref=e667]:
+              - paragraph [ref=e669]: mcp__kg__kg_search_document
+              - paragraph [ref=e670]: "{\"project\":\"requirements-hv\",\"query\":\"requirements currently in state open\"}"
+              - button [ref=e671] [cursor=pointer]:
+                - img [ref=e672]
+            - generic [ref=e676]:
+              - img [ref=e678]
+              - paragraph [ref=e680]: Grep
+              - paragraph [ref=e681]: status:\s*open|state:\s*open
+              - button [ref=e682] [cursor=pointer]:
+                - img [ref=e683]
+            - generic [ref=e687]:
+              - img [ref=e689]
+              - paragraph [ref=e691]: Glob
+              - paragraph [ref=e692]: "**/*.md"
+              - button [ref=e693] [cursor=pointer]:
+                - img [ref=e694]
+            - paragraph [ref=e701]: Let me dig deeper — I'll check the coverage dashboard, the team roster, and search for requirement tracking information across multiple sources.
+            - generic [ref=e704]:
+              - img [ref=e706]
+              - paragraph [ref=e708]: Read
+              - link "wiki/topics/coverage-dashboard.md" [ref=e709] [cursor=pointer]:
+                - /url: "#"
+              - button [ref=e710] [cursor=pointer]:
+                - img [ref=e711]
+            - generic [ref=e715]:
+              - img [ref=e717]
+              - paragraph [ref=e719]: Read
+              - link "wiki/topics/coverage-states-and-gates.md" [ref=e720] [cursor=pointer]:
+                - /url: "#"
+              - button [ref=e721] [cursor=pointer]:
+                - img [ref=e722]
+            - generic [ref=e726]:
+              - img [ref=e728]
+              - paragraph [ref=e730]: Read
+              - link "wiki/topics/team.md" [ref=e731] [cursor=pointer]:
+                - /url: "#"
+              - button [ref=e732] [cursor=pointer]:
+                - img [ref=e733]
+            - generic [ref=e737]:
+              - paragraph [ref=e739]: mcp__kg__kg_search_document
+              - paragraph [ref=e740]: "{\"project\":\"requirements-hv\",\"query\":\"open requirements blocking gate responsible engineer reuse\"}"
+              - button [ref=e741] [cursor=pointer]:
+                - img [ref=e742]
+            - paragraph [ref=e749]: The actual requirement data lives in the coverage JSON file. Let me read it, along with the reuse base and clarify queue for the full picture.
+            - generic [ref=e752]:
+              - img [ref=e754]
+              - paragraph [ref=e756]: Glob
+              - paragraph [ref=e757]: out/coverage/**/*.json
+              - button [ref=e758] [cursor=pointer]:
+                - img [ref=e759]
+            - generic [ref=e763]:
+              - img [ref=e765]
+              - paragraph [ref=e767]: Read
+              - link "wiki/topics/reuse-base.md" [ref=e768] [cursor=pointer]:
+                - /url: "#"
+              - button [ref=e769] [cursor=pointer]:
+                - img [ref=e770]
+            - generic [ref=e774]:
+              - img [ref=e776]
+              - paragraph [ref=e778]: Read
+              - link "wiki/topics/clarify-queue.md" [ref=e779] [cursor=pointer]:
+                - /url: "#"
+              - button [ref=e780] [cursor=pointer]:
+                - img [ref=e781]
+            - generic [ref=e785]:
+              - img [ref=e787]
+              - paragraph [ref=e789]: Read
+              - link "out/coverage/current.coverage.json" [ref=e790] [cursor=pointer]:
+                - /url: "#"
+              - button [ref=e791] [cursor=pointer]:
+                - img [ref=e792]
+            - generic [ref=e796]:
+              - img [ref=e798]
+              - paragraph [ref=e800]: Read
+              - link "out/coverage/current.coverage.json" [ref=e801] [cursor=pointer]:
+                - /url: "#"
+              - button [ref=e802] [cursor=pointer]:
+                - img [ref=e803]
+            - generic [ref=e809]:
+              - paragraph [ref=e810]: Now I have the complete picture. Let me present the full open-requirements queue.
+              - separator [ref=e811]
+              - heading "Open Requirements Queue — NU-525-Lot-3" [level=2] [ref=e812]
+              - paragraph [ref=e813]:
+                - strong [ref=e814]:
+                  - text: 24 requirements in state
+                  - emphasis [ref=e815]: open
+                - text: (out of 148 in the demo slice). All 24 block
+                - strong [ref=e816]: G1 — Internal Completeness Gate (2026-08-15)
+                - text: ", which requires zero open rows. They cascade to block G2 (2026-09-01) and G3 (2026-09-12) as well."
+                - 'button "Open wiki page: coverage-states-and-gates" [ref=e817] [cursor=pointer]':
+                  - img [ref=e818]
+              - separator [ref=e820]
+              - heading "E1 — Anke Vogt (Controls & Protection) — 16 open" [level=3] [ref=e821]
+              - table [ref=e822]:
+                - rowgroup [ref=e823]:
+                  - row "# REQ Source Section Blocking Candidate Reuse Source" [ref=e824]:
+                    - columnheader "#" [ref=e825]
+                    - columnheader "REQ" [ref=e826]
+                    - columnheader "Source" [ref=e827]
+                    - columnheader "Section" [ref=e828]
+                    - columnheader "Blocking" [ref=e829]
+                    - columnheader "Candidate Reuse Source" [ref=e830]
+                - rowgroup [ref=e831]:
+                  - 'row "1 REQ-118 Vol. 1 Functional Spec §3.15 G1 → G2 → G3 Capeline-2023 Protection — has protection-coordination philosophy including authorisation workflows Open wiki page: source-capeline-2023-protection" [ref=e832]':
+                    - cell "1" [ref=e833]
+                    - cell "REQ-118" [ref=e834]:
+                      - strong [ref=e835]: REQ-118
+                    - cell "Vol. 1 Functional Spec" [ref=e836]
+                    - cell "§3.15" [ref=e837]
+                    - cell "G1 → G2 → G3" [ref=e838]
+                    - 'cell "Capeline-2023 Protection — has protection-coordination philosophy including authorisation workflows Open wiki page: source-capeline-2023-protection" [ref=e839]':
+                      - strong [ref=e840]: Capeline-2023 Protection
+                      - text: — has protection-coordination philosophy including authorisation workflows
+                      - 'button "Open wiki page: source-capeline-2023-protection" [ref=e841] [cursor=pointer]':
+                        - img [ref=e842]
+                  - 'row "2 REQ-134 Vol. 1 Functional Spec §5.6 G1 → G2 → G3 Northshore-2022 MMC Control — black-start reference design covers ramp-up sequencing Open wiki page: source-northshore-2022-mmc-control" [ref=e844]':
+                    - cell "2" [ref=e845]
+                    - cell "REQ-134" [ref=e846]:
+                      - strong [ref=e847]: REQ-134
+                    - cell "Vol. 1 Functional Spec" [ref=e848]
+                    - cell "§5.6" [ref=e849]
+                    - cell "G1 → G2 → G3" [ref=e850]
+                    - 'cell "Northshore-2022 MMC Control — black-start reference design covers ramp-up sequencing Open wiki page: source-northshore-2022-mmc-control" [ref=e851]':
+                      - strong [ref=e852]: Northshore-2022 MMC Control
+                      - text: — black-start reference design covers ramp-up sequencing
+                      - 'button "Open wiki page: source-northshore-2022-mmc-control" [ref=e853] [cursor=pointer]':
+                        - img [ref=e854]
+                  - 'row "3 REQ-135 Vol. 1 Functional Spec §5.7 G1 → G2 → G3 Northshore-2022 MMC Control — same black-start sequence, full-load ramp timing Open wiki page: source-northshore-2022-mmc-control" [ref=e856]':
+                    - cell "3" [ref=e857]
+                    - cell "REQ-135" [ref=e858]:
+                      - strong [ref=e859]: REQ-135
+                    - cell "Vol. 1 Functional Spec" [ref=e860]
+                    - cell "§5.7" [ref=e861]
+                    - cell "G1 → G2 → G3" [ref=e862]
+                    - 'cell "Northshore-2022 MMC Control — same black-start sequence, full-load ramp timing Open wiki page: source-northshore-2022-mmc-control" [ref=e863]':
+                      - strong [ref=e864]: Northshore-2022 MMC Control
+                      - text: — same black-start sequence, full-load ramp timing
+                      - 'button "Open wiki page: source-northshore-2022-mmc-control" [ref=e865] [cursor=pointer]':
+                        - img [ref=e866]
+                  - row "4 REQ-155 Vol. 1 Functional Spec §5.14 G1 → G2 → G3 Capeline-2023 Protection — control-system firmware rollback procedure exists in that spec" [ref=e868]:
+                    - cell "4" [ref=e869]
+                    - cell "REQ-155" [ref=e870]:
+                      - strong [ref=e871]: REQ-155
+                    - cell "Vol. 1 Functional Spec" [ref=e872]
+                    - cell "§5.14" [ref=e873]
+                    - cell "G1 → G2 → G3" [ref=e874]
+                    - cell "Capeline-2023 Protection — control-system firmware rollback procedure exists in that spec" [ref=e875]:
+                      - strong [ref=e876]: Capeline-2023 Protection
+                      - text: — control-system firmware rollback procedure exists in that spec
+                  - row "5 REQ-207 Vol. 2 Annex A Elec. Perf. §2.8 G1 → G2 → G3 Northshore-2022 MMC Control — POD was implemented for the Northshore link; frequency band differs (needs check)" [ref=e877]:
+                    - cell "5" [ref=e878]
+                    - cell "REQ-207" [ref=e879]:
+                      - strong [ref=e880]: REQ-207
+                    - cell "Vol. 2 Annex A Elec. Perf." [ref=e881]
+                    - cell "§2.8" [ref=e882]
+                    - cell "G1 → G2 → G3" [ref=e883]
+                    - cell "Northshore-2022 MMC Control — POD was implemented for the Northshore link; frequency band differs (needs check)" [ref=e884]:
+                      - strong [ref=e885]: Northshore-2022 MMC Control
+                      - text: — POD was implemented for the Northshore link; frequency band differs (needs check)
+                  - row "6 REQ-208 Vol. 2 Annex A Elec. Perf. §2.9 G1 → G2 → G3 Northshore-2022 MMC Control — POD enable/disable via dispatch was included" [ref=e886]:
+                    - cell "6" [ref=e887]
+                    - cell "REQ-208" [ref=e888]:
+                      - strong [ref=e889]: REQ-208
+                    - cell "Vol. 2 Annex A Elec. Perf." [ref=e890]
+                    - cell "§2.9" [ref=e891]
+                    - cell "G1 → G2 → G3" [ref=e892]
+                    - cell "Northshore-2022 MMC Control — POD enable/disable via dispatch was included" [ref=e893]:
+                      - strong [ref=e894]: Northshore-2022 MMC Control
+                      - text: — POD enable/disable via dispatch was included
+                  - 'row "7 REQ-233 Vol. 3 Annex B Prot. & Ctrl §7.3 G1 → G2 → G3 Capeline-2023 Protection — redundant-IED setting replication described in that philosophy Open wiki page: source-capeline-2023-protection" [ref=e895]':
+                    - cell "7" [ref=e896]
+                    - cell "REQ-233" [ref=e897]:
+                      - strong [ref=e898]: REQ-233
+                    - cell "Vol. 3 Annex B Prot. & Ctrl" [ref=e899]
+                    - cell "§7.3" [ref=e900]
+                    - cell "G1 → G2 → G3" [ref=e901]
+                    - 'cell "Capeline-2023 Protection — redundant-IED setting replication described in that philosophy Open wiki page: source-capeline-2023-protection" [ref=e902]':
+                      - strong [ref=e903]: Capeline-2023 Protection
+                      - text: — redundant-IED setting replication described in that philosophy
+                      - 'button "Open wiki page: source-capeline-2023-protection" [ref=e904] [cursor=pointer]':
+                        - img [ref=e905]
+                  - row "8 REQ-234 Vol. 3 Annex B Prot. & Ctrl §7.4 G1 → G2 → G3 Capeline-2023 Protection — annual selectivity study procedure exists" [ref=e907]:
+                    - cell "8" [ref=e908]
+                    - cell "REQ-234" [ref=e909]:
+                      - strong [ref=e910]: REQ-234
+                    - cell "Vol. 3 Annex B Prot. & Ctrl" [ref=e911]
+                    - cell "§7.4" [ref=e912]
+                    - cell "G1 → G2 → G3" [ref=e913]
+                    - cell "Capeline-2023 Protection — annual selectivity study procedure exists" [ref=e914]:
+                      - strong [ref=e915]: Capeline-2023 Protection
+                      - text: — annual selectivity study procedure exists
+                  - 'row "9 REQ-252 Vol. 2 Annex A Elec. Perf. §8.4 G1 → G2 → G3 Northshore-2022 MMC Control — sub-synchronous damping controller was part of the Northshore design Open wiki page: source-northshore-2022-mmc-control" [ref=e916]':
+                    - cell "9" [ref=e917]
+                    - cell "REQ-252" [ref=e918]:
+                      - strong [ref=e919]: REQ-252
+                    - cell "Vol. 2 Annex A Elec. Perf." [ref=e920]
+                    - cell "§8.4" [ref=e921]
+                    - cell "G1 → G2 → G3" [ref=e922]
+                    - 'cell "Northshore-2022 MMC Control — sub-synchronous damping controller was part of the Northshore design Open wiki page: source-northshore-2022-mmc-control" [ref=e923]':
+                      - strong [ref=e924]: Northshore-2022 MMC Control
+                      - text: — sub-synchronous damping controller was part of the Northshore design
+                      - 'button "Open wiki page: source-northshore-2022-mmc-control" [ref=e925] [cursor=pointer]':
+                        - img [ref=e926]
+                  - row "10 REQ-258 Vol. 2 Annex A Elec. Perf. §8.10 G1 → G2 → G3 None identified — IEC 62351-8 end-to-end signing is new scope; no reuse passage in the knowledge base" [ref=e928]:
+                    - cell "10" [ref=e929]
+                    - cell "REQ-258" [ref=e930]:
+                      - strong [ref=e931]: REQ-258
+                    - cell "Vol. 2 Annex A Elec. Perf." [ref=e932]
+                    - cell "§8.10" [ref=e933]
+                    - cell "G1 → G2 → G3" [ref=e934]
+                    - cell "None identified — IEC 62351-8 end-to-end signing is new scope; no reuse passage in the knowledge base" [ref=e935]:
+                      - emphasis [ref=e936]: None identified
+                      - text: — IEC 62351-8 end-to-end signing is new scope; no reuse passage in the knowledge base
+                  - row "11 REQ-261 Vol. 2 Annex A Elec. Perf. §9.1 G1 → G2 → G3 None identified — digital-twin deliverable has no precedent in the reuse base" [ref=e937]:
+                    - cell "11" [ref=e938]
+                    - cell "REQ-261" [ref=e939]:
+                      - strong [ref=e940]: REQ-261
+                    - cell "Vol. 2 Annex A Elec. Perf." [ref=e941]
+                    - cell "§9.1" [ref=e942]
+                    - cell "G1 → G2 → G3" [ref=e943]
+                    - cell "None identified — digital-twin deliverable has no precedent in the reuse base" [ref=e944]:
+                      - emphasis [ref=e945]: None identified
+                      - text: — digital-twin deliverable has no precedent in the reuse base
+                  - row "12 REQ-262 Vol. 2 Annex A Elec. Perf. §9.2 G1 → G2 → G3 None identified — same digital-twin cluster as REQ-261" [ref=e946]:
+                    - cell "12" [ref=e947]
+                    - cell "REQ-262" [ref=e948]:
+                      - strong [ref=e949]: REQ-262
+                    - cell "Vol. 2 Annex A Elec. Perf." [ref=e950]
+                    - cell "§9.2" [ref=e951]
+                    - cell "G1 → G2 → G3" [ref=e952]
+                    - cell "None identified — same digital-twin cluster as REQ-261" [ref=e953]:
+                      - emphasis [ref=e954]: None identified
+                      - text: — same digital-twin cluster as REQ-261
+                  - row "13 REQ-902 Vol. 3 Annex B Prot. & Ctrl §9.2 G1 → G2 → G3 Capeline-2023 Protection — event-report generation procedure covered in that spec" [ref=e955]:
+                    - cell "13" [ref=e956]
+                    - cell "REQ-902" [ref=e957]:
+                      - strong [ref=e958]: REQ-902
+                    - cell "Vol. 3 Annex B Prot. & Ctrl" [ref=e959]
+                    - cell "§9.2" [ref=e960]
+                    - cell "G1 → G2 → G3" [ref=e961]
+                    - cell "Capeline-2023 Protection — event-report generation procedure covered in that spec" [ref=e962]:
+                      - strong [ref=e963]: Capeline-2023 Protection
+                      - text: — event-report generation procedure covered in that spec
+                  - row "14 REQ-903 Vol. 3 Annex B Prot. & Ctrl §10.3 G1 → G2 → G3 Capeline-2023 Protection — IEC 61850 MMS remote-config was implemented at Capeline" [ref=e964]:
+                    - cell "14" [ref=e965]
+                    - cell "REQ-903" [ref=e966]:
+                      - strong [ref=e967]: REQ-903
+                    - cell "Vol. 3 Annex B Prot. & Ctrl" [ref=e968]
+                    - cell "§10.3" [ref=e969]
+                    - cell "G1 → G2 → G3" [ref=e970]
+                    - cell "Capeline-2023 Protection — IEC 61850 MMS remote-config was implemented at Capeline" [ref=e971]:
+                      - strong [ref=e972]: Capeline-2023 Protection
+                      - text: — IEC 61850 MMS remote-config was implemented at Capeline
+                  - row "15 REQ-904 Vol. 6 Grid Code §5.3 G1 → G2 → G3 None identified — BNetzA TAB-HS 2024 §11 firmware approval is new regulation; no prior type-approval passage" [ref=e973]:
+                    - cell "15" [ref=e974]
+                    - cell "REQ-904" [ref=e975]:
+                      - strong [ref=e976]: REQ-904
+                    - cell "Vol. 6 Grid Code" [ref=e977]
+                    - cell "§5.3" [ref=e978]
+                    - cell "G1 → G2 → G3" [ref=e979]
+                    - cell "None identified — BNetzA TAB-HS 2024 §11 firmware approval is new regulation; no prior type-approval passage" [ref=e980]:
+                      - emphasis [ref=e981]: None identified
+                      - text: — BNetzA TAB-HS 2024 §11 firmware approval is new regulation; no prior type-approval passage
+              - separator [ref=e982]
+              - heading "E2 — Bernd Haag (Power Quality) — 2 open" [level=3] [ref=e983]
+              - table [ref=e984]:
+                - rowgroup [ref=e985]:
+                  - row "# REQ Source Section Blocking Candidate Reuse Source" [ref=e986]:
+                    - columnheader "#" [ref=e987]
+                    - columnheader "REQ" [ref=e988]
+                    - columnheader "Source" [ref=e989]
+                    - columnheader "Section" [ref=e990]
+                    - columnheader "Blocking" [ref=e991]
+                    - columnheader "Candidate Reuse Source" [ref=e992]
+                - rowgroup [ref=e993]:
+                  - 'row "16 REQ-314 Vol. 4 Annex C Harmonics §6.7 G1 → G2 → G3 Reefnet-2020 Harmonic Filters — filter-reactor resonance analysis exists, ⚠ but THD mismatch applies (Reefnet ≤1.5% vs. NSÜN ≤0.9%) Open wiki page: reuse-mismatch-harmonic-filter" [ref=e994]':
+                    - cell "16" [ref=e995]
+                    - cell "REQ-314" [ref=e996]:
+                      - strong [ref=e997]: REQ-314
+                    - cell "Vol. 4 Annex C Harmonics" [ref=e998]
+                    - cell "§6.7" [ref=e999]
+                    - cell "G1 → G2 → G3" [ref=e1000]
+                    - 'cell "Reefnet-2020 Harmonic Filters — filter-reactor resonance analysis exists, ⚠ but THD mismatch applies (Reefnet ≤1.5% vs. NSÜN ≤0.9%) Open wiki page: reuse-mismatch-harmonic-filter" [ref=e1001]':
+                      - strong [ref=e1002]: Reefnet-2020 Harmonic Filters
+                      - text: — filter-reactor resonance analysis exists, ⚠ but THD mismatch applies (Reefnet ≤1.5% vs. NSÜN ≤0.9%)
+                      - 'button "Open wiki page: reuse-mismatch-harmonic-filter" [ref=e1003] [cursor=pointer]':
+                        - img [ref=e1004]
+                  - 'row "17 REQ-315 Vol. 4 Annex C Harmonics §6.8 G1 → G2 → G3 Reefnet-2020 Harmonic Filters — re-validation procedure exists but needs tightening for the stricter limits Open wiki page: source-reefnet-2020-harmonic-filters" [ref=e1006]':
+                    - cell "17" [ref=e1007]
+                    - cell "REQ-315" [ref=e1008]:
+                      - strong [ref=e1009]: REQ-315
+                    - cell "Vol. 4 Annex C Harmonics" [ref=e1010]
+                    - cell "§6.8" [ref=e1011]
+                    - cell "G1 → G2 → G3" [ref=e1012]
+                    - 'cell "Reefnet-2020 Harmonic Filters — re-validation procedure exists but needs tightening for the stricter limits Open wiki page: source-reefnet-2020-harmonic-filters" [ref=e1013]':
+                      - strong [ref=e1014]: Reefnet-2020 Harmonic Filters
+                      - text: — re-validation procedure exists but needs tightening for the stricter limits
+                      - 'button "Open wiki page: source-reefnet-2020-harmonic-filters" [ref=e1015] [cursor=pointer]':
+                        - img [ref=e1016]
+              - separator [ref=e1018]
+              - heading "E3 — Clara Mueller (Primary Equipment) — 5 open" [level=3] [ref=e1019]
+              - table [ref=e1020]:
+                - rowgroup [ref=e1021]:
+                  - row "# REQ Source Section Blocking Candidate Reuse Source" [ref=e1022]:
+                    - columnheader "#" [ref=e1023]
+                    - columnheader "REQ" [ref=e1024]
+                    - columnheader "Source" [ref=e1025]
+                    - columnheader "Section" [ref=e1026]
+                    - columnheader "Blocking" [ref=e1027]
+                    - columnheader "Candidate Reuse Source" [ref=e1028]
+                - rowgroup [ref=e1029]:
+                  - row "18 REQ-110 Vol. 1 Functional Spec §3.7 G1 → G2 → G3 None identified — 6-hour auxiliary energy autonomy is site-specific; no prior passage" [ref=e1030]:
+                    - cell "18" [ref=e1031]
+                    - cell "REQ-110" [ref=e1032]:
+                      - strong [ref=e1033]: REQ-110
+                    - cell "Vol. 1 Functional Spec" [ref=e1034]
+                    - cell "§3.7" [ref=e1035]
+                    - cell "G1 → G2 → G3" [ref=e1036]
+                    - cell "None identified — 6-hour auxiliary energy autonomy is site-specific; no prior passage" [ref=e1037]:
+                      - emphasis [ref=e1038]: None identified
+                      - text: — 6-hour auxiliary energy autonomy is site-specific; no prior passage
+                  - row "19 REQ-165 Vol. 1 Functional Spec §6.5 G1 → G2 → G3 None identified — light-pollution control is site-specific environmental scope" [ref=e1039]:
+                    - cell "19" [ref=e1040]
+                    - cell "REQ-165" [ref=e1041]:
+                      - strong [ref=e1042]: REQ-165
+                    - cell "Vol. 1 Functional Spec" [ref=e1043]
+                    - cell "§6.5" [ref=e1044]
+                    - cell "G1 → G2 → G3" [ref=e1045]
+                    - cell "None identified — light-pollution control is site-specific environmental scope" [ref=e1046]:
+                      - emphasis [ref=e1047]: None identified
+                      - text: — light-pollution control is site-specific environmental scope
+                  - row "20 REQ-375 Vol. 5 Annex D Auxiliaries §2.2 G1 → G2 → G3 None identified — cooling-tower discharge limit is site-specific" [ref=e1048]:
+                    - cell "20" [ref=e1049]
+                    - cell "REQ-375" [ref=e1050]:
+                      - strong [ref=e1051]: REQ-375
+                    - cell "Vol. 5 Annex D Auxiliaries" [ref=e1052]
+                    - cell "§2.2" [ref=e1053]
+                    - cell "G1 → G2 → G3" [ref=e1054]
+                    - cell "None identified — cooling-tower discharge limit is site-specific" [ref=e1055]:
+                      - emphasis [ref=e1056]: None identified
+                      - text: — cooling-tower discharge limit is site-specific
+                  - row "21 REQ-451 Vol. 5 Annex F Auxiliaries §1.4 G1 → G2 → G3 None identified — closed-loop cooling availability is new scope" [ref=e1057]:
+                    - cell "21" [ref=e1058]
+                    - cell "REQ-451" [ref=e1059]:
+                      - strong [ref=e1060]: REQ-451
+                    - cell "Vol. 5 Annex F Auxiliaries" [ref=e1061]
+                    - cell "§1.4" [ref=e1062]
+                    - cell "G1 → G2 → G3" [ref=e1063]
+                    - cell "None identified — closed-loop cooling availability is new scope" [ref=e1064]:
+                      - emphasis [ref=e1065]: None identified
+                      - text: — closed-loop cooling availability is new scope
+                  - row "22 REQ-482 Vol. 5 Annex F Auxiliaries §6.2 G1 → G2 → G3 None identified — fire-alarm relay to local service is site-specific" [ref=e1066]:
+                    - cell "22" [ref=e1067]
+                    - cell "REQ-482" [ref=e1068]:
+                      - strong [ref=e1069]: REQ-482
+                    - cell "Vol. 5 Annex F Auxiliaries" [ref=e1070]
+                    - cell "§6.2" [ref=e1071]
+                    - cell "G1 → G2 → G3" [ref=e1072]
+                    - cell "None identified — fire-alarm relay to local service is site-specific" [ref=e1073]:
+                      - emphasis [ref=e1074]: None identified
+                      - text: — fire-alarm relay to local service is site-specific
+              - separator [ref=e1075]
+              - heading "E4 — Dirk Stein (Proposal Desk) — 2 open" [level=3] [ref=e1076]
+              - table [ref=e1077]:
+                - rowgroup [ref=e1078]:
+                  - row "# REQ Source Section Blocking Candidate Reuse Source" [ref=e1079]:
+                    - columnheader "#" [ref=e1080]
+                    - columnheader "REQ" [ref=e1081]
+                    - columnheader "Source" [ref=e1082]
+                    - columnheader "Section" [ref=e1083]
+                    - columnheader "Blocking" [ref=e1084]
+                    - columnheader "Candidate Reuse Source" [ref=e1085]
+                - rowgroup [ref=e1086]:
+                  - row "23 REQ-623 Vol. 6 Grid Code §4.4 G1 → G2 → G3 None identified — \"reproducible models\" for analysis-based compliance is new tender language" [ref=e1087]:
+                    - cell "23" [ref=e1088]
+                    - cell "REQ-623" [ref=e1089]:
+                      - strong [ref=e1090]: REQ-623
+                    - cell "Vol. 6 Grid Code" [ref=e1091]
+                    - cell "§4.4" [ref=e1092]
+                    - cell "G1 → G2 → G3" [ref=e1093]
+                    - cell "None identified — \"reproducible models\" for analysis-based compliance is new tender language" [ref=e1094]:
+                      - emphasis [ref=e1095]: None identified
+                      - text: — "reproducible models" for analysis-based compliance is new tender language
+                  - row "24 REQ-901 Vol. 5 Annex F Auxiliaries §9.1 G1 → G2 → G3 None identified — staged commissioning plan is project-specific" [ref=e1096]:
+                    - cell "24" [ref=e1097]
+                    - cell "REQ-901" [ref=e1098]:
+                      - strong [ref=e1099]: REQ-901
+                    - cell "Vol. 5 Annex F Auxiliaries" [ref=e1100]
+                    - cell "§9.1" [ref=e1101]
+                    - cell "G1 → G2 → G3" [ref=e1102]
+                    - cell "None identified — staged commissioning plan is project-specific" [ref=e1103]:
+                      - emphasis [ref=e1104]: None identified
+                      - text: — staged commissioning plan is project-specific
+              - separator [ref=e1105]
+              - heading "Summary for prioritisation" [level=3] [ref=e1106]
+              - table [ref=e1107]:
+                - rowgroup [ref=e1108]:
+                  - row "Engineer Open With reuse candidate No reuse (net-new drafting)" [ref=e1109]:
+                    - columnheader "Engineer" [ref=e1110]
+                    - columnheader "Open" [ref=e1111]
+                    - columnheader "With reuse candidate" [ref=e1112]
+                    - columnheader "No reuse (net-new drafting)" [ref=e1113]
+                - rowgroup [ref=e1114]:
+                  - row "E1 — Anke Vogt 16 11 5 (REQ-258, -261, -262, -904, and partly -118)" [ref=e1115]:
+                    - cell "E1 — Anke Vogt" [ref=e1116]:
+                      - strong [ref=e1117]: E1 — Anke Vogt
+                    - cell "16" [ref=e1118]
+                    - cell "11" [ref=e1119]
+                    - cell "5 (REQ-258, -261, -262, -904, and partly -118)" [ref=e1120]
+                  - row "E2 — Bernd Haag 2 2 (both carry ⚠ reuse-mismatch) 0" [ref=e1121]:
+                    - cell "E2 — Bernd Haag" [ref=e1122]:
+                      - strong [ref=e1123]: E2 — Bernd Haag
+                    - cell "2" [ref=e1124]
+                    - cell "2 (both carry ⚠ reuse-mismatch)" [ref=e1125]
+                    - cell "0" [ref=e1126]
+                  - row "E3 — Clara Mueller 5 0 5" [ref=e1127]:
+                    - cell "E3 — Clara Mueller" [ref=e1128]:
+                      - strong [ref=e1129]: E3 — Clara Mueller
+                    - cell "5" [ref=e1130]
+                    - cell "0" [ref=e1131]
+                    - cell "5" [ref=e1132]
+                  - row "E4 — Dirk Stein 2 0 2" [ref=e1133]:
+                    - cell "E4 — Dirk Stein" [ref=e1134]:
+                      - strong [ref=e1135]: E4 — Dirk Stein
+                    - cell "2" [ref=e1136]
+                    - cell "0" [ref=e1137]
+                    - cell "2" [ref=e1138]
+                  - row "Total 24 13 11" [ref=e1139]:
+                    - cell "Total" [ref=e1140]:
+                      - strong [ref=e1141]: Total
+                    - cell "24" [ref=e1142]:
+                      - strong [ref=e1143]: "24"
+                    - cell "13" [ref=e1144]:
+                      - strong [ref=e1145]: "13"
+                    - cell "11" [ref=e1146]:
+                      - strong [ref=e1147]: "11"
+              - paragraph [ref=e1148]:
+                - strong [ref=e1149]: "Key observations:"
+              - list [ref=e1150]:
+                - listitem [ref=e1151]:
+                  - strong [ref=e1152]: E1 carries the bulk
+                  - text: (16 of 24). The 11 items with reuse candidates can be drafted by the agent, but the 5 with no reuse (especially the digital-twin pair REQ-261/262 and the IEC 62351-8 signing REQ-258) will need original engineering input before drafting.
+                  - 'button "Open wiki page: reuse-base" [ref=e1153] [cursor=pointer]':
+                    - img [ref=e1154]
+                - listitem [ref=e1156]:
+                  - strong [ref=e1157]: E2's two items
+                  - text: both sit in the harmonic-filter cluster where the Reefnet-2020 reuse source is known to be insufficient for the tighter THD limit. These should be addressed together with the already-drafted REQ-303 cluster.
+                  - 'button "Open wiki page: reuse-mismatch-harmonic-filter" [ref=e1158] [cursor=pointer]':
+                    - img [ref=e1159]
+                - listitem [ref=e1161]:
+                  - strong [ref=e1162]: E3's five items
+                  - text: are all site-specific or environmental in nature with no reuse passages — they need original drafting.
+                - listitem [ref=e1163]:
+                  - strong [ref=e1164]: E4's two items
+                  - text: are procedural/compliance-process requirements with no reuse — relatively short to draft from scratch.
+                - listitem [ref=e1165]:
+                  - strong [ref=e1166]: 80 days remain to G1
+                  - text: (2026-08-15). At the current pace, I'd flag E1's no-reuse cluster (digital twin, telemetry signing, firmware approval) as the items most likely to slip without early engineering input.
+          - generic [ref=e1169]:
+            - generic [ref=e1170]: Kosten
+            - button [ref=e1171] [cursor=pointer]:
+              - img [ref=e1172]
+          - generic [ref=e1175]: 20:13
+      - generic [ref=e75]:
+        - generic [ref=e1176]:
+          - generic [ref=e1177]: Quick Actions
+          - button "Review tonight's dreams" [ref=e1178] [cursor=pointer]:
+            - img [ref=e1179]
+        - generic [ref=e77]:
+          - button "Dateianhänge hinzufügen" [ref=e1182] [cursor=pointer]:
+            - img [ref=e1183]
+          - generic [ref=e80]:
+            - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=e1185]
+            - group
+          - button [ref=e1186] [cursor=pointer]:
+            - img [ref=e1187]
+          - button [disabled]:
+            - img
+    - generic [ref=e87]:
+      - generic [ref=e88]:
+        - tablist [ref=e91]:
+          - tab "Arbeitsbereich" [selected] [ref=e1189] [cursor=pointer]
+          - tab "Rolle" [ref=e1190] [cursor=pointer]
+          - tab "Mission" [ref=e1191] [cursor=pointer]
+          - tab "Artifacts" [ref=e1192] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=e1193] [cursor=pointer]:
+          - img [ref=e1194]
+        - generic "MCP-Tools verfügbar" [ref=e1197] [cursor=pointer]:
+          - generic [ref=e1198]: "3"
+          - generic [ref=e1199]: Tools verfügbar
+        - generic "Skills aktiv" [ref=e1200] [cursor=pointer]:
+          - generic [ref=e1201]: "10"
+          - generic [ref=e1202]: Skills aktiv
+        - button "Dateisystem-Browser" [ref=e1203] [cursor=pointer]:
+          - img [ref=e1204]
+      - tabpanel [ref=e94]:
+        - generic [ref=e96]:
+          - generic [ref=e98]:
+            - tablist [ref=e1209]:
+              - tab "current.compliance.json" [selected] [ref=e1210] [cursor=pointer]:
+                - generic [ref=e1211]:
+                  - img [ref=e1213]
+                  - generic [ref=e1216]: current.compliance.json
+                  - img [ref=e1218]
+              - tab "documentation.md" [ref=e1220] [cursor=pointer]:
+                - generic [ref=e1221]:
+                  - img [ref=e1223]
+                  - generic [ref=e1226]: documentation.md
+                  - img [ref=e1228]
+            - button [ref=e1231] [cursor=pointer]:
+              - img [ref=e1232]
+            - button [ref=e1234] [cursor=pointer]:
+              - img [ref=e1235]
+          - generic [ref=e1241]: "{ \"schema\": \"compliance-matrix.v1\", \"generatedAt\": \"2026-05-24T09:00:00Z\", \"project\": { \"name\": \"NU-525-Lot-3\", \"customer\": \"Nordseeübertragungs-Netz GmbH (NSÜN)\", \"scope\": \"525 kV / 2 GW HVDC converter station — onshore end\", \"deliverableLanguage\": \"de\", \"reuseBaseLanguage\": \"en\" }, \"coverageRef\": \"out/coverage/current.coverage.json\", \"teamRef\": \"wiki/topics/team.md\" }"

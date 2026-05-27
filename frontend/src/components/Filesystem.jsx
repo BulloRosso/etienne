@@ -43,6 +43,8 @@ import i18n from 'i18next';
 import useFileSelectionStore from '../stores/useFileSelectionStore';
 import OfferGeneratorModal from './OfferGeneratorModal';
 import DocumentCreationModal from './DocumentCreationModal';
+import ExtractSectionsModal from './ExtractSectionsModal';
+import ExportComplianceModal from './ExportComplianceModal';
 import { getContextMenuActions, buildExtensionMap, getViewerForFile, getFolderContextMenuActions, evaluateActionStates } from './viewerRegistry';
 import { callMcp } from '../services/mcpClient';
 import useMultiplexSSE from '../hooks/useMultiplexSSE';
@@ -54,6 +56,8 @@ import useMultiplexSSE from '../hooks/useMultiplexSSE';
 const CONTEXT_MENU_MODALS = {
   OfferGeneratorModal,
   DocumentCreationModal,
+  ExtractSectionsModal,
+  ExportComplianceModal,
 };
 
 export default function Filesystem({ projectName, showBackgroundInfo, previewersConfig = [] }) {
@@ -92,6 +96,35 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
   const [tagManagerDialog, setTagManagerDialog] = useState({ open: false, row: null, filePath: '' });
   const [contextMenuModal, setContextMenuModal] = useState({ open: false, component: null, props: {} });
   const [noPreviewerDialog, setNoPreviewerDialog] = useState(false);
+
+  // ── Compliance-matrix cockpit actions ──
+  // The compliance-matrix MCP App (mcp-app-compliance-matrix) posts
+  // `compliance-cockpit-action` messages to the parent window when the
+  // user clicks a host-bound button (currently: Export). We listen here
+  // and open the corresponding dialog.
+  // Only the `open-export` cockpit action lives here — it needs access
+  // to setContextMenuModal so it can open the ExportComplianceModal.
+  // Other cockpit actions (open-wiki-editor / open-host-preview /
+  // open-external) are handled at the App.jsx root so they keep working
+  // when Filesystem is unmounted between artifact-tab switches.
+  useEffect(() => {
+    function handler(event) {
+      if (event.data?.type !== 'compliance-cockpit-action') return;
+      const { action, payload } = event.data;
+      if (action !== 'open-export') return;
+      setContextMenuModal({
+        open: true,
+        component: 'ExportComplianceModal',
+        props: {
+          open: true,
+          projectName: payload?.projectName || projectName,
+          onClose: () => setContextMenuModal({ open: false, component: null, props: {} }),
+        },
+      });
+    }
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [projectName]);
 
   // ── Folder context-menu actions (Pull/Push etc., driven by previewer config) ──
   const [folderMenuStates, setFolderMenuStates] = useState({});      // actionId -> { enabled, hidden }

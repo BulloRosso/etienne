@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EmbeddingsService } from '../embeddings';
 import { parseScopeName } from './scope-parser';
+import { Bm25Service } from './bm25.service';
+import { fuseRRF } from './hybrid-fusion';
 import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs/promises';
@@ -37,7 +39,14 @@ export class RagService {
   private readonly ensuredCollections = new Set<string>();
   private sentenceSplitter: any = null;
 
-  constructor(private readonly embeddingsService: EmbeddingsService) {}
+  constructor(
+    private readonly embeddingsService: EmbeddingsService,
+    private readonly bm25Service: Bm25Service,
+  ) {}
+
+  private get hybridEnabled(): boolean {
+    return process.env.RAG_HYBRID_ENABLED !== 'false';
+  }
 
   /**
    * Lazily load LlamaIndex SentenceSplitter to avoid top-level import issues
@@ -108,6 +117,7 @@ export class RagService {
   private async removeChunksByDocumentId(
     project: string,
     collection: string,
+    ftsTable: string,
     documentId: string,
   ): Promise<number> {
     // Fetch all chunk ids that carry this documentId in their metadata, then delete by id.
@@ -125,12 +135,22 @@ export class RagService {
       throw new Error(`Failed to fetch chunks for deletion: ${message}`);
     }
 
-    if (ids.length === 0) return 0;
+    if (ids.length > 0) {
+      await axios.delete(
+        `${CHROMADB_URL}/api/v1/${project}/collections/${collection}/documents`,
+        { data: { ids } },
+      );
+    }
 
-    await axios.delete(
-      `${CHROMADB_URL}/api/v1/${project}/collections/${collection}/documents`,
-      { data: { ids } },
-    );
+    // Mirror the delete in BM25. Run even when Chroma returned 0 ids — the
+    // sparse store might have rows from a previous index call that failed mid-way.
+    try {
+      this.bm25Service.removeByDocumentId(project, ftsTable, documentId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`BM25 removeByDocumentId failed for ${documentId}: ${message}`);
+    }
+
     return ids.length;
   }
 
@@ -245,7 +265,7 @@ export class RagService {
    * @param documentPath - Path to the document (relative to project root in workspace)
    */
   async indexDocument(scopeName: string, documentPath: string): Promise<IndexResult> {
-    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
     await this.ensureCollection(project, collection);
 
     // Resolve path — documentPath is relative to the project directory
@@ -297,8 +317,28 @@ export class RagService {
       },
     }));
 
-    // Store in ChromaDB
+    // Store in ChromaDB (dense), then in BM25 (sparse). Chroma-first so a BM25
+    // failure can roll back the dense write; the reverse would risk orphan
+    // BM25 rows that the next reindex would heal anyway, but we prefer
+    // explicit consistency on the write path.
     await this.addChunks(project, collection, chunkDocs);
+    try {
+      this.bm25Service.indexChunks(
+        project,
+        ftsTable,
+        chunkDocs.map((c) => ({ id: c.id, content: c.content, metadata: c.metadata })),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`BM25 indexChunks failed for ${documentPath}: ${message}. Rolling back Chroma write.`);
+      try {
+        await this.removeChunksByDocumentId(project, collection, ftsTable, documentId);
+      } catch (rollbackError) {
+        const rbMessage = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        this.logger.error(`Rollback failed: ${rbMessage}`);
+      }
+      throw error;
+    }
 
     return {
       success: true,
@@ -314,13 +354,13 @@ export class RagService {
    * Use this on File Modified events so the vector store doesn't accumulate duplicates.
    */
   async reindexDocument(scopeName: string, documentPath: string): Promise<IndexResult & { removedChunks: number }> {
-    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
     await this.ensureCollection(project, collection);
 
     const documentId = crypto.createHash('sha256').update(documentPath).digest('hex').substring(0, 16);
     let removedChunks = 0;
     try {
-      removedChunks = await this.removeChunksByDocumentId(project, collection, documentId);
+      removedChunks = await this.removeChunksByDocumentId(project, collection, ftsTable, documentId);
     } catch (error) {
       // If the collection is empty or the document was never indexed, ignore and proceed to index.
       this.logger.warn(`reindexDocument: cleanup skipped for ${documentPath}: ${error instanceof Error ? error.message : String(error)}`);
@@ -334,11 +374,11 @@ export class RagService {
    * Remove all indexed chunks for a document path. Use on File Deleted events.
    */
   async deleteDocument(scopeName: string, documentPath: string): Promise<{ success: boolean; documentId: string; removedChunks: number }> {
-    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
     await this.ensureCollection(project, collection);
 
     const documentId = crypto.createHash('sha256').update(documentPath).digest('hex').substring(0, 16);
-    const removedChunks = await this.removeChunksByDocumentId(project, collection, documentId);
+    const removedChunks = await this.removeChunksByDocumentId(project, collection, ftsTable, documentId);
     return { success: true, documentId, removedChunks };
   }
 
@@ -356,7 +396,7 @@ export class RagService {
       throw new Error('Text cannot be empty.');
     }
 
-    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
     await this.ensureCollection(project, collection);
 
     // Split (usually 1-2 chunks for ≤2000 chars)
@@ -384,6 +424,23 @@ export class RagService {
     }));
 
     await this.addChunks(project, collection, chunkDocs);
+    try {
+      this.bm25Service.indexChunks(
+        project,
+        ftsTable,
+        chunkDocs.map((c) => ({ id: c.id, content: c.content, metadata: c.metadata })),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`BM25 indexChunks failed for text input: ${message}. Rolling back Chroma write.`);
+      try {
+        await this.removeChunksByDocumentId(project, collection, ftsTable, documentId);
+      } catch (rollbackError) {
+        const rbMessage = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        this.logger.error(`Rollback failed: ${rbMessage}`);
+      }
+      throw error;
+    }
 
     return {
       success: true,
@@ -436,11 +493,23 @@ export class RagService {
       throw new Error('Search query cannot be empty.');
     }
 
-    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
     await this.ensureCollection(project, collection);
 
     const queryEmbedding = await this.embeddingsService.embed(searchQuery);
-    const results = await this.queryCollection(project, collection, queryEmbedding, 5);
+    const hybrid = this.hybridEnabled;
+    const candidatePoolSize = hybrid ? 20 : 5;
+
+    const [denseResults, sparseResults] = await Promise.all([
+      this.queryCollection(project, collection, queryEmbedding, candidatePoolSize),
+      hybrid
+        ? Promise.resolve(this.bm25Service.search(project, ftsTable, searchQuery, candidatePoolSize))
+        : Promise.resolve([] as SearchResult[]),
+    ]);
+
+    const results = hybrid
+      ? fuseRRF(denseResults, sparseResults, 60, 5)
+      : denseResults.slice(0, 5);
 
     return {
       results,
@@ -468,14 +537,35 @@ export class RagService {
       throw new Error('Search query cannot be empty.');
     }
 
-    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
     await this.ensureCollection(project, collection);
 
     const queryEmbedding = await this.embeddingsService.embed(searchQuery);
     const where = filepaths.length > 0
       ? { filepath: { $in: filepaths } }
       : undefined;
-    const results = await this.queryCollection(project, collection, queryEmbedding, topK, where);
+    const hybrid = this.hybridEnabled;
+    // Fetch a wider candidate pool from each side when fusing so RRF has signal to work with.
+    const candidatePoolSize = hybrid ? Math.max(20, topK * 2) : topK;
+
+    const [denseResults, sparseResults] = await Promise.all([
+      this.queryCollection(project, collection, queryEmbedding, candidatePoolSize, where),
+      hybrid
+        ? Promise.resolve(
+            this.bm25Service.search(
+              project,
+              ftsTable,
+              searchQuery,
+              candidatePoolSize,
+              filepaths.length > 0 ? filepaths : undefined,
+            ),
+          )
+        : Promise.resolve([] as SearchResult[]),
+    ]);
+
+    const results = hybrid
+      ? fuseRRF(denseResults, sparseResults, 60, topK)
+      : denseResults.slice(0, topK);
 
     return {
       results,

@@ -20,6 +20,7 @@ import GanttDiagram from './GanttDiagram';
 import A2UIAppViewer from './A2UIAppViewer';
 import DreamsPreviewViewer from './DreamsPreviewViewer';
 import QuarterlyViewer from './QuarterlyViewer';
+import CoverageViewer from './CoverageViewer';
 import { agentBus } from '../services/agentBus';
 
 /**
@@ -72,6 +73,7 @@ export const VIEWER_COMPONENT_NAMES = {
   a2ui: 'A2UIAppViewer',
   dreams: 'DreamsPreviewViewer',
   quarterly: 'QuarterlyViewer',
+  coverage: 'CoverageViewer',
 };
 
 /**
@@ -145,6 +147,9 @@ export const VIEWER_COMPONENTS = {
   quarterly: (file, projectName) => (
     <QuarterlyViewer filename={file.path} projectName={projectName} />
   ),
+  coverage: (file, projectName) => (
+    <CoverageViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -175,6 +180,8 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'dreams', extensions: ['.dreams.json'] },
   { viewer: 'quarterly', extensions: ['.quarterly.json'] },
   { viewer: 'alignment', extensions: ['.alignment.json'] },
+  { viewer: 'compliance-matrix', extensions: ['.compliance.json'] },
+  { viewer: 'coverage', extensions: ['.coverage.json'] },
 ];
 
 /**
