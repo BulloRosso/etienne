@@ -105,6 +105,35 @@ export class RagService {
     });
   }
 
+  private async removeChunksByDocumentId(
+    project: string,
+    collection: string,
+    documentId: string,
+  ): Promise<number> {
+    // Fetch all chunk ids that carry this documentId in their metadata, then delete by id.
+    // Mirrors VectorStoreService.removeDocumentChunks but uses /get (not /query) so we don't
+    // need a dummy embedding of the collection's dimension.
+    let ids: string[] = [];
+    try {
+      const response = await axios.post(
+        `${CHROMADB_URL}/api/v1/${project}/collections/${collection}/get`,
+        { where: { documentId }, include: ['metadatas'] },
+      );
+      ids = response.data?.results?.ids || response.data?.ids || [];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to fetch chunks for deletion: ${message}`);
+    }
+
+    if (ids.length === 0) return 0;
+
+    await axios.delete(
+      `${CHROMADB_URL}/api/v1/${project}/collections/${collection}/documents`,
+      { data: { ids } },
+    );
+    return ids.length;
+  }
+
   private async queryCollection(
     project: string,
     collection: string,
@@ -164,6 +193,49 @@ export class RagService {
     return fs.readFile(absolutePath, 'utf-8');
   }
 
+  /**
+   * For wiki pages: strip YAML frontmatter from the body before chunking, and
+   * pull out a few fields (slug, title) to attach as chunk metadata so search
+   * results can surface them. For non-wiki paths this is a no-op.
+   */
+  private wikiAwareExtract(documentPath: string, raw: string): {
+    body: string;
+    extraMetadata: Record<string, any>;
+  } {
+    const isWiki = /(^|[\\/])wiki[\\/](topics|sources)[\\/][^\\/]+\.md$/i.test(documentPath);
+    if (!isWiki) return { body: raw, extraMetadata: {} };
+
+    const fmMatch = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+    if (!fmMatch) {
+      // Wiki path but no frontmatter — still tag as wiki source.
+      return { body: raw, extraMetadata: { source: 'wiki' } };
+    }
+
+    const body = raw.slice(fmMatch[0].length);
+    const fm = fmMatch[1];
+
+    // Cheap line-based YAML field reader — enough for `slug:` and `title:` scalars
+    // without pulling in a YAML parser.
+    const readField = (name: string): string | undefined => {
+      const m = fm.match(new RegExp(`^${name}\\s*:\\s*(.+?)\\s*$`, 'mi'));
+      if (!m) return undefined;
+      return m[1].replace(/^['"]|['"]$/g, '').trim() || undefined;
+    };
+
+    const slug = readField('slug') || path.basename(documentPath, '.md');
+    const subdir = /wiki[\\/]sources[\\/]/i.test(documentPath) ? 'sources' : 'topics';
+
+    return {
+      body,
+      extraMetadata: {
+        source: 'wiki',
+        wikiSlug: slug,
+        wikiSection: subdir,
+        wikiTitle: readField('title'),
+      },
+    };
+  }
+
   // ── Public API ──
 
   /**
@@ -190,10 +262,13 @@ export class RagService {
     }
 
     // Extract text content
-    const content = await this.extractContent(absolutePath);
-    if (!content || content.trim().length === 0) {
+    const raw = await this.extractContent(absolutePath);
+    if (!raw || raw.trim().length === 0) {
       throw new Error('File is empty or contains no readable content.');
     }
+
+    // For wiki pages, drop YAML frontmatter and capture slug/title metadata
+    const { body: content, extraMetadata } = this.wikiAwareExtract(documentPath, raw);
 
     // Split into chunks using LlamaIndex SentenceSplitter
     const chunks = await this.splitText(content);
@@ -218,6 +293,7 @@ export class RagService {
         totalChunks: chunks.length,
         contentLength: chunkContent.length,
         indexedAt: new Date().toISOString(),
+        ...extraMetadata,
       },
     }));
 
@@ -231,6 +307,39 @@ export class RagService {
       chunkCount: chunks.length,
       contentLength: content.length,
     };
+  }
+
+  /**
+   * Re-index a document: remove any existing chunks for this path, then index fresh.
+   * Use this on File Modified events so the vector store doesn't accumulate duplicates.
+   */
+  async reindexDocument(scopeName: string, documentPath: string): Promise<IndexResult & { removedChunks: number }> {
+    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    await this.ensureCollection(project, collection);
+
+    const documentId = crypto.createHash('sha256').update(documentPath).digest('hex').substring(0, 16);
+    let removedChunks = 0;
+    try {
+      removedChunks = await this.removeChunksByDocumentId(project, collection, documentId);
+    } catch (error) {
+      // If the collection is empty or the document was never indexed, ignore and proceed to index.
+      this.logger.warn(`reindexDocument: cleanup skipped for ${documentPath}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    const result = await this.indexDocument(scopeName, documentPath);
+    return { ...result, removedChunks };
+  }
+
+  /**
+   * Remove all indexed chunks for a document path. Use on File Deleted events.
+   */
+  async deleteDocument(scopeName: string, documentPath: string): Promise<{ success: boolean; documentId: string; removedChunks: number }> {
+    const { project, collection } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    await this.ensureCollection(project, collection);
+
+    const documentId = crypto.createHash('sha256').update(documentPath).digest('hex').substring(0, 16);
+    const removedChunks = await this.removeChunksByDocumentId(project, collection, documentId);
+    return { success: true, documentId, removedChunks };
   }
 
   /**

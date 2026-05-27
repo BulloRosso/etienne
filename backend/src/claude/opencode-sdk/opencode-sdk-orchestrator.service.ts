@@ -21,6 +21,7 @@ import { SubagentsService } from '../../subagents/subagents.service';
 import { McpServerConfigService } from '../mcpserverconfig/mcp.server.config';
 import { OpenCodeConfig, ResolvedModel } from './opencode.config';
 import { safeRoot } from '../utils/path.utils';
+import { buildCitationInstruction } from '../shared/citation-prompt';
 import { sanitize_user_message } from '../../input-guardrails/index';
 import { TelemetryService } from '../../observability/telemetry.service';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
@@ -287,10 +288,13 @@ export class OpenCodeOrchestratorService {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'long',
       });
-      const systemPrompt = [
+      const systemPromptParts = [
         `Current date and time: ${dateTimeString}`,
         `Do not repeat the user's message back. Begin your reply with your answer or your first action.`,
-      ].join('\n');
+      ];
+      const citationInstruction = buildCitationInstruction(projectRoot);
+      if (citationInstruction) systemPromptParts.push(citationInstruction);
+      const systemPrompt = systemPromptParts.join('\n\n');
 
       // === Emit UserPromptSubmit hook ===
       this.hookEmitter.emitUserPromptSubmit(projectDir, {

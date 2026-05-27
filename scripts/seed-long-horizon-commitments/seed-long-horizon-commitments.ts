@@ -229,6 +229,12 @@ async function step2b_provisionMcpServers(ctx: ApiContext): Promise<void> {
       headers: { Authorization: 'test123' },
       description: 'Scrapbook tools for mindmap',
     },
+    rag: {
+      type: 'http',
+      url: 'http://localhost:6060/mcp/rag',
+      headers: { Authorization: 'test123' },
+      description: 'RAG semantic search across documents/ and wiki/',
+    },
   };
   await apiFetch(ctx, `/api/claude/mcp/config/save`, {
     method: 'POST',
@@ -249,10 +255,12 @@ async function step3_writeMission(): Promise<void> {
   ok('mission.md written');
 }
 
-async function step4_seedWiki(): Promise<{ writtenSlugs: string[]; stubsCreated: number }> {
-  header('4. Seed wiki pages via provisioned wiki-add.ts');
+async function step4_seedWiki(ctx: ApiContext): Promise<{ writtenSlugs: string[]; stubsCreated: number; ragIndexed: number }> {
+  header('4. Seed wiki pages via provisioned wiki-add.ts + index into RAG');
   const writtenSlugs: string[] = [];
   let stubsCreated = 0;
+  let ragIndexed = 0;
+  let ragSkipped = 0;
 
   for (const draft of WIKI_PAGES) {
     const baseInput = {
@@ -278,11 +286,34 @@ async function step4_seedWiki(): Promise<{ writtenSlugs: string[]; stubsCreated:
     writtenSlugs.push(result.slug ?? draft.slug);
     stubsCreated += result.stubsCreated?.length ?? 0;
     info(`${draft.bucket}/${result.slug} (${result.mode})`);
+
+    // Backfill into RAG. Without this, a fresh seed leaves wiki content
+    // reachable only via filesystem grep (wiki-search). Going forward, edits
+    // flow through the rag-index-wiki-* rules — but on initial seed we beat
+    // those by writing files faster than the watcher's debounce window.
+    // Reindex (not index) so a re-run of the seed replaces previous chunks
+    // rather than duplicating them.
+    const slug = result.slug ?? draft.slug;
+    const docPath = `wiki/${draft.bucket}/${slug}.md`;
+    try {
+      await apiFetch(ctx, `/api/workspace/${PROJECT_NAME}/rag/reindex-document`, {
+        method: 'POST',
+        body: JSON.stringify({ documentPath: docPath }),
+      });
+      ragIndexed += 1;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        warn(`rag reindex failed for ${docPath}: HTTP ${err.status} (page still on disk; live rule will retry)`);
+        ragSkipped += 1;
+        continue;
+      }
+      throw err;
+    }
   }
   ok(
-    `wiki: ${writtenSlugs.length} pages written + ${stubsCreated} auto-stubs created`,
+    `wiki: ${writtenSlugs.length} pages written + ${stubsCreated} auto-stubs created; rag: ${ragIndexed} indexed${ragSkipped ? `, ${ragSkipped} skipped` : ''}`,
   );
-  return { writtenSlugs, stubsCreated };
+  return { writtenSlugs, stubsCreated, ragIndexed };
 }
 
 async function step5_seedKG(ctx: ApiContext): Promise<void> {
@@ -811,21 +842,44 @@ async function step14_seedEventRules(): Promise<void> {
   }
   if (!Array.isArray(eh.rules)) eh.rules = [];
 
-  // Rule 1: auto-index new documents (always-on, copied from desalination).
-  if (!eh.rules.some((r) => r.id === 'rag-auto-index-documents')) {
+  // Rules 1–9: full RAG indexing lifecycle (create/update/delete) for both
+  // documents/ and wiki/{topics,sources}/. The rule-engine glob converter only
+  // handles `*` (rule-engine.service.ts:359–364), so wiki paths need two rules
+  // per event — one for topics, one for sources.
+  const ragLifecycleRules: Array<{ id: string; name: string; eventName: string; pathGlob: string; promptId: string }> = [
+    // documents/
+    { id: 'rag-index-documents-created',  name: 'Auto-index documents (create) for RAG',  eventName: 'File Created',  pathGlob: '*/documents/*',          promptId: 'rag-auto-index' },
+    { id: 'rag-index-documents-modified', name: 'Re-index documents (modify) for RAG',    eventName: 'File Modified', pathGlob: '*/documents/*',          promptId: 'rag-auto-reindex' },
+    { id: 'rag-index-documents-deleted',  name: 'Delete documents from RAG (on delete)',  eventName: 'File Deleted',  pathGlob: '*/documents/*',          promptId: 'rag-auto-delete' },
+    // wiki/topics/
+    { id: 'rag-index-wiki-topics-created',  name: 'Auto-index wiki topics for RAG',          eventName: 'File Created',  pathGlob: '*/wiki/topics/*.md',  promptId: 'rag-auto-index' },
+    { id: 'rag-index-wiki-topics-modified', name: 'Re-index wiki topics for RAG',            eventName: 'File Modified', pathGlob: '*/wiki/topics/*.md',  promptId: 'rag-auto-reindex' },
+    { id: 'rag-index-wiki-topics-deleted',  name: 'Delete wiki topics from RAG (on delete)', eventName: 'File Deleted',  pathGlob: '*/wiki/topics/*.md',  promptId: 'rag-auto-delete' },
+    // wiki/sources/
+    { id: 'rag-index-wiki-sources-created',  name: 'Auto-index wiki sources for RAG',          eventName: 'File Created',  pathGlob: '*/wiki/sources/*.md', promptId: 'rag-auto-index' },
+    { id: 'rag-index-wiki-sources-modified', name: 'Re-index wiki sources for RAG',            eventName: 'File Modified', pathGlob: '*/wiki/sources/*.md', promptId: 'rag-auto-reindex' },
+    { id: 'rag-index-wiki-sources-deleted',  name: 'Delete wiki sources from RAG (on delete)', eventName: 'File Deleted',  pathGlob: '*/wiki/sources/*.md', promptId: 'rag-auto-delete' },
+  ];
+
+  // Drop the legacy single-event rule from prior seeds so it doesn't sit next
+  // to the new fine-grained ones and double-fire on create events.
+  eh.rules = eh.rules.filter((r) => r.id !== 'rag-auto-index-documents');
+
+  for (const r of ragLifecycleRules) {
+    if (eh.rules.some((existing) => existing.id === r.id)) continue;
     eh.rules.push({
-      id: 'rag-auto-index-documents',
-      name: 'Auto-index documents for RAG search',
+      id: r.id,
+      name: r.name,
       enabled: true,
       condition: {
         type: 'simple',
         event: {
           group: 'Filesystem',
-          name: 'File Created',
-          'payload.path': '*/documents/*',
+          name: r.eventName,
+          'payload.path': r.pathGlob,
         },
       },
-      action: { type: 'prompt', promptId: 'rag-auto-index' },
+      action: { type: 'prompt', promptId: r.promptId },
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -883,6 +937,40 @@ async function step14_seedEventRules(): Promise<void> {
     try { pr = JSON.parse(await readFile(prPath, 'utf8')); } catch { pr = { prompts: [] }; }
   }
   if (!Array.isArray(pr.prompts)) pr.prompts = [];
+
+  // RAG lifecycle prompts — one per event type. Driven by the nine rules
+  // above. Keep these self-contained in the seed so a fresh project doesn't
+  // depend on workspace defaults.
+  if (!pr.prompts.some((p) => p.id === 'rag-auto-index')) {
+    pr.prompts.push({
+      id: 'rag-auto-index',
+      title: 'Auto-index document for RAG',
+      content:
+        "A new document was added at {{payload.path}}. Index it for semantic search by calling the rag_index_document tool with scope_name='project_{{projectName}}' and document_path='{{payload.path}}'.",
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+  }
+  if (!pr.prompts.some((p) => p.id === 'rag-auto-reindex')) {
+    pr.prompts.push({
+      id: 'rag-auto-reindex',
+      title: 'Re-index changed document for RAG',
+      content:
+        "A document at {{payload.path}} was modified. Re-index it by calling the rag_reindex_document tool with scope_name='project_{{projectName}}' and document_path='{{payload.path}}'. The tool will remove the previous chunks for this path before indexing fresh, so the vector store stays in sync without accumulating duplicates.",
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+  }
+  if (!pr.prompts.some((p) => p.id === 'rag-auto-delete')) {
+    pr.prompts.push({
+      id: 'rag-auto-delete',
+      title: 'Remove deleted document from RAG',
+      content:
+        "A document at {{payload.path}} was deleted from the filesystem. Remove its chunks from the index by calling the rag_delete_document tool with scope_name='project_{{projectName}}' and document_path='{{payload.path}}'. Do not re-create the file — the source of truth is the filesystem.",
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+  }
 
   if (!pr.prompts.some((p) => p.id === 'assumption-expired-interrupt')) {
     pr.prompts.push({
@@ -943,7 +1031,7 @@ async function main(): Promise<void> {
   await step2_createProject(ctx);
   await step2b_provisionMcpServers(ctx);
   await step3_writeMission();
-  await step4_seedWiki();
+  await step4_seedWiki(ctx);
   await step5_seedKG(ctx);
   await step6_seedRag(ctx);
   await step7_seedChats();

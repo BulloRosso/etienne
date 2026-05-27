@@ -34,6 +34,48 @@ const tools: McpTool[] = [
     },
   },
   {
+    name: 'rag_reindex_document',
+    description:
+      'Re-index a document that has changed. Removes any chunks previously stored for this document_path, then indexes the file fresh. Use this on File Modified events so the vector store does not accumulate duplicate chunks.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope_name: {
+          type: 'string',
+          description:
+            'The document scope/library. Use "project_<project_name>", "global", or "domain_<domain_name>".',
+        },
+        document_path: {
+          type: 'string',
+          description:
+            'Path to the document file, relative to the project root (e.g., "wiki/topics/foo.md", "documents/report.pdf").',
+        },
+      },
+      required: ['scope_name', 'document_path'],
+    },
+  },
+  {
+    name: 'rag_delete_document',
+    description:
+      'Remove all indexed chunks for a document path. Use this on File Deleted events to keep the vector store in sync with the filesystem.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope_name: {
+          type: 'string',
+          description:
+            'The document scope/library. Use "project_<project_name>", "global", or "domain_<domain_name>".',
+        },
+        document_path: {
+          type: 'string',
+          description:
+            'Path of the document to remove from the index (relative to the project root).',
+        },
+      },
+      required: ['scope_name', 'document_path'],
+    },
+  },
+  {
     name: 'rag_index_text',
     description:
       'Index a short text chunk (up to 2000 characters) for semantic search. Use this to add knowledge snippets, notes, or extracted content to a scope without needing a file.',
@@ -84,6 +126,12 @@ export function createRagToolsService(ragService: RagService): ToolService {
     switch (toolName) {
       case 'rag_index_document':
         return ragService.indexDocument(args.scope_name, args.document_path);
+
+      case 'rag_reindex_document':
+        return ragService.reindexDocument(args.scope_name, args.document_path);
+
+      case 'rag_delete_document':
+        return ragService.deleteDocument(args.scope_name, args.document_path);
 
       case 'rag_index_text':
         return ragService.indexText(args.scope_name, args.text_part);

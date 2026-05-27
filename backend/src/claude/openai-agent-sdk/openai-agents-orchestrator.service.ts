@@ -17,6 +17,7 @@ import { ContextInterceptorService } from '../../contexts/context-interceptor.se
 import { sanitize_user_message } from '../../input-guardrails/index';
 import { OpenAIAgentsConfig } from './openai-agents.config';
 import { safeRoot } from '../utils/path.utils';
+import { buildCitationInstruction } from '../shared/citation-prompt';
 import { TelemetryService } from '../../observability/telemetry.service';
 import { CodingAgentConfigurationService } from '../../coding-agent-configuration/coding-agent-configuration.service';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
@@ -283,7 +284,9 @@ export class OpenAIAgentsOrchestratorService {
         second: '2-digit',
         timeZoneName: 'long',
       });
-      finalPrompt = `[Current date and time: ${dateTimeString}]\n[Current session ID: ${sessionId}]\n\nAlways create user orders before beginning to work on complex multi step tasks. A single step or action required from a user like 'Create an Excel table from ...' does not count for a user order. At least two different artifacts/files must be created in a user order.\n\n${finalPrompt}`;
+      const oaCitation = buildCitationInstruction(safeRoot(this.config.hostRoot, projectDir));
+      const oaCitationBlock = oaCitation ? `\n\n${oaCitation}` : '';
+      finalPrompt = `[Current date and time: ${dateTimeString}]\n[Current session ID: ${sessionId}]\n\nAlways create user orders before beginning to work on complex multi step tasks. A single step or action required from a user like 'Create an Excel table from ...' does not count for a user order. At least two different artifacts/files must be created in a user order.${oaCitationBlock}\n\n${finalPrompt}`;
 
       // === Emit UserPromptSubmit ===
       this.hookEmitter.emitUserPromptSubmit(projectDir, {

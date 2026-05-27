@@ -10,7 +10,9 @@ import useMcpAppMeta from '../hooks/useMcpAppMeta';
 import { useActiveMcpViewers } from '../hooks/useActiveMcpViewers.js';
 import { LuBrain } from "react-icons/lu";
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useProject } from '../contexts/ProjectContext';
 import { initMermaid, renderMermaidBlocks } from '../utils/mermaidRenderer';
+import { applyCitationChips } from '../utils/citationChips';
 
 /**
  * Unified timeline component that renders a sequence of text chunks, tool calls, and TodoWrite
@@ -238,6 +240,7 @@ export default function StreamingTimeline({
  */
 function ThinkingTimeline({ content, showBullet = true }) {
   const { mode: themeMode } = useThemeMode();
+  const { currentProject } = useProject();
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -245,6 +248,10 @@ function ThinkingTimeline({ content, showBullet = true }) {
     initMermaid(themeMode === 'dark' ? 'dark' : 'light');
     renderMermaidBlocks(contentRef.current);
   }, [content, themeMode]);
+
+  useEffect(() => {
+    applyCitationChips(contentRef.current, currentProject);
+  }, [content, currentProject]);
 
   return (
     <Box sx={{ mb: 2, position: 'relative' }}>

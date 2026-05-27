@@ -1,17 +1,28 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
+import { useProject } from '../contexts/ProjectContext';
+import { applyCitationChips } from '../utils/citationChips';
 
 /**
  * Text segment displayed in timeline format (for interleaved text between tool calls)
  */
 export default function TextSegmentTimeline({ text, showBullet = true }) {
   const { mode: themeMode } = useThemeMode();
+  const { currentProject } = useProject();
+  const contentRef = useRef(null);
   // Parse markdown
   const rawHtml = marked.parse(text, { breaks: true, gfm: true });
   const renderedContent = DOMPurify.sanitize(rawHtml);
+
+  // Replace [[wiki:slug]] and [[doc:path]] tokens with clickable icon-only
+  // chips. Same logic as ChatMessage.jsx but applied here because timeline
+  // text chunks render through this component, not the parent's contentRef.
+  useEffect(() => {
+    applyCitationChips(contentRef.current, currentProject);
+  }, [renderedContent, currentProject]);
 
   return (
     <Box sx={{ mb: 2, position: 'relative' }}>
@@ -54,6 +65,7 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
 
         {/* Text content */}
         <Box
+          ref={contentRef}
           sx={{
             flex: 1,
             ml: showBullet ? 0 : '10px',

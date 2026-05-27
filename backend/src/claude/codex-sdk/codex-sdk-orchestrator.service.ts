@@ -15,6 +15,7 @@ import { ContextInterceptorService } from '../../contexts/context-interceptor.se
 import { sanitize_user_message } from '../../input-guardrails/index';
 import { CodexConfig } from './codex.config';
 import { safeRoot } from '../utils/path.utils';
+import { buildCitationInstruction } from '../shared/citation-prompt';
 import { TelemetryService } from '../../observability/telemetry.service';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
@@ -233,7 +234,9 @@ export class CodexSdkOrchestratorService {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'long'
       });
-      finalPrompt = `[Current date and time: ${dateTimeString}]\n\n${finalPrompt}`;
+      const codexCitation = buildCitationInstruction(safeRoot(this.config.hostRoot, projectDir));
+      const codexCitationBlock = codexCitation ? `\n\n${codexCitation}` : '';
+      finalPrompt = `[Current date and time: ${dateTimeString}]${codexCitationBlock}\n\n${finalPrompt}`;
 
       // === Emit UserPromptSubmit ===
       this.hookEmitter.emitUserPromptSubmit(projectDir, {

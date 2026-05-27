@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
 import { RagService } from './rag.service';
 import { Roles } from '../auth/roles.decorator';
 
@@ -20,6 +20,33 @@ export class RagController {
       chunkCount: result.chunkCount,
       contentLength: result.contentLength,
     };
+  }
+
+  @Roles('user')
+  @Post(':project/rag/reindex-document')
+  async reindexDocument(
+    @Param('project') project: string,
+    @Body() body: { documentPath: string },
+  ) {
+    const scopeName = `project_${project}`;
+    const result = await this.ragService.reindexDocument(scopeName, body.documentPath);
+    return {
+      success: result.success,
+      documentId: result.documentId,
+      removedChunks: result.removedChunks,
+      chunkCount: result.chunkCount,
+      contentLength: result.contentLength,
+    };
+  }
+
+  @Roles('user')
+  @Delete(':project/rag/document')
+  async deleteDocument(
+    @Param('project') project: string,
+    @Body() body: { documentPath: string },
+  ) {
+    const scopeName = `project_${project}`;
+    return this.ragService.deleteDocument(scopeName, body.documentPath);
   }
 
   @Get(':project/rag/indexed-paths')

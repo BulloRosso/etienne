@@ -7,6 +7,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import StreamingTimeline from './StreamingTimeline';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import { applyCitationChips } from '../utils/citationChips';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -157,6 +158,13 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
     initMermaid(themeMode === 'dark' ? 'dark' : 'light');
     renderMermaidBlocks(contentRef.current);
   }, [renderedContent, themeMode]);
+
+  // Replace [[wiki:slug]] and [[doc:path]] tokens with clickable icon-only chips.
+  // Skipped for user messages (their text never contains these tokens by design).
+  useEffect(() => {
+    if (isUser) return;
+    applyCitationChips(contentRef.current, currentProject);
+  }, [renderedContent, isUser, currentProject]);
 
   // Make file paths in the content clickable
   useEffect(() => {
