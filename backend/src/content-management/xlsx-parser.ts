@@ -24,6 +24,13 @@ export interface XlsxSection {
   title: string;
   body: string;
   sourceRef: { sheet: string; row: number; column: string };
+  /**
+   * Phase 2: per-row weight from a recognised "weight" column. Surfaced
+   * as a first-class field so downstream callers don't have to re-parse
+   * the body's `### Metadata` block. Unset when the workbook has no
+   * weight column or the cell is empty/non-numeric.
+   */
+  weightPoints?: number;
 }
 
 export interface XlsxSourceRef {
@@ -45,6 +52,19 @@ export interface XlsxFillBackResult {
 
 const QUESTION_COLUMN_CANDIDATES = ['question', 'frage', 'item', 'requirement'];
 const ID_COLUMN_CANDIDATES = ['id', '#', 'ref', 'no.', 'no'];
+// Phase 2: recognise weight-like header columns (English + German +
+// French — common buyer languages). Anything matching becomes the
+// section's `weightPoints` field rather than just landing in metadata.
+const WEIGHT_COLUMN_CANDIDATES = [
+  'weight',
+  'weighting',
+  'gewichtung',
+  'gewicht',
+  'points',
+  'punkte',
+  'score',
+  'pondération',
+];
 
 function normaliseHeader(h: unknown): string {
   return String(h ?? '').trim().toLowerCase().replace(/[\s_]+/g, ' ');
@@ -81,9 +101,17 @@ export async function parseXlsxToSections(absolutePath: string): Promise<XlsxSec
       headers.find((h) => !ID_COLUMN_CANDIDATES.includes(h.key)) ??
       headers[0];
     const idCol = headers.find((h) => ID_COLUMN_CANDIDATES.includes(h.key));
+    const weightCol = headers.find((h) => WEIGHT_COLUMN_CANDIDATES.includes(h.key));
 
+    // Weight is now special-cased (it lands on the section's weightPoints
+    // field) so we leave it out of the generic Metadata block — otherwise
+    // the body would carry `- **weight**: 25` *and* the structured field,
+    // and the EARS extraction prompt would see weight twice.
     const otherCols = headers.filter(
-      (h) => h.col !== questionCol.col && (!idCol || h.col !== idCol.col),
+      (h) =>
+        h.col !== questionCol.col &&
+        (!idCol || h.col !== idCol.col) &&
+        (!weightCol || h.col !== weightCol.col),
     );
 
     for (let r = 2; r <= worksheet.rowCount; r += 1) {
@@ -97,10 +125,15 @@ export async function parseXlsxToSections(absolutePath: string): Promise<XlsxSec
         ? `${sheetName} · ${idText}: ${truncate(questionText, 80)}`
         : `${sheetName} · row ${r}: ${truncate(questionText, 80)}`;
 
+      const weightPoints = weightCol
+        ? cellValueToNumber(row.getCell(weightCol.col).value)
+        : undefined;
+
       const bodyParts: string[] = [];
       bodyParts.push(`**Sheet:** ${sheetName}`);
       bodyParts.push(`**Row:** ${r}`);
       if (idText) bodyParts.push(`**ID:** ${idText}`);
+      if (weightPoints !== undefined) bodyParts.push(`**Weight:** ${weightPoints}`);
       bodyParts.push('');
       bodyParts.push(`> ${questionText.replace(/\n/g, '\n> ')}`);
       bodyParts.push('');
@@ -116,11 +149,13 @@ export async function parseXlsxToSections(absolutePath: string): Promise<XlsxSec
         bodyParts.push(...extras);
       }
 
-      sections.push({
+      const section: XlsxSection = {
         title,
         body: bodyParts.join('\n'),
         sourceRef: { sheet: sheetName, row: r, column: questionCol.letter },
-      });
+      };
+      if (weightPoints !== undefined) section.weightPoints = weightPoints;
+      sections.push(section);
     }
   });
 
@@ -221,6 +256,27 @@ export async function fillBackResponsesIntoXlsx(args: {
 
 export function isXlsxPath(path: string): boolean {
   return /\.xlsx$/i.test(path);
+}
+
+// Phase 2: pull a numeric weight out of a cell. Accepts numbers, numeric
+// strings ("25", "25.5", "25,5"), formula results, and percent strings
+// ("25%" → 25). Anything else returns undefined so callers can distinguish
+// "no weight" from "weight is zero".
+function cellValueToNumber(value: unknown): number | undefined {
+  if (value == null || value === '') return undefined;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+  if (typeof value === 'boolean') return undefined;
+  if (typeof value === 'object') {
+    const v = value as any;
+    if (typeof v.result === 'number') return v.result;
+    if (typeof v.result === 'string') return cellValueToNumber(v.result);
+    if (typeof v.text === 'string') return cellValueToNumber(v.text);
+  }
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+  const cleaned = raw.replace(/[%\s]/g, '').replace(',', '.');
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 function cellValueToText(value: unknown): string {

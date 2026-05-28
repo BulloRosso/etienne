@@ -36,6 +36,48 @@ For each requirement provide:
       documentation_reporting, warranty_maintenance, other
   - ambiguity_flag: true if the requirement is ambiguous or incomplete
   - ambiguity_notes: explain what is ambiguous (empty if not flagged)
+  - is_knockout: true when the tender labels this requirement as a hard
+      exclusion / minimum threshold — non-compliance disqualifies the
+      bid regardless of how the rest of the matrix looks. Recognise:
+        - "Mindestanforderung", "K.O.-Kriterium", "Ausschlusskriterium",
+          "Ausschluss bei Nichterfüllung"
+        - "mandatory exclusion", "knockout criterion", "minimum
+          requirement", "must comply", "shall not be waived",
+          "unconditional", "non-negotiable"
+        - "critère éliminatoire", "exigence minimale obligatoire"
+      Default to false. Setting this true changes the bid-gate verdict,
+      so be conservative — only flag when the tender's language is
+      unambiguous about exclusion (not just "shall" alone).
+  - award_criterion_id: the id of the matching evaluation_matrix entry
+      (see below) when the tender ties this requirement to a specific
+      scored criterion; empty string when unclear
+  - weight_points: numeric — when the tender quotes a per-requirement
+      point value ("worth 15 points", "Gewichtung: 15 Punkte", "weight 15",
+      or an explicit cell in an XLSX `### Metadata` block of the form
+      `**Weight**: 15`), copy that number verbatim. Leave empty when the
+      tender only weights the parent criterion (the cockpit will
+      apportion). Do NOT invent a weight.
+
+EVALUATION CRITERIA — capture the tender's scoring scheme as one
+`evaluation_matrix` array at the top level of the response. Look for:
+  - MEAT-style language: "most economically advantageous tender",
+    "Zuschlagskriterien", "critères d'attribution"
+  - explicit weights: "Gewichtung X %", "weighted at X", "max. N Punkte",
+    "scoring weight", "X points", "<criterion> counts for Y % of the
+    quality score"
+  - tabular evaluation matrices (often in a dedicated Zuschlagskriterien
+    section near the front of the document)
+
+For each evaluation_matrix entry provide:
+  - id: short stable slug, e.g. "Q1" or "C-TECH"
+  - label: criterion name as it appears in the tender
+  - parent_id: id of the parent criterion (e.g. "Q" for "Quality"),
+      empty string for top-level criteria like "Price" and "Quality"
+  - points: numeric share — usually a percentage out of 100, but copy
+      the tender's stated number verbatim (so leaf criteria summing to
+      70 inside a Quality parent are correct as long as Quality says 70)
+Leave evaluation_matrix as an empty array if the tender contains no
+scoring scheme — do NOT invent a MEAT split. When in doubt, omit.
 
 For CONTEXT FACTS (non-requirement info):
   - id: "CTX-001" etc.
@@ -57,5 +99,6 @@ Respond with ONLY valid JSON (no markdown fences) using this schema:
   "requirements": [<Requirement objects>],
   "context_facts": [<ContextFact objects>],
   "commercial_terms": [<CommercialTerm objects>],
-  "document_sections": [{"section_number": "...", "title": "...", "title_en": "...", "page_start": N}]
+  "document_sections": [{"section_number": "...", "title": "...", "title_en": "...", "page_start": N}],
+  "evaluation_matrix": [{"id": "...", "label": "...", "parent_id": "...", "points": N}]
 }

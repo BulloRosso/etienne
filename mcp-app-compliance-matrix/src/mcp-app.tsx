@@ -46,6 +46,7 @@ import {
   Menu,
   MenuItem,
   Paper,
+  Popover,
   Select,
   Stack,
   Table,
@@ -94,6 +95,21 @@ type ReviewStatus = "pending" | "in-review" | "approved" | "rejected";
 
 interface SourceCitation { docPath?: string; locator?: string }
 
+type EarsType =
+  | "ubiquitous"
+  | "event_driven"
+  | "state_driven"
+  | "unwanted_behavior"
+  | "optional";
+
+type ValidationFlag =
+  | "missing-trigger"
+  | "missing-state"
+  | "missing-action"
+  | "missing-measurable"
+  | "vague-modal"
+  | "compound-suspected";
+
 interface MatrixRow {
   requirementId: string;
   ears: string;
@@ -112,6 +128,67 @@ interface MatrixRow {
   // so the user can see which items have a real planned response.
   plannedResponseExists?: boolean;
   sourceCitation?: SourceCitation;
+  // Phase 1: EARS structural validator output. Optional everywhere — rows
+  // without these fields render exactly as they did before the feature.
+  earsType?: EarsType;
+  trigger?: string;
+  actor?: string;
+  action?: string;
+  constraint?: string;
+  ambiguityFlag?: boolean;
+  ambiguityNotes?: string;
+  validationFlags?: ValidationFlag[];
+  clarificationQuestion?: string;
+  // When the validator split a compound parent into atoms, each atom
+  // points back at the parent's id for provenance display.
+  splitFrom?: string;
+  // Phase 2: award-criteria weighting. `weightPoints` is the row's raw
+  // share of the award score (the cockpit ranks by this). `priorityClass`
+  // mirrors the EARS priority axis. `awardCriterionId` links into the
+  // payload's `evaluationMatrix`.
+  weightPoints?: number;
+  priorityClass?: PriorityClass;
+  awardCriterionId?: string;
+  // Phase 3: knockout flag. When true and the row's state is open /
+  // drafted / deviation, the bid-gate verdict goes no-go.
+  isKnockout?: boolean;
+  // Phase 4: cross-document dedup. `clusterId` groups near-identical
+  // rows; `clusterRole` distinguishes the canonical from duplicates;
+  // `clusterSize` is set only on the canonical so the cockpit can
+  // render the "×N" chip without summing.
+  clusterId?: string;
+  clusterRole?: "canonical" | "duplicate";
+  clusterSize?: number;
+}
+
+interface CoverageCluster {
+  id: string;
+  canonicalRowId: string;
+  memberRowIds: string[];
+  similarityRange: [number, number];
+}
+
+type PriorityClass = "mandatory" | "scored" | "optional" | "informational";
+
+interface EvaluationCriterion {
+  id: string;
+  label: string;
+  parentId?: string;
+  points: number;
+  rowIds?: string[];
+}
+
+type BidGateRecommendation = "go" | "caution" | "no-go";
+
+interface BidGate {
+  totalMandatoryRows: number;
+  mandatoryNonCompliant: number;
+  knockoutFlagged: number;
+  knockoutNonCompliant: number;
+  weightedCoveragePct: number;
+  recommendation: BidGateRecommendation;
+  reasons: string[];
+  computedAt: string;
 }
 
 interface TeamEntry {
@@ -151,6 +228,18 @@ interface MatrixPayload {
   totals?: Record<string, number>;
   stateCounts?: Record<string, number>;
   chipCounts?: Record<string, number>;
+  // Phase 2: bid-wide award-criteria matrix + total points. Both optional
+  // so projects that pre-date the feature render exactly as today.
+  evaluationMatrix?: EvaluationCriterion[];
+  totalPoints?: number;
+  // Phase 3: computed bid/no-bid verdict. Always present on payloads
+  // produced by the current backend; older payloads render as today
+  // (the cockpit hides the banner when this is undefined).
+  bidGate?: BidGate;
+  // Phase 4: dedup pass results. Empty / undefined until the user runs
+  // rebuild_clusters from the cockpit. When present, the matrix
+  // defaults to canonical-only view with a banner to expand.
+  clusters?: CoverageCluster[];
   rows: MatrixRow[];
   team: TeamEntry[];
   teamMissing: boolean;
@@ -311,6 +400,41 @@ function ComplianceMatrixApp() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [reviewFilter, setReviewFilter] = useState<string>("all");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
+  // Phase 1: filter rows by EARS validator output.
+  //  - clean        : no validation flags
+  //  - has-issues   : at least one flag of any kind
+  //  - has-ambiguity: ambiguityFlag set OR vague-modal flag fired
+  const [validationFilter, setValidationFilter] = useState<string>("all");
+  // Phase 2: filter rows by award-criteria weight + EARS priority class.
+  //  - has-weight   : weightPoints defined
+  //  - top-25/top-50: top quartile / half by weightPoints (rank within
+  //                   the currently visible RFP)
+  //  - mandatory…   : exact priorityClass match
+  //  - C-<id>       : exact awardCriterionId match (added dynamically
+  //                   when the payload carries an evaluationMatrix)
+  const [weightFilter, setWeightFilter] = useState<string>("all");
+  // Phase 2: Weight column is optional per user feedback ("show as
+  // optional column"). Persisted per-project so the preference sticks.
+  const [showWeightColumn, setShowWeightColumn] = useState<boolean>(false);
+  // Phase 3: transient knockout-only filter triggered from the bid-gate
+  // banner. Lives outside the FilterSelect cluster because it's a
+  // shortcut rather than a first-class facet.
+  const [knockoutOnly, setKnockoutOnly] = useState<boolean>(false);
+  // Phase 4: cluster-view mode.
+  //  - "all"             : show every row (the no-clusters default)
+  //  - "canonical-only"  : hide duplicates (default once clusters exist)
+  //  - "show-duplicates" : show only duplicate rows (the QA-mode view)
+  // Defaults to "all" on initial mount; an effect below promotes it to
+  // "canonical-only" the first time clusters appear in the payload, so
+  // the user lands on the smaller working set automatically.
+  const [duplicatesFilter, setDuplicatesFilter] = useState<string>("all");
+  // Cluster the user has open in the members popover (anchored by the
+  // canonical row's "×N" chip). null = no popover.
+  const [clusterPopover, setClusterPopover] = useState<{
+    anchor: HTMLElement;
+    clusterId: string;
+  } | null>(null);
+  const [rebuildingClusters, setRebuildingClusters] = useState(false);
   const [search, setSearch] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // RFP registry — populated once the workspace project is known. The
@@ -346,7 +470,7 @@ function ComplianceMatrixApp() {
   // static payload (we don't re-fetch after each mutation), so we apply
   // the patch in-memory on top of `payload.rows`.
   const [rowOverrides, setRowOverrides] = useState<
-    Record<string, { state?: CoverageState; reviewStatus?: ReviewStatus; notes?: string }>
+    Record<string, { state?: CoverageState; reviewStatus?: ReviewStatus; notes?: string; isKnockout?: boolean }>
   >({});
 
   const [updatedStateCounts, setUpdatedStateCounts] = useState<Record<string, number> | null>(null);
@@ -653,6 +777,54 @@ function ComplianceMatrixApp() {
     [],
   );
 
+  // Phase 3: knockout-flag mutation. Optimistic update + rollback on error,
+  // same pattern as updateRowState. The bid-gate banner re-derives client-
+  // side from `mergedRows` so flipping the flag updates the verdict
+  // immediately without a server round-trip.
+  const updateRowKnockout = useCallback(
+    async (requirementId: string, isKnockout: boolean, projectName: string) => {
+      const app = appRef.current;
+      if (!app) return;
+      setRowOverrides((prev) => ({
+        ...prev,
+        [requirementId]: { ...prev[requirementId], isKnockout },
+      }));
+      try {
+        const coverageRef = payloadRef.current?.coverageRef;
+        const result = await app.callServerTool({
+          name: "set_row_knockout",
+          arguments: {
+            projectName,
+            requirementId,
+            isKnockout,
+            ...(coverageRef ? { coverageRef } : {}),
+          },
+        });
+        const parsed = extractJson<{ success: boolean; error?: string }>(result as CallToolResult);
+        if (!parsed.success) throw new Error(parsed.error ?? "set_row_knockout failed");
+      } catch (err: any) {
+        setRowOverrides((prev) => {
+          const next = { ...prev };
+          if (next[requirementId]) {
+            const { isKnockout: _k, ...rest } = next[requirementId];
+            void _k;
+            next[requirementId] = rest;
+            if (
+              !next[requirementId].state &&
+              !next[requirementId].reviewStatus &&
+              next[requirementId].notes === undefined
+            ) {
+              delete next[requirementId];
+            }
+          }
+          return next;
+        });
+        console.error("[compliance-matrix] set_row_knockout failed:", err);
+      }
+    },
+    [],
+  );
+
   // ── Open in wiki editor (host postMessage) ─────────────────────────────
   // The host opens wiki/topics/<slug>.md in its preview pane. We first
   // ping the file via get_text_file: if it's missing (which is true for
@@ -746,12 +918,49 @@ function ComplianceMatrixApp() {
     payloadRef.current = payload;
   }, [payload]);
 
+  // Phase 4: auto-promote to canonical-only the first time a payload
+  // arrives with clusters. We don't want to overwrite a user's manual
+  // choice, so this only fires when the filter is still "all" and the
+  // payload actually has clusters.
+  useEffect(() => {
+    const hasClusters = (payload?.clusters?.length ?? 0) > 0;
+    if (hasClusters && duplicatesFilter === "all") {
+      setDuplicatesFilter("canonical-only");
+    }
+    // No revert when clusters disappear — that's a deliberate choice
+    // (the user may have just unset the filter and we shouldn't undo it).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload?.clusters]);
+
   // Workspace dir name (project folder under workspace/). The backend
   // tool emits this in the response payload. If it's missing, the
   // backend is running an older build — the cockpit can still render
   // the matrix, but all write actions (status / review / notes / file
   // loads) need the workspace dir.
   const workspaceProject = payload?.workspaceProject;
+
+  // ── Phase 2: persist the Weight-column toggle per project ─────────────
+  // localStorage keyed by project so flipping the toggle on the tender
+  // doesn't leak into the questionnaire (and vice-versa).
+  useEffect(() => {
+    if (!workspaceProject) return;
+    try {
+      const stored = localStorage.getItem(`weight-col:${workspaceProject}`);
+      if (stored === "true" || stored === "false") {
+        setShowWeightColumn(stored === "true");
+      }
+    } catch {
+      /* private mode etc. — silent */
+    }
+  }, [workspaceProject]);
+  useEffect(() => {
+    if (!workspaceProject) return;
+    try {
+      localStorage.setItem(`weight-col:${workspaceProject}`, String(showWeightColumn));
+    } catch {
+      /* silent */
+    }
+  }, [workspaceProject, showWeightColumn]);
 
   // ── RFP registry fetch ────────────────────────────────────────────────
   // Once we know the workspace project, ask the backend which RFPs the
@@ -824,6 +1033,10 @@ function ComplianceMatrixApp() {
         setStatusFilter("all");
         setReviewFilter("all");
         setOwnerFilter("all");
+        setValidationFilter("all");
+        setWeightFilter("all");
+        setKnockoutOnly(false);
+        setDuplicatesFilter("all");
         setSearch("");
         setSelectedId(null);
         setRowOverrides({});
@@ -835,6 +1048,51 @@ function ComplianceMatrixApp() {
     },
     [currentRfpId, rfps, workspaceProject],
   );
+
+  // Phase 4: trigger the dedup pass server-side, then re-render the
+  // matrix so the new cluster annotations show up. Uses the current RFP's
+  // coverageRef when known, otherwise the legacy default.
+  const handleRebuildClusters = useCallback(async () => {
+    const app = appRef.current;
+    if (!app || !workspaceProject) return;
+    const activeRfp = rfps.find((r) => r.id === currentRfpId) ?? null;
+    const coverageRef = activeRfp?.coverageRef ?? payload?.coverageRef;
+    setRebuildingClusters(true);
+    try {
+      await app.callServerTool({
+        name: "rebuild_clusters",
+        arguments: {
+          projectName: workspaceProject,
+          ...(coverageRef ? { coverageRef } : {}),
+        },
+      });
+      // Re-render: same render_compliance_matrix call as the RFP switch,
+      // pointing at the current RFP's sentinel so the cockpit picks up
+      // the freshly-written clusters[].
+      const sentinel = JSON.stringify({
+        workspaceProject,
+        coverageRef: coverageRef ?? "out/coverage/current.coverage.json",
+        teamRef: "wiki/topics/team.md",
+      });
+      const result = await app.callServerTool({
+        name: "render_compliance_matrix",
+        arguments: {
+          projectName: workspaceProject,
+          content: sentinel,
+          filename:
+            activeRfp?.sentinelRef ?? "out/compliance/current.compliance.json",
+        },
+      });
+      setToolResult(result as CallToolResult);
+      // Clear row overrides — the canonical assignment may have shifted
+      // and stale state overrides would alias the wrong rows.
+      setRowOverrides({});
+    } catch (err) {
+      console.error("[compliance-matrix] rebuild_clusters failed:", err);
+    } finally {
+      setRebuildingClusters(false);
+    }
+  }, [workspaceProject, rfps, currentRfpId, payload?.coverageRef]);
 
   const showRfpPicker = useMemo(() => {
     if (rfps.length >= 2) return true;
@@ -855,9 +1113,40 @@ function ComplianceMatrixApp() {
         ...(ov.state ? { state: ov.state } : {}),
         ...(ov.reviewStatus ? { reviewStatus: ov.reviewStatus } : {}),
         ...(ov.notes !== undefined ? { notes: ov.notes } : {}),
+        ...(ov.isKnockout !== undefined ? { isKnockout: ov.isKnockout } : {}),
       };
     });
   }, [payload, rowOverrides]);
+
+  // Phase 2: precompute the top-quartile / top-half by weight so the
+  // filter predicate is O(1) per row. Ties are kept (Set membership), so
+  // top-25 may yield slightly more or fewer than 25 % when many rows
+  // share the cutoff weight — that's the honest behaviour.
+  const { topQuartileIds, topHalfIds } = useMemo(() => {
+    const weighted = mergedRows
+      .filter((r) => typeof r.weightPoints === "number")
+      .slice()
+      .sort((a, b) => (b.weightPoints ?? 0) - (a.weightPoints ?? 0));
+    if (weighted.length === 0) {
+      return { topQuartileIds: new Set<string>(), topHalfIds: new Set<string>() };
+    }
+    const quartileCount = Math.max(1, Math.ceil(weighted.length / 4));
+    const halfCount = Math.max(1, Math.ceil(weighted.length / 2));
+    const quartileCutoff = weighted[quartileCount - 1].weightPoints ?? 0;
+    const halfCutoff = weighted[halfCount - 1].weightPoints ?? 0;
+    return {
+      topQuartileIds: new Set(
+        weighted
+          .filter((r) => (r.weightPoints ?? 0) >= quartileCutoff)
+          .map((r) => r.requirementId),
+      ),
+      topHalfIds: new Set(
+        weighted
+          .filter((r) => (r.weightPoints ?? 0) >= halfCutoff)
+          .map((r) => r.requirementId),
+      ),
+    };
+  }, [mergedRows]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -865,6 +1154,54 @@ function ComplianceMatrixApp() {
       if (statusFilter !== "all" && r.state !== statusFilter) return false;
       if (reviewFilter !== "all" && r.reviewStatus !== reviewFilter) return false;
       if (ownerFilter !== "all" && r.responsibleEngineer !== ownerFilter) return false;
+      if (validationFilter !== "all") {
+        const flags = r.validationFlags ?? [];
+        if (validationFilter === "clean" && flags.length > 0) return false;
+        if (validationFilter === "has-issues" && flags.length === 0) return false;
+        if (
+          validationFilter === "has-ambiguity" &&
+          !r.ambiguityFlag &&
+          !flags.includes("vague-modal")
+        ) {
+          return false;
+        }
+      }
+      // Phase 3: knockout-only is a transient banner shortcut. When on,
+      // we restrict to rows flagged isKnockout regardless of other
+      // facets so the bid manager can drill into the disqualifiers fast.
+      if (knockoutOnly && r.isKnockout !== true) return false;
+      // Phase 4: cluster-view filter. canonical-only hides duplicates;
+      // show-duplicates is the inverse (useful for QA). Rows without
+      // a clusterId are always canonical for filtering purposes — they
+      // belong to a singleton cluster.
+      if (duplicatesFilter === "canonical-only" && r.clusterRole === "duplicate") {
+        return false;
+      }
+      if (duplicatesFilter === "show-duplicates" && r.clusterRole !== "duplicate") {
+        return false;
+      }
+      // Phase 2: weight + priority + criterion filters. `topQuartileIds`
+      // and `topHalfIds` are precomputed below — using a Set keeps the
+      // per-row check O(1).
+      if (weightFilter !== "all") {
+        if (weightFilter === "has-weight") {
+          if (typeof r.weightPoints !== "number") return false;
+        } else if (weightFilter === "top-25") {
+          if (!topQuartileIds.has(r.requirementId)) return false;
+        } else if (weightFilter === "top-50") {
+          if (!topHalfIds.has(r.requirementId)) return false;
+        } else if (
+          weightFilter === "mandatory" ||
+          weightFilter === "scored" ||
+          weightFilter === "optional" ||
+          weightFilter === "informational"
+        ) {
+          if (r.priorityClass !== weightFilter) return false;
+        } else if (weightFilter.startsWith("C:")) {
+          // Criterion filter — value form is "C:<criterionId>"
+          if (r.awardCriterionId !== weightFilter.slice(2)) return false;
+        }
+      }
       if (q) {
         const hay =
           `${r.requirementId} ${r.ears} ${r.sourceLocation} ${r.notes ?? ""}`.toLowerCase();
@@ -872,7 +1209,19 @@ function ComplianceMatrixApp() {
       }
       return true;
     });
-  }, [mergedRows, statusFilter, reviewFilter, ownerFilter, search]);
+  }, [
+    mergedRows,
+    statusFilter,
+    reviewFilter,
+    ownerFilter,
+    validationFilter,
+    weightFilter,
+    knockoutOnly,
+    duplicatesFilter,
+    topQuartileIds,
+    topHalfIds,
+    search,
+  ]);
 
   const selectedRow = useMemo(
     () => mergedRows.find((r) => r.requirementId === selectedId) ?? null,
@@ -898,6 +1247,14 @@ function ComplianceMatrixApp() {
     setStatusFilter("all");
     setReviewFilter("all");
     setOwnerFilter("all");
+    setValidationFilter("all");
+    setWeightFilter("all");
+    setKnockoutOnly(false);
+    // Reset to the default-for-this-payload: canonical-only when clusters
+    // exist, otherwise all. Matches the auto-promotion effect above.
+    setDuplicatesFilter(
+      (payloadRef.current?.clusters?.length ?? 0) > 0 ? "canonical-only" : "all",
+    );
     setSearch("");
   }, []);
 
@@ -1122,8 +1479,42 @@ function ComplianceMatrixApp() {
           boxSizing: "border-box",
         }}
       >
+        {/* Phase 3: bid-gate banner. Sits above the header so it's the
+            first thing the bid manager sees on every render. Hidden when
+            the payload predates Phase 3 (no bidGate). */}
+        {payload.bidGate && (
+          <BidGateBanner
+            gate={payload.bidGate}
+            palette={palette}
+            rows={mergedRows}
+            onPickReason={(filter) => {
+              // Reason rows mostly want to drill into knockout-non-compliant
+              // or mandatory-non-compliant rows. The banner offers a
+              // pre-canned filter set per reason — we apply it here so the
+              // matrix below updates immediately.
+              if (filter === "knockout") {
+                setKnockoutOnly(true);
+                setWeightFilter("all");
+                setStatusFilter("all");
+                setReviewFilter("all");
+                setOwnerFilter("all");
+                setValidationFilter("all");
+                setSearch("");
+              } else if (filter === "mandatory-open") {
+                setKnockoutOnly(false);
+                setWeightFilter("mandatory");
+                setStatusFilter("open");
+              } else if (filter === "low-coverage") {
+                setKnockoutOnly(false);
+                setWeightFilter("top-25");
+                setStatusFilter("open");
+              }
+            }}
+          />
+        )}
+
         {/* Header */}
-        <Paper elevation={0} sx={{ px: 2, py: 1.25, borderBottom: 1, borderColor: "divider" }}>
+        <Paper elevation={0} sx={{ px: 2, py: 1.25 }}>
           <Stack direction="row" alignItems="center" spacing={1.5}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
@@ -1157,6 +1548,20 @@ function ComplianceMatrixApp() {
           </Alert>
         )}
 
+        {/* Phase 2: Award-criteria card. Renders only when the payload
+            carries an evaluationMatrix. Each top-level criterion gets a
+            horizontal bar; clicking it scopes the matrix to its rows. */}
+        {(payload.evaluationMatrix?.length ?? 0) > 0 && (
+          <AwardCriteriaCard
+            criteria={payload.evaluationMatrix!}
+            totalPoints={payload.totalPoints}
+            rows={mergedRows}
+            palette={palette}
+            activeFilter={weightFilter}
+            onPick={(cid) => setWeightFilter(cid ? `C:${cid}` : "all")}
+          />
+        )}
+
         {/* Top toolbar: search + filters + state-counts. Sits between the
             header and the body so the matrix gets full width below.
             `compactInputSx` shrinks below MUI's `size="small"` baseline —
@@ -1165,6 +1570,7 @@ function ComplianceMatrixApp() {
           sx={{
             px: 1.5,
             py: 0.5,
+            borderTop: 0,
             borderBottom: 1,
             borderColor: "divider",
             display: "flex",
@@ -1232,6 +1638,107 @@ function ComplianceMatrixApp() {
             onChange={setOwnerFilter}
             sx={{ ...compactInputSx, minWidth: 150 }}
           />
+          {/* Phase 1: shown only when the payload carries validator
+              output on at least one row — keeps the toolbar uncluttered
+              for legacy projects that pre-date the EARS validator. */}
+          {mergedRows.some((r) => (r.validationFlags?.length ?? 0) > 0) && (
+            <FilterSelect
+              label="Validation"
+              value={validationFilter}
+              options={["clean", "has-issues", "has-ambiguity"]}
+              onChange={setValidationFilter}
+              sx={{ ...compactInputSx, minWidth: 140 }}
+            />
+          )}
+          {/* Phase 2: Weight filter — appears only when at least one row
+              has weight data or the payload carries an evaluation matrix.
+              Criterion entries are dynamic: one per evaluation_matrix
+              leaf so the user can filter "show me only Q1 rows". */}
+          {(mergedRows.some((r) => typeof r.weightPoints === "number") ||
+            (payload?.evaluationMatrix?.length ?? 0) > 0) && (
+            <FilterSelect
+              label="Weight"
+              value={weightFilter}
+              options={[
+                "has-weight",
+                "top-25",
+                "top-50",
+                "mandatory",
+                "scored",
+                "optional",
+                "informational",
+                ...((payload?.evaluationMatrix ?? [])
+                  .filter((c) => (c.rowIds?.length ?? 0) > 0)
+                  .map((c) => `C:${c.id}`)),
+              ]}
+              renderOption={(opt) => {
+                if (opt.startsWith("C:")) {
+                  const c = (payload?.evaluationMatrix ?? []).find(
+                    (x) => x.id === opt.slice(2),
+                  );
+                  return c ? `${c.id} ${c.label} (${c.points})` : opt;
+                }
+                return opt;
+              }}
+              onChange={setWeightFilter}
+              sx={{ ...compactInputSx, minWidth: 160 }}
+            />
+          )}
+          {/* Phase 2: Weight column toggle — small icon button, persisted
+              per project. Only renders when at least one row has a
+              weightPoints value (otherwise the column would be all
+              dashes). */}
+          {mergedRows.some((r) => typeof r.weightPoints === "number") && (
+            <Tooltip title={showWeightColumn ? "Hide Weight column" : "Show Weight column"}>
+              <IconButton
+                size="small"
+                onClick={() => setShowWeightColumn((v) => !v)}
+                sx={{
+                  color: showWeightColumn ? palette.amber : "text.secondary",
+                  fontSize: "0.85rem",
+                }}
+              >
+                <Box component="span" sx={{ fontWeight: 700 }}>w</Box>
+              </IconButton>
+            </Tooltip>
+          )}
+          {/* Phase 4: Duplicates filter — only renders when the payload
+              carries clusters. canonical-only is the default once
+              clusters exist (auto-promoted by the effect above). */}
+          {(payload?.clusters?.length ?? 0) > 0 && (
+            <FilterSelect
+              label="Duplicates"
+              value={duplicatesFilter}
+              options={["all", "canonical-only", "show-duplicates"]}
+              onChange={setDuplicatesFilter}
+              sx={{ ...compactInputSx, minWidth: 150 }}
+            />
+          )}
+          {/* Phase 4: Rebuild-clusters button. Available whenever the
+              cockpit knows the workspace project — the user can run a
+              first cluster pass before any clusters exist. */}
+          {workspaceProject && (
+            <Tooltip title="Re-embed and re-cluster all rows in this RFP">
+              <span>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => void handleRebuildClusters()}
+                  disabled={rebuildingClusters}
+                  startIcon={
+                    rebuildingClusters ? (
+                      <CircularProgress size={12} />
+                    ) : (
+                      <AutoAwesomeIcon sx={{ fontSize: "0.95rem" }} />
+                    )
+                  }
+                  sx={{ fontSize: "0.7rem", py: 0.25, minWidth: 0 }}
+                >
+                  {rebuildingClusters ? "Clustering…" : "Cluster"}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
           <Button
             variant="text"
             size="small"
@@ -1241,6 +1748,13 @@ function ComplianceMatrixApp() {
               statusFilter === "all" &&
               reviewFilter === "all" &&
               ownerFilter === "all" &&
+              validationFilter === "all" &&
+              weightFilter === "all" &&
+              !knockoutOnly &&
+              // For duplicatesFilter: the default state once clusters exist
+              // is "canonical-only", so don't treat that as a dirty filter.
+              (duplicatesFilter === "all" ||
+                (duplicatesFilter === "canonical-only" && (payload?.clusters?.length ?? 0) > 0)) &&
               !search
             }
             sx={{ fontSize: "0.7rem", py: 0.25, minWidth: 0 }}
@@ -1248,6 +1762,44 @@ function ComplianceMatrixApp() {
             Clear
           </Button>
         </Box>
+
+        {/* Phase 4: inline duplicates banner. Surfaces only when the
+            canonical-only filter is hiding rows the user might want
+            to see. Click-through flips the filter to "all". */}
+        {duplicatesFilter === "canonical-only" &&
+          (() => {
+            const hiddenCount = mergedRows.filter(
+              (r) => r.clusterRole === "duplicate",
+            ).length;
+            if (hiddenCount === 0) return null;
+            return (
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  bgcolor: palette.amberBg,
+                  borderBottom: 1,
+                  borderColor: "divider",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  fontSize: "0.75rem",
+                }}
+              >
+                <Typography variant="caption" sx={{ flex: 1 }}>
+                  {hiddenCount} duplicate{hiddenCount === 1 ? "" : "s"} collapsed under canonical rows.
+                </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => setDuplicatesFilter("all")}
+                  sx={{ fontSize: "0.7rem", py: 0, minWidth: 0 }}
+                >
+                  Show all
+                </Button>
+              </Box>
+            );
+          })()}
 
         {/* Body: matrix + right-pane preview */}
         <Box sx={{ flex: 1, minHeight: 0, display: "flex" }}>
@@ -1286,6 +1838,11 @@ function ComplianceMatrixApp() {
                   <TableCell sx={{ width: 110, whiteSpace: "nowrap" }}>
                     Owner / review
                   </TableCell>
+                  {showWeightColumn && (
+                    <TableCell sx={{ width: 90, whiteSpace: "nowrap", textAlign: "right" }}>
+                      Weight
+                    </TableCell>
+                  )}
                   <TableCell sx={{ width: 36, p: 0 }} aria-label="Row actions" />
                 </TableRow>
               </TableHead>
@@ -1338,8 +1895,78 @@ function ComplianceMatrixApp() {
                       </TableCell>
                       <TableCell sx={{ verticalAlign: "top" }}>
                         <Typography variant="body2">{row.ears}</Typography>
-                        {row.chips.length > 0 && (
+                        {(row.chips.length > 0 ||
+                          (row.validationFlags?.length ?? 0) > 0 ||
+                          row.splitFrom ||
+                          row.isKnockout ||
+                          row.clusterRole === "canonical" ||
+                          row.clusterRole === "duplicate") && (
                           <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }} flexWrap="wrap" useFlexGap>
+                            {row.isKnockout && (
+                              <Tooltip
+                                title="Knockout: non-compliance disqualifies the bid"
+                                placement="top"
+                                arrow
+                              >
+                                <Chip
+                                  size="small"
+                                  label="knockout"
+                                  variant="filled"
+                                  sx={{
+                                    fontSize: "0.65rem",
+                                    height: 18,
+                                    bgcolor: "#7b1fa2",
+                                    color: "#fff",
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
+                            {/* Phase 4: cluster chips. Canonicals get a
+                                clickable ×N chip opening the members
+                                popover. Duplicates get a small "dup"
+                                chip linking back to the canonical. */}
+                            {row.clusterRole === "canonical" && row.clusterSize && row.clusterId && (
+                              <Chip
+                                size="small"
+                                label={`×${row.clusterSize}`}
+                                variant="filled"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setClusterPopover({
+                                    anchor: e.currentTarget,
+                                    clusterId: row.clusterId!,
+                                  });
+                                }}
+                                sx={{
+                                  fontSize: "0.65rem",
+                                  height: 18,
+                                  bgcolor: palette.blue,
+                                  color: "#fff",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                }}
+                              />
+                            )}
+                            {row.clusterRole === "duplicate" && row.clusterId && (
+                              <Tooltip
+                                title={`Duplicate in cluster ${row.clusterId} — see the canonical row for the planned response`}
+                                placement="top"
+                                arrow
+                              >
+                                <Chip
+                                  size="small"
+                                  label={`dup ${row.clusterId}`}
+                                  variant="outlined"
+                                  sx={{
+                                    fontSize: "0.65rem",
+                                    height: 18,
+                                    borderColor: palette.blue,
+                                    color: palette.blue,
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
                             {row.chips.map((c) => (
                               <Chip
                                 key={c}
@@ -1349,6 +1976,61 @@ function ComplianceMatrixApp() {
                                 sx={{ fontSize: "0.65rem", height: 18 }}
                               />
                             ))}
+                            {row.splitFrom && (
+                              <Tooltip
+                                title={`Split from ${row.splitFrom} by the EARS validator`}
+                                placement="top"
+                                arrow
+                              >
+                                <Chip
+                                  size="small"
+                                  label={`from ${row.splitFrom}`}
+                                  variant="outlined"
+                                  sx={{
+                                    fontSize: "0.65rem",
+                                    height: 18,
+                                    borderColor: palette.blue,
+                                    color: palette.blue,
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
+                            {(row.validationFlags?.length ?? 0) > 0 && (
+                              <Tooltip
+                                title={
+                                  <Box>
+                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                      EARS structural issues
+                                    </Typography>
+                                    {row.validationFlags!.map((f) => (
+                                      <Typography
+                                        key={f}
+                                        variant="caption"
+                                        component="div"
+                                        sx={{ fontFamily: "monospace" }}
+                                      >
+                                        · {f}
+                                      </Typography>
+                                    ))}
+                                  </Box>
+                                }
+                                placement="top"
+                                arrow
+                              >
+                                <Chip
+                                  size="small"
+                                  label={`⚠ ${row.validationFlags!.length}`}
+                                  variant="filled"
+                                  sx={{
+                                    fontSize: "0.65rem",
+                                    height: 18,
+                                    bgcolor: palette.amber,
+                                    color: "#000",
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
                           </Stack>
                         )}
                       </TableCell>
@@ -1472,6 +2154,53 @@ function ComplianceMatrixApp() {
                           />
                         </Stack>
                       </TableCell>
+                      {showWeightColumn && (
+                        <TableCell sx={{ verticalAlign: "top", textAlign: "right", whiteSpace: "nowrap" }}>
+                          {typeof row.weightPoints === "number" ? (
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontFamily: "monospace",
+                                fontWeight: 600,
+                                color:
+                                  row.weightPoints >= 20
+                                    ? palette.red
+                                    : row.weightPoints >= 10
+                                      ? palette.amber
+                                      : "text.primary",
+                              }}
+                            >
+                              {row.weightPoints}
+                            </Typography>
+                          ) : (
+                            <Typography variant="body2" color="text.disabled">—</Typography>
+                          )}
+                          {row.priorityClass && (
+                            <Chip
+                              size="small"
+                              label={row.priorityClass}
+                              variant="outlined"
+                              sx={{
+                                mt: 0.5,
+                                fontSize: "0.6rem",
+                                height: 16,
+                                color:
+                                  row.priorityClass === "mandatory"
+                                    ? palette.red
+                                    : row.priorityClass === "scored"
+                                      ? palette.blue
+                                      : "text.secondary",
+                                borderColor:
+                                  row.priorityClass === "mandatory"
+                                    ? palette.red
+                                    : row.priorityClass === "scored"
+                                      ? palette.blue
+                                      : "divider",
+                              }}
+                            />
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell sx={{ verticalAlign: "top", p: 0, width: 36 }}>
                         <IconButton
                           size="small"
@@ -1489,7 +2218,7 @@ function ComplianceMatrixApp() {
                 })}
                 {filteredRows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={showWeightColumn ? 6 : 5} align="center" sx={{ py: 4 }}>
                       <Typography variant="body2" color="text.secondary">
                         No rows match the current filters.
                       </Typography>
@@ -1763,6 +2492,55 @@ function ComplianceMatrixApp() {
                       </Box>
                     )}
 
+                    {/* Phase 1: clarification candidate — the buyer-Q&A
+                        question templated from ambiguity_notes. Surfaced
+                        here so the bid manager can copy it straight into
+                        the customer correspondence. */}
+                    {selectedRow.clarificationQuestion && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                          Clarification candidate
+                        </Typography>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1,
+                            mt: 0.5,
+                            borderColor: palette.amber,
+                            bgcolor: palette.amberBg,
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+                            {selectedRow.clarificationQuestion}
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="text"
+                            sx={{ mt: 0.5, fontSize: "0.7rem" }}
+                            onClick={() => {
+                              if (selectedRow.clarificationQuestion) {
+                                void navigator.clipboard.writeText(
+                                  selectedRow.clarificationQuestion,
+                                );
+                              }
+                            }}
+                          >
+                            Copy to clipboard
+                          </Button>
+                        </Paper>
+                      </Box>
+                    )}
+
+                    {/* Phase 1: parent-row provenance for split atoms.
+                        The parent's id was stamped onto each atom at seed
+                        time so the engineer can see where the row came
+                        from when "REQ-143-a" looks unfamiliar. */}
+                    {selectedRow.splitFrom && (
+                      <Typography variant="caption" color="text.secondary">
+                        Split from <Box component="span" sx={{ fontFamily: "monospace" }}>{selectedRow.splitFrom}</Box> by the EARS validator. Each atom can be committed independently.
+                      </Typography>
+                    )}
+
                     <NotesEditor
                       // re-mount when the row changes so the textarea
                       // resets to the new row's notes instead of carrying
@@ -1789,6 +2567,94 @@ function ComplianceMatrixApp() {
             )}
           </Box>
         </Box>
+
+        {/* Phase 4: cluster members popover. Anchored from the canonical
+            row's ×N chip; lists every member verbatim so the bid manager
+            can eyeball whether they really are duplicates before
+            committing the canonical on behalf of the cluster. */}
+        <Popover
+          open={Boolean(clusterPopover)}
+          anchorEl={clusterPopover?.anchor ?? null}
+          onClose={() => setClusterPopover(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+          slotProps={{ paper: { sx: { p: 1.5, maxWidth: 480 } } }}
+        >
+          {clusterPopover &&
+            (() => {
+              const cl = (payload?.clusters ?? []).find(
+                (c) => c.id === clusterPopover.clusterId,
+              );
+              if (!cl) return null;
+              const memberRows = cl.memberRowIds
+                .map((id) => mergedRows.find((r) => r.requirementId === id))
+                .filter((r): r is MatrixRow => Boolean(r));
+              const [simMin, simMax] = cl.similarityRange;
+              return (
+                <Stack spacing={1}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                      Cluster {cl.id}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {memberRows.length} rows · cosine {simMin === simMax ? simMin.toFixed(3) : `${simMin.toFixed(3)}–${simMax.toFixed(3)}`}
+                    </Typography>
+                  </Stack>
+                  <Divider />
+                  <Stack spacing={0.75}>
+                    {memberRows.map((m) => (
+                      <Box
+                        key={m.requirementId}
+                        sx={{
+                          py: 0.5,
+                          px: 0.75,
+                          borderRadius: 0.5,
+                          cursor: "pointer",
+                          "&:hover": { bgcolor: "action.hover" },
+                        }}
+                        onClick={() => {
+                          setSelectedId(m.requirementId);
+                          setClusterPopover(null);
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+                            {m.requirementId}
+                          </Typography>
+                          {m.clusterRole === "canonical" && (
+                            <Chip
+                              size="small"
+                              label="canonical"
+                              variant="filled"
+                              sx={{
+                                fontSize: "0.6rem",
+                                height: 16,
+                                bgcolor: palette.blue,
+                                color: "#fff",
+                                fontWeight: 700,
+                              }}
+                            />
+                          )}
+                          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
+                            [{m.state}]
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {m.sourceLocation}
+                          </Typography>
+                        </Stack>
+                        <Typography variant="caption" sx={{ display: "block", mt: 0.25 }}>
+                          {m.ears}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                  <Divider />
+                  <Typography variant="caption" color="text.secondary">
+                    Editing the canonical's state/notes does NOT auto-propagate to duplicates — use each member's kebab to apply changes deliberately.
+                  </Typography>
+                </Stack>
+              );
+            })()}
+        </Popover>
 
         {/* Per-row kebab menu (rendered once at root level — anchored by
             the kebabState.anchor element from whichever row was clicked).
@@ -1858,6 +2724,41 @@ function ComplianceMatrixApp() {
                     <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: fg, border: 1, borderColor: bg }} />
                   </ListItemIcon>
                   <ListItemText primary={r} primaryTypographyProps={{ fontSize: "0.85rem" }} />
+                </MenuItem>,
+              );
+            }
+
+            // Phase 3: knockout toggle. Always available — even rows
+            // currently not flagged should be markable in case the
+            // extraction missed a Mindestanforderung.
+            if (row && reqId) {
+              items.push(<Divider key="div-knockout" sx={{ my: 0.5 }} />);
+              const isKO = row.isKnockout === true;
+              items.push(
+                <MenuItem
+                  key="toggle-knockout"
+                  onClick={() => {
+                    if (project) updateRowKnockout(reqId, !isKO, project);
+                    close();
+                  }}
+                  disabled={!project}
+                >
+                  <ListItemIcon sx={{ minWidth: 24 }}>
+                    <Box
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        bgcolor: isKO ? "#7b1fa2" : "transparent",
+                        border: 2,
+                        borderColor: "#7b1fa2",
+                      }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={isKO ? "Unmark knockout" : "Mark as knockout"}
+                    primaryTypographyProps={{ fontSize: "0.85rem" }}
+                  />
                 </MenuItem>,
               );
             }
@@ -2115,6 +3016,411 @@ function ComplianceMatrixApp() {
       <CssBaseline />
       {content}
     </ThemeProvider>
+  );
+}
+
+// ─── Phase 3: bid-gate banner ─────────────────────────────────────────────────
+//
+// Top-of-page Go / Caution / No-Go badge with a "Why?" disclosure. The
+// banner reads the server-computed `gate.recommendation` but ALSO
+// re-derives the headline counts client-side from `rows` so kebab
+// actions (state changes, knockout flips) update the verdict
+// instantly without a server round-trip. The reasons list comes from
+// the server — we don't try to re-template that text on the client.
+//
+// Three clickable reason chips filter the matrix below:
+//   - knockout      → restrict to isKnockout rows
+//   - mandatory-open → mandatory class + state=open
+//   - low-coverage   → top-25 weight + state=open
+// Other reasons are shown but not interactive.
+
+const KNOCKOUT_NON_COMPLIANT_STATES = new Set(["open", "drafted", "deviation"]);
+const COMMITTED_LIKE_STATES = new Set(["committed", "deviation", "clarify"]);
+
+function BidGateBanner({
+  gate,
+  palette,
+  rows,
+  onPickReason,
+}: {
+  gate: BidGate;
+  palette: Palette;
+  rows: MatrixRow[];
+  onPickReason: (filter: "knockout" | "mandatory-open" | "low-coverage") => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Re-derive counts from current rows (kebab overrides are merged in).
+  // We don't re-evaluate the recommendation client-side because the
+  // server has access to the gate-date logic; instead we surface a
+  // small "* live count" badge when the live counts disagree with the
+  // server snapshot, so the user knows to refresh for an updated verdict.
+  const liveKnockoutNonCompliant = rows.filter(
+    (r) => r.isKnockout && KNOCKOUT_NON_COMPLIANT_STATES.has(r.state),
+  ).length;
+  const liveMandatoryNonCompliant = rows.filter(
+    (r) => r.priorityClass === "mandatory" && !COMMITTED_LIKE_STATES.has(r.state),
+  ).length;
+  const counts = {
+    knockoutNonCompliant: liveKnockoutNonCompliant,
+    mandatoryNonCompliant: liveMandatoryNonCompliant,
+    weightedCoveragePct: gate.weightedCoveragePct, // weighted % needs the gate-date context — keep server value
+  };
+  const stale =
+    counts.knockoutNonCompliant !== gate.knockoutNonCompliant ||
+    counts.mandatoryNonCompliant !== gate.mandatoryNonCompliant;
+
+  const tone =
+    gate.recommendation === "go"
+      ? { bg: "#1b5e20", fg: "#fff", label: "GO" }
+      : gate.recommendation === "caution"
+        ? { bg: palette.amber, fg: "#000", label: "CAUTION" }
+        : { bg: palette.red, fg: "#fff", label: "NO-GO" };
+
+  // Map a reason string to a filter shortcut. Kept here (not in the
+  // server output) so reason text can evolve without breaking the UI.
+  function shortcutFor(reason: string): "knockout" | "mandatory-open" | "low-coverage" | null {
+    if (/knockout/i.test(reason)) return "knockout";
+    if (/mandatory/i.test(reason)) return "mandatory-open";
+    if (/weighted coverage/i.test(reason)) return "low-coverage";
+    return null;
+  }
+
+  return (
+    <Paper
+      square
+      elevation={0}
+      sx={{
+        bgcolor: tone.bg,
+        color: tone.fg,
+        borderBottom: 1,
+        borderColor: "divider",
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1.5}
+        sx={{ px: 2, py: 1, cursor: "pointer" }}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <Box
+          sx={{
+            px: 1.25,
+            py: 0.25,
+            border: 2,
+            borderColor: tone.fg,
+            borderRadius: 0.5,
+            fontWeight: 800,
+            fontSize: "0.85rem",
+            letterSpacing: 1,
+          }}
+        >
+          {tone.label}
+        </Box>
+        <Typography variant="body2" sx={{ flex: 1, minWidth: 0, fontWeight: 600 }}>
+          {gate.recommendation === "go" && "All gates clear — ready to invest drafting effort."}
+          {gate.recommendation === "caution" &&
+            `${gate.reasons.length} caution${gate.reasons.length === 1 ? "" : "s"} — drafting can continue, but blockers exist.`}
+          {gate.recommendation === "no-go" &&
+            "Bid is currently disqualifying — fix the knockout(s) before committing further effort."}
+        </Typography>
+        {stale && (
+          <Tooltip title="Local edits changed the counts. Reload to refresh the verdict.">
+            <Chip
+              size="small"
+              label="* stale"
+              sx={{
+                bgcolor: "rgba(255,255,255,0.2)",
+                color: tone.fg,
+                fontWeight: 700,
+                height: 20,
+                fontSize: "0.65rem",
+              }}
+            />
+          </Tooltip>
+        )}
+        <Typography variant="caption" sx={{ opacity: 0.85 }}>
+          {gate.weightedCoveragePct} % weighted · {counts.knockoutNonCompliant} ko-open · {counts.mandatoryNonCompliant} mand-open
+        </Typography>
+        <ArrowDropDownIcon
+          sx={{
+            transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+            transition: "transform 120ms",
+          }}
+        />
+      </Stack>
+      {expanded && (
+        <Box sx={{ px: 2, pb: 1.25, pt: 0 }}>
+          <Stack spacing={0.5}>
+            {gate.reasons.map((r, i) => {
+              const sc = shortcutFor(r);
+              return (
+                <Stack key={i} direction="row" alignItems="flex-start" spacing={1}>
+                  <Typography variant="caption" sx={{ opacity: 0.7, mt: 0.25 }}>
+                    {gate.recommendation === "go" ? "✓" : "·"}
+                  </Typography>
+                  <Typography variant="caption" sx={{ flex: 1 }}>
+                    {r}
+                  </Typography>
+                  {sc && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPickReason(sc);
+                      }}
+                      sx={{
+                        color: tone.fg,
+                        fontSize: "0.7rem",
+                        textTransform: "none",
+                        minWidth: 0,
+                        px: 0.5,
+                        py: 0,
+                        border: 1,
+                        borderColor: "rgba(255,255,255,0.4)",
+                        "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                      }}
+                    >
+                      Show
+                    </Button>
+                  )}
+                </Stack>
+              );
+            })}
+          </Stack>
+        </Box>
+      )}
+    </Paper>
+  );
+}
+
+// ─── Phase 2: Award-criteria card ─────────────────────────────────────────────
+//
+// Collapsed accordion above the toolbar. Each top-level criterion is a
+// horizontal bar with: label · points · coverage breakdown by state.
+// Clicking a criterion sets the Weight filter so the matrix shrinks to
+// its rows. Sub-criteria are listed under their parent, but we only
+// render bars for leaves (parents are pure roll-ups).
+//
+// We deliberately keep this static — no in-place editing of criteria.
+// Editing the weight matrix belongs in the source RFP, not the cockpit.
+
+function AwardCriteriaCard({
+  criteria,
+  totalPoints,
+  rows,
+  palette,
+  activeFilter,
+  onPick,
+}: {
+  criteria: EvaluationCriterion[];
+  totalPoints?: number;
+  rows: MatrixRow[];
+  palette: Palette;
+  activeFilter: string;
+  onPick: (criterionId: string | null) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const tops = criteria.filter((c) => !c.parentId);
+  const leaves = criteria.filter((c) => c.parentId);
+  // Group leaves under their parent for the expanded view.
+  const childrenOf = (parentId: string) => leaves.filter((c) => c.parentId === parentId);
+
+  // Per-criterion coverage breakdown — used in tooltips and the
+  // expanded view. Counts members by state so the team can see at a
+  // glance "this criterion is 60 % committed, 30 % open, 10 % drafted".
+  function breakdownFor(c: EvaluationCriterion) {
+    const memberIds = new Set(c.rowIds ?? []);
+    const members = rows.filter((r) => memberIds.has(r.requirementId));
+    const total = members.length;
+    if (total === 0) return null;
+    const counts: Record<string, number> = {};
+    for (const r of members) counts[r.state] = (counts[r.state] ?? 0) + 1;
+    const committedPct = Math.round(((counts.committed ?? 0) / total) * 100);
+    return { total, counts, committedPct };
+  }
+
+  const computedTotal =
+    totalPoints ?? tops.reduce((acc, c) => acc + c.points, 0);
+
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        borderRadius: 0,
+        borderLeft: 0,
+        borderRight: 0,
+        borderTop: 0,
+        borderBottom: 0,
+        bgcolor: "background.default",
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1}
+        sx={{
+          px: 1.5,
+          py: 0.75,
+          cursor: "pointer",
+          "&:hover": { bgcolor: "action.hover" },
+        }}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <ArrowDropDownIcon
+          fontSize="small"
+          sx={{
+            transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+            transition: "transform 120ms",
+            color: "text.secondary",
+          }}
+        />
+        <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+          Award criteria
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {tops.length} top-level · {leaves.length} leaves · {computedTotal} pts total
+        </Typography>
+        {activeFilter.startsWith("C:") && (
+          <Chip
+            size="small"
+            label={`filtered to ${activeFilter.slice(2)}`}
+            onDelete={(e: any) => {
+              e.stopPropagation();
+              onPick(null);
+            }}
+            sx={{ height: 18, fontSize: "0.65rem" }}
+          />
+        )}
+      </Stack>
+      {expanded && (
+        <Box sx={{ px: 1.5, pb: 1 }}>
+          <Stack spacing={0.75}>
+            {tops.map((top) => {
+              const subs = childrenOf(top.id);
+              return (
+                <Box key={top.id}>
+                  {/* Top-level row — pure label. Subs are clickable. */}
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 28 }}>
+                      {top.id}
+                    </Typography>
+                    <Typography variant="caption" sx={{ flex: 1 }}>
+                      {top.label}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                      {top.points}
+                    </Typography>
+                  </Stack>
+                  {subs.length === 0 &&
+                    (() => {
+                      // Some payloads have only leaf criteria — render the
+                      // top-level entry as a clickable bar.
+                      const b = breakdownFor(top);
+                      const isActive = activeFilter === `C:${top.id}`;
+                      return (
+                        <CriterionBar
+                          c={top}
+                          breakdown={b}
+                          palette={palette}
+                          isActive={isActive}
+                          onClick={() => onPick(isActive ? null : top.id)}
+                        />
+                      );
+                    })()}
+                  {subs.map((sub) => {
+                    const b = breakdownFor(sub);
+                    const isActive = activeFilter === `C:${sub.id}`;
+                    return (
+                      <CriterionBar
+                        key={sub.id}
+                        c={sub}
+                        breakdown={b}
+                        palette={palette}
+                        isActive={isActive}
+                        onClick={() => onPick(isActive ? null : sub.id)}
+                      />
+                    );
+                  })}
+                </Box>
+              );
+            })}
+          </Stack>
+        </Box>
+      )}
+    </Paper>
+  );
+}
+
+function CriterionBar({
+  c,
+  breakdown,
+  palette,
+  isActive,
+  onClick,
+}: {
+  c: EvaluationCriterion;
+  breakdown: { total: number; counts: Record<string, number>; committedPct: number } | null;
+  palette: Palette;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={1}
+      onClick={onClick}
+      sx={{
+        py: 0.25,
+        pl: 4,
+        pr: 1,
+        cursor: "pointer",
+        borderRadius: 0.5,
+        bgcolor: isActive ? "action.selected" : "transparent",
+        "&:hover": { bgcolor: "action.hover" },
+      }}
+    >
+      <Typography variant="caption" sx={{ fontFamily: "monospace", minWidth: 36 }}>
+        {c.id}
+      </Typography>
+      <Typography variant="caption" sx={{ flex: 1, color: "text.secondary" }}>
+        {c.label}
+      </Typography>
+      {/* Compact coverage bar: green for committed, grey for the rest.
+          Renders nothing when the criterion has no rows yet. */}
+      {breakdown && breakdown.total > 0 ? (
+        <Box
+          sx={{
+            width: 60,
+            height: 6,
+            bgcolor: "divider",
+            borderRadius: 3,
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              width: `${breakdown.committedPct}%`,
+              bgcolor: palette.green,
+            }}
+          />
+        </Box>
+      ) : (
+        <Typography variant="caption" color="text.disabled" sx={{ width: 60, textAlign: "center", fontSize: "0.6rem" }}>
+          0 rows
+        </Typography>
+      )}
+      <Typography variant="caption" sx={{ fontFamily: "monospace", minWidth: 32, textAlign: "right", fontWeight: 600 }}>
+        {c.points}
+      </Typography>
+    </Stack>
   );
 }
 

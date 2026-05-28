@@ -35,6 +35,13 @@ export interface QuestionnaireQuestion {
   reusePlannedResponseSlug?: string;
   /** Optional seed-time committed answer body — populates the wiki stub. */
   seededAnswerBody?: string;
+  /**
+   * Phase 2: per-question scoring weight (a real questionnaire
+   * convention — buyers spell out "this question is worth 15 points").
+   * Filled in from `QUESTIONNAIRE_WEIGHTS` at the bottom of this file so
+   * the per-question literals up here stay readable.
+   */
+  weightPoints?: number;
 }
 
 export interface QuestionnaireSheet {
@@ -321,10 +328,97 @@ export const QUESTIONNAIRE_SHEETS: QuestionnaireSheet[] = [
 // Column layout — single source of truth. The XLSX writer renders these
 // as the header row; the coverage seed encodes them into sourceRef so
 // the fill-back finds the right cells.
+//
+// Phase 2: Weight slots between Reference and Response so the visual
+// reading order is "ID · Question · Mandatory · Reference · Weight ·
+// Response". This matches real-world questionnaires that bracket the
+// answer cell with scoring metadata to the left.
 export const QUESTIONNAIRE_COLUMNS = {
   id: { letter: 'A', header: 'ID', width: 14 },
   question: { letter: 'B', header: 'Question', width: 70 },
   mandatory: { letter: 'C', header: 'Mandatory', width: 12 },
   reference: { letter: 'D', header: 'Reference', width: 28 },
-  response: { letter: 'E', header: 'Response', width: 60 },
+  weight: { letter: 'E', header: 'Weight', width: 10 },
+  response: { letter: 'F', header: 'Response', width: 60 },
 } as const;
+
+// ─── Phase 2: per-question weights ────────────────────────────────────────
+//
+// Distributed so each sheet sums to ≈100. Mandatory infra questions get
+// modest single-digit weights; technical-capability + project-execution
+// rows that move the needle on award day get the heavy weight. Reused
+// rows that fold back into the tender story (REQ-101/102/247/etc.) get
+// the highest individual weights so the cockpit's "top-25" filter
+// surfaces them as the first place to invest.
+//
+// Sheet totals (target ≈ 100):
+//   Company & Organisation:        5+5+8+12+8+8+5+10+5+4 = 70  (low-leverage)
+//   Financial Standing:            15+12+10+15+12+8+10+8     = 90
+//   Technical Capability:          25+10+8+15+20+22+15+18+10+5 = 148 (high)
+//   HSE & Compliance:              10+12+12+8+8+10+5+10        = 75
+//   Project Execution:             20+8+10+8+12+5+10+8+10+5    = 96
+export const QUESTIONNAIRE_WEIGHTS: Record<string, number> = {
+  // Company & Organisation
+  'PQQ-COMP-01': 5,
+  'PQQ-COMP-02': 5,
+  'PQQ-COMP-03': 8,
+  'PQQ-COMP-04': 12,
+  'PQQ-COMP-05': 8,
+  'PQQ-COMP-06': 8,
+  'PQQ-COMP-07': 5,
+  'PQQ-COMP-08': 10,
+  'PQQ-COMP-09': 5,
+  'PQQ-COMP-10': 4,
+  // Financial Standing
+  'PQQ-FIN-01': 15,
+  'PQQ-FIN-02': 12,
+  'PQQ-FIN-03': 10,
+  'PQQ-FIN-04': 15,
+  'PQQ-FIN-05': 12,
+  'PQQ-FIN-06': 8,
+  'PQQ-FIN-07': 10,
+  'PQQ-FIN-08': 8,
+  // Technical Capability
+  'PQQ-TECH-01': 25,
+  'PQQ-TECH-02': 10,
+  'PQQ-TECH-03': 8,
+  'PQQ-TECH-04': 15,
+  'PQQ-TECH-05': 20,
+  'PQQ-TECH-06': 22,
+  'PQQ-TECH-07': 15,
+  'PQQ-TECH-08': 18,
+  'PQQ-TECH-09': 10,
+  'PQQ-TECH-10': 5,
+  // HSE & Compliance
+  'PQQ-HSE-01': 10,
+  'PQQ-HSE-02': 12,
+  'PQQ-HSE-03': 12,
+  'PQQ-HSE-04': 8,
+  'PQQ-HSE-05': 8,
+  'PQQ-HSE-06': 10,
+  'PQQ-HSE-07': 5,
+  'PQQ-HSE-08': 10,
+  // Project Execution
+  'PQQ-EXEC-01': 20,
+  'PQQ-EXEC-02': 8,
+  'PQQ-EXEC-03': 10,
+  'PQQ-EXEC-04': 8,
+  'PQQ-EXEC-05': 12,
+  'PQQ-EXEC-06': 5,
+  'PQQ-EXEC-07': 10,
+  'PQQ-EXEC-08': 8,
+  'PQQ-EXEC-09': 10,
+  'PQQ-EXEC-10': 5,
+};
+
+// Apply the weights table to the questions. Side-effect at module load
+// time so callers don't have to remember to merge them — both the XLSX
+// writer and the coverage seed read `q.weightPoints` straight off the
+// QuestionnaireSheets array.
+for (const sheet of QUESTIONNAIRE_SHEETS) {
+  for (const q of sheet.questions) {
+    if (QUESTIONNAIRE_WEIGHTS[q.id] !== undefined) {
+      q.weightPoints = QUESTIONNAIRE_WEIGHTS[q.id];
+    }
+  }
+}

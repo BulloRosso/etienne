@@ -23,6 +23,10 @@ import {
   QUESTIONNAIRE_TITLE,
   type QuestionnaireQuestion,
 } from './inbox-xlsx';
+import {
+  validateRequirement,
+  type ValidationFlag,
+} from '../../../backend/src/ears/ears-validator';
 
 const QUESTIONNAIRE_RFP_ID = 'questionnaire';
 const MAIN_RFP_ID = 'main';
@@ -38,6 +42,21 @@ type CoverageState =
   | 'deviation'
   | 'clarify';
 type ReviewStatus = 'pending' | 'in-review' | 'approved' | 'rejected';
+
+type PriorityClass = 'mandatory' | 'scored' | 'optional' | 'informational';
+
+// Phase 2: questionnaire-specific evaluation matrix — one criterion per
+// sheet, with `points` summed from the sheet's question weights. Buyers
+// rarely publish criterion-level totals on a PQQ (they're implicit in the
+// per-question weights), so we synthesise them here so the cockpit's
+// award-criteria card has something to render.
+interface EvaluationCriterion {
+  id: string;
+  label: string;
+  parentId?: string;
+  points: number;
+  rowIds?: string[];
+}
 
 function defaultStateFor(idx: number, q: QuestionnaireQuestion): CoverageState {
   // Reused planned responses are pre-drafted from the tender side — mark
@@ -79,6 +98,22 @@ interface QuestionnaireCoverageRow {
   // template workbook without re-parsing it.
   sourceRef: { sheet: string; row: number; column: string };
   sourceCitation: { docPath: string; locator: string };
+  // Phase 1: EARS validator output (computed below). Questionnaire rows
+  // don't carry synthesised EARS structural fields — text-only flags
+  // (vague-modal, missing-measurable) still fire on the question prose.
+  validationFlags?: ValidationFlag[];
+  // Phase 2: per-row weight + priority class + award criterion link.
+  weightPoints?: number;
+  priorityClass?: PriorityClass;
+  awardCriterionId?: string;
+}
+
+// Build a stable sheet-id from the sheet's name: "Company & Organisation"
+// → "C-COMP". The cockpit uses these as the awardCriterionId on each row
+// and as the keys in the evaluationMatrix array.
+function sheetCriterionId(sheetName: string): string {
+  const token = sheetName.split(/\s+/)[0] ?? sheetName;
+  return `C-${token.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4)}`;
 }
 
 const ROWS: QuestionnaireCoverageRow[] = [];
@@ -92,6 +127,23 @@ for (const sheet of QUESTIONNAIRE_SHEETS) {
     const chips: string[] = [];
     if (q.mandatory) chips.push('mandatory');
     if (q.reusePlannedResponseSlug) chips.push('reused');
+    // Phase 1: run the text-only validator over the question prose.
+    // Questionnaire rows don't carry synthesised EARS structural fields,
+    // so completeness checks are skipped; vague-modal / missing-measurable
+    // / compound-suspected still fire on raw text.
+    const flags = validateRequirement({ ears: q.question });
+    // Phase 2: priorityClass derivation from the existing mandatory flag
+    // + the question's weightPoints. Anything mandatory is `mandatory`;
+    // heavy non-mandatory rows are `scored`; light non-mandatory rows are
+    // `optional`; zero-weight or unweighted are `informational`.
+    const w = q.weightPoints ?? 0;
+    const priorityClass: PriorityClass = q.mandatory
+      ? 'mandatory'
+      : w >= 15
+        ? 'scored'
+        : w > 0
+          ? 'optional'
+          : 'informational';
     ROWS.push({
       requirementId: q.id,
       rfpId: QUESTIONNAIRE_RFP_ID,
@@ -112,9 +164,31 @@ for (const sheet of QUESTIONNAIRE_SHEETS) {
         locator: `${sheet.name} · ${q.id}`,
       },
       ...(q.reference ? { notes: `Reference: ${q.reference}` } : {}),
+      ...(flags.length > 0 ? { validationFlags: flags } : {}),
+      ...(typeof q.weightPoints === 'number' ? { weightPoints: q.weightPoints } : {}),
+      priorityClass,
+      awardCriterionId: sheetCriterionId(sheet.name),
     });
   });
 }
+
+// Phase 2: build the evaluation matrix — one criterion per sheet, points
+// = sum of the sheet's question weights. We populate `rowIds` here too
+// so the cockpit doesn't need to re-aggregate on render.
+const EVALUATION_MATRIX: EvaluationCriterion[] = QUESTIONNAIRE_SHEETS.map(
+  (sheet) => {
+    const cid = sheetCriterionId(sheet.name);
+    const sheetRows = ROWS.filter((r) => r.awardCriterionId === cid);
+    const points = sheetRows.reduce((acc, r) => acc + (r.weightPoints ?? 0), 0);
+    return {
+      id: cid,
+      label: sheet.name,
+      points,
+      rowIds: sheetRows.map((r) => r.requirementId),
+    };
+  },
+);
+const totalPoints = EVALUATION_MATRIX.reduce((acc, c) => acc + c.points, 0);
 
 const counts = (state: CoverageState) =>
   ROWS.filter((r) => r.state === state).length;
@@ -152,6 +226,8 @@ export const QUESTIONNAIRE_COVERAGE = {
     mandatory: ROWS.filter((r) => r.chips.includes('mandatory')).length,
     reused: ROWS.filter((r) => r.chips.includes('reused')).length,
   },
+  evaluationMatrix: EVALUATION_MATRIX,
+  totalPoints,
   rows: ROWS,
 };
 

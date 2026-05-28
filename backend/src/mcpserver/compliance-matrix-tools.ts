@@ -4,6 +4,9 @@ import { join, extname } from 'path';
 import type { WikiService } from '../wiki/wiki.service';
 import type { RagService } from '../rag/rag.service';
 import type { LlmService } from '../llm/llm.service';
+import type { EmbeddingsService } from '../embeddings/embeddings.service';
+import { computeBidGate } from '../bid-gate/bid-gate.service';
+import { DedupService } from '../dedup/dedup.service';
 
 /** Resource URI for the Compliance Matrix MCP App UI */
 export const COMPLIANCE_MATRIX_RESOURCE_URI = 'ui://compliance-matrix/compliance-matrix.html';
@@ -272,6 +275,55 @@ const tools: McpTool[] = [
     },
   },
   {
+    name: 'rebuild_clusters',
+    description:
+      'Run the cross-document dedup pass over a coverage file. Embeds ' +
+      'each row\'s EARS text and clusters by cosine similarity above the ' +
+      'given threshold (default 0.92). Writes `clusterId / clusterRole / ' +
+      'clusterSize` onto each affected row and a top-level `clusters` ' +
+      'array on the envelope. Triggered manually from the cockpit so ' +
+      're-clustering doesn\'t fire on every row edit.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectName: { type: 'string', description: 'Workspace project name' },
+        coverageRef: {
+          type: 'string',
+          description:
+            'Path of the coverage file to cluster (project-relative). ' +
+            'Defaults to out/coverage/current.coverage.json.',
+        },
+        threshold: {
+          type: 'number',
+          description:
+            'Cosine-similarity cutoff in [0, 1]. Lower = more aggressive ' +
+            'clustering. Default 0.92.',
+        },
+      },
+      required: ['projectName'],
+    },
+  },
+  {
+    name: 'set_row_knockout',
+    description:
+      "Mark a row as a knockout (exclusion) requirement, or clear the flag. " +
+      'A non-compliant knockout row disqualifies the entire bid in the bid-gate ' +
+      "verdict, so this is reserved for the kebab's \"Mark as knockout\" action.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectName: { type: 'string', description: 'Workspace project name' },
+        requirementId: { type: 'string', description: 'e.g. "REQ-247"' },
+        isKnockout: { type: 'boolean', description: 'true to mark, false to clear' },
+        coverageRef: {
+          type: 'string',
+          description: 'Override coverage file path. Defaults to out/coverage/current.coverage.json.',
+        },
+      },
+      required: ['projectName', 'requirementId', 'isKnockout'],
+    },
+  },
+  {
     name: 'list_project_rfps',
     description:
       'List every RFP registered for a project (one entry per ' +
@@ -411,7 +463,22 @@ export function createComplianceMatrixToolsService(
   wikiService: WikiService,
   ragService?: RagService,
   llmService?: LlmService,
+  embeddingsService?: EmbeddingsService,
 ): ToolService {
+  // Phase 4: dedup needs embeddings. Constructed lazily on first call so
+  // legacy boot paths that don't pass embeddingsService still work for
+  // every tool except `rebuild_clusters`.
+  let dedupService: DedupService | null = null;
+  function getDedup(): DedupService {
+    if (!embeddingsService) {
+      throw new Error(
+        'rebuild_clusters requires the EmbeddingsService — restart the backend after wiring it through createComplianceMatrixToolsService.',
+      );
+    }
+    if (!dedupService) dedupService = new DedupService(embeddingsService);
+    return dedupService;
+  }
+
   async function execute(toolName: string, args: any): Promise<any> {
     switch (toolName) {
       case 'render_compliance_matrix': {
@@ -477,6 +544,16 @@ export function createComplianceMatrixToolsService(
         const reviews = unique(rows.map((r) => r.reviewStatus).filter(Boolean));
         const owners = unique(rows.map((r) => r.responsibleEngineer).filter(Boolean));
 
+        // Phase 3: compute the bid-gate verdict on the fly so the
+        // cockpit always shows current state. Computed AFTER the row
+        // probe pass above so plannedResponseExists is populated and
+        // the "missing planned-response page" caution rule has accurate
+        // data to chew on.
+        const bidGate = computeBidGate({
+          rows,
+          gates: coverage?.gates,
+        });
+
         return {
           schema: 'compliance-matrix.v1',
           // The MCP App needs the workspace dir name to call follow-up
@@ -493,6 +570,19 @@ export function createComplianceMatrixToolsService(
           totals: coverage?.totals,
           stateCounts: coverage?.stateCounts,
           chipCounts: coverage?.chipCounts,
+          // Phase 2 — propagate the award-criteria envelope when the
+          // seed/extractor produced one. The cockpit hides its
+          // Award-criteria card when this is empty.
+          evaluationMatrix: coverage?.evaluationMatrix,
+          totalPoints: coverage?.totalPoints,
+          // Phase 3 — computed verdict. Always present, even when the
+          // coverage payload is minimal; the cockpit decides whether to
+          // render the banner based on `recommendation`.
+          bidGate,
+          // Phase 4 — cross-document dedup. `clusters` is only set after
+          // `rebuild_clusters` has run; the cockpit gates its
+          // duplicates UI on this being a non-empty array.
+          clusters: Array.isArray(coverage?.clusters) ? coverage.clusters : undefined,
           rows,
           team,
           teamMissing: team.length === 0,
@@ -603,9 +693,72 @@ export function createComplianceMatrixToolsService(
         }
       }
 
+      case 'rebuild_clusters': {
+        const {
+          projectName,
+          coverageRef,
+          threshold,
+        } = args as {
+          projectName: string;
+          coverageRef?: string;
+          threshold?: number;
+        };
+        if (!projectName) {
+          return { success: false, error: 'projectName is required' };
+        }
+        const rel = coverageRef ?? 'out/coverage/current.coverage.json';
+        const abs = join(WORKSPACE_ROOT, projectName, rel);
+        let coverage: any;
+        try {
+          coverage = JSON.parse(await fs.readFile(abs, 'utf-8'));
+        } catch (err: any) {
+          return {
+            success: false,
+            error: `Cannot read coverage at ${rel}: ${err?.message ?? err}`,
+          };
+        }
+        const rows: any[] = Array.isArray(coverage?.rows) ? coverage.rows : [];
+        if (rows.length === 0) {
+          return { success: true, clusters: [], rowsClustered: 0 };
+        }
+        // Strip prior cluster annotations so a re-cluster with a different
+        // threshold doesn't leave stale stamps behind.
+        for (const r of rows) {
+          delete r.clusterId;
+          delete r.clusterRole;
+          delete r.clusterSize;
+        }
+        const t =
+          typeof threshold === 'number' && threshold > 0 && threshold <= 1
+            ? threshold
+            : 0.92;
+        const { rows: annotated, clusters } = await getDedup().clusterRows(
+          rows,
+          t,
+        );
+        coverage.rows = annotated;
+        coverage.clusters = clusters;
+        await fs.writeFile(abs, JSON.stringify(coverage, null, 2), 'utf-8');
+        const duplicates = annotated.filter(
+          (r: any) => r.clusterRole === 'duplicate',
+        ).length;
+        return {
+          success: true,
+          coverageRef: rel,
+          threshold: t,
+          clusters,
+          totals: {
+            rowsScanned: rows.length,
+            clustersFound: clusters.length,
+            duplicates,
+          },
+        };
+      }
+
       case 'set_row_state':
       case 'set_row_review':
-      case 'set_row_notes': {
+      case 'set_row_notes':
+      case 'set_row_knockout': {
         const {
           projectName,
           requirementId,
@@ -640,6 +793,16 @@ export function createComplianceMatrixToolsService(
           coverage.stateCounts = counts;
         } else if (toolName === 'set_row_review') {
           row.reviewStatus = (args as any).reviewStatus;
+        } else if (toolName === 'set_row_knockout') {
+          // Phase 3: knockout flag. Mutating it changes the bid-gate
+          // verdict immediately on the next render — the cockpit fetches
+          // a fresh payload after every kebab action so the banner
+          // updates without a separate "recompute" round-trip.
+          if ((args as any).isKnockout === true) {
+            row.isKnockout = true;
+          } else {
+            delete row.isKnockout;
+          }
         } else {
           const next = String((args as any).notes ?? '').trim();
           if (next) row.notes = next;
@@ -652,6 +815,7 @@ export function createComplianceMatrixToolsService(
           state: row.state,
           reviewStatus: row.reviewStatus,
           notes: row.notes ?? '',
+          isKnockout: row.isKnockout === true,
           stateCounts: coverage.stateCounts,
         };
       }

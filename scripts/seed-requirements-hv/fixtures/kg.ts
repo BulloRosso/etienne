@@ -262,6 +262,10 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
   }),
   requirement('REQ-103', 'The converter station shall be capable of bidirectional active-power transfer at the rated 2 GW in both directions.', {
     state: 'committed',
+    // Mindestanforderung — bidirectional 2 GW is a knock-out criterion in
+    // §2.3 of the TKW (Technische Kennwerte). Already committed so the
+    // gate stays happy on this row.
+    isKnockout: 'true',
     sourceVolume: 'source-volume-1-functional-spec',
     sourceLocation: 'Vol.1 §2.3',
     draftedFrom: 'reuse-northshore-2022-mmc-control',
@@ -274,15 +278,24 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
     draftedFrom: 'reuse-northshore-2022-mmc-control',
     responsibleEngineer: 'engineer-anke-vogt',
   }),
-  requirement('REQ-119', 'The station shall be designed for adequate seismic resilience.', {
+  requirement('REQ-119', 'The station shall be designed for adequate seismic resilience where appropriate.', {
     state: 'clarify',
     sourceVolume: 'source-volume-1-functional-spec',
     sourceLocation: 'Vol.1 §4.7',
     clarifyReason: 'No seismic zone or DIN/EN 1998-1 ground type cited — ambiguous as authored.',
     responsibleEngineer: 'engineer-clara-mueller',
+    // EARS structural fields — populated so the Phase-1 validator can fire
+    // both vague-modal (`where appropriate`) and missing-measurable
+    // (`adequate` with no number/unit in the constraint).
+    earsType: 'ubiquitous',
+    action: 'design for seismic resilience',
+    constraint: 'adequate',
+    ambiguityFlag: 'true',
+    ambiguityNotes: 'No seismic zone (e.g. DIN EN 1998-1 ground type) is cited',
   }),
   requirement('REQ-141', 'The converter shall provide black-start capability when the offshore wind farm is offline.', {
     state: 'drafted',
+    loadBearing: 'true',
     sourceVolume: 'source-volume-1-functional-spec',
     sourceLocation: 'Vol.1 §5.4',
     draftedFrom: 'reuse-northshore-2022-mmc-control',
@@ -294,9 +307,45 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
     sourceLocation: 'Vol.1 §5.5',
     draftedFrom: 'reuse-northshore-2022-mmc-control',
     responsibleEngineer: 'engineer-anke-vogt',
+    // EARS structural fields — fully populated so the validator
+    // confirms it has nothing to flag (the "happy path" reference).
+    earsType: 'event_driven',
+    trigger: 'When islanded operation is initiated',
+    action: 'establish AC voltage and frequency',
+    constraint: 'within 200 ms',
+  }),
+  // Phase-1 demo row: intentionally compound — "X and also Y" — so the
+  // splitter produces two atoms (REQ-143-a / REQ-143-b) and the cockpit
+  // can show splitFrom provenance. State stays `open` since splitting
+  // changes what an engineer has to commit to.
+  requirement('REQ-143', 'When islanded operation ends, the converter shall resynchronise to the AC grid and shall also restore reactive-power support within 500 ms.', {
+    state: 'open',
+    sourceVolume: 'source-volume-1-functional-spec',
+    sourceLocation: 'Vol.1 §5.6',
+    responsibleEngineer: 'engineer-anke-vogt',
+    earsType: 'event_driven',
+    trigger: 'When islanded operation ends',
+    action: 'resynchronise to the AC grid; restore reactive-power support',
+    constraint: 'within 500 ms',
+  }),
+  // Phase-1 demo row: deliberately event_driven *without* a trigger so
+  // the validator fires `missing-trigger`. Authored as a real bid hazard
+  // — a clause that reads like a trigger but never declares one.
+  requirement('REQ-144', 'The converter shall trip the protection within 80 ms.', {
+    state: 'open',
+    sourceVolume: 'source-volume-1-functional-spec',
+    sourceLocation: 'Vol.1 §5.7',
+    responsibleEngineer: 'engineer-bernd-haag',
+    earsType: 'event_driven',
+    trigger: '',
+    action: 'trip the protection',
+    constraint: 'within 80 ms',
+    ambiguityFlag: 'true',
+    ambiguityNotes: 'The triggering fault condition is not specified — under-voltage, over-current, or differential?',
   }),
   requirement('REQ-181', 'The converter shall be capable of operating at any point inside the PQ-capability envelope defined in Annex A §3.', {
     state: 'committed',
+    loadBearing: 'true',
     sourceVolume: 'source-volume-1-functional-spec',
     sourceLocation: 'Vol.1 §6.2',
     draftedFrom: 'reuse-aurora-2024-reactive-power',
@@ -336,6 +385,11 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
   }),
   requirement('REQ-202', 'When grid frequency deviates outside 49.5–50.5 Hz, the converter shall provide frequency-response active-power modulation per NC-HVDC Article 11.', {
     state: 'reviewed',
+    loadBearing: 'true',
+    // Grid-code compliance is a textbook Ausschlusskriterium — NC-HVDC
+    // Article 11 is referenced in the TKW as "ohne Ausnahme". Reviewed
+    // but not yet committed → caution-level rather than no-go.
+    isKnockout: 'true',
     sourceVolume: 'source-volume-2-annex-a-electrical-performance',
     sourceLocation: 'Annex A §2.3',
     draftedFrom: 'reuse-northshore-2022-mmc-control',
@@ -343,6 +397,7 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
   }),
   requirement('REQ-241', 'The converter shall track an active-power setpoint with steady-state error not exceeding 0.5% of rating.', {
     state: 'drafted',
+    loadBearing: 'true',
     sourceVolume: 'source-volume-2-annex-a-electrical-performance',
     sourceLocation: 'Annex A §6.1',
     draftedFrom: 'reuse-northshore-2022-mmc-control',
@@ -365,6 +420,11 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
   requirement('REQ-247', 'When a three-phase fully-depressed-voltage fault occurs at the converter AC bus, the converter shall remain connected and resume pre-fault active-power output within 250 ms.', {
     state: 'drafted',
     loadBearing: 'true',
+    // FRT 250 ms is the Mindestanforderung in Annex A §7.4.3 (cf.
+    // footnote 2 cross-referencing NC-HVDC Art. 13). Currently in
+    // `drafted` so this is the row that will surface the gate's
+    // headline no-go reason in the cockpit banner.
+    isKnockout: 'true',
     sourceVolume: 'source-volume-2-annex-a-electrical-performance',
     sourceLocation: 'Annex A §7.4.3, footnote 2',
     draftedFrom: 'reuse-northshore-2022-mmc-control',
@@ -387,6 +447,15 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
   }),
 
   // --- Volume 3 — Annex B (protection & control, REQ-261..238) -----
+  // Phase-4 dedup demo: REQ-210 paraphrases REQ-101 (Vol.1 §2.1 rated DC
+  // voltage). Same clause, different volume — the kind of cross-volume
+  // restatement that clogs a 1 200-row matrix.
+  requirement('REQ-210', 'The protection scheme shall be coordinated for continuous operation at the rated DC voltage of ±525 kV across the converter station.', {
+    state: 'drafted',
+    sourceVolume: 'source-volume-3-annex-b-protection-control',
+    sourceLocation: 'Annex B §1.2',
+    responsibleEngineer: 'engineer-anke-vogt',
+  }),
   requirement('REQ-211', 'The protection system shall include redundant differential protection per IEC 61850-9-2.', {
     state: 'committed',
     sourceVolume: 'source-volume-3-annex-b-protection-control',
@@ -522,6 +591,16 @@ const ENTITIES_REQUIREMENTS: EntityDraft[] = [
     state: 'reviewed',
     sourceVolume: 'source-volume-6-grid-code',
     sourceLocation: 'Vol.6 §1.2',
+    responsibleEngineer: 'engineer-dirk-stein',
+  }),
+  // Phase-4 dedup demo: REQ-605 restates the rated DC voltage in a
+  // grid-code context. Buyers commonly repeat the headline rating in
+  // every volume — this is the third member of the REQ-101 / REQ-210
+  // / REQ-605 cluster the dedup pass should surface.
+  requirement('REQ-605', 'The HVDC converter station shall maintain continuous operation at the rated ±525 kV DC voltage in accordance with the grid code.', {
+    state: 'open',
+    sourceVolume: 'source-volume-6-grid-code',
+    sourceLocation: 'Vol.6 §2.3',
     responsibleEngineer: 'engineer-dirk-stein',
   }),
   requirement('REQ-603', 'Compliance evidence shall be presented in the compliance matrix shipped inside the technical specification, with traceable IDs.', {

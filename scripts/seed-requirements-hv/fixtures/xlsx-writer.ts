@@ -69,6 +69,7 @@ function addSheet(wb: ExcelJSType.Workbook, sheet: QuestionnaireSheet): void {
     { width: QUESTIONNAIRE_COLUMNS.question.width },
     { width: QUESTIONNAIRE_COLUMNS.mandatory.width },
     { width: QUESTIONNAIRE_COLUMNS.reference.width },
+    { width: QUESTIONNAIRE_COLUMNS.weight.width },
     { width: QUESTIONNAIRE_COLUMNS.response.width },
   ];
 
@@ -79,6 +80,7 @@ function addSheet(wb: ExcelJSType.Workbook, sheet: QuestionnaireSheet): void {
     QUESTIONNAIRE_COLUMNS.question.header,
     QUESTIONNAIRE_COLUMNS.mandatory.header,
     QUESTIONNAIRE_COLUMNS.reference.header,
+    QUESTIONNAIRE_COLUMNS.weight.header,
     QUESTIONNAIRE_COLUMNS.response.header,
   ]);
   header.eachCell((cell) => {
@@ -101,6 +103,10 @@ function addSheet(wb: ExcelJSType.Workbook, sheet: QuestionnaireSheet): void {
       q.question,
       q.mandatory ? 'yes' : 'no',
       q.reference ?? '',
+      // Weight: numeric value when set; empty otherwise so unweighted
+      // questions don't appear as 0 (which would imply "explicitly
+      // worthless" rather than "weight not specified").
+      q.weightPoints ?? null,
       '', // Response — left empty; fill-back populates it.
     ]);
     row.getCell(QUESTIONNAIRE_COLUMNS.question.letter).alignment = {
@@ -119,6 +125,25 @@ function addSheet(wb: ExcelJSType.Workbook, sheet: QuestionnaireSheet): void {
     row.getCell(QUESTIONNAIRE_COLUMNS.mandatory.letter).font = q.mandatory
       ? { color: { argb: 'FFB71C1C' }, bold: true }
       : { color: { argb: 'FF777777' } };
+    // Weight cell — right-aligned, monospace-ish, with a subtle red
+    // tint above the 20-point threshold so heavy-weight items pop in
+    // the workbook the same way they will in the cockpit's "top-25"
+    // filter. Empty cells render plain.
+    const weightCell = row.getCell(QUESTIONNAIRE_COLUMNS.weight.letter);
+    weightCell.alignment = { vertical: 'top', horizontal: 'right' };
+    if (typeof q.weightPoints === 'number') {
+      weightCell.numFmt = '0';
+      if (q.weightPoints >= 20) {
+        weightCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFDECEA' },
+        };
+        weightCell.font = { color: { argb: 'FFB71C1C' }, bold: true };
+      } else {
+        weightCell.font = { color: { argb: 'FF555555' } };
+      }
+    }
     row.height = Math.max(28, Math.min(120, Math.ceil(q.question.length / 4)));
   }
 }
