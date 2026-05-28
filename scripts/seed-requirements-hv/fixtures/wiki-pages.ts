@@ -1,11 +1,21 @@
 /**
  * Wiki pages for the requirements-hv seed project.
  *
- * Eighteen pages organised around the article's narrative: the NU-525-Lot-3
- * source pack, the 5-step pipeline (parse / normalize / structure /
- * transform / export), EARS, the FRT-250ms load-bearing example, the late-
- * clarification override, the firm's reuse base, the coverage dashboard,
- * and the agent's three operating rules.
+ * Nineteen pages (eighteen original + one new "creating-planned-responses"
+ * page) organised around the article's narrative: the NU-525-Lot-3 source
+ * pack, the 5-step pipeline (parse / normalize / structure / transform /
+ * export), EARS, the FRT-250ms load-bearing example, the late-clarification
+ * override, the firm's reuse base, the coverage dashboard, the agent's
+ * three operating rules, and the three creation paths in the compliance
+ * matrix.
+ *
+ * Language: German (the working language of the firm and the deliverable).
+ * The only English page in the project is .claude/CLAUDE.md (the system
+ * prompt for Claude Code itself).
+ *
+ * Structural template: see wiki/topics/team.md — its layout (frontmatter +
+ * intro paragraph + body + "How the cockpit uses this") is the canonical
+ * shape for every per-topic page in this seed.
  *
  * Cross-links use `[label](../topics/<slug>.md)` so wiki-add.ts auto-creates
  * backlinks and stub pages where the target does not yet exist.
@@ -26,125 +36,158 @@ export interface WikiPageDraft {
 export const WIKI_PAGES: WikiPageDraft[] = [
   // -- Bid + source pack overview ---------------------------------------
   {
-    title: 'NU-525-Lot-3 bid overview',
+    title: 'NU-525-Lot-3 — Angebotsübersicht',
     slug: 'nu-525-lot-3-bid-overview',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['bid', 'overview'],
     mission_relevance: 1.0,
-    body: `# NU-525-Lot-3 bid overview
+    body: `# NU-525-Lot-3 — Angebotsübersicht
 
-**Customer:** Nordseeübertragungs-Netz GmbH (NSÜN) — stylised North-Sea TSO.
-**Scope:** Onshore end of a 525 kV / 2 GW HVDC converter station, landing
-point of a North Sea offshore-wind connection.
-**Source language:** German. **Deliverable language:** German.
-**Reuse-base language:** English.
+**Kunde:** Nordseeübertragungs-Netz GmbH (NSÜN) — stilisierter
+Nordsee-Übertragungsnetzbetreiber.
+**Umfang:** Onshore-Endpunkt einer 525-kV/2-GW-HGÜ-Konverterstation,
+Landstation einer Nordsee-Offshore-Wind-Anbindung.
 
-## Source-document stack
-~900 pages across:
+## Sprachfluss
 
-- [Volume 0 — General conditions](../sources/source-volume-0-general-conditions.md)
-- [Volume 1 — Functional specification](../sources/source-volume-1-functional-spec.md)
-- [Volume 2 — Annex A: Electrical performance](../sources/source-volume-2-annex-a-electrical-performance.md)
-- [Volume 3 — Annex B: Protection & control](../sources/source-volume-3-annex-b-protection-control.md)
-- [Volume 4 — Annex C: Harmonics & power-quality limits](../sources/source-volume-4-annex-c-harmonics.md)
-- [Volume 5 — Annex D-F: Auxiliaries, cooling, civil](../sources/source-volume-5-annex-def-auxiliaries.md)
-- [Volume 6 — Grid-code compliance volume](../sources/source-volume-6-grid-code.md)
-- [Late clarifications memo (2026-04-18)](../sources/source-late-clarifications-2026-04-18.md)
+| Bereich | Sprache | Wo |
+|---|---|---|
+| Posteingang (Originalspezifikation) | Englisch | \`inbox/*.docx\` |
+| Arbeitssprache (in-house übersetzt) | Deutsch | \`documents/*.md\` |
+| Wiederverwendungsbasis (Altangebote) | Deutsch | \`documents/reuse-*.md\` |
+| Wiki, Mission, Dokumentation | Deutsch | \`wiki/\`, \`documentation.md\` |
+| Lieferdokument | Deutsch | \`out/\` (exportiertes Word/PDF) |
+| Export-Annotation | Englische Rückübersetzung Seite an Seite | im exportierten Word/PDF |
+| Claude Code Systemprompt | Englisch | \`.claude/CLAUDE.md\` |
 
-The late clarifications memo arrived **after** the bidders'-questions window
-closed and quietly amended several dozen clauses in Volumes 1–4. See
-[late-clarification overrides](../topics/late-clarification-overrides.md).
+## Quellendokument-Stapel
+~900 Seiten verteilt auf:
 
-## Submission gate
-Coverage matrix must be 100% *committed / deviation / clarify* by the
-proposal desk's internal commit-gate (see [coverage states + gates
-](../topics/coverage-states-and-gates.md)).
+- [Volume 0 — Allgemeine Bedingungen](../sources/source-volume-0-general-conditions.md)
+- [Volume 1 — Funktionsspezifikation](../sources/source-volume-1-functional-spec.md)
+- [Volume 2 — Annex A: Elektrisches Verhalten](../sources/source-volume-2-annex-a-electrical-performance.md)
+- [Volume 3 — Annex B: Schutz- und Leittechnik](../sources/source-volume-3-annex-b-protection-control.md)
+- [Volume 4 — Annex C: Oberschwingungs- und Spannungsqualitätsgrenzen](../sources/source-volume-4-annex-c-harmonics.md)
+- [Volume 5 — Annex D–F: Hilfsbetriebe, Kühlung, Bautechnik](../sources/source-volume-5-annex-def-auxiliaries.md)
+- [Volume 6 — Netzanschluss-Konformität](../sources/source-volume-6-grid-code.md)
+- [Klarstellungsmemo (2026-04-18)](../sources/source-late-clarifications-2026-04-18.md)
+
+Das Klarstellungsmemo traf **nach** Schließung des Bieterfragen-Fensters
+ein und änderte stillschweigend mehrere Dutzend Klauseln in den
+Volumes 1–4. Siehe [Späte Klarstellungs-Overrides
+](../topics/late-clarification-overrides.md).
+
+## Abgabe-Gate
+Die Coverage-Matrix muss bis zum internen Commit-Gate des Angebotsteams
+zu 100 % *committed / deviation / clarify* sein (siehe
+[Coverage-Zustände + Gates](../topics/coverage-states-and-gates.md)).
 `,
   },
 
   // -- Pipeline (5 pages) ------------------------------------------------
   {
-    title: 'Pipeline — Parse',
+    title: 'Pipeline — Parsen',
     slug: 'pipeline-parse',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['pipeline', 'parse'],
     mission_relevance: 1.0,
-    body: `# Pipeline — Parse
+    body: `# Pipeline — Parsen
 
-Refuse to treat the requirements document as one blob. Split each volume
-into segments and classify them:
+Verweigere es, das Anforderungsdokument als einen einzigen Block zu
+behandeln. Zerlege jedes Volume in Segmente und klassifiziere sie.
 
-- **Requirement** — contains a normative *shall / muss / ist auszulegen*.
-- **Definition** — a term or symbol used elsewhere.
-- **Context** — narrative; not normative on its own.
-- **Standard reference** — pulls in sub-requirements from an external
-  standard (IEC 62271, IEC 61850, IEC 60076, EU NC-HVDC, BNetzA-TAB-HS).
-- **Late-clarification override** — amends a clause already in scope.
-  Tracked as a separate edge; see [late-clarification overrides
-  ](../topics/late-clarification-overrides.md).
+## Schritt 0 — Übersetzung des Posteingangs
 
-Anything the parser cannot classify confidently is **flagged for a human,
-not dropped**. The pile is too big for "best-effort" silent loss.
+Die Originalspezifikation trifft als englische Word-Dokumente im
+Posteingang \`inbox/*.docx\` ein. Vor dem Parsen werden die Inhalte in
+die Arbeitssprache **Deutsch** übersetzt und als Markdown unter
+\`documents/source-volume-*-excerpt.md\` abgelegt. Der RAG-Index ist auf
+das deutsche Arbeitsmaterial unter \`documents/\` ausgerichtet — der
+Posteingang selbst wird **nicht** indexiert.
+
+## Klassifikation
+
+- **Anforderung** — enthält ein normatives *muss / shall / ist auszulegen*.
+- **Definition** — ein Begriff oder Symbol, der/das anderswo verwendet wird.
+- **Kontext** — erzählend; für sich genommen nicht normativ.
+- **Normenverweis** — zieht Teilanforderungen aus einer externen Norm
+  ein (IEC 62271, IEC 61850, IEC 60076, EU NC-HVDC, BNetzA-TAB-HS).
+- **Späte Klarstellungs-Override** — ändert eine bereits enthaltene
+  Klausel. Wird als separate Kante verfolgt; siehe
+  [Späte Klarstellungs-Overrides](../topics/late-clarification-overrides.md).
+
+Alles, was der Parser nicht sicher klassifizieren kann, wird **für einen
+Menschen markiert, nicht verworfen**. Der Stapel ist zu groß für
+"Best-Effort"-Stille-Verluste.
 `,
   },
   {
-    title: 'Pipeline — Normalize (EARS)',
+    title: 'Pipeline — Normalisieren (EARS)',
     slug: 'pipeline-normalize-ears',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['pipeline', 'normalize', 'ears'],
     mission_relevance: 1.0,
-    body: `# Pipeline — Normalize (EARS)
+    body: `# Pipeline — Normalisieren (EARS)
 
-Rewrite messy source paragraphs into single, numbered, **atomic** EARS
-requirements. EARS — *Easy Approach to Requirements Syntax* — was developed
-by Mavin et al. at Rolls-Royce (IEEE RE 2009) for high-stakes airworthiness
-domains. It constrains a requirement into a small set of patterns:
+Schreibe unordentliche Quellabsätze in einzelne, nummerierte, **atomare**
+EARS-Anforderungen um. EARS — *Easy Approach to Requirements Syntax* —
+wurde von Mavin et al. bei Rolls-Royce (IEEE RE 2009) für
+luftfahrtnahe Hochrisiko-Domänen entwickelt. Es beschränkt eine
+Anforderung auf eine kleine Menge von Mustern (deutsche Entsprechungen
+in Klammern):
 
-- **Ubiquitous:** *The converter shall <do thing>.*
-- **Event-driven:** *When <trigger>, the converter shall <do thing>.*
-- **State-driven:** *While <state>, the converter shall <do thing>.*
-- **Unwanted behaviour:** *If <condition>, then the converter shall <do thing>.*
-- **Optional feature:** *Where <feature is present>, the converter shall <do thing>.*
+- **Allgemeingültig:** *Der Konverter muss <Sache tun>.* (*The converter
+  shall <do thing>.*)
+- **Ereignisgetrieben:** *Wenn <Auslöser>, muss der Konverter <Sache tun>.*
+- **Zustandsgetrieben:** *Während <Zustand>, muss der Konverter <Sache
+  tun>.*
+- **Unerwünschtes Verhalten:** *Falls <Bedingung>, muss der Konverter
+  <Sache tun>.*
+- **Optionales Merkmal:** *Sofern <Merkmal vorhanden>, muss der Konverter
+  <Sache tun>.*
 
-A paragraph that smuggled in three obligations becomes three numbered
-requirements (REQ-247.a / REQ-247.b / REQ-247.c). See the
-[FRT-250ms case study](../topics/case-frt-250ms.md) for what missing one
-costs.
+Ein Absatz, der drei Pflichten verschleiert hat, wird zu drei
+nummerierten Anforderungen (REQ-247.a / REQ-247.b / REQ-247.c). Siehe
+die [FRT-250ms-Fallstudie](../topics/case-frt-250ms.md), was es kostet,
+eine zu verpassen.
 
-## Restraint
-When the source is genuinely ambiguous — *"the converter shall provide
-adequate reactive-power support"*, no setpoint, no operating range — the
-agent does **not** invent a number. It surfaces a *clarify* flag and the
-gap moves to the engineer's queue. Inventing measurable criteria to make
-ambiguity look answered is how disputes happen at site-acceptance.
+## Zurückhaltung
+Wenn die Quelle wirklich mehrdeutig ist — *"der Konverter muss
+ausreichende Blindleistungsunterstützung bereitstellen"*, ohne Sollwert,
+ohne Betriebsbereich — erfindet der Agent **keine** Zahl. Er
+oberflächt ein *clarify*-Flag, und die Lücke wandert in die
+Warteschlange des Ingenieurs. Messbare Kriterien zu erfinden, damit
+Mehrdeutigkeit beantwortet aussieht, ist der Weg in Streitigkeiten bei
+der Site-Acceptance.
 `,
   },
   {
-    title: 'Pipeline — Structure (coverage matrix)',
+    title: 'Pipeline — Strukturieren (Coverage-Matrix)',
     slug: 'pipeline-structure-coverage',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['pipeline', 'structure', 'coverage'],
     mission_relevance: 1.0,
-    body: `# Pipeline — Structure (coverage matrix)
+    body: `# Pipeline — Strukturieren (Coverage-Matrix)
 
-With a clean list of EARS requirements, lay out the skeleton of the
-deliverable — chapters of the technical specification and the compliance
-matrix — and map every requirement to a slot.
+Mit einer sauberen Liste von EARS-Anforderungen wird das Gerüst des
+Lieferdokuments aufgespannt — die Kapitel der technischen Spezifikation
+und der Konformitätsmatrix — und jede Anforderung erhält einen Platz.
 
-The result is the [coverage dashboard
-](../topics/coverage-dashboard.md): every requirement is a row, every row
-has a state. **A requirement with no row cannot exist.** That is the
-guarantee the structure step makes; everything downstream depends on it.
+Das Ergebnis ist das [Coverage-Dashboard
+](../topics/coverage-dashboard.md): jede Anforderung ist eine Zeile, jede
+Zeile hat einen Zustand. **Eine Anforderung ohne Zeile kann nicht
+existieren.** Das ist die Garantie, die der Strukturschritt gibt; alles
+Nachgelagerte hängt davon ab.
 
-State machine:
+Zustandsmaschine:
 
 \`\`\`
 open  →  drafted  →  reviewed  →  committed
@@ -152,463 +195,539 @@ open  →  drafted  →  reviewed  →  committed
                   ↘  clarify   ↗
 \`\`\`
 
-See [coverage states + gates](../topics/coverage-states-and-gates.md).
+Siehe [Coverage-Zustände + Gates](../topics/coverage-states-and-gates.md).
 `,
   },
   {
-    title: 'Pipeline — Transform (draft + translate)',
+    title: 'Pipeline — Transformieren (Entwurf)',
     slug: 'pipeline-transform-draft',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['pipeline', 'transform', 'reuse'],
     mission_relevance: 1.0,
-    body: `# Pipeline — Transform (draft + translate)
+    body: `# Pipeline — Transformieren (Entwurf)
 
-For each requirement, the agent:
+Für jede Anforderung tut der Agent:
 
-1. Searches the [reuse base](../topics/reuse-base.md) of past technical
-   specifications and type-test reports.
-2. Pulls the passage that answered the same kind of requirement before.
-3. Adapts it to this requirement's specifics (setpoints, ranges,
-   timing).
-4. Translates the result from English into German.
-5. Marks it **drafted, awaiting decision** — not *answered*.
+1. Er durchsucht die [Wiederverwendungsbasis](../topics/reuse-base.md)
+   früherer technischer Spezifikationen und Typprüfberichte. Die
+   Wiederverwendungsbasis ist **deutsch** — Altangebote der Firma.
+2. Er zieht die Passage, die dieselbe Art von Anforderung früher
+   beantwortet hat.
+3. Er passt sie an die Besonderheiten dieser Anforderung an
+   (Sollwerte, Bereiche, Zeiten).
+4. Er verfasst den Entwurf gemäß [Stilhandbuch](
+   ../sources/source-internal-german-style-guide.md) — Modalverben,
+   Einheiten, Termini.
+5. Er kennzeichnet ihn **drafted, awaiting decision** — nicht
+   *answered*.
 
-The engineer reads source and draft side by side, sees which past spec
-the draft was pulled from, and makes the call: *comply / comply partially
-/ deviation / clarify*. The agent has done the retrieval, adaptation,
-and translation. The engineer keeps authorship of the promise.
+Der Ingenieur liest Quelle und Entwurf nebeneinander, sieht, aus
+welcher Altspezifikation der Entwurf gezogen wurde, und trifft die
+Entscheidung: *erfüllen / teilweise erfüllen / Abweichung / klären*.
+Der Agent hat die Suche, Anpassung und stilistische Veredelung
+geleistet. Der Ingenieur behält die Urheberschaft der Zusage.
 
-The principal engineer who "just knows" you answer fault-ride-through by
-referencing the Northshore-2022 MMC control scheme — that judgment is
-captured in the reuse base and now reusable by anyone on the team.
+Der erfahrene Principal Engineer, der "einfach weiß", dass man
+Fault-Ride-Through mit Bezug auf das Northshore-2022-MMC-Regelschema
+beantwortet — dieses Urteil wird in der Wiederverwendungsbasis
+festgehalten und ist nun für das gesamte Team nachnutzbar.
+
+> Anmerkung zur Übersetzung: Da Wiederverwendungsbasis und
+> Lieferdokument beide auf **Deutsch** sind, entfällt der frühere
+> Übersetzungsschritt EN→DE im Transform. Die englische
+> Rückübersetzung findet erst beim [Export](../topics/pipeline-export.md)
+> statt — als Annotation, nicht als Übersetzung des Entwurfs.
 `,
   },
   {
-    title: 'Pipeline — Export',
+    title: 'Pipeline — Exportieren',
     slug: 'pipeline-export',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['pipeline', 'export'],
-    mission_relevance: 0.9,
-    body: `# Pipeline — Export
+    mission_relevance: 0.95,
+    body: `# Pipeline — Exportieren
 
-Render the approved structure into the customer's required format — the
-contractor's own Word/PDF specification template — with the compliance
-matrix included as the customer requested.
+Rendere die freigegebene Struktur in das vom Kunden geforderte Format —
+die hauseigene Word/PDF-Vorlage des Auftragnehmers für technische
+Spezifikationen — mit eingebetteter Konformitätsmatrix.
 
-**Traceability survives the export.** Every committed section in the
-exported specification is stamped with the requirement IDs it answers.
-The compliance matrix ships *inside* the deliverable. A coverage matrix
-that lives only inside the tool is worthless the moment the spec becomes
-a PDF on the customer's desk; the same way a finding that lived only in
-a chat thread was as good as lost (Part 1, defects dashboard).
+## Bilinguale Annotation als harte Regel
 
-## Hard rule
-Nothing in state *open* or *drafted* exports. The export step refuses to
-run if any row is not *committed / deviation / clarify*.
+**Jede deutsche Antwort im Lieferdokument wird mit ihrer englischen
+Rückübersetzung Seite an Seite annotiert.** Das ist nicht kosmetisch:
+Die Klärungs- und Review-Schleife des Kunden läuft auf Englisch; eine
+nur deutsche Lieferung blockiert den Review unnötig und produziert
+Diskussionen über Übersetzungsfeinheiten erst am Vertragsverhandlungs-
+tisch.
+
+Spaltenlayout im exportierten Dokument:
+
+| Linke Spalte | Rechte Spalte |
+|---|---|
+| Deutsche Antwort (verbindlich) | Englische Rückübersetzung (informativ) |
+
+Die deutsche Spalte ist die bindende vertragliche Form. Die englische
+Spalte ist ausdrücklich als *informativ* gekennzeichnet, damit kein
+Streit darüber entsteht, welche Sprache "gilt".
+
+## Rückverfolgbarkeit überlebt den Export
+
+Jeder committete Abschnitt der exportierten Spezifikation wird mit den
+IDs der Anforderungen gestempelt, die er beantwortet. Die
+Konformitätsmatrix liegt *innerhalb* des Lieferdokuments. Eine
+Coverage-Matrix, die nur im Werkzeug lebt, ist wertlos in dem Moment,
+in dem die Spezifikation als PDF auf dem Schreibtisch des Kunden liegt
+— so wie ein Befund, der nur in einem Chat-Thread lebte, so gut wie
+verloren war (Teil 1, Defects-Dashboard).
+
+## Harte Regel
+Nichts im Zustand *open* oder *drafted* wird exportiert. Der
+Exportschritt weigert sich zu laufen, wenn eine Zeile nicht in
+*committed / deviation / clarify* ist.
 `,
   },
 
-  // -- The article's two load-bearing examples ---------------------------
+  // -- The article's load-bearing examples -------------------------------
   {
-    title: 'Case study — FRT-250ms (REQ-247)',
+    title: 'Fallstudie — FRT-250ms (REQ-247)',
     slug: 'case-frt-250ms',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['case-study', 'frt', 'req-247'],
     mission_relevance: 1.0,
-    body: `# Case study — FRT-250ms (REQ-247)
+    body: `# Fallstudie — FRT-250ms (REQ-247)
 
-The single "shall" the proposal team almost missed on the last project.
+Das einzelne "muss", das das Angebotsteam im letzten Projekt fast
+übersehen hätte.
 
-## The source clause
-**Volume 2, Annex A, §7.4.3, footnote 2**, sitting under a table of
-harmonic limits. Translated and EARS-normalised:
+## Die Quellklausel
+**Volume 2, Annex A, §7.4.3, Fußnote 2**, unter einer Tabelle der
+Oberschwingungsgrenzen. EARS-normalisiert:
 
-> **REQ-247.** *When a three-phase fully-depressed-voltage fault occurs
-> at the converter AC bus, the converter shall remain connected and
-> resume pre-fault active-power output within 250 ms.*
+> **REQ-247.** *Wenn ein dreiphasiger vollständiger Spannungseinbruch am
+> Konverter-AC-Sammelschienenanschluss auftritt, muss der Konverter
+> angeschlossen bleiben und die Vorstörungs-Wirkleistungsabgabe
+> innerhalb von 250 ms wieder aufnehmen.*
 
-A single sentence under a harmonics table. A naïve control response
-would trip the station offline — non-compliant, blocking, awarded with
-liquidated damages if discovered after award.
+Ein einziger Satz unter einer Oberschwingungs-Tabelle. Eine naive
+Schutz-Reaktion würde die Station vom Netz nehmen — nicht konform,
+blockierend, mit Vertragsstrafen, wenn nach Zuschlag entdeckt.
 
-## What it depends on
-- The [MMC control scheme](../topics/mmc-control-scheme.md) on the
-  Northshore-2022 project rides through this exact profile (type-test
-  evidence: [northshore-2022-frt-type-test
+## Wovon es abhängt
+- Das [MMC-Regelschema](../topics/mmc-control-scheme.md) aus dem
+  Northshore-2022-Projekt durchfährt genau dieses Profil
+  (Typprüfnachweis: [northshore-2022-frt-type-test
   ](../sources/source-northshore-2022-frt-type-test.md)).
-- The protection philosophy in [Annex B
-  ](../sources/source-volume-3-annex-b-protection-control.md) interacts
-  with the FRT setpoint; both must commit consistently.
+- Die Schutzphilosophie in [Annex B
+  ](../sources/source-volume-3-annex-b-protection-control.md) interagiert
+  mit dem FRT-Sollwert; beide müssen konsistent committet werden.
 
-## State
-*Drafted* by the agent (reuse from Northshore-2022). Awaiting principal-
-engineer decision. See [coverage dashboard](../topics/coverage-dashboard.md).
+## Zustand
+*Drafted* durch den Agenten (Wiederverwendung aus Northshore-2022).
+Wartet auf die Entscheidung des Principal Engineer. Siehe
+[Coverage-Dashboard](../topics/coverage-dashboard.md).
 `,
   },
   {
-    title: 'Late-clarification overrides',
+    title: 'Späte Klarstellungs-Overrides',
     slug: 'late-clarification-overrides',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['overrides', 'clarifications', 'risk'],
     mission_relevance: 1.0,
-    body: `# Late-clarification overrides
+    body: `# Späte Klarstellungs-Overrides
 
-The [clarifications memo (2026-04-18)
-](../sources/source-late-clarifications-2026-04-18.md) arrived after the
-bidders'-questions window closed. It silently amended **41 clauses**
-across Volumes 1–4.
+Das [Klarstellungsmemo (2026-04-18)
+](../sources/source-late-clarifications-2026-04-18.md) traf nach
+Schließung des Bieterfragen-Fensters ein. Es änderte stillschweigend
+**41 Klauseln** in den Volumes 1–4.
 
-The agent does not merge override text into the original clause. Each
-override is tracked as a **separate node** in the knowledge graph with
-an explicit \`overrides\` edge to the clause it amends — so the engineer
-reading REQ-184 sees both the original obligation and the amendment, and
-the export carries the amended text *with the override provenance
-attached*.
+Der Agent verschmilzt keinen Override-Text in die ursprüngliche
+Klausel. Jeder Override wird als **separater Knoten** im
+Knowledge-Graph mit einer expliziten \`overrides\`-Kante zu der von ihm
+geänderten Klausel verfolgt — so sieht der Ingenieur, der REQ-184
+liest, sowohl die ursprüngliche Verpflichtung als auch die Änderung,
+und der Export trägt den geänderten Text *mit angehängter Override-
+Provenienz* fort.
 
-## The dangerous override (REQ-184)
-The original Volume 1 §4.2 set reactive-power range at ±0.95 leading/
-lagging at full active output. The clarifications memo amended this to
-**±0.90 leading / ±0.95 lagging at full active output**, citing local
-grid-stability requirements. A reuse-based draft pulled from a project
-that answered the original ±0.95/±0.95 profile would silently miss the
-narrower leading-side range — and a missed range is a missed setpoint
-on a binding deliverable.
+## Der gefährliche Override (REQ-184)
+Die ursprüngliche Klausel Volume 1 §4.2 legte den Blindleistungsbereich
+auf ±0,95 voreilend/nacheilend bei voller Wirkleistung fest. Das
+Klarstellungsmemo änderte dies auf **±0,90 voreilend / ±0,95 nacheilend
+bei voller Wirkleistung** unter Verweis auf lokale
+Netzstabilitätsanforderungen. Ein wiederverwendungsbasierter Entwurf aus
+einem Projekt, das das ursprüngliche ±0,95/±0,95-Profil beantwortet
+hat, würde den engeren voreilenden Bereich still verfehlen — und ein
+verfehlter Bereich ist ein verfehlter Sollwert auf einem bindenden
+Lieferdokument.
 
-The agent flags overrides loudly on the [coverage dashboard
-](../topics/coverage-dashboard.md): every requirement amended by a late
-clarification carries a red **override** chip until the engineer
-reviews the amended text on the record.
+Der Agent markiert Overrides laut auf dem [Coverage-Dashboard
+](../topics/coverage-dashboard.md): jede durch eine späte Klarstellung
+geänderte Anforderung trägt einen roten **override**-Chip, bis der
+Ingenieur den geänderten Text auf Aktenlage geprüft hat.
 `,
   },
 
   // -- Coverage + state machine -----------------------------------------
   {
-    title: 'Coverage dashboard',
+    title: 'Coverage-Dashboard',
     slug: 'coverage-dashboard',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['dashboard', 'coverage'],
     mission_relevance: 1.0,
-    body: `# Coverage dashboard
+    body: `# Coverage-Dashboard
 
-The single view where the state of the whole effort is legible without
-asking. A lead engineer can open it and answer the only question that
-keeps them up: *what have we not addressed yet*. Weeks out, instead of
-the morning it is due.
+Die einzige Sicht, in der der Zustand der gesamten Anstrengung lesbar
+ist, ohne fragen zu müssen. Ein leitender Ingenieur kann sie öffnen
+und die einzige Frage beantworten, die ihn nachts wachhält: *Was haben
+wir noch nicht adressiert?* Wochen vorher, statt am Morgen der Abgabe.
 
-## What it shows
-- Every requirement (~1,800 at full scale; ~40 are seeded in the demo).
-- Per-row state: *open / drafted / reviewed / committed / deviation /
-  clarify*.
-- Per-row chips: **override** (amended by late clarification),
-  **clarify** (ambiguous, awaiting customer answer),
-  **reuse: <source>** (which past spec the draft was pulled from).
-- Per-row source location (volume / section / page).
-- Aggregate counts by state, by source volume, and by responsible engineer.
+## Was es zeigt
+- Jede Anforderung (~1.800 im vollen Maßstab; ~40 im Demo gesetzt).
+- Pro-Zeile-Zustand: *open / drafted / reviewed / committed / deviation
+  / clarify*.
+- Pro-Zeile-Chips: **override** (durch späte Klarstellung geändert),
+  **clarify** (mehrdeutig, wartet auf Kundenantwort),
+  **reuse: <quelle>** (aus welcher Altspezifikation der Entwurf gezogen
+  wurde).
+- Pro-Zeile-Quellort (Volume / Abschnitt / Seite).
+- Aggregierte Zählungen nach Zustand, Quellvolume und verantwortlichem
+  Ingenieur.
 
-## Rendered by
-\`out/coverage/current.coverage.json\` — registered against \`.coverage.json\`
-in viewerRegistry.jsx (same mechanism as the long-horizon seed's
-QuarterlyViewer).
+## Gerendert durch
+\`out/coverage/current.coverage.json\` — registriert gegen
+\`.coverage.json\` in viewerRegistry.jsx (gleicher Mechanismus wie der
+QuarterlyViewer im Long-Horizon-Seed).
 `,
   },
   {
-    title: 'Coverage states + gates',
+    title: 'Coverage-Zustände + Gates',
     slug: 'coverage-states-and-gates',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['states', 'gates'],
     mission_relevance: 0.95,
-    body: `# Coverage states + gates
+    body: `# Coverage-Zustände + Gates
 
-## State definitions
-- **open** — requirement parsed and normalised; nothing drafted yet.
-- **drafted** — the agent has retrieved a reuse passage, adapted, and
-  translated it. *No engineer has read it yet.*
-- **reviewed** — an engineer has read the draft and the source. May
-  still iterate.
-- **committed** — explicit decision by a named engineer that this is the
-  bid response. Locked.
-- **deviation** — the bid will deliberately deviate from the
-  requirement. Carries a *deviation rationale* and the commercial
-  implication.
-- **clarify** — the requirement is ambiguous or contradicted; a
-  customer clarification is requested.
+## Zustandsdefinitionen
+- **open** — Anforderung geparst und normalisiert; noch nichts entworfen.
+- **drafted** — der Agent hat eine Wiederverwendungsstelle abgerufen,
+  angepasst und im Hausstil verfasst. *Kein Ingenieur hat sie gelesen.*
+- **reviewed** — ein Ingenieur hat Entwurf und Quelle gelesen. Kann
+  noch iterieren.
+- **committed** — ausdrückliche Entscheidung eines namentlich
+  benannten Ingenieurs, dass dies die Angebotsantwort ist. Gesperrt.
+- **deviation** — das Angebot weicht bewusst von der Anforderung ab.
+  Trägt eine *Abweichungsbegründung* und die kaufmännische Implikation.
+- **clarify** — die Anforderung ist mehrdeutig oder widersprüchlich;
+  eine Kundenklärung wurde angefordert.
 
-## Submission gates
-- **G1 — Internal completeness gate (T-30 days):** every requirement has
-  a row; zero in *open*.
-- **G2 — Engineering review gate (T-14 days):** every row is *reviewed*,
-  *committed*, *deviation*, or *clarify*.
-- **G3 — Commit gate (T-3 days):** every row is *committed*, *deviation*,
-  or *clarify*. Export refuses to run otherwise.
+## Abgabe-Gates
+- **G1 — Internes Vollständigkeits-Gate (T-30 Tage):** Jede Anforderung
+  hat eine Zeile; null in *open*.
+- **G2 — Engineering-Review-Gate (T-14 Tage):** Jede Zeile ist
+  *reviewed*, *committed*, *deviation* oder *clarify*.
+- **G3 — Commit-Gate (T-3 Tage):** Jede Zeile ist *committed*,
+  *deviation* oder *clarify*. Der Export verweigert sich sonst.
 
-The agent enforces G3: \`pipeline-export\` checks the coverage matrix
-before writing the .docx and aborts with a list of non-committed rows
-if any remain.
+Der Agent setzt G3 durch: \`pipeline-export\` prüft die Coverage-Matrix
+vor dem Schreiben der .docx und bricht mit einer Liste nicht-
+committeter Zeilen ab, falls noch welche übrig sind.
 `,
   },
 
   // -- Reuse base --------------------------------------------------------
   {
-    title: 'Reuse base',
+    title: 'Wiederverwendungsbasis',
     slug: 'reuse-base',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['reuse', 'past-specs'],
     mission_relevance: 0.95,
-    body: `# Reuse base
+    body: `# Wiederverwendungsbasis
 
-The firm's accumulated engineering content. Each entry is an English-
-language passage from a past technical specification or type-test report,
-indexed for retrieval by topic + setpoint range + standard.
+Der akkumulierte Engineering-Inhalt der Firma — die Sammlung früherer
+**deutschsprachiger** Angebote, technischer Spezifikationen und
+Typprüfberichte, indexiert für den Abruf nach Thema +
+Sollwertbereich + Norm.
 
-## Notable reuse sources for this bid
-- **[Northshore-2022 — MMC control scheme](../sources/source-northshore-2022-mmc-control.md)**:
-  the FRT-250ms reference design.
-- **[Northshore-2022 — FRT type-test report
-  ](../sources/source-northshore-2022-frt-type-test.md)**: certified
-  ride-through of the exact profile in REQ-247.
-- **[Capeline-2023 — Protection philosophy
-  ](../sources/source-capeline-2023-protection.md)**: pulled for the
-  Annex B requirements.
-- **[Reefnet-2020 — Harmonic filter design
-  ](../sources/source-reefnet-2020-harmonic-filters.md)**: pulled for
-  Annex C; **does not** meet NSÜN's stricter THD limits — see
-  [reuse mismatch — harmonic filter](../topics/reuse-mismatch-harmonic-filter.md).
-- **[Aurora-2024 — Reactive-power capability curve
-  ](../sources/source-aurora-2024-reactive-power.md)**: needs adapting
-  for the REQ-184 override (±0.90 leading instead of ±0.95).
-- **[Internal — German style guide
-  ](../sources/source-internal-german-style-guide.md)**: governs the
-  translation step (tone, term consistency, normative verb usage).
+## Nennenswerte Wiederverwendungsquellen für dieses Angebot
+- **[Northshore-2022 — MMC-Regelschema
+  ](../sources/source-northshore-2022-mmc-control.md)**:
+  Die FRT-250ms-Referenzauslegung.
+- **[Northshore-2022 — FRT-Typprüfbericht
+  ](../sources/source-northshore-2022-frt-type-test.md)**: Zertifizierte
+  Durchfahrt genau des Profils in REQ-247.
+- **[Capeline-2023 — Schutzphilosophie
+  ](../sources/source-capeline-2023-protection.md)**: Genutzt für die
+  Annex-B-Anforderungen.
+- **[Reefnet-2020 — Oberschwingungs-Filterauslegung
+  ](../sources/source-reefnet-2020-harmonic-filters.md)**: Genutzt für
+  Annex C; **erfüllt nicht** NSÜNs strengere THD-Grenzwerte — siehe
+  [Reuse-Mismatch — Oberschwingungsfilter](../topics/reuse-mismatch-harmonic-filter.md).
+- **[Aurora-2024 — Blindleistungs-Fähigkeitskurve
+  ](../sources/source-aurora-2024-reactive-power.md)**: Muss für den
+  REQ-184-Override angepasst werden (±0,90 voreilend statt ±0,95).
+- **[Hausintern — Stilhandbuch
+  ](../sources/source-internal-german-style-guide.md)**: Regelt den
+  deutschen Hausstil und die englische Rückübersetzung im Export.
 
-The reuse base is the captured judgment of the principal engineers — the
-ones who "just know" which past project answers a new requirement.
-Captured here, it survives them moving on.
+Die Wiederverwendungsbasis ist das festgehaltene Urteil der Principal
+Engineers — derjenigen, die "einfach wissen", welches Altprojekt eine
+neue Anforderung beantwortet. Hier festgehalten, überlebt es ihren
+Wechsel.
 `,
   },
   {
-    title: 'Reuse mismatch — harmonic filter (Annex C)',
+    title: 'Reuse-Mismatch — Oberschwingungsfilter (Annex C)',
     slug: 'reuse-mismatch-harmonic-filter',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['mismatch', 'annex-c', 'harmonics'],
     mission_relevance: 0.9,
-    body: `# Reuse mismatch — harmonic filter (Annex C)
+    body: `# Reuse-Mismatch — Oberschwingungsfilter (Annex C)
 
-The natural reuse source for the harmonic-filter requirements
-(REQ-301 through REQ-308) is the [Reefnet-2020 filter design
-](../sources/source-reefnet-2020-harmonic-filters.md), which delivered
-**THD ≤ 1.5%** at the PCC.
+Die natürliche Wiederverwendungsquelle für die Oberschwingungsfilter-
+Anforderungen (REQ-301 bis REQ-308) ist die [Reefnet-2020-Filterauslegung
+](../sources/source-reefnet-2020-harmonic-filters.md), die **THD ≤ 1,5 %**
+am PCC lieferte.
 
-NSÜN's [Annex C](../sources/source-volume-4-annex-c-harmonics.md)
-requires **THD ≤ 0.9%** at the PCC (REQ-303). The Reefnet design does
-not meet that limit.
+NSÜNs [Annex C](../sources/source-volume-4-annex-c-harmonics.md)
+verlangt **THD ≤ 0,9 %** am PCC (REQ-303). Die Reefnet-Auslegung
+erfüllt diesen Grenzwert nicht.
 
-## Implication
-Four requirement-responses (REQ-303, REQ-304, REQ-305, REQ-307) that the
-agent initially drafted from Reefnet are flagged for **rework with a
-re-tuned filter topology**. The current drafts are marked
-*reuse-mismatch* on the [coverage dashboard
-](../topics/coverage-dashboard.md) and require principal-engineer
-intervention — either re-tune from a different past project, or formally
-deviate, or clarify whether the THD limit applies at the PCC or at the
-converter terminals.
+## Implikation
+Vier Anforderungs-Antworten (REQ-303, REQ-304, REQ-305, REQ-307), die
+der Agent zunächst aus Reefnet entworfen hatte, sind für **Nacharbeit
+mit neu abgestimmter Filtertopologie** markiert. Die aktuellen
+Entwürfe tragen den *reuse-mismatch*-Chip auf dem [Coverage-Dashboard
+](../topics/coverage-dashboard.md) und erfordern Eingriff durch den
+Principal Engineer — entweder Neuabstimmung aus einem anderen
+Altprojekt, formale Abweichung oder Klärung, ob der THD-Grenzwert am
+PCC oder an den Konverterklemmen gilt.
 
-This is the structural analogue of the long-horizon-commitments seed's
-*Refuted→cascade*: one upstream reuse decision turns out to be wrong, and
-four downstream responses inherit the rework.
+Dies ist das strukturelle Analogon zum *Refuted→cascade* des
+Long-Horizon-Commitments-Seeds: eine fehlerhafte Upstream-
+Wiederverwendungsentscheidung, vier nachgelagerte Antworten erben die
+Nacharbeit.
 `,
   },
 
   // -- MMC control scheme + the German-language angle -------------------
   {
-    title: 'MMC control scheme (reuse from Northshore-2022)',
+    title: 'MMC-Regelschema (Wiederverwendung aus Northshore-2022)',
     slug: 'mmc-control-scheme',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['mmc', 'control', 'reuse'],
     mission_relevance: 0.85,
-    body: `# MMC control scheme (reuse from Northshore-2022)
+    body: `# MMC-Regelschema (Wiederverwendung aus Northshore-2022)
 
-The firm's proven Modular-Multilevel-Converter control scheme, type-
-tested on the Northshore-2022 project. Answers, with adaptation:
+Das bewährte Modular-Multilevel-Konverter-Regelschema der Firma,
+typgeprüft auf dem Northshore-2022-Projekt. Beantwortet mit Anpassung:
 
-- **REQ-247** (FRT-250ms) — see [case-frt-250ms
+- **REQ-247** (FRT-250ms) — siehe [case-frt-250ms
   ](../topics/case-frt-250ms.md).
-- **REQ-241–246** (active-power response, ramp limits, oscillation
-  damping).
-- **REQ-251–254** (reactive-power dynamic response).
-- **REQ-261–268** (control-system architecture, redundancy, time
-  synchronisation).
+- **REQ-241–246** (Wirkleistungs-Antwort, Anstiegsraten, Schwingungs-
+  dämpfung).
+- **REQ-251–254** (Blindleistungs-Dynamikantwort).
+- **REQ-261–268** (Regelarchitektur, Redundanz, Zeitsynchronisation).
 
-## What "reuse with adaptation" means here
-The MMC control scheme is a proven design pattern; the setpoints, the
-ramp limits, and the timing are project-specific. The agent pulls the
-pattern, adapts the numbers from the requirement, and translates the
-narrative into German.
+## Was "Wiederverwendung mit Anpassung" hier bedeutet
+Das MMC-Regelschema ist ein bewährtes Designmuster; die Sollwerte, die
+Anstiegsraten und das Timing sind projektspezifisch. Der Agent zieht
+das Muster, passt die Zahlen an die Anforderung an und verfasst das
+Ganze im Hausstil.
 
-The principal engineer reads source + draft side by side and decides.
+Der Principal Engineer liest Quelle + Entwurf nebeneinander und
+entscheidet.
 `,
   },
   {
-    title: 'German-language drafting + translation',
+    title: 'Deutscher Hausstil + Rückübersetzung',
     slug: 'german-language-drafting',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
-    tags: ['translation', 'german', 'style'],
-    mission_relevance: 0.8,
-    body: `# German-language drafting + translation
+    tags: ['translation', 'german', 'style', 'back-translation'],
+    mission_relevance: 0.85,
+    body: `# Deutscher Hausstil + Rückübersetzung
 
-The reuse base is in English. The deliverable is in German. The agent
-translates each drafted response, governed by the [internal German
-style guide](../sources/source-internal-german-style-guide.md).
+Arbeitssprache, Wiederverwendungsbasis und Lieferdokument sind
+**deutsch**. Das frühere "EN→DE-Übersetzen" entfällt; der Agent
+schreibt deutsche Anforderungen aus deutschen Altangeboten heraus
+gemäß dem [hausinternen Stilhandbuch
+](../sources/source-internal-german-style-guide.md).
 
-Conventions:
+## Konventionen (Auszug)
 
-- Normative verbs: *muss* (mandatory) / *darf* (permitted) / *sollte*
-  (recommended) — never the colloquial *soll*.
-- Setpoints in SI with locale-appropriate decimal separator (1,5 MW).
-- Standard references are not translated (IEC 62271-302 stays as-is).
-- IDs (REQ-247, Annex C §7.4.3) stay as-is.
+- Modalverben: *muss* (verpflichtend) / *darf* (zulässig) / *sollte*
+  (empfohlen) — nie das umgangssprachliche *soll*.
+- Sollwerte im SI mit landesüblichem Dezimaltrennzeichen (1,5 MW).
+- Normenverweise werden nicht übersetzt (IEC 62271-302 bleibt
+  unverändert).
+- IDs (REQ-247, Annex C §7.4.3) bleiben unverändert.
 
-The agent does **not** post-edit the engineer's committed text. Once a
-row is *committed*, the German wording is the engineer's, full stop.
+## Englische Rückübersetzung beim Export
 
-Open question: should setpoint values in deviation rows carry the
-English-language original alongside the German rendering? See
-[clarify queue](../topics/clarify-queue.md).
+Beim [Exportschritt](../topics/pipeline-export.md) wird jede deutsche
+Antwort mit ihrer englischen Rückübersetzung Seite an Seite annotiert.
+Die Rückübersetzung ist *informativ*, die deutsche Spalte ist die
+bindende vertragliche Form.
+
+Regeln der Rückübersetzung:
+
+- *muss → "shall"*, *darf → "may"*, *sollte → "should"*. Die strikte
+  Trennung zwischen *shall* und *should* darf nicht verschwimmen.
+- Dezimalzahlen werden in der englischen Konvention dargestellt
+  (1,5 MW → 1.5 MW); das Vorzeichen ± und die SI-Einheiten bleiben.
+- Normenverweise, IDs, Anhangsverweise sind bereits in beiden Sprachen
+  identisch und werden 1:1 übernommen.
+- Der englische Block zitiert seine deutsche Originalstelle per
+  Absatz-ID, damit der Prüfer rückwärts navigieren kann.
+
+Der Agent post-editet keinen committeten Text des Ingenieurs. Sobald
+eine Zeile *committed* ist, ist die deutsche Formulierung die des
+Ingenieurs, Punkt. Die Rückübersetzung wird beim Export aus der
+endgültigen deutschen Formulierung erzeugt — nicht aus dem Entwurf.
+
+Offene Frage: Sollen Sollwerte in *deviation*-Zeilen die englische
+Rückübersetzung neben der deutschen Fassung führen? Siehe
+[Klärungs-Warteschlange](../topics/clarify-queue.md).
 `,
   },
 
   // -- Standards backdrop -----------------------------------------------
   {
-    title: 'Standards & regulatory backdrop',
+    title: 'Normen & regulatorischer Hintergrund',
     slug: 'standards-regulatory-backdrop',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['standards', 'regulatory'],
     mission_relevance: 0.9,
-    body: `# Standards & regulatory backdrop
+    body: `# Normen & regulatorischer Hintergrund
 
-NSÜN's requirements document points heavily into external standards.
-Each reference pulls in its own sub-requirements that the agent expands
-during the *parse* step.
+NSÜNs Anforderungsdokument zeigt stark in externe Normen hinein. Jeder
+Verweis zieht eigene Teilanforderungen ein, die der Agent im
+Parse-Schritt expandiert.
 
-| Standard | Domain | Why it matters here |
+| Norm | Domäne | Warum es hier zählt |
 |---|---|---|
-| EU Reg. 2016/1447 (NC-HVDC) | Grid connection of HVDC systems | Mandatory compliance for connection |
-| BNetzA TAB-HS 2024 | German technical connection conditions | Pulls in country-specific overlays |
-| IEC 62271-1 / -302 | High-voltage switchgear | Annex A clauses on AC switchyard |
-| IEC 61850 | Substation communications | Annex B clauses on protection & control |
-| IEC 60076 (series) | Power transformers | Converter transformers |
-| IEC 60633 / 60919 | HVDC terminology + system planning | Glossary + design assumptions |
-| IEEE 1547 | (Informative) | Cited once in Annex E; **not normative** for this bid |
+| EU-Verordnung 2016/1447 (NC-HVDC) | Netzanschluss von HGÜ-Systemen | Pflichtkonformität für den Anschluss |
+| BNetzA TAB-HS 2024 | Deutsche technische Anschlussbedingungen | Zieht landesspezifische Überlagerungen ein |
+| IEC 62271-1 / -302 | Hochspannungs-Schaltanlagen | Annex-A-Klauseln zur AC-Schaltanlage |
+| IEC 61850 | Stationskommunikation | Annex-B-Klauseln zu Schutz & Leittechnik |
+| IEC 60076 (Reihe) | Leistungstransformatoren | Konvertertransformatoren |
+| IEC 60633 / 60919 | HGÜ-Terminologie + Systemplanung | Glossar + Designannahmen |
+| IEEE 1547 | (informativ) | In Annex E einmal zitiert; **nicht normativ** für dieses Angebot |
 
-A non-compliant station does not energise. Compliance with NC-HVDC and
-the TAB-HS overlay is not a nicety — it is the connection prerequisite.
+Eine nicht konforme Station geht nicht ans Netz. Konformität mit
+NC-HVDC und der TAB-HS-Überlagerung ist keine Nettigkeit — es ist die
+Anschlussvoraussetzung.
 `,
   },
 
-  // -- Coverage dashboard runtime --------------------------------------
+  // -- Clarify queue ----------------------------------------------------
   {
-    title: 'Clarify queue',
+    title: 'Klärungs-Warteschlange',
     slug: 'clarify-queue',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['clarify', 'queue'],
     mission_relevance: 0.85,
-    body: `# Clarify queue
+    body: `# Klärungs-Warteschlange
 
-Requirements the agent refused to draft, because the source is genuinely
-ambiguous and inventing a measurable criterion would create a
-non-defensible promise.
+Anforderungen, für die der Agent einen Entwurf verweigert hat, weil die
+Quelle wirklich mehrdeutig ist und das Erfinden eines messbaren
+Kriteriums eine nicht zu rechtfertigende Zusage schaffen würde.
 
-The clarify queue ships as a separate exhibit to the customer ahead of
-the submission, with each item phrased as a specific question. The
-[FRT-250ms case](../topics/case-frt-250ms.md) is *not* in the clarify
-queue — it has a measurable acceptance criterion in the source. The
-*"adequate reactive-power support"* case **is** — no setpoint, no
-operating range, not draftable as a binding promise.
+Die Klärungs-Warteschlange wird vor der Abgabe als getrenntes Exhibit
+an den Kunden geliefert, mit jedem Punkt formuliert als spezifische
+Frage. Die [FRT-250ms-Fallstudie](../topics/case-frt-250ms.md) ist
+*nicht* in der Klärungs-Warteschlange — sie hat ein messbares
+Akzeptanzkriterium in der Quelle. Der Fall *"ausreichende
+Blindleistungsunterstützung"* **ist** drin — kein Sollwert, kein
+Bereich, nicht als bindende Zusage entwerfbar.
 
-Seeded clarify-queue items at demo time:
+Im Demo gesetzte Klärungspunkte:
 
-- **REQ-119** — *"the station shall be designed for adequate seismic
-  resilience"* — no zone classification cited; clarify which IBC zone
-  or DIN/EN 1998-1 ground type applies.
-- **REQ-376** — translation/scope ambiguity for *"Hilfsbetriebe der
-  Reservelinie"* (auxiliaries of the reserve line); clarify whether the
-  cooling skid auxiliaries are included.
-- **REQ-411** — implicit contradiction with the late-clarifications
-  memo; clarify which prevails.
+- **REQ-119** — *"die Station ist für ausreichende seismische
+  Widerstandsfähigkeit auszulegen"* — keine Zonenklassifikation
+  zitiert; klären, welche IBC-Zone oder welcher DIN/EN-1998-1-
+  Untergrundtyp gilt.
+- **REQ-376** — Übersetzungs-/Geltungsbereichs-Mehrdeutigkeit für
+  *"Hilfsbetriebe der Reservelinie"*; klären, ob die Kühlskid-
+  Hilfsbetriebe einbezogen sind.
+- **REQ-411** — implizite Widersprüchlichkeit mit dem
+  Klarstellungsmemo; klären, welche Fassung Vorrang hat.
 `,
   },
 
   // -- Operating rules (the agent's restraint) --------------------------
   {
-    title: "Agent operating rule — no silent commitment",
+    title: 'Agentenregel — kein stilles Committen',
     slug: 'rule-no-silent-commitment',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['rule', 'restraint'],
     mission_relevance: 1.0,
-    body: `# Operating rule — no silent commitment
+    body: `# Agentenregel — kein stilles Committen
 
-A requirement moves to *committed* **only** through an explicit human
-decision, one at a time or in reviewed batches. There is no
-"auto-answer all" button. There is no batch transition that does not
-record the deciding engineer.
+Eine Anforderung wechselt **nur** durch eine ausdrückliche menschliche
+Entscheidung in den Zustand *committed* — einzeln oder in geprüften
+Stapeln. Es gibt keinen "Alle-automatisch-beantworten"-Knopf. Es gibt
+keine Stapel-Transition, die nicht den entscheidenden Ingenieur
+festhält.
 
-The coverage view shows at all times how many entries are the agent's
-drafts versus engineers' choices. A system that drafts everything has
-to make sure a human still decides everything. That asymmetry is the
-whole point.
+Die Coverage-Sicht zeigt jederzeit, wie viele Einträge Entwürfe des
+Agenten gegenüber Entscheidungen des Ingenieurs sind. Ein System, das
+alles entwirft, muss sicherstellen, dass weiterhin ein Mensch über
+alles entscheidet. Diese Asymmetrie ist der ganze Sinn.
 
-The dangerous override (REQ-184, narrowed reactive-power range from
-±0.95 to ±0.90 leading) demonstrates *why*: a drafted-from-reuse
-response that gets bulk-committed without a human noticing the override
-edge is the failure mode that costs the bid.
+Der gefährliche Override (REQ-184, voreilender Blindleistungsbereich
+von ±0,95 auf ±0,90 verschmälert) zeigt *warum*: eine aus
+Wiederverwendung entworfene Antwort, die ohne menschliche
+Aufmerksamkeit für die Override-Kante im Stapel committet wird, ist
+der Fehlermodus, der das Angebot kostet.
 `,
   },
   {
-    title: 'Agent operating rule — flag, do not invent',
+    title: 'Agentenregel — markieren, nicht erfinden',
     slug: 'rule-flag-do-not-invent',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['rule', 'restraint', 'ears'],
     mission_relevance: 1.0,
-    body: `# Operating rule — flag, do not invent
+    body: `# Agentenregel — markieren, nicht erfinden
 
-When a requirement is genuinely ambiguous, the agent flags it for the
-[clarify queue](../topics/clarify-queue.md). It does not invent a
-setpoint to make the row look answered.
+Wenn eine Anforderung wirklich mehrdeutig ist, markiert der Agent sie
+für die [Klärungs-Warteschlange](../topics/clarify-queue.md). Er
+erfindet keinen Sollwert, damit die Zeile beantwortet aussieht.
 
-An invented measurable criterion creates a promise nobody read. The
-agent's value in this pipeline is that it *makes ambiguity visible*,
-not that it papers over it. The [normalize step
-](../topics/pipeline-normalize-ears.md) decides which side of that line
-each source clause falls on.
+Ein erfundenes messbares Kriterium schafft eine Zusage, die niemand
+gelesen hat. Der Wert des Agenten in dieser Pipeline ist, dass er
+*Mehrdeutigkeit sichtbar macht*, nicht dass er sie übermalt. Der
+[Normalisierungsschritt](../topics/pipeline-normalize-ears.md)
+entscheidet, auf welcher Seite dieser Linie jede Quellklausel liegt.
 `,
   },
+
   // -- Team (single source of truth for owner initials → engineer) -------
   //
   // The compliance-matrix previewer looks this page up by slug
@@ -626,32 +745,125 @@ each source clause falls on.
     mission_relevance: 1.0,
     body: `# Team
 
-The bid team. The [compliance matrix previewer](../topics/coverage-dashboard.md)
-resolves owner cells against this page — edit the table to change which
-initials the cockpit recognises. One row per kg engineer-id keeps the
-Owner filter free of duplicates.
+Das Angebotsteam. Die [Konformitätsmatrix-Vorschau
+](../topics/coverage-dashboard.md) löst Inhaber-Zellen gegen diese
+Seite auf — die Tabelle bearbeiten, um die im Cockpit erkannten
+Initialen zu ändern. Eine Zeile pro KG-Ingenieur-ID hält den
+Inhaber-Filter frei von Duplikaten.
 
-| Initials | Engineer id              | Name              | Role                                                 | Areas                                  |
-|----------|--------------------------|-------------------|------------------------------------------------------|----------------------------------------|
-| E1       | engineer-anke-vogt       | Engineer One      | principal engineer — controls & protection           | REQ-241..268, FRT-250ms                |
-| E2       | engineer-bernd-haag      | Engineer Two      | principal engineer — power-quality                   | REQ-301..308 (Annex C), harmonic filter|
-| E3       | engineer-clara-mueller   | Engineer Three    | lead engineer — primary equipment                    | REQ-101..184 (Volume 1 + Annex A)      |
-| E4       | engineer-dirk-stein      | Engineer Four     | proposal-desk lead                                   | coverage + commit-gate G3              |
+| Initialen | Ingenieur-ID            | Name              | Rolle                                                | Bereiche                                |
+|-----------|-------------------------|-------------------|------------------------------------------------------|-----------------------------------------|
+| E1        | engineer-anke-vogt      | Engineer One      | Principal Engineer — Regelung & Schutz               | REQ-241..268, FRT-250ms                 |
+| E2        | engineer-bernd-haag     | Engineer Two      | Principal Engineer — Netzqualität                    | REQ-301..308 (Annex C), Oberschwingungsfilter |
+| E3        | engineer-clara-mueller  | Engineer Three    | Lead Engineer — Primärgeräte                         | REQ-101..184 (Volume 1 + Annex A)       |
+| E4        | engineer-dirk-stein     | Engineer Four     | Angebotsteamleitung                                  | Coverage + Commit-Gate G3               |
 
-## How the cockpit uses this
+## Wie das Cockpit diese Seite nutzt
 
-- Owner column on every requirement row resolves \`responsibleEngineer\`
-  (a kg entity id like \`engineer-anke-vogt\`) → the **Initials** column
-  here. The header on the matrix shows the initials; the tooltip on hover
-  shows name + role.
-- The Owner filter in the left rail enumerates this table.
-- Removing a row from this table does not remove the engineer from the
-  knowledge graph — it only stops the cockpit from resolving them. Rows
-  whose owner cannot be resolved render with a "no team entry" hint chip.
-- If you want one real person to own the workload of several fictional
-  engineers, put a single row whose **Engineer id** cell lists multiple
-  ids separated by commas. The cockpit's parser handles that — but each
-  id still surfaces once in the Owner filter dropdown.
+- Die Inhaber-Spalte jeder Anforderungszeile löst
+  \`responsibleEngineer\` (eine KG-Entitäts-ID wie
+  \`engineer-anke-vogt\`) → die Spalte **Initialen** hier auf. Der
+  Spaltenkopf der Matrix zeigt die Initialen; der Tooltip beim Hovern
+  zeigt Name + Rolle.
+- Der Inhaber-Filter in der linken Leiste zählt diese Tabelle auf.
+- Eine Zeile aus dieser Tabelle zu entfernen, entfernt den Ingenieur
+  nicht aus dem Knowledge-Graph — es hindert nur das Cockpit daran, ihn
+  aufzulösen. Zeilen mit nicht auflösbarem Inhaber werden mit einem
+  "no team entry"-Hinweischip gerendert.
+- Wenn eine reale Person die Arbeit mehrerer fiktiver Ingenieure
+  übernehmen soll, ist in der Zelle **Ingenieur-ID** eine durch Kommas
+  getrennte Liste mehrerer IDs einzutragen. Der Parser des Cockpits
+  beherrscht das — jede ID erscheint aber weiterhin einmal im
+  Inhaber-Filter-Dropdown.
+`,
+  },
+
+  // -- Three ways to create a planned response (NEW) --------------------
+  {
+    title: 'Drei Wege, eine geplante Antwort anzulegen',
+    slug: 'creating-planned-responses',
+    bucket: 'topics',
+    status: 'stable',
+    confidence: 'high',
+    tags: ['planned-response', 'workflow', 'reuse', 'restraint'],
+    mission_relevance: 1.0,
+    body: `# Drei Wege, eine geplante Antwort anzulegen
+
+Im Cockpit der Konformitätsmatrix bietet der Knopf "Geplante Antwort
+anlegen" drei Wege an. Welcher der richtige ist, hängt davon ab, woher
+der Antwortinhalt kommt.
+
+## 1. Leeren Stub anlegen
+
+Schreibt eine Platzhalterseite mit Frontmatter und "hier entwerfen"-
+Rumpf. *Wann?* Wenn es nichts gibt, womit man starten kann — die
+Anforderung ist neu, keine Altangebotsstelle passt, der Ingenieur
+schreibt den Entwurf von Null. Status: \`stub\`.
+
+## 2. Aus vorhandenen Inhalten ziehen
+
+Öffnet einen Auswahldialog über zwei Gruppen:
+
+- **Documents** — Dateien unter \`documents/\` (Quellvolumes,
+  Altangebotsauszüge, Typprüfberichte, Übergabe-Notizen). Auch
+  \`.docx\` / \`.pdf\` werden unterstützt; sie werden durch die
+  [office-and-pdf-documents]-Skill in Text extrahiert.
+- **Wiki-Seiten** — bestehende, nicht-Stub-Seiten aus \`wiki/topics/\`
+  und \`wiki/sources/\` (etwa [mmc-control-scheme
+  ](../topics/mmc-control-scheme.md), [reuse-base
+  ](../topics/reuse-base.md), die Quellvolumeseiten).
+
+Der Inhalt des gewählten Eintrags wird zum Rumpf der neuen geplanten
+Antwort, mit EARS-Kopfzeile und einem "Reuse-Provenance"-Footer, der
+auf die Quelle zurückzeigt — bei Wiki-Quellen als
+\`[label](../topics/<slug>.md)\`-Link, sodass die bestehende
+Wiki-Backlink-Maschinerie die Verbindung sichtbar macht. Status:
+\`drafted\`.
+
+*Wann?* Wenn eine Altangebotsstelle, eine Wiederverwendungspassage
+oder eine bestehende Wiki-Seite die Anforderung bereits beantwortet
+und der Ingenieur sie als Ausgangspunkt nehmen will. Das ist der
+**Hauptpfad** dieses Workflows und der eigentliche Mehrwert des
+Systems: das festgehaltene Urteil der Principal Engineers wird
+nachnutzbar.
+
+> Wichtig: "Aus vorhandenen Inhalten ziehen" ist **kein** Committen.
+> Der Inhalt einer einzigen Altseite oder eines einzigen Wiki-Eintrags
+> wird in den Entwurf gehoben — der Ingenieur unterschreibt weiterhin.
+> Siehe [Agentenregel — kein stilles Committen
+> ](../topics/rule-no-silent-commitment.md).
+
+## 3. Aus der Wissensbasis anlegen
+
+Öffnet ein Eingabefeld für eine einzelne Frage. Der Agent beantwortet
+die Frage mit vollem RAG-Kontext über \`documents/\` und das Wiki und
+schreibt die Antwort als Rumpf der neuen geplanten Antwort. Status:
+\`drafted\`, \`confidence: low\`.
+
+*Wann?* Wenn die Antwort den gesamten Projektkontext braucht und sich
+nicht aus einer einzelnen Altstelle ableiten lässt — etwa eine
+Konformitätsantwort, die mehrere Wiederverwendungsquellen, ein
+Klarstellungsmemo und eine Normenüberlagerung kombiniert.
+
+> Die Antwort des Agenten **muss** geprüft werden. Eine ungeprüfte
+> Agentenantwort ist genau der Fehlermodus, gegen den
+> [Agentenregel — kein stilles Committen
+> ](../topics/rule-no-silent-commitment.md) existiert. Der Agent kann
+> halluzinieren; das System macht die Halluzination sichtbar, indem es
+> Provenienz (zitierte Dokument-IDs) im Rumpf führt — die Prüfung
+> bleibt menschlich.
+
+## Welcher Weg, wann?
+
+| Situation | Empfohlener Weg |
+|---|---|
+| Anforderung ist offen, keine bekannte Quelle | Leeren Stub |
+| Eine konkrete Altstelle oder Wiki-Seite passt | Aus vorhandenen Inhalten ziehen |
+| Antwort braucht Synthese aus mehreren Quellen | Aus der Wissensbasis |
+
+In jedem Fall: Der Zustand der Zeile ist \`drafted\`. Der
+[Exportschritt](../topics/pipeline-export.md) weigert sich, eine
+\`drafted\`-Zeile zu rendern. Der Ingenieur committet.
 `,
   },
 
@@ -664,55 +876,64 @@ Owner filter free of duplicates.
   // response" button in the cockpit calls create_planned_response_page to
   // stub them on first click.
   {
-    title: 'Planned response — REQ-101 (rated DC voltage)',
+    title: 'Geplante Antwort — REQ-101 (Nenn-DC-Spannung)',
     slug: 'planned-response/req-101',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['planned-response', 'req-101', 'reuse-northshore-2022'],
     mission_relevance: 0.9,
-    body: `# Planned response — REQ-101
+    body: `# Geplante Antwort — REQ-101
 
-> **Requirement (EARS):** The converter station shall be designed for a
-> continuous rated DC voltage of ±525 kV.
+> **Anforderung (EARS):** Die Konverterstation muss für eine kontinuierliche
+> Nenn-DC-Spannung von ±525 kV ausgelegt werden.
 > [[doc:documents/source-volume-1-functional-spec-excerpt.md]]
 
-## Response (DE)
+## Antwort (DE)
 
 Die Umrichterstation wird für eine kontinuierliche Nenn-DC-Spannung von
 **±525 kV** ausgelegt. Die Auslegung folgt der bewährten MMC-Topologie aus
 dem Northshore-2022-Projekt und ist für den Dauerbetrieb am 525-kV-DC-Bus
 qualifiziert.
 
-## Reuse provenance
+## Englische Rückübersetzung (Annotation im Export)
 
-Drafted from the [Northshore-2022 MMC control scheme
-](../topics/mmc-control-scheme.md). The rated-voltage section reuses the
-type-tested envelope of the Northshore HVDC link bipoles (operational
-since 2022).
+The converter station shall be designed for a continuous rated DC voltage
+of ±525 kV. The design follows the proven MMC topology used on the
+Northshore-2022 project and is qualified for continuous operation on the
+525 kV DC bus.
+
+## Wiederverwendungs-Provenienz
+
+Entworfen aus dem [Northshore-2022-MMC-Regelschema
+](../topics/mmc-control-scheme.md). Der Abschnitt zur Nennspannung
+verwendet die typgeprüfte Hüllkurve der Northshore-HGÜ-Bipole (in
+Betrieb seit 2022) wieder.
 
 ## Status
 
-Committed. Locked by C. Müller; carries no override or mismatch chip.
+Committed. Gesperrt durch C. Müller; trägt keinen Override- oder
+Mismatch-Chip.
 `,
   },
   {
-    title: 'Planned response — REQ-184 (reactive-power range, amended)',
+    title: 'Geplante Antwort — REQ-184 (Blindleistungsbereich, geändert)',
     slug: 'planned-response/req-184',
     bucket: 'topics',
     status: 'draft',
     confidence: 'medium',
     tags: ['planned-response', 'req-184', 'override', 'reuse-aurora-2024'],
     mission_relevance: 1.0,
-    body: `# Planned response — REQ-184
+    body: `# Geplante Antwort — REQ-184
 
-> **Requirement (EARS, amended):** The converter shall provide reactive-power
-> range of **±0.90 leading / ±0.95 lagging** at full active-power output,
-> as amended by the 2026-04-18 clarifications memo.
+> **Anforderung (EARS, geändert):** Der Konverter muss einen
+> Blindleistungsbereich von **±0,90 voreilend / ±0,95 nacheilend** bei
+> voller Wirkleistungsabgabe bereitstellen, wie geändert durch das
+> Klarstellungsmemo vom 2026-04-18.
 > [[doc:documents/source-volume-1-functional-spec-excerpt.md]]
 > [[doc:documents/source-late-clarifications-2026-04-18.md]]
 
-## Response (DE) — DRAFT, awaiting principal-engineer decision
+## Antwort (DE) — ENTWURF, wartet auf Entscheidung des Principal Engineer
 
 Der Umrichter stellt am Punkt des Netzanschlusses einen Blindleistungs-
 bereich von **±0,90 voreilend / ±0,95 nacheilend** bei voller
@@ -720,39 +941,49 @@ Wirkleistungsabgabe bereit. Die Auslegung berücksichtigt die enger
 gefasste voreilende Grenze aus der Klarstellungsmitteilung vom
 2026-04-18.
 
-## Reuse provenance — and the override edge
+## Englische Rückübersetzung (Annotation im Export)
 
-Drafted from the [Aurora-2024 reactive-power capability curve
-](../topics/reuse-base.md). Aurora-2024 answered the **original**
-±0.95/±0.95 envelope; the amended ±0.90 leading limit needs the
-capability curve re-cut. See [late-clarification overrides
+The converter shall provide a reactive-power range of ±0.90 leading /
+±0.95 lagging at full active-power output at the grid-connection point.
+The design accounts for the tighter leading-side limit introduced by the
+clarifications memo of 2026-04-18.
+
+## Wiederverwendungs-Provenienz — und die Override-Kante
+
+Entworfen aus der [Aurora-2024-Blindleistungs-Fähigkeitskurve
+](../topics/reuse-base.md). Aurora-2024 beantwortete die
+**ursprüngliche** ±0,95/±0,95-Hüllkurve; die geänderte ±0,90-voreilende
+Grenze macht eine Neuauslegung der Fähigkeitskurve erforderlich. Siehe
+[späte Klarstellungs-Overrides
 ](../topics/late-clarification-overrides.md).
 
-## What still needs to happen
+## Was noch zu tun ist
 
-- Re-cut the PQ envelope at ±0.90 leading; produce updated capability
-  plot and verify thermal envelope at the new operating boundary.
-- Confirm protection-coordination interaction at the narrowed
-  leading-side limit.
-- C. Müller signs off; row moves \`drafted → reviewed → committed\`.
+- PQ-Hüllkurve bei ±0,90 voreilend neu schneiden; aktualisierte
+  Fähigkeitskurve erzeugen und thermische Hüllkurve an der neuen
+  Betriebsgrenze prüfen.
+- Wechselwirkung der Schutzkoordination an der schmaleren voreilenden
+  Grenze bestätigen.
+- C. Müller zeichnet ab; Zeile wechselt \`drafted → reviewed → committed\`.
 `,
   },
   {
-    title: 'Planned response — REQ-247 (FRT-250ms)',
+    title: 'Geplante Antwort — REQ-247 (FRT-250ms)',
     slug: 'planned-response/req-247',
     bucket: 'topics',
     status: 'draft',
     confidence: 'high',
     tags: ['planned-response', 'req-247', 'frt', 'load-bearing', 'reuse-northshore-2022'],
     mission_relevance: 1.0,
-    body: `# Planned response — REQ-247
+    body: `# Geplante Antwort — REQ-247
 
-> **Requirement (EARS):** When a three-phase fully-depressed-voltage fault
-> occurs at the converter AC bus, the converter shall remain connected
-> and resume pre-fault active-power output within **250 ms**.
+> **Anforderung (EARS):** Wenn ein dreiphasiger vollständiger Spannungs-
+> einbruch am Konverter-AC-Sammelschienenanschluss auftritt, muss der
+> Konverter angeschlossen bleiben und die Vorstörungs-Wirkleistungs-
+> abgabe innerhalb von **250 ms** wieder aufnehmen.
 > [[doc:documents/source-volume-2-annex-a-electrical-performance-excerpt.md]]
 
-## Response (DE) — DRAFT
+## Antwort (DE) — ENTWURF
 
 Bei einem dreiphasigen Spannungseinbruch auf null Spannung am
 AC-Sammelschienenanschluss bleibt der Umrichter am Netz und führt die
@@ -760,112 +991,138 @@ Wirkleistungsabgabe innerhalb von **250 ms** auf den Vorstörwert zurück.
 Der Nachweis stützt sich auf das im Northshore-2022-Projekt typgeprüfte
 MMC-Regelschema.
 
-## Reuse provenance — type-test evidence on file
+## Englische Rückübersetzung (Annotation im Export)
 
-- Reference design: [MMC control scheme (Northshore-2022)
+On a three-phase fully-depressed voltage event at the AC busbar terminal,
+the converter shall remain connected to the grid and shall return the
+active-power output to the pre-fault setpoint within 250 ms. Compliance
+evidence is the MMC control scheme type-tested on the Northshore-2022
+project.
+
+## Wiederverwendungs-Provenienz — Typprüfung in Akten
+
+- Referenzauslegung: [MMC-Regelschema (Northshore-2022)
   ](../topics/mmc-control-scheme.md).
-- Type-test evidence: [northshore-2022-frt-type-test
-  ](../sources/source-northshore-2022-frt-type-test.md) — certified
-  3-phase fully-depressed-voltage, 250 ms ride-through.
+- Typprüfungsnachweis: [northshore-2022-frt-type-test
+  ](../sources/source-northshore-2022-frt-type-test.md) — zertifizierte
+  dreiphasige vollständige Spannungseinbruchsdurchfahrt von 250 ms.
 
-## State
+## Zustand
 
-Drafted by the agent (reuse + adaptation + DE translation). Awaiting
-A. Vogt's review. Carries the *load-bearing* chip on the
-[coverage dashboard](../topics/coverage-dashboard.md).
+Vom Agenten entworfen (Wiederverwendung + Anpassung + Hausstil).
+Wartet auf Review von A. Vogt. Trägt den *load-bearing*-Chip auf dem
+[Coverage-Dashboard](../topics/coverage-dashboard.md).
 
-See also [case-frt-250ms](../topics/case-frt-250ms.md).
+Siehe auch [case-frt-250ms](../topics/case-frt-250ms.md).
 `,
   },
   {
-    title: 'Planned response — REQ-303 (THD ≤ 0.9% at PCC)',
+    title: 'Geplante Antwort — REQ-303 (THD ≤ 0,9 % am PCC)',
     slug: 'planned-response/req-303',
     bucket: 'topics',
     status: 'draft',
     confidence: 'low',
     tags: ['planned-response', 'req-303', 'reuse-mismatch', 'load-bearing'],
     mission_relevance: 1.0,
-    body: `# Planned response — REQ-303
+    body: `# Geplante Antwort — REQ-303
 
-> **Requirement (EARS):** Total harmonic distortion at the point of common
-> coupling shall not exceed **0.9%** at any operating point.
+> **Anforderung (EARS):** Die Gesamtoberschwingungsverzerrung am
+> Verknüpfungspunkt darf bei keinem Betriebspunkt **0,9 %** überschreiten.
 > [[doc:documents/source-volume-4-annex-c-harmonics-excerpt.md]]
 
-## Response (DE) — DRAFT (reuse mismatch, not safe to commit)
+## Antwort (DE) — ENTWURF (Reuse-Mismatch, nicht commit-sicher)
 
 Die Gesamtoberschwingungsverzerrung (THD) am Netzanschlusspunkt wird in
 allen Betriebspunkten **≤ 0,9 %** gehalten. Hierfür wird die
 Filterauslegung gegenüber der Reefnet-2020-Referenz neu abgestimmt; der
-Nachweis erfolgt durch Site-Acceptance-Messung gemäss IEC 61000-4-7.
+Nachweis erfolgt durch Site-Acceptance-Messung gemäß IEC 61000-4-7.
 
-## Reuse provenance — and the cascade
+## Englische Rückübersetzung (Annotation im Export)
 
-- Initial draft pulled from [Reefnet-2020 harmonic-filter design
-  ](../topics/reuse-base.md), which delivered **THD ≤ 1.5 %** — does
-  *not* meet NSÜN's 0.9 % limit. See [reuse mismatch — harmonic filter
+Total harmonic distortion (THD) at the grid-connection point shall be
+maintained at ≤ 0.9 % across all operating points. The filter design is
+re-tuned with respect to the Reefnet-2020 reference; compliance evidence
+is provided by site-acceptance measurement per IEC 61000-4-7.
+
+## Wiederverwendungs-Provenienz — und die Kaskade
+
+- Anfangsentwurf gezogen aus der [Reefnet-2020-Filterauslegung
+  ](../topics/reuse-base.md), die **THD ≤ 1,5 %** lieferte — erfüllt
+  NSÜNs 0,9-%-Grenzwert *nicht*. Siehe [Reuse-Mismatch —
+  Oberschwingungsfilter
   ](../topics/reuse-mismatch-harmonic-filter.md).
-- Three downstream requirements share the same filter topology and
-  inherit the rework: REQ-304, REQ-305, REQ-307. The compliance matrix
-  flags all four with the *reuse-mismatch* chip.
+- Drei nachgelagerte Anforderungen teilen dieselbe Filtertopologie und
+  erben die Nacharbeit: REQ-304, REQ-305, REQ-307. Die
+  Konformitätsmatrix markiert alle vier mit dem
+  *reuse-mismatch*-Chip.
 
-## Three paths (no agent recommendation)
+## Drei Pfade (keine Agentenempfehlung)
 
-1. Re-tune from a different past project's filter topology.
-2. Formally deviate; document the rationale and commercial implication.
-3. Clarify with the customer whether the THD limit applies at the PCC
-   or at the converter terminals.
+1. Neuabstimmung aus einer anderen Filtertopologie aus einem anderen
+   Altprojekt.
+2. Formal abweichen; Begründung und kaufmännische Implikation
+   dokumentieren.
+3. Mit dem Kunden klären, ob der THD-Grenzwert am PCC oder an den
+   Konverterklemmen gilt.
 
-B. Haag owns the call. Row stays \`drafted\` with the *reuse-mismatch*
-chip until the decision is on the record.
+B. Haag entscheidet. Die Zeile bleibt \`drafted\` mit dem
+*reuse-mismatch*-Chip, bis die Entscheidung auf Aktenlage ist.
 `,
   },
   {
-    title: 'Planned response — REQ-211 (redundant differential protection)',
+    title: 'Geplante Antwort — REQ-211 (redundanter Differentialschutz)',
     slug: 'planned-response/req-211',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['planned-response', 'req-211', 'reuse-capeline-2023'],
     mission_relevance: 0.85,
-    body: `# Planned response — REQ-211
+    body: `# Geplante Antwort — REQ-211
 
-> **Requirement (EARS):** The protection system shall include redundant
-> differential protection per IEC 61850-9-2.
+> **Anforderung (EARS):** Das Schutzsystem muss redundante
+> Differentialschutz-Einrichtungen gemäß IEC 61850-9-2 enthalten.
 > [[doc:documents/source-volume-3-annex-b-protection-control-excerpt.md]]
 
-## Response (DE)
+## Antwort (DE)
 
 Das Schutzsystem umfasst eine **redundante Differentialschutzfunktion**
-gemäss IEC 61850-9-2. Beide Pfade nutzen die Sampled-Value-Topologie
+gemäß IEC 61850-9-2. Beide Pfade nutzen die Sampled-Value-Topologie
 und werden durch unabhängige Merging Units mit getrennten
 Zeitsynchronisations-Quellen versorgt.
 
-## Reuse provenance
+## Englische Rückübersetzung (Annotation im Export)
 
-Drafted from the [Capeline-2023 protection philosophy
-](../topics/reuse-base.md). The Capeline reference design implements
-the same redundancy pattern and is type-test certified.
+The protection system includes a **redundant differential-protection
+function** per IEC 61850-9-2. Both paths use the sampled-values topology
+and are fed by independent merging units with separated time-
+synchronisation sources.
+
+## Wiederverwendungs-Provenienz
+
+Entworfen aus der [Capeline-2023-Schutzphilosophie
+](../topics/reuse-base.md). Die Capeline-Referenzauslegung implementiert
+dasselbe Redundanzmuster und ist typgeprüft zertifiziert.
 
 ## Status
 
-Committed by A. Vogt.
+Committed durch A. Vogt.
 `,
   },
   {
-    title: 'Planned response — REQ-601 (NC-HVDC compliance)',
+    title: 'Geplante Antwort — REQ-601 (NC-HVDC-Konformität)',
     slug: 'planned-response/req-601',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['planned-response', 'req-601', 'standards', 'nc-hvdc'],
     mission_relevance: 0.85,
-    body: `# Planned response — REQ-601
+    body: `# Geplante Antwort — REQ-601
 
-> **Requirement (EARS):** The converter station shall comply with all
-> mandatory provisions of EU Regulation 2016/1447 (NC-HVDC).
+> **Anforderung (EARS):** Die Konverterstation muss alle obligatorischen
+> Bestimmungen der EU-Verordnung 2016/1447 (NC-HVDC) erfüllen.
 > [[doc:documents/source-volume-6-grid-code-excerpt.md]]
 
-## Response (DE)
+## Antwort (DE)
 
 Die Umrichterstation erfüllt alle verbindlichen Anforderungen der
 EU-Verordnung 2016/1447 (NC-HVDC). Der Konformitätsnachweis wird in der
@@ -873,35 +1130,46 @@ EU-Verordnung 2016/1447 (NC-HVDC). Der Konformitätsnachweis wird in der
 geführt, mit Verweis auf den jeweiligen Erfüllungsabschnitt des
 technischen Pflichtenheftes.
 
+## Englische Rückübersetzung (Annotation im Export)
+
+The converter station shall comply with all mandatory provisions of EU
+Regulation 2016/1447 (NC-HVDC). The compliance evidence is documented
+section-by-section in the [compliance matrix
+](../topics/coverage-dashboard.md), with cross-references to the
+respective fulfilment section of the technical specification.
+
 ## Status
 
-Committed by D. Stein — load-bearing for the connection-prerequisite.
-See [standards & regulatory backdrop
+Committed durch D. Stein — load-bearing für die Anschlussvoraussetzung.
+Siehe [Normen & regulatorischer Hintergrund
 ](../topics/standards-regulatory-backdrop.md).
 `,
   },
 
   {
-    title: 'Agent operating rule — traceability survives export',
+    title: 'Agentenregel — Rückverfolgbarkeit überlebt den Export',
     slug: 'rule-traceability-survives-export',
     bucket: 'topics',
     status: 'stable',
     confidence: 'high',
     tags: ['rule', 'export', 'traceability'],
     mission_relevance: 1.0,
-    body: `# Operating rule — traceability survives the export
+    body: `# Agentenregel — Rückverfolgbarkeit überlebt den Export
 
-Every committed section in the exported specification carries the
-requirement IDs it answers. The compliance matrix ships inside the
-deliverable. The link from each engineering promise back to the
-requirement that prompted it survives outside the tool — which is
-exactly where the design review (and the dispute, if there ever is
-one) happens.
+Jeder committete Abschnitt der exportierten Spezifikation trägt die
+IDs der Anforderungen, die er beantwortet. Die Konformitätsmatrix liegt
+innerhalb des Lieferdokuments. Jede deutsche Antwort führt ihre
+englische Rückübersetzung Seite an Seite. Die Verbindung von jeder
+technischen Zusage zurück zur sie auslösenden Anforderung überlebt
+außerhalb des Werkzeugs — genau dort, wo der Design-Review (und der
+Streit, wenn es jemals einen gibt) stattfindet.
 
-A coverage matrix that only lives inside the tool is worthless the
-moment the spec becomes a PDF on the customer's desk. The
-[export step](../topics/pipeline-export.md) refuses to render a row
-that doesn't carry its requirement IDs forward.
+Eine Coverage-Matrix, die nur im Werkzeug lebt, ist wertlos in dem
+Moment, in dem die Spezifikation als PDF auf dem Schreibtisch des
+Kunden liegt. Der [Exportschritt](../topics/pipeline-export.md)
+weigert sich, eine Zeile zu rendern, die ihre Anforderungs-IDs nicht
+fortträgt — und weigert sich, eine deutsche Antwort ohne ihre
+englische Rückübersetzung zu rendern.
 `,
   },
 ];

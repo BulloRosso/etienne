@@ -212,7 +212,7 @@ export class McpServerFactoryService implements OnModuleInit {
         ],
       },
       'compliance-matrix': {
-        toolServices: [createComplianceMatrixToolsService(this.wikiService)],
+        toolServices: [createComplianceMatrixToolsService(this.wikiService, this.ragService, this.llmService)],
         resources: [
           {
             uri: COMPLIANCE_MATRIX_RESOURCE_URI,

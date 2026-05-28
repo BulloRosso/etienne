@@ -16,13 +16,16 @@
  *   2b. Provision MCP servers (kg, workflows, scrapbook) via
  *       POST /api/claude/mcp/config/save.
  *   3.  Write wiki/_meta/mission.md directly.
- *   4.  Write ~18 wiki pages via the provisioned `wiki-add.ts` script.
+ *   3b. Write .claude/CLAUDE.md (English short brief + pointer to mission).
+ *   4.  Write ~19 wiki pages via the provisioned `wiki-add.ts` script.
  *   5.  POST KG entities + relationships (40 EARS requirements, source
  *       volumes, late-clarifications memo, reuse sources, standards,
  *       responsible engineers, customer; override + cascadesTo + type-
  *       test-evidence edges).
  *   6.  Write ~17 RAG documents under documents/ and POST each path to
  *       /api/workspace/<project>/rag/index-document.
+ *   6b. Write 7 English Word documents under inbox/ (the incoming customer
+ *       specifications). Not RAG-indexed — the working set is documents/.
  *   7.  Write three JSONL session histories + update chat.sessions.json.
  *   8.  Enable dreaming + POST /run-now.
  *   9.  Wait for workspace/<project>/dreaming/dream-YYYY-MM-DD.dreams.json.
@@ -68,13 +71,15 @@ import { apiFetch, ApiError, type ApiContext } from './lib/api';
 import { login } from './lib/auth';
 import { addWikiPage } from './lib/wiki-shell';
 
-import { MISSION_BRIEF, MISSION_MD, PROJECT_NAME } from './fixtures/mission';
+import { CLAUDE_MD, MISSION_BRIEF, MISSION_MD, PROJECT_NAME } from './fixtures/mission';
 import { WIKI_PAGES } from './fixtures/wiki-pages';
 import { KG_ENTITIES, KG_RELATIONSHIPS } from './fixtures/kg';
 import { RAG_DOCS } from './fixtures/rag-docs';
 import { SESSIONS } from './fixtures/chats';
-import { COVERAGE_DASHBOARD, COVERAGE_DASHBOARD_REL } from './fixtures/coverage-dashboard';
+import { COMPLIANCE_DASHBOARD_REL, COVERAGE_DASHBOARD, COVERAGE_DASHBOARD_REL } from './fixtures/coverage-dashboard';
 import { DOCUMENTATION_MD, USER_INTERFACE_JSON } from './fixtures/documentation';
+import { INBOX_DOCS } from './fixtures/inbox-docx';
+import { renderDocx } from './fixtures/docx-writer';
 
 const WORKSPACE_ROOT =
   process.env.WORKSPACE_ROOT ||
@@ -236,6 +241,14 @@ async function step3_writeMission(): Promise<void> {
   ok('mission.md written');
 }
 
+async function step3b_seedClaudeMd(): Promise<void> {
+  header('3b. Write .claude/CLAUDE.md (English mission brief for Claude Code)');
+  const dir = join(PROJECT_ROOT, '.claude');
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, 'CLAUDE.md'), CLAUDE_MD, 'utf8');
+  ok('.claude/CLAUDE.md written');
+}
+
 async function step4_seedWiki(): Promise<{ writtenSlugs: string[]; stubsCreated: number; bucketsTouched: Set<string> }> {
   header('4. Seed wiki pages via provisioned wiki-add.ts');
   const writtenSlugs: string[] = [];
@@ -369,6 +382,19 @@ async function step6_seedRag(ctx: ApiContext): Promise<void> {
     }
   }
   ok(`rag: ${indexed}/${RAG_DOCS.length} documents indexed${skipped ? `, ${skipped} skipped` : ''}`);
+}
+
+async function step6b_seedInbox(): Promise<void> {
+  header('6b. Write inbox/*.docx (incoming English customer specifications)');
+  const dir = join(PROJECT_ROOT, 'inbox');
+  await mkdir(dir, { recursive: true });
+  for (const doc of INBOX_DOCS) {
+    const buf = await renderDocx(doc.title, doc.body);
+    const path = join(dir, doc.filename);
+    await writeFile(path, buf);
+    info(`inbox/${doc.filename} (${buf.length} bytes)`);
+  }
+  ok(`inbox: ${INBOX_DOCS.length} .docx files written (not RAG-indexed)`);
 }
 
 async function step7_seedChats(): Promise<void> {
@@ -507,17 +533,25 @@ async function step11_documentationAndUi(): Promise<void> {
 
   const uiPath = join(PROJECT_ROOT, '.etienne', 'user-interface.json');
   await mkdir(join(PROJECT_ROOT, '.etienne'), { recursive: true });
-  // Coverage dashboard first (the load-bearing artefact), then docs.
-  const previewDefaults = [COVERAGE_DASHBOARD_REL, 'documentation.md'];
+  // The compliance-matrix cockpit (extension `.compliance.json`) is the
+  // load-bearing UI artefact — it's the React MCP App that hosts the
+  // three-way "create planned response" split-button. We register the
+  // sentinel here so the file opens as the cockpit, not the raw JSON
+  // coverage dump.
+  const previewDefaults = [COMPLIANCE_DASHBOARD_REL, 'documentation.md'];
   let ui: any = { ...USER_INTERFACE_JSON, previewDocuments: previewDefaults };
   if (existsSync(uiPath)) {
     try {
       const cur = JSON.parse(await readFile(uiPath, 'utf8'));
-      const previews: string[] = Array.isArray(cur.previewDocuments) ? cur.previewDocuments : [];
-      if (!previews.includes(COVERAGE_DASHBOARD_REL)) previews.unshift(COVERAGE_DASHBOARD_REL);
+      let previews: string[] = Array.isArray(cur.previewDocuments) ? cur.previewDocuments : [];
+      // Drop any legacy `out/coverage/current.coverage.json` registration —
+      // earlier seed versions registered the raw coverage JSON, which opens
+      // the basic coverage viewer rather than the compliance-matrix cockpit.
+      previews = previews.filter((p) => p !== COVERAGE_DASHBOARD_REL);
+      if (!previews.includes(COMPLIANCE_DASHBOARD_REL)) previews.unshift(COMPLIANCE_DASHBOARD_REL);
       if (!previews.includes('documentation.md')) {
         const filtered = previews.filter((p) => p !== 'documentation.md');
-        const idx = filtered.indexOf(COVERAGE_DASHBOARD_REL);
+        const idx = filtered.indexOf(COMPLIANCE_DASHBOARD_REL);
         filtered.splice(idx + 1, 0, 'documentation.md');
         ui = { ...cur, previewDocuments: filtered };
       } else {
@@ -528,7 +562,7 @@ async function step11_documentationAndUi(): Promise<void> {
     }
   }
   await writeFile(uiPath, JSON.stringify(ui, null, 2), 'utf8');
-  ok(`documentation.md + ${COVERAGE_DASHBOARD_REL} registered in user-interface.json`);
+  ok(`documentation.md + ${COMPLIANCE_DASHBOARD_REL} registered in user-interface.json`);
 }
 
 async function step11b_assignApplicationType(): Promise<void> {
@@ -681,9 +715,11 @@ async function main(): Promise<void> {
   await step2_createProject(ctx);
   await step2b_provisionMcpServers(ctx);
   await step3_writeMission();
+  await step3b_seedClaudeMd();
   const wikiResult = await step4_seedWiki();
   await step5_seedKG(ctx);
   await step6_seedRag(ctx);
+  await step6b_seedInbox();
   await step4b_indexWikiForRag(ctx, wikiResult.bucketsTouched);
   await step7_seedChats();
   const runId = await step8_enableAndRunDreaming(ctx);

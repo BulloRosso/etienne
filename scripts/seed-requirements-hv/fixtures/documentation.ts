@@ -6,11 +6,15 @@
  * auto-opened via .etienne/user-interface.json previewDocuments. The five
  * quickActions mirror the article-aligned sidebar menu items in the
  * application-type config — keep both lists in sync if either is edited.
+ *
+ * Language: German (part of the working wiki). The only English narrative
+ * in the seed is .claude/CLAUDE.md (Claude Code's own system prompt) and
+ * the inbox/*.docx files (incoming customer specifications).
  */
 
 export const USER_INTERFACE_JSON = {
   appBar: {
-    title: 'Requirements → Specification (NU-525-Lot-3)',
+    title: 'Anforderungen → Spezifikation (NU-525-Lot-3)',
     fontColor: 'white',
     backgroundColor: '#1e3a8a',
   },
@@ -19,33 +23,33 @@ export const USER_INTERFACE_JSON = {
     backgroundColor: '#f5f5f5',
     quickActions: [
       {
-        title: 'Open the coverage dashboard',
+        title: 'Coverage-Dashboard öffnen',
         prompt:
-          'Open out/coverage/current.coverage.json. Show the per-state counts, the override + reuse-mismatch chips, and which requirements are still blocking which gate. Do not propose state transitions — convene the conversation with the responsible engineers.',
+          'Öffne out/compliance/current.compliance.json (das ist die Cockpit-Sicht — sie liest die Coverage-Matrix aus out/coverage/current.coverage.json und das Team aus wiki/topics/team.md serverseitig). Zeige die Zählungen pro Zustand, die Override- und Reuse-Mismatch-Chips und welche Anforderungen noch welches Gate blockieren. Schlage keine Zustandsübergänge vor — moderiere die Diskussion mit den verantwortlichen Ingenieuren.',
         sortOrder: 1,
       },
       {
-        title: 'Which requirements are still open?',
+        title: 'Welche Anforderungen sind noch offen?',
         prompt:
-          'List every requirement currently in state "open". For each one, name the source volume + section, the responsible engineer, the gate it is blocking, and any candidate reuse source from the knowledge base. Do not draft yet — surface the queue.',
+          'Liste jede Anforderung im Zustand "open". Nenne für jede das Quellvolume + den Abschnitt, den verantwortlichen Ingenieur, das von ihr blockierte Gate und etwaige Wiederverwendungskandidaten aus der Wissensbasis. Entwirf noch nicht — oberfläche die Warteschlange.',
         sortOrder: 2,
       },
       {
-        title: 'Show me the late-clarification overrides',
+        title: 'Späte Klarstellungs-Overrides anzeigen',
         prompt:
-          'List every requirement amended by the 2026-04-18 late-clarifications memo. For each one, show the original clause text, the amended text, the cited reason, and the responsible engineer. Highlight any row where the current draft was pulled from a reuse passage that answered the ORIGINAL (pre-amendment) clause.',
+          'Liste jede Anforderung, die durch das Klarstellungsmemo vom 2026-04-18 geändert wurde. Zeige für jede den Originalklauseltext, den geänderten Text, den zitierten Grund und den verantwortlichen Ingenieur. Hebe Zeilen hervor, in denen der aktuelle Entwurf aus einer Wiederverwendungsstelle gezogen wurde, die die URSPRÜNGLICHE (Vor-Änderungs-) Klausel beantwortet hat.',
         sortOrder: 3,
       },
       {
-        title: 'Draft a response for the next open requirement',
+        title: 'Posteingang prüfen und übersetzen',
         prompt:
-          'Pick the highest-priority requirement in state "open" (load-bearing first, then by source volume order). Run the transform step: retrieve the matching reuse passage from the knowledge base, adapt it to this requirement\'s specifics, translate the draft into German per the internal style guide, and move the row to "drafted". Do NOT commit. Show me which reuse source you used and what you adapted.',
+          'Prüfe inbox/ auf neue oder geänderte englische Word-Dokumente. Für jedes neue Dokument: extrahiere den Text (office-and-pdf-documents-Skill), übersetze in die Arbeitssprache Deutsch und lege das Ergebnis als documents/source-*-excerpt.md ab. Indiziere die deutschen Dateien im RAG; den Posteingang selbst NICHT indizieren.',
         sortOrder: 4,
       },
       {
-        title: 'Export the current specification',
+        title: 'Aktuelle Spezifikation exportieren',
         prompt:
-          'Run the export step on the current coverage matrix. Refuse to render if any row is still in state open / drafted / reviewed and list the blockers with owners. Otherwise render the technical specification + compliance matrix into the customer\'s required Word/PDF template, stamping every section with the requirement IDs it answers and any override edges.',
+          'Führe den Exportschritt auf der aktuellen Coverage-Matrix aus. Verweigere das Rendern, wenn eine Zeile noch in open / drafted / reviewed ist, und liste die Blocker mit Inhabern. Andernfalls rendere die technische Spezifikation + Konformitätsmatrix in das vom Kunden geforderte Word/PDF-Template; stemple jeden Abschnitt mit den IDs der beantworteten Anforderungen und etwaigen Override-Kanten; annotiere jede deutsche Antwort mit ihrer englischen Rückübersetzung Seite an Seite.',
         sortOrder: 5,
       },
     ],
@@ -55,104 +59,157 @@ export const USER_INTERFACE_JSON = {
   autoFilePreviewExtensions: [] as string[],
 };
 
-export const DOCUMENTATION_MD = `# Requirements → Specification (NU-525-Lot-3)
+export const DOCUMENTATION_MD = `# Anforderungen → Spezifikation (NU-525-Lot-3)
 
-This project is the worked example for *Agents that help humans decide —
-Part 3*: how an agent turns ~900 pages of German grid-connection
-requirements into a complete, traceable, German technical specification
-— by doing the structured grind no engineer has the patience for, and
-committing the company to nothing.
+Dieses Projekt ist das Lehrbeispiel zu *Agents that help humans decide —
+Teil 3*: Wie ein Agent ~900 Seiten englischsprachiger Netzanschluss-
+anforderungen in eine vollständige, rückverfolgbare deutsche technische
+Spezifikation überführt — indem er die strukturierte Vorarbeit erledigt,
+für die kein Ingenieur die Geduld hat, und das Unternehmen zu nichts
+verpflichtet.
 
-## The bid
+## Das Angebot
 
-Nordseeübertragungs-Netz GmbH (NSÜN) — a stylised North-Sea TSO — is
-procuring the onshore end of a **525 kV / 2 GW HVDC converter station**.
-The requirements arrive in eight volumes (Volume 0 + six annexes A–F +
-Volume 6 grid-code compliance), plus a late-clarifications memo issued
-on 2026-04-18 that quietly amended 41 clauses after the bidders'
-questions closed.
+Nordseeübertragungs-Netz GmbH (NSÜN) — ein stilisierter Nordsee-TSO —
+beschafft den Onshore-Endpunkt einer **525-kV/2-GW-HGÜ-Konverterstation**.
+Die Anforderungen treffen in acht Volumes (Volume 0 + sechs Anhänge
+A–F + Volume 6 Netzanschluss-Konformität) ein, dazu ein
+Klarstellungsmemo vom 2026-04-18, das nach Schließung des
+Bieterfragen-Fensters 41 Klauseln stillschweigend änderte.
 
-| | |
+## Sprachfluss in diesem Workspace
+
+| Bereich | Sprache | Ort |
+|---|---|---|
+| Posteingang (Originalspezifikation) | **Englisch** | \`inbox/*.docx\` |
+| Arbeitssprache (in-house übersetzt) | **Deutsch** | \`documents/*.md\` |
+| Wiederverwendungsbasis (Altangebote) | **Deutsch** | \`documents/reuse-*.md\` |
+| Wiki, Mission, Dokumentation | **Deutsch** | \`wiki/\`, \`documentation.md\` |
+| Lieferdokument | **Deutsch** | \`out/\` (exportiertes Word/PDF) |
+| Export-Annotation | **Englische Rückübersetzung** Seite an Seite | im exportierten Word/PDF |
+| Claude Code Systemprompt | **Englisch** | \`.claude/CLAUDE.md\` |
+
+Der Posteingang \`inbox/\` enthält die englischen Word-Originale, wie
+sie vom Kunden geliefert werden. Die hausinterne Übersetzung in die
+Arbeitssprache Deutsch liegt unter \`documents/\` als Markdown vor und
+ist das Material, das der Agent parst, normalisiert und retrieved. Der
+RAG-Index ist auf \`documents/\` ausgerichtet — \`inbox/\` wird nicht
+indiziert.
+
+## Die Aufgabe des Agenten
+
+Eine technische Spezifikation ist eine Sammlung **technischer Zusagen**.
+Ob *erfüllen / teilweise erfüllen / Alternative anbieten / Abweichung
+erklären / Klärung anfordern* — das sind technische und kaufmännische
+Verpflichtungen, gedeckt durch Vertragsstrafen, und sie gehören einem
+verantwortlichen Ingenieur, der seinen Namen darunter setzt.
+
+Die Aufgabe des Agenten ist **nicht**, diese Zusagen zu machen. Seine
+Aufgabe ist die strukturierte Vorarbeit, die vorher geleistet werden
+muss:
+
+0. **Posteingang übersetzen** — die englischen \`inbox/*.docx\` werden
+   in die Arbeitssprache Deutsch übersetzt und unter
+   \`documents/source-volume-*-excerpt.md\` abgelegt.
+1. **Parsen** — den deutschen Anforderungsstapel in Segmente zerlegen
+   und jedes klassifizieren (Anforderung / Definition / Kontext /
+   Normenverweis / späte Klarstellungs-Override). Mehrdeutiges wird
+   markiert, nicht verworfen.
+2. **Normalisieren** auf einzelne, atomare, nummerierte EARS-
+   Anforderungen (*wenn / während / falls / sofern / muss*). Der Agent
+   erfindet **kein** messbares Kriterium, damit eine mehrdeutige Quelle
+   beantwortet aussieht.
+3. **Strukturieren** des Lieferdokuments — Kapitel der technischen
+   Spezifikation + Konformitätsmatrix; jede Anforderung erhält einen
+   Platz.
+4. **Transformieren** — für jede Anforderung eine passende deutsche
+   Wiederverwendungsstelle aus der Altangebotsbasis abrufen, anpassen
+   und im Hausstil verfassen. **Entworfen, nicht beantwortet.**
+5. **Exportieren** — die freigegebene Struktur in das vom Kunden
+   geforderte Word/PDF-Format rendern; jeden Abschnitt mit den IDs der
+   beantworteten Anforderungen stempeln; jede deutsche Antwort mit
+   ihrer **englischen Rückübersetzung Seite an Seite** annotieren.
+   **Rückverfolgbarkeit überlebt den Export.**
+
+## Was dieser Workspace enthält
+
+| Wo | Was |
 |---|---|
-| Source language | German |
-| Deliverable language | German |
-| Reuse-base language | English |
-| Pages | ~900 |
-| Notional requirements | ~1,800 |
-| Demo slice in this workspace | 40 representative requirements |
+| \`inbox/*.docx\` | 7 englische Word-Dokumente: die eingehende Originalspezifikation des Kunden. Nicht im RAG indexiert. |
+| \`wiki/_meta/mission.md\` | Die Mission (Langform, deutsch). |
+| \`wiki/topics/\` | Wiki-Seiten: die 5 Pipeline-Schritte, EARS, die load-bearing FRT-250ms-Fallstudie, die späten Klarstellungs-Overrides, die Wiederverwendungsbasis, die Coverage-Zustände, die drei Agentenregeln, sowie die [drei Wege, eine geplante Antwort anzulegen](wiki/topics/creating-planned-responses.md). |
+| \`documents/\` | ~17 RAG-Dokumente: deutsche Quellvolumeauszüge, das Klarstellungsmemo, deutsche Altangebotsauszüge (die Wiederverwendungsbasis), Typprüfberichte, Hausstilhandbuch + Übergabe-Notizen. |
+| Knowledge-Graph | ~40 EARS-Anforderungen, 8 Quellvolumes, das Klarstellungsmemo, 6 Wiederverwendungsquellen, 8 Normen, 5 namentlich genannte Ingenieure, der Kunde. Override-Kanten, Typprüfungs-Nachweiskanten und Reuse-Mismatch-\`cascadesTo\`-Kanten. |
+| \`out/coverage/current.coverage.json\` | Das Coverage-Dashboard — jede Anforderung, jeder Zustand, jeder Chip. Wird automatisch im Vorschau-Panel geöffnet. |
+| \`.etienne/chat.history-*.jsonl\` | Drei Sitzungen: Parse-Normalize-Durchgang, späte Klarstellungs-Override an REQ-184, Reuse-Mismatch am Annex-C-Cluster. |
 
-## The agent's job
+## Die drei load-bearing Beispiele
 
-A technical specification is a set of **engineering promises**. Whether
-to *comply / comply partially / propose alternative / declare deviation /
-raise clarification* — these are engineering and commercial commitments
-backed by liquidated damages, and they belong to a responsible engineer
-who will sign their name under each one.
+- **REQ-247 (FRT-250ms)** — das einzelne *muss* unter einer
+  Oberschwingungstabelle in Annex A §7.4.3 Fußnote 2, das der Agent als
+  eigenständige atomare Anforderung oberflächt. Entworfen aus dem
+  Northshore-2022-MMC-Regelschema (32 ms Typprüfreserve). Die Art von
+  Klausel, die Menschen um 23 Uhr verpassen.
+- **REQ-184 (Blindleistungsbereich)** — durch das Klarstellungsmemo
+  vom 2026-04-18 von ±0,95/±0,95 auf ±0,90 voreilend / ±0,95
+  nacheilend geändert. Override-Kante im KG; *override*-Chip auf dem
+  Dashboard. Der aktuelle Entwurf wurde aus Aurora-2024 gezogen und
+  beantwortet das **ursprüngliche** Profil — ein stilles Committen
+  würde den voreilenden Bereich verfehlen.
+- **REQ-303-Cluster (Annex C, THD ≤ 0,9 %)** — Reefnet-2020 lieferte
+  ≤ 1,5 %. Der Cluster-Kopf und drei Abhängige (REQ-304/305/307)
+  tragen den *reuse-mismatch*-Chip. Bernd Haags Entscheidung: neu
+  abstimmen, abweichen oder klären.
 
-The agent's job is **not** to make those promises. Its job is the
-structured grind that has to happen first:
+## Wie Wiki-Themenseiten strukturiert sind
 
-1. **Parse** the requirements pack — split it into segments, classify
-   each (requirement / definition / context / standard reference / late
-   clarification override). Anything ambiguous is flagged, not dropped.
-2. **Normalize** to single, atomic, numbered EARS requirements (*when /
-   while / if-then / where / shall*). The agent does **not** invent a
-   measurable criterion to make an ambiguous source look answered.
-3. **Structure** the deliverable — chapters of the technical
-   specification + compliance matrix; map every requirement to a slot.
-4. **Transform** — for each requirement, retrieve a matching passage
-   from the reuse base of past English specifications, adapt it, and
-   translate into German. **Drafted, not answered.**
-5. **Export** — render the approved structure into the customer's
-   required Word/PDF format, stamping every section with the requirement
-   IDs it answers. **Traceability survives the export.**
+Die kanonische Vorlage für jede per-Thema-Wiki-Seite ist
+[wiki/topics/team.md](wiki/topics/team.md). Das Muster:
 
-## What this workspace contains
+1. **Frontmatter** — \`status\`, \`confidence\`, \`tags\`,
+   \`mission_relevance\`, \`classification\`.
+2. **Titel** — \`# <Thema>\`.
+3. **Ein-Absatz-Einleitung** — was die Seite ist und wer/was sie
+   konsumiert.
+4. **Der Rumpf** — meist eine Markdown-Tabelle, wenn die Seite eine
+   Liste von Elementen ist, die das Cockpit per Schlüssel auflöst (wie
+   die Team-Tabelle); ansonsten freier Fließtext mit Querverweisen auf
+   andere Wiki-Seiten via \`[label](../topics/<slug>.md)\`.
+5. **"Wie das Cockpit das nutzt"** — ein kurzer Abschnitt mit
+   Nutzungshinweisen, der erklärt, welches UI-Element gegen diese Seite
+   auflöst und wie Hinzufügen/Entfernen das Cockpit beeinflusst.
 
-| Where | What |
-|---|---|
-| \`wiki/_meta/mission.md\` | The mission (long form). |
-| \`wiki/topics/\` | 18 pages: the 5 pipeline steps, EARS, the load-bearing FRT-250ms case, the late-clarification overrides, the reuse base, the coverage states, the agent's three operating rules. |
-| \`documents/\` | ~17 RAG documents: German source-volume excerpts, the clarifications memo, English past-spec excerpts (the reuse base), type-test reports, internal style guide + handover notes. |
-| Knowledge graph | ~40 EARS requirements, 8 source volumes, the clarifications memo, 6 reuse sources, 8 standards, 5 named engineers, the customer. Override edges, type-test evidence edges, and reuse-mismatch \`cascadesTo\` edges. |
-| \`out/coverage/current.coverage.json\` | The coverage dashboard — every requirement, every state, every chip. Auto-opens in the preview pane. |
-| \`.etienne/chat.history-*.jsonl\` | Three sessions: parse-normalize walk-through, late-clarification override on REQ-184, reuse mismatch on the Annex C cluster. |
+Die durch \`fixtures/wiki-pages.ts\` erzeugten Wiki-Seiten folgen
+diesem Muster bereits weitgehend; diese Dokumentation macht die Regel
+explizit.
 
-## The three load-bearing examples
+## Was der Agent nicht tut
 
-- **REQ-247 (FRT-250ms)** — the single *muss* under a harmonics table in
-  Annex A §7.4.3 footnote 2 that the agent surfaces as its own atomic
-  requirement. Drafted from the Northshore-2022 MMC control scheme
-  (32 ms type-test margin). The kind of clause humans miss at 11 pm.
-- **REQ-184 (reactive-power range)** — amended by the 2026-04-18
-  clarifications memo from ±0.95/±0.95 to ±0.90 leading / ±0.95 lagging.
-  Override edge in the KG; *override* chip on the dashboard. The current
-  draft was pulled from Aurora-2024 and answers the **original** profile
-  — silent commit would miss the leading-side range.
-- **REQ-303 cluster (Annex C, THD ≤ 0.9%)** — Reefnet-2020 delivered
-  ≤ 1.5%. The cluster head and three dependents (REQ-304/305/307) carry
-  the *reuse-mismatch* chip. Bernd Haag's call: re-tune, deviate, or
-  clarify.
+- Er verschiebt keine Zeile von sich aus auf *committed*. Das
+  Dashboard zeigt jederzeit die Zählungen *drafted vs. committed*. Es
+  gibt keinen Alle-automatisch-beantworten-Knopf.
+- Er erfindet kein messbares Akzeptanzkriterium für eine mehrdeutige
+  Quellanforderung. Er markiert sie stattdessen für die Klärungs-
+  Warteschlange.
+- Er verschmilzt eine späte Klarstellung nicht still in die
+  ursprüngliche Klausel. Overrides werden als separate KG-Knoten mit
+  eigenen Kanten verfolgt.
+- Er exportiert keine Coverage-Matrix mit Zeilen, die noch in *open /
+  drafted / reviewed* sind. Das G3-Commit-Gate wird vom Exportschritt
+  selbst durchgesetzt.
 
-## What the agent will not do
+## Hier anfangen
 
-- It will not move a row to *committed* on its own. The dashboard shows
-  drafted-vs-committed counts at all times. There is no auto-answer-all
-  button.
-- It will not invent a measurable acceptance criterion for an ambiguous
-  source requirement. It flags for the clarify queue instead.
-- It will not silently merge a late clarification into the original
-  clause. Overrides are tracked as separate KG nodes with their own
-  edges.
-- It will not export a coverage matrix with rows still in *open /
-  drafted / reviewed*. The G3 commit gate is enforced by the export
-  step itself.
+Klicke auf **Coverage-Dashboard öffnen** in der linken Leiste. Dann
+gehe eine einzelne Anforderung von Anfang bis Ende durch — *Warum ist
+REQ-247 drafted? Woher hat der Agent den Entwurf gezogen? Was ist die
+Typprüfreserve? Wer unterschreibt?* Dieselbe Frage, im System sichtbar
+beantwortet, ist der ganze Sinn des Artikels.
 
-## Start here
-
-Click **Open the coverage dashboard** in the left rail. Then walk a
-single requirement end-to-end — *Why is REQ-247 drafted? Where did the
-agent pull the draft from? What is the type-test margin? Who signs?*
-The same question, answered visibly in the system, is the entire
-point of the article.
+Wenn die Zeile, die du anschaust, noch keine geplante Antwort hat,
+zeigt das rechte Panel einen Aufklapp-Knopf mit den
+[drei Wegen, eine geplante Antwort anzulegen
+](wiki/topics/creating-planned-responses.md): leeren Stub, aus
+vorhandenen Inhalten (Documents oder Wiki) ziehen, oder aus der
+Wissensbasis fragen.
 `;

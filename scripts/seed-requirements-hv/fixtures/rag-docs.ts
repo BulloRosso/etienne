@@ -2,16 +2,24 @@
  * RAG documents for the requirements-hv seed project.
  *
  * Eighteen markdown documents covering:
- *   - Source-volume excerpts (German, paraphrased — the customer's
- *     requirement text the agent parses + normalises against).
- *   - The late-clarifications memo (German).
- *   - Past-spec excerpts from the firm's reuse base (English — what the
- *     agent retrieves during the *transform* step).
- *   - Type-test report excerpts.
- *   - Internal style guide + handover notes.
+ *   - Source-volume excerpts (German — the in-house translation of the
+ *     English inbox into the working language; what the agent parses +
+ *     normalises against).
+ *   - The late-clarifications memo (German — in-house translation).
+ *   - Past-offer excerpts from the firm's reuse base (German — the firm's
+ *     past German technical specifications; what the agent retrieves
+ *     during the *transform* step).
+ *   - Type-test report excerpts (German).
+ *   - Internal style guide + handover notes (German).
  *
  * All content is stylised / paraphrased — no real customer or contractor
  * specification text is shipped.
+ *
+ * Note on the language flow this seed demonstrates:
+ *   English Word documents arrive in <project>/inbox/ (the inbox fixture).
+ *   They are translated in-house into the German files below (this fixture)
+ *   under <project>/documents/. The export step renders the German
+ *   deliverable with English back-translations annotated side-by-side.
  */
 
 export interface RagDocDraft {
@@ -251,313 +259,349 @@ Memos.)
 `,
   },
 
-  // --- Past-spec excerpts (English, the reuse base) -----
+  // --- Altangebotsauszüge (Deutsch, die Wiederverwendungsbasis) -----
   {
     filename: 'reuse-northshore-2022-mmc-control.md',
-    body: `# Northshore-2022 — MMC Control Scheme (excerpt)
+    body: `# Northshore-2022 — MMC-Regelschema (Auszug)
 
-**Project:** Northshore HVDC link
-**Year:** 2022
-**Type:** Delivered technical specification
+**Projekt:** Northshore-HGÜ-Verbindung
+**Jahr:** 2022
+**Art:** Geliefertes technisches Pflichtenheft
 
-## Active-power control (excerpt)
+## Wirkleistungsregelung (Auszug)
 
-The converter uses a vector-current-controlled modular-multilevel
-topology (MMC). Active-power setpoint tracking is implemented with a
-two-stage cascade: an outer power loop and an inner current loop, both
-running at 10 kHz on the converter-control rack.
+Der Konverter nutzt eine vektorstromgeregelte Modular-Multilevel-Topologie
+(MMC). Die Wirkleistungs-Sollwertnachführung ist als zweistufige Kaskade
+ausgelegt: eine äußere Leistungsregelschleife und eine innere
+Stromregelschleife, beide laufen mit 10 kHz auf dem
+Konverter-Regelungsrahmen.
 
-Setpoint changes of up to 600 MW are achieved within 1.2 s with a
-steady-state error of 0.3 % of rating. The ramp rate is configurable
-between 80 MW/min and 1800 MW/min via the IEC 61850 MMS interface.
+Sollwertänderungen bis 600 MW werden innerhalb von 1,2 s erreicht, mit
+einem stationären Regelfehler von 0,3 % der Bemessungsleistung. Die
+Anstiegsrate ist über die IEC-61850-MMS-Schnittstelle zwischen
+80 MW/min und 1800 MW/min konfigurierbar.
 
-## Fault-ride-through
+## Fehlerdurchfahrt (FRT)
 
-The Northshore design rides through a three-phase fully-depressed
-voltage fault at the AC bus and resumes pre-fault active-power output
-within 220 ms. The mechanism is the MMC's internal energy buffer
-combined with a damping control that suppresses post-fault oscillation.
+Die Northshore-Auslegung durchfährt einen dreiphasigen vollständigen
+Spannungseinbruch am AC-Sammelschienenanschluss und nimmt die
+Vorstörungs-Wirkleistung innerhalb von 220 ms wieder auf. Der Mechanismus
+beruht auf dem internen Energiepuffer der MMC in Verbindung mit einer
+Dämpfungsregelung, die Nach-Fehler-Schwingungen unterdrückt.
 
-**Type-tested at:** KEMA-Labs Arnhem, 2022-08-14.
-**Certified profile:** 3-phase fully-depressed voltage, ≤ 280 ms
-duration, full ride-through with no trip.
+**Typgeprüft bei:** KEMA-Labs Arnhem, 2022-08-14.
+**Zertifiziertes Profil:** dreiphasiger vollständiger Spannungseinbruch,
+≤ 280 ms Dauer, vollständige Durchfahrt ohne Auslösung.
 
-## Reuse note for NU-525-Lot-3
+## Hinweis zur Wiederverwendung für NU-525-Lot-3
 
-This scheme answers REQ-104, REQ-241–246, REQ-247 (FRT-250ms), and
-REQ-251–254 with adaptation of the setpoint and ramp-rate values to
-the customer's range. Translate into German per the
-[style guide](./reuse-internal-german-style-guide.md).
+Dieses Schema beantwortet REQ-104, REQ-241–246, REQ-247 (FRT-250ms) und
+REQ-251–254 mit Anpassung der Sollwerte und Anstiegsraten an den
+Kundenbereich. Stilanwendung gemäß
+[Stilhandbuch](./reuse-internal-german-style-guide.md).
 `,
   },
   {
     filename: 'reuse-northshore-2022-frt-type-test.md',
-    body: `# Northshore-2022 — FRT Type-Test Report (excerpt)
+    body: `# Northshore-2022 — FRT-Typprüfbericht (Auszug)
 
-**Project:** Northshore HVDC link
-**Test facility:** KEMA-Labs Arnhem
-**Test date:** 2022-08-14
-**Witnessed by:** TÜV Süd
+**Projekt:** Northshore-HGÜ-Verbindung
+**Prüfeinrichtung:** KEMA-Labs Arnhem
+**Prüfdatum:** 2022-08-14
+**Bezeugt durch:** TÜV Süd
 
-## Test profile
-- 3-phase fully-depressed voltage at the converter AC bus.
-- Sustained for 250 ms.
-- Pre-fault active-power output: 1800 MW.
+## Prüfprofil
+- Dreiphasiger vollständiger Spannungseinbruch am Konverter-AC-Sammelschienenanschluss.
+- Dauer 250 ms.
+- Vorstörungs-Wirkleistung: 1800 MW.
 
-## Result
-- Converter remained connected throughout.
-- Active-power output recovered to within 2 % of pre-fault setpoint
-  by **218 ms** after voltage restoration.
-- No protection trip, no shutdown, no controlled-mode degradation.
+## Ergebnis
+- Der Konverter blieb durchgängig am Netz.
+- Die Wirkleistungsabgabe erreichte innerhalb von **218 ms** nach
+  Spannungswiederkehr den Sollwert mit einer Genauigkeit von 2 %.
+- Keine Schutzauslösung, kein Notabschalten, keine Verschlechterung des
+  geregelten Modus.
 
-## Margin
-Test profile margin against REQ-247 (250 ms ride-through): **32 ms**.
+## Reserve
+Reserve des Prüfprofils gegenüber REQ-247 (250-ms-Durchfahrt): **32 ms**.
 
-## Reuse note
-This report is the certified evidence for the FRT-250ms answer on
-REQ-247. The drafted response references this test by ID
-(KEMA-NS22-FRT-014). The compliance matrix carries the certificate
-filename forward into the deliverable.
+## Hinweis zur Wiederverwendung
+Dieser Bericht ist der zertifizierte Nachweis für die FRT-250-ms-Antwort
+auf REQ-247. Der entworfene Antworttext referenziert die Prüfung mit
+der ID (KEMA-NS22-FRT-014). Die Konformitätsmatrix führt den
+Zertifikat-Dateinamen in das Lieferdokument fort.
 `,
   },
   {
     filename: 'reuse-capeline-2023-protection.md',
-    body: `# Capeline-2023 — Protection Philosophy (excerpt)
+    body: `# Capeline-2023 — Schutzphilosophie (Auszug)
 
-**Project:** Capeline HVDC tie
-**Year:** 2023
-**Type:** Delivered technical specification
+**Projekt:** Capeline-HGÜ-Verbindung
+**Jahr:** 2023
+**Art:** Geliefertes technisches Pflichtenheft
 
-## Redundant differential protection
+## Redundanter Differentialschutz
 
-Two independent differential-protection IEDs (intelligent electronic
-devices) operate per IEC 61850-9-2 sampled-values. Each delivers a trip
-signal to the converter trip bus within 4.5 ms of fault detection,
-including IED processing and SV transmission.
+Zwei unabhängige Differentialschutz-IEDs (intelligente elektronische
+Geräte) arbeiten gemäß IEC 61850-9-2 Sampled Values. Jedes liefert ein
+Auslösesignal innerhalb von 4,5 ms nach Fehlererkennung an den
+Konverter-Auslösebus (einschließlich IED-Verarbeitung und SV-Übertragung).
 
-## Communications-fallback
+## Kommunikationsausfall-Rückfall
 
-If the inter-station communications link fails, the local converter
-falls back to autonomous-control mode within **250 ms** without
-tripping. The mechanism is a watchdog timer on the inter-station heartbeat;
-on three consecutive missed heartbeats, the autonomous-mode controller
-takes over.
+Bei Ausfall der Interstationskommunikation fällt der lokale Konverter
+innerhalb von **250 ms** in den autonomen Steuermodus zurück, ohne
+auszulösen. Der Mechanismus ist ein Watchdog-Timer auf dem
+Interstations-Heartbeat; nach drei aufeinanderfolgenden ausgefallenen
+Heartbeats übernimmt die autonome Steuerung.
 
-## Reuse note for NU-525-Lot-3
+## Hinweis zur Wiederverwendung für NU-525-Lot-3
 
-Capeline answers REQ-211, REQ-212, REQ-219, REQ-221 directly. For
-REQ-238 (inter-station fallback within 200 ms), Capeline's 250 ms is
-**too slow** — formal deviation proposed, with a 220 ms offer based on
-a control-card variant that has not been type-tested. See the
-deviation rationale on REQ-238.
+Capeline beantwortet REQ-211, REQ-212, REQ-219, REQ-221 direkt. Für
+REQ-238 (Interstations-Rückfall innerhalb von 200 ms) ist Capelines
+250 ms **zu langsam** — eine formale Abweichung wird vorgeschlagen mit
+einem 220-ms-Angebot, das auf einer noch nicht typgeprüften
+Steuerkarten-Variante beruht. Siehe Abweichungsbegründung zu REQ-238.
 `,
   },
   {
     filename: 'reuse-reefnet-2020-harmonic-filters.md',
-    body: `# Reefnet-2020 — Harmonic Filter Design (excerpt)
+    body: `# Reefnet-2020 — Oberschwingungs-Filterauslegung (Auszug)
 
-**Project:** Reefnet offshore connection
-**Year:** 2020
-**Type:** Delivered technical specification
+**Projekt:** Reefnet-Offshore-Anbindung
+**Jahr:** 2020
+**Art:** Geliefertes technisches Pflichtenheft
 
-## Filter topology
-A passive C-type filter for 3rd, 5th, 7th, and 11th harmonics, supplemented
-by a tuned high-pass branch above 13th.
+## Filtertopologie
+Ein passives C-Typ-Filter für die 3., 5., 7. und 11. Oberschwingung,
+ergänzt durch einen abgestimmten Hochpass-Zweig oberhalb der 13.
+Oberschwingung.
 
-## Performance
-At the point of common coupling, the design delivered total harmonic
-distortion (THD) of **≤ 1.5 %** across the operating envelope (verified
-by site measurement per IEC 61000-4-7).
+## Leistung
+Am Verknüpfungspunkt (PCC) lieferte die Auslegung eine Gesamtoberschwingungs-
+verzerrung (THD) von **≤ 1,5 %** über die gesamte Betriebshüllkurve
+(nachgewiesen durch Vor-Ort-Messung gemäß IEC 61000-4-7).
 
-## Reuse note — IMPORTANT
-The natural reuse for the Annex C cluster (REQ-301..REQ-308) is the
-Reefnet filter design. **However**, NSÜN's REQ-303 requires **THD ≤ 0.9 %**
-at the PCC — significantly stricter than Reefnet's 1.5 %.
+## Wiederverwendungshinweis — WICHTIG
+Die natürliche Wiederverwendung für das Annex-C-Cluster
+(REQ-301..REQ-308) ist die Reefnet-Filterauslegung. **Jedoch** verlangt
+NSÜNs REQ-303 **THD ≤ 0,9 %** am PCC — deutlich strenger als
+Reefnets 1,5 %.
 
-Re-using this design as-is would silently miss the limit. The cluster
-needs **re-tuned filter topology** or a formal deviation. Cluster head:
-REQ-303 → REQ-304, REQ-305, REQ-307.
+Eine Übernahme ohne Anpassung würde den Grenzwert still verfehlen. Das
+Cluster braucht eine **neu abgestimmte Filtertopologie** oder eine
+formale Abweichung. Cluster-Kopf: REQ-303 → REQ-304, REQ-305, REQ-307.
 
-A retune to active filtering (hybrid passive + active harmonic
-compensator) was evaluated in the Aurora-2024 design and meets ≤ 0.7 %.
-Cross-pull from that design before drafting Annex C.
+Eine Neuabstimmung auf aktive Filterung (hybrid passiv + aktiver
+Oberschwingungs-Kompensator) wurde in der Aurora-2024-Auslegung
+evaluiert und erreicht ≤ 0,7 %. Cross-Pull aus dieser Auslegung vor
+dem Entwurf von Annex C.
 `,
   },
   {
     filename: 'reuse-aurora-2024-reactive-power.md',
-    body: `# Aurora-2024 — Reactive-Power Capability Curve (excerpt)
+    body: `# Aurora-2024 — Blindleistungs-Fähigkeitskurve (Auszug)
 
-**Project:** Aurora HVDC bipole
-**Year:** 2024
-**Type:** Delivered technical specification
+**Projekt:** Aurora-HGÜ-Bipol
+**Jahr:** 2024
+**Art:** Geliefertes technisches Pflichtenheft
 
-## PQ envelope (as delivered)
-At full active-power output, Aurora's converter operated across a
-reactive-power range of **±0.95 leading / ±0.95 lagging**.
+## PQ-Hüllkurve (wie geliefert)
+Bei voller Wirkleistungsabgabe operierte der Aurora-Konverter in einem
+Blindleistungsbereich von **±0,95 voreilend / ±0,95 nacheilend**.
 
-## Reuse note for NU-525-Lot-3
-The Aurora envelope answers REQ-181, REQ-182, REQ-183 directly.
+## Hinweis zur Wiederverwendung für NU-525-Lot-3
+Die Aurora-Hüllkurve beantwortet REQ-181, REQ-182, REQ-183 direkt.
 
-For REQ-184, the late-clarifications memo of 2026-04-18 amended the
-required leading-side range from ±0.95 to **±0.90**. The Aurora reuse
-passage **answered the original ±0.95 profile** and must be adapted
-before commit. **Override edge present in the knowledge graph;
-override chip visible on the coverage dashboard.**
+Für REQ-184 hat das Klarstellungsmemo vom 2026-04-18 den geforderten
+voreilenden Bereich von ±0,95 auf **±0,90** geändert. Die
+Aurora-Wiederverwendungsstelle **beantwortet das ursprüngliche
+±0,95-Profil** und muss vor dem Commit angepasst werden.
+**Override-Kante im Knowledge-Graph vorhanden; Override-Chip auf dem
+Coverage-Dashboard sichtbar.**
 `,
   },
   {
     filename: 'reuse-internal-german-style-guide.md',
-    body: `# Internal — German Technical-Spec Style Guide (excerpt)
+    body: `# Hausintern — Stilhandbuch für die deutsche technische Spezifikation (Auszug)
 
-**Audience:** Proposal-desk engineers and the translation-drafting agent
-**Last revised:** 2025-11
+**Zielgruppe:** Angebotsteam-Ingenieure und der entwurfsschreibende Agent
+**Letzte Überarbeitung:** 2025-11
 
-## Normative verbs
-| Force | German | When |
+## Modalverben für Normativität
+| Stärke | Deutsch | Wann |
 |---|---|---|
-| Mandatory | **muss** | Always; the bid's binding commitments. |
-| Permitted | **darf** | Permissive constructions only. |
-| Recommended | **sollte** | Recommendations; never for binding commitments. |
+| Pflicht | **muss** | Immer; bindende Verpflichtungen des Angebots. |
+| Erlaubt | **darf** | Nur in erlaubender Formulierung. |
+| Empfohlen | **sollte** | Empfehlungen; nie für bindende Verpflichtungen. |
 
-**Never use** the colloquial **soll** — it is ambiguous in legal
-German between "shall" and "should" and has caused at least one
-documented site-acceptance dispute.
+**Niemals** das umgangssprachliche **soll** verwenden — es ist im
+juristischen Deutsch zwischen "shall" und "should" mehrdeutig und hat
+in mindestens einem dokumentierten Site-Acceptance-Streit zu Problemen
+geführt.
 
-## Numbers and units
-- Decimal separator: comma (e.g., **1,5 MW**).
-- Thousand separator: thin space or none (**1 500 MW** or **1500 MW**).
-- Units in SI; °C with the degree symbol.
-- Setpoint ranges with en-dash: **–25 °C bis +40 °C**.
+## Zahlen und Einheiten
+- Dezimaltrennzeichen: Komma (z. B. **1,5 MW**).
+- Tausendertrennzeichen: schmales Leerzeichen oder keines
+  (**1 500 MW** oder **1500 MW**).
+- Einheiten im SI; °C mit Gradzeichen.
+- Sollwertbereiche mit Halbgeviertstrich: **–25 °C bis +40 °C**.
 
-## Terms that are never translated
-Standard references (IEC 62271-1, EU NC-HVDC), requirement IDs
-(REQ-247), annex references (Annex C §3.3), project names.
+## Begriffe, die nicht übersetzt werden
+Normenverweise (IEC 62271-1, EU NC-HVDC), Anforderungs-IDs (REQ-247),
+Anhangsverweise (Annex C §3.3), Projektnamen.
 
-## Tone
-Direct, declarative, no marketing voice. The deliverable is a
-contractual document, not a sales document.
+## Ton
+Direkt, deklarativ, keine Marketingstimme. Das Lieferdokument ist eine
+vertragliche Urkunde, kein Verkaufsdokument.
+
+## Englische Rückübersetzung im Export
+
+Beim Exportschritt wird jede deutsche Antwort mit einer englischen
+Rückübersetzung Seite an Seite annotiert (siehe
+[Pipeline — Export](../wiki/topics/pipeline-export.md)). Die
+Rückübersetzung folgt diesen Regeln:
+
+- **muss → "shall"**, **darf → "may"**, **sollte → "should"** —
+  Modalverben werden eins zu eins zurückübersetzt; die strikte
+  Trennung zwischen *shall / should* darf nicht verschwimmen.
+- Dezimalzahlen werden in der englischen Konvention dargestellt
+  (1,5 MW → 1.5 MW), das Vorzeichen ± und Einheiten bleiben.
+- Normenverweise, IDs und Anhangsverweise sind bereits in der deutschen
+  Fassung untranslated — sie werden 1:1 übernommen.
+- Der englische Annotationsblock zitiert seine deutsche Originalstelle
+  per Absatz-ID, damit der Prüfer rückwärts navigieren kann.
 `,
   },
 
-  // --- Internal style + handover notes -----
+  // --- Hausinterne Übergabe-Notizen + Spezifikationen -----
   {
     filename: 'internal-handover-anke-vogt-controls.md',
-    body: `# Internal handover — Controls & Protection (A. Vogt)
+    body: `# Hausinterne Übergabe — Regelung & Schutz (A. Vogt)
 
-The MMC control scheme on Northshore-2022 is our reference design for
-this bid's REQ-104 + REQ-241..268. Two important caveats before the
-draft is committed:
+Das MMC-Regelschema aus Northshore-2022 ist unsere Referenzauslegung für
+REQ-104 + REQ-241..268 in diesem Angebot. Zwei wichtige Hinweise, bevor
+der Entwurf committet wird:
 
-1. Northshore is rated 1800 MW; this bid is 2 GW. The active-power ramp
-   table needs proportional rescaling. The agent's draft does this
-   correctly, but cross-check the steady-state error figure against the
-   updated current-loop bandwidth.
+1. Northshore ist auf 1800 MW ausgelegt; dieses Angebot auf 2 GW. Die
+   Wirkleistungs-Anstiegstabelle braucht proportionale Skalierung. Der
+   Entwurf des Agenten macht das korrekt; trotzdem den stationären
+   Regelfehler gegen die aktualisierte Stromregelschleifen-Bandbreite
+   gegenprüfen.
 
-2. REQ-247 (FRT-250ms) has a 32 ms margin against the Northshore type-
-   test. We are inside the envelope but the certification reference
-   filename in the compliance matrix must be the **KEMA-NS22-FRT-014**
-   report, not the summary in §7 of the Northshore spec. Confirm the
-   reference in the exported PDF.
+2. REQ-247 (FRT-250ms) hat eine Reserve von 32 ms gegenüber der
+   Northshore-Typprüfung. Wir liegen innerhalb der Hüllkurve, doch in
+   der Konformitätsmatrix muss als Zertifikatsreferenz der Bericht
+   **KEMA-NS22-FRT-014** stehen — nicht die Zusammenfassung aus §7 der
+   Northshore-Spezifikation. Die Referenz im exportierten PDF prüfen.
 
-REQ-252 (sub-synchronous damping) is **open** — Northshore did not have
-this requirement explicitly. Either a clarify on the damping-ratio
-measurement standard or a fresh draft pulled from the analytical model.
-Discussed with B. Haag 2026-05-21.
+REQ-252 (subsynchrone Dämpfung) ist **offen** — Northshore hatte diese
+Anforderung nicht explizit. Entweder eine Klärung zur
+Dämpfungsgrad-Messnorm oder ein frischer Entwurf aus dem analytischen
+Modell. Mit B. Haag am 2026-05-21 besprochen.
 `,
   },
   {
     filename: 'internal-handover-bernd-haag-harmonics.md',
-    body: `# Internal handover — Power Quality (B. Haag)
+    body: `# Hausinterne Übergabe — Netzqualität (B. Haag)
 
-The Annex C cluster (REQ-301..REQ-308) is the bid's biggest reuse-mismatch
-risk. Reefnet-2020 is the natural reuse but delivered THD ≤ 1.5 %.
-NSÜN's REQ-303 is **0.9 %**. The agent has flagged the four affected
-requirements (REQ-303, REQ-304, REQ-305, REQ-307) with a
-**reuse-mismatch** chip on the coverage dashboard.
+Das Annex-C-Cluster (REQ-301..REQ-308) ist das größte
+Wiederverwendungs-Mismatch-Risiko dieses Angebots. Reefnet-2020 ist die
+natürliche Wiederverwendung, lieferte aber THD ≤ 1,5 %. NSÜNs REQ-303
+ist **0,9 %**. Der Agent hat die vier betroffenen Anforderungen
+(REQ-303, REQ-304, REQ-305, REQ-307) mit einem
+**reuse-mismatch**-Chip auf dem Coverage-Dashboard markiert.
 
-Options:
+Optionen:
 
-- **Re-tune** to a hybrid passive + active topology (Aurora-2024 reached
-  ≤ 0.7 %). Adds capex; engineering effort ~2 weeks.
-- **Deviate** with a commercial alternative (Reefnet-style passive
-  filter at 1.5 % THD + post-award measurement protocol). High risk of
-  bid disadvantage.
-- **Clarify** whether the THD limit applies at the PCC or at the
-  converter terminals (the NSÜN clause is ambiguous on this in the
-  English standard-references section).
+- **Neu abstimmen** auf eine Hybrid-Topologie (passiv + aktiv);
+  Aurora-2024 erreichte ≤ 0,7 %. Erhöht den Capex; technischer Aufwand
+  ca. 2 Wochen.
+- **Abweichen** mit einer kaufmännischen Alternative (Reefnet-artiges
+  passives Filter bei 1,5 % THD + Messprotokoll nach Zuschlag). Hohes
+  Risiko eines Nachteils im Angebot.
+- **Klären**, ob der THD-Grenzwert am PCC oder an den Konverterklemmen
+  gilt (die NSÜN-Klausel ist im Abschnitt zu den Normenverweisen
+  mehrdeutig).
 
-Decision required at engineering-review gate G2. No commit allowed
-before then.
+Entscheidung am Engineering-Review-Gate G2 erforderlich. Bis dahin
+ist kein Commit zulässig.
 `,
   },
   {
     filename: 'internal-post-mortem-bid-2024.md',
-    body: `# Internal post-mortem — Bid loss, 2024-Q4
+    body: `# Hausinterne Nachbetrachtung — Verlorenes Angebot, 2024-Q4
 
-**Bid:** Similar 525 kV HVDC converter station, different TSO.
-**Outcome:** Bid lost on a technical non-compliance discovered by the
-customer's review team — a single requirement under a harmonics table
-that committed to a 200 ms FRT response when the source required 100 ms.
+**Angebot:** Vergleichbare 525-kV-HGÜ-Konverterstation, anderer
+Übertragungsnetzbetreiber.
+**Ergebnis:** Angebot verloren wegen einer technischen
+Nichtkonformität, die das Review-Team des Kunden fand — eine einzelne
+Anforderung unter einer Oberschwingungs-Tabelle, in der eine 200-ms-FRT-
+Antwort committet wurde, während die Quelle 100 ms verlangte.
 
-## Root cause
-Reuse passage was pulled from a project that answered the more lenient
-200 ms profile. The draft was bulk-committed in the last week before
-submission. No engineer read the specific clause; the coverage matrix
-showed *committed* and the proposal desk moved on.
+## Ursache
+Die Wiederverwendungsstelle stammte aus einem Projekt, das das mildere
+200-ms-Profil beantwortet hatte. Der Entwurf wurde in der letzten Woche
+vor Abgabe im Stapel committet. Kein Ingenieur las die konkrete Klausel;
+die Coverage-Matrix zeigte *committed* und das Angebotsteam ging weiter.
 
-## What changed in our process
-1. **No bulk-commit of drafted rows.** A *drafted* row moves to
-   *committed* only through an individual engineer's decision, on the
-   record.
-2. **Override flag on every late-clarification.** Source-clause amendments
-   are tracked as a separate edge in the knowledge graph; the draft is
-   never silently merged with the amendment.
-3. **The agent will not draft for an ambiguous requirement.** It flags
-   for the clarify queue instead. An invented measurable criterion is
-   how disputes are lost at site acceptance.
+## Was wir an unserem Prozess geändert haben
+1. **Kein Stapel-Commit von entworfenen Zeilen.** Eine *drafted*-Zeile
+   wechselt nur über die Einzelentscheidung eines Ingenieurs nach
+   *committed* — auf Aktenlage.
+2. **Override-Flag bei jeder späten Klarstellung.** Änderungen von
+   Quellklauseln werden als separate Kante im Knowledge-Graph verfolgt;
+   der Entwurf wird niemals still mit der Änderung verschmolzen.
+3. **Der Agent entwirft nicht für mehrdeutige Anforderungen.** Er
+   markiert sie für die Klärungs-Warteschlange. Ein erfundenes messbares
+   Kriterium ist genau, wie Streitigkeiten am Site-Acceptance verloren
+   werden.
 
-## What the requirements-hv project must continue to enforce
-The coverage dashboard makes the *drafted vs. committed* distinction
-visible at all times. The export step refuses to render any row not in
-*committed / deviation / clarify*. These guards exist because of this
-post-mortem.
+## Was das Projekt requirements-hv weiterhin durchsetzen muss
+Das Coverage-Dashboard macht den Unterschied *drafted vs. committed*
+jederzeit sichtbar. Der Exportschritt weigert sich, eine Zeile zu
+rendern, die nicht in *committed / deviation / clarify* ist. Diese
+Sicherungen existieren wegen dieser Nachbetrachtung.
 `,
   },
   {
     filename: 'internal-coverage-dashboard-spec.md',
-    body: `# Coverage dashboard — internal spec
+    body: `# Coverage-Dashboard — hausinterne Spezifikation
 
-## Purpose
-The single view of the bid's progress. Every requirement is a row,
-every row has a state.
+## Zweck
+Die einzige Sicht auf den Fortschritt des Angebots. Jede Anforderung ist
+eine Zeile, jede Zeile hat einen Zustand.
 
-## States (must be visible per-row)
-- **open** — parsed + normalised; no draft.
-- **drafted** — agent has retrieved + adapted + translated; no engineer
-  has read.
-- **reviewed** — engineer has read; iterating.
-- **committed** — explicit human decision; locked.
-- **deviation** — bid will deviate; rationale recorded.
-- **clarify** — ambiguous; customer clarification requested.
+## Zustände (müssen pro Zeile sichtbar sein)
+- **open** — geparst + normalisiert; kein Entwurf.
+- **drafted** — der Agent hat abgerufen + angepasst + im Hausstil
+  verfasst; kein Ingenieur hat gelesen.
+- **reviewed** — Ingenieur hat gelesen; iteriert.
+- **committed** — ausdrückliche menschliche Entscheidung; gesperrt.
+- **deviation** — das Angebot wird abweichen; Begründung dokumentiert.
+- **clarify** — mehrdeutig; Kundenklärung angefordert.
 
 ## Chips
-- **override** — amended by late-clarifications memo.
-- **reuse-mismatch** — drafted from a reuse source that does not meet
-  the requirement.
-- **clarify** — requirement is ambiguous (separate from the *clarify*
-  state; a *drafted* row can still carry a *clarify* chip when there is
-  a subordinate ambiguity that has not yet escalated to clarify-state).
-- **reuse: <source>** — which past spec the draft was pulled from.
+- **override** — geändert durch das Klarstellungsmemo.
+- **reuse-mismatch** — aus einer Wiederverwendungsquelle entworfen, die
+  die Anforderung nicht erfüllt.
+- **clarify** — Anforderung ist mehrdeutig (getrennt vom
+  *clarify*-Zustand; eine *drafted*-Zeile kann einen *clarify*-Chip
+  tragen, wenn eine untergeordnete Mehrdeutigkeit noch nicht in den
+  *clarify*-Zustand eskaliert wurde).
+- **reuse: <quelle>** — aus welcher Altspezifikation der Entwurf gezogen
+  wurde.
 
-## Aggregate views
-- By state (counts).
-- By source volume.
-- By responsible engineer.
-- By submission gate (G1 / G2 / G3).
+## Aggregierte Sichten
+- Nach Zustand (Zählung).
+- Nach Quellvolume.
+- Nach verantwortlichem Ingenieur.
+- Nach Abgabe-Gate (G1 / G2 / G3).
 
-## Gate enforcement
-At G3 (commit gate), the export refuses to run if any row is in
-*open / drafted / reviewed*. The blockers are listed with their owners.
+## Gate-Durchsetzung
+Am G3 (Commit-Gate) verweigert sich der Export, wenn eine Zeile in
+*open / drafted / reviewed* ist. Die Blocker werden mit ihren Inhabern
+aufgelistet.
 `,
   },
 ];

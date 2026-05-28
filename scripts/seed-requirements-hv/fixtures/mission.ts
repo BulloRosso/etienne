@@ -1,123 +1,214 @@
 /**
- * Mission brief and wiki/_meta/mission.md content for the
+ * Mission brief, wiki/_meta/mission.md content, and .claude/CLAUDE.md for the
  * `requirements-hv` seed project.
  *
- * The project is the worked example for *Agents that help humans decide —
- * Part 3: From 900 pages of grid-code requirements to a binding technical
- * specification.* A German TSO is procuring a 525 kV / 2 GW HVDC converter
- * station; the contractor must return a German technical specification that
- * responds to every requirement, drafted from its English-language past
- * specifications and type-test evidence.
+ * Language flow demonstrated by this seed:
+ *   - inbox/*.docx       English  (incoming customer specifications)
+ *   - documents/*.md     German   (in-house translation of the inbox + reuse base)
+ *   - wiki/, mission.md  German   (the working knowledge base is German)
+ *   - .claude/CLAUDE.md  English  (Claude Code's own system prompt)
+ *   - export             German + side-by-side English back-translation
  *
  * Used by:
  *   - POST /api/projects/create (missionBrief body field — short version)
- *   - wiki/_meta/mission.md (long form — every wiki write inherits relevance from this)
+ *   - wiki/_meta/mission.md     (long form — every wiki write inherits relevance)
+ *   - .claude/CLAUDE.md         (Claude Code system prompt — short brief + pointer)
  */
 
 export const PROJECT_NAME = 'requirements-hv';
 
 export const MISSION_BRIEF =
-  'Turn ~900 pages of German grid-code and functional-specification ' +
-  'requirements for a 525 kV / 2 GW HVDC converter station bid into a ' +
-  'complete, traceable, German technical specification — by parsing the ' +
-  'source pack into atomic EARS requirements, mapping each one to a slot ' +
-  'in the deliverable, drafting a response by reusing the firm\'s past ' +
-  'English specifications and type-test evidence, and stopping there so a ' +
-  'responsible engineer signs every promise. No silent commitments.';
+  'Aus ~900 Seiten englischsprachiger Netzanschluss- und Funktions-' +
+  'anforderungen für eine 525-kV/2-GW-HGÜ-Konverterstation wird eine ' +
+  'vollständige, rückverfolgbare deutsche technische Spezifikation: Der ' +
+  'Posteingang (inbox/*.docx) liegt auf Englisch vor; das interne ' +
+  'Arbeitsmaterial unter documents/ und die Wiki sind auf Deutsch. ' +
+  'Der Agent zerlegt den Quellenstapel in atomare EARS-Anforderungen, ' +
+  'ordnet jede einem Platz im Lieferdokument zu, entwirft Antworten ' +
+  'aus den deutschen Altangeboten der Firma und stoppt dort, damit ein ' +
+  'verantwortlicher Ingenieur jede Zusage unterschreibt. Beim Export wird ' +
+  'jede deutsche Antwort mit ihrer englischen Rückübersetzung Seite an ' +
+  'Seite annotiert. Keine stillen Zusagen.';
 
-export const MISSION_MD = `# Mission — Requirements → Specification (HVDC bid)
+export const MISSION_MD = `# Mission — Anforderungen → Spezifikation (HGÜ-Angebot)
 
-## The project
-A German transmission system operator (stylised: **Nordseeübertragungs-Netz GmbH**,
-"NSÜN") is procuring the onshore end of a **525 kV / 2 GW HVDC converter
-station** — the landing point of an offshore-wind connection in the
-North Sea. Internal project name: **NU-525-Lot-3**. The requirements
-arrive as a stack of volumes: a functional specification, six technical
-annexes (A–F), a grid-code compliance volume, and a set of late
-clarifications that quietly amended several dozen clauses after the
-bidders' questions closed. Total: **~900 pages, in German.**
+## Das Projekt
+Ein deutscher Übertragungsnetzbetreiber (stilisiert: **Nordseeübertragungs-
+Netz GmbH**, "NSÜN") beschafft den Onshore-Endpunkt einer **525-kV/2-GW-
+HGÜ-Konverterstation** — die Landstation einer Offshore-Wind-Anbindung in
+der Nordsee. Interner Projektname: **NU-525-Lot-3**. Die Anforderungen
+treffen als Stapel englischsprachiger Word-Dokumente im Posteingang
+**inbox/** ein: eine Funktionsspezifikation, sechs technische Anhänge (A–F),
+ein Volume zur Netzanschluss-Konformität sowie eine späte
+Klarstellungsmitteilung, die nach Schließung des Bieterfragen-Fensters
+mehrere Dutzend Klauseln stillschweigend geändert hat. Gesamt:
+**~900 Seiten, ursprünglich auf Englisch.**
 
-The contractor — a multinational EPC — must return a **technical
-specification, in German**, that responds to every requirement. The
-firm's reusable engineering content (proven MMC control schemes, type-test
-reports, protection philosophy) lives in past specifications written in
-**English**, on past projects on three continents.
+Die hausinterne Übersetzung in die Arbeitssprache **Deutsch** liegt unter
+**documents/** als Markdown vor — das ist der Datensatz, gegen den der
+Agent parst, normalisiert und retrieved.
 
-## What the agent is for
-A technical specification is a set of **engineering promises**. Whether to
-comply, comply partially, propose an alternative, declare a deviation, or
-raise a clarification — these are engineering commitments, backed by
-liquidated damages on a contract worth several hundred million euros, and
-they belong to a **responsible engineer** who will sign their name under
-each one.
+Der Auftragnehmer — ein multinationaler EPC — muss eine **technische
+Spezifikation auf Deutsch** zurückliefern, die jede Anforderung
+beantwortet. Die wiederverwendbaren Engineering-Inhalte der Firma
+(typgeprüfte MMC-Regelschemata, Schutzphilosophien, frühere Angebote auf
+drei Kontinenten) liegen ebenfalls auf **Deutsch** vor.
 
-The agent's job is *not* to make those promises. Its job is the structured
-grind that has to happen before a promise can be made well:
+## Wozu der Agent dient
+Eine technische Spezifikation ist eine Sammlung **technischer Zusagen**.
+Ob *erfüllen / teilweise erfüllen / Alternative anbieten / Abweichung
+erklären / Klärung anfordern* — das sind technische und kaufmännische
+Verpflichtungen, gedeckt durch Vertragsstrafen auf einem Vertrag im
+mehrstelligen Millionenbereich, und sie gehören einem **verantwortlichen
+Ingenieur**, der seinen Namen darunter setzt.
 
-1. **Parse** the requirements pack — split it into segments, classify each
-   one (requirement / definition / context / standard reference / late
-   clarification override). Anything ambiguous is flagged, not dropped.
-2. **Normalize** to single, atomic, numbered **EARS** requirements
-   (*Easy Approach to Requirements Syntax*: when / while / if-then / where
-   / shall). A paragraph that smuggled in three obligations becomes three
-   numbered requirements. The agent does **not** invent a number to make
-   an ambiguous requirement look answered.
-3. **Structure** the deliverable — lay out the chapters of the technical
-   specification and the compliance matrix; map every requirement to a
-   slot. The result is a coverage view: every requirement is a row, every
-   row has a state, nothing can fall through.
-4. **Transform** — for each requirement, retrieve the matching reusable
-   passage from the firm's past specifications, adapt it to this
-   requirement's specifics, and translate the draft into German.
-   Drafted, not answered.
-5. **Export** — render the approved structure into the customer's required
-   format (Word + PDF, with the compliance matrix inside the deliverable),
-   stamping every section with the requirement IDs it answers so
-   traceability survives outside the tool.
+Die Aufgabe des Agenten ist *nicht*, diese Zusagen zu machen. Seine
+Aufgabe ist die strukturierte Vorarbeit, die geleistet werden muss,
+bevor eine Zusage gut gemacht werden kann:
 
-## Hard rules — non-negotiable
-- **The agent never commits a response.** A requirement moves to
-  *committed* only through an explicit human decision, one at a time or in
-  reviewed batches. There is no "auto-answer all" button.
-- **The agent never invents a measurable acceptance criterion** to make an
-  ambiguous source requirement look answered. Ambiguity is surfaced as a
-  *clarify* flag.
-- **The agent never silently overrides one requirement with another.**
-  Late clarifications that amend earlier clauses are tracked explicitly,
-  with a visible override edge in the knowledge graph.
-- **Traceability survives the export.** Every committed section in the
-  exported specification carries the requirement IDs it answers; the
-  compliance matrix ships inside the deliverable.
+1. **Parsen** — Eingang aus **inbox/*.docx** (Englisch) durch
+   hausinterne Übersetzung als **documents/*.md** (Deutsch) bereitstellen,
+   den Stapel in Segmente zerlegen und jedes klassifizieren
+   (Anforderung / Definition / Kontext / Normenverweis / späte
+   Klarstellungsänderung). Mehrdeutiges wird markiert, nicht verworfen.
+2. **Normalisieren** — auf einzelne, atomare, nummerierte **EARS**-
+   Anforderungen (*Easy Approach to Requirements Syntax*: when / while /
+   if-then / where / shall — in der deutschen Form: *wenn / während /
+   sofern / falls / muss*). Ein Absatz, der drei Pflichten verschleiert,
+   wird zu drei nummerierten Anforderungen. Der Agent erfindet **keine**
+   Nummer, damit eine mehrdeutige Anforderung beantwortet aussieht.
+3. **Strukturieren** — Kapitelschnitt der technischen Spezifikation und
+   der Konformitätsmatrix; jede Anforderung erhält einen Platz. Ergebnis:
+   eine Coverage-Sicht — jede Anforderung ist eine Zeile, jede Zeile hat
+   einen Zustand, nichts kann durchrutschen.
+4. **Transformieren** — für jede Anforderung wird die passende
+   wiederverwendbare deutschsprachige Passage aus den Altangeboten
+   abgerufen, an die Besonderheiten dieser Anforderung angepasst und im
+   Stil des hausinternen [Stilhandbuchs](
+   ../sources/source-internal-german-style-guide.md) verfasst. Entworfen,
+   nicht beantwortet.
+5. **Exportieren** — die freigegebene Struktur in das vom Kunden
+   geforderte Format rendern (Word + PDF, mit eingebetteter
+   Konformitätsmatrix). Jeder Abschnitt wird mit den IDs der Anforderungen
+   gestempelt, die er beantwortet — und **jede deutsche Antwort erhält
+   eine englische Rückübersetzung Seite an Seite** als Annotation, damit
+   ein englischsprachiger Prüfer das Lieferdokument auditieren kann.
 
-## Acceptance criteria
-- **Completeness**: every requirement in the source pack has a row in
-  the coverage matrix; zero requirements with no row at submission.
-- **State discipline**: at submission, zero requirements remain in
-  *open* or *drafted*; every row is *committed*, *deviation* or
+## Harte Regeln — nicht verhandelbar
+- **Der Agent committet keine Antwort.** Eine Anforderung wechselt nur
+  über eine ausdrückliche menschliche Entscheidung in den Zustand
+  *committed* — einzeln oder in geprüften Stapeln. Es gibt keinen
+  "Alle-automatisch-beantworten"-Knopf.
+- **Der Agent erfindet kein messbares Akzeptanzkriterium**, um eine
+  mehrdeutige Quellenanforderung beantwortet aussehen zu lassen.
+  Mehrdeutigkeit erscheint als *clarify*-Flag.
+- **Der Agent überschreibt keine Anforderung still.** Späte
+  Klarstellungen, die frühere Klauseln ändern, werden explizit verfolgt,
+  mit sichtbarer Override-Kante im Knowledge-Graph.
+- **Rückverfolgbarkeit überlebt den Export.** Jeder committete Abschnitt
+  der exportierten Spezifikation trägt die IDs der beantworteten
+  Anforderungen; die Konformitätsmatrix liegt **innerhalb** des
+  Lieferdokuments; und jede Antwort ist bilingual annotiert
+  (Deutsch + englische Rückübersetzung).
+
+## Akzeptanzkriterien
+- **Vollständigkeit**: Jede Anforderung aus dem Quellenstapel hat eine
+  Zeile in der Coverage-Matrix; null Anforderungen ohne Zeile bei Abgabe.
+- **Zustandsdisziplin**: Bei Abgabe befindet sich keine Zeile mehr in
+  *open* oder *drafted*; jede Zeile ist *committed*, *deviation* oder
   *clarify*.
-- **Provenance**: every *drafted* response cites the past specification
-  or type-test report it was pulled from; every *committed* response
-  cites the responsible engineer.
-- **Override safety**: every late-clarification override is linked to
-  the clause it amends; no buried "shall" goes undetected.
+- **Provenienz**: Jede *drafted*-Antwort zitiert die Altangebotsstelle
+  oder den Typprüfbericht, aus dem sie gezogen wurde; jede
+  *committed*-Antwort zitiert den verantwortlichen Ingenieur.
+- **Override-Sicherheit**: Jede späte Klarstellungsänderung ist mit der
+  Klausel verknüpft, die sie ändert; kein verstecktes "muss" bleibt
+  unentdeckt.
+- **Bilinguale Annotation im Export**: Jede deutsche Antwort wird im
+  Exportdokument Seite an Seite mit ihrer englischen Rückübersetzung
+  geführt.
 
-## Scope
-- The NU-525-Lot-3 functional specification (volumes 0–6), the six
-  technical annexes (A–F), the grid-code compliance volume, and the
-  late-clarifications memo.
-- The firm's internal reuse base of past specifications, type-test
-  reports, and delivered designs.
-- The deliverable: the contractor's technical specification + compliance
-  matrix, in German, in the customer's required format.
+## Geltungsbereich
+- Die NU-525-Lot-3-Funktionsspezifikation (Volumes 0–6), die sechs
+  technischen Anhänge (A–F), das Netzanschluss-Konformitäts-Volume
+  sowie die späte Klarstellungsmitteilung — alle als englische
+  Word-Dokumente im Posteingang **inbox/** und als deutsche
+  Arbeitsübersetzung in **documents/**.
+- Das hausinterne deutschsprachige Wiederverwendungsmaterial: frühere
+  technische Spezifikationen, Typprüfberichte und gelieferte Designs.
+- Lieferdokument: die technische Spezifikation des Auftragnehmers +
+  Konformitätsmatrix, auf Deutsch, im vom Kunden geforderten Format,
+  mit bilingualer Annotation.
 
-## Out of scope
-- Commercial pricing, schedule, and risk submissions (separate workstreams).
-- Subcontractor selection beyond what each technical clause names.
-- Site-acceptance testing (post-award).
+## Außerhalb des Geltungsbereichs
+- Kommerzielles Pricing, Terminplan und Risikoeinreichung (getrennte
+  Workstreams).
+- Auswahl von Unterauftragnehmern jenseits dessen, was eine technische
+  Klausel namentlich verlangt.
+- Site-Acceptance-Testing (nach Zuschlag).
 
-## Provenance
-Mission set 2026-05-25 by the proposal-desk lead, drawing on the worked
-example in Part 3 of *Agents that help humans decide* (the German TSO
-HVDC converter station). Update only with an explicit mission-change
-decision recorded in the changelog.
+## Provenienz
+Mission festgelegt am 2026-05-25 durch die Angebotsteamleitung,
+ausgehend vom Lehrbeispiel in Teil 3 von *Agents that help humans
+decide* (deutscher TSO, HGÜ-Konverterstation). Aktualisierung nur
+durch eine ausdrücklich im Änderungsprotokoll dokumentierte
+Mission-Change-Entscheidung.
+`;
+
+/**
+ * Short English system-prompt brief written to .claude/CLAUDE.md.
+ *
+ * Why English: every other prompt under .claude/ in this repo (skills, hooks)
+ * is English. CLAUDE.md is Claude Code's own system prompt, not part of the
+ * deliverable knowledge base — so it stays in the lingua franca that the
+ * agent's tooling already speaks. The long-form mission (in German) lives
+ * in wiki/_meta/mission.md.
+ */
+export const CLAUDE_MD = `# Mission — NU-525-Lot-3 (HVDC requirements → German technical specification)
+
+A German TSO (Nordseeübertragungs-Netz GmbH, "NSÜN") procures the onshore end
+of a 525 kV / 2 GW HVDC converter station. English-language incoming
+specifications land in \`inbox/\` as Word documents. The agent's working
+language is **German**: the source excerpts under \`documents/\` are the
+in-house German translation of the inbox; the firm's reuse base of past
+offers is German; the wiki and mission are German.
+
+The deliverable is a **German technical specification**. The export step
+annotates every German response with its **English back-translation
+side-by-side**, so an English-speaking reviewer can audit the deliverable
+without speaking German.
+
+## What the agent does
+
+1. **Parse** — translate \`inbox/*.docx\` (EN) → \`documents/*.md\` (DE);
+   split the German working text into segments; classify each
+   (requirement / definition / context / standard reference /
+   late-clarification override).
+2. **Normalize** to atomic EARS requirements (German *muss / darf / sollte*).
+3. **Structure** the deliverable — chapters + compliance matrix; map every
+   requirement to a slot.
+4. **Transform** — for each requirement, retrieve a passage from the German
+   reuse base of past offers, adapt it, render in the house style.
+5. **Export** — render the approved structure into the customer's required
+   Word/PDF, stamping every section with the requirement IDs it answers
+   and annotating each German response with its English back-translation.
+
+## Hard rules
+
+- **Never commit a response.** A row moves to \`committed\` only through an
+  explicit human decision. No "auto-answer all" button.
+- **Never invent a measurable acceptance criterion** to make ambiguity look
+  answered. Flag for the clarify queue.
+- **Never silently merge a late clarification.** Late-clarifications memo
+  amendments are tracked as separate KG nodes with explicit override edges.
+- **Traceability survives the export.** Every committed section carries the
+  requirement IDs it answers; the compliance matrix ships inside the
+  deliverable; every German response carries its English back-translation
+  alongside.
+
+## Read the long form
+
+The authoritative mission (German, long form) lives at
+\`wiki/_meta/mission.md\`. Every wiki write inherits its relevance from
+that document. The project documentation aimed at humans opening the
+workspace lives at \`documentation.md\`.
 `;

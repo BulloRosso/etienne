@@ -164,3 +164,15 @@ export const COVERAGE_DASHBOARD = {
 };
 
 export const COVERAGE_DASHBOARD_REL = 'out/coverage/current.coverage.json';
+
+/**
+ * Path of the compliance-matrix sentinel — the file the
+ * compliance-matrix cockpit (MCP App) is registered against in
+ * frontend/src/components/viewerRegistry.jsx (extension `.compliance.json`).
+ * The cockpit reads the coverage dashboard server-side via the sentinel's
+ * `coverageRef`; it is *this* file the user-interface.json previewDocuments
+ * array needs to reference so the dashboard opens as the React cockpit
+ * (with the new "Pick from existing docs" / "Create from knowledge base"
+ * menu) instead of the raw JSON viewer.
+ */
+export const COMPLIANCE_DASHBOARD_REL = 'out/compliance/current.compliance.json';

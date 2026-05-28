@@ -24,14 +24,22 @@ import {
   Alert,
   Box,
   Button,
+  ButtonGroup,
   Chip,
   CircularProgress,
   CssBaseline,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControl,
   IconButton,
   InputAdornment,
   InputLabel,
+  List,
+  ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   ListSubheader,
@@ -54,12 +62,16 @@ import {
 import {
   Add as AddIcon,
   ArrowBack as ArrowBackIcon,
+  ArrowDropDown as ArrowDropDownIcon,
   Article as ArticleIcon,
+  AutoAwesome as AutoAwesomeIcon,
   Close as CloseIcon,
   EditNote as EditNoteIcon,
   FileDownload as FileDownloadIcon,
   FilterAltOff as FilterAltOffIcon,
+  FolderOpen as FolderOpenIcon,
   MoreVert as MoreVertIcon,
+  Psychology as PsychologyIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
 import ReactMarkdown from "react-markdown";
@@ -111,6 +123,18 @@ interface TeamEntry {
   name: string;
   role: string;
   areas: string;
+}
+
+interface SourceItem {
+  scope: "documents" | "wiki";
+  path: string;
+  name: string;
+  title?: string;
+  sizeBytes: number;
+  mtime: string;
+  preview: string;
+  missionRelevance?: number;
+  status?: string;
 }
 
 interface MatrixPayload {
@@ -300,6 +324,29 @@ function ComplianceMatrixApp() {
   >({});
 
   const [updatedStateCounts, setUpdatedStateCounts] = useState<Record<string, number> | null>(null);
+
+  // ── Planned-response creation menu / dialogs ─────────────────────────────
+  // The right-pane "create planned response" action opens a split-button
+  // menu with three paths: empty stub, pick from existing docs / wiki, or
+  // create from knowledge base. Two of the paths open follow-up dialogs.
+  const [createMenuAnchor, setCreateMenuAnchor] = useState<{
+    anchor: HTMLElement | null;
+    row: MatrixRow | null;
+  }>({ anchor: null, row: null });
+  // Pick-from-existing-docs dialog state.
+  const [pickerOpen, setPickerOpen] = useState<{
+    row: MatrixRow | null;
+  }>({ row: null });
+  const [pickerItems, setPickerItems] = useState<SourceItem[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerError, setPickerError] = useState<string | null>(null);
+  const [pickerFilter, setPickerFilter] = useState("");
+  const [pickerSubmitting, setPickerSubmitting] = useState(false);
+  // Knowledge-base dialog state.
+  const [kbOpen, setKbOpen] = useState<{ row: MatrixRow | null }>({ row: null });
+  const [kbQuestion, setKbQuestion] = useState("");
+  const [kbSubmitting, setKbSubmitting] = useState(false);
+  const [kbError, setKbError] = useState<string | null>(null);
 
   // Right-pane width is draggable. We try to persist via localStorage,
   // but the MCP App runs inside a sandboxed `srcdoc` iframe without
@@ -771,6 +818,129 @@ function ComplianceMatrixApp() {
     [loadMarkdown],
   );
 
+  // ── Pick-from-existing-docs path ─────────────────────────────────────────
+  // Opens the source picker dialog and triggers the list_project_sources call.
+  // On select the dialog invokes create_planned_response_from_source.
+  const openSourcePicker = useCallback(async (row: MatrixRow) => {
+    const app = appRef.current;
+    const project = payloadRef.current?.workspaceProject;
+    if (!app || !project) return;
+    setPickerOpen({ row });
+    setPickerLoading(true);
+    setPickerError(null);
+    setPickerItems([]);
+    setPickerFilter("");
+    try {
+      const result = await app.callServerTool({
+        name: "list_project_sources",
+        arguments: { projectName: project },
+      });
+      const parsed = extractJson<{ items?: SourceItem[]; error?: string }>(result as CallToolResult);
+      if (parsed.error) {
+        setPickerError(parsed.error);
+        setPickerItems([]);
+      } else {
+        setPickerItems(Array.isArray(parsed.items) ? parsed.items : []);
+      }
+    } catch (err) {
+      console.error("[compliance-matrix] list_project_sources failed:", err);
+      setPickerError(String((err as Error)?.message ?? err));
+    } finally {
+      setPickerLoading(false);
+    }
+  }, []);
+
+  const handlePickSource = useCallback(
+    async (row: MatrixRow, item: SourceItem) => {
+      const app = appRef.current;
+      const project = payloadRef.current?.workspaceProject;
+      if (!app || !project) return;
+      setPickerSubmitting(true);
+      try {
+        const result = await app.callServerTool({
+          name: "create_planned_response_from_source",
+          arguments: {
+            projectName: project,
+            requirementId: row.requirementId,
+            ears: row.ears,
+            sourceLocation: row.sourceLocation,
+            sourceScope: item.scope,
+            sourcePath: item.path,
+          },
+        });
+        const parsed = extractJson<{ created: boolean; slug?: string; error?: string }>(
+          result as CallToolResult,
+        );
+        if (parsed.created && parsed.slug) {
+          loadMarkdown(`wiki/topics/${parsed.slug}.md`, project, "replace");
+          setPickerOpen({ row: null });
+        } else {
+          setPickerError(parsed.error ?? "Unknown error creating planned response from source");
+        }
+      } catch (err) {
+        console.error("[compliance-matrix] create_planned_response_from_source failed:", err);
+        setPickerError(String((err as Error)?.message ?? err));
+      } finally {
+        setPickerSubmitting(false);
+      }
+    },
+    [loadMarkdown],
+  );
+
+  // ── Knowledge-base path ──────────────────────────────────────────────────
+  const handleSubmitKnowledgeBase = useCallback(async () => {
+    const app = appRef.current;
+    const project = payloadRef.current?.workspaceProject;
+    const row = kbOpen.row;
+    if (!app || !project || !row || !kbQuestion.trim()) return;
+    setKbSubmitting(true);
+    setKbError(null);
+    try {
+      const result = await app.callServerTool({
+        name: "create_planned_response_from_knowledge_base",
+        arguments: {
+          projectName: project,
+          requirementId: row.requirementId,
+          ears: row.ears,
+          sourceLocation: row.sourceLocation,
+          question: kbQuestion.trim(),
+        },
+      });
+      const parsed = extractJson<{ created: boolean; slug?: string; error?: string }>(
+        result as CallToolResult,
+      );
+      if (parsed.created && parsed.slug) {
+        loadMarkdown(`wiki/topics/${parsed.slug}.md`, project, "replace");
+        setKbOpen({ row: null });
+        setKbQuestion("");
+      } else {
+        setKbError(parsed.error ?? "Unknown error creating planned response from knowledge base");
+      }
+    } catch (err) {
+      console.error("[compliance-matrix] create_planned_response_from_knowledge_base failed:", err);
+      setKbError(String((err as Error)?.message ?? err));
+    } finally {
+      setKbSubmitting(false);
+    }
+  }, [kbOpen.row, kbQuestion, loadMarkdown]);
+
+  // Convenience: the create-menu actions close the menu then dispatch.
+  const handleCreateMenuPick = useCallback(
+    (action: "stub" | "source" | "kb", row: MatrixRow) => {
+      setCreateMenuAnchor({ anchor: null, row: null });
+      if (action === "stub") {
+        handleCreatePlannedResponse(row);
+      } else if (action === "source") {
+        openSourcePicker(row);
+      } else {
+        setKbQuestion("");
+        setKbError(null);
+        setKbOpen({ row });
+      }
+    },
+    [handleCreatePlannedResponse, openSourcePicker],
+  );
+
   // ── render ─────────────────────────────────────────────────────────────
 
   const content = (() => {
@@ -917,17 +1087,19 @@ function ComplianceMatrixApp() {
 
         {/* Body: matrix + right-pane preview */}
         <Box sx={{ flex: 1, minHeight: 0, display: "flex" }}>
-          {/* Matrix — column widths use `table-layout: fixed` so the cells
-              shrink with the pane instead of pushing a horizontal
-              scrollbar. Cell content wraps via `wordBreak: break-word`
-              applied to all TableCell children below. */}
-          <Box sx={{ flex: 1, minWidth: 0, overflow: "auto" }}>
+          {/* Matrix — column widths use `table-layout: fixed`. The table
+              has a hard floor of 700px so columns never crush below
+              legibility; the outer Box scrolls horizontally when the
+              right pane is narrower than that. Cell content wraps via
+              `wordBreak: break-word` on all TableCell children. */}
+          <Box sx={{ flex: 1, minWidth: 0, overflowX: "auto", overflowY: "auto" }}>
             <Table
               size="small"
               stickyHeader
               sx={{
                 tableLayout: "fixed",
                 width: "100%",
+                minWidth: 700,
                 // `break-word` wraps long tokens (locators, slugs) at the
                 // cell boundary without breaking *every* word character by
                 // character. `wordBreak: normal` keeps prose readable.
@@ -940,16 +1112,14 @@ function ComplianceMatrixApp() {
               <TableHead>
                 <TableRow>
                   {/* Below `lg` the matrix collapses to: ID (with status
-                      dot under it) · EARS · Owner/review · kebab.
-                      Source/Response appears only at `lg` and up. The
-                      hidden info is still reachable via the row's
-                      right-pane info card. */}
-                  <TableCell sx={{ width: { xs: 60, sm: 70, md: 80 } }}>ID</TableCell>
+                      dot under it) · EARS · Source/Response · Owner/review
+                      · kebab. All columns render at every viewport width;
+                      horizontal overflow on narrow viewports is handled
+                      by the outer scroll container. */}
+                  <TableCell sx={{ width: 80 }}>ID</TableCell>
                   <TableCell>Requirement (EARS)</TableCell>
-                  <TableCell sx={{ width: 200, display: { xs: "none", lg: "table-cell" } }}>
-                    Source / Response
-                  </TableCell>
-                  <TableCell sx={{ width: { xs: 80, sm: 95, md: 110 }, whiteSpace: "nowrap" }}>
+                  <TableCell sx={{ width: 200 }}>Source / Response</TableCell>
+                  <TableCell sx={{ width: 110, whiteSpace: "nowrap" }}>
                     Owner / review
                   </TableCell>
                   <TableCell sx={{ width: 36, p: 0 }} aria-label="Row actions" />
@@ -1018,12 +1188,7 @@ function ComplianceMatrixApp() {
                           </Stack>
                         )}
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          verticalAlign: "top",
-                          display: { xs: "none", lg: "table-cell" },
-                        }}
-                      >
+                      <TableCell sx={{ verticalAlign: "top" }}>
                         <Stack spacing={0.5}>
                           {/* Source line — click opens the source doc. */}
                           <Box
@@ -1274,14 +1439,23 @@ function ComplianceMatrixApp() {
                         hasn't been authored.
                       </Alert>
                       {markdownError.includes("/planned-response/") && selectedRow && (
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<AddIcon fontSize="small" />}
-                          onClick={() => handleCreatePlannedResponse(selectedRow)}
-                        >
-                          Create planned response stub
-                        </Button>
+                        <ButtonGroup variant="contained" size="small" sx={{ alignSelf: "flex-start" }}>
+                          <Button
+                            startIcon={<AddIcon fontSize="small" />}
+                            onClick={() => handleCreatePlannedResponse(selectedRow)}
+                          >
+                            Create planned response stub
+                          </Button>
+                          <Button
+                            size="small"
+                            sx={{ minWidth: 32, px: 0.5 }}
+                            onClick={(e) =>
+                              setCreateMenuAnchor({ anchor: e.currentTarget, row: selectedRow })
+                            }
+                          >
+                            <ArrowDropDownIcon fontSize="small" />
+                          </Button>
+                        </ButtonGroup>
                       )}
                     </Stack>
                   )}
@@ -1372,14 +1546,24 @@ function ComplianceMatrixApp() {
                         </Paper>
                       </Box>
                     ) : (
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<AddIcon fontSize="small" />}
-                        onClick={() => handleCreatePlannedResponse(selectedRow)}
-                      >
-                        Create planned response
-                      </Button>
+                      <ButtonGroup variant="contained" size="small" sx={{ alignSelf: "flex-start" }}>
+                        <Button
+                          startIcon={<AddIcon fontSize="small" />}
+                          onClick={() => handleCreatePlannedResponse(selectedRow)}
+                        >
+                          Create planned response
+                        </Button>
+                        <Button
+                          size="small"
+                          sx={{ minWidth: 32, px: 0.5 }}
+                          onClick={(e) =>
+                            setCreateMenuAnchor({ anchor: e.currentTarget, row: selectedRow })
+                          }
+                          aria-label="More create options"
+                        >
+                          <ArrowDropDownIcon fontSize="small" />
+                        </Button>
+                      </ButtonGroup>
                     )}
 
                     {selectedRow.sourceCitation && (
@@ -1536,6 +1720,179 @@ function ComplianceMatrixApp() {
             return items;
           })()}
         </Menu>
+
+        {/* Create-planned-response menu — the dropdown side of the split-button.
+            Same root-level rendering as the kebab Menu so it can be anchored
+            from either of the two "Create planned response" sites. */}
+        <Menu
+          anchorEl={createMenuAnchor.anchor}
+          open={Boolean(createMenuAnchor.anchor)}
+          onClose={() => setCreateMenuAnchor({ anchor: null, row: null })}
+          slotProps={{ paper: { sx: { minWidth: 260 } } }}
+        >
+          {createMenuAnchor.row && (
+            <Box>
+              <ListSubheader sx={{ lineHeight: 1.6, fontWeight: 700, textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.5 }}>
+                Create planned response
+              </ListSubheader>
+              <MenuItem onClick={() => handleCreateMenuPick("stub", createMenuAnchor.row!)}>
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <AddIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Empty stub"
+                  secondary="Placeholder body. Draft from scratch."
+                  primaryTypographyProps={{ fontSize: "0.85rem" }}
+                  secondaryTypographyProps={{ fontSize: "0.75rem" }}
+                />
+              </MenuItem>
+              <MenuItem onClick={() => handleCreateMenuPick("source", createMenuAnchor.row!)}>
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <FolderOpenIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Pick from existing docs"
+                  secondary="From documents/ or an existing wiki page."
+                  primaryTypographyProps={{ fontSize: "0.85rem" }}
+                  secondaryTypographyProps={{ fontSize: "0.75rem" }}
+                />
+              </MenuItem>
+              <MenuItem onClick={() => handleCreateMenuPick("kb", createMenuAnchor.row!)}>
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <PsychologyIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Create from knowledge base"
+                  secondary="Ask the agent a single question (RAG-grounded)."
+                  primaryTypographyProps={{ fontSize: "0.85rem" }}
+                  secondaryTypographyProps={{ fontSize: "0.75rem" }}
+                />
+              </MenuItem>
+            </Box>
+          )}
+        </Menu>
+
+        {/* Source-picker dialog — opened by the "Pick from existing docs" menu
+            item. Two grouped lists (Documents + Wiki pages), client-side filter,
+            click-to-select. */}
+        <Dialog
+          open={Boolean(pickerOpen.row)}
+          onClose={() => (pickerSubmitting ? null : setPickerOpen({ row: null }))}
+          fullWidth
+          maxWidth="md"
+        >
+          <DialogTitle>
+            Pick a source for the planned response
+            {pickerOpen.row && (
+              <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                {pickerOpen.row.requirementId} — {pickerOpen.row.ears.slice(0, 100)}
+                {pickerOpen.row.ears.length > 100 ? "…" : ""}
+              </Typography>
+            )}
+          </DialogTitle>
+          <DialogContent dividers>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Filter by name, title or preview…"
+              value={pickerFilter}
+              onChange={(e) => setPickerFilter(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 1 }}
+            />
+            {pickerLoading && (
+              <Stack alignItems="center" sx={{ py: 4 }}>
+                <CircularProgress size={24} />
+              </Stack>
+            )}
+            {pickerError && !pickerLoading && (
+              <Alert severity="error" sx={{ mb: 1 }}>
+                {pickerError}
+              </Alert>
+            )}
+            {!pickerLoading && pickerItems.length > 0 && (
+              <SourcePickerLists
+                items={pickerItems}
+                filter={pickerFilter}
+                disabled={pickerSubmitting}
+                onPick={(item) => pickerOpen.row && handlePickSource(pickerOpen.row, item)}
+              />
+            )}
+            {!pickerLoading && !pickerError && pickerItems.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
+                No sources available in documents/ or wiki/.
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPickerOpen({ row: null })} disabled={pickerSubmitting}>
+              Cancel
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Knowledge-base dialog — opened by the "Create from knowledge base"
+            menu item. Single question textbox + submit. The agent answers
+            using RAG context; the answer becomes the new wiki page body. */}
+        <Dialog
+          open={Boolean(kbOpen.row)}
+          onClose={() => (kbSubmitting ? null : setKbOpen({ row: null }))}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle>
+            Ask the agent
+            {kbOpen.row && (
+              <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                {kbOpen.row.requirementId} — {kbOpen.row.ears.slice(0, 100)}
+                {kbOpen.row.ears.length > 100 ? "…" : ""}
+              </Typography>
+            )}
+          </DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              The agent will answer your question using the project's documents
+              and wiki (RAG-grounded) and write the answer as the new planned
+              response. <strong>Review the result</strong> — the row stays in
+              <code>drafted</code>; the agent may hallucinate.
+            </Typography>
+            <TextField
+              autoFocus
+              fullWidth
+              multiline
+              minRows={3}
+              maxRows={8}
+              placeholder="What should the response say?"
+              value={kbQuestion}
+              onChange={(e) => setKbQuestion(e.target.value)}
+              disabled={kbSubmitting}
+            />
+            {kbError && (
+              <Alert severity="error" sx={{ mt: 1 }}>
+                {kbError}
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setKbOpen({ row: null })} disabled={kbSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSubmitKnowledgeBase}
+              disabled={kbSubmitting || !kbQuestion.trim()}
+              startIcon={kbSubmitting ? <CircularProgress size={14} /> : <AutoAwesomeIcon fontSize="small" />}
+            >
+              {kbSubmitting ? "Asking…" : "Ask agent"}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Sticky footer — state-count chips (left) + Export button (right).
             Sticks to the bottom of the iframe; the body above scrolls. */}
@@ -1722,6 +2079,111 @@ function FilterSelect({
         ))}
       </Select>
     </FormControl>
+  );
+}
+
+// ─── Source picker lists (Documents + Wiki pages) ────────────────────────────
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function SourcePickerLists({
+  items,
+  filter,
+  disabled,
+  onPick,
+}: {
+  items: SourceItem[];
+  filter: string;
+  disabled: boolean;
+  onPick: (item: SourceItem) => void;
+}) {
+  const lowerFilter = filter.trim().toLowerCase();
+  const matches = (it: SourceItem) => {
+    if (!lowerFilter) return true;
+    return (
+      it.name.toLowerCase().includes(lowerFilter) ||
+      (it.title?.toLowerCase().includes(lowerFilter) ?? false) ||
+      it.preview.toLowerCase().includes(lowerFilter)
+    );
+  };
+  const documents = items.filter((it) => it.scope === "documents" && matches(it));
+  const wikiPages = items.filter((it) => it.scope === "wiki" && matches(it));
+
+  return (
+    <Box>
+      {documents.length > 0 && (
+        <Box sx={{ mb: 1 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}
+          >
+            Documents ({documents.length})
+          </Typography>
+          <List dense disablePadding sx={{ maxHeight: 240, overflow: "auto", border: 1, borderColor: "divider", borderRadius: 1, mt: 0.5 }}>
+            {documents.map((item) => (
+              <ListItem key={`doc-${item.path}`} disablePadding>
+                <ListItemButton disabled={disabled} onClick={() => onPick(item)}>
+                  <ListItemIcon sx={{ minWidth: 28 }}>
+                    <ArticleIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.name}
+                    secondary={`${formatSize(item.sizeBytes)} · ${item.preview}`}
+                    primaryTypographyProps={{ fontSize: "0.85rem", fontFamily: "monospace" }}
+                    secondaryTypographyProps={{ fontSize: "0.75rem", noWrap: false }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+      {wikiPages.length > 0 && (
+        <Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}
+          >
+            Wiki pages ({wikiPages.length})
+          </Typography>
+          <List dense disablePadding sx={{ maxHeight: 240, overflow: "auto", border: 1, borderColor: "divider", borderRadius: 1, mt: 0.5 }}>
+            {wikiPages.map((item) => (
+              <ListItem key={`wiki-${item.path}`} disablePadding>
+                <ListItemButton disabled={disabled} onClick={() => onPick(item)}>
+                  <ListItemIcon sx={{ minWidth: 28 }}>
+                    <EditNoteIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.title ?? item.name}
+                    secondary={
+                      <Box component="span" sx={{ display: "block" }}>
+                        <Box component="span" sx={{ fontFamily: "monospace", fontSize: "0.7rem", display: "block" }}>
+                          {item.path}
+                        </Box>
+                        <Box component="span" sx={{ display: "block" }}>{item.preview}</Box>
+                      </Box>
+                    }
+                    primaryTypographyProps={{ fontSize: "0.85rem" }}
+                    secondaryTypographyProps={{ fontSize: "0.75rem", component: "span" }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+      {documents.length === 0 && wikiPages.length === 0 && (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
+          No matches for "{filter}".
+        </Typography>
+      )}
+    </Box>
   );
 }
 
