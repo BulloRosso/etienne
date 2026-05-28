@@ -217,12 +217,6 @@ export default function ExportComplianceModal({
     <Dialog open={!!open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {t('exportCompliance:title', { defaultValue: 'Export compliance matrix' })}
-        {selectedRfp ? (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            RFP: {selectedRfp.title}
-            {selectedRfp.kind === 'xlsx-questionnaire' ? ' (XLSX questionnaire)' : ''}
-          </Typography>
-        ) : null}
       </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
@@ -256,6 +250,7 @@ export default function ExportComplianceModal({
               <FormControlLabel
                 value="fresh"
                 control={<Radio />}
+                sx={{ alignItems: 'flex-start', '& .MuiFormControlLabel-label': { mt: '6px' } }}
                 label={
                   <Stack>
                     <Typography variant="body2" fontWeight={600}>
@@ -275,6 +270,7 @@ export default function ExportComplianceModal({
                   <FormControlLabel
                     value="fillback-annotate"
                     control={<Radio />}
+                    sx={{ alignItems: 'flex-start', '& .MuiFormControlLabel-label': { mt: '6px' } }}
                     label={
                       <Stack>
                         <Typography variant="body2" fontWeight={600}>
@@ -294,6 +290,7 @@ export default function ExportComplianceModal({
                   <FormControlLabel
                     value="fillback-replace"
                     control={<Radio />}
+                    sx={{ alignItems: 'flex-start', '& .MuiFormControlLabel-label': { mt: '6px' } }}
                     label={
                       <Stack>
                         <Typography variant="body2" fontWeight={600}>
@@ -316,6 +313,7 @@ export default function ExportComplianceModal({
                 <FormControlLabel
                   value="fillback-xlsx"
                   control={<Radio />}
+                  sx={{ alignItems: 'flex-start', '& .MuiFormControlLabel-label': { mt: '6px' } }}
                   label={
                     <Stack>
                       <Typography variant="body2" fontWeight={600}>
