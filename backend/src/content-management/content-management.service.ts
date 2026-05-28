@@ -9,6 +9,8 @@ import AdmZip from 'adm-zip';
 import { ClaudeConfig } from '../claude/config/claude.config';
 import { safeRoot } from '../claude/utils/path.utils';
 import { FileWatcherService } from '../event-handling/core/file-watcher.service';
+import { parseXlsxToSections, fillBackResponsesIntoXlsx, isXlsxPath } from './xlsx-parser';
+import { RfpRegistryService } from './rfp-registry.service';
 
 const execAsync = promisify(exec);
 
@@ -19,6 +21,7 @@ export class ContentManagementService {
 
   constructor(
     @Optional() @Inject(FileWatcherService) private readonly fileWatcher?: FileWatcherService,
+    @Optional() @Inject(RfpRegistryService) private readonly rfpRegistry?: RfpRegistryService,
   ) {}
 
   /**
@@ -43,6 +46,8 @@ export class ContentManagementService {
       '.pdf': 'application/pdf',
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.doc': 'application/msword',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.xls': 'application/vnd.ms-excel',
       '.woff': 'font/woff',
       '.woff2': 'font/woff2',
       '.ttf': 'font/ttf',
@@ -665,26 +670,32 @@ export class ContentManagementService {
     }
 
     const ext = extname(absoluteSource).toLowerCase();
-    const supported = new Set(['.pdf', '.doc', '.docx', '.docm', '.odt', '.rtf']);
+    const supported = new Set(['.pdf', '.doc', '.docx', '.docm', '.odt', '.rtf', '.xlsx']);
     if (!supported.has(ext)) {
       throw new BadRequestException(
         `Unsupported extension ${ext}. Supported: ${[...supported].join(', ')}`,
       );
     }
 
-    // Reuse the same LiteParse import the RAG pipeline uses. ESM-only, so
-    // the `new Function(...)` trick keeps ts-node from rewriting it to require().
-    const { LiteParse } = await (new Function(
-      'return import("@llamaindex/liteparse")',
-    ))();
-    const parser = new LiteParse({ ocrEnabled: true, outputFormat: 'text' });
-    const result = await parser.parse(absoluteSource, true /* quiet */);
-    const text: string = result?.text ?? '';
-    if (!text.trim()) {
-      throw new BadRequestException('LiteParse returned empty content.');
+    let sections: Array<{ title: string; body: string }>;
+    if (isXlsxPath(absoluteSource)) {
+      // Questionnaire workbooks: row-per-question splitter, headers row 1.
+      const xlsxSections = await parseXlsxToSections(absoluteSource);
+      sections = xlsxSections.slice(0, opts?.maxSections ?? 200);
+    } else {
+      // Reuse the same LiteParse import the RAG pipeline uses. ESM-only, so
+      // the `new Function(...)` trick keeps ts-node from rewriting it to require().
+      const { LiteParse } = await (new Function(
+        'return import("@llamaindex/liteparse")',
+      ))();
+      const parser = new LiteParse({ ocrEnabled: true, outputFormat: 'text' });
+      const result = await parser.parse(absoluteSource, true /* quiet */);
+      const text: string = result?.text ?? '';
+      if (!text.trim()) {
+        throw new BadRequestException('LiteParse returned empty content.');
+      }
+      sections = splitIntoSections(text, opts?.maxSections ?? 40);
     }
-
-    const sections = splitIntoSections(text, opts?.maxSections ?? 40);
     if (sections.length === 0) {
       return {
         success: true,
@@ -995,6 +1006,110 @@ export class ContentManagementService {
 
     this.logger.log(
       `fillBackResponsesIntoSource[${mode}]: ${filled.length} filled, ${unfilled.length} unfilled → ${outputRel}`,
+    );
+    return {
+      success: true,
+      outputPath: outputRel,
+      filled,
+      unfilled,
+      message:
+        `Filled ${filled.length} response(s) into ${outputRel}. ` +
+        `${unfilled.length} row(s) could not be filled — see \`unfilled\`.`,
+    };
+  }
+
+  /**
+   * Fill-back for `xlsx-questionnaire` RFPs: copy the template workbook,
+   * write each committed planned response into the answer column
+   * (resolved per-sheet by header text), and save to
+   * `out/fill-back/<rfp-id>.responded.xlsx`. Returns the same
+   * `{filled, unfilled, outputPath}` shape as the DOCX path so the
+   * export modal renders results identically.
+   */
+  async fillBackResponsesIntoXlsxRfp(
+    projectName: string,
+    rfpId: string,
+    opts?: { includeNonCommitted?: boolean },
+  ): Promise<{
+    success: boolean;
+    outputPath: string;
+    filled: Array<{ requirementId: string; locator: string }>;
+    unfilled: Array<{ requirementId: string; locator: string; reason: string }>;
+    message: string;
+  }> {
+    if (!this.rfpRegistry) {
+      throw new BadRequestException('RFP registry service not available');
+    }
+    const rfp = await this.rfpRegistry.getRfp(projectName, rfpId);
+    if (rfp.exportTarget.kind !== 'xlsx-fill') {
+      throw new BadRequestException(
+        `RFP "${rfpId}" is not an XLSX-fill target (kind=${rfp.exportTarget.kind})`,
+      );
+    }
+    if (!rfp.exportTarget.templatePath) {
+      throw new BadRequestException(
+        `RFP "${rfpId}" has no exportTarget.templatePath`,
+      );
+    }
+    const root = safeRoot(this.config.hostRoot, projectName);
+    const templateAbs = join(root, rfp.exportTarget.templatePath);
+    try {
+      await fs.access(templateAbs);
+    } catch {
+      throw new NotFoundException(
+        `XLSX template not found: ${rfp.exportTarget.templatePath}`,
+      );
+    }
+
+    const coveragePath = join(root, rfp.coverageRef);
+    let coverage: any;
+    try {
+      coverage = JSON.parse(await fs.readFile(coveragePath, 'utf-8'));
+    } catch (err) {
+      throw new BadRequestException(
+        `Cannot read coverage at ${rfp.coverageRef}: ${(err as Error).message}`,
+      );
+    }
+    const rows: any[] = Array.isArray(coverage?.rows) ? coverage.rows : [];
+    const eligible = rows.filter((r) =>
+      opts?.includeNonCommitted ? true : r.state === 'committed',
+    );
+
+    const rowsWithBodies = await Promise.all(
+      eligible.map(async (row) => {
+        const slug: string | undefined = row.plannedResponseSlug;
+        let body: string | null = null;
+        if (slug) {
+          const wikiPath = join(root, 'wiki', 'topics', `${slug}.md`);
+          try {
+            const raw = await fs.readFile(wikiPath, 'utf-8');
+            body = raw.replace(/^---[\s\S]*?---\r?\n?/, '').trim();
+          } catch {
+            body = null;
+          }
+        }
+        return {
+          requirementId: row.requirementId,
+          body,
+          sourceRef: row.sourceRef,
+        };
+      }),
+    );
+
+    const outDir = join(root, 'out', 'fill-back');
+    await fs.mkdir(outDir, { recursive: true });
+    const outputRel = `out/fill-back/${rfp.id}.responded.xlsx`;
+    const outputAbs = join(root, outputRel);
+
+    const { filled, unfilled } = await fillBackResponsesIntoXlsx({
+      templateAbsolutePath: templateAbs,
+      outputAbsolutePath: outputAbs,
+      answerColumnHeader: rfp.exportTarget.answerColumnHeader ?? 'Response',
+      rows: rowsWithBodies,
+    });
+
+    this.logger.log(
+      `fillBackResponsesIntoXlsxRfp[${rfp.id}]: ${filled.length} filled, ${unfilled.length} unfilled → ${outputRel}`,
     );
     return {
       success: true,

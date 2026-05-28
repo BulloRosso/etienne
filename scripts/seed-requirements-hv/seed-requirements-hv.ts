@@ -80,6 +80,19 @@ import { COMPLIANCE_DASHBOARD_REL, COVERAGE_DASHBOARD, COVERAGE_DASHBOARD_REL } 
 import { DOCUMENTATION_MD, USER_INTERFACE_JSON } from './fixtures/documentation';
 import { INBOX_DOCS } from './fixtures/inbox-docx';
 import { renderDocx } from './fixtures/docx-writer';
+import { QUESTIONNAIRE_INBOX_REL } from './fixtures/inbox-xlsx';
+import { writeQuestionnaireWorkbook } from './fixtures/xlsx-writer';
+import {
+  MAIN_RFP_ENTRY,
+  MAIN_RFP_REL,
+  QUESTIONNAIRE_COMPLIANCE_REL,
+  QUESTIONNAIRE_COMPLIANCE_SENTINEL,
+  QUESTIONNAIRE_COVERAGE,
+  QUESTIONNAIRE_COVERAGE_REL,
+  QUESTIONNAIRE_RFP_ENTRY,
+  QUESTIONNAIRE_RFP_REL,
+  QUESTIONNAIRE_WIKI_STUBS,
+} from './fixtures/questionnaire-coverage';
 
 const WORKSPACE_ROOT =
   process.env.WORKSPACE_ROOT ||
@@ -397,6 +410,35 @@ async function step6b_seedInbox(): Promise<void> {
   ok(`inbox: ${INBOX_DOCS.length} .docx files written (not RAG-indexed)`);
 }
 
+/**
+ * Write the XLSX questionnaire to `inbox/PQQ-2026.xlsx` and seed both
+ * RFP registry entries (main + questionnaire). Coverage / sentinel for
+ * the questionnaire are written later in step10b — keeping them next to
+ * step10 (the tender coverage) makes the symmetry obvious.
+ */
+async function step6c_seedQuestionnaireInboxAndRfpRegistry(): Promise<void> {
+  header('6c. Write inbox/PQQ-2026.xlsx + register both RFPs (out/rfps/)');
+  const xlsxPath = join(PROJECT_ROOT, QUESTIONNAIRE_INBOX_REL);
+  await mkdir(join(PROJECT_ROOT, 'inbox'), { recursive: true });
+  await writeQuestionnaireWorkbook(xlsxPath);
+  info(`${QUESTIONNAIRE_INBOX_REL} (xlsx)`);
+
+  const rfpsDir = join(PROJECT_ROOT, 'out', 'rfps');
+  await mkdir(rfpsDir, { recursive: true });
+  await writeFile(
+    join(PROJECT_ROOT, MAIN_RFP_REL),
+    JSON.stringify(MAIN_RFP_ENTRY, null, 2),
+    'utf8',
+  );
+  info(`${MAIN_RFP_REL} (registry entry for the existing technical tender)`);
+  await writeFile(
+    join(PROJECT_ROOT, QUESTIONNAIRE_RFP_REL),
+    JSON.stringify(QUESTIONNAIRE_RFP_ENTRY, null, 2),
+    'utf8',
+  );
+  ok(`${QUESTIONNAIRE_RFP_REL} (questionnaire RFP registered)`);
+}
+
 async function step7_seedChats(): Promise<void> {
   header('7. Seed chat sessions');
   const etienne = join(PROJECT_ROOT, '.etienne');
@@ -527,6 +569,71 @@ async function step10_writeCoverageDashboard(): Promise<void> {
   ok(`compliance-matrix sentinel written: out/compliance/current.compliance.json`);
 }
 
+/**
+ * Coverage / sentinel / wiki stubs for the questionnaire RFP. Runs right
+ * after the main tender coverage so both RFPs are fully wired before the
+ * preview-document step registers them with the UI.
+ */
+async function step10b_writeQuestionnaireCoverage(): Promise<void> {
+  header(
+    '10b. Write the questionnaire coverage + sentinel + planned-response stubs',
+  );
+  await writeFile(
+    join(PROJECT_ROOT, QUESTIONNAIRE_COVERAGE_REL),
+    JSON.stringify(QUESTIONNAIRE_COVERAGE, null, 2),
+    'utf8',
+  );
+  ok(
+    `questionnaire coverage written: ${QUESTIONNAIRE_COVERAGE_REL} ` +
+      `(${QUESTIONNAIRE_COVERAGE.rows.length} rows)`,
+  );
+
+  await mkdir(join(PROJECT_ROOT, 'out', 'compliance'), { recursive: true });
+  await writeFile(
+    join(PROJECT_ROOT, QUESTIONNAIRE_COMPLIANCE_REL),
+    JSON.stringify(QUESTIONNAIRE_COMPLIANCE_SENTINEL, null, 2),
+    'utf8',
+  );
+  ok(`questionnaire sentinel written: ${QUESTIONNAIRE_COMPLIANCE_REL}`);
+
+  // Planned-response stubs for questionnaire-specific rows (rows that
+  // reuse a tender planned-response page already have one on disk).
+  const wikiDir = join(PROJECT_ROOT, 'wiki', 'topics', 'planned-response');
+  await mkdir(wikiDir, { recursive: true });
+  for (const stub of QUESTIONNAIRE_WIKI_STUBS) {
+    const path = join(wikiDir, stub.filename);
+    if (existsSync(path)) continue;
+    const fm =
+      '---\n' +
+      `title: ${JSON.stringify(stub.title)}\n` +
+      `slug: ${stub.slug.replace(/^planned-response\//, '')}\n` +
+      `bucket: topics\n` +
+      `status: stub\n` +
+      `confidence: low\n` +
+      `mission_relevance: 0.5\n` +
+      `tags: ["planned-response", "questionnaire", "extracted", "stub"]\n` +
+      `classification: private\n` +
+      `created: ${NOW}\n` +
+      `last_updated: ${NOW}\n` +
+      `provenance:\n` +
+      `  sourceSessions: []\n` +
+      `  sourceEntries: []\n` +
+      `  createdBy: user\n` +
+      `  createdAt: ${NOW}\n` +
+      `  updatedAt: ${NOW}\n` +
+      `extracted_from:\n` +
+      `  document: ${JSON.stringify(QUESTIONNAIRE_INBOX_REL)}\n` +
+      `  section_heading: ${JSON.stringify(stub.title)}\n` +
+      `---\n\n` +
+      `# ${stub.title}\n\n`;
+    await writeFile(path, fm + stub.body, 'utf8');
+  }
+  ok(
+    `questionnaire planned-response stubs written: ${QUESTIONNAIRE_WIKI_STUBS.length} ` +
+      `(reused stubs from the main tender remain shared)`,
+  );
+}
+
 async function step11_documentationAndUi(): Promise<void> {
   header('11. Write documentation.md + register as auto-open');
   await writeFile(join(PROJECT_ROOT, 'documentation.md'), DOCUMENTATION_MD, 'utf8');
@@ -535,10 +642,15 @@ async function step11_documentationAndUi(): Promise<void> {
   await mkdir(join(PROJECT_ROOT, '.etienne'), { recursive: true });
   // The compliance-matrix cockpit (extension `.compliance.json`) is the
   // load-bearing UI artefact — it's the React MCP App that hosts the
-  // three-way "create planned response" split-button. We register the
-  // sentinel here so the file opens as the cockpit, not the raw JSON
-  // coverage dump.
-  const previewDefaults = [COMPLIANCE_DASHBOARD_REL, 'documentation.md'];
+  // three-way "create planned response" split-button. We register both
+  // RFP sentinels (main tender + PQQ questionnaire) so the user can flip
+  // between the two RFPs from the preview tabs without going through the
+  // file explorer.
+  const previewDefaults = [
+    COMPLIANCE_DASHBOARD_REL,
+    QUESTIONNAIRE_COMPLIANCE_REL,
+    'documentation.md',
+  ];
   let ui: any = { ...USER_INTERFACE_JSON, previewDocuments: previewDefaults };
   if (existsSync(uiPath)) {
     try {
@@ -549,14 +661,14 @@ async function step11_documentationAndUi(): Promise<void> {
       // the basic coverage viewer rather than the compliance-matrix cockpit.
       previews = previews.filter((p) => p !== COVERAGE_DASHBOARD_REL);
       if (!previews.includes(COMPLIANCE_DASHBOARD_REL)) previews.unshift(COMPLIANCE_DASHBOARD_REL);
+      // Ensure the questionnaire sentinel sits right after the main one.
+      const mainIdx = previews.indexOf(COMPLIANCE_DASHBOARD_REL);
+      previews = previews.filter((p) => p !== QUESTIONNAIRE_COMPLIANCE_REL);
+      previews.splice(mainIdx + 1, 0, QUESTIONNAIRE_COMPLIANCE_REL);
       if (!previews.includes('documentation.md')) {
-        const filtered = previews.filter((p) => p !== 'documentation.md');
-        const idx = filtered.indexOf(COMPLIANCE_DASHBOARD_REL);
-        filtered.splice(idx + 1, 0, 'documentation.md');
-        ui = { ...cur, previewDocuments: filtered };
-      } else {
-        ui = { ...cur, previewDocuments: previews };
+        previews.push('documentation.md');
       }
+      ui = { ...cur, previewDocuments: previews };
     } catch {
       ui = { ...USER_INTERFACE_JSON, previewDocuments: previewDefaults };
     }
@@ -720,12 +832,14 @@ async function main(): Promise<void> {
   await step5_seedKG(ctx);
   await step6_seedRag(ctx);
   await step6b_seedInbox();
+  await step6c_seedQuestionnaireInboxAndRfpRegistry();
   await step4b_indexWikiForRag(ctx, wikiResult.bucketsTouched);
   await step7_seedChats();
   const runId = await step8_enableAndRunDreaming(ctx);
   const dreamPath = await step9_waitForDream(runId);
 
   await step10_writeCoverageDashboard();
+  await step10b_writeQuestionnaireCoverage();
   await step11_documentationAndUi();
   await step11b_assignApplicationType();
   await step12_seedEventRules();
@@ -734,6 +848,9 @@ async function main(): Promise<void> {
   console.log(`\n\x1b[32m✓ done\x1b[0m`);
   console.log(`  inspect:  ${dreamPath}`);
   console.log(`  coverage: workspace/${PROJECT_NAME}/${COVERAGE_DASHBOARD_REL}`);
+  console.log(`  pqq:      workspace/${PROJECT_NAME}/${QUESTIONNAIRE_COVERAGE_REL}`);
+  console.log(`  pqq xlsx: workspace/${PROJECT_NAME}/${QUESTIONNAIRE_INBOX_REL}`);
+  console.log(`  rfps:     workspace/${PROJECT_NAME}/out/rfps/{main,questionnaire}.json`);
   console.log(`  docs:     workspace/${PROJECT_NAME}/documentation.md (auto-opens in the UI)`);
   console.log(`  ui:       open the project and click "Open the coverage dashboard" in the left rail`);
 }

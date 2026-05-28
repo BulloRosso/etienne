@@ -60,6 +60,7 @@
     "classic-level": "^3.0.0",
     "dotenv": "^17.2.3",
     "emailjs": "^4.0.3",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "fs-extra": "^11.3.2",
     "imap": "^0.8.19",

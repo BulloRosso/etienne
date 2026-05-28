@@ -119,7 +119,7 @@ export default function App() {
   // ── Compliance-matrix Export modal (opened by cockpit's open-export
   //    postMessage; rendered at the App root so it works regardless of
   //    which artifact tab is active). ──
-  const [exportModalState, setExportModalState] = useState({ open: false, projectName: null });
+  const [exportModalState, setExportModalState] = useState({ open: false, projectName: null, rfp: null, rfps: [] });
   const [activeContextId, setActiveContextId] = useState(null);
   const [contexts, setContexts] = useState([]);
   const [contextManagerOpen, setContextManagerOpen] = useState(false);
@@ -1347,10 +1347,15 @@ export default function App() {
       } else if (action === 'open-export') {
         // Open the export-compliance modal. The cockpit sends the
         // workspace project name (not the bid display label) so the
-        // modal can fetch the project's filesystem.
+        // modal can fetch the project's filesystem. The cockpit also
+        // forwards its active RFP (and the full registry) so the modal
+        // can scope fill-back per-RFP and offer the right export modes
+        // (DOCX comments vs XLSX answer column).
         setExportModalState({
           open: true,
           projectName: payload?.projectName || currentProject,
+          rfp: payload?.rfp ?? null,
+          rfps: Array.isArray(payload?.rfps) ? payload.rfps : [],
         });
       }
     }
@@ -2820,7 +2825,9 @@ export default function App() {
         <ExportComplianceModal
           open={exportModalState.open}
           projectName={exportModalState.projectName}
-          onClose={() => setExportModalState({ open: false, projectName: null })}
+          initialRfp={exportModalState.rfp}
+          rfps={exportModalState.rfps}
+          onClose={() => setExportModalState({ open: false, projectName: null, rfp: null, rfps: [] })}
         />
       )}
     </Box>

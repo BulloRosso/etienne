@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Put, Param, Res, Body, UploadedFile, Use
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ContentManagementService } from './content-management.service';
+import { RfpRegistryService } from './rfp-registry.service';
 import { TagsService } from '../tags/tags.service';
 import { Roles } from '../auth/roles.decorator';
 import { Public } from '../auth/public.decorator';
@@ -10,6 +11,7 @@ import { Public } from '../auth/public.decorator';
 export class ContentManagementController {
   constructor(
     private readonly contentManagementService: ContentManagementService,
+    private readonly rfpRegistry: RfpRegistryService,
     @Optional() @Inject(TagsService) private readonly tagsService?: TagsService,
   ) {}
 
@@ -227,6 +229,24 @@ export class ContentManagementController {
       body.mode,
       { coverageRef: body.coverageRef, includeNonCommitted: body.includeNonCommitted },
     );
+  }
+
+  @Roles('user')
+  @Post(':project/documents/fill-back-xlsx')
+  async fillBackResponsesXlsx(
+    @Param('project') project: string,
+    @Body() body: { rfpId: string; includeNonCommitted?: boolean },
+  ) {
+    return await this.contentManagementService.fillBackResponsesIntoXlsxRfp(
+      project,
+      body.rfpId,
+      { includeNonCommitted: body.includeNonCommitted },
+    );
+  }
+
+  @Get(':project/rfps')
+  async listRfps(@Param('project') project: string) {
+    return await this.rfpRegistry.listRfps(project);
   }
 
   @Roles('user')

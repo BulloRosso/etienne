@@ -142,6 +142,9 @@ interface MatrixPayload {
   // Workspace directory the cockpit reads/writes against. Set by the
   // backend tool from the McpUIPreview-supplied projectName.
   workspaceProject?: string;
+  // Echoed back from the render tool — lets the cockpit correlate the
+  // active payload with an entry from `list_project_rfps`.
+  coverageRef?: string;
   project?: { name?: string; customer?: string; scope?: string };
   gates?: Record<string, any>;
   generatedAt?: string;
@@ -152,6 +155,22 @@ interface MatrixPayload {
   team: TeamEntry[];
   teamMissing: boolean;
   filters: { statuses: string[]; reviews: string[]; owners: string[] };
+}
+
+// RFP registry entry returned by the `list_project_rfps` tool. The picker
+// only appears when there are 2+ entries OR when the single entry is not
+// `synthesized` (legacy projects with a synthesised "main" RFP keep the
+// picker hidden so the cockpit stays one-click).
+interface RfpEntry {
+  schema: "rfp.v1";
+  id: string;
+  title: string;
+  kind: "docx-bundle" | "xlsx-questionnaire";
+  coverageRef: string;
+  sentinelRef: string;
+  exportTarget: { kind: "docx-fillback" | "xlsx-fill"; templatePath?: string; answerColumnHeader?: string };
+  dueDate?: string;
+  synthesized?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -294,6 +313,13 @@ function ComplianceMatrixApp() {
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // RFP registry — populated once the workspace project is known. The
+  // picker only renders when there are 2+ entries or the single entry
+  // is not synthesized (legacy "main" RFP). `currentRfpId` follows the
+  // active matrix payload and is what the export modal scopes against.
+  const [rfps, setRfps] = useState<RfpEntry[]>([]);
+  const [currentRfpId, setCurrentRfpId] = useState<string | null>(null);
+  const [rfpSwitching, setRfpSwitching] = useState(false);
 
   // Right-pane mode:
   //  - `info`     : render the structured info card for the selected row
@@ -561,9 +587,15 @@ function ComplianceMatrixApp() {
         [requirementId]: { ...prev[requirementId], state },
       }));
       try {
+        // Scope the patch to the *currently rendered* coverage file —
+        // requirementId is unique per-RFP, not project-wide, so without
+        // an explicit coverageRef the backend falls back to the legacy
+        // current.coverage.json and would patch the wrong file when the
+        // user is viewing a second RFP.
+        const coverageRef = payloadRef.current?.coverageRef;
         const result = await app.callServerTool({
           name: "set_row_state",
-          arguments: { projectName, requirementId, state },
+          arguments: { projectName, requirementId, state, ...(coverageRef ? { coverageRef } : {}) },
         });
         const parsed = extractJson<{ success: boolean; stateCounts?: Record<string, number>; error?: string }>(
           result as CallToolResult,
@@ -597,9 +629,10 @@ function ComplianceMatrixApp() {
         [requirementId]: { ...prev[requirementId], reviewStatus },
       }));
       try {
+        const coverageRef = payloadRef.current?.coverageRef;
         const result = await app.callServerTool({
           name: "set_row_review",
-          arguments: { projectName, requirementId, reviewStatus },
+          arguments: { projectName, requirementId, reviewStatus, ...(coverageRef ? { coverageRef } : {}) },
         });
         const parsed = extractJson<{ success: boolean; error?: string }>(result as CallToolResult);
         if (!parsed.success) throw new Error(parsed.error ?? "set_row_review failed");
@@ -720,6 +753,95 @@ function ComplianceMatrixApp() {
   // loads) need the workspace dir.
   const workspaceProject = payload?.workspaceProject;
 
+  // ── RFP registry fetch ────────────────────────────────────────────────
+  // Once we know the workspace project, ask the backend which RFPs the
+  // project has registered. Matches the active payload's coverageRef
+  // back to a registry id so the picker shows the right initial value.
+  useEffect(() => {
+    const app = appRef.current;
+    if (!app || !workspaceProject) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await app.callServerTool({
+          name: "list_project_rfps",
+          arguments: { projectName: workspaceProject },
+        });
+        const parsed = extractJson<{ rfps?: RfpEntry[] }>(result as CallToolResult);
+        if (cancelled) return;
+        const list = Array.isArray(parsed?.rfps) ? parsed.rfps : [];
+        setRfps(list);
+        // Pick the entry whose coverageRef matches the rendered payload.
+        // Fallback to the first entry if no match (e.g. host opened a
+        // coverage file that isn't registered yet).
+        const activeCoverage = payload?.coverageRef ?? null;
+        const match = activeCoverage
+          ? list.find((r) => r.coverageRef === activeCoverage)
+          : null;
+        setCurrentRfpId(match?.id ?? list[0]?.id ?? null);
+      } catch (err) {
+        console.error("[compliance-matrix] list_project_rfps failed:", err);
+        if (!cancelled) setRfps([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceProject, payload?.coverageRef]);
+
+  // ── RFP switch ────────────────────────────────────────────────────────
+  // Re-fire render_compliance_matrix with the target RFP's sentinel ref.
+  // We construct a minimal sentinel-shaped `content` blob carrying the
+  // selected RFP's coverageRef; the backend tool reads coverageRef from
+  // it and renders the corresponding matrix.
+  const handleRfpChange = useCallback(
+    async (nextId: string) => {
+      if (!nextId || nextId === currentRfpId) return;
+      const app = appRef.current;
+      if (!app || !workspaceProject) return;
+      const next = rfps.find((r) => r.id === nextId);
+      if (!next) return;
+      setRfpSwitching(true);
+      try {
+        const sentinel = JSON.stringify({
+          workspaceProject,
+          coverageRef: next.coverageRef,
+          teamRef: "wiki/topics/team.md",
+        });
+        const result = await app.callServerTool({
+          name: "render_compliance_matrix",
+          arguments: {
+            projectName: workspaceProject,
+            content: sentinel,
+            filename: next.sentinelRef,
+          },
+        });
+        setToolResult(result as CallToolResult);
+        setCurrentRfpId(nextId);
+        // Reset client-side filters and row overrides; they were scoped
+        // to the previous RFP's rows (requirementId is unique per-RFP,
+        // not project-wide, so keeping overrides would alias rows).
+        setStatusFilter("all");
+        setReviewFilter("all");
+        setOwnerFilter("all");
+        setSearch("");
+        setSelectedId(null);
+        setRowOverrides({});
+      } catch (err) {
+        console.error("[compliance-matrix] RFP switch failed:", err);
+      } finally {
+        setRfpSwitching(false);
+      }
+    },
+    [currentRfpId, rfps, workspaceProject],
+  );
+
+  const showRfpPicker = useMemo(() => {
+    if (rfps.length >= 2) return true;
+    if (rfps.length === 1 && !rfps[0].synthesized) return true;
+    return false;
+  }, [rfps]);
+
   // Apply local row overrides (from kebab menu actions) on top of the
   // payload before filtering. The cockpit doesn't refetch after every
   // mutation; instead we merge the persisted patch in-memory.
@@ -786,13 +908,30 @@ function ComplianceMatrixApp() {
     // ("NU-525-Lot-3") and is the wrong value here.
     const workspaceProject = payload?.workspaceProject;
     if (!workspaceProject) return;
+    const currentRfp = rfps.find((r) => r.id === currentRfpId) ?? null;
     postCockpitAction("open-export", {
       projectName: workspaceProject,
       bidLabel: payload?.project?.name,
       visibleRowCount: filteredRows.length,
       totalRowCount: payload.rows.length,
+      // Active RFP context — when present, the export modal scopes
+      // fill-back to this RFP and only offers compatible modes.
+      rfp: currentRfp
+        ? {
+            id: currentRfp.id,
+            title: currentRfp.title,
+            kind: currentRfp.kind,
+            exportTarget: currentRfp.exportTarget,
+          }
+        : null,
+      rfps: rfps.map((r) => ({
+        id: r.id,
+        title: r.title,
+        kind: r.kind,
+        exportTarget: r.exportTarget,
+      })),
     });
-  }, [payload, filteredRows.length]);
+  }, [payload, filteredRows.length, currentRfpId, rfps]);
 
   const handleCreatePlannedResponse = useCallback(
     async (row: MatrixRow) => {
@@ -1035,6 +1174,25 @@ function ComplianceMatrixApp() {
             rowGap: 0.75,
           }}
         >
+          {showRfpPicker && (
+            <FormControl size="small" sx={{ ...compactInputSx, minWidth: 200 }}>
+              <InputLabel id="rfp-picker-label">RFP</InputLabel>
+              <Select
+                labelId="rfp-picker-label"
+                label="RFP"
+                value={currentRfpId ?? ""}
+                disabled={rfpSwitching}
+                onChange={(e) => void handleRfpChange(String(e.target.value))}
+              >
+                {rfps.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    {r.title}
+                    {r.kind === "xlsx-questionnaire" ? " (XLSX)" : ""}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
           <TextField
             size="small"
             placeholder="Search…"
@@ -1613,6 +1771,7 @@ function ComplianceMatrixApp() {
                       requirementId={selectedRow.requirementId}
                       initialNotes={selectedRow.notes ?? ""}
                       project={workspaceProject}
+                      coverageRef={payload?.coverageRef}
                       onSaved={(next) => {
                         setRowOverrides((prev) => ({
                           ...prev,
@@ -1965,12 +2124,14 @@ function NotesEditor({
   requirementId,
   initialNotes,
   project,
+  coverageRef,
   onSaved,
   appRef,
 }: {
   requirementId: string;
   initialNotes: string;
   project: string | undefined;
+  coverageRef: string | undefined;
   onSaved: (next: string) => void;
   appRef: React.MutableRefObject<ReturnType<typeof useApp>["app"] | null>;
 }) {
@@ -1988,7 +2149,12 @@ function NotesEditor({
     try {
       const result = await app.callServerTool({
         name: "set_row_notes",
-        arguments: { projectName: project, requirementId, notes: draft },
+        arguments: {
+          projectName: project,
+          requirementId,
+          notes: draft,
+          ...(coverageRef ? { coverageRef } : {}),
+        },
       });
       const parsed = extractJson<{ success: boolean; notes?: string; error?: string }>(
         result as CallToolResult,

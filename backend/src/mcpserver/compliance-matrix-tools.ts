@@ -271,6 +271,23 @@ const tools: McpTool[] = [
       required: ['projectName', 'requirementId', 'notes'],
     },
   },
+  {
+    name: 'list_project_rfps',
+    description:
+      'List every RFP registered for a project (one entry per ' +
+      'out/rfps/<id>.json). If the directory is empty but the legacy ' +
+      'out/coverage/current.coverage.json exists, a synthesised "main" ' +
+      'RFP is returned so the cockpit keeps working without forcing a ' +
+      'migration. The cockpit hides the RFP picker when only a single ' +
+      'synthesised RFP is returned.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectName: { type: 'string', description: 'Workspace project name' },
+      },
+      required: ['projectName'],
+    },
+  },
 ];
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -466,6 +483,10 @@ export function createComplianceMatrixToolsService(
           // tools (get_text_file, set_row_state, etc). The display label
           // for the header still comes from `project.name` below.
           workspaceProject: projectName,
+          // Echo coverageRef back so the cockpit can correlate the active
+          // payload with an entry from list_project_rfps (used by the RFP
+          // picker to highlight which RFP is currently shown).
+          coverageRef,
           project: coverage?.project || sentinel?.project || { name: projectName },
           gates: coverage?.gates,
           generatedAt: coverage?.generatedAt || sentinel?.generatedAt,
@@ -1015,6 +1036,60 @@ export function createComplianceMatrixToolsService(
           mode: result.mode,
           ragHits: ragResults.length,
         };
+      }
+
+      case 'list_project_rfps': {
+        const { projectName } = args as { projectName: string };
+        if (!projectName) {
+          return { rfps: [], error: 'projectName is required' };
+        }
+        const projectRoot = join(WORKSPACE_ROOT, projectName);
+        const rfpsDir = join(projectRoot, 'out', 'rfps');
+        const explicit: any[] = [];
+        try {
+          const entries = await fs.readdir(rfpsDir);
+          for (const entry of entries) {
+            if (!entry.endsWith('.json')) continue;
+            try {
+              const raw = await fs.readFile(join(rfpsDir, entry), 'utf-8');
+              const parsed = JSON.parse(raw);
+              if (parsed?.schema === 'rfp.v1' && typeof parsed.id === 'string') {
+                explicit.push(parsed);
+              }
+            } catch {
+              /* skip malformed */
+            }
+          }
+        } catch {
+          /* no rfps dir — fall through */
+        }
+        if (explicit.length > 0) {
+          explicit.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+          return { rfps: explicit };
+        }
+        // Legacy synthesis: only return a synthesised "main" RFP when the
+        // legacy coverage file exists. Cockpit hides the picker when the
+        // only RFP is synthesized.
+        try {
+          await fs.access(join(projectRoot, 'out', 'coverage', 'current.coverage.json'));
+          return {
+            rfps: [
+              {
+                schema: 'rfp.v1',
+                id: 'main',
+                title: 'Main RFP',
+                kind: 'docx-bundle',
+                sources: [],
+                coverageRef: 'out/coverage/current.coverage.json',
+                sentinelRef: 'out/compliance/current.compliance.json',
+                exportTarget: { kind: 'docx-fillback' },
+                synthesized: true,
+              },
+            ],
+          };
+        } catch {
+          return { rfps: [] };
+        }
       }
 
       default:
