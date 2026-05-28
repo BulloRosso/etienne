@@ -17,6 +17,7 @@ import PlanApprovalModal from './components/PlanApprovalModal';
 import PairingRequestModal from './components/PairingRequestModal';
 import HITLApprovalModal from './components/HITLApprovalModal';
 import AppTypeModalHost from './components/AppTypeModalHost';
+import ExportComplianceModal from './components/ExportComplianceModal';
 import LoginDialog from './components/LoginDialog';
 import ServiceHealthGate from './components/ServiceHealthGate';
 import FirstRunPage from './pages/FirstRunPage';
@@ -115,6 +116,10 @@ export default function App() {
   const [shortcutsOverlayOpen, setShortcutsOverlayOpen] = useState(false);
   const [serviceControlOpen, setServiceControlOpen] = useState(false);
   const [knowledgeToast, setKnowledgeToast] = useState({ open: false, message: '' });
+  // ── Compliance-matrix Export modal (opened by cockpit's open-export
+  //    postMessage; rendered at the App root so it works regardless of
+  //    which artifact tab is active). ──
+  const [exportModalState, setExportModalState] = useState({ open: false, projectName: null });
   const [activeContextId, setActiveContextId] = useState(null);
   const [contexts, setContexts] = useState([]);
   const [contextManagerOpen, setContextManagerOpen] = useState(false);
@@ -1339,9 +1344,15 @@ export default function App() {
         if (url && /^https?:/i.test(url)) {
           window.open(url, '_blank', 'noopener,noreferrer');
         }
+      } else if (action === 'open-export') {
+        // Open the export-compliance modal. The cockpit sends the
+        // workspace project name (not the bid display label) so the
+        // modal can fetch the project's filesystem.
+        setExportModalState({
+          open: true,
+          projectName: payload?.projectName || currentProject,
+        });
       }
-      // `open-export` is handled in Filesystem.jsx where the modal infra
-      // lives; we ignore it here to avoid double-handling.
     }
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
@@ -2801,6 +2812,17 @@ export default function App() {
 
       {/* Application-type modal host (sandboxed MCP UI resources) */}
       <AppTypeModalHost />
+
+      {/* Compliance-matrix Export modal — opened by the cockpit's
+          open-export postMessage. Mounted at the App root so it works
+          regardless of which artifact tab is active. */}
+      {exportModalState.open && (
+        <ExportComplianceModal
+          open={exportModalState.open}
+          projectName={exportModalState.projectName}
+          onClose={() => setExportModalState({ open: false, projectName: null })}
+        />
+      )}
     </Box>
     </MuxSSEProvider>
   );

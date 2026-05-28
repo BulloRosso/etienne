@@ -780,9 +780,15 @@ function ComplianceMatrixApp() {
   }, []);
 
   const handleExport = useCallback(() => {
-    if (!payload?.project?.name) return;
+    // The export modal needs the WORKSPACE project name (e.g.
+    // "requirements-hv") to call /api/claude/filesystem etc.
+    // `payload.project.name` is the bid display label
+    // ("NU-525-Lot-3") and is the wrong value here.
+    const workspaceProject = payload?.workspaceProject;
+    if (!workspaceProject) return;
     postCockpitAction("open-export", {
-      projectName: payload.project.name,
+      projectName: workspaceProject,
+      bidLabel: payload?.project?.name,
       visibleRowCount: filteredRows.length,
       totalRowCount: payload.rows.length,
     });
