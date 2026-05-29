@@ -10,6 +10,13 @@ export interface MenuItemBase {
   icon?: string;
   labels: LocalizedString;
   payload: Record<string, any>;
+  /**
+   * Optional allowlist of roles this menu item is visible to.
+   * Missing or empty → visible to everyone (default).
+   * Example: `["guest"]` to expose only to trainees,
+   * `["user", "admin"]` to expose only to experts.
+   */
+  roles?: Array<'guest' | 'user' | 'admin'>;
 }
 
 export interface ApplicationTypeConfig {
@@ -36,6 +43,7 @@ export interface EffectiveMenuItem {
   icon?: string;
   label: string;
   payload: Record<string, any>;
+  roles?: Array<'guest' | 'user' | 'admin'>;
 }
 
 export interface EffectiveApplicationConfig {
@@ -245,6 +253,7 @@ export class ApplicationTypesService {
         icon: item.icon,
         label: this.resolveLabel(item.labels, lng),
         payload: item.payload || {},
+        ...(Array.isArray(item.roles) && item.roles.length > 0 ? { roles: item.roles } : {}),
       })),
     };
   }

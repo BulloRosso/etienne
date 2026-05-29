@@ -20,7 +20,7 @@ export class OpenAIAgentsPermissionController {
   /**
    * Handle permission/approval response from frontend
    */
-  @Roles('user')
+  @Roles('guest')
   @Post('respond')
   async handlePermissionResponse(
     @Body() response: OpenAIAgentsPermissionResponse,

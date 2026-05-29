@@ -24,6 +24,7 @@ import { buildCitationInstruction } from '../shared/citation-prompt';
 import { TelemetryService } from '../../observability/telemetry.service';
 import { UserNotificationsService } from '../../user-notifications/user-notifications.service';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
+import { MissionLoaderService, MissionUserContext } from '../mission-loader.service';
 
 /**
  * Orchestrator service that integrates SDK, sessions, guardrails, and memory
@@ -56,6 +57,7 @@ export class ClaudeSdkOrchestratorService {
     private readonly telemetryService: TelemetryService,
     private readonly userNotificationsService: UserNotificationsService,
     private readonly secretsManager: SecretsManagerService,
+    private readonly missionLoader: MissionLoaderService,
   ) {
     this.config = new ClaudeConfig(secretsManager);
   }
@@ -78,7 +80,8 @@ export class ClaudeSdkOrchestratorService {
     maxTurns?: number,
     notificationChannels?: string,
     notificationEmail?: string,
-    viewerState?: any[]
+    viewerState?: any[],
+    currentUser?: MissionUserContext | null
   ): Observable<MessageEvent> {
     // Generate process ID for abort tracking
     const processId = `sdk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -101,7 +104,8 @@ export class ClaudeSdkOrchestratorService {
         processId,
         notificationChannels,
         notificationEmail,
-        viewerState
+        viewerState,
+        currentUser ?? null
       ).catch((error) => {
         this.logger.error(`Stream prompt failed: ${error.message}`, error.stack);
         observer.error(error);
@@ -127,7 +131,8 @@ export class ClaudeSdkOrchestratorService {
     processId?: string,
     notificationChannels?: string,
     notificationEmail?: string,
-    viewerState?: any[]
+    viewerState?: any[],
+    currentUser?: MissionUserContext | null
   ): Promise<void> {
     const userId = 'user'; // Default user ID
     let sessionId: string | undefined;
@@ -146,6 +151,19 @@ export class ClaudeSdkOrchestratorService {
       // Check if this is a new session or resuming
       sessionId = await this.sessionManager.loadSessionId(projectDir);
       const isFirstRequest = !sessionId;
+
+      // Render the per-user mission template, if any. The Claude Code SDK
+      // reads .claude/CLAUDE.md directly from disk, so we keep that file
+      // fresh per request when a .tpl exists. Projects without a .tpl are
+      // untouched (every existing seed and hand-authored CLAUDE.md keeps
+      // working). Failures are logged inside the loader; do not block the
+      // chat request on a mission render hiccup.
+      try {
+        const projectRootForMission = safeRoot(this.config.hostRoot, projectDir);
+        await this.missionLoader.renderForUser(projectRootForMission, currentUser ?? null);
+      } catch (err: any) {
+        this.logger.warn(`mission render failed for ${projectDir}: ${err?.message ?? err}`);
+      }
 
       // Setup artifacts tracking file
       try {

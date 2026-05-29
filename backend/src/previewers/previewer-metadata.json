@@ -64,6 +64,16 @@
     ]
   },
   {
+    "viewer": "simulator",
+    "type": "mcpui",
+    "mcpGroup": "simulator",
+    "mcpToolName": "render_simulator",
+    "extensions": [
+      ".simulator.html"
+    ],
+    "actions": []
+  },
+  {
     "viewer": "budget",
     "type": "mcpui",
     "mcpGroup": "budget",

@@ -97,9 +97,12 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
     if (onEditMessage) onEditMessage(text);
   };
 
-  // Parse markdown for all messages
+  // Parse markdown for all messages. Guard against undefined / null —
+  // an empty / pending streaming message can arrive before its content
+  // is populated, and marked.parse(undefined) throws.
   const renderedContent = useMemo(() => {
-    const rawHtml = marked.parse(text, { breaks: true, gfm: true });
+    if (text == null) return '';
+    const rawHtml = marked.parse(String(text), { breaks: true, gfm: true });
     return DOMPurify.sanitize(rawHtml);
   }, [text]);
 
@@ -164,6 +167,64 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   useEffect(() => {
     if (isUser) return;
     applyCitationChips(contentRef.current, currentProject);
+  }, [renderedContent, isUser, currentProject]);
+
+  // Parse `<preview:path/to/file>` tags in agent output. The agent emits these
+  // to surface a supporting artifact in the preview pane (mission for the
+  // knowledge-transfer seed, generally useful elsewhere). DOMPurify drops the
+  // raw tag during sanitization, but the literal text "<preview:...>" can
+  // survive in text nodes if it was code-fenced or markdown-escaped. Walk
+  // text nodes, strip the literal token, and fire a FILE_PREVIEW_REQUEST per
+  // unique path. At most one preview per message is honored (focus over noise).
+  useEffect(() => {
+    if (isUser || !contentRef.current || !currentProject) return;
+    const previewRegex = /<preview:([^>\s]+?)>/g;
+    const root = contentRef.current;
+    const fired = new Set();
+
+    // 1. Walk text nodes and strip literal tokens, collecting paths.
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach((node) => {
+      const text = node.textContent;
+      if (!text || !text.includes('<preview:')) return;
+      let m;
+      while ((m = previewRegex.exec(text)) !== null) {
+        if (!fired.has(m[1])) fired.add(m[1]);
+      }
+      node.textContent = text.replace(previewRegex, '');
+    });
+
+    // 2. The raw tag survives only as text. If markdown rendered it as an
+    //    unknown HTML tag, DOMPurify already stripped it — but the path is
+    //    lost in that case. Defensive scan of innerHTML for the literal
+    //    sequence as a fallback, only when no token was found in text.
+    if (fired.size === 0) {
+      const html = root.innerHTML;
+      const matches = [...html.matchAll(previewRegex)];
+      matches.forEach((m) => fired.add(m[1]));
+    }
+
+    // 3. Fire FILE_PREVIEW_REQUEST for each unique path. Cap at one to keep
+    //    the preview pane focused per agent turn.
+    const paths = [...fired];
+    if (paths.length === 0) return;
+    const filePath = paths[0];
+    const ext = filePath.split('.').pop().toLowerCase();
+    let action = 'auto-preview';
+    if (ext === 'json') action = 'json-preview';
+    else if (ext === 'md' || ext === 'markdown') action = 'markdown-preview';
+    else if (ext === 'html' || ext === 'htm') action = 'html-preview';
+    else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) action = 'image-preview';
+    else if (['xlsx', 'xls', 'csv'].includes(ext)) action = 'excel-preview';
+    else if (ext === 'pdf') action = 'pdf-preview';
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      action,
+      filePath,
+      projectName: currentProject,
+    });
   }, [renderedContent, isUser, currentProject]);
 
   // Make file paths in the content clickable

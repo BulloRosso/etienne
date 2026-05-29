@@ -27,7 +27,12 @@
       "passwordHash": "$2b$10$gqEF0Dy268.TsXD0t.aN.eAy8ouEnxHSOvP/pLZjhX4L2CQFyaIsu",
       "role": "guest",
       "displayName": "Guest User",
-      "enabled": true
+      "enabled": true,
+      "firstRunCompletedAt": "2026-05-29T11:42:29.822Z",
+      "firstRunReportSummary": {
+        "ranAt": "2026-05-29T11:42:29.817Z",
+        "overall": "pass"
+      }
     }
   ],
   "settings": {

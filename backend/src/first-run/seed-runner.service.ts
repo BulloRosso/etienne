@@ -51,6 +51,15 @@ export const DEMO_SEEDS: Readonly<DemoSeed[]> = Object.freeze([
     estimatedDurationLabel: '~3 min',
     timeoutMs: 8 * 60 * 1000,
   },
+  {
+    id: 'knowledge-transfer',
+    scriptPath: 'scripts/seed-knowledge-transfer/seed-knowledge-transfer.ts',
+    displayName: 'Knowledge transfer',
+    description:
+      'Onboarding agent for a junior LED-headlight engineer at a fictional German Tier-1 supplier — role-aware (expert curates / guest learns), progress tracking, quizzes, day-in-the-life scenarios.',
+    estimatedDurationLabel: '~4 min',
+    timeoutMs: 8 * 60 * 1000,
+  },
 ]);
 
 function findSeed(id: string): DemoSeed | undefined {

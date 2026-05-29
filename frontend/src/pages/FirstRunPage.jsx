@@ -71,6 +71,13 @@ const DEMO_SEEDS = [
       'German HVDC grid-connection requirements with coverage dashboard, EARS requirements.',
     estimatedDurationLabel: '~3 min',
   },
+  {
+    id: 'knowledge-transfer',
+    displayName: 'Knowledge transfer',
+    description:
+      'Role-aware onboarding agent for a junior LED-headlight engineer at a fictional German Tier-1 supplier.',
+    estimatedDurationLabel: '~4 min',
+  },
 ];
 
 const STATUS_ICON = {

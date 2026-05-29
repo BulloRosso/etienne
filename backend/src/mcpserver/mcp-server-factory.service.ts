@@ -56,6 +56,12 @@ import {
   BUDGET_RESOURCE_MIME,
 } from './budget-tools';
 import {
+  createSimulatorToolsService,
+  makeSimulatorResourceLoader,
+  SIMULATOR_RESOURCE_URI,
+  SIMULATOR_RESOURCE_MIME,
+} from './simulator-tools';
+import {
   createAlignmentToolsService,
   loadAlignmentResourceHtml,
   ALIGNMENT_RESOURCE_URI,
@@ -196,6 +202,19 @@ export class McpServerFactoryService implements OnModuleInit {
             description: 'Interactive donut chart for .budget.json files',
             mimeType: BUDGET_RESOURCE_MIME,
             loadContent: loadBudgetResourceHtml,
+          },
+        ],
+      },
+      'simulator': {
+        toolServices: [createSimulatorToolsService(process.env.WORKSPACE_ROOT || '/workspace')],
+        resources: [
+          {
+            uri: SIMULATOR_RESOURCE_URI,
+            name: 'Application Simulator Runner',
+            description:
+              'Interactive runner for agent-generated application simulators (SAP/CRM/ERP mini-flows).',
+            mimeType: SIMULATOR_RESOURCE_MIME,
+            loadContent: makeSimulatorResourceLoader(process.env.WORKSPACE_ROOT || '/workspace'),
           },
         ],
       },

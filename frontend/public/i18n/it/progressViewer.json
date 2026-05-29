@@ -1,0 +1,25 @@
+{
+  "loadingProgress": "Caricamento progressi…",
+  "failedToLoad": "Impossibile caricare i progressi: {{error}}",
+  "onboardingProgress": "Progressi onboarding",
+  "trainee": "Tirocinante",
+  "baseline": "Baseline: {{language}} · {{learningStyle}}",
+  "baselineWithPriorKnowledge": "Baseline: {{language}} · {{learningStyle}} · {{priorKnowledge}}",
+  "streak": "{{count}} giorni di fila",
+  "quizHistory": "Cronologia quiz",
+  "quizResultLine": "Argomento {{topicId}}: {{score}}/{{of}} ({{percent}}%) · {{date}}",
+  "qaTagQA": "D/R",
+  "qaTagCheck": "CONTROLLO",
+  "qaTagRecall": "RIPASSO",
+  "qaCount": "{{count}} D/R",
+  "badge": {
+    "first-question": "Prima domanda — hai posto all'agente la tua prima domanda ed è stata registrata.",
+    "first-quiz": "Primo quiz — hai completato il tuo primo quiz di fine modulo.",
+    "polyglot": "Poliglotta — hai lavorato con l'agente in più di una lingua.",
+    "night-owl": "Nottambulo — hai tenuto una sessione di apprendimento dopo le 22:00.",
+    "early-bird": "Mattiniero — hai tenuto una sessione di apprendimento prima delle 07:00.",
+    "first-good-investigation": "Prima indagine pulita — hai gestito lo scenario flicker di OEM-A senza prendere la pista sbagliata.",
+    "completionist": "Completista — hai completato l'argomento principale {{suffix}} senza intoppi.",
+    "simulator": "Esperto del simulatore — hai completato il simulatore {{suffix}} senza errori."
+  }
+}

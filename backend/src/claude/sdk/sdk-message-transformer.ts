@@ -51,9 +51,16 @@ export class SdkMessageTransformer {
 
   /**
    * Transform assistant message (text/tool calls)
+   *
+   * Newer Claude Code SDK envelopes wrap the assistant message under
+   * `sdkMessage.message.content`. Older envelopes put `content` at the
+   * top level. Prefer the nested location so we don't return an empty
+   * chunk and silently drop the answer on the floor — that is exactly
+   * how the chat appears to "stop without an error".
    */
   private static transformAssistantMessage(sdkMessage: any): MessageEvent {
-    const text = this.extractTextFromContent(sdkMessage.content);
+    const content = sdkMessage?.message?.content ?? sdkMessage?.content;
+    const text = this.extractTextFromContent(content);
 
     return {
       type: 'stdout',
@@ -121,31 +128,23 @@ export class SdkMessageTransformer {
   }
 
   /**
-   * Extract text content from SDK content blocks
+   * Extract text content from SDK content blocks. Returns '' for thinking-
+   * only or tool-only assistant turns (those are surfaced separately).
    */
-  private static extractTextFromContent(content: any[]): string {
-    console.log('[extractTextFromContent] content:', JSON.stringify(content));
-
-    if (!Array.isArray(content)) {
-      // Sometimes content might be a string directly
-      if (typeof content === 'string') {
-        return content;
-      }
-      console.log('[extractTextFromContent] content is not array, returning empty');
-      return '';
-    }
+  private static extractTextFromContent(content: any): string {
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return '';
 
     let text = '';
     for (const block of content) {
-      if (block.type === 'text' && block.text) {
+      if (block?.type === 'text' && block.text) {
         text += block.text;
       } else if (typeof block === 'string') {
-        // Handle case where block is just a string
         text += block;
       }
-      // Note: tool_use blocks are now handled separately in the orchestrator
+      // Note: tool_use and thinking blocks are surfaced separately by the
+      // orchestrator — we intentionally skip them here.
     }
-    console.log('[extractTextFromContent] extracted text:', text);
     return text;
   }
 

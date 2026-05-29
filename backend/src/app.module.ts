@@ -6,6 +6,7 @@ import { ClaudeSdkService } from './claude/sdk/claude-sdk.service';
 import { SdkSessionManagerService } from './claude/sdk/sdk-session-manager.service';
 import { SdkHookEmitterService } from './claude/sdk/sdk-hook-emitter.service';
 import { ClaudeSdkOrchestratorService } from './claude/sdk/claude-sdk-orchestrator.service';
+import { MissionLoaderService } from './claude/mission-loader.service';
 import { SdkPermissionService } from './claude/sdk/sdk-permission.service';
 import { SdkPermissionController } from './claude/sdk/sdk-permission.controller';
 import { CodexSdkService } from './claude/codex-sdk/codex-sdk.service';
@@ -96,6 +97,7 @@ import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
     SdkSessionManagerService,
     SdkHookEmitterService,
     ClaudeSdkOrchestratorService,
+    MissionLoaderService,
     SdkPermissionService,
     CodexSdkService,
     CodexSdkOrchestratorService,

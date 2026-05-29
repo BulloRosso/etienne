@@ -20,7 +20,7 @@ export class SdkPermissionController {
   /**
    * Handle permission response from frontend
    */
-  @Roles('user')
+  @Roles('guest')
   @Post('respond')
   async handlePermissionResponse(
     @Body() response: PermissionResponse

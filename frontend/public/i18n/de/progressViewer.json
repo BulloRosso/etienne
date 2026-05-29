@@ -1,0 +1,25 @@
+{
+  "loadingProgress": "Fortschritt wird geladen…",
+  "failedToLoad": "Fortschritt konnte nicht geladen werden: {{error}}",
+  "onboardingProgress": "Onboarding-Fortschritt",
+  "trainee": "Lernende:r",
+  "baseline": "Baseline: {{language}} · {{learningStyle}}",
+  "baselineWithPriorKnowledge": "Baseline: {{language}} · {{learningStyle}} · {{priorKnowledge}}",
+  "streak": "{{count}} Tage in Folge",
+  "quizHistory": "Quiz-Verlauf",
+  "quizResultLine": "Thema {{topicId}}: {{score}}/{{of}} ({{percent}} %) · {{date}}",
+  "qaTagQA": "F/A",
+  "qaTagCheck": "CHECK",
+  "qaTagRecall": "WIEDERHOLUNG",
+  "qaCount": "{{count}} F/A",
+  "badge": {
+    "first-question": "Erste Frage — du hast dem Agenten deine erste Frage gestellt; sie ist in deinem Fortschritt aufgezeichnet.",
+    "first-quiz": "Erstes Quiz — du hast dein erstes End-of-Module-Quiz absolviert.",
+    "polyglot": "Polyglott — du hast mit dem Agenten in mehr als einer Sprache gearbeitet.",
+    "night-owl": "Nachteule — du hattest eine Lernsitzung nach 22:00 Uhr.",
+    "early-bird": "Frühaufsteher — du hattest eine Lernsitzung vor 07:00 Uhr.",
+    "first-good-investigation": "Erste saubere Untersuchung — du hast das OEM-A-Flicker-Szenario ohne falschen Abzweig durchgespielt.",
+    "completionist": "Completionist — du hast Hauptthema {{suffix}} sauber abgeschlossen.",
+    "simulator": "Simulator-Profi — du hast den Simulator „{{suffix}}\" ohne Fehler durchgespielt."
+  }
+}

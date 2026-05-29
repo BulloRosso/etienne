@@ -37,7 +37,7 @@ i18n
       'notificationMenu',
       'offerGenerator', 'onboarding',
       'pairingRequest', 'permission', 'permissionList', 'planApproval',
-      'previewersManager', 'promptEditor',
+      'previewersManager', 'progressViewer', 'promptEditor',
       'reqViewer', 'responsePane', 'rulesTab',
       'scheduling', 'scrapbook', 'scrapbookNode', 'scrapbookNodeEdit',
       'scrapbookTopics', 'serviceControl',

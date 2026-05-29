@@ -1,0 +1,25 @@
+{
+  "loadingProgress": "正在加载进度…",
+  "failedToLoad": "加载进度失败：{{error}}",
+  "onboardingProgress": "入职进度",
+  "trainee": "学员",
+  "baseline": "基线：{{language}} · {{learningStyle}}",
+  "baselineWithPriorKnowledge": "基线：{{language}} · {{learningStyle}} · {{priorKnowledge}}",
+  "streak": "已连续 {{count}} 天",
+  "quizHistory": "测验记录",
+  "quizResultLine": "主题 {{topicId}}：{{score}}/{{of}}（{{percent}}%）· {{date}}",
+  "qaTagQA": "问答",
+  "qaTagCheck": "检查",
+  "qaTagRecall": "复习",
+  "qaCount": "{{count}} 条问答",
+  "badge": {
+    "first-question": "第一个问题——你向智能体提出了第一个问题，并已记录在进度文件中。",
+    "first-quiz": "第一次测验——你完成了第一个模块结尾测验。",
+    "polyglot": "多语者——你已用不止一种语言与智能体协作。",
+    "night-owl": "夜猫子——你在 22:00 之后进行了学习会话。",
+    "early-bird": "早起者——你在 07:00 之前进行了学习会话。",
+    "first-good-investigation": "首次顺利的排查——你顺利完成了 OEM-A 闪烁场景，没有走错支路。",
+    "completionist": "完成派——你顺利完成了主题 {{suffix}}。",
+    "simulator": "模拟器达人——你顺利通关 {{suffix}} 模拟器。"
+  }
+}

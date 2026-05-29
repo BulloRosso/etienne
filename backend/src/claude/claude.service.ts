@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import chokidar from 'chokidar';
@@ -24,6 +24,7 @@ import { SecretsManagerService } from '../secrets-manager/secrets-manager.servic
 
 @Injectable()
 export class ClaudeService {
+  private readonly logger = new Logger(ClaudeService.name);
   private readonly config: ClaudeConfig;
   private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
   private queues = new Map<string, Promise<unknown>>();
@@ -127,8 +128,16 @@ project using the [Scrapbook](#scrapbook)
   public async getFile(projectDir: string, fileName: string) {
     const root = safeRoot(this.config.hostRoot, projectDir);
     const filePath = join(root, fileName);
-    const data = await fs.readFile(filePath, 'utf8');
-    return { path: filePath, content: data };
+    try {
+      const data = await fs.readFile(filePath, 'utf8');
+      return { path: filePath, content: data };
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        this.logger.warn(`getFile: file not found: ${filePath}`);
+        throw new NotFoundException(`File not found: ${fileName}`);
+      }
+      throw err;
+    }
   }
 
   public async listFiles(projectDir: string, subDir = '.') {

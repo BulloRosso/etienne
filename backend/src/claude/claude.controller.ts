@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Body, Query, Sse, Param, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Sse, Param, Req, ForbiddenException } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { Request } from 'express';
 import { join } from 'path';
+import { MissionUserContext } from './mission-loader.service';
 import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
 import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.service';
@@ -41,7 +43,7 @@ export class ClaudeController {
     return 'anthropic';
   }
 
-  @Roles('user')
+  @Roles('guest')
   @Post('viewerState')
   setViewerState(@Body() body: { project_dir: string; viewerState: any[] }) {
     if (body.project_dir && body.viewerState) {
@@ -52,7 +54,7 @@ export class ClaudeController {
     return { ok: true };
   }
 
-  @Roles('user')
+  @Roles('guest')
   @Post('addFile')
   addFile(@Body() dto: AddFileDto) { return this.svc.addFile(dto.project_dir, dto.file_name, dto.file_content); }
 
@@ -110,7 +112,7 @@ export class ClaudeController {
   @Post('mcp/config/save')
   saveMcpConfig(@Body() dto: SaveMcpConfigDto) { return this.svc.saveMcpConfig(dto.projectName, dto.mcpServers); }
 
-  @Roles('user')
+  @Roles('guest')
   @Sse('streamPrompt')
   streamPrompt(
     @Query('project_dir') projectDir: string,
@@ -125,9 +127,10 @@ export class ClaudeController {
     return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel, memoryEnabledBool, false, maxTurnsNum);
   }
 
-  @Roles('user')
+  @Roles('guest')
   @Sse('streamPrompt/sdk')
   streamPromptSdk(
+    @Req() req: Request,
     @Query('project_dir') projectDir: string,
     @Query('prompt') prompt: string,
     @Query('agentMode') agentMode?: string,
@@ -195,6 +198,20 @@ export class ClaudeController {
       );
     }
 
+    // Extract authenticated user from the request (populated by JwtAuthGuard).
+    // Used by the SDK orchestrator to render the per-user CLAUDE.md template
+    // before invoking the Claude Code SDK. Other orchestrators don't honor it yet.
+    const jwtUser = (req as any).user as
+      | { sub?: string; username?: string; role?: 'guest' | 'user' | 'admin'; displayName?: string }
+      | undefined;
+    const currentUser: MissionUserContext | null = jwtUser
+      ? {
+          username: jwtUser.username,
+          role: jwtUser.role,
+          displayName: jwtUser.displayName,
+        }
+      : null;
+
     return this.sdkOrchestrator.streamPrompt(
       projectDir,
       prompt,
@@ -204,11 +221,12 @@ export class ClaudeController {
       maxTurnsNum,
       notificationChannels,
       notificationEmail,
-      parsedViewerState
+      parsedViewerState,
+      currentUser
     );
   }
 
-  @Roles('user')
+  @Roles('guest')
   @Post('abort/:processId')
   async abortProcess(@Param('processId') processId: string) {
     console.log(`[ClaudeController] Abort request received for process: ${processId}`);
@@ -252,7 +270,7 @@ export class ClaudeController {
     return legacyResult;
   }
 
-  @Roles('user')
+  @Roles('guest')
   @Post('clearSession/:projectDir')
   async clearSession(@Param('projectDir') projectDir: string) {
     if (this.activeCodingAgent === 'open-code') {

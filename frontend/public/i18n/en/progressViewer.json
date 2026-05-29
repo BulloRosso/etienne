@@ -1,0 +1,25 @@
+{
+  "loadingProgress": "Loading progress…",
+  "failedToLoad": "Failed to load progress: {{error}}",
+  "onboardingProgress": "Onboarding progress",
+  "trainee": "Trainee",
+  "baseline": "Baseline: {{language}} · {{learningStyle}}",
+  "baselineWithPriorKnowledge": "Baseline: {{language}} · {{learningStyle}} · {{priorKnowledge}}",
+  "streak": "{{count}}-day streak",
+  "quizHistory": "Quiz history",
+  "quizResultLine": "Topic {{topicId}}: {{score}}/{{of}} ({{percent}}%) · {{date}}",
+  "qaTagQA": "Q/A",
+  "qaTagCheck": "CHECK",
+  "qaTagRecall": "RECALL",
+  "qaCount": "{{count}} Q/A",
+  "badge": {
+    "first-question": "First question — you asked the agent your first question and it landed in your progress file.",
+    "first-quiz": "First quiz — you completed your first end-of-module quiz.",
+    "polyglot": "Polyglot — you've worked with the agent in more than one language.",
+    "night-owl": "Night owl — you held a learning session past 22:00.",
+    "early-bird": "Early bird — you held a learning session before 07:00.",
+    "first-good-investigation": "First good investigation — you walked through the OEM-A flicker scenario without taking the wrong branch first.",
+    "completionist": "Completionist — you finished main topic {{suffix}} cleanly.",
+    "simulator": "Simulator pro — you walked through the {{suffix}} simulator without missteps."
+  }
+}

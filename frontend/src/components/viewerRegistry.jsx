@@ -21,6 +21,7 @@ import A2UIAppViewer from './A2UIAppViewer';
 import DreamsPreviewViewer from './DreamsPreviewViewer';
 import QuarterlyViewer from './QuarterlyViewer';
 import CoverageViewer from './CoverageViewer';
+import ProgressViewer from './ProgressViewer';
 import { agentBus } from '../services/agentBus';
 
 /**
@@ -74,6 +75,7 @@ export const VIEWER_COMPONENT_NAMES = {
   dreams: 'DreamsPreviewViewer',
   quarterly: 'QuarterlyViewer',
   coverage: 'CoverageViewer',
+  progress: 'ProgressViewer',
 };
 
 /**
@@ -150,6 +152,9 @@ export const VIEWER_COMPONENTS = {
   coverage: (file, projectName) => (
     <CoverageViewer filename={file.path} projectName={projectName} />
   ),
+  progress: (file, projectName) => (
+    <ProgressViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -182,6 +187,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'alignment', extensions: ['.alignment.json'] },
   { viewer: 'compliance-matrix', extensions: ['.compliance.json'] },
   { viewer: 'coverage', extensions: ['.coverage.json'] },
+  { viewer: 'progress', extensions: ['.progress.json'] },
 ];
 
 /**
