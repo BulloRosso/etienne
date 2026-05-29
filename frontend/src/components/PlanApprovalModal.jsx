@@ -41,14 +41,19 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
       setLoading(true);
       setError(null);
 
-      // Fetch the plan file content
-      apiFetch(`/api/content-management/${encodeURIComponent(currentProject)}/files?path=${encodeURIComponent(plan.planFilePath)}`)
+      // Fetch the plan file content via the project's workspace file API.
+      // This is the same convention every other viewer in the app uses
+      // (CoverageViewer, MarkdownViewer, JSONViewer, …): GET the raw
+      // bytes and parse on the client. Open to any authenticated user.
+      apiFetch(
+        `/api/workspace/${encodeURIComponent(currentProject)}/files/${plan.planFilePath}`,
+      )
         .then(res => {
           if (!res.ok) throw new Error('Failed to load plan file');
-          return res.json();
+          return res.text();
         })
-        .then(async (data) => {
-          const markdownText = data.content || t('planApproval:noContent');
+        .then(async (text) => {
+          const markdownText = text || t('planApproval:noContent');
           // Parse markdown to HTML
           const rawHtml = await marked.parse(markdownText);
           // Sanitize HTML to prevent XSS

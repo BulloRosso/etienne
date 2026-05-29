@@ -54,6 +54,11 @@ function buildPalette(isDark) {
     grey: isDark ? '#9e9e9e' : '#9e9e9e',
     headerBg: isDark ? '#152230' : '#E3F2FD',
     rowHover: isDark ? '#1a2a3a' : '#f5f9ff',
+    // Gold highlight for the "current topic" row — the leaf the agent
+    // routes "What's next?" and the quiz skill to.
+    gold: isDark ? '#3a2d10' : '#fff8e1',
+    goldHover: isDark ? '#4a3a14' : '#fff3c4',
+    goldBorder: isDark ? '#b8860b' : '#ffd54f',
   };
 }
 
@@ -222,10 +227,11 @@ function QABlock({ qa, palette, projectName, t }) {
   );
 }
 
-function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode }) {
+function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode, currentNodeId }) {
   const hasChildren = node.children && node.children.length > 0;
   const hasQA = node.qa && node.qa.length > 0;
   const open = isOpen(node, depth);
+  const isCurrent = node.id === currentNodeId;
 
   return (
     <Box>
@@ -239,7 +245,11 @@ function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode }) {
           py: 0.5,
           borderRadius: 0.5,
           cursor: hasChildren || hasQA ? 'pointer' : 'default',
-          '&:hover': { bgcolor: palette.rowHover },
+          ...(isCurrent && {
+            bgcolor: palette.gold,
+            border: `1px solid ${palette.goldBorder}`,
+          }),
+          '&:hover': { bgcolor: isCurrent ? palette.goldHover : palette.rowHover },
         }}
         onClick={() => (hasChildren || hasQA) && toggleNode(node.id, depth)}
       >
@@ -280,6 +290,7 @@ function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode }) {
                 t={t}
                 isOpen={isOpen}
                 toggleNode={toggleNode}
+                currentNodeId={currentNodeId}
               />
             ))}
           </Box>
@@ -287,6 +298,41 @@ function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode }) {
       </Collapse>
     </Box>
   );
+}
+
+// Find the "current topic" the trainee is working on. Definition matches
+// the agent's own routing: deepest leaf with state === 'in-progress';
+// fall back to the first 'not-started' leaf if nothing is in-progress;
+// return null when everything is done (then nothing should be highlighted).
+// Returns the path of node ids from the root down to the current leaf,
+// not just the leaf id — the caller uses the path to auto-expand the
+// ancestors so the highlighted row is visible.
+function findCurrentPath(toc) {
+  const found = { path: null, depth: -1, type: null }; // type: 'in-progress' | 'not-started'
+  const walk = (nodes, ancestors) => {
+    if (!Array.isArray(nodes)) return;
+    for (const node of nodes) {
+      const path = [...ancestors, node.id];
+      const isLeaf = !node.children || node.children.length === 0;
+      if (isLeaf) {
+        if (node.state === 'in-progress') {
+          if (found.type !== 'in-progress' || path.length > found.depth) {
+            found.path = path;
+            found.depth = path.length;
+            found.type = 'in-progress';
+          }
+        } else if (node.state !== 'done' && found.type !== 'in-progress' && !found.path) {
+          // First not-started leaf, only if we haven't found in-progress yet.
+          found.path = path;
+          found.depth = path.length;
+          found.type = 'not-started';
+        }
+      }
+      if (node.children) walk(node.children, path);
+    }
+  };
+  walk(toc, []);
+  return found.path;
 }
 
 // Resolve a tooltip string for a badge id. Direct match first
@@ -350,13 +396,26 @@ export default function ProgressViewer({ filename, projectName }) {
     setExpanded(loadExpanded(storageKey));
   }, [storageKey]);
 
+  // Path from the root to the "current topic" leaf. Used to highlight
+  // the leaf gold AND to auto-expand its ancestors so the row is visible
+  // when the viewer opens.
+  const currentPath = useMemo(() => findCurrentPath(data?.toc || []), [data]);
+  const currentNodeId = currentPath ? currentPath[currentPath.length - 1] : null;
+  const currentAncestors = useMemo(
+    () => (currentPath ? new Set(currentPath.slice(0, -1)) : new Set()),
+    [currentPath],
+  );
+
   const isOpen = useCallback(
     (node, depth) => {
       const override = expanded[node.id];
       if (typeof override === 'boolean') return override;
-      return depth === 0;
+      // No explicit user choice: default open for depth 0 OR for any
+      // ancestor of the current topic, so the gold-highlighted leaf is
+      // visible without the user having to expand manually.
+      return depth === 0 || currentAncestors.has(node.id);
     },
-    [expanded],
+    [expanded, currentAncestors],
   );
 
   const toggleNode = useCallback(
@@ -521,6 +580,7 @@ export default function ProgressViewer({ filename, projectName }) {
             t={t}
             isOpen={isOpen}
             toggleNode={toggleNode}
+            currentNodeId={currentNodeId}
           />
         ))}
       </Box>
