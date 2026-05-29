@@ -1,5 +1,7 @@
 {
   "aiModel": "AI 模型",
+  "openWelcomeMenu": "主页",
+  "backToMessages": "消息",
   "anthropicClaude": "Anthropic Claude 4.5",
   "apiBaseUrl": "API 基础 URL",
   "apiBaseUrlPlaceholder": "例如 https://api.moonshot.ai/anthropic",

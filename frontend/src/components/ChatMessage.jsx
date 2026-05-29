@@ -100,10 +100,25 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   // Parse markdown for all messages. Guard against undefined / null —
   // an empty / pending streaming message can arrive before its content
   // is populated, and marked.parse(undefined) throws.
+  //
+  // Pre-escape `<preview:path>` tokens so GFM's autolink rule does not
+  // consume them. Otherwise `<preview:foo>` becomes `<a href="preview:foo">…`,
+  // DOMPurify strips the unknown-scheme href, and the literal `<…>` brackets
+  // are lost — the downstream regex (see useEffect below) then misses the
+  // token and no FILE_PREVIEW_REQUEST fires. Swap to a sentinel before
+  // markdown, swap back after sanitization.
   const renderedContent = useMemo(() => {
     if (text == null) return '';
-    const rawHtml = marked.parse(String(text), { breaks: true, gfm: true });
-    return DOMPurify.sanitize(rawHtml);
+    const escaped = String(text).replace(
+      /<preview:([^>\s]+?)>/g,
+      'PREVIEW$1/PREVIEW',
+    );
+    const rawHtml = marked.parse(escaped, { breaks: true, gfm: true });
+    const sanitized = DOMPurify.sanitize(rawHtml);
+    return sanitized.replace(
+      /PREVIEW([^]+?)\/PREVIEW/g,
+      '&lt;preview:$1&gt;',
+    );
   }, [text]);
 
   // Render source indicator for remote sessions, scheduled tasks, etc.

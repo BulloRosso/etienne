@@ -8,6 +8,7 @@ import ProjectMenu from './components/ProjectMenu';
 import BudgetIndicator from './components/BudgetIndicator';
 import SchedulingOverview from './components/SchedulingOverview';
 import WelcomePage from './components/WelcomePage';
+import WelcomePageMenu from './components/WelcomePageMenu';
 import ContextSwitcher from './components/ContextSwitcher';
 import ContextManager from './components/ContextManager';
 import ElicitationModal from './components/ElicitationModal';
@@ -24,6 +25,7 @@ import FirstRunPage from './pages/FirstRunPage';
 import HealthBanner from './components/HealthBanner';
 import { TbCalendarTime, TbPresentation, TbWorld } from 'react-icons/tb';
 import { IoInformationCircle, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
+import { PiChats } from 'react-icons/pi';
 import { useProject } from './contexts/ProjectContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
 import { useThemeMode } from './contexts/ThemeContext.jsx';
@@ -80,7 +82,7 @@ export default function App() {
         }
       })
       .catch(() => {});
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentProject]);
 
   const formatGreeting = (text) => agentName ? `**${agentName}**: ${text}` : text;
 
@@ -109,6 +111,8 @@ export default function App() {
   const [currentProcessId, setCurrentProcessId] = useState(null);
   const [uiConfig, setUiConfig] = useState(null);
   const [showWelcomePage, setShowWelcomePage] = useState(false);
+  const [welcomeMenuConfig, setWelcomeMenuConfig] = useState(null);
+  const [showWelcomeMenu, setShowWelcomeMenu] = useState(false);
   const [hashRoute, setHashRoute] = useState(window.location.hash.slice(1) || '');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [langToast, setLangToast] = useState({ open: false, language: '' });
@@ -450,6 +454,8 @@ export default function App() {
     if (!currentProject) {
       setUiConfig(null);
       setShowWelcomePage(false);
+      setWelcomeMenuConfig(null);
+      setShowWelcomeMenu(false);
       return;
     }
 
@@ -543,6 +549,33 @@ export default function App() {
           setShowWelcomePage(false);
         }
 
+        // Load welcome-menu (interactive scene) config — optional, per-project file.
+        // When present, takes precedence over the legacy WelcomePage on project load.
+        try {
+          const menuUrl = new URL('/api/claude/getFile', window.location.origin);
+          menuUrl.searchParams.set('project_dir', currentProject);
+          menuUrl.searchParams.set('file_name', 'welcome/welcomepage.json');
+          const menuRes = await apiFetch(menuUrl.toString());
+          if (menuRes.ok) {
+            const data = await menuRes.json();
+            const parsed = JSON.parse(data.content);
+            if (parsed && Array.isArray(parsed.hotspots)) {
+              setWelcomeMenuConfig(parsed);
+              setShowWelcomeMenu(true);
+              setShowWelcomePage(false);
+            } else {
+              setWelcomeMenuConfig(null);
+              setShowWelcomeMenu(false);
+            }
+          } else {
+            setWelcomeMenuConfig(null);
+            setShowWelcomeMenu(false);
+          }
+        } catch {
+          setWelcomeMenuConfig(null);
+          setShowWelcomeMenu(false);
+        }
+
         // Load budget settings
         const budgetRes = await apiFetch(`/api/budget-monitoring/${currentProject}/settings`);
         const budgetData = await budgetRes.json();
@@ -602,6 +635,8 @@ export default function App() {
         console.error('Failed to initialize project:', error);
         setUiConfig(null);
         setShowWelcomePage(false);
+        setWelcomeMenuConfig(null);
+        setShowWelcomeMenu(false);
       }
     };
 
@@ -2592,7 +2627,37 @@ export default function App() {
           />
         ) : (
           <SplitLayout
-            left={<ChatPane messages={messages} structuredMessages={structuredMessages} contextState={contextState} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} />}
+            left={showWelcomeMenu && welcomeMenuConfig ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                {/* Slim title bar with Messages toggle so the user can leave the scene */}
+                <Box sx={{
+                  height: '48px',
+                  minHeight: '48px',
+                  backgroundColor: themeMode === 'dark' ? '#383838' : 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  px: 2,
+                  borderBottom: themeMode === 'dark' ? '1px solid #555' : '1px solid #e0e0e0',
+                }}>
+                  <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                    {uiConfig?.appBar?.title || currentProject}
+                  </Typography>
+                  <IconButton
+                    onClick={() => setShowWelcomeMenu(false)}
+                    title={t('chatPane:backToMessages')}
+                    size="small"
+                    sx={{ ml: 'auto', color: themeMode === 'dark' ? '#fff' : '#333' }}
+                  >
+                    <PiChats size={18} />
+                  </IconButton>
+                </Box>
+                <Box sx={{ flex: 1, minHeight: 0 }}>
+                  <WelcomePageMenu config={welcomeMenuConfig} projectName={currentProject} />
+                </Box>
+              </Box>
+            ) : (
+              <ChatPane messages={messages} structuredMessages={structuredMessages} contextState={contextState} onSendMessage={handleSendMessage} onAbort={handleAbort} streaming={streaming} mode={mode} onModeChange={setMode} aiModel={aiModel} onAiModelChange={setAiModel} showBackgroundInfo={showBackgroundInfo} onShowBackgroundInfoChange={handleShowBackgroundInfoChange} projectExists={projectExists} projectName={currentProject} onSessionChange={handleSessionChange} hasActiveSession={sessionId !== ''} hasSessions={hasSessions} onShowWelcomePage={() => setShowWelcomePage(true)} uiConfig={uiConfig} codingAgent={codingAgent} sessionId={sessionId} hideHeader={isMinimalistic} hasWelcomeMenu={Boolean(welcomeMenuConfig)} welcomeMenuActive={false} onShowWelcomeMenu={() => setShowWelcomeMenu(true)} onHideWelcomeMenu={() => setShowWelcomeMenu(false)} />
+            )}
             right={<ArtifactsPane files={files} projectName={currentProject} sessionId={sessionId} showBackgroundInfo={showBackgroundInfo} projectExists={projectExists} onClearPreview={() => setFiles([])} onCloseTab={handleCloseTab} previewersConfig={previewersConfig} autoFilePreviewExtensions={uiConfig?.autoFilePreviewExtensions} onUpdateViewerState={updateViewerState} />}
           />
         )}

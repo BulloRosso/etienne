@@ -1,5 +1,7 @@
 {
   "aiModel": "AI Model",
+  "openWelcomeMenu": "Home",
+  "backToMessages": "Messages",
   "anthropicClaude": "Anthropic Claude 4.5",
   "apiBaseUrl": "API Base URL",
   "apiBaseUrlPlaceholder": "e.g., https://api.moonshot.ai/anthropic",

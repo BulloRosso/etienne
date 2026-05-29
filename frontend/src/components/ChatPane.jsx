@@ -5,7 +5,7 @@ import { HiOutlineWrench } from "react-icons/hi2";
 import { GiSettingsKnobs } from "react-icons/gi";
 import { IoClose } from "react-icons/io5";
 import { RiChatNewLine } from "react-icons/ri";
-import { PiCaretCircleDownLight } from "react-icons/pi";
+import { PiCaretCircleDownLight, PiHouseLine, PiChats } from "react-icons/pi";
 
 import { MdInfo } from "react-icons/md";
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,7 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { apiFetch } from '../services/api';
 
-export default function ChatPane({ messages, structuredMessages = [], contextState = null, onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false }) {
+export default function ChatPane({ messages, structuredMessages = [], contextState = null, onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false, hasWelcomeMenu = false, welcomeMenuActive = false, onShowWelcomeMenu, onHideWelcomeMenu }) {
   const { t } = useTranslation(["chatPane","common"]);
   const { hasRole } = useAuth();
   const { mode: themeMode } = useThemeMode();
@@ -314,6 +314,17 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
 
         {/* Right-aligned buttons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+          {/* Welcome menu toggle — Home (go to scene) / Messages (back to chat) */}
+          {hasWelcomeMenu && (
+            <IconButton
+              onClick={welcomeMenuActive ? onHideWelcomeMenu : onShowWelcomeMenu}
+              title={welcomeMenuActive ? t('chatPane:backToMessages') : t('chatPane:openWelcomeMenu')}
+              sx={{ color: themeMode === 'dark' ? '#fff' : '#333' }}
+            >
+              {welcomeMenuActive ? <PiChats size={20} /> : <PiHouseLine size={20} />}
+            </IconButton>
+          )}
+
           {/* Notification Bell */}
           <NotificationMenu projectName={projectName} />
 
@@ -356,6 +367,16 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
         <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
           {uiConfig?.appBar?.title || projectName}
         </Typography>
+        {hasWelcomeMenu && (
+          <IconButton
+            onClick={welcomeMenuActive ? onHideWelcomeMenu : onShowWelcomeMenu}
+            title={welcomeMenuActive ? t('chatPane:backToMessages') : t('chatPane:openWelcomeMenu')}
+            size="small"
+            sx={{ ml: 'auto', color: themeMode === 'dark' ? '#fff' : '#333' }}
+          >
+            {welcomeMenuActive ? <PiChats size={18} /> : <PiHouseLine size={18} />}
+          </IconButton>
+        )}
       </Box>
       )}
 

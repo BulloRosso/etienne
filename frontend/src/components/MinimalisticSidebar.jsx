@@ -116,7 +116,8 @@ export default function MinimalisticSidebar({
       .catch(() => {});
   }, []);
 
-  // Fetch agent class icon
+  // Fetch agent class icon — re-fetch on project change so a transient 401
+  // on first load doesn't leave the header silently hidden forever.
   useEffect(() => {
     apiFetch('/api/persona-manager/agentclass-icon')
       .then(res => res.ok ? res.json() : null)
@@ -126,7 +127,7 @@ export default function MinimalisticSidebar({
         }
       })
       .catch(() => {});
-  }, []);
+  }, [currentProject]);
 
   // Resizable width
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -280,9 +281,21 @@ export default function MinimalisticSidebar({
     pb: 0.5,
   };
 
+  // Outer wrapper owns the animated width so transitions survive
+  // the collapsed↔expanded branch swap. Inner branches use width: 100%.
+  const animatedWrapperSx = {
+    width: collapsed ? '44px' : sidebarWidth,
+    minWidth: collapsed ? '44px' : sidebarWidth,
+    height: '100vh',
+    flexShrink: 0,
+    overflow: 'hidden',
+    transition: isDragging ? 'none' : 'width 220ms ease, min-width 220ms ease',
+  };
+
   // Collapsed sidebar — icon-only narrow strip
   if (collapsed) {
     return (
+      <Box sx={animatedWrapperSx}>
       <Box sx={{
         width: '44px',
         minWidth: '44px',
@@ -503,17 +516,19 @@ export default function MinimalisticSidebar({
           </Box>
         </Dialog>
       </Box>
+      </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', flexShrink: 0 }}>
+    <Box sx={animatedWrapperSx}>
+    <Box sx={{ display: 'flex', height: '100vh', flexShrink: 0, width: '100%' }}>
       {/* Sidebar content */}
       <Box
         ref={sidebarRef}
         sx={{
-          width: sidebarWidth,
-          minWidth: sidebarWidth,
+          flex: 1,
+          minWidth: 0,
           height: '100vh',
           display: 'flex',
           flexDirection: 'column',
@@ -1067,6 +1082,7 @@ export default function MinimalisticSidebar({
           borderLeft: isDark ? '2px dotted #555' : '2px dotted #ccc',
         }} />
       </Box>
+    </Box>
     </Box>
   );
 }

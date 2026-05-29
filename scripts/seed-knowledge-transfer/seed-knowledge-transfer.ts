@@ -462,6 +462,147 @@ async function step13_registerPreviewDocuments(): Promise<void> {
   ok(`UI configured: welcome message + ${previewDocuments.length} preview document(s)`);
 }
 
+async function step14_seedWelcomePageMenu(): Promise<void> {
+  header('14. Configure interactive welcome menu — welcome/welcomepage.json');
+  const dir = join(PROJECT_ROOT, 'welcome');
+  const path = join(dir, 'welcomepage.json');
+  await mkdir(dir, { recursive: true });
+  if (existsSync(path)) {
+    ok('welcome/welcomepage.json already present — leaving as is');
+    return;
+  }
+  const menu = {
+    version: 1,
+    background: 'welcome/background.jpg',
+    defaultLocale: 'de',
+    hotspots: [
+      {
+        id: 'rolle',
+        x: 170,
+        y: 410,
+        icon: '1',
+        labels: { de: 'Deine Rolle bei Lumitec', en: 'Your role at Lumitec' },
+        menu: [
+          {
+            labels: { de: 'Übersicht', en: 'Overview' },
+            items: [
+              { labels: { de: 'Deine Rolle (Überblick)', en: 'Your role (overview)' }, action: { type: 'preview', path: 'wiki/topics/1-deine-rolle-bei-lumitec.md' } },
+              { labels: { de: 'Deine Verantwortung', en: 'Your responsibility' }, action: { type: 'preview', path: 'wiki/topics/1-1-deine-verantwortung.md' } },
+              { labels: { de: 'Deine Kollegen', en: 'Your colleagues' }, action: { type: 'preview', path: 'wiki/topics/1-2-deine-kollegen.md' } },
+              { labels: { de: 'Deine Kundenprogramme', en: 'Your customer programs' }, action: { type: 'preview', path: 'wiki/topics/1-3-deine-kundenprogramme.md' } },
+              { labels: { de: 'Wo Dinge liegen', en: 'Where things live' }, action: { type: 'preview', path: 'wiki/topics/1-4-wo-dinge-liegen.md' } },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'lumitec',
+        x: 1320,
+        y: 1320,
+        icon: '2',
+        labels: { de: 'Was Lumitec macht', en: 'What Lumitec does' },
+        menu: [
+          {
+            labels: { de: 'Produkt & Markt', en: 'Product & market' },
+            items: [
+              { labels: { de: 'Was Lumitec macht (Überblick)', en: 'What Lumitec does (overview)' }, action: { type: 'preview', path: 'wiki/topics/2-was-lumitec-macht.md' } },
+              { labels: { de: 'Produkte', en: 'Products' }, action: { type: 'preview', path: 'wiki/topics/2-1-produkte.md' } },
+              { labels: { de: 'Der Scheinwerfer als System', en: 'The headlight as a system' }, action: { type: 'preview', path: 'wiki/topics/2-2-der-scheinwerfer-als-system.md' } },
+              { labels: { de: 'Markt und Regulatorik', en: 'Market and regulation' }, action: { type: 'preview', path: 'wiki/topics/2-3-markt-und-regulatorik.md' } },
+              { labels: { de: 'Fertigungsablauf', en: 'Manufacturing flow' }, action: { type: 'preview', path: 'wiki/topics/2-4-fertigungsablauf.md' } },
+            ],
+          },
+          {
+            labels: { de: 'Vertiefendes Handbuch', en: 'Reference handbook' },
+            items: [
+              { labels: { de: 'LED-Modul-Entwicklung (Handbuch)', en: 'LED module development (handbook)' }, action: { type: 'preview', path: 'documents/lumitec-handbook-led-module-development.md' } },
+              { labels: { de: 'Matrix-LED Thermal Design', en: 'Matrix-LED thermal design' }, action: { type: 'preview', path: 'documents/matrix-led-thermal-design-guide.md' } },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'standards',
+        x: 110,
+        y: 530,
+        icon: '3',
+        labels: { de: 'Standards & Prozesse', en: 'Standards & processes' },
+        menu: [
+          {
+            labels: { de: 'Standards (Wiki)', en: 'Standards (wiki)' },
+            items: [
+              { labels: { de: 'Standards & Prozesse (Überblick)', en: 'Standards & processes (overview)' }, action: { type: 'preview', path: 'wiki/topics/3-standards-und-prozesse.md' } },
+              { labels: { de: 'ISO 26262', en: 'ISO 26262' }, action: { type: 'preview', path: 'wiki/topics/3-1-iso-26262.md' } },
+              { labels: { de: 'AUTOSAR Classic', en: 'AUTOSAR Classic' }, action: { type: 'preview', path: 'wiki/topics/3-2-autosar-classic.md' } },
+              { labels: { de: 'ASPICE', en: 'ASPICE' }, action: { type: 'preview', path: 'wiki/topics/3-3-aspice.md' } },
+              { labels: { de: 'PPAP / IATF', en: 'PPAP / IATF' }, action: { type: 'preview', path: 'wiki/topics/3-4-ppap-iatf.md' } },
+              { labels: { de: 'Photometrie', en: 'Photometry' }, action: { type: 'preview', path: 'wiki/topics/3-5-photometrie.md' } },
+            ],
+          },
+          {
+            labels: { de: 'Referenzdokumente', en: 'Reference documents' },
+            items: [
+              { labels: { de: 'ISO 26262 — ASIL B Baseline', en: 'ISO 26262 — ASIL B baseline' }, action: { type: 'preview', path: 'documents/iso-26262-asilb-our-baseline.md' } },
+              { labels: { de: 'ECE R148/R149 Zusammenfassung', en: 'ECE R148/R149 summary' }, action: { type: 'preview', path: 'documents/ece-r148-r149-summary.md' } },
+              { labels: { de: 'GB4599 Blendregeln', en: 'GB4599 glare rules' }, action: { type: 'preview', path: 'documents/gb4599-glare-rules-summary.md' } },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'werkzeuge',
+        x: 320,
+        y: 700,
+        icon: '4',
+        labels: { de: 'Werkzeuge', en: 'Tools' },
+        menu: [
+          {
+            labels: { de: 'Werkzeuge (Wiki)', en: 'Tools (wiki)' },
+            items: [
+              { labels: { de: 'Werkzeuge (Überblick)', en: 'Tools (overview)' }, action: { type: 'preview', path: 'wiki/topics/4-werkzeuge.md' } },
+              { labels: { de: 'CANoe', en: 'CANoe' }, action: { type: 'preview', path: 'wiki/topics/4-1-canoe.md' } },
+              { labels: { de: 'DaVinci', en: 'DaVinci' }, action: { type: 'preview', path: 'wiki/topics/4-2-davinci.md' } },
+              { labels: { de: 'LucidShape', en: 'LucidShape' }, action: { type: 'preview', path: 'wiki/topics/4-3-lucidshape.md' } },
+              { labels: { de: 'Saber', en: 'Saber' }, action: { type: 'preview', path: 'wiki/topics/4-4-saber.md' } },
+              { labels: { de: 'HIL-Rig', en: 'HIL rig' }, action: { type: 'preview', path: 'wiki/topics/4-5-hil-rig.md' } },
+              { labels: { de: 'Jira / Polarion', en: 'Jira / Polarion' }, action: { type: 'preview', path: 'wiki/topics/4-6-jira-polarion.md' } },
+            ],
+          },
+          {
+            labels: { de: 'Praxis-Anleitungen', en: 'How-to guides' },
+            items: [
+              { labels: { de: 'LucidShape Quickstart', en: 'LucidShape quickstart' }, action: { type: 'preview', path: 'documents/lucidshape-quickstart.md' } },
+              { labels: { de: 'CANoe Restbus-Setup', en: 'CANoe restbus setup' }, action: { type: 'preview', path: 'documents/canoe-restbus-setup-headlight-ecu.md' } },
+              { labels: { de: 'HIL-Rig Buchung & Test', en: 'HIL rig booking & test' }, action: { type: 'preview', path: 'documents/hil-rig-booking-and-test-procedure.md' } },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'day-in-the-life',
+        x: 210,
+        y: 980,
+        icon: '5',
+        labels: { de: 'Ein Tag im Leben', en: 'A day in the life' },
+        menu: [
+          {
+            labels: { de: 'Szenarien (Wiki)', en: 'Scenarios (wiki)' },
+            items: [
+              { labels: { de: 'Day in the Life (Überblick)', en: 'Day in the life (overview)' }, action: { type: 'preview', path: 'wiki/topics/5-day-in-the-life.md' } },
+              { labels: { de: 'Flicker am B-Muster', en: 'Flicker on B-sample' }, action: { type: 'preview', path: 'wiki/topics/5-1-flicker-b-muster.md' } },
+              { labels: { de: 'GB4599 Failure', en: 'GB4599 failure' }, action: { type: 'preview', path: 'wiki/topics/5-2-gb4599-failure.md' } },
+              { labels: { de: 'Später ECR', en: 'Late ECR' }, action: { type: 'preview', path: 'wiki/topics/5-3-spaeter-ecr.md' } },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  await writeFile(path, JSON.stringify(menu, null, 2), 'utf8');
+  ok(`welcome menu seeded: ${menu.hotspots.length} hotspots → welcome/welcomepage.json`);
+  ok('  (upload welcome/background.jpg to render the scene; placeholder gradient until then)');
+}
+
 // ─── main ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -483,6 +624,7 @@ async function main() {
   await step11_writeHtmlAssets();
   await step12_writeProjectSkills();
   await step13_registerPreviewDocuments();
+  await step14_seedWelcomePageMenu();
   const dur = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log(`\n\x1b[1m\x1b[32m✓ seed complete in ${dur}s — project at:\x1b[0m ${PROJECT_ROOT}\n`);
 }

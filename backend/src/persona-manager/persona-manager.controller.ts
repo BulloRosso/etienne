@@ -30,7 +30,7 @@ export class PersonaManagerController {
   }
 
   @Get('personality')
-  @Roles('user')
+  @Roles('guest')
   async getPersonality(@Res() res: Response) {
     const personality = await this.personaManagerService.getExistingPersonality();
     if (!personality) {
@@ -40,7 +40,7 @@ export class PersonaManagerController {
   }
 
   @Get('avatar')
-  @Roles('user')
+  @Roles('guest')
   async getAvatar(@Res() res: Response) {
     const base64 = await this.personaManagerService.getExistingAvatar();
     if (!base64) {
@@ -50,7 +50,7 @@ export class PersonaManagerController {
   }
 
   @Get('agentclass-icon')
-  @Roles('user')
+  @Roles('guest')
   async getAgentClassIcon(@Res() res: Response) {
     const base64 = await this.personaManagerService.getAgentClassIcon();
     if (!base64) {
