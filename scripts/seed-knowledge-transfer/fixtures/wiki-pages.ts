@@ -93,6 +93,27 @@ betreffen.
 - **Lieferantenauswahl** für Treiber-ICs — entscheidet das Strategic-
   Sourcing-Team auf Basis deiner technischen Vorauswahl.
 
+## Eskalationspfade — wer entscheidet was
+
+\`\`\`mermaid
+flowchart TD
+  D[Du - Junior Dev Engineer]
+  D -->|technische Frage| TL[Anke - Team-Lead]
+  D -->|FuSa-relevant| FUSA[Dr. Wahlroos - Functional Safety Manager]
+  D -->|Lieferanten-Auffaelligkeit| SQ[Mira - Supplier-Quality]
+  D -->|Kunden-Frage| PM[Lars - Projektleiter OEM-A]
+  TL -->|Eskalation OEM-A| PM
+  TL -->|ASIL-Konflikt| FUSA
+  PM -->|wöchentlicher Status-Call| OEM[OEM-A Engineering]
+  SQ -->|8D / PPAP| SUPP[Lieferant]
+  classDef self fill:#fff8e1,stroke:#b8860b
+  class D self
+\`\`\`
+
+Faustregel: **du eskalierst, du entscheidest nicht.** Wenn ein Thema
+zwei der Spuren oben gleichzeitig kreuzt (z. B. eine ASIL-Frage in
+einem OEM-A-Audit), gehört es immer zu **Anke + FuSa**, nicht zu dir.
+
 ## Erste 30 Tage — konkret
 | Tag | Was passiert |
 |---|---|
@@ -204,6 +225,26 @@ und was das für deine Arbeit bedeutet:
   die "verified"-Spalte voll bekommen.
 - Plattformüberblick: \`documents/oem-c-commercial-van-platform-overview.md\`.
 
+## Programm-Lebenszyklus auf einen Blick
+
+\`\`\`mermaid
+flowchart LR
+  subgraph OEMA[OEM-A Plattform]
+    A1[A-Muster] --> A2[B-Muster ★ jetzt] --> A3[C-Muster] --> A4[SOP]
+  end
+  subgraph OEMB[OEM-B premium muAFS]
+    B0[RFQ ★ jetzt] --> B1[A-Muster 2027-Q3] --> B2[B-Muster] --> B3[SOP 2028-Q4]
+  end
+  subgraph OEMC[OEM-C commercial-van]
+    C1[A-Muster] --> C2[B-Muster] --> C3[C-Muster] --> C4[SOP] --> C5[SOP +90 Tage ★ jetzt]
+  end
+  classDef now fill:#fff8e1,stroke:#b8860b
+  class A2,B0,C5 now
+\`\`\`
+
+In welcher Phase ein Programm gerade ist bestimmt, **was du als
+Engineer dort tust** — siehe nächster Abschnitt.
+
 ## Was "Lebenszyklus-Stand" wirklich bedeutet
 Die Phase eines Programms (A-Muster → B-Muster → C-Muster → Vorserie →
 SOP) bestimmt, **wie viel deiner Entscheidungsfreiheit übrig ist**.
@@ -227,6 +268,10 @@ fast keine — du verifizierst und protokollierst.
 
 Ein kommentierter Karte-aller-Speicherorte. Aktualisiert bei jedem
 Werkzeug-Wechsel — siehe Provenance unten.
+
+## Visuelles Inhaltsverzeichnis: Sub-System ↔ Tool ↔ Owner
+
+![schematic-3 — die Headlight-Modul Explosionszeichnung ist nicht nur ein Bauteil-Bild; sie ist auch eine Karte deines Arbeitsalltags. Jedes Sub-System in dieser Zeichnung hat genau ein Owner-Tool: (1) LED-Arrays → Datenblaetter im Teamcenter, (2) Optik → LucidShape (Tariq), (3) Treiber-ICs → Saber/PLECS + headlight-ecu/bsw Repo, (4) μC + AUTOSAR → DaVinci Configurator + headlight-ecu/autosar-config Repo (Janet), (5) Thermomanagement → interne FEM-Tools (Sven), (6) Gehaeuse → Teamcenter, (7) Stecker + Bordnetz → Schaltplaene im Teamcenter. Wenn du nicht weisst, wer was reviewt: nimm das Schaubild, finde das Sub-System, das ist deine Eskalationsbasis.](documents/schematic-3.jpg)
 
 ## Source-Code + Konfiguration
 - **Git (Bitbucket)** — \`git.lumitec.intern\`. Du brauchst SSH-Key und
@@ -318,6 +363,15 @@ Für die ersten 90 Tage: Matrix-LED und ADB. Die anderen Linien tauchen
 in Reviews am Rand auf; das Detailwissen erwirbst du erst, wenn ein
 zugeordnetes Projekt es verlangt.
 
+## Bauteilarchitektur in der Explosionsansicht
+
+Die zwei zentralen Produktlinien als Explosionszeichnung — was sich
+hinter den Marketing-Namen tatsaechlich verbirgt:
+
+![schematic-1 — Matrix-LED-Modul, Explosionsansicht. Von hinten nach vorne: Aluminium-Heatsink, Treiber-IC-Bank auf Träger-PCB, LED-Array mit 84 individuell ansteuerbaren Segmenten auf Submount, Primaer-Linse pro Segment, gemeinsame Sekundaer-Optik, Streuscheibe. Lumitec-spezifisch ist die Shunt-FET-Bypass-Topologie der Treiber-Bank — sie erlaubt das Abschalten eines einzelnen Segments ohne Spannungspeak auf den Nachbarn. Diese Karte solltest du dir einprägen; jede ASIL-B-Anforderung gegen "matrix segment integrity" laesst sich an einer dieser Schichten verorten.](documents/schematic-1.jpg)
+
+![schematic-2 — μAFS-Pixel-Architektur (>1000 Pixel pro Scheinwerfer). Im Vergleich zur 84-Segment-Matrix oben: deutlich kleinere LED-Chips auf engerem Pitch, deutlich höhere Stromdichte, eigene Mikro-Linsen-Reihe pro Pixelblock. Aktuell in Vorentwicklung für OEM-B premium (siehe [1.3 Kundenprogramme](../topics/1-3-deine-kundenprogramme.md)). Das Schaubild zeigt warum Gen-5-Treiber-ICs nötig werden — Gen-4 trifft die Stromdichte-Anforderung nicht mehr.](documents/schematic-2.jpg)
+
 ## Reuse-Bibliothek
 Die hauseigene Wiederverwendungsbasis liegt unter
 \`documents/driver-ic-selection-history-2022-2026.md\` (Treiber-IC-
@@ -341,6 +395,10 @@ Sub-Systemen, die zusammen die Funktion liefern. Wenn du den Eingang
 und Ausgang jedes Sub-Systems verstehst, verstehst du die meisten
 Anforderungen aus einem RFQ.
 
+## Komplette Explosionsansicht
+
+![schematic-3 — Headlight-Modul Explosionszeichnung, alle 7 Sub-Systeme sichtbar von hinten nach vorn: (7) Steckverbinder + Bordnetz-Frontend, (5) Aluminium-Heatsink mit Kuehlrippen, (3) Treiber-IC-PCB, (4) Headlight-ECU-Board mit μC, (1) LED-Array-Submount, (2) Linsen-Cluster mit Reflektoren, (6) Polycarbonat-Streuscheibe + Trägergehäuse mit Dichtungen. Die Nummern in der Zeichnung entsprechen den Sub-System-Nummern weiter unten. Diese Karte ist die beste Einzeluebersicht; eine RFQ-Anforderung "X muss schneller / kühler / heller werden" kannst du an dieser Zeichnung sofort einem Sub-System zuordnen.](documents/schematic-3.jpg)
+
 ## Die sieben Sub-Systeme
 1. **LED-Arrays** — Lichtquelle (84 Segmente für Matrix). Spezifiziert
    in cd/m² pro Segment und Farbtemperatur (K).
@@ -349,6 +407,8 @@ Anforderungen aus einem RFQ.
 3. **Treiber-ICs** — Konstantstromquellen pro Segment + Schutzlogik
    (Übertemperatur, Open-LED-Detektion). Topologie:
    Buck-Boost-Wandler + Linear-Treiber je nach Strömungsbereich.
+
+   ![schematic-4 — Trager-PCB im Querschnitt: Multilayer-Aluminium-PCB mit thermischer Vias-Saeule unter jeder LED-Bank, oberseitige Treiber-IC-Reihen mit Konstantstrom-Kanaelen pro Segment, ruckseitiger Pad-Bereich auf den Heatsink. Erklaert, warum Lumitec hier ein 4-Layer-Board mit massiver Cu-Lage waehlt: thermischer Pfad zum Heatsink ist die kritische Constraint, nicht die elektrische Stromtragfaehigkeit. Eine typische FMEA-Frage ("kann der Pad-Bereich sich loesen?") ist an dieser Schnittansicht beantwortbar.](documents/schematic-4.jpg)
 4. **Mikrocontroller + AUTOSAR-Stack** — der Headlight-ECU. Empfängt
    Kommandos vom Zentral-Steuergerät über CAN-FD, treibt die LED-Treiber
    per SPI.
@@ -358,6 +418,47 @@ Anforderungen aus einem RFQ.
    (IP6K9K).
 7. **Steckverbinder + Bordnetz** — 12-V (PKW) oder 24-V (Nutzfahrzeug),
    abgesichert über ein Lumitec-spezifisches Schutzschaltungs-Frontend.
+
+## Datenfluss durch die sieben Sub-Systeme
+
+\`\`\`mermaid
+flowchart LR
+  CSG([Zentral-Steuergeraet]) -->|CAN-FD Setpoint| ECU
+  subgraph SW["μC + AUTOSAR (Sub-System 4)"]
+    ECU[Headlight-ECU SWCs]
+  end
+  ECU -->|SPI 8 MHz| TIC
+  subgraph PWR["Treiber-ICs (Sub-System 3)"]
+    TIC[Buck-Boost + Linear-Treiber]
+  end
+  TIC -->|Konstantstrom| LED
+  subgraph LIGHT["LED-Arrays (Sub-System 1)"]
+    LED[84 Segmente]
+  end
+  LED -->|Lichtstrom| OPT
+  subgraph OPTSYS["Optik (Sub-System 2)"]
+    OPT[Freiform-Linsen + Reflektoren]
+  end
+  OPT -->|Hellhell + cut-off| ROAD([Strasse])
+  THR[Thermomanagement] -.-> LED
+  THR -.-> TIC
+  CASE[Gehaeuse IP6K9K] -.-> LED
+  CONN[Stecker + Bordnetz] -.-> ECU
+\`\`\`
+
+Volle Linien = Funktionspfad (Befehl → Licht). Gestrichelte Linien =
+Schutz-/Gehäuse-Funktionen, die nicht im Datenfluss liegen aber jedes
+andere Sub-System mittragen.
+
+## Wo Defekte sichtbar werden
+
+Visuelle Auffälligkeiten an einem Sub-System verraten meistens, wo im
+Datenfluss oben etwas schief läuft. Zwei Beispiele, die du beim Bench-
+Test selbst erkennen können musst:
+
+![defect-2 — Bestueckungs-Fehler auf dem Traeger-PCB (Treiber-IC-Bank schräg, Lötzinn-Brücke zwischen Pin 14 und 15). Ein solches Modul kann nicht zuverlässig die 84-Segment-Ansteuerung halten — Sub-System 3 + 4 sind beide betroffen, weil die SPI-Sequenz auf falsche Strom-Setpoints landet. Erkennen: schräge Bauteilkanten, sichtbare Brücken zwischen Pins. Im JIRA als "SMT-Bestückungsfehler" anlegen, mit Modul-Seriennummer.](documents/defect-2.jpg)
+
+![defect-3 — Lufteinschluss in der Vergussstelle am Steckverbinder-Ausgang. Sub-System 7 (Stecker + Bordnetz) sieht visuell richtig aus, aber die IP6K9K-Dichtigkeit ist nicht mehr garantiert; bei Hochdruck-Reinigung im Feld dringt Feuchtigkeit ein. Erkennen: trübe Stelle im Vergussharz, kleine Bläschen am Steckverbinderübergang. Pflichtmaßnahme: gesamten Vergussschritt der Charge re-validieren.](documents/defect-3.jpg)
 
 ## Übung: Tracing einer Anforderung
 Nimm dir eine Anforderung aus \`documents/oem-a-program-glossary.md\` —
@@ -452,6 +553,39 @@ sechs Stationen — vereinfacht:
 6. **Verpackung + Versand** — JIT-Liefertakt an die OEM-Werke; bei
    OEM-A zweimal täglich, bei OEM-C wöchentlich (Seefracht).
 
+## Fertigungsfluss + EoL-Rueckschleife
+
+\`\`\`mermaid
+flowchart TD
+  S1[1. Die-Bonding<br/>extern, JP] --> S2[2. SMT<br/>Werk 2 Plauen]
+  S2 --> S3[3. Alignment ±50µm]
+  S3 --> S4[4. Vergiessen]
+  S4 --> S5{5. EoL Goniometer-Test}
+  S5 -->|pass| S6[6. Verpackung + JIT-Versand]
+  S5 -->|fail| REW[Nacharbeit-Station]
+  REW -->|N-1 Versuch| S3
+  REW -->|N+1 Verschrottung| SCRAP[(QM-Scrap-Log)]
+  classDef ext fill:#eceff1
+  class S1 ext
+\`\`\`
+
+## Aufbau Heatsink + Vergiess-Schichten (Station 4-5)
+
+![schematic-5 — Querschnitt durch ein vergossenes Modul nach Station 4. Von unten nach oben sichtbar: gestanzter Aluminium-Heatsink mit Kuehlrippen, Waermeleit-Pad, Lumitec-spezifische Vergiess-Schicht aus zweikomponentigem Polyurethan-Harz (auf Schaubild leicht orange angedeutet), darüber die SMT-bestueckte Treiber-IC-Bank, ein Faserplattenring als Trennlage und schliesslich die LED-Array-Auflage. Der Lufteinschluss-Defekt (defect-3 weiter unten) entsteht typischerweise am Übergang zwischen Vergiess-Schicht und Faserplattenring, wenn das Harz nicht ausreichend evakuiert wurde. Diese Schnittansicht ist die einzige Quelle, an der du das visuell verstehen kannst — kein Lumitec-Handbuch hat die Vergiess-Spec öffentlich.](documents/schematic-5.jpg)
+
+## Visuelle Defekt-Muster, die du erkennen können musst
+
+Sechs der acht Defekt-Bilder dieser Wiki stammen aus der Fertigung. Du
+solltest jedes davon auf einen Blick einer Station zuordnen können.
+
+![defect-1 — Streuscheibe leicht getruebt, Lichtaustritt durch milchige Zone gestreut. Tritt typischerweise an Station 6 (Verpackung) auf, wenn ein Modul gegen den Verpackungs-Schaumstoff scheuert oder zu früh aus dem Vergiessofen entnommen wurde. Erkennen: leichter Dunst auf einer Seite der Scheibe, oft nur unter schraegem Licht sichtbar. Maßnahme: Modul aus dem Liefer-Tray nehmen, JIRA-Ticket "Streuscheibe getrübt" mit Charge + Tray-Position.](documents/defect-1.jpg)
+
+![defect-2 — SMT-Ausrichtungsfehler an Station 2: Treiber-IC-Bank sitzt um ~0,8 mm verdreht. Ein menschliches Auge sieht das nur, wenn man entlang der Lötzinnkante schaut; die SMT-Linie meldet es üblicherweise selbst, aber bei manueller Nacharbeit kommt es durch. Pflichtmaßnahme: gesamte Charge nochmal AOI-prüfen, NICHT nur das eine Modul.](documents/defect-2.jpg)
+
+![defect-3 — Lufteinschluss im Vergussharz an Station 4. Klein (Ø ~2 mm), aber in der Naehe des Steckverbinder-Austritts ein dichter Versagensanfang. Erkennen: trüber Punkt im sonst klaren Vergussbereich. Maßnahme: Vergusssparameter-Drift prüfen (Temperatur + Vakuum), Charge zurückhalten bis Sven (Thermo) und der Fertigungs-Engineer eine Freigabe geben.](documents/defect-3.jpg)
+
+![defect-7 — Felddefekt-Foto aus dem OEM-C-Lessons-Learned (2025-Hochsommer-Welle, siehe documents/lessons-learned-thermal-field-issue-2025.md). Sub-System 5 (Thermomanagement) hatte das Material AlSi9 statt AlSi12 — bei Außentemperatur > 38 °C fielen einzelne Segmente nach 15-30 Minuten aus. Visuell: Verfärbung am Heatsink-Boden, leichte Wölbung. Heutige Charge nicht betroffen, aber Test-Profil bei +40 °C ist jetzt Pflicht.](documents/defect-7.jpg)
+
 ## Warum das für *dich* wichtig ist
 - Anforderungen, die bei EoL geprüft werden, müssen messbar sein. Eine
   Anforderung wie "Licht wirkt premium" hat in der Lumitec-Praxis
@@ -533,6 +667,41 @@ wenn die Kamera-Pipeline mit-betrachtet wird. Das ist eine *Programm-
 spezifische* Entscheidung; bei OEM-A bleiben wir bei ASIL B (Lumitec
 liefert nicht die Kamera).
 
+## ASIL-Entscheidungs-Pfad fuer Matrix-LED
+
+\`\`\`mermaid
+flowchart TD
+  H[Hazard: Segment leuchtet ungewollt] --> S{Severity}
+  S -->|S0 keine| QM
+  S -->|S1 leicht| E
+  S -->|S2 nicht-toedlich| E
+  S -->|S3 lebensgefaehrlich| E
+  E{Exposure}
+  E -->|E0-E1 selten| QM
+  E -->|E2 niedrig| C
+  E -->|E3 mittel| C
+  E -->|E4 hoch| C
+  C{Controllability}
+  C -->|C0 einfach| QM
+  C -->|C1 einfach| ASILA[ASIL A]
+  C -->|C2 schwierig aber moeglich| ASILB[ASIL B - Lumitec Baseline]
+  C -->|C3 sehr schwierig| ASILC[ASIL C - z.B. mit Kamera-Pipeline]
+  QM([QM - kein ASIL])
+  classDef baseline fill:#fff8e1,stroke:#b8860b
+  class ASILB baseline
+\`\`\`
+
+Im Lumitec-Default-Fall: **S2 + E4 + C2 = ASIL B**. C3 (und damit
+ASIL C) wäre nur drin, wenn die Kamera-Pipeline in unserem Scope
+läge — die ist sie bei OEM-A nicht.
+
+## Was ein Leakage-Mode (kein Safety-Fall) konkret aussieht
+
+Nicht jeder Bauteil-Mangel ist ein FuSa-Fall. Beispiel aus dem
+FMEA-Auszug (siehe \`inbox/fmea-excerpt-matrix-segment-leakage.docx\`):
+
+![defect-8 — Matrix-Segment Leakage-Mode. Ein Segment leuchtet im "aus"-Zustand mit ~1-3 % der Nennhelligkeit (Restlichtspur). Klassifikation: QM, nicht safety-relevant — Helligkeit liegt unter der Glare-Schwelle B50L. Erkennen: im Dunkelraum-Test eine schwache Aufhellung an einem Segment, das laut Setpoint aus sein sollte. Wichtig: trotzdem dokumentieren, weil bei OEM-B premium-RFQ als "known characteristic" deklariert werden muss.](documents/defect-8.jpg)
+
 ## Was das für deine Arbeit bedeutet
 - **Safety Goals** werden pro Funktion definiert. Beispiel: "Ein
   fälschlich aktiviertes Segment muss innerhalb von 250 ms deaktiviert
@@ -582,6 +751,40 @@ Steuergeräte.
 3. **SWCs (Software Components)** — das ist *unser* Code.
    Lumitec-spezifisch: ein SWC pro Funktion (matrix-control, adb-
    algorithm, drl-control, blinker-sequencer, …).
+
+## Headlight-ECU Hardware-Stackup
+
+Bevor wir den AUTOSAR-Stack betrachten — was steckt physisch in der ECU?
+
+![schematic-6 — Headlight-ECU Hardware-Explosionsansicht. Von links nach rechts entlang der Hauptachse: CAN-FD-Transceiver mit Common-Mode-Choke, Watchdog-IC, 32-bit-Mikrocontroller (Aurix-Familie), externer Flash + NVM, SPI-Master mit 4 Slave-Selects zu den vier Treiber-IC-Baenken, Schutzbeschaltung gegen Bordnetz-Spikes, Stecker-Frontend. Wichtig fuer das mentale Bild: die Software-Schichten (BSW/RTE/SWC) leben alle auf dem μC; alles links davon ist BSW-Treiber-Hardware, alles rechts ist Sub-System 3 (Treiber-ICs) auf einem separaten PCB. Diese Trennung erklärt, warum Janet (AUTOSAR-Lead) und das Power-Elektronik-Team an unterschiedlichen PCBs arbeiten.](documents/schematic-6.jpg)
+
+## Pfad eines Matrix-Setpoints durch den Stack
+
+\`\`\`mermaid
+sequenceDiagram
+    autonumber
+    participant CSG as Zentral-Steuergeraet
+    participant CAN as BSW: Can/CanIf/PduR
+    participant COM as BSW: COM
+    participant RTE
+    participant SWC as SWC matrix-control
+    participant SPI as BSW: SPI
+    participant DIC as Treiber-IC
+
+    CSG->>CAN: CAN-FD Frame (Segment-Setpoint)
+    CAN->>COM: Signal unpack
+    COM->>RTE: Read port "MatrixSetpoint"
+    RTE->>SWC: Task_5ms runnable
+    SWC->>SWC: Algorithmus + Safety-Check
+    SWC->>RTE: Write port "PWM_84_Segments"
+    RTE->>SPI: Trigger Burst-Write
+    SPI->>DIC: 18 µs Burst (alle 4 Baenke)
+    Note over CSG,DIC: End-to-end ≤ 5 ms (Schedule-Headroom 20 %)
+\`\`\`
+
+Janet hält den Schedule + die kanonische arxml-Datei. Du fasst die
+linke Hälfte (Schritte 1-3 + 8) **nie** allein an; die rechte (4-7) ist
+dein Spielraum.
 
 ## Was du als Junior in den ersten 90 Tagen siehst
 - **DaVinci Configurator** öffnen, eine Komponenten-Konfiguration
@@ -644,6 +847,37 @@ Ein ASPICE-Audit ist im Wesentlichen: "zeig mir die Traces vollständig
 und konsistent". Halbfertige Traces sind dein Hauptproblem — *nicht*
 unvollständige Anforderungen.
 
+## Tracing-V auf einer Folie
+
+\`\`\`mermaid
+flowchart LR
+  SYS1["SYS.1<br/>Customer Req"]
+  SYS2["SYS.2<br/>System Req"]
+  SYS3["SYS.3<br/>System Arch"]
+  SWE1["SWE.1<br/>SW Req"]
+  SWE2["SWE.2<br/>SW Arch"]
+  SWE3["SWE.3<br/>SW Detail Design"]
+  SWE4["SWE.4<br/>Unit Impl"]
+  SWE5["SWE.5<br/>Unit + Integ Test"]
+  SWE6["SWE.6<br/>SW Qualification"]
+  ITEST["Integration-Test"]
+  STEST["System-Test"]
+  ATEST["Acceptance"]
+  SYS1 --> SYS2 --> SYS3 --> SWE1 --> SWE2 --> SWE3 --> SWE4 --> SWE5
+  SWE5 -.up.-> SWE6
+  SWE6 -.up.-> ITEST
+  ITEST -.up.-> STEST
+  STEST -.up.-> ATEST
+  ATEST -.verifiziert.-> SYS1
+  classDef polarion fill:#fff8e1,stroke:#b8860b
+  class SYS1,SYS2,SWE1,SWE5 polarion
+\`\`\`
+
+Die **gelb markierten** Stationen sind die, die du im Polarion-Tracing-
+Feld konkret verlinkst. Ein Audit-Reviewer klickt jede gelbe Verbindung
+einmal hoch und einmal runter durch — fehlt eine Kante, ist die
+ASPICE-Bewertung dieser Anforderung weg.
+
 ## Stub-Hinweis
 Eine Übersicht der Prozessgruppen (MAN.3, SUP.8, etc.) lege ich als
 Stub an, falls du das Detail brauchst:
@@ -675,6 +909,15 @@ Stichworte, die später in der ausformulierten Seite landen sollen:
 
 Bis die Seite ausformuliert ist, **frag im Zweifelsfall direkt Mira
 Kaspar** (Supplier-Quality-Engineer, siehe [1.2](../topics/1-2-deine-kollegen.md)).
+
+## Wann ein 8D-Report auf den Tisch kommt
+
+Ein 8D-Report ist der Standard-Bericht, den Lumitec von einem Lieferanten
+erwartet, sobald ein Felddefekt auf ein Lieferantenbauteil zurückgeht.
+Das Foto, das Lumitec dem Lieferanten mitschickt, sieht zum Beispiel so
+aus:
+
+![defect-7 — Field-Defect-Foto aus der 2025-OEM-C-Welle, wie es im PPAP-Anhang von Lumitec an den Heatsink-Lieferanten ging. Verfaerbung des Materials AlSi9 im Bereich der LED-Bank, leichte Wölbung. Antwortpflicht des Lieferanten: 8D-Report innerhalb 10 Werktagen mit Containment-Action, Root-Cause, Corrective-Action und Verifikation. Mira verfolgt diese Termine.](documents/defect-7.jpg)
 `,
   },
   {
@@ -700,6 +943,10 @@ Kundenabnahmetest.
 | Beleuchtungsstärke | E | **lx** (Lux) | "wie hell auf einer Fläche" | EoL-Test in 25 m Abstand |
 | Leuchtdichte | L | **cd/m²** | "wie hell *wirkt* eine Fläche" | DRL-Signaturfläche-Homogenität |
 
+## Was die Optik mit der Candela-Tabelle macht
+
+![schematic-7 — gleiche Explosionszeichnung wie auf [4.3 LucidShape](../topics/4-3-lucidshape.md), aber hier interessieren uns die markierten Strahlengaenge. Die rote Hauptstrahlen-Buendelung trifft auf dem Messschirm in 25 m Abstand die hohe-Wert-Zone der Candela-Tabelle (B50L, HV, 75R); die gestrichelten Streupfade landen oberhalb der Cut-off-Linie und sind die kritische Glare-Quelle. Eine Aenderung an der Sekundaer-Linsen-Geometrie verschiebt direkt einzelne Candela-Werte. Wer in Polarion ein "Lichtstaerke X bei Messpunkt Y" sieht, weiss damit auch sofort, welche Optik-Komponente sich modellseitig aendern muesste.](documents/schematic-7.jpg)
+
 ## Candela-Tabelle / Beam-Pattern
 Die ECE R149 definiert eine **Candela-Tabelle**: an festgelegten
 Messpunkten (B50L, BR, HV, …) gibt es **Mindest- und Maximalwerte**.
@@ -712,6 +959,16 @@ strenger bei B50L.
 
 → Wenn dir jemand sagt "der Scheinwerfer blendet zu stark", ist die
 *nicht-triviale* Anschlussfrage: "in welcher Norm?".
+
+## Wie ein Beam-Pattern-Defekt visuell aussieht
+
+Zwei Goniometer-Snapshots, die ein Inspector bei der EoL-Stichprobe
+erkennen können muss — beide würden im echten Programm einen Hold der
+Charge auslösen:
+
+![defect-4 — asymmetrische Hellhell-Verteilung. Linke Hälfte der Hell-Dunkel-Grenze sitzt um ~0,8° tiefer als die rechte. Ursache typischerweise: Ausrichtungsfehler an Station 3 (siehe wiki/topics/2-4-fertigungsablauf.md). Erkennen am Goniometer-Plot: deutliche L/R-Asymmetrie um den HV-Punkt. Konsequenz: ECE R149 fail, OEM-A würde die Charge abweisen.](documents/defect-4.jpg)
+
+![defect-5 — Glare-Hotspot oberhalb der Hell-Dunkel-Grenze am Messpunkt B50L. ~870 cd statt der zugelassenen ≤ 750 cd (ECE R149) bzw. ≤ 625 cd (GB 4599). Ursache hier: kleine Materialeinschlüsse in einer Linsen-Charge. Erkennen am Plot: heller Punkt deutlich über der Cut-off-Linie. Konsequenz: Markteinfuhrverbot in China bei OEM-C — siehe [5.2 GB-4599-Failure](../topics/5-2-gb4599-failure.md).](documents/defect-5.jpg)
 
 ## Sprach-Adapter (Englisch)
 - Lichtstärke → **luminous intensity (cd)**
@@ -779,6 +1036,14 @@ gebraucht für:
 Du startest CANoe mit der falschen DBC und siehst "alles funktioniert" —
 weil die Signale falsch interpretiert werden. **Vor jedem Test prüfen:
 hat das Trace-Fenster die erwarteten PDU-Namen?**
+
+## Wie ein Segment-Ausfall im CAN-Trace aussieht
+
+Wenn ein einzelnes Matrix-Segment unerwartet aus bleibt, kannst du das
+oft schon im CANoe-Trace sehen, bevor du das Modul überhaupt visuell
+prüfst. Vergleichsbild aus dem HiL:
+
+![defect-6 — Segmentausfall in der Echtzeit-Visualisierung. 84 PWM-Werte werden alle 5 ms an die Treiber-IC-Bank gesendet; ein Segment liefert in mehreren aufeinanderfolgenden Frames konstant 0 % obwohl der Setpoint 100 % war. Im CANoe-Trace zu erkennen am DTC-Eintrag "Open-LED detected" sowie an der visuellen Luecke im 84-Segment-Layout. Massnahme: HiL-Diagnose-Sitzung mit Janet einplanen, bevor das Modul ins JIRA-Ticket geht.](documents/defect-6.jpg)
 `,
   },
   {
@@ -842,6 +1107,19 @@ Quickstart-Dokument für die ersten 30 Tage:
 \`documents/lucidshape-quickstart.md\`. Reicht *nicht* aus, um selbst
 ein Linsen-Design zu beginnen — das machst du sowieso nicht in den
 ersten 90 Tagen.
+
+## Was LucidShape eigentlich modelliert
+
+![schematic-7 — Linsen-Cluster + Reflektoren mit Strahlengaengen. Die Explosionsansicht zeigt die typische Lumitec-Optik: pro LED-Segment eine Primaer-Linse (TIR — Total Internal Reflection), darueber eine gemeinsame Freiform-Sekundaer-Linse, an den Seiten ein Reflektor zur Erfassung der Streustrahlen. Die roten Linien sind die Hauptstrahlen, die gestrichelten die Streupfade. LucidShape simuliert genau diese Geometrie — ein RFQ-Anforderung "wir brauchen 15 % mehr Lichtstrom in Messpunkt 75R" landet als Optimization-Constraint auf der Sekundaer-Linsen-Geometrie in dieser Zeichnung. Tariq laesst LucidShape die Freiformflaeche dort iterativ verformen.](documents/schematic-7.jpg)
+
+## Simulation vs. realer Defekt — was du an einer Reuse-Charge erkennst
+
+LucidShape ist nur so gut wie die Ausrichtungs-Toleranzen, die in der
+Realität tatsächlich eingehalten werden. Wenn das Sim-Resultat sauber
+ist, das gemessene Beam-Pattern aber asymmetrisch — liegt der Fehler in
+der Fertigung, nicht im Modell.
+
+![defect-4 — Beispiel: LucidShape sagte eine symmetrische Hellhell-Verteilung um den HV-Punkt voraus; das Goniometer-Resultat zeigt eine ~0,8°-Verschiebung der linken Cut-off-Linie. Wenn das passiert: nicht die Simulation neu rechnen, sondern Station 3 (Alignment) als Verdaechtigen prüfen.](documents/defect-4.jpg)
 `,
   },
   {
@@ -865,7 +1143,11 @@ Stichworte:
 - Beide werden hauptsächlich vom Power-Elektronik-Team genutzt; du
   *liest* die Ergebnisse, wenn ein Treiber-IC-Wechsel ansteht.
 
-Bis dieses Stub ausformuliert ist: Anke fragen, welche der beiden
+## Was du simulierst — die Lumitec-Treiber-Topologie
+
+![schematic-8 — Treiber-IC-Schaltungstopologie pro Segment, Explosionsansicht: Buck-Boost-Wandler (links) erzeugt eine geregelte Zwischenspannung aus dem 12-V- oder 24-V-Bordnetz; daran haengt ein Linear-Treiber pro Segment, der den Konstantstrom durch die LED sicherstellt. Der Shunt-FET (gelb) ist die Lumitec-Spezialitaet: er kann das Segment unabhaengig durchschalten, ohne Spannungspeak auf den Nachbarn. Rechts daneben die Schutzbeschaltung: Open-LED-Detektion und Übertemperatur-Sense. Saber simuliert hier die Spannungs- und Stromverlaeufe; PLECS macht dasselbe schneller, wenn nur die Power-Stage interessiert. Ein Treiber-IC-Wechsel (z.B. Gen-4 → Gen-5) heisst praktisch: dieselbe Topologie, andere Komponentenwerte — die Sim wird auf die neuen Werte umgestellt und re-evaluiert.](documents/schematic-8.jpg)
+
+Bis dieses Stub weiter ausformuliert ist: Anke fragen, welche der beiden
 Tools du erst lernen sollst.
 `,
   },
@@ -909,6 +1191,38 @@ Du buchst einen 2-Stunden-Slot, brauchst aber 30 Minuten, um den ECU
 in den Test-Mode zu setzen. Folge: 90 Minuten effektiv. **Vorbereitung
 ist alles** — Skripte vorher checken, CAN-Logs aus letztem Lauf vorher
 ansehen.
+
+## Was haengt am HiL-Rig
+
+![schematic-1 — am Rig ist genau dieses Matrix-LED-Modul angeschlossen (gleiche Explosionszeichnung wie in [2.1 Produkte](../topics/2-1-produkte.md)). Wichtig fuer die Vorbereitung: nicht jeder Test braucht alle Schichten. Wenn du nur die Treiber-IC-Schutzfunktion verifizierst, kann der Test mit einem "duemmeren" Bench-Modul ohne LEDs laufen; brauchst du die Photometrie, kommt das vollstaendige Modul plus Goniometer dazu. Vor jeder Buchung: Test-Skript ansehen → entscheiden, welche der Schichten unter Strom muessen → Modul-Konfiguration entsprechend buchen. Das spart locker 30 Minuten pro Slot.](documents/schematic-1.jpg)
+
+## Test-State-Machine eines HiL-Slots
+
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Setup: Slot beginnt
+    Setup --> KaltCheck: Modul angeschlossen
+    KaltCheck --> Setup: Sichtmaengel (zurueck zum Modulwechsel)
+    KaltCheck --> Power: visuelle Pruefung ok
+    Power --> Restbus: Spannung on
+    Restbus --> Test: PDUs erscheinen
+    Test --> Test: CAPL-Skript iteriert
+    Test --> Diagnose: DTC oder unerwartetes Verhalten
+    Diagnose --> Test: erklaerbar + dokumentiert
+    Diagnose --> Abbruch: nicht erklaerbar
+    Test --> TraceSave: Sequenz fertig
+    TraceSave --> Idle: Slot beendet
+    Abbruch --> Idle: Slot beendet (JIRA-Ticket)
+\`\`\`
+
+Die *kritische* Transition ist **KaltCheck → Setup** (Modul mit
+visuellen Auffälligkeiten *nicht* unter Spannung setzen). Zwei Defekt-
+Muster, die hier den Rückweg auslösen müssen:
+
+![defect-1 — Streuscheiben-Trübung beim Eingang zum HiL. Auch wenn die Trübung kein elektrischer Defekt ist, fließt sie in jede photometrische Messung mit und verfälscht das Trace-Resultat. Pflicht: Modul zurück an die Fertigung, neues Modul ziehen, nicht "schnell durchtesten".](documents/defect-1.jpg)
+
+![defect-6 — Segmentausfall, der im Kalt-Check bereits per Augenmaß sichtbar ist. Wenn ein Segment in Null-Position dunkel bleibt während andere im Reflex-Modus angesteuert sind, fängt der Test mit einer schon bekannten Anomalie an. Erkennen, im JIRA als "vor Test bereits bekannter Defekt" markieren und ggf. trotzdem testen, um zusätzliche Trace-Daten zu sammeln — nicht aber als gültiges Test-Resultat freigeben.](documents/defect-6.jpg)
 `,
   },
   {
@@ -950,6 +1264,35 @@ Zwei verschiedene Werkzeuge mit überlappendem Anschein, aber
 Wenn du ein JIRA-Ticket schreibst, das auf eine Polarion-Anforderung
 zurückgeht, **immer den Polarion-Link in das JIRA-Beschreibungsfeld**.
 ASPICE-Auditoren erwarten das.
+
+## Wie JIRA und Polarion zusammenspielen
+
+\`\`\`mermaid
+flowchart LR
+  FIELD[(OEM-C Felddaten)] -->|auto-import| JBOARD[JIRA Board CVL-FIELD]
+  JBOARD -->|triage durch dich| TICKET[JIRA Defect-Ticket]
+  TICKET -.Hyperlink.-> PREQ[Polarion-Anforderung]
+  PREQ -->|Status verified?| AUDIT{ASPICE-Audit}
+  TICKET -->|root cause gefunden| FIX[SW-Change-Request]
+  FIX -->|Test-Update| PTEST[Polarion Test-Case]
+  PTEST -->|verified| AUDIT
+  AUDIT -->|Trace okay| PASS([Audit ok])
+  AUDIT -->|Trace fehlt| FAIL([Audit-Befund])
+\`\`\`
+
+Die gestrichelte Linie (JIRA → Polarion) ist der häufigste Audit-
+Befund: ein Defect-Ticket *ohne* den Backlink zur Anforderung. Der
+Link kostet 10 Sekunden beim Anlegen — und 10 Stunden Aufräumarbeit
+beim Audit, wenn er fehlt.
+
+## Was in ein Field-Defect-Ticket gehört
+
+Ein JIRA-Ticket aus dem OEM-C-Field-Board braucht *immer*: Modul-Seriennr.,
+Datum, Foto-Evidence, Polarion-Trace, deine Hypothese zur Root Cause.
+
+![defect-7 — Field-Foto wie es im JIRA hochgeladen werden muss. Verfärbung am Heatsink-Boden + leichte Wölbung, vom OEM-C-Mechaniker dokumentiert. So dokumentiert: Modul-Seriennr. WP02-2025-08-15-RH-0419, Aufnahme aus 30 cm Distanz, Modul-Rückseite. Hypothesen-Feld: "thermisches Derating, Wiederholfall ähnlich Q3-2025-Welle (Lessons-Learned-Memo)". Pflicht-Link zu Polarion-Customer-Req CVL-FUNC-204.](documents/defect-7.jpg)
+
+![defect-8 — Beispiel eines QM-Eintrags (kein safety-relevanter Defect): Leakage-Mode der Treiber-IC-Stufe, im Dunkelraum nachgemessen. Ein Vergleich aller drei Lieferantenchargen über die letzten 12 Monate ist im QM-System angefügt, sodass eine spätere ECR-Diskussion die Datenbasis hat. Auch hier: Hyperlink zur entsprechenden Polarion-System-Req SYS-DRV-117.](documents/defect-8.jpg)
 `,
   },
 
@@ -1015,6 +1358,42 @@ falsifizieren kann. *Nicht* vor dem Hypothesen-Setup — sonst läufst du
 in ein Brainstorming-Meeting mit drei Senior-Engineers und null
 Daten.
 
+## Wo das Flicker im Hardware-Pfad sitzen koennte
+
+![schematic-6 — gleiches Stackup wie in [3.2 AUTOSAR Classic](../topics/3-2-autosar-classic.md), aber hier interessieren uns die *Knotenpunkte*, an denen Flicker entstehen kann: (1) CAN-FD-Receiver bei Bordnetz-Spannungseinbruechen — koennte ein Frame missen; (2) SPI-Master beim Burst-Write — koennte einen Wert verkippen; (3) Treiber-IC-PCB bei Übertemperatur-Derating; (4) μC Watchdog-Reset bei Stack-Overflow. Die fuenf Reflex-Hypothesen (PWM-Kamera-Beat, Thermo, CAN-Latenz, Open-LED-Glitch, Bordnetz-Spike) bilden sich genau auf diese vier Knoten ab. Wenn du das Schaubild vor dir hast, ist die Hypothesen-Diskussion mit Janet 50 % schneller.](documents/schematic-6.jpg)
+
+## Die Reflex-Reihenfolge als Flowchart
+
+\`\`\`mermaid
+flowchart TD
+  IN[OEM-A-Meldung: Flicker bei T>65 C] --> A{Video / Logs vorhanden?}
+  A -->|nein| ASK[A. Beobachtungs-Material anfordern]
+  A -->|ja| B[B. Hypothese formulieren]
+  ASK --> A
+  B --> CHECK{Hypothese pruefbar?}
+  CHECK -->|nein, brauche Specialists| C[C. Sven + Janet einbinden]
+  CHECK -->|ja, HiL reicht| HIL[HiL-Test laufen]
+  C --> HIL
+  HIL --> FIX[Root Cause + Fix]
+  classDef bad fill:#ffebee,stroke:#c62828
+  classDef good fill:#e8f5e9,stroke:#2e7d32
+  BAD1[direkt zu B ohne Daten<br/>2 Wochen verloren]:::bad
+  BAD2[direkt zu C ohne Hypothese<br/>Senior-Meeting ohne Daten]:::bad
+  GOOD1[Reihenfolge A → B → C<br/>3 Werktage zum Fix]:::good
+  IN -.falsch.-> BAD1
+  IN -.falsch.-> BAD2
+  IN -.richtig.-> GOOD1
+\`\`\`
+
+## Hinweise auf moegliche Bauteil-Ursachen
+
+Im Live-Szenario kann der Defekt auch ein Hardware-Symptom sein, das
+einen Reflex früher hätte stoppen müssen:
+
+![defect-2 — wenn das beanstandete Modul aus einer Charge mit dokumentiertem SMT-Versatz stammt (siehe Fertigungsablauf), wird das thermische Verhalten unzuverlässig. Vor dem HiL-Lauf: visuelle Pruefung der Treiber-IC-Banken auf schräge Bauteilkanten. Steht der Verdacht, dann ist die Ursache nicht das Klima im Fahrzeug sondern eine Charge-Auffaelligkeit.](documents/defect-2.jpg)
+
+![defect-6 — wenn der Reflex (B) Treiber-IC-Übertemperatur lautet, wäre der typische Trace-Befund eine wiederholte 0 %-PWM-Phase an demselben Segment. Sieht der HiL-Trace stattdessen ein gleichmaessig verteiltes Flacker-Muster, falsifiziert das die Übertemperatur-Hypothese und bestätigt eher den PWM-Kamera-Beat. Erstmal Defekt-Bild dokumentieren, dann Janet einbinden.](documents/defect-6.jpg)
+
 ## Verzweigtes Szenario (out/scenarios/5.1-flicker-on-b-sample.scenario.html)
 Der Agent rendert dieses Szenario auf Anfrage als interaktive HTML-
 Seite mit drei Wahlmöglichkeiten und Konsequenzen — eine Variante mit
@@ -1057,6 +1436,16 @@ beim Glare-Test (Messpunkt B50L) knapp durch. Spec-Limit: 700 cd. Gemessen:
 *Nicht* allein entscheiden. Das ist eine Eskalation an Anke und Tariq.
 Deine Aufgabe: die Vorbereitung der Diskussion — Daten zusammen-
 stellen, Hypothesen-Liste, eigene Vermutung markiert als "Vermutung".
+
+## Visuelle Belege aus dem Shanghai-Labor
+
+OEM-C hat zwei Mess-Plots geschickt. Beide erkennen die Diagnose ohne
+elektrische Schaltplan-Diskussion — du kannst die Bilder also direkt in
+die Eskalations-Mail an Anke einbetten:
+
+![defect-5 — der Glare-Hotspot am Messpunkt B50L. 730 cd statt der zugelassenen 700 cd (China-Limit), bei ECE R149 wäre noch okay (Limit dort 750 cd). Sichtbar als heller Punkt deutlich über der Cut-off-Linie. Erkennen am Plot: scharfer Peak in der Glare-Zone, nicht ein verwaschener Verlauf. Konsequenz: ohne Re-Submit kein Marktzugang.](documents/defect-5.jpg)
+
+![defect-4 — gleichzeitig zeigt der Plot eine asymmetrische Hellhell-Verteilung. Das ist kein zusätzlicher Befund sondern derselbe Wurzelursache-Verdacht: eine Linsen-Charge mit verschobener Justage trifft beide Effekte gemeinsam. Hier zur Dokumentation der Ursachenkette, nicht als separates Failure.](documents/defect-4.jpg)
 
 ## Stub-Erweiterung
 Wenn du dieses Szenario nach Abschluss des Topics 5 fertig hast,

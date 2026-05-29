@@ -55,7 +55,7 @@ import { RAG_DOCS } from './fixtures/rag-docs';
 import { INBOX_DOCS } from './fixtures/inbox-docs';
 import { SESSIONS } from './fixtures/chats';
 import { PROGRESS_TEMPLATE, PROGRESS_GUEST } from './fixtures/progress';
-import { EVENT_RULES } from './fixtures/event-rules';
+import { EVENT_RULES, SEED_PROMPTS, SCHEDULED_TASKS } from './fixtures/event-rules';
 import { QUIZ_TOPIC_1, SCENARIO_5_1, COLLEAGUE_INTROS } from './fixtures/html-assets';
 import { SIMULATORS } from './fixtures/simulators';
 import { DOCUMENTATION_MD } from './fixtures/documentation';
@@ -307,15 +307,56 @@ async function step8_seedChats(): Promise<void> {
 }
 
 async function step9_writeEventRules(): Promise<void> {
-  header('9. Seed event rules (.etienne/event-handling.json)');
+  header('9. Seed event rules + prompts (.etienne/event-handling.json + prompts.json)');
   const etienne = join(PROJECT_ROOT, '.etienne');
   await mkdir(etienne, { recursive: true });
-  const path = join(etienne, 'event-handling.json');
-  await writeFile(path, JSON.stringify({ rules: EVENT_RULES }, null, 2), 'utf8');
-  for (const rule of EVENT_RULES) {
-    info(`${rule.id} (${rule.trigger.kind}, ${rule.enabled ? 'enabled' : 'disabled'})`);
+
+  // Merge with any pre-existing rules (e.g. seeded by a standard skill).
+  const ehPath = join(etienne, 'event-handling.json');
+  let eh: { rules: any[] } = { rules: [] };
+  if (existsSync(ehPath)) {
+    try { eh = JSON.parse(await readFile(ehPath, 'utf8')); } catch { eh = { rules: [] }; }
   }
-  ok(`event rules: ${EVENT_RULES.length} written`);
+  if (!Array.isArray(eh.rules)) eh.rules = [];
+  for (const rule of EVENT_RULES) {
+    if (!eh.rules.some((r: any) => r.id === rule.id)) eh.rules.push(rule);
+  }
+  await writeFile(ehPath, JSON.stringify(eh, null, 2), 'utf8');
+  for (const rule of EVENT_RULES) {
+    info(`${rule.id} (${rule.condition.type}, ${rule.enabled ? 'enabled' : 'disabled'})`);
+  }
+
+  const prPath = join(etienne, 'prompts.json');
+  let pr: { prompts: any[] } = { prompts: [] };
+  if (existsSync(prPath)) {
+    try { pr = JSON.parse(await readFile(prPath, 'utf8')); } catch { pr = { prompts: [] }; }
+  }
+  if (!Array.isArray(pr.prompts)) pr.prompts = [];
+  for (const prompt of SEED_PROMPTS) {
+    if (!pr.prompts.some((p: any) => p.id === prompt.id)) pr.prompts.push(prompt);
+  }
+  await writeFile(prPath, JSON.stringify(pr, null, 2), 'utf8');
+  ok(`event rules: ${EVENT_RULES.length} written, prompts: ${SEED_PROMPTS.length} written`);
+}
+
+async function step9b_registerScheduledTasks(ctx: ApiContext): Promise<void> {
+  header('9b. Register recurring scheduler tasks (nightly progress recompute)');
+  for (const task of SCHEDULED_TASKS) {
+    try {
+      await apiFetch(ctx, `/api/scheduler/${PROJECT_NAME}/task`, {
+        method: 'POST',
+        body: JSON.stringify(task),
+      });
+      info(`${task.id} (${task.cronExpression} ${task.timeZone})`);
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 409) {
+        info(`${task.id} already registered`);
+      } else {
+        warn(`failed to register ${task.id}: ${err?.message ?? err}`);
+      }
+    }
+  }
+  ok(`scheduler: ${SCHEDULED_TASKS.length} task(s) registered`);
 }
 
 async function step10_assignApplicationType(): Promise<void> {
@@ -437,6 +478,7 @@ async function main() {
   await step7_writeProgress();
   await step8_seedChats();
   await step9_writeEventRules();
+  await step9b_registerScheduledTasks(ctx);
   await step10_assignApplicationType();
   await step11_writeHtmlAssets();
   await step12_writeProjectSkills();

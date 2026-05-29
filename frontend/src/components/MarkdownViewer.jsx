@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, CircularProgress, IconButton, Tooltip, Button,
-  Accordion, AccordionSummary, AccordionDetails, Typography
+  Accordion, AccordionSummary, AccordionDetails, Typography,
+  Dialog,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import ImageIcon from '@mui/icons-material/Image';
@@ -76,6 +78,9 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   const [imagesDir, setImagesDir] = useState('');
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  // Image-zoom modal: holds the src + alt of the image the user clicked
+  // in read-mode. Null when closed.
+  const [zoomedImage, setZoomedImage] = useState(null);
   const [exportFormat, setExportFormat] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [zoomModal, setZoomModal] = useState({ open: false, svg: '' });
@@ -114,7 +119,21 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
       setFrontmatter(fm);
 
       const rawHtml = await marked.parse(body);
-      const cleanHtml = DOMPurify.sanitize(rawHtml);
+      // Rewrite relative project-paths in <img src="..."> to the
+      // workspace file API so e.g. `documents/schematic-7.jpg` in a
+      // page under wiki/topics/ resolves to the actual file under the
+      // project root. Skips already-absolute URLs (/api/..., http://,
+      // data:, #anchor) so the editor's insert-image (which produces
+      // /api/workspace/.../files/...) keeps working.
+      const projectFilesPrefix = `/api/workspace/${encodeURIComponent(projectName)}/files/`;
+      const rewrittenHtml = rawHtml.replace(
+        /(<img\b[^>]*\bsrc=)(["'])([^"']+)\2/gi,
+        (match, prefix, quote, src) => {
+          if (/^(https?:\/\/|data:|\/api\/|#|\/)/i.test(src)) return match;
+          return `${prefix}${quote}${projectFilesPrefix}${src}${quote}`;
+        },
+      );
+      const cleanHtml = DOMPurify.sanitize(rewrittenHtml);
       setHtmlContent(cleanHtml);
       setLoading(false);
     } catch (err) {
@@ -161,6 +180,18 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
   };
 
   const handleLinkClick = (e) => {
+    // Image click → open the fullscreen zoom modal. Only fires in read
+    // mode because the editor branch never renders this Box.
+    const img = e.target.closest('img');
+    if (img) {
+      e.preventDefault();
+      setZoomedImage({
+        src: img.getAttribute('src') || '',
+        alt: img.getAttribute('alt') || '',
+      });
+      return;
+    }
+
     const anchor = e.target.closest('a');
     if (!anchor) return;
     const href = anchor.getAttribute('href');
@@ -583,8 +614,18 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
               }
             },
             '& img': {
-              maxWidth: '100%',
-              height: 'auto'
+              maxWidth: 'min(100%, 650px)',
+              maxHeight: '650px',
+              height: 'auto',
+              width: 'auto',
+              cursor: 'zoom-in',
+              borderRadius: 1,
+              display: 'block',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              // No transform — keep it boring and crisp. The cursor + the
+              // visible click target are enough affordance that clicking
+              // does something.
             },
             '& hr': {
               border: 'none',
@@ -700,6 +741,58 @@ export default function MarkdownViewer({ filename, projectName, className = '' }
         svg={zoomModal.svg}
         onClose={() => setZoomModal({ open: false, svg: '' })}
       />
+      {/* Image fullscreen modal — opens when the user clicks an inline
+          image. Esc and backdrop-click both close (MUI defaults). */}
+      <Dialog
+        open={Boolean(zoomedImage)}
+        onClose={() => setZoomedImage(null)}
+        maxWidth={false}
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'rgba(0,0,0,0.92)',
+            boxShadow: 'none',
+            m: 0,
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            width: '100vw',
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'zoom-out',
+          },
+        }}
+        onClick={() => setZoomedImage(null)}
+      >
+        <IconButton
+          onClick={(e) => { e.stopPropagation(); setZoomedImage(null); }}
+          sx={{
+            position: 'fixed',
+            top: 16,
+            right: 16,
+            color: 'rgba(255,255,255,0.9)',
+            bgcolor: 'rgba(0,0,0,0.4)',
+            '&:hover': { bgcolor: 'rgba(0,0,0,0.6)' },
+          }}
+          aria-label="close"
+        >
+          <CloseIcon />
+        </IconButton>
+        {zoomedImage && (
+          <img
+            src={zoomedImage.src}
+            alt={zoomedImage.alt}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 'calc(100vw - 64px)',
+              maxHeight: 'calc(100vh - 64px)',
+              objectFit: 'contain',
+              cursor: 'default',
+            }}
+          />
+        )}
+      </Dialog>
     </Box>
   );
 }

@@ -1,80 +1,104 @@
 /**
- * Event rules seeded by the knowledge-transfer project.
+ * Event rules + prompts seeded by the knowledge-transfer project.
  *
- * Two rules, both enabled at seed time:
+ * Canonical schema (mirrors backend/src/event-handling/core/rule-engine.service.ts):
  *
- *   1. rag-auto-index-on-upload
- *      Watches documents/ for file create/update events and re-runs
- *      RAG indexing. Keeps the retrieval substrate fresh as the expert
- *      drops new internal docs in.
+ *   rule = {
+ *     id, name, enabled,
+ *     condition: { type: 'simple' | 'semantic' | 'knowledge-graph' | 'compound',
+ *                  ... type-specific fields ... },
+ *     action: { type: 'prompt', promptId: '<id-in-prompts.json>' },
+ *     createdAt, updatedAt,
+ *   }
  *
- *   2. nightly-progress-recompute
- *      Walks every progress/*.progress.json overnight and:
- *        - decays streak_days when last_activity is older than 36h,
- *        - recomputes the leaf-weighted percent_complete value,
- *        - re-emits a small "needs-attention" summary the expert
- *          can review the next morning.
- *
- * Written to .etienne/event-handling.json by the seed runner.
+ * Rules with cron-style triggers do NOT belong here — the rule engine
+ * fires only on events. Recurring jobs (e.g. the nightly progress
+ * recompute) go through the scheduler API as a separate seed step.
  */
+
+const NOW = '2026-05-29T08:00:00Z';
 
 export interface EventRule {
   id: string;
-  description: string;
+  name: string;
   enabled: boolean;
-  trigger: {
-    kind: 'filesystem' | 'cron';
-    config: Record<string, unknown>;
-  };
-  action: {
-    kind: 'agent-prompt' | 'http';
-    config: Record<string, unknown>;
-  };
+  condition:
+    | {
+        type: 'simple';
+        event: Record<string, unknown>;
+      }
+    | {
+        type: 'knowledge-graph';
+        sparqlQuery: string;
+      }
+    | {
+        type: 'semantic' | 'compound';
+        [key: string]: unknown;
+      };
+  action: { type: 'prompt'; promptId: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeedPrompt {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const EVENT_RULES: EventRule[] = [
   {
     id: 'rag-auto-index-on-upload',
-    description:
-      'Re-index documents/ whenever a markdown or office file is created or updated. Keeps the agent grounded in the latest expert-curated material.',
+    name: 'Auto-index documents for RAG search',
     enabled: true,
-    trigger: {
-      kind: 'filesystem',
-      config: {
-        watch: 'documents/',
-        events: ['create', 'update'],
-        glob: '**/*.{md,markdown,pdf,docx,doc,xlsx,xls,pptx,ppt}',
-        debounce_ms: 2000,
+    condition: {
+      type: 'simple',
+      event: {
+        group: 'Filesystem',
+        name: 'File Created',
+        'payload.path': '*/documents/*',
       },
     },
-    action: {
-      kind: 'agent-prompt',
-      config: {
-        prompt:
-          'A file was added or updated under documents/. Re-run RAG indexing via POST /api/workspace/<project>/rag/index-document for the affected path. Do not commentate; this is a maintenance task.',
-        unattended: true,
-      },
-    },
+    action: { type: 'prompt', promptId: 'rag-auto-index' },
+    createdAt: NOW,
+    updatedAt: NOW,
   },
+];
+
+export const SEED_PROMPTS: SeedPrompt[] = [
+  {
+    id: 'rag-auto-index',
+    title: 'Auto-index a new document into the RAG pool',
+    content:
+      'A new file was created under documents/. Index it into the RAG vector store via POST /api/workspace/<project>/rag/index-document with the new path. Skip the re-indexing if the file extension is not in {md, markdown, pdf, docx, doc, xlsx, pptx}. Do not message the user; this is a maintenance task.',
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+];
+
+/**
+ * Recurring scheduler tasks (nightly cron etc.). Not rules — these
+ * go through POST /api/scheduler/<project>/task.
+ */
+export interface ScheduledTask {
+  id: string;
+  name: string;
+  prompt: string;
+  cronExpression: string;
+  timeZone: string;
+  type: 'recurring';
+}
+
+export const SCHEDULED_TASKS: ScheduledTask[] = [
   {
     id: 'nightly-progress-recompute',
-    description:
-      'Walk every progress/*.progress.json, decay streak_days when last activity is older than 36 h, recompute weighted percent_complete, surface a "needs-attention" summary for the expert.',
-    enabled: true,
-    trigger: {
-      kind: 'cron',
-      config: {
-        // Every day at 03:17 local time (avoids the round-hour stampede).
-        schedule: '17 3 * * *',
-      },
-    },
-    action: {
-      kind: 'agent-prompt',
-      config: {
-        prompt:
-          'Nightly maintenance: read every progress/*.progress.json. For each file: (a) if last_activity older than 36h, decrement streak_days (floor 0); (b) recompute percent_complete from leaf states weighted by ToC weights; (c) collect any node where state == "in-progress" with no Q/A in the last 7 days. Write a single needs-attention summary to progress/_attention.json (overwriting). Do not message the user.',
-        unattended: true,
-      },
-    },
+    name: 'Nightly progress recompute',
+    prompt:
+      'Nightly maintenance for the onboarding project. Walk every progress/*.progress.json. For each file: (a) if last_activity older than 36 h, decrement streak_days (floor 0); (b) recompute percent_complete from leaf states weighted by ToC weights; (c) collect any node where state == "in-progress" with no Q/A in the last 7 days. Write a single needs-attention summary to progress/_attention.json (overwriting). Do not message the user.',
+    cronExpression: '17 3 * * *',
+    timeZone: 'UTC',
+    type: 'recurring',
   },
 ];
