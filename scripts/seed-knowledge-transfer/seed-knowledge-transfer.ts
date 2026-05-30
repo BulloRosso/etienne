@@ -59,6 +59,7 @@ import { EVENT_RULES, SEED_PROMPTS, SCHEDULED_TASKS } from './fixtures/event-rul
 import { QUIZ_TOPIC_1, SCENARIO_5_1, COLLEAGUE_INTROS } from './fixtures/html-assets';
 import { SIMULATORS } from './fixtures/simulators';
 import { DOCUMENTATION_MD } from './fixtures/documentation';
+import { ROLEPLAYS } from './fixtures/roleplays';
 
 const WORKSPACE_ROOT =
   process.env.WORKSPACE_ROOT || 'C:/Data/GitHub/claude-multitenant/workspace';
@@ -407,8 +408,8 @@ async function step11_writeHtmlAssets(): Promise<void> {
 }
 
 async function step12_writeProjectSkills(): Promise<void> {
-  header('12. Provision project-local skills (quiz-generator + simulator-author)');
-  const skills = ['quiz-generator', 'simulator-author'];
+  header('12. Provision project-local skills (quiz-generator + simulator-author + roleplay-engine + roleplay-author)');
+  const skills = ['quiz-generator', 'simulator-author', 'roleplay-engine', 'roleplay-author'];
   for (const skill of skills) {
     const src = join(__dirname, 'skill-templates', skill, 'SKILL.md');
     const dst = join(PROJECT_ROOT, '.claude', 'skills', skill);
@@ -418,6 +419,18 @@ async function step12_writeProjectSkills(): Promise<void> {
     info(`.claude/skills/${skill}/SKILL.md`);
   }
   ok(`provisioned ${skills.length} project-local skills`);
+}
+
+async function step12b_writeRoleplays(): Promise<void> {
+  header('12b. Write roleplay/*.roleplay.json (expert-authored persona scenarios)');
+  const dir = join(PROJECT_ROOT, 'roleplay');
+  await mkdir(dir, { recursive: true });
+  for (const rp of ROLEPLAYS) {
+    const path = join(dir, `${rp.id}.roleplay.json`);
+    await writeFile(path, JSON.stringify(rp, null, 2), 'utf8');
+    info(`roleplay/${rp.id}.roleplay.json (${rp.persona_name}, ${rp.hints.length} hints, ${rp.evaluation_criteria.length} criteria)`);
+  }
+  ok(`roleplay: ${ROLEPLAYS.length} scenarios written`);
 }
 
 async function step13_registerPreviewDocuments(): Promise<void> {
@@ -623,6 +636,7 @@ async function main() {
   await step10_assignApplicationType();
   await step11_writeHtmlAssets();
   await step12_writeProjectSkills();
+  await step12b_writeRoleplays();
   await step13_registerPreviewDocuments();
   await step14_seedWelcomePageMenu();
   const dur = ((Date.now() - startedAt) / 1000).toFixed(1);

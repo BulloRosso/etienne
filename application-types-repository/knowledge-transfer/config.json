@@ -74,7 +74,22 @@
         "zh": "在应用模拟器中练习"
       },
       "payload": {
-        "prompt": "Ask me which tool I want to practice (SAP MD04, a CRM mock, an ERP form). If a simulator already exists under out/simulators/ for that tool, open it via the render_simulator MCP tool and emit a <preview:out/simulators/<app>.simulator.html> tag. If not, invoke the simulator-author skill to generate one. Coach me step by step using the click stream that arrives via viewerState — one step at a time, don't dump the whole expected sequence at me. If I get stuck for 30 s, call highlight_simulator_step to flash the next hot-spot."
+        "prompt": "Ask me which tool I want to practice (SAP MD04, a CRM mock, an ERP form). If a simulator already exists under out/simulators/ for that tool: FIRST call the `render_simulator` MCP tool with filename=`out/simulators/<app>.simulator.html` — this wires the click stream into viewerState and is REQUIRED for coaching to work. AFTER the tool call returns, emit a `<preview:out/simulators/<app>.simulator.html>` tag in your reply so the preview pane focuses on it. Do NOT skip the MCP tool call and rely on the preview tag alone — without `render_simulator` you will not see the trainee's clicks. If no simulator exists for the requested tool, invoke the simulator-author skill to generate one, then follow the same render_simulator + preview-tag sequence. Coach step by step using the click stream — one step at a time, don't dump the whole expected sequence at me. If I get stuck for 30 s, call highlight_simulator_step to flash the next hot-spot."
+      }
+    },
+    {
+      "id": "practice-roleplay",
+      "type": "subagent",
+      "icon": "Theaters",
+      "roles": ["guest"],
+      "labels": {
+        "en": "Practice a roleplay conversation",
+        "de": "Ein Rollenspiel-Gespräch üben",
+        "it": "Esercitati con una conversazione di ruolo",
+        "zh": "练习角色扮演对话"
+      },
+      "payload": {
+        "prompt": "List the available roleplays under roleplay/*.roleplay.json with persona name + topic only (do NOT reveal hints or evaluation criteria). Ask me which one to practice — or, if I say 'surprise me' or 'what fits my current topic?', pick one whose topic_id matches my deepest in-progress ToC leaf, else pick at random. Then invoke the roleplay-engine skill. Emit <roleplay-start scenario=... persona=... topic=.../> exactly once, prefix every persona turn with '[<PersonaName>]: ', and emit <roleplay-end scenario=... turns=.../> exactly once at the end. After the fence closes, switch to evaluator voice and score against the scenario's hints + evaluation_criteria, then append a roleplay_results[] entry to progress/${username}.progress.json. Do not break character mid-fence and never leak the scoring rubric."
       }
     },
     {
@@ -150,6 +165,36 @@
       },
       "payload": {
         "prompt": "Ask me which application I want a simulator for (e.g. JIRA, Polarion, CANoe, a CRM, an ERP form) and what 3 click sequences matter most. Use the simulator-author skill to generate out/simulators/<app-id>.simulator.html — three screens max, six hot-spots max per screen, EXPECTED_STEPS array filled in. Show me a draft before writing the file; I confirm or correct. After I confirm, write the file and emit a <preview:...> so I can sanity-check by clicking through it myself."
+      }
+    },
+    {
+      "id": "author-roleplay",
+      "type": "subagent",
+      "icon": "RecordVoiceOver",
+      "roles": ["user", "admin"],
+      "labels": {
+        "en": "Author a roleplay scenario",
+        "de": "Rollenspiel-Szenario anlegen",
+        "it": "Crea uno scenario di ruolo",
+        "zh": "创建角色扮演场景"
+      },
+      "payload": {
+        "prompt": "Use the roleplay-author skill. Interview me one question at a time (persona name + description, topic, optional curriculum ToC id, 4-8 hints with point values + mandatory flag, 3-5 evaluation criteria, pass threshold, persona language, max turns). Show me a draft JSON matching the RoleplayDefinition schema after each round of edits. Do NOT write the file until I say 'commit' or 'write it'. On confirmation, write to roleplay/<slug>.roleplay.json and emit a <preview:roleplay/<slug>.roleplay.json> tag so I can sanity-check the result."
+      }
+    },
+    {
+      "id": "review-roleplay-results",
+      "type": "subagent",
+      "icon": "TheaterComedy",
+      "roles": ["user", "admin"],
+      "labels": {
+        "en": "Review trainees' roleplay results",
+        "de": "Rollenspiel-Ergebnisse der Auszubildenden ansehen",
+        "it": "Rivedi i risultati dei ruoli dei tirocinanti",
+        "zh": "查看学员的角色扮演结果"
+      },
+      "payload": {
+        "prompt": "Scan every progress/<username>.progress.json under progress/ for roleplay_results[] entries. Group by scenario_id and show: total attempts, pass rate, average score, most-commonly-missed mandatory hint (cross-reference roleplay/<scenario_id>.roleplay.json). Surface trainees who failed a mandatory hint as a queue for me to follow up on. Do not modify the scenario JSON or anyone's progress file — this is read-only review."
       }
     },
     {

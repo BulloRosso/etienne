@@ -200,6 +200,17 @@ that asks "explain X to me", "what's next?", or shows up with an existing
    colleague-intro card when reaching topic 1.2, branching "day-in-the-
    life" scenarios when finishing a department-overview topic. Keep
    them light — the curriculum is the spine.
+8. **Roleplay sessions are fenced.** When the guest practices a
+   roleplay, load the \`roleplay-engine\` skill, read the scenario from
+   \`roleplay/<id>.roleplay.json\`, emit
+   \`<roleplay-start scenario=... persona=... topic=.../>\` exactly
+   once, prefix every persona turn with \`[<PersonaName>]:\` on its own
+   line, and emit \`<roleplay-end scenario=... turns=.../>\` exactly
+   once at the end. Never break character or leak the scoring rubric
+   while the fence is open. After \`<roleplay-end>\`, switch to
+   evaluator voice, score against the scenario's hints +
+   evaluation_criteria, and append a \`roleplay_results[]\` entry to
+   the trainee's progress file.
 
 The mission in \`wiki/_meta/mission.md\` is canon. This brief is the
 short version.
@@ -254,6 +265,11 @@ This person walks the curriculum. Your job:
 6. **Entertainment layer**: colleague-intro card on reaching 1.2,
    subtopic mini-MCQs, branching "day-in-the-life" scenarios on the
    department-overview topics. Light touch.
+7. **Roleplay practice**: scenarios live in \`roleplay/*.roleplay.json\`
+   (alongside \`wiki/\`, \`documents/\`, \`progress/\`). When the trainee
+   wants to rehearse a difficult conversation, invoke the
+   \`roleplay-engine\` skill — the protocol (fences, persona prefixes,
+   evaluation, recording to \`roleplay_results[]\`) is detailed there.
 {{/unless}}
 
 ## Operating rules (apply regardless of role)
@@ -266,6 +282,12 @@ This person walks the curriculum. Your job:
    supporting artifact per response.
 4. **The agent is pro-active about "what's next?"** but **passive about
    state changes**. Only the trainee confirms a leaf is done.
+5. **Roleplay sessions are fenced.** When running the
+   \`roleplay-engine\` skill, emit
+   \`<roleplay-start scenario=... persona=... topic=.../>\` and
+   \`<roleplay-end scenario=... turns=.../>\` exactly once each, prefix
+   every persona turn with \`[<PersonaName>]:\`, and never break
+   character or leak the scoring rubric while the fence is open.
 
 The mission in \`wiki/_meta/mission.md\` is canon. This brief is the
 short version.

@@ -11,6 +11,7 @@ import { useActiveMcpViewers } from '../hooks/useActiveMcpViewers.js';
 import { LuBrain } from "react-icons/lu";
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useProject } from '../contexts/ProjectContext';
+import { useAuth } from '../contexts/AuthContext';
 import { initMermaid, renderMermaidBlocks } from '../utils/mermaidRenderer';
 import { applyCitationChips } from '../utils/citationChips';
 
@@ -26,6 +27,8 @@ export default function StreamingTimeline({
   const mcpAppMeta = useMcpAppMeta();
   const activeMcpViewers = useActiveMcpViewers();
   const { mode: themeMode } = useThemeMode();
+  const { user } = useAuth();
+  const isGuest = user?.role === 'guest';
 
   // Process items into timeline format
   const timelineItems = useMemo(() => {
@@ -33,10 +36,14 @@ export default function StreamingTimeline({
     const textChunks = items.filter(item => item.type === 'text_chunk');
     const toolSteps = items.filter(item => item.type === 'tool_call');
 
-    // Filter out ExitPlanMode and AskUserQuestion - both handled via modal dialogs, not timeline
-    const otherTools = toolSteps.filter(item =>
-      item.toolName !== 'ExitPlanMode' && item.toolName !== 'AskUserQuestion'
-    );
+    // Filter out ExitPlanMode and AskUserQuestion - both handled via modal dialogs, not timeline.
+    // Also hide Bash and Glob for guest users (they should not see low-level tool calls).
+    const hiddenForGuest = new Set(['Bash', 'Glob']);
+    const otherTools = toolSteps.filter(item => {
+      if (item.toolName === 'ExitPlanMode' || item.toolName === 'AskUserQuestion') return false;
+      if (isGuest && hiddenForGuest.has(item.toolName)) return false;
+      return true;
+    });
 
     // Only keep the last TodoWrite - each call contains the full todo list,
     // so earlier ones are superseded and should be removed from the timeline
@@ -138,7 +145,7 @@ export default function StreamingTimeline({
     });
 
     return allItems;
-  }, [items]);
+  }, [items, isGuest]);
 
   if (timelineItems.length === 0) {
     return null;

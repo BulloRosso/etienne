@@ -25,6 +25,25 @@ export interface QAEntry {
   confidence?: 'confirmed' | 'unconfirmed';
 }
 
+export interface RoleplayResult {
+  /** Slug of the roleplay scenario (matches RoleplayDefinition.id). */
+  scenario_id: string;
+  persona_name: string;
+  /** Optional curriculum ToC id copied from the scenario for cross-linking. */
+  topic_id?: string;
+  /** Sum of hint points the guest hit. */
+  score: number;
+  /** Sum of all available hint points. */
+  of: number;
+  mandatory_hits: number;
+  mandatory_total: number;
+  /** True iff score% >= pass_threshold AND mandatory_hits == mandatory_total. */
+  passed: boolean;
+  /** Number of in-character turns the roleplay ran. */
+  turns: number;
+  taken_at: string;
+}
+
 export interface ProgressNode {
   id: string;
   title: string;
@@ -53,6 +72,7 @@ export interface ProgressFile {
     of: number;
     taken_at: string;
   }>;
+  roleplay_results?: RoleplayResult[];
 }
 
 const TOC_TEMPLATE: ProgressNode[] = [
@@ -329,8 +349,22 @@ export const PROGRESS_GUEST: ProgressFile = {
   started: '2026-05-26T08:00:00Z',
   toc: userToc,
   streak_days: 4,
-  badges: ['first-question', 'first-quiz', 'polyglot'],
+  badges: ['first-question', 'first-quiz', 'polyglot', 'roleplay-oem-a-flicker-complaint'],
   quiz_results: [
     { topic_id: '1', score: 7, of: 9, taken_at: '2026-05-28T15:42:00Z' },
+  ],
+  roleplay_results: [
+    {
+      scenario_id: 'oem-a-flicker-complaint',
+      persona_name: 'Tom Reynolds',
+      topic_id: '5.1',
+      score: 85,
+      of: 100,
+      mandatory_hits: 3,
+      mandatory_total: 3,
+      passed: true,
+      turns: 11,
+      taken_at: '2026-05-29T14:05:00Z',
+    },
   ],
 };

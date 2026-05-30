@@ -15,6 +15,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { apiFetch } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 /**
  * PlanApprovalModal - Plan Review and Approval Dialog
@@ -31,12 +32,31 @@ import { useTranslation } from 'react-i18next';
  */
 export default function PlanApprovalModal({ open, plan, onRespond, onClose, currentProject }) {
   const { t } = useTranslation(["planApproval","common"]);
+  const { user } = useAuth();
   const [htmlContent, setHtmlContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch plan content when modal opens
+  // Guests cannot approve a plan from the UI (training context — they
+  // should not gate the agent's work, only follow it). Auto-approve the
+  // moment the elicitation arrives so the trainee stays in the flow.
+  // Expert/admin still see the modal and decide.
+  const autoApprove = open && !!plan?.id && user?.role === 'guest';
   useEffect(() => {
+    if (autoApprove) {
+      onRespond({
+        id: plan.id,
+        action: 'allow',
+        updatedInput: { approved: true, message: 'Plan auto-approved (guest role)' },
+      });
+    }
+  }, [autoApprove, plan?.id, onRespond]);
+
+  // Fetch plan content when modal opens (skipped when auto-approving —
+  // there is no UI to render for a guest, so the file load would just
+  // surface a transient "Failed to load plan file" error).
+  useEffect(() => {
+    if (autoApprove) return;
     if (open && plan?.planFilePath && currentProject) {
       setLoading(true);
       setError(null);
@@ -71,6 +91,7 @@ export default function PlanApprovalModal({ open, plan, onRespond, onClose, curr
   }, [open, plan, currentProject]);
 
   if (!plan) return null;
+  if (autoApprove) return null;
 
   const { id } = plan;
 
