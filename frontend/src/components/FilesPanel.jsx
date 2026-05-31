@@ -88,6 +88,43 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
     }
   }, [activeTab, visibleIndices]);
 
+  // When a preview is requested for a file that's already open, promote it to
+  // a visible tab and activate it. Without this, requesting a file that lives
+  // in the overflow menu (or is already visible but not active) appears as a
+  // no-op — setFiles doesn't change `files`, so the file-change effect above
+  // never fires.
+  useEffect(() => {
+    const handlePreviewRequest = (data) => {
+      if (!data?.action?.endsWith('-preview') || !data?.filePath) return;
+
+      // Service viewers share a slot per service prefix (#imap/... replaces
+      // the existing #imap/* tab in App.jsx), so match on prefix rather than
+      // full path to find the existing tab.
+      const isService = data.filePath.startsWith('#');
+      const servicePrefix = isService ? '#' + data.filePath.substring(1).split('/')[0] : null;
+
+      const fileIndex = files.findIndex(f =>
+        isService ? f.path.startsWith(servicePrefix) : f.path === data.filePath
+      );
+      if (fileIndex === -1) return; // New file — the files-change effect will handle activation.
+
+      const currentVisible = visibleIndices.includes(fileIndex)
+        ? visibleIndices
+        : [fileIndex, ...visibleIndices.filter(i => i !== fileIndex)].slice(0, MAX_VISIBLE_TABS);
+
+      if (currentVisible !== visibleIndices) {
+        setVisibleIndices(currentVisible);
+      }
+      const newActive = currentVisible.indexOf(fileIndex);
+      if (newActive !== -1 && newActive !== activeTab) {
+        setActiveTab(newActive);
+      }
+    };
+
+    const unsubscribe = claudeEventBus.subscribe(ClaudeEvents.FILE_PREVIEW_REQUEST, handlePreviewRequest);
+    return () => unsubscribe();
+  }, [files, visibleIndices, activeTab]);
+
   const extensionMap = useMemo(
     () => buildExtensionMap(previewersConfig || [], autoFilePreviewExtensions || []),
     [previewersConfig, autoFilePreviewExtensions]
