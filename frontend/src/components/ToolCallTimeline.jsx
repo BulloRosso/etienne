@@ -172,6 +172,11 @@ export default function ToolCallTimeline({ toolName, args, result, description, 
   // File is clickable only if it's in the workspace
   const isClickable = !!workspaceRelativePath;
 
+  // Hide Read calls for files outside the project workspace
+  if (toolName === 'Read' && filePath && !workspaceRelativePath) {
+    return null;
+  }
+
   const inputLines = formattedInput.split('\n');
   const outputLines = formattedOutput.split('\n');
 
