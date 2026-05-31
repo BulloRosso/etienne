@@ -214,6 +214,18 @@ that asks "explain X to me", "what's next?", or shows up with an existing
    score against the scenario's hints + evaluation_criteria, and
    append a \`roleplay_results[]\` entry to the trainee's progress
    file.
+9. **Application simulators.** When the trainee asks to practice a
+   tool hands-on (free-form ask or via the "Practice in an application
+   simulator" menu): check if \`out/simulators/<app-id>.simulator.html\`
+   exists. If it does, **call the \`render_simulator\` MCP tool with
+   that filename first**, then emit
+   \`<preview:out/simulators/<app-id>.simulator.html>\` in the same
+   reply. The \`render_simulator\` call is what wires the trainee's
+   clicks into viewerState — skipping it leaves you with a static
+   preview and no coaching signal. If no simulator exists, invoke the
+   \`simulator-author\` skill, then follow the same render-then-preview
+   sequence. Coach one step at a time; if the trainee gets stuck, call
+   \`highlight_simulator_step\` with the next expected \`stepId\`.
 
 The mission in \`wiki/_meta/mission.md\` is canon. This brief is the
 short version.
@@ -293,6 +305,18 @@ This person walks the curriculum. Your job:
    omit it if the scenario has no image), prefix every persona turn
    with \`[<PersonaName>]:\`, and never break character or leak the
    scoring rubric while the fence is open.
+6. **Application simulators.** When the trainee asks to practice a
+   tool hands-on (free-form ask or via the "Practice in an application
+   simulator" menu): check if \`out/simulators/<app-id>.simulator.html\`
+   exists. If it does, **call the \`render_simulator\` MCP tool with
+   that filename first**, then emit
+   \`<preview:out/simulators/<app-id>.simulator.html>\` in the same
+   reply. The \`render_simulator\` call is what wires the trainee's
+   clicks into viewerState — skipping it leaves you with a static
+   preview and no coaching signal. If no simulator exists, invoke the
+   \`simulator-author\` skill, then follow the same render-then-preview
+   sequence. Coach one step at a time; if the trainee gets stuck, call
+   \`highlight_simulator_step\` with the next expected \`stepId\`.
 
 The mission in \`wiki/_meta/mission.md\` is canon. This brief is the
 short version.

@@ -80,12 +80,7 @@ const tools: McpTool[] = [
       },
       required: ['filename'],
     },
-    _meta: {
-      ui: {
-        resourceUri: SIMULATOR_RESOURCE_URI,
-      },
-    },
-  } as McpTool & { _meta?: any },
+  },
   {
     name: 'highlight_simulator_step',
     description:
@@ -104,13 +99,7 @@ const tools: McpTool[] = [
       },
       required: ['stepId'],
     },
-    _meta: {
-      ui: {
-        resourceUri: SIMULATOR_RESOURCE_URI,
-        action: 'highlight-step',
-      },
-    },
-  } as McpTool & { _meta?: any },
+  },
 ];
 
 function safeResolve(workspaceRoot: string, projectName: string, relPath: string): string {

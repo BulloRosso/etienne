@@ -19,7 +19,7 @@ import { authSSEUrl, apiAxios } from '../services/api';
  * - projectName: string - The project name
  * - className: string (optional) - Additional CSS classes
  */
-export default function LiveHTMLPreview({ filename, projectName, className = '' }) {
+export default function LiveHTMLPreview({ filename, projectName, className = '', onViewerStateChange }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const iframeRef = useRef(null);
 
@@ -74,6 +74,21 @@ export default function LiveHTMLPreview({ filename, projectName, className = '' 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [filename, projectName]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const iframe = iframeRef.current;
+      if (!iframe || event.source !== iframe.contentWindow) return;
+      if (event.data?.type === 'viewer-state-update') {
+        onViewerStateChange?.(event.data.state);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => {
+      window.removeEventListener('message', handler);
+      onViewerStateChange?.(null);
+    };
+  }, [onViewerStateChange]);
 
   const iframeSrc = authSSEUrl(`/api/workspace/${encodeURIComponent(projectName)}/files/${filename}?v=${refreshKey}`);
 

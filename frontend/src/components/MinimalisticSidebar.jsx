@@ -323,7 +323,7 @@ export default function MinimalisticSidebar({
             <RiChatNewLine size={18} />
           </IconButton>
         </Tooltip>
-        {currentProject && (
+        {currentProject && user?.role !== 'guest' && (
           <Tooltip title={t('sidebar.agentRole')} placement="right">
             <IconButton onClick={() => setRoleDrawerOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
               <LiaHatCowboySideSolid size={20} />
@@ -592,7 +592,7 @@ export default function MinimalisticSidebar({
               <ListItemIcon sx={{ minWidth: 36 }}><RiChatNewLine size={18} /></ListItemIcon>
               <ListItemText primary={t('sidebar.newChat')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
             </ListItemButton>
-            {currentProject && (
+            {currentProject && user?.role !== 'guest' && (
               <>
                 <ListItemButton onClick={() => setRoleDrawerOpen(true)} sx={{ borderRadius: 1, py: 0.75, pr: 0.5 }}>
                   <ListItemIcon sx={{ minWidth: 36 }}><LiaHatCowboySideSolid size={21} /></ListItemIcon>

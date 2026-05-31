@@ -4,5 +4,10 @@
   "goodResponse": "Good response",
   "poorResponse": "Poor response",
   "remote": "Remote",
-  "scheduled": "Scheduled"
+  "scheduled": "Scheduled",
+  "viewerAuto": {
+    "default": "User interaction with component",
+    "simulator": "User interaction with component",
+    "gantt": "User interaction with component"
+  }
 }

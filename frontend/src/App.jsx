@@ -205,15 +205,30 @@ export default function App() {
   // POST + SSE pipeline runs unchanged.
   // If detail.fresh === true, reset the current session first so the prompt
   // starts a brand-new chat (used by application-type sidebar subagent links).
+  // The viewer-name + event-id metadata is forwarded so ChatMessage can render
+  // a compact pill instead of the verbose chatTemplate (which is still sent to
+  // the backend as the prompt — only the display is collapsed).
   useEffect(() => {
     const handler = (event) => {
-      const msg = event.detail?.message;
+      const detail = event.detail || {};
+      const msg = detail.message;
       if (!msg) return;
-      if (event.detail?.fresh) {
+      const opts = detail.source
+        ? {
+            source: 'viewer-auto',
+            sourceMetadata: {
+              viewerName: detail.source,
+              eventId: detail.eventId,
+              filename: detail.filename,
+              viewerInstanceId: detail.viewerInstanceId,
+            },
+          }
+        : undefined;
+      if (detail.fresh) {
         handleSessionChange(null);
-        requestAnimationFrame(() => handleSendMessage(msg));
+        requestAnimationFrame(() => handleSendMessage(msg, opts));
       } else {
-        handleSendMessage(msg);
+        handleSendMessage(msg, opts);
       }
     };
     window.addEventListener('viewer-auto-prompt', handler);
@@ -1416,16 +1431,22 @@ export default function App() {
     }
   };
 
-  const handleSendMessage = async (messageText) => {
+  const handleSendMessage = async (messageText, options = {}) => {
     // Get active context name if available
     const activeContext = activeContextId ? contexts.find(c => c.id === activeContextId) : null;
 
-    // Add user message
+    // Add user message. `options.source` / `options.sourceMetadata` carry the
+    // hints used by ChatMessage to swap the verbose user bubble for a compact
+    // pill (e.g. viewer-auto-prompts from agentBus emit autoSubmit events with
+    // a verbose chatTemplate the agent needs, but the user just wants to see
+    // a "🖱️ User interacted with simulator" row).
     setMessages(prev => [...prev, {
       role: 'user',
       text: messageText,
       timestamp: formatTime(),
-      contextName: activeContext ? activeContext.name : null
+      contextName: activeContext ? activeContext.name : null,
+      source: options.source,
+      sourceMetadata: options.sourceMetadata,
     }]);
 
     // Per-stream message object — captured in the SSE handler closures so each

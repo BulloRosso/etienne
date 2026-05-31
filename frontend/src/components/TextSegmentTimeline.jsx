@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useProject } from '../contexts/ProjectContext';
 import { applyCitationChips } from '../utils/citationChips';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import {
   attachRoleplayBannerImages,
   escapeRoleplayTags,
@@ -24,11 +25,25 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
   // them to sentinels before marked, then restore as styled banner divs
   // (with an inline <img> placeholder for the start banner) after
   // sanitization. The image blob is loaded lazily in a useEffect below.
+  // Same treatment for `<preview:path>` tags so GFM autolink doesn't turn
+  // them into `<a href="preview:...">` links — they're meant to be invisible
+  // signals that fire a FILE_PREVIEW_REQUEST event from the useEffect below.
   const renderedContent = useMemo(() => {
-    const escaped = escapeRoleplayTags(text);
+    if (text == null) return '';
+    const PREVIEW_OPEN = 'PREVIEWxOPENx';
+    const PREVIEW_CLOSE = 'xCLOSExPREVIEW';
+    let escaped = String(text).replace(
+      /<preview:([^>\s]+?)>/g,
+      `${PREVIEW_OPEN}$1${PREVIEW_CLOSE}`,
+    );
+    escaped = escapeRoleplayTags(escaped);
     const rawHtml = marked.parse(escaped, { breaks: true, gfm: true });
     const sanitized = DOMPurify.sanitize(rawHtml);
-    return restoreRoleplayHtml(sanitized);
+    const restored = sanitized.replace(
+      new RegExp(`${PREVIEW_OPEN}([\\s\\S]+?)${PREVIEW_CLOSE}`, 'g'),
+      '&lt;preview:$1&gt;',
+    );
+    return restoreRoleplayHtml(restored);
   }, [text]);
 
   // Replace [[wiki:slug]] and [[doc:path]] tokens with clickable icon-only
@@ -36,6 +51,57 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
   // text chunks render through this component, not the parent's contentRef.
   useEffect(() => {
     applyCitationChips(contentRef.current, currentProject);
+  }, [renderedContent, currentProject]);
+
+  // Strip `<preview:path>` tokens from rendered text and fire
+  // FILE_PREVIEW_REQUEST per unique path. Mirrors ChatMessage.jsx behaviour
+  // so streaming-interleaved text segments (the path used after MCP tool
+  // calls) get the same hide-and-open-in-preview-pane treatment as the
+  // assistant's final message — without this, the agent's
+  // `<preview:out/simulators/...>` tag was rendering as an autolinked
+  // hyperlink instead of opening LiveHTMLPreview.
+  useEffect(() => {
+    if (!contentRef.current || !currentProject) return;
+    const previewRegex = /<preview:([^>\s]+?)>/g;
+    const root = contentRef.current;
+    const fired = new Set();
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach((node) => {
+      const t = node.textContent;
+      if (!t || !t.includes('<preview:')) return;
+      let m;
+      while ((m = previewRegex.exec(t)) !== null) {
+        if (!fired.has(m[1])) fired.add(m[1]);
+      }
+      node.textContent = t.replace(previewRegex, '');
+    });
+
+    if (fired.size === 0) {
+      const html = root.innerHTML;
+      const matches = [...html.matchAll(previewRegex)];
+      matches.forEach((m) => fired.add(m[1]));
+    }
+
+    const paths = [...fired];
+    if (paths.length === 0) return;
+    const filePath = paths[0];
+    const ext = filePath.split('.').pop().toLowerCase();
+    let action = 'auto-preview';
+    if (ext === 'json') action = 'json-preview';
+    else if (ext === 'md' || ext === 'markdown') action = 'markdown-preview';
+    else if (ext === 'html' || ext === 'htm') action = 'html-preview';
+    else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) action = 'image-preview';
+    else if (['xlsx', 'xls', 'csv'].includes(ext)) action = 'excel-preview';
+    else if (ext === 'pdf') action = 'pdf-preview';
+    claudeEventBus.publish(ClaudeEvents.FILE_PREVIEW_REQUEST, {
+      action,
+      filePath,
+      projectName: currentProject,
+    });
   }, [renderedContent, currentProject]);
 
   // Resolve roleplay banner image placeholders to blob URLs (auth-aware).

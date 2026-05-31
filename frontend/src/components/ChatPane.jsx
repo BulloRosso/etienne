@@ -386,7 +386,7 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
         <IconButton
           onClick={() => claudeEventBus.publish(ClaudeEvents.CHAT_MAXIMIZE_TOGGLE)}
           size="small"
-          sx={{ ml: hasWelcomeMenu ? 0 : 'auto', mr: '20px', mt: '-3px', color: themeMode === 'dark' ? '#ccc' : '#555' }}
+          sx={{ ml: hasWelcomeMenu ? 0 : 'auto', mt: '-3px', color: themeMode === 'dark' ? '#ccc' : '#555' }}
         >
           {isChatMaximized ? <FiMinimize2 size={14} /> : <FiMaximize2 size={14} />}
         </IconButton>

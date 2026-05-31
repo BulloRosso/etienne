@@ -168,7 +168,7 @@ async function step2_createProject(ctx: ApiContext): Promise<void> {
 }
 
 async function step3_writeMission(): Promise<void> {
-  header('3. Write documentation.md + wiki/_meta/mission.md + .claude/CLAUDE.md(.tpl)');
+  header('3. Write documentation.md + wiki/_meta/mission.md + .claude/CLAUDE.md(.tpl) + .mcp.json');
   await writeFile(join(PROJECT_ROOT, 'documentation.md'), DOCUMENTATION_MD, 'utf8');
   info('documentation.md (welcome / orientation page, auto-opened on project load)');
 
@@ -182,6 +182,40 @@ async function step3_writeMission(): Promise<void> {
   await writeFile(join(claudeDir, 'CLAUDE.md'), CLAUDE_MD, 'utf8');
   await writeFile(join(claudeDir, 'CLAUDE.md.tpl'), CLAUDE_MD_TPL, 'utf8');
   ok('CLAUDE.md (static) + CLAUDE.md.tpl (templated) written');
+
+  // Wire the backend's `simulator` MCP group into this project so the agent
+  // can call render_simulator / highlight_simulator_step without ToolSearch
+  // thrash. The simulator HTML alone gives a static preview; the MCP tools
+  // are what stream the trainee's clicks back as viewerState.
+  const mcpConfig = {
+    mcpServers: {
+      simulator: {
+        type: 'http',
+        url: `http://localhost:6060/mcp/simulator?project=${PROJECT_NAME}`,
+        headers: { Authorization: 'test123' },
+        description: 'Application Simulator tools (render_simulator, highlight_simulator_step)',
+      },
+    },
+  };
+  await writeFile(join(PROJECT_ROOT, '.mcp.json'), JSON.stringify(mcpConfig, null, 2) + '\n', 'utf8');
+
+  // Idempotently merge enabledMcpjsonServers into .claude/settings.json so
+  // Claude Code auto-approves the project-scoped MCP server on first use.
+  const settingsPath = join(claudeDir, 'settings.json');
+  let settings: Record<string, unknown> = {};
+  try {
+    settings = JSON.parse(await readFile(settingsPath, 'utf8'));
+  } catch {
+    // file may not exist yet — backend usually writes it during step2, but
+    // be defensive in case the order ever changes
+  }
+  const enabled = new Set<string>(
+    Array.isArray(settings.enabledMcpjsonServers) ? (settings.enabledMcpjsonServers as string[]) : [],
+  );
+  enabled.add('simulator');
+  settings.enabledMcpjsonServers = [...enabled];
+  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  ok('.mcp.json written + .claude/settings.json enabledMcpjsonServers updated (simulator)');
 }
 
 async function step4_seedWiki(): Promise<void> {

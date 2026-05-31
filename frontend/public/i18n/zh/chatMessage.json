@@ -4,5 +4,10 @@
   "goodResponse": "好的回复",
   "poorResponse": "差的回复",
   "remote": "远程",
-  "scheduled": "已计划"
+  "scheduled": "已计划",
+  "viewerAuto": {
+    "default": "用户与组件交互",
+    "simulator": "用户与组件交互",
+    "gantt": "用户与组件交互"
+  }
 }

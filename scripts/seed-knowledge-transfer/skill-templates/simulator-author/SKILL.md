@@ -214,9 +214,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 ### 4. Render and announce
 
 1. Write the file to `out/simulators/<app-id>.simulator.html`.
-2. Emit `<preview:out/simulators/<app-id>.simulator.html>` in your
+2. **Activate the click stream.** Call the `render_simulator` MCP tool
+   with `filename: out/simulators/<app-id>.simulator.html`. This wires
+   the trainee's clicks into your viewerState — without it you have a
+   static preview and cannot coach. (`highlight_simulator_step` is also
+   available once `render_simulator` has been called, for nudging the
+   trainee toward the next hot-spot.)
+3. Emit `<preview:out/simulators/<app-id>.simulator.html>` in your
    reply so the simulator opens in the preview pane.
-3. Tell the trainee briefly what's loaded and what they should try
+4. Tell the trainee briefly what's loaded and what they should try
    first ("OK, MD04 simulator open — try clicking the launchpad tile
    that opens it"). Do **not** dump the whole expected sequence; one
    step at a time.
@@ -231,9 +237,11 @@ Every time the user clicks in the simulator, you receive a
 - If it doesn't → give the `errorHint` for the expected step, do not
   give them the answer outright.
 - If you want to highlight the next expected hot-spot for them (after
-  a stuck moment), call the `highlight_simulator_step` tool with that
-  `stepId` and an optional `hint`. The simulator pulses the target
-  element.
+  a stuck moment), call the `highlight_simulator_step` **MCP tool**
+  with that `stepId` and an optional `hint`. The simulator pulses the
+  target element. (This is a backend-served MCP tool, not a JS function
+  on the simulator page — invoke it the same way you invoke
+  `render_simulator`.)
 
 ## After completion
 

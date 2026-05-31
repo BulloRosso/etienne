@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Box, Typography, Paper, IconButton, Collapse, Chip, Menu, MenuItem, ListItemIcon as MenuItemIcon } from '@mui/material';
-import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups, MoreVert, ContentCopy, Code, EditOutlined } from '@mui/icons-material';
+import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups, MoreVert, ContentCopy, Code, EditOutlined, TouchApp } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
@@ -388,6 +388,44 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
       )}
     </Menu>
   );
+
+  // Viewer auto-prompt — compact timeline pill instead of the verbose gold
+  // bubble. The `text` prop here is the agentBus-rendered chatTemplate, which
+  // the agent still receives via the prompt POST in App.jsx; the user just
+  // sees "🖱️ User interacted with simulator". The per-viewer i18n key falls
+  // back to a generic one so future viewers don't need a code change to look
+  // sensible — only a locale entry.
+  if (isUser && source === 'viewer-auto') {
+    const viewerName = sourceMetadata?.viewerName;
+    const label = t(
+      viewerName ? `chatMessage:viewerAuto.${viewerName}` : 'chatMessage:viewerAuto.default',
+      t('chatMessage:viewerAuto.default'),
+    );
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          mb: 1.5,
+          px: 2,
+          color: themeMode === 'dark' ? '#9e9e9e' : '#757575',
+          fontSize: '13px',
+          fontFamily: 'Roboto',
+        }}
+      >
+        <TouchApp sx={{ fontSize: 16 }} />
+        <Typography component="span" sx={{ fontSize: '13px', fontStyle: 'italic' }}>
+          {label}
+        </Typography>
+        {timestamp && (
+          <Typography component="span" sx={{ fontSize: '11px', opacity: 0.7, ml: 0.5 }}>
+            {timestamp}
+          </Typography>
+        )}
+      </Box>
+    );
+  }
 
   // User messages - render with bubble
   if (isUser) {

@@ -22,6 +22,7 @@ import DreamsPreviewViewer from './DreamsPreviewViewer';
 import QuarterlyViewer from './QuarterlyViewer';
 import CoverageViewer from './CoverageViewer';
 import ProgressViewer from './ProgressViewer';
+import SimulatorViewer from './SimulatorViewer';
 import { agentBus } from '../services/agentBus';
 
 /**
@@ -30,6 +31,7 @@ import { agentBus } from '../services/agentBus';
  */
 export const VIEWER_AGENTBUS_PROVIDERS = {
   gantt: GanttDiagram,
+  simulator: SimulatorViewer,
 };
 for (const [name, comp] of Object.entries(VIEWER_AGENTBUS_PROVIDERS)) {
   agentBus.registerCatalog(name, comp);
@@ -53,6 +55,7 @@ export const SERVICE_PREVIEWERS = {
  */
 export const VIEWER_COMPONENT_NAMES = {
   html: 'LiveHTMLPreview',
+  simulator: 'SimulatorViewer',
   json: 'JSONViewer',
   jsonl: 'JSONViewer',
   markdown: 'MarkdownViewer',
@@ -83,8 +86,11 @@ export const VIEWER_COMPONENT_NAMES = {
  * Each function receives (file, projectName) and returns JSX.
  */
 export const VIEWER_COMPONENTS = {
-  html: (file, projectName) => (
-    <LiveHTMLPreview filename={file.path} projectName={projectName} />
+  html: (file, projectName, onViewerStateChange) => (
+    <LiveHTMLPreview filename={file.path} projectName={projectName} onViewerStateChange={onViewerStateChange} />
+  ),
+  simulator: (file, projectName, onViewerStateChange) => (
+    <SimulatorViewer filename={file.path} projectName={projectName} onViewerStateChange={onViewerStateChange} />
   ),
   json: (file, projectName) => (
     <JSONViewer filename={file.path} projectName={projectName} />
@@ -188,6 +194,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'compliance-matrix', extensions: ['.compliance.json'] },
   { viewer: 'coverage', extensions: ['.coverage.json'] },
   { viewer: 'progress', extensions: ['.progress.json'] },
+  { viewer: 'simulator', extensions: ['.simulator.html'] },
 ];
 
 /**

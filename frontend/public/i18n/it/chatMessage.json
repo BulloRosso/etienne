@@ -4,5 +4,10 @@
   "goodResponse": "Buona risposta",
   "poorResponse": "Risposta scarsa",
   "remote": "Remoto",
-  "scheduled": "Pianificato"
+  "scheduled": "Pianificato",
+  "viewerAuto": {
+    "default": "Interazione utente con il componente",
+    "simulator": "Interazione utente con il componente",
+    "gantt": "Interazione utente con il componente"
+  }
 }
