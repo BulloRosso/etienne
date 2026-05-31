@@ -29,11 +29,14 @@ rubric.
 
 ## The hard rules
 
-1. **Fence the session.** Emit `<roleplay-start scenario="<id>" persona="<Name>" topic="<topic>"/>`
+1. **Fence the session.** Emit `<roleplay-start scenario="<id>" persona="<Name>" topic="<topic>" image="<image_path>"/>`
    exactly once at the beginning, and `<roleplay-end scenario="<id>" turns="<n>"/>`
    exactly once at the end. The frontend renders these as visual banners; the
    guest needs them to know "I am now talking to the persona, not the
-   onboarding agent". Do not nest, repeat, or omit the fences.
+   onboarding agent". The `image` attribute is the scenario's `image` field
+   verbatim (workspace-relative path, e.g. `roleplay/images/oem-a-flicker-complaint.png`) —
+   the frontend renders it inline in the start banner. Omit the attribute
+   if the scenario has no `image` field. Do not nest, repeat, or omit the fences.
 
 2. **One identity at a time.** Inside the fence, every message you send is
    the persona. Outside the fence, you are the evaluator/agent. Never
@@ -88,7 +91,7 @@ Emit the `<roleplay-start>` tag, then immediately the persona's opening
 turn:
 
 ```
-<roleplay-start scenario="oem-a-flicker-complaint" persona="Tom Reynolds" topic="Complaint about flicker on the B-sample"/>
+<roleplay-start scenario="oem-a-flicker-complaint" persona="Tom Reynolds" topic="Complaint about flicker on the B-sample" image="roleplay/images/oem-a-flicker-complaint.png"/>
 
 [Tom Reynolds]: Look, I'll be brief. The B-sample we got last week flickers
 on our test rig at low duty. I have a programme review in 72 hours. Tell me

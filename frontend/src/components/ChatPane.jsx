@@ -21,6 +21,9 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import { apiFetch } from '../services/api';
+import { FiMaximize2, FiMinimize2 } from 'react-icons/fi';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
+import { useClaudeEvent } from '../useClaudeEvent';
 
 export default function ChatPane({ messages, structuredMessages = [], contextState = null, onSendMessage, onAbort, streaming, mode, onModeChange, aiModel, onAiModelChange, showBackgroundInfo, onShowBackgroundInfoChange, projectExists = true, projectName, onSessionChange, hasActiveSession = false, hasSessions = false, onShowWelcomePage, uiConfig, codingAgent = 'anthropic', sessionId, hideHeader = false, hasWelcomeMenu = false, welcomeMenuActive = false, onShowWelcomeMenu, onHideWelcomeMenu }) {
   const { t } = useTranslation(["chatPane","common"]);
@@ -32,6 +35,9 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
   const messagesEndRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
+  const [isChatMaximized, setIsChatMaximized] = useState(false);
+  useClaudeEvent(ClaudeEvents.CHAT_MAXIMIZE_TOGGLE, () => setIsChatMaximized(p => !p), []);
+  useClaudeEvent(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE, () => setIsChatMaximized(false), []);
   const [memoryEnabled, setMemoryEnabled] = useState(() => {
     const saved = localStorage.getItem('memoryEnabled');
     return saved !== 'false';
@@ -377,6 +383,13 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
             {welcomeMenuActive ? <PiChats size={18} /> : <PiHouseLine size={18} />}
           </IconButton>
         )}
+        <IconButton
+          onClick={() => claudeEventBus.publish(ClaudeEvents.CHAT_MAXIMIZE_TOGGLE)}
+          size="small"
+          sx={{ ml: hasWelcomeMenu ? 0 : 'auto', mr: '20px', mt: '-3px', color: themeMode === 'dark' ? '#ccc' : '#555' }}
+        >
+          {isChatMaximized ? <FiMinimize2 size={14} /> : <FiMaximize2 size={14} />}
+        </IconButton>
       </Box>
       )}
 

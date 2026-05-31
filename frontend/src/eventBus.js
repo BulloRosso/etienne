@@ -50,4 +50,5 @@ export const ClaudeEvents = {
   USER_MESSAGE: 'claude:user_message',
   FILE_PREVIEW_REQUEST: 'claude:file_preview_request',
   PREVIEW_MAXIMIZE_TOGGLE: 'claude:preview_maximize_toggle',
+  CHAT_MAXIMIZE_TOGGLE: 'claude:chat_maximize_toggle',
 };

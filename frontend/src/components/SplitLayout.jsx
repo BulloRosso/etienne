@@ -13,7 +13,9 @@ export default function SplitLayout({ left, right }) {
     return saved ? parseFloat(saved) : 50;
   });
   const [isDragging, setIsDragging] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
+  // 'none' | 'left' (chat full) | 'right' (preview full)
+  const [maximizedSide, setMaximizedSide] = useState('none');
+  const isMaximized = maximizedSide !== 'none';
   const savedRatioRef = useRef(splitRatio);
   const containerRef = useRef(null);
 
@@ -23,24 +25,30 @@ export default function SplitLayout({ left, right }) {
     }
   }, [splitRatio, isMaximized]);
 
-  const handleMaximizeToggle = useCallback(() => {
-    setIsMaximized(prev => {
-      if (!prev) {
-        savedRatioRef.current = splitRatio;
-      } else {
+  const toggleSide = useCallback((side) => {
+    setMaximizedSide(prev => {
+      if (prev === side) {
         setSplitRatio(savedRatioRef.current);
+        return 'none';
       }
-      return !prev;
+      if (prev === 'none') {
+        savedRatioRef.current = splitRatio;
+      }
+      return side;
     });
   }, [splitRatio]);
 
-  useClaudeEvent(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE, handleMaximizeToggle, [handleMaximizeToggle]);
+  const handlePreviewMaximizeToggle = useCallback(() => toggleSide('right'), [toggleSide]);
+  const handleChatMaximizeToggle = useCallback(() => toggleSide('left'), [toggleSide]);
+
+  useClaudeEvent(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE, handlePreviewMaximizeToggle, [handlePreviewMaximizeToggle]);
+  useClaudeEvent(ClaudeEvents.CHAT_MAXIMIZE_TOGGLE, handleChatMaximizeToggle, [handleChatMaximizeToggle]);
 
   useEffect(() => {
     if (!isMaximized) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setIsMaximized(false);
+        setMaximizedSide('none');
         setSplitRatio(savedRatioRef.current);
       }
     };
@@ -96,7 +104,12 @@ export default function SplitLayout({ left, right }) {
 
   return (
     <Box ref={containerRef} sx={{ display: 'flex', height: '100%', width: '100%' }}>
-      <Box sx={{ width: isMaximized ? '0%' : `${splitRatio}%`, height: '100%', overflow: 'hidden', transition: 'width 0.25s ease' }}>
+      <Box sx={{
+        width: maximizedSide === 'right' ? '0%' : (maximizedSide === 'left' ? '100%' : `${splitRatio}%`),
+        height: '100%',
+        overflow: 'hidden',
+        transition: 'width 0.25s ease',
+      }}>
         {left}
       </Box>
 
@@ -142,7 +155,13 @@ export default function SplitLayout({ left, right }) {
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, height: '100%', overflow: 'hidden' }}>
+      <Box sx={{
+        flex: maximizedSide === 'left' ? '0 0 0%' : 1,
+        width: maximizedSide === 'left' ? '0%' : undefined,
+        height: '100%',
+        overflow: 'hidden',
+        transition: 'flex-basis 0.25s ease, width 0.25s ease',
+      }}>
         {right}
       </Box>
     </Box>

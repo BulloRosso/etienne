@@ -163,7 +163,14 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         const persona = esc(a.persona || 'persona');
         const topic = esc(a.topic || '');
         const scenario = esc(a.scenario || '');
-        return `<div class="roleplay-banner roleplay-banner-start" data-scenario="${scenario}"><span class="roleplay-banner-icon">🎭</span> <strong>Roleplay started</strong> — talking to <strong>${persona}</strong>${topic ? ` about ${topic}` : ''}</div>`;
+        const image = a.image ? esc(a.image) : '';
+        // Image is loaded lazily by a useEffect below (workspace files
+        // require an Authorization header — a plain src= against the
+        // protected /api/workspace/.../files endpoint would 401).
+        const imageEl = image
+          ? `<img class="roleplay-banner-image" data-image-path="${image}" alt="${esc(a.topic || a.persona || 'scene')}" />`
+          : '';
+        return `<div class="roleplay-banner roleplay-banner-start" data-scenario="${scenario}"><div class="roleplay-banner-text"><span class="roleplay-banner-icon">🎭</span> <strong>Roleplay started</strong> — talking to <strong>${persona}</strong>${topic ? ` about ${topic}` : ''}</div>${imageEl}</div>`;
       },
     );
     restored = restored.replace(
