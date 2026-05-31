@@ -22,6 +22,7 @@ import {
   LocalFireDepartmentRounded,
   EmojiEventsRounded,
   DescriptionOutlined,
+  TheatersRounded,
 } from '@mui/icons-material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -50,10 +51,16 @@ function buildPalette(isDark) {
     blue: isDark ? '#90caf9' : '#1565c0',
     blueBg: isDark ? '#152230' : '#E3F2FD',
     green: isDark ? '#a5d6a7' : '#2e7d32',
+    greenBg: isDark ? '#1b2e1c' : '#E8F5E9',
+    red: isDark ? '#ef9a9a' : '#c62828',
+    redBg: isDark ? '#2e1b1b' : '#FFEBEE',
     amber: isDark ? '#ffcc80' : '#ef6c00',
     grey: isDark ? '#9e9e9e' : '#9e9e9e',
     headerBg: isDark ? '#152230' : '#E3F2FD',
     rowHover: isDark ? '#1a2a3a' : '#f5f9ff',
+    // Purple for roleplay accents — distinct from quiz (blue) and ToC state.
+    purple: isDark ? '#ce93d8' : '#6a1b9a',
+    purpleBg: isDark ? '#2a1d33' : '#F3E5F5',
     // Gold highlight for the "current topic" row — the leaf the agent
     // routes "What's next?" and the quiz skill to.
     gold: isDark ? '#3a2d10' : '#fff8e1',
@@ -102,6 +109,28 @@ function previewActionFor(path) {
   if (['xlsx', 'xls', 'csv'].includes(ext)) return 'excel-preview';
   if (ext === 'pdf') return 'pdf-preview';
   return 'auto-preview';
+}
+
+// Build a Map from topic_id → best RoleplayResult for that topic. "Best"
+// means: passed beats not-passed, then higher score%, then more recent.
+// A leaf can have several attempts; the chip on the ToC row shows the best.
+function indexRoleplayByTopic(results) {
+  const map = new Map();
+  if (!Array.isArray(results)) return map;
+  for (const r of results) {
+    if (!r || !r.topic_id) continue;
+    const prev = map.get(r.topic_id);
+    if (!prev || isBetterRoleplay(r, prev)) map.set(r.topic_id, r);
+  }
+  return map;
+}
+
+function isBetterRoleplay(a, b) {
+  if (a.passed !== b.passed) return a.passed === true;
+  const pa = a.of > 0 ? a.score / a.of : 0;
+  const pb = b.of > 0 ? b.score / b.of : 0;
+  if (pa !== pb) return pa > pb;
+  return (a.taken_at || '') > (b.taken_at || '');
 }
 
 // Render the agent-written markdown answer. Sanitised via DOMPurify;
@@ -227,11 +256,25 @@ function QABlock({ qa, palette, projectName, t }) {
   );
 }
 
-function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode, currentNodeId }) {
+function NodeRow({
+  node,
+  palette,
+  depth,
+  projectName,
+  t,
+  isOpen,
+  toggleNode,
+  currentNodeId,
+  roleplayByTopic,
+}) {
   const hasChildren = node.children && node.children.length > 0;
   const hasQA = node.qa && node.qa.length > 0;
   const open = isOpen(node, depth);
   const isCurrent = node.id === currentNodeId;
+  const roleplay = roleplayByTopic ? roleplayByTopic.get(node.id) : null;
+  const roleplayPercent = roleplay && roleplay.of > 0
+    ? Math.round((roleplay.score / roleplay.of) * 100)
+    : null;
 
   return (
     <Box>
@@ -270,6 +313,44 @@ function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode, cur
             sx={{ height: 18, fontSize: '0.7rem', bgcolor: palette.blueBg, color: palette.blue }}
           />
         )}
+        {roleplay && (
+          <Tooltip
+            arrow
+            placement="top"
+            title={t('roleplayLeafChipTooltip', {
+              scenarioId: roleplay.scenario_id,
+              persona: roleplay.persona_name,
+              score: roleplay.score,
+              of: roleplay.of,
+              mandatoryHits: roleplay.mandatory_hits,
+              mandatoryTotal: roleplay.mandatory_total,
+              date: roleplay.taken_at?.split('T')[0] ?? '',
+            })}
+          >
+            <Chip
+              icon={<TheatersRounded sx={{ fontSize: 12 }} />}
+              label={t(
+                roleplay.passed ? 'roleplayLeafChipPassed' : 'roleplayLeafChipFailed',
+                { percent: roleplayPercent ?? 0 },
+              )}
+              size="small"
+              onClick={(e) => e.stopPropagation()}
+              sx={{
+                height: 18,
+                fontSize: '0.7rem',
+                bgcolor: roleplay.passed ? palette.greenBg : palette.redBg,
+                color: roleplay.passed ? palette.green : palette.red,
+                border: `1px solid ${roleplay.passed ? palette.green : palette.red}`,
+                '& .MuiChip-icon': {
+                  color: roleplay.passed ? palette.green : palette.red,
+                  ml: 0.5,
+                  mr: '-2px',
+                },
+                '& .MuiChip-label': { px: 0.75 },
+              }}
+            />
+          </Tooltip>
+        )}
         {(hasChildren || hasQA) && (
           <IconButton size="small" sx={{ p: 0 }}>
             {open ? <ExpandLessRounded fontSize="small" /> : <ExpandMoreRounded fontSize="small" />}
@@ -291,6 +372,7 @@ function NodeRow({ node, palette, depth, projectName, t, isOpen, toggleNode, cur
                 isOpen={isOpen}
                 toggleNode={toggleNode}
                 currentNodeId={currentNodeId}
+                roleplayByTopic={roleplayByTopic}
               />
             ))}
           </Box>
@@ -451,6 +533,14 @@ export default function ProgressViewer({ filename, projectName }) {
     fetchProgress();
   }, [fetchProgress]);
 
+  // Indexed BEFORE the early returns — hook order must stay stable across
+  // loading → loaded transitions. Falls back to an empty Map when data is
+  // not yet available.
+  const roleplayByTopic = useMemo(
+    () => indexRoleplayByTopic(data?.roleplay_results || []),
+    [data],
+  );
+
   if (loading) {
     return (
       <Box sx={{ p: 4, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
@@ -471,6 +561,7 @@ export default function ProgressViewer({ filename, projectName }) {
   const percent = computePercent(data.toc || []);
   const streakDays = data.streak_days || 0;
   const badges = data.badges || [];
+  const roleplayResults = data.roleplay_results || [];
 
   return (
     <Box sx={{ height: '100%', overflow: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
@@ -581,6 +672,7 @@ export default function ProgressViewer({ filename, projectName }) {
             isOpen={isOpen}
             toggleNode={toggleNode}
             currentNodeId={currentNodeId}
+            roleplayByTopic={roleplayByTopic}
           />
         ))}
       </Box>
@@ -602,6 +694,80 @@ export default function ProgressViewer({ filename, projectName }) {
                 })}
               </Typography>
             ))}
+          </Stack>
+        </Paper>
+      )}
+
+      {roleplayResults.length > 0 && (
+        <Paper elevation={0} sx={{ borderTop: 1, borderColor: 'divider', p: 1.5 }}>
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            <TheatersRounded sx={{ fontSize: 16, color: palette.purple }} />
+            <Typography variant="overline" sx={{ color: palette.purple, letterSpacing: 1 }}>
+              {t('roleplayHistory')}
+            </Typography>
+          </Stack>
+          <Stack spacing={1} sx={{ mt: 0.75 }}>
+            {roleplayResults.map((r, i) => {
+              const pct = r.of > 0 ? Math.round((r.score / r.of) * 100) : 0;
+              return (
+                <Box
+                  key={i}
+                  sx={{
+                    pl: 1.25,
+                    borderLeft: `3px solid ${r.passed ? palette.green : palette.red}`,
+                    bgcolor: palette.purpleBg,
+                    borderRadius: 0.5,
+                    py: 0.75,
+                    pr: 1,
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {t('roleplayResultLine', {
+                        scenarioId: r.scenario_id,
+                        persona: r.persona_name,
+                      })}
+                    </Typography>
+                    {r.topic_id && (
+                      <Chip
+                        label={r.topic_id}
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: '0.7rem',
+                          bgcolor: palette.blueBg,
+                          color: palette.blue,
+                          fontFamily: 'monospace',
+                        }}
+                      />
+                    )}
+                    <Chip
+                      label={t(r.passed ? 'roleplayPassed' : 'roleplayFailed')}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        bgcolor: r.passed ? palette.greenBg : palette.redBg,
+                        color: r.passed ? palette.green : palette.red,
+                        border: `1px solid ${r.passed ? palette.green : palette.red}`,
+                      }}
+                    />
+                  </Stack>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {t('roleplayResultScore', {
+                      score: r.score,
+                      of: r.of,
+                      percent: pct,
+                      mandatoryHits: r.mandatory_hits,
+                      mandatoryTotal: r.mandatory_total,
+                      turns: r.turns,
+                      date: r.taken_at?.split('T')[0] ?? '',
+                    })}
+                  </Typography>
+                </Box>
+              );
+            })}
           </Stack>
         </Paper>
       )}
