@@ -8,6 +8,12 @@ import DOMPurify from 'dompurify';
 import StreamingTimeline from './StreamingTimeline';
 import { claudeEventBus, ClaudeEvents } from '../eventBus';
 import { applyCitationChips } from '../utils/citationChips';
+import {
+  attachRoleplayBannerImages,
+  escapeRoleplayTags,
+  restoreRoleplayHtml,
+  roleplayStyles as roleplayStylesFor,
+} from '../utils/roleplayRender';
 import { useProject } from '../contexts/ProjectContext';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -111,124 +117,23 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
     if (text == null) return '';
     const PREVIEW_OPEN = 'PREVIEWxOPENx';
     const PREVIEW_CLOSE = 'xCLOSExPREVIEW';
-    // Pre-escape `<roleplay-start .../>` and `<roleplay-end .../>` tags
-    // emitted by the roleplay-engine skill. Same survival problem as
-    // <preview:...>: DOMPurify drops unknown tags. Swap to sentinels with
-    // a base64-style attribute payload so the surrounding markdown still
-    // parses normally, then restore as styled banner div elements after
-    // sanitization. The skill protocol guarantees one start + one end per
-    // session — we render whatever we find and never guess.
-    const RP_START_OPEN = 'ROLEPLAYxSTARTxOPENx';
-    const RP_START_CLOSE = 'xCLOSExROLEPLAYxSTART';
-    const RP_END_OPEN = 'ROLEPLAYxENDxOPENx';
-    const RP_END_CLOSE = 'xCLOSExROLEPLAYxEND';
+    // Sentinel-swap `<preview:path>` AND `<roleplay-start/end ...>` so neither
+    // gets eaten by GFM autolink / DOMPurify, then restore after sanitize.
     let escaped = String(text).replace(
       /<preview:([^>\s]+?)>/g,
       `${PREVIEW_OPEN}$1${PREVIEW_CLOSE}`,
     );
-    escaped = escaped.replace(
-      /<roleplay-start\s+([^/>]+?)\s*\/?>/g,
-      (_, attrs) => `${RP_START_OPEN}${btoa(unescape(encodeURIComponent(attrs)))}${RP_START_CLOSE}`,
-    );
-    escaped = escaped.replace(
-      /<roleplay-end\s+([^/>]+?)\s*\/?>/g,
-      (_, attrs) => `${RP_END_OPEN}${btoa(unescape(encodeURIComponent(attrs)))}${RP_END_CLOSE}`,
-    );
+    escaped = escapeRoleplayTags(escaped);
     const rawHtml = marked.parse(escaped, { breaks: true, gfm: true });
     const sanitized = DOMPurify.sanitize(rawHtml);
     let restored = sanitized.replace(
       new RegExp(`${PREVIEW_OPEN}([\s\S]+?)${PREVIEW_CLOSE}`, 'g'),
       '&lt;preview:$1&gt;',
     );
-    // Restore roleplay tags as styled banner divs. Parse the attribute
-    // string (persona="..." topic="..." etc.) to label the banner.
-    const parseAttrs = (raw) => {
-      try {
-        const decoded = decodeURIComponent(escape(atob(raw)));
-        const attrs = {};
-        decoded.replace(/(\w+)=["']([^"']*)["']/g, (_, k, v) => {
-          attrs[k] = v;
-          return '';
-        });
-        return attrs;
-      } catch {
-        return {};
-      }
-    };
-    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    restored = restored.replace(
-      new RegExp(`${RP_START_OPEN}([A-Za-z0-9+/=]+)${RP_START_CLOSE}`, 'g'),
-      (_, b64) => {
-        const a = parseAttrs(b64);
-        const persona = esc(a.persona || 'persona');
-        const topic = esc(a.topic || '');
-        const scenario = esc(a.scenario || '');
-        const image = a.image ? esc(a.image) : '';
-        // Image is loaded lazily by a useEffect below (workspace files
-        // require an Authorization header — a plain src= against the
-        // protected /api/workspace/.../files endpoint would 401).
-        const imageEl = image
-          ? `<img class="roleplay-banner-image" data-image-path="${image}" alt="${esc(a.topic || a.persona || 'scene')}" />`
-          : '';
-        return `<div class="roleplay-banner roleplay-banner-start" data-scenario="${scenario}"><div class="roleplay-banner-text"><span class="roleplay-banner-icon">🎭</span> <strong>Roleplay started</strong> — talking to <strong>${persona}</strong>${topic ? ` about ${topic}` : ''}</div>${imageEl}</div>`;
-      },
-    );
-    restored = restored.replace(
-      new RegExp(`${RP_END_OPEN}([A-Za-z0-9+/=]+)${RP_END_CLOSE}`, 'g'),
-      (_, b64) => {
-        const a = parseAttrs(b64);
-        const turns = esc(a.turns || '');
-        const scenario = esc(a.scenario || '');
-        return `<div class="roleplay-banner roleplay-banner-end" data-scenario="${scenario}"><span class="roleplay-banner-icon">🎭</span> <strong>Roleplay ended</strong>${turns ? ` — ${turns} turns` : ''} — evaluation below ↓</div>`;
-      },
-    );
-    // Wrap any whole paragraph that starts with `[Name]: ` as a persona
-    // turn so the frontend can tint it. Operates on the sanitized HTML.
-    // Persona-name characters: letters, digits, spaces, hyphens, dots,
-    // apostrophes (e.g. "Dr. Sabine Kraus", "Tom Reynolds"). Match the
-    // full <p>...</p> and replace with the styled wrapper so opening and
-    // closing tags stay balanced.
-    restored = restored.replace(
-      /<p>\s*\[([A-Za-zÀ-ÿ0-9 .'\-]{1,40})\]:\s*([\s\S]*?)<\/p>/g,
-      (_, name, rest) => `<div class="roleplay-persona-turn"><span class="roleplay-persona-name">${esc(name)}:</span> ${rest}</div>`,
-    );
-    return restored;
+    return restoreRoleplayHtml(restored);
   }, [text]);
 
-  const roleplayStyles = {
-    '& .roleplay-banner': {
-      display: 'block',
-      padding: '8px 12px',
-      margin: '0.5em 0',
-      borderRadius: '6px',
-      fontSize: '0.9em',
-      textAlign: 'center',
-    },
-    '& .roleplay-banner-icon': { marginRight: '4px' },
-    '& .roleplay-banner-start': {
-      backgroundColor: themeMode === 'dark' ? '#3a2a4a' : '#f3e5f5',
-      color: themeMode === 'dark' ? '#e1bee7' : '#6a1b9a',
-      borderLeft: '4px solid #8e24aa',
-    },
-    '& .roleplay-banner-end': {
-      backgroundColor: themeMode === 'dark' ? '#2a3a4a' : '#e3f2fd',
-      color: themeMode === 'dark' ? '#90caf9' : '#1565c0',
-      borderLeft: '4px solid #1976d2',
-    },
-    '& .roleplay-persona-turn': {
-      display: 'block',
-      padding: '6px 10px',
-      margin: '0.25em 0',
-      borderLeft: '3px solid #8e24aa',
-      backgroundColor: themeMode === 'dark' ? 'rgba(142, 36, 170, 0.12)' : 'rgba(142, 36, 170, 0.06)',
-      borderRadius: '0 4px 4px 0',
-    },
-    '& .roleplay-persona-name': {
-      fontWeight: 'bold',
-      color: themeMode === 'dark' ? '#ce93d8' : '#6a1b9a',
-      marginRight: '4px',
-    },
-  };
+  const roleplayStyles = roleplayStylesFor(themeMode);
 
   // Render source indicator for remote sessions, scheduled tasks, etc.
   const renderSourceIndicator = () => {
@@ -349,6 +254,15 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
       filePath,
       projectName: currentProject,
     });
+  }, [renderedContent, isUser, currentProject]);
+
+  // Lazily resolve `data-image-path` placeholders in roleplay-start banners.
+  // Same loader used by TextSegmentTimeline so both rendering paths render
+  // workspace images via blob URLs (workspace files need an Authorization
+  // header — a plain src= against /api/workspace/.../files would 401).
+  useEffect(() => {
+    if (isUser) return undefined;
+    return attachRoleplayBannerImages(contentRef.current, currentProject);
   }, [renderedContent, isUser, currentProject]);
 
   // Make file paths in the content clickable

@@ -35,7 +35,7 @@ rubric.
    guest needs them to know "I am now talking to the persona, not the
    onboarding agent". The `image` attribute is the scenario's `image` field
    verbatim (workspace-relative path, e.g. `roleplay/images/oem-a-flicker-complaint.png`) —
-   the frontend renders it inline in the start banner. Omit the attribute
+   the frontend renders it inline inside the start banner. Omit the attribute
    if the scenario has no `image` field. Do not nest, repeat, or omit the fences.
 
 2. **One identity at a time.** Inside the fence, every message you send is
@@ -87,16 +87,33 @@ Wait for the guest to acknowledge. Do not start the fence until they
 confirm.
 
 ### 3. Open the fence and play
-Emit the `<roleplay-start>` tag, then immediately the persona's opening
-turn:
+You will emit one special tag into the chat message body. The tag
+requires **literal ASCII angle brackets** — the less-than character `<`
+and the greater-than character `>` — as part of the tag itself, not as
+markdown formatting. The frontend matches this tag by exact text and
+will not recognise it if the brackets are missing.
 
-```
+**The roleplay-start tag.** A single line of the form:
+
+  <roleplay-start scenario="SCENARIO_ID" persona="PERSONA_NAME" topic="TOPIC_TEXT" image="IMAGE_PATH"/>
+
+Substitute `SCENARIO_ID`, `PERSONA_NAME`, `TOPIC_TEXT`, and `IMAGE_PATH`
+with values from the scenario JSON. The trailing `/>` is part of the
+tag. The `image` attribute is the scenario's `image` field verbatim
+(workspace-relative path, e.g. `roleplay/images/oem-a-flicker-complaint.png`) —
+the frontend renders it inline inside the start banner so the trainee
+sees the scene. If the scenario has no `image` field, omit the `image`
+attribute entirely — do not invent a path.
+
+After the tag, the persona's opening turn (a literal `[Name]:` prefix —
+see rule 3 of "The hard rules" above).
+
+Concrete example for the flicker scenario — emit exactly these two
+lines verbatim, angle brackets and all, in the chat body (no code
+fences, no quoting):
+
 <roleplay-start scenario="oem-a-flicker-complaint" persona="Tom Reynolds" topic="Complaint about flicker on the B-sample" image="roleplay/images/oem-a-flicker-complaint.png"/>
-
-[Tom Reynolds]: Look, I'll be brief. The B-sample we got last week flickers
-on our test rig at low duty. I have a programme review in 72 hours. Tell me
-what's going on.
-```
+[Tom Reynolds]: Look, I'll be brief. The B-sample we got last week flickers on our test rig at low duty. I have a programme review in 72 hours. Tell me what's going on.
 
 From this point until the fence closes:
 - Every reply is one `[<PersonaName>]: ...` block, on its own line(s).

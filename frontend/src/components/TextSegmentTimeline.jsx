@@ -1,10 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useProject } from '../contexts/ProjectContext';
 import { applyCitationChips } from '../utils/citationChips';
+import {
+  attachRoleplayBannerImages,
+  escapeRoleplayTags,
+  restoreRoleplayHtml,
+  roleplayStyles,
+} from '../utils/roleplayRender';
 
 /**
  * Text segment displayed in timeline format (for interleaved text between tool calls)
@@ -13,15 +19,28 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
   const { mode: themeMode } = useThemeMode();
   const { currentProject } = useProject();
   const contentRef = useRef(null);
-  // Parse markdown
-  const rawHtml = marked.parse(text, { breaks: true, gfm: true });
-  const renderedContent = DOMPurify.sanitize(rawHtml);
+  // Parse markdown. Roleplay-engine emits `<roleplay-start ... image=.../>`
+  // and `<roleplay-end .../>` tags that DOMPurify would strip — pre-escape
+  // them to sentinels before marked, then restore as styled banner divs
+  // (with an inline <img> placeholder for the start banner) after
+  // sanitization. The image blob is loaded lazily in a useEffect below.
+  const renderedContent = useMemo(() => {
+    const escaped = escapeRoleplayTags(text);
+    const rawHtml = marked.parse(escaped, { breaks: true, gfm: true });
+    const sanitized = DOMPurify.sanitize(rawHtml);
+    return restoreRoleplayHtml(sanitized);
+  }, [text]);
 
   // Replace [[wiki:slug]] and [[doc:path]] tokens with clickable icon-only
   // chips. Same logic as ChatMessage.jsx but applied here because timeline
   // text chunks render through this component, not the parent's contentRef.
   useEffect(() => {
     applyCitationChips(contentRef.current, currentProject);
+  }, [renderedContent, currentProject]);
+
+  // Resolve roleplay banner image placeholders to blob URLs (auth-aware).
+  useEffect(() => {
+    return attachRoleplayBannerImages(contentRef.current, currentProject);
   }, [renderedContent, currentProject]);
 
   return (
@@ -117,7 +136,8 @@ export default function TextSegmentTimeline({ text, showBullet = true }) {
             },
             '& td': {
               backgroundColor: themeMode === 'dark' ? 'transparent' : '#fff'
-            }
+            },
+            ...roleplayStyles(themeMode),
           }}
           dangerouslySetInnerHTML={{ __html: renderedContent }}
         />

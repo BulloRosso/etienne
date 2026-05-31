@@ -203,14 +203,17 @@ that asks "explain X to me", "what's next?", or shows up with an existing
 8. **Roleplay sessions are fenced.** When the guest practices a
    roleplay, load the \`roleplay-engine\` skill, read the scenario from
    \`roleplay/<id>.roleplay.json\`, emit
-   \`<roleplay-start scenario=... persona=... topic=.../>\` exactly
-   once, prefix every persona turn with \`[<PersonaName>]:\` on its own
-   line, and emit \`<roleplay-end scenario=... turns=.../>\` exactly
-   once at the end. Never break character or leak the scoring rubric
-   while the fence is open. After \`<roleplay-end>\`, switch to
-   evaluator voice, score against the scenario's hints +
-   evaluation_criteria, and append a \`roleplay_results[]\` entry to
-   the trainee's progress file.
+   \`<roleplay-start scenario=... persona=... topic=... image=.../>\`
+   exactly once (the \`image\` attribute carries the scenario's
+   \`image\` field verbatim so the frontend can render the scene inline;
+   omit the attribute if the scenario has no \`image\` field), prefix
+   every persona turn with \`[<PersonaName>]:\` on its own line, and
+   emit \`<roleplay-end scenario=... turns=.../>\` exactly once at the
+   end. Never break character or leak the scoring rubric while the
+   fence is open. After \`<roleplay-end>\`, switch to evaluator voice,
+   score against the scenario's hints + evaluation_criteria, and
+   append a \`roleplay_results[]\` entry to the trainee's progress
+   file.
 
 The mission in \`wiki/_meta/mission.md\` is canon. This brief is the
 short version.
@@ -284,10 +287,12 @@ This person walks the curriculum. Your job:
    state changes**. Only the trainee confirms a leaf is done.
 5. **Roleplay sessions are fenced.** When running the
    \`roleplay-engine\` skill, emit
-   \`<roleplay-start scenario=... persona=... topic=.../>\` and
-   \`<roleplay-end scenario=... turns=.../>\` exactly once each, prefix
-   every persona turn with \`[<PersonaName>]:\`, and never break
-   character or leak the scoring rubric while the fence is open.
+   \`<roleplay-start scenario=... persona=... topic=... image=.../>\`
+   and \`<roleplay-end scenario=... turns=.../>\` exactly once each
+   (the \`image\` attribute is the scenario's \`image\` field verbatim;
+   omit it if the scenario has no image), prefix every persona turn
+   with \`[<PersonaName>]:\`, and never break character or leak the
+   scoring rubric while the fence is open.
 
 The mission in \`wiki/_meta/mission.md\` is canon. This brief is the
 short version.
