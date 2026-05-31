@@ -30,9 +30,17 @@ import { MissionLoaderService, MissionUserContext } from '../mission-loader.serv
  * Orchestrator service that integrates SDK, sessions, guardrails, and memory
  * This is the main entry point for SDK-based conversations
  */
+// Logger restricted to WARN+ for this service. log/debug/verbose are intentionally
+// dropped; warn/error/fatal still pass through to the underlying Nest logger.
+class WarnLevelLogger extends Logger {
+  log(_message: any, _context?: string): void { /* suppressed: below WARN */ }
+  debug(_message: any, _context?: string): void { /* suppressed: below WARN */ }
+  verbose(_message: any, _context?: string): void { /* suppressed: below WARN */ }
+}
+
 @Injectable()
 export class ClaudeSdkOrchestratorService {
-  private readonly logger = new Logger(ClaudeSdkOrchestratorService.name);
+  private readonly logger = new WarnLevelLogger(ClaudeSdkOrchestratorService.name);
   private readonly config: ClaudeConfig;
   private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
 
@@ -1059,6 +1067,11 @@ export class ClaudeSdkOrchestratorService {
               }
             }
           }
+          // Text was already streamed via content_block_delta; don't fall through
+          // to SdkMessageTransformer.transform() at the end of the loop, which would
+          // re-emit the assembled assistant text as a second `stdout` chunk and
+          // produce the visible duplicate paragraph in the chat bubble.
+          continue;
         }
 
         // Handle result (completion)

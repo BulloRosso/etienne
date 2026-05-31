@@ -1,24 +1,69 @@
 import { ClaudeEvent, Usage, StructuredEvent } from '../types';
 
-export function extractText(evt: ClaudeEvent): string {
+/**
+ * Streaming text extractor: returns text ONLY for incremental delta events.
+ *
+ * Returns '' for assembled-message events (`assistant`, `result`) so they
+ * cannot duplicate the live token stream. Use `extractFinalText` for those.
+ */
+export function extractStreamText(evt: ClaudeEvent): string {
+  // Final assembled-message events must NEVER stream — they would duplicate
+  // the deltas that already arrived as stream_event lines.
+  if (evt.type === 'assistant' || evt.type === 'result') return '';
+
+  // SDK 0.3 partial-message shape: stream_event → content_block_delta → text_delta
+  if (evt.type === 'stream_event') {
+    const inner = (evt as any).event;
+    if (inner) {
+      if (inner.type === 'content_block_delta') {
+        const d = inner.delta;
+        if (typeof d?.text === 'string') return d.text;
+        if (d?.type === 'text_delta' && typeof d.text === 'string') return d.text;
+      }
+      if (inner.type === 'content_block_start') {
+        const cb = inner.content_block;
+        if (cb?.type === 'text' && typeof cb.text === 'string') return cb.text;
+      }
+    }
+  }
+
+  // Legacy delta shapes — kept for safety with older event variants.
   if (typeof evt.delta === 'string') return evt.delta;
   if (typeof evt.delta === 'object' && evt.delta?.text) return evt.delta.text;
   if (typeof evt.partial_text === 'string') return evt.partial_text;
-  if (typeof evt.text === 'string') return evt.text;
   if (typeof evt.message?.delta === 'string') return evt.message.delta;
 
-  const blocks = Array.isArray(evt.message?.content) ? evt.message.content
-               : Array.isArray(evt.content) ? evt.content
+  return '';
+}
+
+/**
+ * Final-message text extractor: returns the assembled text from
+ * `assistant` / `result` events, concatenating ALL text content blocks.
+ *
+ * Use this for persistence and guardrails — NEVER for streaming, or the
+ * result will be emitted twice (once as deltas, once as the assembled block).
+ */
+export function extractFinalText(evt: ClaudeEvent): string {
+  const blocks = Array.isArray(evt.message?.content) ? evt.message!.content
+               : Array.isArray(evt.content) ? (evt.content as any[])
                : null;
   if (blocks) {
+    let out = '';
     for (const b of blocks) {
-      if (typeof b?.text === 'string') return b.text;
-      if (typeof b?.delta === 'string') return b.delta;
-      if (b?.delta?.text) return b.delta.text;
+      if (typeof b?.text === 'string') out += b.text;
     }
+    if (out) return out;
   }
-  if (typeof evt.content === 'object' && evt.content?.text) return evt.content.text;
+  if (typeof evt.content === 'object' && !Array.isArray(evt.content) && evt.content?.text) {
+    return evt.content.text;
+  }
+  if (typeof evt.text === 'string') return evt.text;
   return '';
+}
+
+/** @deprecated Use `extractStreamText` for live deltas or `extractFinalText` for assembled messages. */
+export function extractText(evt: ClaudeEvent): string {
+  return extractStreamText(evt);
 }
 
 export function parseSession(evt: ClaudeEvent): { sessionId?: string; model?: string } {

@@ -9,7 +9,7 @@ import * as jwt from 'jsonwebtoken';
 import { posixProjectPath } from '../common/path.util';
 import { Usage, MessageEvent, ClaudeEvent } from './types';
 import { norm, safeRoot } from './utils/path.utils';
-import { extractText, parseSession, parseUsage, createJsonLineParser, ClaudeCodeStructuredParser } from './parsers/stream-parser';
+import { extractStreamText, extractFinalText, parseSession, parseUsage, createJsonLineParser, ClaudeCodeStructuredParser } from './parsers/stream-parser';
 import { buildClaudeScript } from './builders/script-builder';
 import { ClaudeConfig } from './config/claude.config';
 import { SessionsService } from '../sessions/sessions.service';
@@ -580,6 +580,7 @@ project using the [Scrapbook](#scrapbook)
         let usage: Usage = {};
         let announcedSession = false;
         let assistantText = '';
+        let finalAssistantText = '';   // authoritative, from the final `assistant` message
 
         // Check if output guardrails are enabled
         const outputGuardrailsConfig = await this.outputGuardrailsService.getConfig(projectDir);
@@ -639,7 +640,16 @@ project using the [Scrapbook](#scrapbook)
             observer.next({ type: 'usage', data: usage });
           }
 
-          const text = extractText(evt);
+          // Capture the final assembled assistant message for persistence/guardrails,
+          // but do NOT stream it (that would duplicate the deltas already emitted).
+          if (evt.type === 'assistant' || evt.type === 'result') {
+            const finalText = extractFinalText(evt);
+            if (finalText) finalAssistantText = finalText;
+            return;
+          }
+
+          // Stream only incremental text deltas.
+          const text = extractStreamText(evt);
           if (text) emitText(text);
         };
 
@@ -670,6 +680,9 @@ project using the [Scrapbook](#scrapbook)
           clearTimeout(killTimer);
           this.processes.delete(processId);
           await watcher.close().catch(() => void 0);
+
+          // Prefer the canonical final message; fall back to streamed text.
+          if (finalAssistantText) assistantText = finalAssistantText;
 
           // Apply output guardrails if enabled
           if (shouldBufferOutput && assistantText) {
