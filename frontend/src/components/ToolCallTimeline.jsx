@@ -104,6 +104,8 @@ const formatToolDescription = (toolName, args) => {
       return 'Update task list';
     case 'Task':
       return args.description || '';
+    case 'Skill':
+      return args.skill ? args.skill.charAt(0).toUpperCase() + args.skill.slice(1) : '';
     default:
       // User order tools: show title for add, statusNew for other methods
       if (toolName?.includes('__user-orders__')) {
