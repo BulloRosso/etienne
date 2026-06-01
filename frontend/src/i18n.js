@@ -14,7 +14,7 @@ i18n
       'common',
       'a2aAgentsIndicator', 'a2aAgentsSelector', 'a2aSettings',
       'actionsTab', 'agentPersona', 'artifacts', 'artifactsForSession',
-      'askUserQuestion', 'autoFilePreview',
+      'askExpert', 'askUserQuestion', 'autoFilePreview',
       'budgetIndicator', 'budgetOverview', 'budgetSettings',
       'changePassword', 'chatInput', 'chatMessage', 'chatPane', 'cheatsheet',
       'checkpoints', 'codingAgentConfig', 'columnSettings',

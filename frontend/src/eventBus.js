@@ -53,4 +53,6 @@ export const ClaudeEvents = {
   CHAT_MAXIMIZE_TOGGLE: 'claude:chat_maximize_toggle',
   CHEATSHEET_ADD_REQUEST: 'claude:cheatsheet_add_request',
   CHEATSHEET_UPDATED: 'claude:cheatsheet_updated',
+  ASK_EXPERT_REQUEST: 'claude:ask_expert_request',
+  ASK_EXPERT_UPDATED: 'claude:ask_expert_updated',
 };

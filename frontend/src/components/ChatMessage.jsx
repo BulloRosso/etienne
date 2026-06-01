@@ -2,7 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Box, Typography, Paper, IconButton, Collapse, Chip, Menu, MenuItem, ListItemIcon as MenuItemIcon } from '@mui/material';
 import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups, MoreVert, ContentCopy, Code, EditOutlined, TouchApp } from '@mui/icons-material';
 import { RiSketching } from 'react-icons/ri';
+import { HiOutlineHandRaised } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -30,7 +32,10 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [hovered, setHovered] = useState(false);
-  const { currentProject } = useProject();
+  const { currentProject, applicationTypeId } = useProject();
+  const { user } = useAuth();
+  const canAskExpert =
+    !isUser && user?.role === 'guest' && applicationTypeId === 'knowledge-transfer';
   const contentRef = useRef(null);
   const streamStartTimeRef = useRef(null);
 
@@ -102,6 +107,14 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   const handleAddToCheatsheet = () => {
     setMenuAnchorEl(null);
     claudeEventBus.publish(ClaudeEvents.CHEATSHEET_ADD_REQUEST, {
+      bubbleText: text,
+      projectName: currentProject,
+    });
+  };
+
+  const handleAskExpert = () => {
+    setMenuAnchorEl(null);
+    claudeEventBus.publish(ClaudeEvents.ASK_EXPERT_REQUEST, {
       bubbleText: text,
       projectName: currentProject,
     });
@@ -393,6 +406,12 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         <MenuItem onClick={handleAddToCheatsheet} dense>
           <MenuItemIcon sx={{ minWidth: 32 }}><RiSketching size={16} /></MenuItemIcon>
           {t('chatMessage:addToCheatsheet', 'Add to cheat sheet')}
+        </MenuItem>
+      )}
+      {canAskExpert && (
+        <MenuItem onClick={handleAskExpert} dense>
+          <MenuItemIcon sx={{ minWidth: 32 }}><HiOutlineHandRaised size={16} /></MenuItemIcon>
+          {t('chatMessage:askExpert', 'Ask the expert')}
         </MenuItem>
       )}
       {isUser && onEditMessage && (

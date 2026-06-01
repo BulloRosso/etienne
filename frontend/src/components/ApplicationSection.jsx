@@ -6,22 +6,59 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Badge,
 } from '@mui/material';
 import * as MuiIcons from '@mui/icons-material';
+import { HiOutlineHandRaised } from 'react-icons/hi2';
+import { HiOutlineLightBulb } from 'react-icons/hi';
+import { BsMouse2 } from 'react-icons/bs';
+import { MdOutlineQuiz } from 'react-icons/md';
+import { RiSignpostLine } from 'react-icons/ri';
+import { FaTheaterMasks } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { getEffectiveApplicationType } from '../services/applicationTypes';
 import useAppTypeModalStore from '../stores/useAppTypeModalStore';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { claudeEventBus, ClaudeEvents } from '../eventBus';
+
+// Allow config.json `icon` to reference react-icons by their exact import name.
+// Each entry is wrapped so callers can use `<Icon fontSize="small" />` like MUI.
+const REACT_ICONS = {
+  HiOutlineHandRaised,
+  HiOutlineLightBulb,
+  BsMouse2,
+  MdOutlineQuiz,
+  RiSignpostLine,
+  FaTheaterMasks,
+};
+// Some icons read smaller than their bounding box and need an optical bump
+// to feel level with neighbouring MUI/react-icons. Multiplier applied to the
+// resolved pixel size before rendering.
+const REACT_ICON_SCALE = {
+  HiOutlineLightBulb: 1.215,
+};
+const REACT_ICON_SIZE_PX = { small: 18, medium: 22, large: 28 };
+const reactIconWrappers = Object.fromEntries(
+  Object.entries(REACT_ICONS).map(([name, Comp]) => [
+    name,
+    function WrappedReactIcon({ fontSize = 'small', ...rest }) {
+      const base = REACT_ICON_SIZE_PX[fontSize] || REACT_ICON_SIZE_PX.small;
+      const px = Math.round(base * (REACT_ICON_SCALE[name] || 1));
+      return <Comp size={px} {...rest} />;
+    },
+  ]),
+);
 
 function resolveIcon(name) {
   if (!name) return null;
+  if (reactIconWrappers[name]) return reactIconWrappers[name];
   const Icon = MuiIcons[name];
   return Icon || null;
 }
 
-export default function ApplicationSection({ currentProject, collapsed = false }) {
+export default function ApplicationSection({ currentProject, collapsed = false, badgeCounts }) {
   const { i18n } = useTranslation();
   const { mode: themeMode } = useThemeMode();
   const { user } = useAuth();
@@ -92,6 +129,15 @@ export default function ApplicationSection({ currentProject, collapsed = false }
         break;
       }
       case 'modal': {
+        // Custom in-app modals are addressed by `payload.modalKey`. The
+        // generic MCP-backed modal flow runs via useAppTypeModalStore.
+        if (payload?.modalKey === 'ask-expert') {
+          claudeEventBus.publish(ClaudeEvents.ASK_EXPERT_REQUEST, {
+            bubbleText: '',
+            projectName: currentProject,
+          });
+          break;
+        }
         openModal({ payload, project: currentProject, title: item.label });
         break;
       }
@@ -121,6 +167,8 @@ export default function ApplicationSection({ currentProject, collapsed = false }
         <List dense disablePadding>
           {visibleMenuItems.map((item) => {
             const Icon = resolveIcon(item.icon);
+            const count = badgeCounts?.[item.id] || 0;
+            const iconEl = Icon ? <Icon fontSize="small" /> : null;
             return (
               <ListItemButton
                 key={item.id}
@@ -129,7 +177,16 @@ export default function ApplicationSection({ currentProject, collapsed = false }
                 sx={{ justifyContent: 'center', px: 1 }}
               >
                 <ListItemIcon sx={{ minWidth: 0 }}>
-                  {Icon ? <Icon fontSize="small" /> : null}
+                  {count > 0 ? (
+                    <Badge
+                      badgeContent={count}
+                      color={item.badgeColor || 'error'}
+                    >
+                      {iconEl}
+                    </Badge>
+                  ) : (
+                    iconEl
+                  )}
                 </ListItemIcon>
               </ListItemButton>
             );
@@ -152,6 +209,8 @@ export default function ApplicationSection({ currentProject, collapsed = false }
       <List dense disablePadding>
         {visibleMenuItems.map((item) => {
           const Icon = resolveIcon(item.icon);
+          const count = badgeCounts?.[item.id] || 0;
+          const iconEl = Icon ? <Icon fontSize="small" /> : null;
           return (
             <ListItemButton
               key={item.id}
@@ -159,7 +218,13 @@ export default function ApplicationSection({ currentProject, collapsed = false }
               sx={{ borderRadius: 0.5 }}
             >
               <ListItemIcon sx={{ minWidth: 32 }}>
-                {Icon ? <Icon fontSize="small" /> : null}
+                {count > 0 ? (
+                  <Badge badgeContent={count} color="error">
+                    {iconEl}
+                  </Badge>
+                ) : (
+                  iconEl
+                )}
               </ListItemIcon>
               <ListItemText
                 primary={item.label}

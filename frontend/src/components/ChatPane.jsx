@@ -742,6 +742,7 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
         bubbleText={cheatsheetModal.bubbleText}
         projectName={projectName}
       />
+
     </Box>
   );
 }

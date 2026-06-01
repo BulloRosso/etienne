@@ -17,6 +17,11 @@ export interface MenuItemBase {
    * `["user", "admin"]` to expose only to experts.
    */
   roles?: Array<'guest' | 'user' | 'admin'>;
+  /**
+   * Optional MUI Badge color override for the sidebar bullet indicator.
+   * Defaults to `'error'` (red). Accepts any MUI palette color name.
+   */
+  badgeColor?: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 }
 
 export interface ApplicationTypeConfig {
@@ -44,6 +49,7 @@ export interface EffectiveMenuItem {
   label: string;
   payload: Record<string, any>;
   roles?: Array<'guest' | 'user' | 'admin'>;
+  badgeColor?: MenuItemBase['badgeColor'];
 }
 
 export interface EffectiveApplicationConfig {
@@ -254,6 +260,7 @@ export class ApplicationTypesService {
         label: this.resolveLabel(item.labels, lng),
         payload: item.payload || {},
         ...(Array.isArray(item.roles) && item.roles.length > 0 ? { roles: item.roles } : {}),
+        ...(item.badgeColor ? { badgeColor: item.badgeColor } : {}),
       })),
     };
   }

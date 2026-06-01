@@ -35,7 +35,7 @@
     {
       "id": "whats-next",
       "type": "subagent",
-      "icon": "NavigateNext",
+      "icon": "RiSignpostLine",
       "roles": ["guest"],
       "labels": {
         "en": "What's next?",
@@ -50,7 +50,7 @@
     {
       "id": "take-quiz",
       "type": "subagent",
-      "icon": "Quiz",
+      "icon": "MdOutlineQuiz",
       "roles": ["guest"],
       "labels": {
         "en": "Quiz me on the current topic",
@@ -65,7 +65,7 @@
     {
       "id": "practice-in-simulator",
       "type": "subagent",
-      "icon": "Mouse",
+      "icon": "BsMouse2",
       "roles": ["guest"],
       "labels": {
         "en": "Practice in an application simulator",
@@ -80,7 +80,7 @@
     {
       "id": "practice-roleplay",
       "type": "subagent",
-      "icon": "Theaters",
+      "icon": "FaTheaterMasks",
       "roles": ["guest"],
       "labels": {
         "en": "Practice a roleplay conversation",
@@ -93,9 +93,25 @@
       }
     },
     {
+      "id": "ask-the-expert",
+      "type": "modal",
+      "icon": "HiOutlineHandRaised",
+      "roles": ["guest"],
+      "badgeColor": "success",
+      "labels": {
+        "en": "Ask the expert",
+        "de": "Den Experten fragen",
+        "it": "Chiedi all'esperto",
+        "zh": "请教专家"
+      },
+      "payload": {
+        "modalKey": "ask-expert"
+      }
+    },
+    {
       "id": "explain-like-im-new",
       "type": "subagent",
-      "icon": "School",
+      "icon": "HiOutlineLightBulb",
       "roles": ["guest"],
       "labels": {
         "en": "Explain something to me as if I'm new",
@@ -195,6 +211,21 @@
       },
       "payload": {
         "prompt": "Scan every progress/<username>.progress.json under progress/ for roleplay_results[] entries. Group by scenario_id and show: total attempts, pass rate, average score, most-commonly-missed mandatory hint (cross-reference roleplay/<scenario_id>.roleplay.json). Surface trainees who failed a mandatory hint as a queue for me to follow up on. Do not modify the scenario JSON or anyone's progress file — this is read-only review."
+      }
+    },
+    {
+      "id": "review-questions-and-answers",
+      "type": "subagent",
+      "icon": "PanTool",
+      "roles": ["user", "admin"],
+      "labels": {
+        "en": "Review trainees' Q&A",
+        "de": "Fragen & Antworten der Auszubildenden ansehen",
+        "it": "Rivedi le domande e risposte dei tirocinanti",
+        "zh": "查看学员的问答"
+      },
+      "payload": {
+        "prompt": "List every file under questions-and-answers/. For each user with at least one entry where answer is null, show their username and the number of open questions. Emit one `<preview:questions-and-answers/<username>.q-and-a.json>` tag per such user so I can open their file in the Q&A previewer and write the answers. Do not modify any file — this is read-only orientation."
       }
     },
     {

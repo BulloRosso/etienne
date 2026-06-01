@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../services/api';
+import { getEffectiveApplicationType } from '../services/applicationTypes';
 
 const ProjectContext = createContext();
 
@@ -15,6 +16,7 @@ export const ProjectProvider = ({ children }) => {
   const [currentProject, setCurrentProject] = useState(null);
   const [projectExists, setProjectExists] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [applicationTypeId, setApplicationTypeId] = useState(null);
 
   // Load currentProject from localStorage on mount. Re-run when an auth token appears
   // (login completes) so a stored project gets verified once we can actually call the API.
@@ -70,6 +72,26 @@ export const ProjectProvider = ({ children }) => {
     };
   }, []);
 
+  // Fetch the project's application-type id once per project change so callers
+  // (e.g. ChatMessage's "Ask the expert" gate) don't each hit the network.
+  useEffect(() => {
+    let cancelled = false;
+    if (!currentProject) {
+      setApplicationTypeId(null);
+      return undefined;
+    }
+    getEffectiveApplicationType(currentProject)
+      .then((cfg) => {
+        if (!cancelled) setApplicationTypeId(cfg?.id || null);
+      })
+      .catch(() => {
+        if (!cancelled) setApplicationTypeId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentProject]);
+
   const setProject = async (projectName) => {
     if (projectName) {
       localStorage.setItem('currentProject', projectName);
@@ -86,7 +108,8 @@ export const ProjectProvider = ({ children }) => {
     currentProject,
     projectExists,
     loading,
-    setProject
+    setProject,
+    applicationTypeId,
   };
 
   return (

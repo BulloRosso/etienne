@@ -83,6 +83,7 @@ export default function MinimalisticSidebar({
   hasPublicWebsite,
   wikiEntryPath,
   cheatsheetPath,
+  applicationBadgeCounts,
   mux,
 }) {
   const { t } = useTranslation(['common', 'dashboard']);
@@ -392,11 +393,13 @@ export default function MinimalisticSidebar({
             </IconButton>
           </Tooltip>
         )}
-        <Tooltip title={t('sidebar.settings')} placement="right">
-          <IconButton onClick={() => setSettingsOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
-            <GiSettingsKnobs size={18} />
-          </IconButton>
-        </Tooltip>
+        {user?.role !== 'guest' && (
+          <Tooltip title={t('sidebar.settings')} placement="right">
+            <IconButton onClick={() => setSettingsOpen(true)} size="small" sx={{ color: 'text.secondary', mb: 0.5 }}>
+              <GiSettingsKnobs size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
 
         <Divider sx={{ width: '70%', my: 1 }} />
 
@@ -699,17 +702,19 @@ export default function MinimalisticSidebar({
                 <ListItemText primary={t('sidebar.inbox')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
               </ListItemButton>
             )}
-            <ListItemButton onClick={() => setSettingsOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}><GiSettingsKnobs size={18} /></ListItemIcon>
-              <ListItemText primary={t('sidebar.settings')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
-            </ListItemButton>
+            {user?.role !== 'guest' && (
+              <ListItemButton onClick={() => setSettingsOpen(true)} sx={{ borderRadius: 1, py: 0.75 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}><GiSettingsKnobs size={18} /></ListItemIcon>
+                <ListItemText primary={t('sidebar.settings')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
           </List>
         </Box>
 
         <Divider />
 
         {/* Application-type section (rendered only if currentProject has an effective config) */}
-        <ApplicationSection currentProject={currentProject} />
+        <ApplicationSection currentProject={currentProject} badgeCounts={applicationBadgeCounts} />
 
         {/* Section 2: Projects */}
         <Box>

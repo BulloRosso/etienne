@@ -36,6 +36,7 @@ import { agentBus } from './services/agentBus';
 import Onboarding from './components/Onboarding';
 import TechnologyRadarPage from './pages/TechnologyRadarPage';
 import { apiFetch } from './services/api';
+import AskExpert from './components/AskExpert';
 import { filePreviewHandler } from './services/FilePreviewHandler';
 import useTabStore from './stores/useTabStore';
 import useMultiplexSSE from './hooks/useMultiplexSSE';
@@ -103,6 +104,7 @@ export default function App() {
   const [hasPublicWebsite, setHasPublicWebsite] = useState(false);
   const [wikiEntryPath, setWikiEntryPath] = useState(null);
   const [cheatsheetPath, setCheatsheetPath] = useState(null);
+  const [askExpertUnackedCount, setAskExpertUnackedCount] = useState(0);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationText, setPresentationText] = useState('');
@@ -196,6 +198,53 @@ export default function App() {
     ClaudeEvents.CHEATSHEET_UPDATED,
     () => { refreshCheatsheetPath(); },
     [refreshCheatsheetPath],
+  );
+
+  // Unacknowledged answer count for the sidebar "Ask the expert" badge.
+  // Only meaningful for role 'guest' on the knowledge-transfer application type.
+  const refreshAskExpertUnacked = useCallback(async () => {
+    if (!currentProject || !user?.username || user?.role !== 'guest') {
+      setAskExpertUnackedCount(0);
+      return;
+    }
+    try {
+      const res = await apiFetch(
+        `/api/q-and-a/${encodeURIComponent(currentProject)}/unacknowledged-count`,
+      );
+      if (!res.ok) {
+        setAskExpertUnackedCount(0);
+        return;
+      }
+      const data = await res.json();
+      setAskExpertUnackedCount(typeof data?.count === 'number' ? data.count : 0);
+    } catch {
+      setAskExpertUnackedCount(0);
+    }
+  }, [currentProject, user?.username, user?.role]);
+
+  useEffect(() => {
+    refreshAskExpertUnacked();
+    if (!currentProject || user?.role !== 'guest') return undefined;
+    const id = setInterval(refreshAskExpertUnacked, 10000);
+    return () => clearInterval(id);
+  }, [refreshAskExpertUnacked, currentProject, user?.role]);
+
+  useClaudeEvent(
+    ClaudeEvents.ASK_EXPERT_UPDATED,
+    () => { refreshAskExpertUnacked(); },
+    [refreshAskExpertUnacked],
+  );
+
+  // Ask the expert modal mounted at App level so it works even when no chat
+  // session is open (ChatPane unmounted on the welcome page).
+  const [askExpertModalApp, setAskExpertModalApp] = useState({ open: false, bubbleText: '' });
+  useClaudeEvent(
+    ClaudeEvents.ASK_EXPERT_REQUEST,
+    (data) => {
+      if (data?.projectName && currentProject && data.projectName !== currentProject) return;
+      setAskExpertModalApp({ open: true, bubbleText: data?.bubbleText || '' });
+    },
+    [currentProject],
   );
 
   // Derived streaming state: true when the currently viewed session has an active stream.
@@ -2526,6 +2575,7 @@ export default function App() {
           hasPublicWebsite={hasPublicWebsite}
           wikiEntryPath={wikiEntryPath}
           cheatsheetPath={cheatsheetPath}
+          applicationBadgeCounts={{ 'ask-the-expert': askExpertUnackedCount }}
           mux={mux}
         />
       )}
@@ -2874,6 +2924,14 @@ export default function App() {
         open={shortcutsOverlayOpen}
         onClose={() => setShortcutsOverlayOpen(false)}
         shortcuts={keyboardShortcuts}
+      />
+
+      {/* Ask the expert modal (mounted at App level so the sidebar can trigger it from anywhere) */}
+      <AskExpert
+        open={askExpertModalApp.open}
+        onClose={() => setAskExpertModalApp({ open: false, bubbleText: '' })}
+        bubbleText={askExpertModalApp.bubbleText}
+        projectName={currentProject}
       />
 
       {/* Service Control Drawer */}

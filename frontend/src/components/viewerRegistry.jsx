@@ -24,6 +24,7 @@ import CoverageViewer from './CoverageViewer';
 import ProgressViewer from './ProgressViewer';
 import SimulatorViewer from './SimulatorViewer';
 import CheatsheetViewer from './CheatsheetViewer';
+import QAndAViewer from './QAndAViewer';
 import { agentBus } from '../services/agentBus';
 
 /**
@@ -81,6 +82,7 @@ export const VIEWER_COMPONENT_NAMES = {
   coverage: 'CoverageViewer',
   progress: 'ProgressViewer',
   cheatsheet: 'CheatsheetViewer',
+  qAndA: 'QAndAViewer',
 };
 
 /**
@@ -166,6 +168,9 @@ export const VIEWER_COMPONENTS = {
   cheatsheet: (file, projectName) => (
     <CheatsheetViewer filename={file.path} projectName={projectName} />
   ),
+  qAndA: (file, projectName) => (
+    <QAndAViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -201,6 +206,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'progress', extensions: ['.progress.json'] },
   { viewer: 'simulator', extensions: ['.simulator.html'] },
   { viewer: 'cheatsheet', extensions: ['.cheatsheet.json'] },
+  { viewer: 'qAndA', extensions: ['.q-and-a.json'] },
 ];
 
 /**

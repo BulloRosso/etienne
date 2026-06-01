@@ -305,6 +305,47 @@ async function step7_writeProgress(): Promise<void> {
   ok(`progress/guest.progress.json (worked-example, partial state, 4 Q/As, 3 badges)`);
 }
 
+async function step7b_seedQuestionsAndAnswers(): Promise<void> {
+  header('7b. Seed questions-and-answers/ (Ask the expert)');
+  const dir = join(PROJECT_ROOT, 'questions-and-answers');
+  await mkdir(dir, { recursive: true });
+
+  const samplePath = join(dir, 'guest.q-and-a.json');
+  if (existsSync(samplePath)) {
+    ok('questions-and-answers/guest.q-and-a.json already present — leaving as is');
+    return;
+  }
+  const sample = {
+    entries: [
+      {
+        id: 'qa-seeded-1',
+        askedAt: '2026-05-29T08:30:00.000Z',
+        context:
+          'ASIL B requires diagnostic coverage. The exact diagnostic-coverage target depends on the safety goal (single-point fault metric ≥ 90%, latent fault metric ≥ 60%).',
+        question:
+          "I see ISO 26262 talks about ASIL B and diagnostic coverage. Concretely, for our LED-headlight power stage, what's the diagnostic-coverage target Lumitec actually signs off on?",
+        answer:
+          "We use SPFM ≥ 90% and LFM ≥ 60% for ASIL B, as the standard requires. In practice, on the LED power stage we aim a bit higher (SPFM ≥ 95%) because the customer programs all assume that headroom — see [[wiki:3-1-iso-26262]] and the ASIL B baseline document under documents/.",
+        answeredAt: '2026-05-30T16:10:00.000Z',
+        acknowledged: false,
+      },
+      {
+        id: 'qa-seeded-2',
+        askedAt: '2026-05-31T09:15:00.000Z',
+        context:
+          'You can see the planned production volume per finished-good in SAP MD04. The order proposals come from MRP and are not yet firm.',
+        question:
+          "When MD04 shows an order proposal for an LED module, how do I tell whether it's already confirmed by the supplier or just the MRP run's wish?",
+        answer: null,
+        answeredAt: null,
+        acknowledged: false,
+      },
+    ],
+  };
+  await writeFile(samplePath, JSON.stringify(sample, null, 2), 'utf8');
+  ok(`questions-and-answers/guest.q-and-a.json (1 answered+unacked, 1 open — for the expert to answer)`);
+}
+
 async function step8_seedChats(): Promise<void> {
   header('8. Seed chat sessions (.etienne/chat.history-*.jsonl + chat.sessions.json)');
   const etienne = join(PROJECT_ROOT, '.etienne');
@@ -664,6 +705,7 @@ async function main() {
   await step5_seedDocuments(ctx);
   await step6_seedInbox();
   await step7_writeProgress();
+  await step7b_seedQuestionsAndAnswers();
   await step8_seedChats();
   await step9_writeEventRules();
   await step9b_registerScheduledTasks(ctx);
