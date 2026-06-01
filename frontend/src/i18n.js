@@ -16,7 +16,7 @@ i18n
       'actionsTab', 'agentPersona', 'artifacts', 'artifactsForSession',
       'askUserQuestion', 'autoFilePreview',
       'budgetIndicator', 'budgetOverview', 'budgetSettings',
-      'changePassword', 'chatInput', 'chatMessage', 'chatPane',
+      'changePassword', 'chatInput', 'chatMessage', 'chatPane', 'cheatsheet',
       'checkpoints', 'codingAgentConfig', 'columnSettings',
       'complianceGuidelineViewer', 'complianceWizard', 'configuration',
       'connectivity', 'contextManager', 'contextSwitcher', 'createFromText',

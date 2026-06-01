@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link, Tooltip, Drawer, CircularProgress, Collapse, Dialog } from '@mui/material';
 import { ExpandMore, ExpandLess } from '@mui/icons-material';
 import { AddOutlined, Close as CloseIcon } from '@mui/icons-material';
-import { RiChatNewLine } from 'react-icons/ri';
+import { RiChatNewLine, RiSketching } from 'react-icons/ri';
 import { GiSettingsKnobs } from 'react-icons/gi';
 import { GrChatOption } from 'react-icons/gr';
 import { AiFillStar, AiOutlineMail } from 'react-icons/ai';
@@ -82,6 +82,7 @@ export default function MinimalisticSidebar({
   collapsed,
   hasPublicWebsite,
   wikiEntryPath,
+  cheatsheetPath,
   mux,
 }) {
   const { t } = useTranslation(['common', 'dashboard']);
@@ -352,6 +353,17 @@ export default function MinimalisticSidebar({
               sx={{ color: 'text.secondary', mb: 0.5 }}
             >
               <BsCollection size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {currentProject && cheatsheetPath && (
+          <Tooltip title={t('sidebar.cheatsheet', 'Cheat sheet')} placement="right">
+            <IconButton
+              onClick={() => filePreviewHandler.handlePreview(cheatsheetPath, currentProject)}
+              size="small"
+              sx={{ color: 'text.secondary', mb: 0.5 }}
+            >
+              <RiSketching size={18} />
             </IconButton>
           </Tooltip>
         )}
@@ -652,6 +664,15 @@ export default function MinimalisticSidebar({
               >
                 <ListItemIcon sx={{ minWidth: 36 }}><BsCollection size={18} /></ListItemIcon>
                 <ListItemText primary={t('sidebar.artifacts')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
+              </ListItemButton>
+            )}
+            {currentProject && cheatsheetPath && (
+              <ListItemButton
+                onClick={() => filePreviewHandler.handlePreview(cheatsheetPath, currentProject)}
+                sx={{ borderRadius: 1, py: 0.75 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}><RiSketching size={18} /></ListItemIcon>
+                <ListItemText primary={t('sidebar.cheatsheet', 'Cheat sheet')} primaryTypographyProps={{ fontSize: '0.9rem' }} />
               </ListItemButton>
             )}
             {currentProject && wikiEntryPath && (

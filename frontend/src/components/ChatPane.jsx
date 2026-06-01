@@ -15,6 +15,7 @@ import QuickActions from './QuickActions';
 import TypingIndicator from './TypingIndicator';
 import StreamingTimeline from './StreamingTimeline';
 import SessionPane from './SessionPane';
+import AddCheatSheetItem from './AddCheatSheetItem';
 import ContextMeterBar from './ContextMeterBar';
 import NotificationMenu from './NotificationMenu';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -46,6 +47,18 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
     const saved = localStorage.getItem('maxTurns');
     return saved ? parseInt(saved, 10) : 5;
   });
+
+  // Cheat sheet modal: opened by claudeEventBus when the user clicks
+  // "Add to cheat sheet" on an assistant bubble.
+  const [cheatsheetModal, setCheatsheetModal] = useState({ open: false, bubbleText: '' });
+  useClaudeEvent(
+    ClaudeEvents.CHEATSHEET_ADD_REQUEST,
+    (data) => {
+      if (data?.projectName && projectName && data.projectName !== projectName) return;
+      setCheatsheetModal({ open: true, bubbleText: data?.bubbleText || '' });
+    },
+    [projectName],
+  );
 
   // Edit & resubmit: when user clicks "Edit & resubmit" on a message
   const [editingMessage, setEditingMessage] = useState(null);
@@ -720,6 +733,14 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
         projectName={projectName}
         onSessionSelect={handleSessionSelect}
         currentSessionId={sessionId}
+      />
+
+      {/* Cheat sheet add modal */}
+      <AddCheatSheetItem
+        open={cheatsheetModal.open}
+        onClose={() => setCheatsheetModal({ open: false, bubbleText: '' })}
+        bubbleText={cheatsheetModal.bubbleText}
+        projectName={projectName}
       />
     </Box>
   );

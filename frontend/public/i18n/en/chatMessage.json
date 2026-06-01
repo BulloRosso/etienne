@@ -1,4 +1,8 @@
 {
+  "addToCheatsheet": "Add to cheat sheet",
+  "copyMarkdown": "Copy as Markdown",
+  "copyText": "Copy text",
+  "editResubmit": "Edit & resubmit",
   "costs": "Costs",
   "elapsed": "Elapsed: {{time}}",
   "goodResponse": "Good response",

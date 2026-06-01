@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Box, Typography, Paper, IconButton, Collapse, Chip, Menu, MenuItem, ListItemIcon as MenuItemIcon } from '@mui/material';
 import { ExpandMore, ExpandLess, Label, ThumbUp, ThumbDown, Cloud, Schedule, Telegram, Groups, MoreVert, ContentCopy, Code, EditOutlined, TouchApp } from '@mui/icons-material';
+import { RiSketching } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 import TokenConsumptionPane from './TokenConsumptionPane.tsx';
 import { marked } from 'marked';
@@ -96,6 +97,14 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
   const handleCopyMarkdown = () => {
     navigator.clipboard.writeText(text);
     setMenuAnchorEl(null);
+  };
+
+  const handleAddToCheatsheet = () => {
+    setMenuAnchorEl(null);
+    claudeEventBus.publish(ClaudeEvents.CHEATSHEET_ADD_REQUEST, {
+      bubbleText: text,
+      projectName: currentProject,
+    });
   };
 
   const handleEditResubmit = () => {
@@ -380,6 +389,12 @@ export default function ChatMessage({ role, text, timestamp, usage, contextName,
         <MenuItemIcon sx={{ minWidth: 32 }}><Code sx={{ fontSize: 16 }} /></MenuItemIcon>
         {t('chatMessage:copyMarkdown', 'Copy as Markdown')}
       </MenuItem>
+      {!isUser && (
+        <MenuItem onClick={handleAddToCheatsheet} dense>
+          <MenuItemIcon sx={{ minWidth: 32 }}><RiSketching size={16} /></MenuItemIcon>
+          {t('chatMessage:addToCheatsheet', 'Add to cheat sheet')}
+        </MenuItem>
+      )}
       {isUser && onEditMessage && (
         <MenuItem onClick={handleEditResubmit} dense>
           <MenuItemIcon sx={{ minWidth: 32 }}><EditOutlined sx={{ fontSize: 16 }} /></MenuItemIcon>

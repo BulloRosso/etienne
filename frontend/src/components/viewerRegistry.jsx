@@ -23,6 +23,7 @@ import QuarterlyViewer from './QuarterlyViewer';
 import CoverageViewer from './CoverageViewer';
 import ProgressViewer from './ProgressViewer';
 import SimulatorViewer from './SimulatorViewer';
+import CheatsheetViewer from './CheatsheetViewer';
 import { agentBus } from '../services/agentBus';
 
 /**
@@ -79,6 +80,7 @@ export const VIEWER_COMPONENT_NAMES = {
   quarterly: 'QuarterlyViewer',
   coverage: 'CoverageViewer',
   progress: 'ProgressViewer',
+  cheatsheet: 'CheatsheetViewer',
 };
 
 /**
@@ -161,6 +163,9 @@ export const VIEWER_COMPONENTS = {
   progress: (file, projectName) => (
     <ProgressViewer filename={file.path} projectName={projectName} />
   ),
+  cheatsheet: (file, projectName) => (
+    <CheatsheetViewer filename={file.path} projectName={projectName} />
+  ),
 };
 
 /**
@@ -195,6 +200,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'coverage', extensions: ['.coverage.json'] },
   { viewer: 'progress', extensions: ['.progress.json'] },
   { viewer: 'simulator', extensions: ['.simulator.html'] },
+  { viewer: 'cheatsheet', extensions: ['.cheatsheet.json'] },
 ];
 
 /**

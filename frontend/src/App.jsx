@@ -30,6 +30,7 @@ import { useProject } from './contexts/ProjectContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
 import { useThemeMode } from './contexts/ThemeContext.jsx';
 import { claudeEventBus, ClaudeEvents } from './eventBus';
+import { useClaudeEvent } from './useClaudeEvent';
 import { buildExtensionMap, getViewerForFile } from './components/viewerRegistry.jsx';
 import { agentBus } from './services/agentBus';
 import Onboarding from './components/Onboarding';
@@ -101,6 +102,7 @@ export default function App() {
   const [hasTasks, setHasTasks] = useState(false);
   const [hasPublicWebsite, setHasPublicWebsite] = useState(false);
   const [wikiEntryPath, setWikiEntryPath] = useState(null);
+  const [cheatsheetPath, setCheatsheetPath] = useState(null);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationText, setPresentationText] = useState('');
@@ -171,6 +173,30 @@ export default function App() {
         };
       });
   }, []);
+
+  const refreshCheatsheetPath = useCallback(async () => {
+    if (!currentProject || !user?.username) {
+      setCheatsheetPath(null);
+      return;
+    }
+    try {
+      const res = await apiFetch(`/api/cheatsheet/${encodeURIComponent(currentProject)}`);
+      if (!res.ok) {
+        setCheatsheetPath(null);
+        return;
+      }
+      const data = await res.json();
+      setCheatsheetPath(data?.exists && data?.path ? data.path : null);
+    } catch {
+      setCheatsheetPath(null);
+    }
+  }, [currentProject, user?.username]);
+
+  useClaudeEvent(
+    ClaudeEvents.CHEATSHEET_UPDATED,
+    () => { refreshCheatsheetPath(); },
+    [refreshCheatsheetPath],
+  );
 
   // Derived streaming state: true when the currently viewed session has an active stream.
   // Also matches 'pending_*' keys (stream registered but sessionId not yet known from backend).
@@ -646,6 +672,9 @@ export default function App() {
           setHasPublicWebsite(false);
           setWikiEntryPath(null);
         }
+
+        // Detect the user's per-user cheat sheet file (sidebar gating per PRD).
+        refreshCheatsheetPath();
       } catch (error) {
         console.error('Failed to initialize project:', error);
         setUiConfig(null);
@@ -2496,6 +2525,7 @@ export default function App() {
           onExpand={() => setSidebarCollapsed(false)}
           hasPublicWebsite={hasPublicWebsite}
           wikiEntryPath={wikiEntryPath}
+          cheatsheetPath={cheatsheetPath}
           mux={mux}
         />
       )}
