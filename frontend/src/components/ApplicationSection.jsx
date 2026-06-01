@@ -181,6 +181,7 @@ export default function ApplicationSection({ currentProject, collapsed = false, 
                     <Badge
                       badgeContent={count}
                       color={item.badgeColor || 'error'}
+                      sx={item.id === 'ask-the-expert' ? { '& .MuiBadge-badge': { backgroundColor: '#1b5e20', color: '#fff' } } : undefined}
                     >
                       {iconEl}
                     </Badge>
@@ -219,7 +220,11 @@ export default function ApplicationSection({ currentProject, collapsed = false, 
             >
               <ListItemIcon sx={{ minWidth: 32 }}>
                 {count > 0 ? (
-                  <Badge badgeContent={count} color="error">
+                  <Badge
+                    badgeContent={count}
+                    color="error"
+                    sx={item.id === 'ask-the-expert' ? { '& .MuiBadge-badge': { backgroundColor: '#1b5e20', color: '#fff' } } : undefined}
+                  >
                     {iconEl}
                   </Badge>
                 ) : (
