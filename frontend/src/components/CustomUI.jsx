@@ -44,6 +44,8 @@ const CustomUI = ({ project, onSave }) => {
       showWelcomeMessage: true,
     },
     previewDocuments: [],
+    appHost: '',
+    appDirectory: '',
   });
 
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,8 @@ const CustomUI = ({ project, onSave }) => {
               showWelcomeMessage: data.welcomePage?.showWelcomeMessage !== false,
             },
             previewDocuments: data.previewDocuments || [],
+            appHost: data.appHost || '',
+            appDirectory: data.appDirectory || '',
           });
         }
       } else {
@@ -349,6 +353,34 @@ const CustomUI = ({ project, onSave }) => {
             style={{ width: 50, height: 40, cursor: 'pointer' }}
           />
         </Box>
+      </Box>
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* Portal App Section */}
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        {t('customUI:portalAppTitle')}
+      </Typography>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          size="small"
+          fullWidth
+          label={t('customUI:portalAppHostLabel')}
+          placeholder="http://localhost:5001"
+          value={config.appHost}
+          onChange={(e) => setConfig({ ...config, appHost: e.target.value })}
+          helperText={t('customUI:portalAppHostHelper')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          size="small"
+          fullWidth
+          label={t('customUI:portalAppDirectoryLabel')}
+          placeholder="/app"
+          value={config.appDirectory}
+          onChange={(e) => setConfig({ ...config, appDirectory: e.target.value })}
+          helperText={t('customUI:portalAppDirectoryHelper')}
+        />
       </Box>
 
       <Divider sx={{ my: 3 }} />

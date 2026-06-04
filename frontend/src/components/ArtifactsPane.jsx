@@ -3,6 +3,7 @@ import { Box, Tabs, Tab, Drawer, IconButton, Tooltip } from '@mui/material';
 import { PiFolders } from 'react-icons/pi';
 import { BiMemoryCard } from 'react-icons/bi';
 import { IoHandRightOutline } from 'react-icons/io5';
+import { MdOutlineSpaceDashboard } from 'react-icons/md';
 import FilesPanel from './FilesPanel';
 import Strategy from './Strategy';
 import Filesystem from './Filesystem';
@@ -52,6 +53,7 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
   const [guardrailsEnabled, setGuardrailsEnabled] = useState(false);
   const [guardrailsModalOpen, setGuardrailsModalOpen] = useState(false);
   const [checkpointsEnabled, setCheckpointsEnabled] = useState(false);
+  const [portalAppDirectory, setPortalAppDirectory] = useState('');
 
   // Check if checkpoints are enabled (CHECKPOINT_PROVIDER configured in backend)
   useEffect(() => {
@@ -91,6 +93,30 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
       window.removeEventListener('memoryChanged', handleMemoryChange);
     };
   }, []);
+
+  // Load portal app directory from project user-interface config
+  useEffect(() => {
+    if (!projectName) {
+      setPortalAppDirectory('');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/workspace/${projectName}/user-interface`);
+        if (!res.ok) {
+          if (!cancelled) setPortalAppDirectory('');
+          return;
+        }
+        const cfg = await res.json();
+        if (!cancelled) setPortalAppDirectory(cfg?.appDirectory || '');
+      } catch (error) {
+        console.error('Failed to load portal app directory:', error);
+        if (!cancelled) setPortalAppDirectory('');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [projectName]);
 
   // Check if guardrails are enabled
   useEffect(() => {
@@ -179,6 +205,19 @@ export default function ArtifactsPane({ files, projectName, sessionId, showBackg
             <SkillIndicator projectName={projectName} sessionId={sessionId} />
             <A2AAgentsIndicator projectName={projectName} />
           </>
+        )}
+        {projectExists && portalAppDirectory && (
+          <Tooltip title={t('artifacts:tooltipPortal')}>
+            <IconButton
+              onClick={() => {
+                const target = portalAppDirectory.endsWith('/') ? portalAppDirectory : portalAppDirectory + '/';
+                window.location.assign(target);
+              }}
+              sx={{ mr: 1 }}
+            >
+              <MdOutlineSpaceDashboard size={24} />
+            </IconButton>
+          </Tooltip>
         )}
         {projectExists && (
           <Tooltip title={t('artifacts:tooltipFilesystem')}>

@@ -620,6 +620,70 @@ Document parsing is provided by the standard skill **office-and-pdf-documents** 
 * [Messenger Integration](messenger-integration.md) — Telegram and Microsoft Teams as alternative UIs
 * [MCP UI](mcp-ui.md) — interactive UI rendered from MCP tool calls
 
+# Portal App
+
+A project can publish its own branded **portal app** that wraps Etienne. After
+login, the user lands in the portal — a customer-facing welcome page running
+on a separate dev server — and clicks through to the Etienne UI when they're
+ready to work with the agent. This lets agencies deliver Etienne under their
+own brand without forking the frontend.
+
+## How it works
+
+```
+                ┌───────────────────────────────────┐
+  Browser  ──►  │ http://localhost:5000  (Etienne)  │
+                │   /            → React app        │
+                │   /api/*       → backend :6060    │
+                │   /app/*       → Vite proxy ──┐   │
+                └───────────────────────────────┼───┘
+                                                ▼
+                                  ┌──────────────────────────┐
+                                  │ PORTAL_APP_HOST           │
+                                  │ http://localhost:5001     │
+                                  │ (portal-example, MUI)     │
+                                  └──────────────────────────┘
+```
+
+Two pieces of configuration are needed:
+
+1. **Vite proxy** — `PORTAL_APP_HOST` in `frontend/.env` tells the dev server
+   where to forward `/app/*` requests. This is a one-time setup per
+   developer/host (Vite reads `.env` at startup).
+2. **Per-project enablement** — the active project's
+   `.etienne/user-interface.json` declares `appHost` and `appDirectory`. When
+   `appDirectory` is set (e.g. `/app`), Etienne redirects the user to it after
+   login and shows a dashboard icon in the preview pane that navigates back to
+   the portal. Configure both fields in **Customization → Portal App**.
+
+When the user clicks **Start Onboarding Agent** in the portal, the browser
+navigates to http://localhost:5000. A `sessionStorage` flag
+(`portalRedirected`) prevents Etienne from immediately bouncing the user back
+to the portal — closing the tab and reopening triggers the portal flow again.
+
+## Sample
+
+[`portal-example/`](portal-example/) is a minimal React + MUI portal already
+wired up for `lumitec-led-onboarding`:
+
+```bash
+cd portal-example
+npm install
+npm run dev          # serves http://localhost:5001/app
+```
+
+Then in `frontend/.env` (copy from `frontend/.env.example`):
+
+```
+PORTAL_APP_HOST=http://localhost:5001
+```
+
+Restart Vite. Log into Etienne with `lumitec-led-onboarding` as the active
+project — the browser lands on the Lumitec welcome page.
+
+Fork `portal-example/` to build your own portal: only `src/App.jsx` carries
+project-specific content.
+
 # Demo Videos & Use Cases
 
 ## Brainstorming with Etienne

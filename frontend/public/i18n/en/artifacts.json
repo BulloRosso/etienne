@@ -8,6 +8,7 @@
   "tabPermissions": "Permissions",
   "tabRole": "Role",
   "tooltipFilesystem": "Filesystem Browser",
+  "tooltipPortal": "Open Portal App",
   "tooltipGuardrails": "Input Guardrails Active",
   "tooltipMemory": "Agent Memory Enabled"
 }

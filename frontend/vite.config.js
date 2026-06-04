@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -26,25 +26,31 @@ function mcpSandboxProxyPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), mcpSandboxProxyPlugin()],
-  publicDir: 'public',
-  server: {
-    port: 5000,
-    strictPort: true,
-    proxy: {
-        '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true, agent: new Agent({ maxSockets: 50, keepAlive: true }) },
-        '/mcp': { target: 'http://localhost:6060', changeOrigin: true },
-        '/web': { target: 'http://localhost:4000', changeOrigin: true },
-        '/auth': { target: 'http://localhost:6060', changeOrigin: true },
-        '/a2ui-restaurant': { target: 'http://localhost:4110', changeOrigin: true, rewrite: (p) => p.replace(/^\/a2ui-restaurant/, '') }
-    }
-  },
-  optimizeDeps: {
-    include: [
-      '@mcp-ui/client',
-      '@modelcontextprotocol/sdk/client/index.js',
-      '@modelcontextprotocol/sdk/client/streamableHttp.js',
-    ],
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, __dirname, '');
+  const portalAppHost = env.PORTAL_APP_HOST;
+
+  return {
+    plugins: [react(), mcpSandboxProxyPlugin()],
+    publicDir: 'public',
+    server: {
+      port: 5000,
+      strictPort: true,
+      proxy: {
+          '/api': { target: 'http://localhost:6060', changeOrigin: true, ws: true, agent: new Agent({ maxSockets: 50, keepAlive: true }) },
+          '/mcp': { target: 'http://localhost:6060', changeOrigin: true },
+          '/web': { target: 'http://localhost:4000', changeOrigin: true },
+          '/auth': { target: 'http://localhost:6060', changeOrigin: true },
+          '/a2ui-restaurant': { target: 'http://localhost:4110', changeOrigin: true, rewrite: (p) => p.replace(/^\/a2ui-restaurant/, '') },
+          ...(portalAppHost ? { '/app': { target: portalAppHost, changeOrigin: true, ws: true } } : {})
+      }
+    },
+    optimizeDeps: {
+      include: [
+        '@mcp-ui/client',
+        '@modelcontextprotocol/sdk/client/index.js',
+        '@modelcontextprotocol/sdk/client/streamableHttp.js',
+      ],
+    },
+  };
 });

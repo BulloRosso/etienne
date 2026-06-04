@@ -6,7 +6,12 @@
       "passwordHash": "$2b$10$9C4loqnkDryW7GBug8BBueyMuYUHfQKXPZsEu2GEi32QBEQFpkVAC",
       "role": "admin",
       "displayName": "Administrator",
-      "enabled": true
+      "enabled": true,
+      "firstRunCompletedAt": "2026-06-04T14:40:12.348Z",
+      "firstRunReportSummary": {
+        "ranAt": "2026-06-04T14:40:12.342Z",
+        "overall": "pass"
+      }
     },
     {
       "id": "u2",

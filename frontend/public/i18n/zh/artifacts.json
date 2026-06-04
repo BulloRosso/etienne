@@ -8,6 +8,7 @@
   "tabPermissions": "权限",
   "tabRole": "角色",
   "tooltipFilesystem": "文件系统浏览器",
+  "tooltipPortal": "打开门户应用",
   "tooltipGuardrails": "输入安全护栏已启用",
   "tooltipMemory": "智能体记忆已启用"
 }

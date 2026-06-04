@@ -8,6 +8,7 @@
   "tabPermissions": "Permessi",
   "tabRole": "Ruolo",
   "tooltipFilesystem": "Esploratore filesystem",
+  "tooltipPortal": "Apri app portale",
   "tooltipGuardrails": "Guardrails di ingresso attivi",
   "tooltipMemory": "Memoria dell'agente abilitata"
 }

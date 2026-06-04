@@ -622,6 +622,19 @@ export default function App() {
         if (uiResponse.ok) {
           const config = await uiResponse.json();
           setUiConfig(config);
+
+          // Portal redirect: if appDirectory is configured and we haven't redirected
+          // this session yet, hand the browser off to the portal. The sessionStorage
+          // flag is what lets the "Start Onboarding Agent" button get back here.
+          // A trailing slash is appended automatically — Vite-served portals use a
+          // base path (e.g. base:'/app/') and emit a notice on the slashless form.
+          if (config?.appDirectory && !sessionStorage.getItem('portalRedirected')) {
+            sessionStorage.setItem('portalRedirected', '1');
+            const target = config.appDirectory.endsWith('/') ? config.appDirectory : config.appDirectory + '/';
+            window.location.assign(target);
+            return;
+          }
+
           // Show welcome page only if config exists, has welcome data, showWelcomeMessage is true, AND no existing sessions
           const shouldShowWelcome = config?.welcomePage && config.welcomePage.showWelcomeMessage !== false && (config.welcomePage.message || config.welcomePage.quickActions?.length) && !hasExistingSessions;
           setShowWelcomePage(shouldShowWelcome);
