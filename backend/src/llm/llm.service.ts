@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
-import { generateText, stepCountIs, type Tool } from 'ai';
+import { generateText, generateObject, stepCountIs, type Tool } from 'ai';
+import type { ZodType } from 'zod';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
@@ -203,16 +204,55 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     tier: ModelTier;
     messages: Array<{ role: 'user' | 'assistant' | 'system'; content: any }>;
     maxOutputTokens?: number;
+    temperature?: number;
     projectDir?: string;
   }): Promise<string> {
     const modelId = this.models[opts.tier];
     const result = await generateText({
       model: this.providerInstance(modelId),
       maxOutputTokens: opts.maxOutputTokens ?? 1024,
+      temperature: opts.temperature,
       messages: opts.messages,
     });
     this.trackUsage(result.usage, opts.projectDir);
     return result.text;
+  }
+
+  /**
+   * Schema-constrained structured generation via the AI SDK's `generateObject`.
+   * The provider enforces the JSON shape, so the model cannot emit unparseable
+   * text — this is the reliable path for extraction. Throws on schema-mismatch
+   * / truncation / provider error; callers retry.
+   *
+   * Gate on `supportsStructuredOutput()` first: DeepSeek's Anthropic-compat
+   * endpoint may not honour tool-mode JSON (ADR-012), so those callers should
+   * fall back to `generateTextWithMessages` + Zod parsing.
+   */
+  async generateObjectWithMessages<T>(opts: {
+    tier: ModelTier;
+    schema: ZodType<T>;
+    messages: Array<{ role: 'user' | 'assistant' | 'system'; content: any }>;
+    maxOutputTokens?: number;
+    temperature?: number;
+    projectDir?: string;
+  }): Promise<T> {
+    const modelId = this.models[opts.tier];
+    const result = await generateObject({
+      model: this.providerInstance(modelId),
+      // Cast to break the SDK's deep generic inference over Zod schemas
+      // (TS2589). Runtime validation still happens inside generateObject.
+      schema: opts.schema as any,
+      maxOutputTokens: opts.maxOutputTokens ?? 32768,
+      temperature: opts.temperature ?? 0,
+      messages: opts.messages,
+    });
+    this.trackUsage(result.usage, opts.projectDir);
+    return result.object as T;
+  }
+
+  /** True when the active provider can be trusted with tool-mode JSON (ADR-012). */
+  supportsStructuredOutput(): boolean {
+    return this.provider !== 'deepseek';
   }
 
   /**

@@ -14,6 +14,8 @@ import {
   Tab,
   Select,
   MenuItem,
+  Alert,
+  Button,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -21,6 +23,7 @@ import {
   Warning as WarningIcon,
   Error as ErrorIcon,
   ContentCopy as DuplicateIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
@@ -104,8 +107,16 @@ export default function RequirementsViewer({ filename, projectName }) {
   const draggingRef = useRef(false);
   const containerRef = useRef(null);
 
+  // Reanalyze counter — bumping it re-runs the load effect, forcing a fresh
+  // extraction (bypassing the cached JSON). Used by the health-warning banner.
+  const [reanalyzeNonce, setReanalyzeNonce] = useState(0);
+  const handleReanalyze = useCallback(() => {
+    setReanalyzeNonce((n) => n + 1);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
+    const force = reanalyzeNonce > 0;
 
     async function loadOrExtract() {
       try {
@@ -113,47 +124,51 @@ export default function RequirementsViewer({ filename, projectName }) {
         setExtracting(false);
         setError(null);
 
-        const res = await apiFetch(
-          `/api/workspace/${encodeURIComponent(projectName)}/files/${filename}`,
-        );
-
-        if (res.ok) {
-          const text = await res.text();
-          if (!cancelled) setData(JSON.parse(text));
-          return;
-        }
-
-        if (res.status === 404) {
-          if (!cancelled) {
-            setExtracting(true);
-            setElapsedSeconds(0);
-            timerRef.current = setInterval(() => {
-              setElapsedSeconds((s) => s + 1);
-            }, 1000);
-          }
-
-          const result = await callEarsExtraction(projectName, pdfBaseName, (p) => {
-            if (!cancelled) setProgress(p);
-          });
-          if (cancelled) return;
-
-          const outFolder = 'out/requirements-analysis';
-          try {
-            await apiAxios.post(`/api/workspace/${projectName}/files/create-folder`, {
-              folderPath: outFolder,
-            });
-          } catch { /* folder may already exist */ }
-
-          await apiAxios.put(
-            `/api/workspace/${projectName}/files/save/${filename}`,
-            { content: JSON.stringify(result, null, 2) },
+        // On a forced re-analyze, skip the cached JSON and go straight to a
+        // fresh extraction so a stale/incomplete cached result can be replaced.
+        if (!force) {
+          const res = await apiFetch(
+            `/api/workspace/${encodeURIComponent(projectName)}/files/${filename}`,
           );
 
-          if (!cancelled) setData(result);
-          return;
+          if (res.ok) {
+            const text = await res.text();
+            if (!cancelled) setData(JSON.parse(text));
+            return;
+          }
+
+          if (res.status !== 404) {
+            throw new Error(`Failed to load: ${res.statusText}`);
+          }
         }
 
-        throw new Error(`Failed to load: ${res.statusText}`);
+        // 404 (no cache) or forced re-analyze → run extraction.
+        if (!cancelled) {
+          setExtracting(true);
+          setElapsedSeconds(0);
+          timerRef.current = setInterval(() => {
+            setElapsedSeconds((s) => s + 1);
+          }, 1000);
+        }
+
+        const result = await callEarsExtraction(projectName, pdfBaseName, (p) => {
+          if (!cancelled) setProgress(p);
+        });
+        if (cancelled) return;
+
+        const outFolder = 'out/requirements-analysis';
+        try {
+          await apiAxios.post(`/api/workspace/${projectName}/files/create-folder`, {
+            folderPath: outFolder,
+          });
+        } catch { /* folder may already exist */ }
+
+        await apiAxios.put(
+          `/api/workspace/${projectName}/files/save/${filename}`,
+          { content: JSON.stringify(result, null, 2) },
+        );
+
+        if (!cancelled) setData(result);
       } catch (err) {
         console.error('[RequirementsViewer] Error:', err);
         if (!cancelled) setError(err.message);
@@ -172,7 +187,7 @@ export default function RequirementsViewer({ filename, projectName }) {
       cancelled = true;
       clearInterval(timerRef.current);
     };
-  }, [filename, projectName, pdfBaseName]);
+  }, [filename, projectName, pdfBaseName, reanalyzeNonce]);
 
   const selectedReqsFile = 'out/selected-requirements.md';
   const docName = pdfBaseName;
@@ -429,6 +444,15 @@ export default function RequirementsViewer({ filename, projectName }) {
   const reqCount = requirements.length;
   const language = data.source_language?.language_name || '';
 
+  // Extraction health — older cached results have no `extraction_health`; treat
+  // those as healthy (backward compatible). A partial failure means some chunks
+  // didn't extract, so the requirement list may be incomplete.
+  const health = data.extraction_health || null;
+  const failedChunks = health?.failed_chunks ?? 0;
+  const totalChunks = health?.total_chunks ?? 0;
+  const truncatedChunks = health?.truncated_chunks ?? 0;
+  const hasExtractionWarning = failedChunks > 0;
+
   // Get requirements for the selected section (including subsections)
   const selectedRequirements = selectedSection
     ? requirements.filter(
@@ -483,6 +507,38 @@ export default function RequirementsViewer({ filename, projectName }) {
           </Box>
         </Box>
       </Box>
+
+      {/* Extraction health warning — partial chunk failures mean the result may
+          be incomplete. Offers a re-analyze that bypasses the cached JSON. */}
+      {hasExtractionWarning && (
+        <Box sx={{ px: 2, pb: 1, flexShrink: 0 }}>
+          <Alert
+            severity="warning"
+            icon={<WarningIcon fontSize="inherit" />}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                startIcon={<RefreshIcon />}
+                onClick={handleReanalyze}
+                disabled={extracting}
+              >
+                {t('reqViewer:health.reanalyze', 'Re-analyze')}
+              </Button>
+            }
+          >
+            {t('reqViewer:health.partialFailure', {
+              failed: failedChunks,
+              total: totalChunks,
+              defaultValue:
+                '{{failed}} of {{total}} document sections failed to extract — the requirement list may be incomplete.',
+            })}
+            {truncatedChunks > 0
+              ? ` (${truncatedChunks} ${truncatedChunks === 1 ? 'section was' : 'sections were'} truncated)`
+              : ''}
+          </Alert>
+        </Box>
+      )}
 
       {/* Tab strip */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, flexShrink: 0 }}>
