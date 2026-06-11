@@ -269,6 +269,20 @@ export function getViewerForFile(filePath, extensionMap) {
 }
 
 /**
+ * Whether a file path maps to a registered auto-preview viewer.
+ * The extension map is passed in (built by buildExtensionMap), so this stays a
+ * pure lookup over the registry.
+ *
+ * @param {string} filePath
+ * @param {Map<string, string>} extensionMap
+ * @returns {boolean}
+ */
+export function hasPreviewExtension(filePath, extensionMap) {
+  if (!filePath) return false;
+  return getViewerForFile(filePath, extensionMap) !== null;
+}
+
+/**
  * Returns context menu actions applicable to a file, based on previewer config.
  * Evaluates conditions against the file row and filters by user role.
  *

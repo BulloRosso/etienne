@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { Request } from 'express';
 import { join } from 'path';
 import { MissionUserContext } from './mission-loader.service';
+import { MessageEvent } from './types';
 import { ClaudeService } from './claude.service';
 import { ClaudeSdkOrchestratorService } from './sdk/claude-sdk-orchestrator.service';
 import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.service';
@@ -113,21 +114,6 @@ export class ClaudeController {
   saveMcpConfig(@Body() dto: SaveMcpConfigDto) { return this.svc.saveMcpConfig(dto.projectName, dto.mcpServers); }
 
   @Roles('guest')
-  @Sse('streamPrompt')
-  streamPrompt(
-    @Query('project_dir') projectDir: string,
-    @Query('prompt') prompt: string,
-    @Query('agentMode') agentMode?: string,
-    @Query('aiModel') aiModel?: string,
-    @Query('memoryEnabled') memoryEnabled?: string,
-    @Query('maxTurns') maxTurns?: string
-  ): Observable<MessageEvent> {
-    const memoryEnabledBool = memoryEnabled === 'true';
-    const maxTurnsNum = maxTurns ? parseInt(maxTurns, 10) : undefined;
-    return this.svc.streamPrompt(projectDir, prompt, agentMode, aiModel, memoryEnabledBool, false, maxTurnsNum);
-  }
-
-  @Roles('guest')
   @Sse('streamPrompt/sdk')
   streamPromptSdk(
     @Req() req: Request,
@@ -227,16 +213,22 @@ export class ClaudeController {
   }
 
   @Roles('guest')
+  @Sse('streamPrompt/attach/:processId')
+  attachStream(
+    @Param('processId') processId: string,
+    @Query('lastEventId') lastEventId?: string
+  ): Observable<MessageEvent> {
+    const lastSeq = lastEventId ? parseInt(lastEventId, 10) : undefined;
+    return this.sdkOrchestrator.attachToStream(
+      processId,
+      Number.isFinite(lastSeq) ? lastSeq : undefined
+    );
+  }
+
+  @Roles('guest')
   @Post('abort/:processId')
   async abortProcess(@Param('processId') processId: string) {
     console.log(`[ClaudeController] Abort request received for process: ${processId}`);
-
-    // Try to abort legacy process first
-    const legacyResult = await this.svc.abortProcess(processId);
-    if (legacyResult.success) {
-      console.log(`[ClaudeController] Successfully aborted legacy process: ${processId}`);
-      return legacyResult;
-    }
 
     // If OpenAI Agents process, try its orchestrator
     if (processId.startsWith('agents_')) {
@@ -267,7 +259,7 @@ export class ClaudeController {
     }
 
     console.log(`[ClaudeController] Process not found: ${processId}`);
-    return legacyResult;
+    return { success: false, message: 'Process not found' };
   }
 
   @Roles('guest')

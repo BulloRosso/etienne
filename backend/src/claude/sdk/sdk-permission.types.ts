@@ -67,6 +67,10 @@ export interface PendingPermissionRequest {
   sessionId?: string;
   projectName: string;
   suggestions?: PermissionUpdate[];  // From canUseTool options
+  /** Pending-timeout handle — cleared when the request settles. */
+  timeoutHandle?: ReturnType<typeof setTimeout>;
+  /** Detaches the abort-signal listener — called when the request settles. */
+  removeAbortListener?: () => void;
 }
 
 /**

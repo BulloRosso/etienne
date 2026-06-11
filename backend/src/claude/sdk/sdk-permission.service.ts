@@ -51,12 +51,12 @@ export class SdkPermissionService {
 
       // Handle AskUserQuestion specially - ALWAYS show dialog
       if (toolName === 'AskUserQuestion') {
-        return this.handleAskUserQuestion(projectName, input, sessionId);
+        return this.handleAskUserQuestion(projectName, input, sessionId, options.signal);
       }
 
       // Handle ExitPlanMode specially - ALWAYS show dialog
       if (toolName === 'ExitPlanMode') {
-        return this.handleExitPlanMode(projectName, input, sessionId);
+        return this.handleExitPlanMode(projectName, input, sessionId, options.signal);
       }
 
       // For other tools, only prompt if requireAllPermissions is true
@@ -66,7 +66,8 @@ export class SdkPermissionService {
           toolName,
           input,
           options.suggestions,
-          sessionId
+          sessionId,
+          options.signal
         );
       }
 
@@ -86,9 +87,10 @@ export class SdkPermissionService {
   private async handleAskUserQuestion(
     projectName: string,
     input: AskUserQuestionInput,
-    sessionId?: string
+    sessionId?: string,
+    signal?: AbortSignal
   ): Promise<PermissionResult> {
-    return this.handleAskUserQuestionViaHook(projectName, input, sessionId);
+    return this.handleAskUserQuestionViaHook(projectName, input, sessionId, signal);
   }
 
   /**
@@ -99,7 +101,8 @@ export class SdkPermissionService {
   async handleAskUserQuestionViaHook(
     projectName: string,
     input: AskUserQuestionInput,
-    sessionId?: string
+    sessionId?: string,
+    signal?: AbortSignal
   ): Promise<PermissionResult> {
     const id = randomUUID();
     this.logger.log(`AskUserQuestion request (via hook): ${id} with ${input.questions?.length || 0} questions`);
@@ -124,8 +127,8 @@ export class SdkPermissionService {
         questions: input.questions || [],
       });
 
-      // Timeout handling
-      this.setupTimeout(id);
+      // Timeout + abort handling
+      this.armSettlement(id, signal);
     });
   }
 
@@ -136,9 +139,10 @@ export class SdkPermissionService {
   private async handleExitPlanMode(
     projectName: string,
     input: any,
-    sessionId?: string
+    sessionId?: string,
+    signal?: AbortSignal
   ): Promise<PermissionResult> {
-    return this.handleExitPlanModeViaHook(projectName, input, sessionId);
+    return this.handleExitPlanModeViaHook(projectName, input, sessionId, signal);
   }
 
   /**
@@ -149,7 +153,8 @@ export class SdkPermissionService {
   async handleExitPlanModeViaHook(
     projectName: string,
     input: any,
-    sessionId?: string
+    sessionId?: string,
+    signal?: AbortSignal
   ): Promise<PermissionResult> {
     const id = randomUUID();
     this.logger.log(`ExitPlanMode request (via hook): ${id} for project ${projectName}`);
@@ -175,8 +180,8 @@ export class SdkPermissionService {
         planFilePath: input?.planFilePath || '',
       });
 
-      // Timeout handling
-      this.setupTimeout(id);
+      // Timeout + abort handling
+      this.armSettlement(id, signal);
     });
   }
 
@@ -188,7 +193,8 @@ export class SdkPermissionService {
     toolName: string,
     input: any,
     suggestions?: PermissionUpdate[],
-    sessionId?: string
+    sessionId?: string,
+    signal?: AbortSignal
   ): Promise<PermissionResult> {
     const id = randomUUID();
     this.logger.log(`Permission request: ${id} for tool ${toolName}`);
@@ -216,26 +222,56 @@ export class SdkPermissionService {
         suggestions,
       });
 
-      // Timeout handling
-      this.setupTimeout(id);
+      // Timeout + abort handling
+      this.armSettlement(id, signal);
     });
   }
 
   /**
-   * Setup timeout for a pending request
+   * Arm timeout + abort handling for a pending request. Unlike the old
+   * setupTimeout, this (a) resolves immediately when the SDK stream aborts
+   * instead of dangling for 60s, (b) clears the timer when the user answers,
+   * and (c) unrefs it so a pending dialog can't keep the process alive.
    */
-  private setupTimeout(id: string): void {
-    setTimeout(() => {
-      const pending = this.pendingRequests.get(id);
-      if (pending) {
-        this.logger.warn(`Permission request ${id} timed out`);
-        this.pendingRequests.delete(id);
-        pending.resolve({
-          behavior: 'deny',
-          message: 'Request timed out waiting for user response',
-        });
-      }
+  private armSettlement(id: string, signal?: AbortSignal): void {
+    const pending = this.pendingRequests.get(id);
+    if (!pending) return;
+
+    pending.timeoutHandle = setTimeout(() => {
+      this.settle(id, {
+        behavior: 'deny',
+        message: 'Request timed out waiting for user response',
+      }, 'timeout');
     }, this.REQUEST_TIMEOUT_MS);
+    pending.timeoutHandle.unref?.();
+
+    if (signal) {
+      const onAbort = () => this.settle(id, {
+        behavior: 'deny',
+        message: 'Stream aborted before user responded',
+      }, 'abort');
+      if (signal.aborted) { onAbort(); return; }
+      signal.addEventListener('abort', onAbort, { once: true });
+      pending.removeAbortListener = () => signal.removeEventListener('abort', onAbort);
+    }
+  }
+
+  /** Resolve a pending request exactly once, releasing timer + listener. */
+  private settle(
+    id: string,
+    result: PermissionResult,
+    reason: 'response' | 'timeout' | 'abort'
+  ): boolean {
+    const pending = this.pendingRequests.get(id);
+    if (!pending) return false;
+    this.pendingRequests.delete(id);
+    if (pending.timeoutHandle) clearTimeout(pending.timeoutHandle);
+    pending.removeAbortListener?.();
+    if (reason !== 'response') {
+      this.logger.warn(`Permission request ${id} settled by ${reason}`);
+    }
+    pending.resolve(result);
+    return true;
   }
 
   /**
@@ -248,49 +284,49 @@ export class SdkPermissionService {
       return false;
     }
 
-    this.pendingRequests.delete(response.id);
     this.logger.log(`Processing response for ${pending.requestType}: ${response.id}, action: ${response.action}`);
 
+    let result: PermissionResult;
     if (response.action === 'allow') {
       // For AskUserQuestion, the updatedInput contains the answers
       if (pending.requestType === 'ask_user_question') {
-        pending.resolve({
+        result = {
           behavior: 'allow',
           updatedInput: {
             ...pending.toolInput,
             answers: response.updatedInput?.answers || {},
           },
-        });
+        };
       }
       // For ExitPlanMode, the updatedInput contains the approval status
       else if (pending.requestType === 'plan_approval') {
-        pending.resolve({
+        result = {
           behavior: 'allow',
           updatedInput: {
             ...pending.toolInput,
             approved: true,
             message: response.message || 'Plan approved',
           },
-        });
+        };
       }
       // For generic permission
       else {
-        pending.resolve({
+        result = {
           behavior: 'allow',
           updatedInput: response.updatedInput || pending.toolInput,
           updatedPermissions: response.updatedPermissions,
-        });
+        };
       }
     } else {
       // Deny or cancel
-      pending.resolve({
+      result = {
         behavior: 'deny',
         message: response.message || 'User denied permission',
         interrupt: response.interrupt,
-      });
+      };
     }
 
-    return true;
+    return this.settle(response.id, result, 'response');
   }
 
   /**

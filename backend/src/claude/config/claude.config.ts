@@ -1,7 +1,6 @@
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 
 export class ClaudeConfig {
-  readonly container: string;
   readonly hostRoot: string;
   readonly containerRoot: string;
   readonly timeoutMs: number;
@@ -11,7 +10,6 @@ export class ClaudeConfig {
   readonly forceProjectScope: boolean;
 
   constructor(private secretsManager?: SecretsManagerService) {
-    this.container = process.env.CLAUDE_CONTAINER_NAME ?? 'claude-code';
     // Use WORKSPACE_ROOT for consistency (WORKSPACE_HOST_ROOT is kept for backwards compatibility)
     this.hostRoot = process.env.WORKSPACE_ROOT ?? process.env.WORKSPACE_HOST_ROOT ?? 'C:/Data/GitHub/claude-multitenant/workspace';
     this.containerRoot = '/workspace';

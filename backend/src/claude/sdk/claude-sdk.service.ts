@@ -15,6 +15,37 @@ export class ClaudeSdkService {
   private readonly logger = new Logger(ClaudeSdkService.name);
   private readonly config: ClaudeConfig;
 
+  /**
+   * Env vars the Claude Code subprocess legitimately needs. Everything else
+   * in process.env (JWT_SECRET, DB creds, ...) must NOT reach the agent:
+   * its Bash tool runs in this environment, so any permitted shell command
+   * can read whatever we pass here.
+   */
+  private static readonly ENV_PASSTHROUGH = [
+    // POSIX basics
+    'PATH', 'HOME', 'SHELL', 'LANG', 'LC_ALL', 'TMPDIR', 'TERM', 'USER',
+    // Windows basics (Node subprocesses fail to start without these)
+    'SYSTEMROOT', 'SYSTEMDRIVE', 'COMSPEC', 'PATHEXT', 'WINDIR',
+    'APPDATA', 'LOCALAPPDATA', 'USERPROFILE', 'TEMP', 'TMP',
+    // Outbound proxy configuration, if any
+    'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
+    'http_proxy', 'https_proxy', 'no_proxy',
+    // Custom CA bundle, if the deployment uses one
+    'NODE_EXTRA_CA_CERTS',
+    // Claude Code specifics
+    'CLAUDE_CONFIG_DIR',
+  ];
+
+  private buildSubprocessEnv(apiKey?: string): Record<string, string> {
+    const env: Record<string, string> = {};
+    for (const key of ClaudeSdkService.ENV_PASSTHROUGH) {
+      const value = process.env[key];
+      if (value !== undefined) env[key] = value;
+    }
+    if (apiKey) env.ANTHROPIC_API_KEY = apiKey;
+    return env;
+  }
+
   constructor(private readonly secretsManager: SecretsManagerService) {
     this.config = new ClaudeConfig(secretsManager);
   }
@@ -51,13 +82,15 @@ export class ClaudeSdkService {
       hooks?: any;  // Hook handlers from orchestrator
       processId?: string;  // Process ID for abort tracking
       canUseTool?: CanUseTool;  // Permission callback for tool approval
+      abortController?: AbortController;  // pre-registered by the orchestrator
     } = {}
   ) {
     const { sessionId, agentMode, maxTurns, allowedTools, hooks, processId, canUseTool } = options;
 
-    // Create abort controller for this stream
-    const abortController = new AbortController();
-    if (processId) {
+    // Prefer the caller's controller (registered before async setup);
+    // fall back to creating one here for callers that don't pass one.
+    const abortController = options.abortController ?? new AbortController();
+    if (processId && this.abortControllers.get(processId) !== abortController) {
       this.abortControllers.set(processId, abortController);
       this.logger.log(`Registered abort controller for process: ${processId}`);
     }
@@ -113,12 +146,13 @@ export class ClaudeSdkService {
         ...(canUseTool && { canUseTool })  // Add canUseTool callback if provided
       };
 
-      // Configure environment variables for API access
-      // The SDK spawns a subprocess and passes these via env
-      queryOptions.env = {
-        ...process.env,  // Inherit existing environment
-        ANTHROPIC_API_KEY: altModelConfig?.token || await this.secretsManager.getSecret('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY
-      };
+      // Configure environment for the spawned Claude Code subprocess.
+      // Allowlist only — never spread process.env into the agent's env.
+      queryOptions.env = this.buildSubprocessEnv(
+        altModelConfig?.token
+          || await this.secretsManager.getSecret('ANTHROPIC_API_KEY')
+          || process.env.ANTHROPIC_API_KEY
+      );
 
       // Foundry hosted agent — use managed identity token for model access
       if (process.env.AZURE_FOUNDRY_AGENT_ID) {
@@ -190,6 +224,18 @@ export class ClaudeSdkService {
         this.logger.log(`Cleaned up abort controller for process: ${processId}`);
       }
     }
+  }
+
+  /**
+   * Create and register an abort controller for a process BEFORE any async
+   * setup work, so abort requests arriving during guardrails/memory/etc.
+   * are honored instead of returning "not found".
+   */
+  public createAbortController(processId: string): AbortController {
+    const controller = new AbortController();
+    this.abortControllers.set(processId, controller);
+    this.logger.log(`Registered abort controller (early) for process: ${processId}`);
+    return controller;
   }
 
   /**

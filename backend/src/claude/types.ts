@@ -13,6 +13,8 @@ export type MessageEvent = {
         'session_end' | 'stop' | 'session_state' | 'subagent_progress' |
         'status' | 'permission_denied' | 'rate_limit' | 'notification' | 'memory_recall' | 'prompt_suggestion';
   data: any;
+  /** Monotonic per-stream sequence id (sent as the SSE `id:` field; used for replay). */
+  id?: string;
 };
 
 export type SubagentStartData = {

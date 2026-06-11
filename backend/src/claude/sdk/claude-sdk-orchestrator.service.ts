@@ -25,6 +25,7 @@ import { TelemetryService } from '../../observability/telemetry.service';
 import { UserNotificationsService } from '../../user-notifications/user-notifications.service';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
 import { MissionLoaderService, MissionUserContext } from '../mission-loader.service';
+import { StreamRelayRegistry } from './stream-relay.registry';
 
 /**
  * Orchestrator service that integrates SDK, sessions, guardrails, and memory
@@ -43,6 +44,10 @@ export class ClaudeSdkOrchestratorService {
   private readonly logger = new WarnLevelLogger(ClaudeSdkOrchestratorService.name);
   private readonly config: ClaudeConfig;
   private jwtSecret: string = process.env.JWT_SECRET || 'change-this-secret-in-production-dobt7txrm3u';
+
+  // Per-project serialization: a new run for a project chains behind the
+  // previous one so two prompts on the same project never interleave.
+  private readonly projectQueues = new Map<string, Promise<void>>();
 
   private generateServiceToken(): string {
     return jwt.sign(
@@ -66,6 +71,7 @@ export class ClaudeSdkOrchestratorService {
     private readonly userNotificationsService: UserNotificationsService,
     private readonly secretsManager: SecretsManagerService,
     private readonly missionLoader: MissionLoaderService,
+    private readonly streamRelayRegistry: StreamRelayRegistry,
   ) {
     this.config = new ClaudeConfig(secretsManager);
   }
@@ -94,35 +100,72 @@ export class ClaudeSdkOrchestratorService {
     // Generate process ID for abort tracking
     const processId = `sdk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    return new Observable<MessageEvent>((observer) => {
-      // Emit process ID immediately so frontend can track it
-      observer.next({
-        type: 'session',
-        data: { process_id: processId }
-      });
+    // Register the abort controller before ANY async setup. Closes the
+    // race where an abort arrives while guardrails/memory are running.
+    const abortController = this.claudeSdkService.createAbortController(processId);
 
-      this.runStreamPrompt(
-        observer,
-        projectDir,
-        prompt,
-        agentMode,
-        memoryEnabled,
-        skipChatPersistence,
-        maxTurns,
-        processId,
-        notificationChannels,
-        notificationEmail,
-        viewerState,
-        currentUser ?? null
-      ).catch((error) => {
-        this.logger.error(`Stream prompt failed: ${error.message}`, error.stack);
-        observer.error(error);
-      });
-
-      return () => {
-        // Cleanup on unsubscribe
-      };
+    // The relay buffers all events and owns disconnect handling: a client
+    // dropping mid-run starts a grace timer instead of killing the run; only
+    // if nobody reattaches within the window do we abort.
+    const relay = this.streamRelayRegistry.createRelay(processId, {
+      onAbandoned: () => {
+        this.logger.warn(`No client reattached within grace period — aborting ${processId}`);
+        this.claudeSdkService.abortStream(processId);
+      },
     });
+
+    // Emit process ID immediately so frontend can track it (and bookmark it).
+    relay.next({ type: 'session', data: { process_id: processId } });
+
+    // Per-project serialization: a run for the same project chains behind the
+    // previous one. A failed predecessor must not poison the queue.
+    const prev = this.projectQueues.get(projectDir);
+    if (prev) {
+      relay.next({
+        type: 'status',
+        data: { status: 'queued', message: 'Waiting for the previous task in this project to finish' },
+      });
+    }
+
+    let run: Promise<void>;
+    run = (prev ?? Promise.resolve())
+      .catch(() => void 0) // failed predecessor must not poison the queue
+      .then(() => {
+        if (abortController.signal.aborted) return; // aborted while queued
+        return this.runStreamPrompt(
+          relay, // observer-compatible
+          projectDir,
+          prompt,
+          agentMode,
+          memoryEnabled,
+          skipChatPersistence,
+          maxTurns,
+          processId,
+          notificationChannels,
+          notificationEmail,
+          viewerState,
+          currentUser ?? null,
+          abortController
+        );
+      })
+      .catch((error) => {
+        this.logger.error(`Stream prompt failed: ${error.message}`, error.stack);
+        relay.error(error);
+      })
+      .finally(() => {
+        relay.complete(); // idempotent — also closes the aborted-while-queued path
+        if (this.projectQueues.get(projectDir) === run) {
+          this.projectQueues.delete(projectDir);
+        }
+      });
+    this.projectQueues.set(projectDir, run);
+
+    return relay.asObservable();
+  }
+
+  /** Re-attach a client to a live or recently finished run. */
+  public attachToStream(processId: string, lastSeq?: number): Observable<MessageEvent> {
+    return this.streamRelayRegistry.attach(processId, lastSeq);
   }
 
   /**
@@ -140,7 +183,8 @@ export class ClaudeSdkOrchestratorService {
     notificationChannels?: string,
     notificationEmail?: string,
     viewerState?: any[],
-    currentUser?: MissionUserContext | null
+    currentUser?: MissionUserContext | null,
+    abortController?: AbortController
   ): Promise<void> {
     const userId = 'user'; // Default user ID
     let sessionId: string | undefined;
@@ -289,9 +333,16 @@ export class ClaudeSdkOrchestratorService {
             finalPrompt = `${contextInjection}\n\n${enhancedPrompt}`;
             this.logger.log(`🏷️ Injected context scope into prompt for session ${sessionId}`);
           }
+        } catch (error: any) {
+          this.logger.error('Failed to inject context:', error.message);
+        }
+      }
 
-          // Viewer state injection — open previewers and their selection state
-          if (viewerState && viewerState.length > 0) {
+      // Viewer state injection — must also run on the FIRST request of a
+      // session (no sessionId yet), which is precisely when a user opens a
+      // viewer and starts talking about it.
+      try {
+        if (viewerState && viewerState.length > 0) {
             const stateBlocks = viewerState.map((vs: any) => {
               const lines: string[] = [];
               lines.push(`<viewer-selection file="${vs.path}" viewer="${vs.viewerName || 'unknown'}">`);
@@ -351,10 +402,9 @@ export class ClaudeSdkOrchestratorService {
             }).join('\n\n');
             finalPrompt = `${stateBlocks}\n\n${finalPrompt}`;
             this.logger.log(`🖱️ Injected viewer state: ${viewerState.length} viewer(s)`);
-          }
-        } catch (error: any) {
-          this.logger.error('Failed to inject context:', error.message);
         }
+      } catch (error: any) {
+        this.logger.error('Failed to inject viewer state:', error.message);
       }
 
       // Datetime injection - provide current date/time awareness to the agent
@@ -371,7 +421,8 @@ export class ClaudeSdkOrchestratorService {
       });
       const citationInstruction = buildCitationInstruction(safeRoot(this.config.hostRoot, projectDir));
       const citationBlock = citationInstruction ? `\n\n${citationInstruction}` : '';
-      finalPrompt = `[Current date and time: ${dateTimeString}]\n[Current session ID: ${sessionId}]\n\nAlways create user orders before beginning to work on complex multi step tasks. A single step or action required from a user like 'Create an Excel table from ...' does not count for a user order. At least two different artifacts/files must be created in a user order.${citationBlock}\n\n${finalPrompt}`;
+      const sessionLine = sessionId ? `\n[Current session ID: ${sessionId}]` : '';
+      finalPrompt = `[Current date and time: ${dateTimeString}]${sessionLine}\n\nAlways create user orders before beginning to work on complex multi step tasks. A single step or action required from a user like 'Create an Excel table from ...' does not count for a user order. At least two different artifacts/files must be created in a user order.${citationBlock}\n\n${finalPrompt}`;
 
       // Emit UserPromptSubmit event (before processing)
       this.hookEmitter.emitUserPromptSubmit(projectDir, {
@@ -488,33 +539,18 @@ export class ClaudeSdkOrchestratorService {
             timestamp: Date.now()
           });
 
-          // AskUserQuestion and ExitPlanMode need user interaction via canUseTool callback
-          // Let them pass through hooks without auto-approval so canUseTool is invoked
-          // Per Claude Agent SDK docs: PreToolUse Hook → Permission Mode → canUseTool Callback
-          if (input.tool_name === 'AskUserQuestion' || input.tool_name === 'ExitPlanMode') {
-            this.logger.log(`🔔 Letting ${input.tool_name} pass to canUseTool callback for user interaction`);
-            return { continue: true };
-          }
-
-          // Auto-approve all other tools via hookSpecificOutput.permissionDecision
-          // This allows them to execute immediately without going to canUseTool
-          return {
-            continue: true,
-            hookSpecificOutput: {
-              hookEventName: 'PreToolUse',
-              permissionDecision: 'allow'
-            }
-          };
+          // IMPORTANT: return NO permissionDecision. A hook 'allow' overrides
+          // the permission system and silently neutralizes disallowedTools
+          // (e.g. the .env read denials). With no decision, evaluation runs
+          // normally: deny rules → allow rules → permissionMode → canUseTool.
+          // canUseTool still auto-allows uncovered tools when
+          // requireAllPermissions=false, so UX is unchanged.
+          return { continue: true };
         } catch (hookError: any) {
           this.logger.error(`Error in PreToolUse hook: ${hookError.message}`, hookError.stack);
-          // Auto-approve on error - don't block tool execution
-          return {
-            continue: true,
-            hookSpecificOutput: {
-              hookEventName: 'PreToolUse',
-              permissionDecision: 'allow'
-            }
-          };
+          // Fail to the permission system, not open: with no decision the
+          // normal allow/deny rules still apply even when our hook breaks.
+          return { continue: true };
         }
       };
 
@@ -806,6 +842,32 @@ export class ClaudeSdkOrchestratorService {
       this.logger.log(`Hooks configured: PreToolUse=${!!hooks.PreToolUse}, PostToolUse=${!!hooks.PostToolUse}`);
       this.logger.log(`canUseTool configured: ${!!canUseTool} (mode: ${agentMode || 'default'})`);
 
+      // Setup (budget, guardrails, memory, mission render) can take seconds;
+      // honor an abort that arrived in the meantime.
+      if (abortController?.signal.aborted) {
+        this.logger.warn(`Process ${processId} aborted during setup — skipping SDK call`);
+        observer.complete();
+        return;
+      }
+
+      // ---- transient-API-error auto-retry ----------------------------------
+      // Retry the whole SDK pass at most once, and ONLY if this attempt produced
+      // nothing yet — retrying after text/tools would repeat side effects. The
+      // "produced anything" signal is assistantText (grows with each delta) plus
+      // any tool_call in structuredMessages.
+      const MAX_SDK_ATTEMPTS = 2;
+      const TRANSIENT_API_ERROR =
+        /overloaded|rate.?limit|\b(429|500|502|503|529)\b|internal server error|timed? ?out|ECONNRESET|ETIMEDOUT|temporarily unavailable/i;
+      const nothingProducedYet = () =>
+        assistantText === '' &&
+        !structuredMessages.some((m) => m.type === 'tool_call');
+      let attempt = 0;
+      let retryRequested = false;
+
+      do {
+        attempt++;
+        retryRequested = false;
+
       try {
         for await (const sdkMessage of this.claudeSdkService.streamConversation(
           projectDir,
@@ -816,7 +878,8 @@ export class ClaudeSdkOrchestratorService {
             maxTurns,
             hooks,
             processId,
-            canUseTool
+            canUseTool,
+            abortController
           }
         )) {
           try {
@@ -1096,6 +1159,22 @@ export class ClaudeSdkOrchestratorService {
               // Keep original error message if parsing fails
             }
 
+            const transient = TRANSIENT_API_ERROR.test(errorMessage);
+
+            // Auto-retry once for clearly transient failures — ONLY if this
+            // attempt produced nothing (no text, no tool calls), so the retry
+            // cannot duplicate side effects.
+            if (transient && attempt < MAX_SDK_ATTEMPTS && nothingProducedYet()
+                && !abortController?.signal.aborted) {
+              retryRequested = true;
+              this.logger.warn(`Transient API error (attempt ${attempt}) — retrying: ${errorMessage}`);
+              observer.next({
+                type: 'status',
+                data: { status: 'retrying', attempt, message: `Transient API error — retrying` }
+              });
+              break; // end this pass; the do-while starts the next attempt
+            }
+
             this.logger.warn(`⚠️ API Error in result: ${errorMessage}`);
 
             // Emit error event to show warning in UI
@@ -1104,6 +1183,7 @@ export class ClaudeSdkOrchestratorService {
               data: {
                 message: errorMessage,
                 fullError: resultText,
+                retryable: transient, // frontend shows a Retry button for these
                 timestamp: new Date().toISOString()
               }
             });
@@ -1234,7 +1314,9 @@ export class ClaudeSdkOrchestratorService {
             observer.next(completedEvent);
           }
 
-          break;
+          // Do NOT break: prompt_suggestion arrives AFTER the result message.
+          // The for-await loop ends naturally when the SDK closes its stream.
+          continue;
         }
 
         // Transform and emit other message types
@@ -1258,16 +1340,32 @@ export class ClaudeSdkOrchestratorService {
         }
       } catch (streamError: any) {
         // Catch errors in the entire stream
-        this.logger.error(`Stream error in SDK conversation: ${streamError.message}`, streamError.stack);
-        observer.next({
-          type: 'error',
-          data: {
-            message: `Stream error: ${streamError.message}`,
-            recoverable: false
-          }
-        });
-        // Don't throw - let the stream complete gracefully
+        const transient = TRANSIENT_API_ERROR.test(streamError?.message ?? '');
+        if (transient && attempt < MAX_SDK_ATTEMPTS && nothingProducedYet()
+            && !abortController?.signal.aborted) {
+          retryRequested = true;
+          this.logger.warn(`Transient stream error (attempt ${attempt}) — retrying: ${streamError.message}`);
+          observer.next({
+            type: 'status',
+            data: { status: 'retrying', attempt, message: 'Transient error — retrying' }
+          });
+        } else {
+          this.logger.error(`Stream error in SDK conversation: ${streamError.message}`, streamError.stack);
+          observer.next({
+            type: 'error',
+            data: {
+              message: `Stream error: ${streamError.message}`,
+              recoverable: false
+            }
+          });
+          // Don't throw - let the stream complete gracefully
+        }
       }
+
+        if (retryRequested) {
+          await new Promise((r) => setTimeout(r, 2000 * attempt)); // simple backoff
+        }
+      } while (retryRequested && !abortController?.signal.aborted);
 
       // Persist chat messages
       if (!skipChatPersistence && sessionId) {

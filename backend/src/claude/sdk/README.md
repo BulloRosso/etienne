@@ -262,11 +262,12 @@ curl "http://localhost:6060/api/claude/streamPrompt/sdk?project_dir=test&prompt=
 
 ### What Changed
 
-**Removed:**
+**Removed** (the legacy `claude-code` Docker/CLI path, deleted entirely):
 - ❌ `spawn('docker', ['exec', ...])` subprocess calls
-- ❌ Bash script generation ([script-builder.ts](../builders/script-builder.ts))
-- ❌ Stdout parsing ([stream-parser.ts](../parsers/stream-parser.ts))
+- ❌ Bash script generation (`builders/script-builder.ts`)
+- ❌ Stdout parsing (`parsers/stream-parser.ts`)
 - ❌ Process management (kill, abort)
+- ❌ The legacy `GET /api/claude/streamPrompt` SSE endpoint
 
 **Added:**
 - ✅ Direct SDK integration

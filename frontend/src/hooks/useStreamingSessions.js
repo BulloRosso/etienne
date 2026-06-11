@@ -38,6 +38,10 @@ export default function useStreamingSessions() {
       textBuffer: '',
       lastChunkTime: Date.now(),
       assistantMessageAdded: false,
+      // Per-stream control state used by the SSE handlers (set by handleSendMessage).
+      resolvedSessionId: sessionId,
+      stopped: false,
+      streamMsg: null,
       // Controls where SSE handlers write: 'state' (React state) or 'buffer' (this context)
       targetRef: { current: 'state' },
     };
@@ -67,6 +71,14 @@ export default function useStreamingSessions() {
     if (ctx) updater(ctx);
   }, []);
 
+  // Swap the EventSource on a live context (reattach after reload/transport
+  // error) while keeping its buffers, processId, and message state intact.
+  const replaceEventSource = useCallback((ctx, eventSource) => {
+    if (!ctx) return;
+    try { ctx.eventSource?.close(); } catch { /* ignore */ }
+    ctx.eventSource = eventSource;
+  }, []);
+
   // Rename a temporary key (e.g. 'pending_12345') to the real sessionId
   const rekey = useCallback((oldKey, newKey) => {
     const ctx = contextsRef.current.get(oldKey);
@@ -94,6 +106,7 @@ export default function useStreamingSessions() {
     isSessionStreaming,
     getStreamContext,
     updateStreamContext,
+    replaceEventSource,
     rekey,
     closeAll,
   };
