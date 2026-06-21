@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
+import { PiFlowerLotusLight } from 'react-icons/pi';
 import { apiFetch } from '../services/api';
 import { getIcon } from '../utils/iconRegistry';
 import { filePreviewHandler } from '../services/FilePreviewHandler';
 
-export default function QuickActions({ onSelectAction, currentProject, extraActions = [] }) {
+export default function QuickActions({ onSelectAction, currentProject, extraActions = [], onOpenHyperscreen }) {
   const [actions, setActions] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -47,7 +48,9 @@ export default function QuickActions({ onSelectAction, currentProject, extraActi
     });
   }, [visible, extraActions]);
 
-  if (sorted.length === 0) return null;
+  // The Hyperscreen launcher is always available; only the action list itself
+  // is hidden when empty.
+  if (sorted.length === 0 && !onOpenHyperscreen) return null;
 
   const handleClick = (action) => {
     if (action.previewFile) {
@@ -113,6 +116,20 @@ export default function QuickActions({ onSelectAction, currentProject, extraActi
           </Button>
         );
       })}
+
+      {/* Right-aligned Hyperscreen launcher */}
+      {onOpenHyperscreen && (
+        <Tooltip title="Hyperscreen">
+          <IconButton
+            size="small"
+            onClick={onOpenHyperscreen}
+            aria-label="Open Hyperscreen"
+            sx={{ ml: 'auto', p: 0.5, color: '#e53935' }}
+          >
+            <PiFlowerLotusLight size={22} />
+          </IconButton>
+        </Tooltip>
+      )}
     </Box>
   );
 }

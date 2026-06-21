@@ -11,7 +11,7 @@ import { GoArrowUp } from "react-icons/go";
 import { GoPlus } from "react-icons/go";
 import { CiFileOn } from "react-icons/ci";
 
-export default function ChatInput({ onSend, onAbort, streaming, disabled, minimal = false, initialMessage, onInitialMessageConsumed }) {
+export default function ChatInput({ onSend, onAbort, streaming, disabled, minimal = false, initialMessage, onInitialMessageConsumed, onType }) {
   const { t } = useTranslation(["chatInput"]);
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -74,6 +74,9 @@ export default function ChatInput({ onSend, onAbort, streaming, disabled, minima
   const handleMessageChange = (e) => {
     const newMessage = e.target.value;
     setMessage(newMessage);
+
+    // Notify parent that the user is typing (e.g. to dismiss overlays).
+    if (newMessage && onType) onType();
 
     const cursorPosition = e.target.selectionStart;
 

@@ -18,6 +18,7 @@ import SessionPane from './SessionPane';
 import AddCheatSheetItem from './AddCheatSheetItem';
 import ContextMeterBar from './ContextMeterBar';
 import NotificationMenu from './NotificationMenu';
+import Hyperscreen from './Hyperscreen';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
@@ -34,9 +35,36 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
   const isAdmin = hasRole('admin');
   const isGuest = hasRole('guest');
   const messagesEndRef = useRef(null);
+  // Container element for the Hyperscreen slide animation. Stored in state (not a
+  // plain ref) so that once the wrapper mounts, the Slide re-renders with a real
+  // container and animates from the top edge of the quick action bar — not the
+  // viewport bottom.
+  const [hyperscreenContainer, setHyperscreenContainer] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
   const [isChatMaximized, setIsChatMaximized] = useState(false);
+  const [hyperscreenOpen, setHyperscreenOpen] = useState(false);
+  // Projects for which we've already auto-opened the Hyperscreen this session, so
+  // it only pops up once per project (not again after the user closes it).
+  const hyperscreenAutoOpened = useRef(new Set());
+
+  // On project load: if a hyperscreen/settings.json exists, auto-open the
+  // Hyperscreen once for that project.
+  useEffect(() => {
+    if (!projectName) return;
+    if (hyperscreenAutoOpened.current.has(projectName)) return;
+    let cancelled = false;
+    apiFetch(`/api/workspace/${encodeURIComponent(projectName)}/files/hyperscreen/settings.json`)
+      .then((res) => {
+        if (cancelled || !res.ok) return;
+        hyperscreenAutoOpened.current.add(projectName);
+        setHyperscreenOpen(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [projectName]);
   useClaudeEvent(ClaudeEvents.CHAT_MAXIMIZE_TOGGLE, () => setIsChatMaximized(p => !p), []);
   useClaudeEvent(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE, () => setIsChatMaximized(false), []);
   const [memoryEnabled, setMemoryEnabled] = useState(() => {
@@ -432,6 +460,10 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
       )}
       {/* Live context window meter (Agent SDK / Codex SDK) */}
       <ContextMeterBar state={contextState} />
+      {/* Message pane wrapper — positioning context AND slide container for the
+          Hyperscreen overlay, so the animation starts/ends exactly at the top
+          edge of the quick action bar (this wrapper's bottom edge). */}
+      <Box ref={setHyperscreenContainer} sx={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Messages Area */}
       <Box
         className={hideHeader ? 'minimal-scrollbar' : undefined}
@@ -538,13 +570,23 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
         <div ref={messagesEndRef} />
       </Box>
 
+      {/* Hyperscreen overlays the chat message pane exactly */}
+      <Hyperscreen
+        open={hyperscreenOpen}
+        onClose={() => setHyperscreenOpen(false)}
+        projectName={projectName}
+        slideContainer={hyperscreenContainer}
+      />
+      </Box>
+
       <Box sx={{ p: 0, pb: 0 }}>
         <QuickActions
           onSelectAction={(prompt) => setEditingMessage(prompt)}
           currentProject={projectName}
           extraActions={isMinimalistic ? (uiConfig?.welcomePage?.quickActions || []) : []}
+          onOpenHyperscreen={projectName ? () => setHyperscreenOpen((p) => !p) : undefined}
         />
-        <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} initialMessage={editingMessage} onInitialMessageConsumed={() => setEditingMessage(null)} />
+        <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} initialMessage={editingMessage} onInitialMessageConsumed={() => setEditingMessage(null)} onType={() => hyperscreenOpen && setHyperscreenOpen(false)} />
       </Box>
 
       {/* Settings Modal */}
