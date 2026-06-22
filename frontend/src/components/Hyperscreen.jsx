@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, IconButton, Typography, Tooltip, CircularProgress, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Slide } from '@mui/material';
-import { IoClose } from 'react-icons/io5';
-import { PiDotsThreeVertical } from 'react-icons/pi';
+import { PiDotsThreeVertical, PiCaretLeft } from 'react-icons/pi';
 import * as PiIcons from 'react-icons/pi';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch } from '../services/api';
@@ -45,7 +44,7 @@ function fileUrl(projectName, relPath) {
     .join('/')}`;
 }
 
-function SubmenuButtons({ items, projectName, onSelect }) {
+function SubmenuButtons({ items, projectName, parentCard, onSelect }) {
   if (!Array.isArray(items) || items.length === 0) return null;
   return (
     <Box
@@ -68,7 +67,7 @@ function SubmenuButtons({ items, projectName, onSelect }) {
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(item);
+                onSelect(item, parentCard);
               }}
               sx={{
                 width: 30,
@@ -91,7 +90,54 @@ function SubmenuButtons({ items, projectName, onSelect }) {
   );
 }
 
-function HyperscreenCard({ card, projectName, compact, imgHeight, onOpen, onSelectSubmenu }) {
+// Title block (title + optional subtitle), fixed common height so all cards align.
+function CardTitle({ card }) {
+  return (
+    <Box
+      sx={{
+        px: 1.75,
+        py: 1.25,
+        height: 64,
+        flex: '0 0 64px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+      }}
+    >
+      <Typography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          lineHeight: 1.25,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+        title={card.title}
+      >
+        {card.title}
+      </Typography>
+      {card.subtitle && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          title={card.subtitle}
+          sx={{
+            display: 'block',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {card.subtitle}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function HyperscreenCard({ card, projectName, compact, imgHeight, reversed = false, onOpen, onSelectSubmenu }) {
   const { mode: themeMode } = useThemeMode();
   const [menuAnchor, setMenuAnchor] = useState(null);
   const contextItems = Array.isArray(card.contextMenu) ? card.contextMenu : [];
@@ -101,7 +147,7 @@ function HyperscreenCard({ card, projectName, compact, imgHeight, onOpen, onSele
     if (item.previewFile) {
       filePreviewHandler.handlePreview(item.previewFile, projectName);
     } else if (item.title) {
-      onSelectSubmenu(item);
+      onSelectSubmenu(item, card);
     }
   };
 
@@ -116,18 +162,26 @@ function HyperscreenCard({ card, projectName, compact, imgHeight, onOpen, onSele
         borderRadius: 2.5,
         overflow: 'hidden',
         backgroundColor: themeMode === 'dark' ? '#2f2f2f' : '#fff',
-        boxShadow:
-          themeMode === 'dark'
-            ? '0 10px 28px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4)'
-            : '0 12px 28px rgba(31,45,61,0.18), 0 4px 8px rgba(31,45,61,0.12)',
+        // Submenu (reversed) cards get a shadow that is ~half the size of the main
+        // menu cards' and falls further to the bottom-right (positive x-offset).
+        boxShadow: reversed
+          ? (themeMode === 'dark'
+              ? '5px 5px 14px rgba(0,0,0,0.55), 1px 1px 3px rgba(0,0,0,0.4)'
+              : '6px 6px 14px rgba(31,45,61,0.18), 2px 2px 4px rgba(31,45,61,0.12)')
+          : (themeMode === 'dark'
+              ? '0 10px 28px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4)'
+              : '0 12px 28px rgba(31,45,61,0.18), 0 4px 8px rgba(31,45,61,0.12)'),
         transition: 'transform 0.18s ease, box-shadow 0.18s ease',
         '&:hover': card.previewFile
           ? {
               transform: 'translateY(-4px)',
-              boxShadow:
-                themeMode === 'dark'
-                  ? '0 16px 36px rgba(0,0,0,0.65)'
-                  : '0 18px 38px rgba(31,45,61,0.26)',
+              boxShadow: reversed
+                ? (themeMode === 'dark'
+                    ? '8px 8px 18px rgba(0,0,0,0.65)'
+                    : '9px 9px 19px rgba(31,45,61,0.26)')
+                : (themeMode === 'dark'
+                    ? '0 16px 36px rgba(0,0,0,0.65)'
+                    : '0 18px 38px rgba(31,45,61,0.26)'),
             }
           : {},
       }}
@@ -175,74 +229,60 @@ function HyperscreenCard({ card, projectName, compact, imgHeight, onOpen, onSele
         </>
       )}
 
-      {/* Central image — fixed common height (px) so every card is identically
-          tall regardless of the image's native ratio; objectFit: cover keeps the
-          image undistorted (cropped, never stretched). */}
-      <Box
-        sx={{
-          position: 'relative',
-          width: '100%',
-          height: imgHeight ? `${imgHeight}px` : compact ? 150 : 200,
-          backgroundColor: themeMode === 'dark' ? '#262626' : '#f3f6fa',
-        }}
-      >
-        {card.image && (
-          <Box
-            component="img"
-            src={fileUrl(projectName, card.image)}
-            alt={card.title || ''}
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        )}
-        <SubmenuButtons items={card.submenu} projectName={projectName} onSelect={onSelectSubmenu} />
-      </Box>
-
-      {/* Title — fixed, common caption height so all cards match regardless of
-          whether a subtitle is present or the title wraps. */}
-      <Box
-        sx={{
-          px: 1.75,
-          py: 1.25,
-          height: 64,
-          flex: '0 0 64px',
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            lineHeight: 1.25,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-          title={card.title}
-        >
-          {card.title}
-        </Typography>
-        {card.subtitle && (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            title={card.subtitle}
-            sx={{
-              display: 'block',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {card.subtitle}
-          </Typography>
-        )}
-      </Box>
+      {reversed ? (
+        <>
+          {/* Reversed layout (submenu cards): title on top, light-grey
+              description area below in secondary text style. The grey area is
+              hidden entirely when there is no (non-empty) description. */}
+          <CardTitle card={card} />
+          {card.description && card.description.trim() && (
+            <Box
+              sx={{
+                px: 1.75,
+                py: 1.25,
+                flex: 1,
+                backgroundColor: themeMode === 'dark' ? '#2a2a2a' : '#fafafa',
+                borderTop: themeMode === 'dark' ? '1px solid #3a3a3a' : '1px solid #f0f0f0',
+              }}
+            >
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                {card.description}
+              </Typography>
+            </Box>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Central image — optional. Fixed common height (px) so every card with an
+              image is identically tall regardless of the image's native ratio;
+              objectFit: cover keeps the image undistorted (cropped, never stretched).
+              Cards without an image (and no submenu buttons) render title-only. */}
+          {(card.image || (Array.isArray(card.submenu) && card.submenu.length > 0)) && (
+            <Box
+              sx={{
+                position: 'relative',
+                width: '100%',
+                height: imgHeight ? `${imgHeight}px` : compact ? 150 : 200,
+                backgroundColor: themeMode === 'dark' ? '#262626' : '#f3f6fa',
+              }}
+            >
+              {card.image && (
+                <Box
+                  component="img"
+                  src={fileUrl(projectName, card.image)}
+                  alt={card.title || ''}
+                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
+              <SubmenuButtons items={card.submenu} projectName={projectName} parentCard={card} onSelect={onSelectSubmenu} />
+            </Box>
+          )}
+          <CardTitle card={card} />
+        </>
+      )}
     </Box>
   );
 }
@@ -264,6 +304,9 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
   // fixed pixel height shared by every card (uniform height, responsive on resize).
   const [colWidth, setColWidth] = useState(0);
   const gridRef = useRef(null);
+  // Same measurement for the submenu (context) grid, which has its own column width.
+  const [subColWidth, setSubColWidth] = useState(0);
+  const subGridRef = useRef(null);
 
   useEffect(() => {
     if (!open || !projectName) return;
@@ -372,12 +415,33 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
     return () => ro.disconnect();
   }, [imagesReady, slid, settings]);
 
+  // Same, but for the submenu grid (only mounted while slid).
+  useEffect(() => {
+    if (!slid) return;
+    const grid = subGridRef.current;
+    if (!grid) return;
+    const measure = () => {
+      const first = grid.firstElementChild;
+      if (first) setSubColWidth(first.getBoundingClientRect().width);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(grid);
+    return () => ro.disconnect();
+  }, [slid, contextCards]);
+
   // Fixed common image height in px: column width ÷ common ratio. Falls back to a
   // sensible default until measured.
   const imgHeight = useMemo(() => {
     if (colWidth && commonRatio) return Math.round(colWidth / commonRatio);
     return slid ? 150 : 200;
   }, [colWidth, commonRatio, slid]);
+
+  // Separate height for submenu cards, derived from their own (narrower) columns.
+  const subImgHeight = useMemo(() => {
+    if (subColWidth && commonRatio) return Math.round(subColWidth / commonRatio);
+    return 150;
+  }, [subColWidth, commonRatio]);
 
   const handleOpenCard = (card) => {
     if (card.previewFile) {
@@ -387,10 +451,16 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
   };
 
   // A submenu / context item that defines its own set of cards slides them in
-  // from the right; otherwise it routes to the preview handler.
-  const handleSelectSubmenu = (item) => {
+  // from the right; otherwise it routes to the preview handler. The parent card is
+  // tracked so the main layout can show only it while the panel is open.
+  const handleSelectSubmenu = (item, parentCard = null) => {
     if (Array.isArray(item.cards) && item.cards.length > 0) {
-      setContextCards({ title: item.title, background: item.background, cards: item.cards });
+      setContextCards({
+        title: item.title,
+        background: item.background,
+        cards: item.cards,
+        parentCard,
+      });
     } else if (item.previewFile) {
       filePreviewHandler.handlePreview(item.previewFile, projectName);
     }
@@ -410,7 +480,13 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
         inset: 0,
         zIndex: 20,
         display: 'flex',
-        backgroundColor: background,
+        // Single full-width background so the main + submenu panes share one
+        // continuous horizontal gradient (no seam at the 50% boundary). When the
+        // submenu is open, fade from the main background (left) into the submenu
+        // color (right); otherwise a flat main background.
+        background: slid
+          ? `linear-gradient(to right, ${background} 0%, ${background} 50%, ${contextCards?.background || DEFAULT_BACKGROUND} 75%)`
+          : background,
         overflow: 'hidden',
       }}
     >
@@ -474,7 +550,7 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
               alignItems: 'start',
             }}
           >
-            {cards.map((card, idx) => (
+            {(slid && contextCards?.parentCard ? [contextCards.parentCard] : cards).map((card, idx) => (
               <HyperscreenCard
                 key={card.id || idx}
                 card={card}
@@ -485,6 +561,35 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
                 onSelectSubmenu={handleSelectSubmenu}
               />
             ))}
+          </Box>
+        )}
+
+        {/* Back / close-submenu section under the main menu item (right-aligned) */}
+        {slid && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2.5 }}>
+            <Box
+              onClick={() => setContextCards(null)}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.75,
+                py: 1,
+                borderRadius: '999px',
+                backgroundColor: themeMode === 'dark' ? '#2f2f2f' : '#fff',
+                boxShadow: themeMode === 'dark'
+                  ? '0 2px 8px rgba(0,0,0,0.5)'
+                  : '0 2px 8px rgba(31,45,61,0.15)',
+                cursor: 'pointer',
+                color: 'text.secondary',
+                '&:hover': { backgroundColor: themeMode === 'dark' ? '#3a3a3a' : '#f7f7f7' },
+              }}
+            >
+              <PiCaretLeft size={18} />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Zurück
+              </Typography>
+            </Box>
           </Box>
         )}
       </Box>
@@ -499,35 +604,26 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
             overflowY: 'auto',
             position: 'relative',
             zIndex: 1,
-            backgroundColor: contextCards.background || DEFAULT_BACKGROUND,
-            borderLeft: themeMode === 'dark' ? '1px solid #444' : '1px solid rgba(0,0,0,0.08)',
+            // Transparent — the continuous gradient lives on the outer container.
+            backgroundColor: 'transparent',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'flex-end', // fill from bottom to top
-            pt: 5,
-            px: 2.5,
+            // Same top inset as the main menu; small left inset so cards don't
+            // hug the panel's left edge.
+            pt: 2.5,
+            pl: 1,
+            pr: 2.5,
             pb: 2.5,
           }}
         >
-          <IconButton
-            size="small"
-            onClick={() => setContextCards(null)}
-            sx={{ position: 'absolute', top: 8, right: 44, zIndex: 28 }}
-          >
-            <IoClose size={18} color="#666" />
-          </IconButton>
-          {contextCards.title && (
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
-              {contextCards.title}
-            </Typography>
-          )}
+          {/* Cards stacked top-to-bottom */}
           <Box
+            ref={subGridRef}
             sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+              gridTemplateColumns: '1fr',
               gap: 2,
-              // Cards are added top-to-bottom within the bottom-anchored stack.
-              alignContent: 'end',
+              alignContent: 'start',
               alignItems: 'start',
             }}
           >
@@ -537,7 +633,8 @@ export default function Hyperscreen({ open, onClose, projectName, slideContainer
                 card={card}
                 projectName={projectName}
                 compact
-                imgHeight={imgHeight}
+                reversed
+                imgHeight={subImgHeight}
                 onOpen={handleOpenCard}
                 onSelectSubmenu={handleSelectSubmenu}
               />

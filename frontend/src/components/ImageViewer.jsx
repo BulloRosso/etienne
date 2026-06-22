@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, CircularProgress } from '@mui/material';
+import { Box, Typography, Paper, CircularProgress, Collapse, IconButton } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
@@ -21,6 +22,7 @@ export default function ImageViewer({ filename, projectName }) {
   const [metadata, setMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [infoExpanded, setInfoExpanded] = useState(false);
 
   useEffect(() => {
     if (!filename || !projectName) return;
@@ -276,15 +278,18 @@ export default function ImageViewer({ filename, projectName }) {
   }
 
   return (
-    <Box sx={{ height: '100%', overflow: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ height: '100%', overflow: 'auto', p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 3 }}>
       {/* Image Display */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
         <img
           src={imageUrl}
           alt={filename}
           style={{
             maxWidth: '100%',
+            maxHeight: '100%',
+            width: 'auto',
             height: 'auto',
+            objectFit: 'contain',
             display: 'block'
           }}
         />
@@ -292,64 +297,58 @@ export default function ImageViewer({ filename, projectName }) {
 
       {/* Metadata Display */}
       {metadata && (
-        <Paper elevation={2} sx={{ p: 2, backgroundColor: themeMode === 'dark' ? '#383838' : '#f5f5f5' }}>
-          <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem', fontWeight: 'bold' }}>
-            {t('imageViewer:imageInformation')}
-          </Typography>
+        <Paper elevation={0} sx={{ p: 2, backgroundColor: '#fff', border: '2px solid #ccc', boxShadow: 'none', flexShrink: 0 }}>
+          <Box
+            onClick={() => setInfoExpanded((prev) => !prev)}
+            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+          >
+            <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 'normal', color: 'text.secondary', m: 0 }}>
+              {t('imageViewer:imageInformation')}
+            </Typography>
+            <IconButton
+              size="small"
+              aria-label={infoExpanded ? 'Collapse' : 'Expand'}
+              aria-expanded={infoExpanded}
+              sx={{ transform: infoExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+            >
+              <ExpandMoreIcon />
+            </IconButton>
+          </Box>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 1, fontSize: '0.875rem' }}>
-            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:format')}:</Typography>
-            <Typography>{metadata.format}</Typography>
-
-            {metadata.width && metadata.height && (
-              <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:dimensions')}:</Typography>
-                <Typography>{metadata.width} × {metadata.height} pixels</Typography>
-              </>
-            )}
-
-            <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:fileSize')}:</Typography>
-            <Typography>{metadata.fileSize}</Typography>
-
-            {metadata.bitDepth && (
-              <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:bitDepth')}:</Typography>
-                <Typography>{metadata.bitDepth}</Typography>
-              </>
-            )}
-
-            {metadata.colorType && (
-              <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:colorType')}:</Typography>
-                <Typography>{metadata.colorType}</Typography>
-              </>
-            )}
-
-            {metadata.compression && (
-              <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:compression')}:</Typography>
-                <Typography>{metadata.compression}</Typography>
-              </>
-            )}
-
-            {metadata.version && (
-              <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:version')}:</Typography>
-                <Typography>{metadata.version}</Typography>
-              </>
-            )}
-
-            {metadata.colorResolution && (
-              <>
-                <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{t('imageViewer:colorResolution')}:</Typography>
-                <Typography>{metadata.colorResolution}</Typography>
-              </>
-            )}
+          <Collapse in={infoExpanded}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'auto 1fr', sm: 'auto 1fr auto 1fr' },
+              columnGap: 3,
+              rowGap: 1,
+              fontSize: '0.875rem',
+              mt: 1,
+            }}
+          >
+            {[
+              { label: t('imageViewer:format'), value: metadata.format },
+              metadata.width && metadata.height && { label: t('imageViewer:dimensions'), value: `${metadata.width} × ${metadata.height} pixels` },
+              { label: t('imageViewer:fileSize'), value: metadata.fileSize },
+              metadata.bitDepth && { label: t('imageViewer:bitDepth'), value: metadata.bitDepth },
+              metadata.colorType && { label: t('imageViewer:colorType'), value: metadata.colorType },
+              metadata.compression && { label: t('imageViewer:compression'), value: metadata.compression },
+              metadata.version && { label: t('imageViewer:version'), value: metadata.version },
+              metadata.colorResolution && { label: t('imageViewer:colorResolution'), value: metadata.colorResolution },
+            ]
+              .filter(Boolean)
+              .map((prop) => (
+                <React.Fragment key={prop.label}>
+                  <Typography sx={{ fontWeight: 'bold', color: themeMode === 'dark' ? '#aaa' : '#666' }}>{prop.label}:</Typography>
+                  <Typography>{prop.value}</Typography>
+                </React.Fragment>
+              ))}
           </Box>
 
           <Typography variant="caption" sx={{ display: 'block', mt: 2, color: themeMode === 'dark' ? '#999' : '#888', fontSize: '0.75rem' }}>
             Filename: {filename}
           </Typography>
+          </Collapse>
         </Paper>
       )}
     </Box>
