@@ -5,21 +5,26 @@ import {
   Paper,
   Button,
   IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Divider,
-  Collapse,
-  Tooltip
+  Tooltip,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
-import { Close, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { Close } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
 import BudgetSettings from './BudgetSettings';
 import BackgroundInfo from './BackgroundInfo';
+import StackedAreaChart from './budget-charts/StackedAreaChart';
+import TokenEconomyDonut from './budget-charts/TokenEconomyDonut';
+
+// Token-type palette shared by the donut and the stacked area chart.
+const CHART_COLORS = {
+  input: '#7c9eff',
+  output: '#f0b429',
+  cacheRead: '#54d6b0',
+  cacheWrite: '#b07cff',
+};
 
 const getCurrencySymbol = (currency) => {
   const symbols = {
@@ -136,40 +141,47 @@ export default function BudgetOverview({
   showBackgroundInfo
 }) {
   const { t } = useTranslation(["budgetOverview"]);
-  const [recentCosts, setRecentCosts] = useState([]);
-  const [totalSessions, setTotalSessions] = useState(numberOfSessions);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activityOpen, setActivityOpen] = useState(false);
+  const [dailyCosts, setDailyCosts] = useState([]);
+  const [days, setDays] = useState(30);
+  const [topSessions, setTopSessions] = useState([]);
 
   const currencySymbol = getCurrencySymbol(currency);
+  const totalSessions = numberOfSessions || 0;
 
-  // Load recent costs - refresh when drawer opens or project changes
+  // Load daily cost time-series — refetch on project / range / refresh change
   useEffect(() => {
     if (!project) return;
 
-    const fetchRecentCosts = async () => {
+    const fetchDaily = async () => {
       try {
-        const response = await apiFetch(`/api/budget-monitoring/${project}/all`);
+        const response = await apiFetch(`/api/budget-monitoring/${project}/daily?days=${days}`);
         const data = await response.json();
-        setRecentCosts(data.costs || []);
-        setTotalSessions(data.numberOfSessions || 0);
+        setDailyCosts(data.days || []);
       } catch (error) {
-        console.error('Failed to fetch recent costs:', error);
+        console.error('Failed to fetch daily costs:', error);
       }
     };
 
-    fetchRecentCosts();
-  }, [project, refreshKey]);
+    fetchDaily();
+  }, [project, days, refreshKey]);
 
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Load top sessions by cost — refetch on project / refresh change
+  useEffect(() => {
+    if (!project) return;
+
+    const fetchTopSessions = async () => {
+      try {
+        const response = await apiFetch(`/api/budget-monitoring/${project}/top-sessions?limit=3`);
+        const data = await response.json();
+        setTopSessions(data.sessions || []);
+      } catch (error) {
+        console.error('Failed to fetch top sessions:', error);
+      }
+    };
+
+    fetchTopSessions();
+  }, [project, refreshKey]);
 
   const formatCurrency = (num) => num.toFixed(2);
   const formatCurrencyDetail = (num) => num.toFixed(4);
@@ -187,6 +199,36 @@ export default function BudgetOverview({
   const cacheSavingsPct = inputSideTokens > 0
     ? Math.round((cacheReadTokens / inputSideTokens) * 90)
     : 0;
+
+  // Cache-hit-rate: share of input-side tokens served from cache.
+  const cacheHitRatePct = inputSideTokens > 0
+    ? Math.round((cacheReadTokens / inputSideTokens) * 100)
+    : 0;
+
+  // Linear month-end forecast from the run-rate so far this month.
+  const now = new Date();
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthlyForecast = dayOfMonth > 0
+    ? (currentCosts / dayOfMonth) * daysInMonth
+    : currentCosts;
+
+  // Token-economy donut slices (cost share by token type).
+  const donutSlices = [
+    { label: t('budgetOverview:legendCacheRead'), value: cacheReadTokens, color: CHART_COLORS.cacheRead },
+    { label: t('budgetOverview:columnInputTokens'), value: totalInputTokens || 0, color: CHART_COLORS.input },
+    { label: t('budgetOverview:columnOutputTokens'), value: totalOutputTokens || 0, color: CHART_COLORS.output },
+    { label: t('budgetOverview:columnCacheWrite'), value: cacheCreationTokens, color: CHART_COLORS.cacheWrite },
+  ];
+
+  // Stacked area chart bands (EUR/day by token type).
+  const areaKeys = [
+    { key: 'cacheReadCost', color: CHART_COLORS.cacheRead, label: t('budgetOverview:legendCacheRead') },
+    { key: 'inputCost', color: CHART_COLORS.input, label: t('budgetOverview:legendInput') },
+    { key: 'outputCost', color: CHART_COLORS.output, label: t('budgetOverview:legendOutput') },
+    { key: 'cacheWriteCost', color: CHART_COLORS.cacheWrite, label: t('budgetOverview:legendCacheWrite') },
+  ];
+
   const limit = budgetSettings?.limit || 0;
   const hasLimit = limit > 0;
   const isExceeded = hasLimit && (globalCosts || 0) >= limit;
@@ -209,7 +251,8 @@ export default function BudgetOverview({
 
   return (
     <Box sx={{
-      width: 500,
+      width: 1000,
+      maxWidth: '100vw',
       p: 2,
       position: 'relative',
       minHeight: '100%',
@@ -240,6 +283,12 @@ export default function BudgetOverview({
       </Box>
 
       <BackgroundInfo infoId="budget-control" showBackgroundInfo={showBackgroundInfo} />
+
+      {/* Two-column body: left = KPIs + activity, right = charts.
+          Collapses to a single column on narrow viewports. */}
+      <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
+      {/* Left column */}
+      <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
 
       {/* Stacked budget bar */}
       {hasLimit && (
@@ -325,57 +374,107 @@ export default function BudgetOverview({
         </Paper>
       </Box>
 
-      <Divider sx={{ mb: 2 }} />
+      {/* Cache-hit-rate + monthly forecast */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Paper sx={tileSx}>
+          <Typography variant="h5" fontWeight="bold" color="#54d6b0">
+            {cacheHitRatePct}%
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {t('budgetOverview:cacheHitRate')}
+          </Typography>
+        </Paper>
 
-      {/* Collapsible recent activity */}
-      <Box
-        onClick={() => setActivityOpen(!activityOpen)}
-        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', mb: 1 }}
-      >
-        <Typography variant="h6">
-          {t('budgetOverview:recentActivity')}
-        </Typography>
-        <IconButton size="small">
-          {activityOpen ? <ExpandLess /> : <ExpandMore />}
-        </IconButton>
+        <Paper sx={tileSx}>
+          <Typography variant="h5" fontWeight="bold" color="#f0b429">
+            {currencySymbol}{formatCurrency(monthlyForecast)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {t('budgetOverview:monthlyForecast')}
+          </Typography>
+        </Paper>
       </Box>
 
-      <Collapse in={activityOpen}>
-        {recentCosts.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-            {t('budgetOverview:noCostData')}
+      </Box>{/* /Left column */}
+
+      {/* Right column: charts */}
+      <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+        <Paper sx={{ p: 2.5, mb: 3, borderRadius: 3 }} variant="outlined">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              {t('budgetOverview:chartCostByType')}
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={days}
+              onChange={(_e, v) => { if (v) setDays(v); }}
+            >
+              <ToggleButton value={7}>{t('budgetOverview:range7d')}</ToggleButton>
+              <ToggleButton value={30}>{t('budgetOverview:range30d')}</ToggleButton>
+              <ToggleButton value={90}>{t('budgetOverview:range90d')}</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+          <StackedAreaChart
+            data={dailyCosts}
+            keys={areaKeys}
+            currencySymbol={currencySymbol}
+            emptyLabel={t('budgetOverview:noCostData')}
+          />
+        </Paper>
+
+        <Paper sx={{ p: 2.5, borderRadius: 3, mb: 3 }} variant="outlined">
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5 }}>
+            {t('budgetOverview:chartTokenEconomy')}
           </Typography>
-        ) : (
-          <TableContainer component={Paper} sx={{ maxHeight: 400, mb: 3 }}>
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('budgetOverview:columnDate')}</TableCell>
-                  <TableCell align="right">{t('budgetOverview:columnInputTokens')}</TableCell>
-                  <TableCell align="right">{t('budgetOverview:columnOutputTokens')}</TableCell>
-                  <TableCell align="right">{t('budgetOverview:columnCacheRead')}</TableCell>
-                  <TableCell align="right">{t('budgetOverview:columnCacheWrite')}</TableCell>
-                  <TableCell align="right">{t('budgetOverview:columnCost')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {recentCosts.map((cost, index) => (
-                  <TableRow key={index} hover>
-                    <TableCell>{formatDate(cost.timestamp)}</TableCell>
-                    <TableCell align="right">{cost.inputTokens.toLocaleString()}</TableCell>
-                    <TableCell align="right">{cost.outputTokens.toLocaleString()}</TableCell>
-                    <TableCell align="right">{(cost.cacheReadTokens ?? 0).toLocaleString()}</TableCell>
-                    <TableCell align="right">{(cost.cacheCreationTokens ?? 0).toLocaleString()}</TableCell>
-                    <TableCell align="right">
-                      {currencySymbol}{formatCurrencyDetail(cost.requestCosts)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <TokenEconomyDonut slices={donutSlices} />
+        </Paper>
+
+        {/* Top sessions by cost, each with its priciest prompt */}
+        {topSessions.length > 0 && (
+          <Box>
+            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5 }}>
+              {t('budgetOverview:topSessionsTitle')}
+            </Typography>
+            {topSessions.map((s, idx) => (
+              <Paper key={s.sessionId} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1, mb: 0.5 }}>
+                  <Typography variant="body2" fontWeight="bold" noWrap sx={{ minWidth: 0 }}>
+                    {idx + 1}. {s.summary || s.sessionId}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold" color="#f0b429" sx={{ flexShrink: 0 }}>
+                    {currencySymbol}{formatCurrency(s.totalCosts)}
+                  </Typography>
+                </Box>
+                {s.topPrompt && (
+                  <>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                      {t('budgetOverview:topPromptLabel')}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                      title={s.topPrompt}
+                    >
+                      {s.topPrompt}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                      {currencySymbol}{formatCurrencyDetail(s.topPromptCosts)} · {formatTokenCount(s.topPromptTokens)} {t('budgetOverview:tokensUsed').toLowerCase()}
+                    </Typography>
+                  </>
+                )}
+              </Paper>
+            ))}
+          </Box>
         )}
-      </Collapse>
+      </Box>{/* /Right column */}
+
+      </Box>{/* /Two-column body */}
 
       {/* Settings button */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>

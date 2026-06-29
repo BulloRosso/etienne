@@ -133,6 +133,20 @@ export class BudgetMonitoringService {
    * split), it is charged conservatively at the 5-minute write multiplier.
    */
   calculateCosts(inputTokens: number, outputTokens: number, cache: CacheTokenUsage = {}): number {
+    const b = this.calculateCostBreakdown(inputTokens, outputTokens, cache);
+    return b.inputCost + b.outputCost + b.cacheReadCost + b.cacheWriteCost;
+  }
+
+  /**
+   * Per-token-type cost breakdown (single source of truth for both the total
+   * in {@link calculateCosts} and the stacked daily chart). Uses the same
+   * Anthropic cache economics described on calculateCosts.
+   */
+  private calculateCostBreakdown(
+    inputTokens: number,
+    outputTokens: number,
+    cache: CacheTokenUsage = {}
+  ): { inputCost: number; outputCost: number; cacheReadCost: number; cacheWriteCost: number } {
     const perMioInput = this.costsPerMioInputTokens;
     const inputCost = (inputTokens / 1_000_000) * perMioInput;
     const outputCost = (outputTokens / 1_000_000) * this.costsPerMioOutputTokens;
@@ -149,7 +163,7 @@ export class BudgetMonitoringService {
       ((write5m + aggregateOnly) / 1_000_000) * perMioInput * this.cacheWrite5mMultiplier +
       (write1h / 1_000_000) * perMioInput * this.cacheWrite1hMultiplier;
 
-    return inputCost + outputCost + cacheReadCost + cacheWriteCost;
+    return { inputCost, outputCost, cacheReadCost, cacheWriteCost };
   }
 
   /**
@@ -360,6 +374,187 @@ export class BudgetMonitoringService {
       numberOfSessions: this.countSessions(costs),
       numberOfRequests: costs.length
     };
+  }
+
+  /**
+   * Get costs bucketed by calendar day for the last `days` days, broken down
+   * by token type (in the configured currency). Days with no activity are
+   * filled with zeros so the result is a gapless, chart-ready time series
+   * ordered oldest → newest.
+   */
+  async getDailyCosts(projectDir: string, days: number): Promise<{
+    currency: string;
+    days: Array<{
+      day: string;            // YYYY-MM-DD (local time)
+      inputCost: number;
+      outputCost: number;
+      cacheReadCost: number;
+      cacheWriteCost: number;
+      total: number;
+    }>;
+  }> {
+    const span = Math.max(1, Math.min(365, Math.floor(days) || 30));
+    const costs = await this.readCosts(projectDir);
+
+    // Build a gapless map of the last `span` local days (oldest → newest).
+    const dayKey = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const buckets = new Map<string, { inputCost: number; outputCost: number; cacheReadCost: number; cacheWriteCost: number }>();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = span - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      buckets.set(dayKey(d), { inputCost: 0, outputCost: 0, cacheReadCost: 0, cacheWriteCost: 0 });
+    }
+
+    for (const entry of costs) {
+      const key = dayKey(new Date(entry.timestamp));
+      const bucket = buckets.get(key);
+      if (!bucket) continue; // outside the requested window
+      const b = this.calculateCostBreakdown(entry.inputTokens, entry.outputTokens, {
+        cacheReadTokens: entry.cacheReadTokens,
+        cacheCreationTokens: entry.cacheCreationTokens,
+        cacheCreation5mTokens: entry.cacheCreation5mTokens,
+        cacheCreation1hTokens: entry.cacheCreation1hTokens,
+      });
+      bucket.inputCost += b.inputCost;
+      bucket.outputCost += b.outputCost;
+      bucket.cacheReadCost += b.cacheReadCost;
+      bucket.cacheWriteCost += b.cacheWriteCost;
+    }
+
+    const daysOut = Array.from(buckets.entries()).map(([day, b]) => ({
+      day,
+      inputCost: b.inputCost,
+      outputCost: b.outputCost,
+      cacheReadCost: b.cacheReadCost,
+      cacheWriteCost: b.cacheWriteCost,
+      total: b.inputCost + b.outputCost + b.cacheReadCost + b.cacheWriteCost,
+    }));
+
+    return { currency: this.costsCurrencyUnit, days: daysOut };
+  }
+
+  /**
+   * Rank sessions by total cost and, for each of the top sessions, surface the
+   * single user prompt whose turn was the most expensive within that session.
+   *
+   * Cost ranking comes from costs.json (summed requestCosts per sessionId).
+   * The priciest prompt is found by reading the session's chat history
+   * (chat.history-<id>.jsonl) where each user message is immediately followed
+   * by the assistant message carrying that turn's token usage (`costs`).
+   */
+  async getTopSessions(projectDir: string, limit = 3): Promise<{
+    currency: string;
+    sessions: Array<{
+      sessionId: string;
+      summary?: string;
+      totalCosts: number;
+      topPrompt: string | null;
+      topPromptCosts: number;
+      topPromptTokens: number;
+    }>;
+  }> {
+    const topN = Math.max(1, Math.min(20, Math.floor(limit) || 3));
+    const costs = await this.readCosts(projectDir);
+
+    // Sum cost per session.
+    const perSession = new Map<string, number>();
+    for (const entry of costs) {
+      if (!entry.sessionId) continue;
+      perSession.set(entry.sessionId, (perSession.get(entry.sessionId) || 0) + (entry.requestCosts || 0));
+    }
+
+    const ranked = Array.from(perSession.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topN);
+
+    const summaries = await this.loadSessionSummaries(projectDir);
+
+    const sessions = await Promise.all(ranked.map(async ([sessionId, totalCosts]) => {
+      const top = await this.findPriciestPrompt(projectDir, sessionId);
+      return {
+        sessionId,
+        summary: summaries.get(sessionId),
+        totalCosts,
+        topPrompt: top.prompt,
+        topPromptCosts: top.costs,
+        topPromptTokens: top.tokens,
+      };
+    }));
+
+    return { currency: this.costsCurrencyUnit, sessions };
+  }
+
+  /**
+   * Read chat.sessions.json and map sessionId → display summary (name for
+   * pinned/named sessions, else the generated summary). Best-effort.
+   */
+  private async loadSessionSummaries(projectDir: string): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    try {
+      const etienneDir = await this.ensureEtienneDir(projectDir);
+      const content = await fs.readFile(join(etienneDir, 'chat.sessions.json'), 'utf8');
+      const data = JSON.parse(content);
+      for (const s of data.sessions || []) {
+        const label = s.pinned ? (s.sessionName || s.summary) : s.summary;
+        if (s.sessionId && label) map.set(s.sessionId, label);
+      }
+    } catch {
+      // No session metadata — summaries stay undefined.
+    }
+    return map;
+  }
+
+  /**
+   * Within a session, pair each user prompt with the following assistant turn's
+   * token usage and return the prompt of the most expensive turn (by EUR cost).
+   */
+  private async findPriciestPrompt(projectDir: string, sessionId: string): Promise<{
+    prompt: string | null;
+    costs: number;
+    tokens: number;
+  }> {
+    let best = { prompt: null as string | null, costs: 0, tokens: 0 };
+    try {
+      const etienneDir = await this.ensureEtienneDir(projectDir);
+      const historyPath = join(etienneDir, `chat.history-${sessionId}.jsonl`);
+      const content = await fs.readFile(historyPath, 'utf8');
+      const messages = content.trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
+
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (msg.isAgent) continue; // we anchor on user prompts
+        // The next assistant message carries this turn's usage in `costs`.
+        const reply = messages[i + 1];
+        const usage = reply && reply.isAgent ? reply.costs : undefined;
+        if (!usage) continue;
+
+        const turnCost = this.calculateCosts(
+          usage.input_tokens || 0,
+          usage.output_tokens || 0,
+          {
+            cacheReadTokens: usage.cache_read_input_tokens,
+            cacheCreationTokens: usage.cache_creation_input_tokens,
+            cacheCreation5mTokens: usage.cache_creation_ephemeral_5m_input_tokens,
+            cacheCreation1hTokens: usage.cache_creation_ephemeral_1h_input_tokens,
+          }
+        );
+        if (turnCost > best.costs) {
+          const tokens = (usage.input_tokens || 0) + (usage.output_tokens || 0)
+            + (usage.cache_read_input_tokens || 0) + (usage.cache_creation_input_tokens || 0);
+          best = { prompt: typeof msg.message === 'string' ? msg.message : null, costs: turnCost, tokens };
+        }
+      }
+    } catch {
+      // No readable history for this session.
+    }
+    return best;
   }
 
   /**

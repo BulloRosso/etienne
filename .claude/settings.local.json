@@ -126,7 +126,9 @@
       "Bash(NODE_OPTIONS=\"--max-old-space-size=12288\" npx tsc --noEmit --skipLibCheck)",
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_snapshot",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot"
     ],
     "deny": [],
     "ask": []

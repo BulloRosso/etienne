@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Sse } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Sse } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 import { BudgetMonitoringService, BudgetSettings } from './budget-monitoring.service';
 import { Roles } from '../auth/roles.decorator';
@@ -20,6 +20,22 @@ export class BudgetMonitoringController {
   @Get(':project/all')
   async getAllCosts(@Param('project') project: string) {
     return this.service.getAllCosts(project);
+  }
+
+  @Get(':project/daily')
+  async getDailyCosts(
+    @Param('project') project: string,
+    @Query('days') days?: string,
+  ) {
+    return this.service.getDailyCosts(project, days ? parseInt(days, 10) : 30);
+  }
+
+  @Get(':project/top-sessions')
+  async getTopSessions(
+    @Param('project') project: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.getTopSessions(project, limit ? parseInt(limit, 10) : 3);
   }
 
   @Get(':project/settings')
