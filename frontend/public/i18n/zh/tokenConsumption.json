@@ -1,4 +1,5 @@
 {
   "model": "模型",
-  "tokenSummary": "{{inputTokens}} 输入 + {{outputTokens}} 输出 = {{totalTokens}} 总令牌数"
+  "tokenSummary": "{{inputTokens}} 输入 + {{outputTokens}} 输出 = {{totalTokens}} 总令牌数",
+  "cacheSummary": "{{cacheReadTokens}} 缓存读取 + {{cacheCreationTokens}} 缓存写入令牌"
 }

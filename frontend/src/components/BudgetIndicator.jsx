@@ -49,10 +49,14 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
   const [currency, setCurrency] = useState('EUR');
   const [totalInputTokens, setTotalInputTokens] = useState(0);
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
+  const [totalCacheReadTokens, setTotalCacheReadTokens] = useState(0);
+  const [totalCacheCreationTokens, setTotalCacheCreationTokens] = useState(0);
   const [globalCosts, setGlobalCosts] = useState(0);
   const [globalSessions, setGlobalSessions] = useState(0);
   const [globalInputTokens, setGlobalInputTokens] = useState(0);
   const [globalOutputTokens, setGlobalOutputTokens] = useState(0);
+  const [globalCacheReadTokens, setGlobalCacheReadTokens] = useState(0);
+  const [globalCacheCreationTokens, setGlobalCacheCreationTokens] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Load initial costs (project + global)
@@ -73,11 +77,15 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
         setCurrency(projectData.currency || 'EUR');
         setTotalInputTokens(projectData.totalInputTokens || 0);
         setTotalOutputTokens(projectData.totalOutputTokens || 0);
+        setTotalCacheReadTokens(projectData.totalCacheReadTokens || 0);
+        setTotalCacheCreationTokens(projectData.totalCacheCreationTokens || 0);
 
         setGlobalCosts(globalData.globalCosts || 0);
         setGlobalSessions(globalData.globalSessions || 0);
         setGlobalInputTokens(globalData.globalInputTokens || 0);
         setGlobalOutputTokens(globalData.globalOutputTokens || 0);
+        setGlobalCacheReadTokens(globalData.globalCacheReadTokens || 0);
+        setGlobalCacheCreationTokens(globalData.globalCacheCreationTokens || 0);
       } catch (error) {
         console.error('Failed to fetch costs:', error);
       }
@@ -94,6 +102,8 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
       setCurrentCosts(data.currentCosts || 0);
       setNumberOfSessions(data.numberOfSessions || 0);
       setCurrency(data.currency || 'EUR');
+      if (data.cacheReadTokens !== undefined) setTotalCacheReadTokens(data.cacheReadTokens || 0);
+      if (data.cacheCreationTokens !== undefined) setTotalCacheCreationTokens(data.cacheCreationTokens || 0);
       // Re-fetch global costs on any update
       apiFetch('/api/budget-monitoring/global/current')
         .then(res => res.json())
@@ -102,6 +112,8 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
           setGlobalSessions(globalData.globalSessions || 0);
           setGlobalInputTokens(globalData.globalInputTokens || 0);
           setGlobalOutputTokens(globalData.globalOutputTokens || 0);
+          setGlobalCacheReadTokens(globalData.globalCacheReadTokens || 0);
+          setGlobalCacheCreationTokens(globalData.globalCacheCreationTokens || 0);
         })
         .catch(() => {});
     };
@@ -182,10 +194,14 @@ export default function BudgetIndicator({ project, budgetSettings, onSettingsCha
           currency={currency}
           totalInputTokens={totalInputTokens}
           totalOutputTokens={totalOutputTokens}
+          totalCacheReadTokens={totalCacheReadTokens}
+          totalCacheCreationTokens={totalCacheCreationTokens}
           globalCosts={globalCosts}
           globalSessions={globalSessions}
           globalInputTokens={globalInputTokens}
           globalOutputTokens={globalOutputTokens}
+          globalCacheReadTokens={globalCacheReadTokens}
+          globalCacheCreationTokens={globalCacheCreationTokens}
           budgetSettings={budgetSettings}
           onClose={effectiveDrawerClose}
           onSettingsChange={(settings) => {

@@ -153,11 +153,20 @@ export class SdkMessageTransformer {
    */
   static extractUsage(sdkMessage: any): Usage | null {
     if (sdkMessage.type === 'result' && sdkMessage.subtype === 'success' && sdkMessage.usage) {
+      const u = sdkMessage.usage;
+      // Anthropic nests the cache-write TTL split under `cache_creation`
+      // (ephemeral_5m_input_tokens / ephemeral_1h_input_tokens). When only the
+      // aggregate `cache_creation_input_tokens` is present, the split is omitted.
+      const cacheCreation = u.cache_creation || {};
       return {
-        input_tokens: sdkMessage.usage.input_tokens,
-        output_tokens: sdkMessage.usage.output_tokens,
-        total_tokens: (sdkMessage.usage.input_tokens || 0) + (sdkMessage.usage.output_tokens || 0),
-        model: sdkMessage.usage.model
+        input_tokens: u.input_tokens,
+        output_tokens: u.output_tokens,
+        total_tokens: (u.input_tokens || 0) + (u.output_tokens || 0),
+        cache_read_input_tokens: u.cache_read_input_tokens,
+        cache_creation_input_tokens: u.cache_creation_input_tokens,
+        cache_creation_ephemeral_5m_input_tokens: cacheCreation.ephemeral_5m_input_tokens,
+        cache_creation_ephemeral_1h_input_tokens: cacheCreation.ephemeral_1h_input_tokens,
+        model: u.model
       };
     }
     return null;

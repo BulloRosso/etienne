@@ -550,6 +550,10 @@ export class OpenCodeOrchestratorService {
         try {
           await this.budgetMonitoringService.trackCosts(
             projectDir, usage.input_tokens, usage.output_tokens, sessionId,
+            {
+              cacheReadTokens: usage.cache_read_input_tokens,
+              cacheCreationTokens: usage.cache_creation_input_tokens,
+            },
           );
         } catch (err: any) {
           this.logger.error('Failed to track budget costs:', err?.message);

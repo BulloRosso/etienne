@@ -121,10 +121,14 @@ export default function BudgetOverview({
   currency,
   totalInputTokens,
   totalOutputTokens,
+  totalCacheReadTokens = 0,
+  totalCacheCreationTokens = 0,
   globalCosts,
   globalSessions,
   globalInputTokens,
   globalOutputTokens,
+  globalCacheReadTokens = 0,
+  globalCacheCreationTokens = 0,
   budgetSettings,
   onClose,
   onSettingsChange,
@@ -172,6 +176,17 @@ export default function BudgetOverview({
 
   const totalTokens = (totalInputTokens || 0) + (totalOutputTokens || 0);
   const globalTotalTokens = (globalInputTokens || 0) + (globalOutputTokens || 0);
+
+  // Cache economics: a cache read costs ~10% of the input price, so every
+  // cached input token saved 90% of its cost. Express savings as the fraction
+  // of input-side tokens served from cache, weighted by that 90% discount.
+  const cacheReadTokens = totalCacheReadTokens || 0;
+  const cacheCreationTokens = totalCacheCreationTokens || 0;
+  const cachedTokens = cacheReadTokens + cacheCreationTokens;
+  const inputSideTokens = (totalInputTokens || 0) + cacheReadTokens;
+  const cacheSavingsPct = inputSideTokens > 0
+    ? Math.round((cacheReadTokens / inputSideTokens) * 90)
+    : 0;
   const limit = budgetSettings?.limit || 0;
   const hasLimit = limit > 0;
   const isExceeded = hasLimit && (globalCosts || 0) >= limit;
@@ -289,6 +304,27 @@ export default function BudgetOverview({
         </Paper>
       </Box>
 
+      {/* Cache economics row */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Paper sx={tileSx}>
+          <Typography variant="h5" fontWeight="bold" color="#1976d2">
+            {formatTokenCount(cachedTokens)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {t('budgetOverview:tokensCached')}
+          </Typography>
+        </Paper>
+
+        <Paper sx={tileSx}>
+          <Typography variant="h5" fontWeight="bold" color="#1976d2">
+            {cacheSavingsPct}%
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {t('budgetOverview:cacheSavings')}
+          </Typography>
+        </Paper>
+      </Box>
+
       <Divider sx={{ mb: 2 }} />
 
       {/* Collapsible recent activity */}
@@ -317,6 +353,8 @@ export default function BudgetOverview({
                   <TableCell>{t('budgetOverview:columnDate')}</TableCell>
                   <TableCell align="right">{t('budgetOverview:columnInputTokens')}</TableCell>
                   <TableCell align="right">{t('budgetOverview:columnOutputTokens')}</TableCell>
+                  <TableCell align="right">{t('budgetOverview:columnCacheRead')}</TableCell>
+                  <TableCell align="right">{t('budgetOverview:columnCacheWrite')}</TableCell>
                   <TableCell align="right">{t('budgetOverview:columnCost')}</TableCell>
                 </TableRow>
               </TableHead>
@@ -326,6 +364,8 @@ export default function BudgetOverview({
                     <TableCell>{formatDate(cost.timestamp)}</TableCell>
                     <TableCell align="right">{cost.inputTokens.toLocaleString()}</TableCell>
                     <TableCell align="right">{cost.outputTokens.toLocaleString()}</TableCell>
+                    <TableCell align="right">{(cost.cacheReadTokens ?? 0).toLocaleString()}</TableCell>
+                    <TableCell align="right">{(cost.cacheCreationTokens ?? 0).toLocaleString()}</TableCell>
                     <TableCell align="right">
                       {currencySymbol}{formatCurrencyDetail(cost.requestCosts)}
                     </TableCell>

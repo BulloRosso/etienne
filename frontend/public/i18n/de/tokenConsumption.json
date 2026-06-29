@@ -1,4 +1,5 @@
 {
   "model": "Modell",
-  "tokenSummary": "{{inputTokens}} Eingabe + {{outputTokens}} Ausgabe = {{totalTokens}} Tokens gesamt"
+  "tokenSummary": "{{inputTokens}} Eingabe + {{outputTokens}} Ausgabe = {{totalTokens}} Tokens gesamt",
+  "cacheSummary": "{{cacheReadTokens}} Cache-Lese + {{cacheCreationTokens}} Cache-Schreib-Tokens"
 }

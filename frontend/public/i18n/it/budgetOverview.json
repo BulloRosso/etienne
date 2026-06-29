@@ -1,6 +1,9 @@
 {
   "avgCostPerSession": "Costo medio per sessione",
   "barTooltip": "Progetto corrente: {{projectCosts}} {{currencySymbol}} | Altri progetti: {{otherCosts}} {{currencySymbol}}",
+  "cacheSavings": "Risparmiato con cache",
+  "columnCacheRead": "Lettura cache",
+  "columnCacheWrite": "Scrittura cache",
   "columnCost": "Costo",
   "columnDate": "Data",
   "columnInputTokens": "Token in ingresso",
@@ -13,6 +16,7 @@
   "sessionsCompleted": "Sessioni completate",
   "settingsButton": "Impostazioni budget",
   "title": "Panoramica del budget",
+  "tokensCached": "Token in cache",
   "tokensRemaining": "Token rimanenti (stima)",
   "tokensUsed": "Token utilizzati",
   "totalCosts": "Costi totali"

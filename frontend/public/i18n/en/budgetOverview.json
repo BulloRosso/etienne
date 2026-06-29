@@ -1,6 +1,9 @@
 {
   "avgCostPerSession": "Avg. cost per session",
   "barTooltip": "Current project: {{projectCosts}} {{currencySymbol}} | Other projects: {{otherCosts}} {{currencySymbol}}",
+  "cacheSavings": "Saved via cache",
+  "columnCacheRead": "Cache Read",
+  "columnCacheWrite": "Cache Write",
   "columnCost": "Cost",
   "columnDate": "Date",
   "columnInputTokens": "Input Tokens",
@@ -13,6 +16,7 @@
   "sessionsCompleted": "Sessions completed",
   "settingsButton": "Budget Settings",
   "title": "Budget Overview",
+  "tokensCached": "Cached tokens",
   "tokensRemaining": "Tokens remaining (est.)",
   "tokensUsed": "Tokens used",
   "totalCosts": "Total costs"

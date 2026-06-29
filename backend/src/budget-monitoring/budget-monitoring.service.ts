@@ -10,8 +10,27 @@ export interface CostEntry {
   sessionId?: string;
   inputTokens: number;
   outputTokens: number;
+  /** Cached input tokens read back (billed at ~10% of the input price). */
+  cacheReadTokens?: number;
+  /** Total cache-write tokens (aggregate of 5m + 1h ephemeral buckets). */
+  cacheCreationTokens?: number;
+  /** Cache-write tokens with 5-minute TTL (billed at 1.25× input). */
+  cacheCreation5mTokens?: number;
+  /** Cache-write tokens with 1-hour TTL (billed at 2× input). */
+  cacheCreation1hTokens?: number;
   requestCosts: number;
   accumulatedCosts: number;
+}
+
+/**
+ * Cache-token breakdown passed alongside input/output tokens when tracking
+ * costs. All fields optional so callers without cache data stay compatible.
+ */
+export interface CacheTokenUsage {
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
+  cacheCreation5mTokens?: number;
+  cacheCreation1hTokens?: number;
 }
 
 export interface BudgetSettings {
@@ -32,6 +51,8 @@ export interface BudgetUpdateEvent {
   currentCosts: number;
   numberOfSessions: number;
   currency: string;
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
 }
 
 @Injectable()
@@ -41,6 +62,11 @@ export class BudgetMonitoringService {
   private readonly costsCurrencyUnit = process.env.COSTS_CURRENCY_UNIT || 'EUR';
   private readonly costsPerMioInputTokens = parseFloat(process.env.COSTS_PER_MIO_INPUT_TOKENS || '3.0');
   private readonly costsPerMioOutputTokens = parseFloat(process.env.COSTS_PER_MIO_OUTPUT_TOKENS || '15.0');
+  // Anthropic cache pricing as multipliers of the base input price:
+  // cache reads cost 10% of input; 5-minute writes 1.25×; 1-hour writes 2×.
+  private readonly cacheReadMultiplier = parseFloat(process.env.COSTS_CACHE_READ_MULTIPLIER || '0.1');
+  private readonly cacheWrite5mMultiplier = parseFloat(process.env.COSTS_CACHE_WRITE_5M_MULTIPLIER || '1.25');
+  private readonly cacheWrite1hMultiplier = parseFloat(process.env.COSTS_CACHE_WRITE_1H_MULTIPLIER || '2.0');
   private readonly budgetThresholds = [50, 80, 100] as const;
 
   // SSE subjects per project
@@ -96,12 +122,34 @@ export class BudgetMonitoringService {
   }
 
   /**
-   * Calculate costs from token usage
+   * Calculate costs from token usage, including Anthropic cache economics.
+   *
+   * Anthropic reports `input_tokens` as the *uncached* input only; cache reads
+   * and cache writes are separate buckets, so the costs add up rather than
+   * overlapping. Cache reads are billed at ~10% of the input price, 5-minute
+   * writes at 1.25× and 1-hour writes at 2× the input price.
+   *
+   * Fallback: if only the aggregate `cacheCreationTokens` is known (no 5m/1h
+   * split), it is charged conservatively at the 5-minute write multiplier.
    */
-  private calculateCosts(inputTokens: number, outputTokens: number): number {
-    const inputCost = (inputTokens / 1_000_000) * this.costsPerMioInputTokens;
+  calculateCosts(inputTokens: number, outputTokens: number, cache: CacheTokenUsage = {}): number {
+    const perMioInput = this.costsPerMioInputTokens;
+    const inputCost = (inputTokens / 1_000_000) * perMioInput;
     const outputCost = (outputTokens / 1_000_000) * this.costsPerMioOutputTokens;
-    return inputCost + outputCost;
+
+    const cacheReadCost = ((cache.cacheReadTokens || 0) / 1_000_000) * perMioInput * this.cacheReadMultiplier;
+
+    const write5m = cache.cacheCreation5mTokens || 0;
+    const write1h = cache.cacheCreation1hTokens || 0;
+    // If the TTL split is absent, charge the whole aggregate at the 5m rate.
+    const aggregateOnly = (write5m === 0 && write1h === 0)
+      ? (cache.cacheCreationTokens || 0)
+      : 0;
+    const cacheWriteCost =
+      ((write5m + aggregateOnly) / 1_000_000) * perMioInput * this.cacheWrite5mMultiplier +
+      (write1h / 1_000_000) * perMioInput * this.cacheWrite1hMultiplier;
+
+    return inputCost + outputCost + cacheReadCost + cacheWriteCost;
   }
 
   /**
@@ -136,10 +184,16 @@ export class BudgetMonitoringService {
    * Track costs after Claude Code response.
    * Always records usage regardless of whether budget monitoring is enabled.
    */
-  async trackCosts(projectDir: string, inputTokens: number, outputTokens: number, sessionId?: string): Promise<CostEntry> {
-    console.log(`[BudgetMonitoring] trackCosts called for ${projectDir} session=${sessionId || 'unknown'} with ${inputTokens} input, ${outputTokens} output tokens`);
+  async trackCosts(
+    projectDir: string,
+    inputTokens: number,
+    outputTokens: number,
+    sessionId?: string,
+    cache: CacheTokenUsage = {}
+  ): Promise<CostEntry> {
+    console.log(`[BudgetMonitoring] trackCosts called for ${projectDir} session=${sessionId || 'unknown'} with ${inputTokens} input, ${outputTokens} output, ${cache.cacheReadTokens || 0} cache-read, ${cache.cacheCreationTokens || 0} cache-write tokens`);
 
-    const requestCosts = this.calculateCosts(inputTokens, outputTokens);
+    const requestCosts = this.calculateCosts(inputTokens, outputTokens, cache);
 
     // Read existing costs
     const costs = await this.readCosts(projectDir);
@@ -148,12 +202,17 @@ export class BudgetMonitoringService {
     const previousAccumulated = costs.length > 0 ? costs[0].accumulatedCosts : 0;
     const accumulatedCosts = previousAccumulated + requestCosts;
 
-    // Create new entry
+    // Create new entry. Cache fields are written only when present so legacy
+    // readers and old entries stay consistent.
     const newEntry: CostEntry = {
       timestamp: new Date().toISOString(),
       sessionId,
       inputTokens,
       outputTokens,
+      cacheReadTokens: cache.cacheReadTokens,
+      cacheCreationTokens: cache.cacheCreationTokens,
+      cacheCreation5mTokens: cache.cacheCreation5mTokens,
+      cacheCreation1hTokens: cache.cacheCreation1hTokens,
       requestCosts,
       accumulatedCosts
     };
@@ -166,12 +225,20 @@ export class BudgetMonitoringService {
 
     // Emit SSE event
     const subject = this.getSubject(projectDir);
+    let totalCacheRead = 0;
+    let totalCacheCreation = 0;
+    for (const entry of costs) {
+      totalCacheRead += entry.cacheReadTokens || 0;
+      totalCacheCreation += entry.cacheCreationTokens || 0;
+    }
     subject.next({
       project: projectDir,
       timestamp: newEntry.timestamp,
       currentCosts: accumulatedCosts,
       numberOfSessions: this.countSessions(costs),
-      currency: this.costsCurrencyUnit
+      currency: this.costsCurrencyUnit,
+      cacheReadTokens: totalCacheRead,
+      cacheCreationTokens: totalCacheCreation
     });
 
     // Fire-and-forget: check budget thresholds for email notifications
@@ -200,13 +267,19 @@ export class BudgetMonitoringService {
     currency: string;
     totalInputTokens: number;
     totalOutputTokens: number;
+    totalCacheReadTokens: number;
+    totalCacheCreationTokens: number;
   }> {
     const costs = await this.readCosts(projectDir);
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    let totalCacheReadTokens = 0;
+    let totalCacheCreationTokens = 0;
     for (const entry of costs) {
       totalInputTokens += entry.inputTokens;
       totalOutputTokens += entry.outputTokens;
+      totalCacheReadTokens += entry.cacheReadTokens || 0;
+      totalCacheCreationTokens += entry.cacheCreationTokens || 0;
     }
     return {
       currentCosts: costs.length > 0 ? costs[0].accumulatedCosts : 0,
@@ -214,7 +287,9 @@ export class BudgetMonitoringService {
       numberOfRequests: costs.length,
       currency: this.costsCurrencyUnit,
       totalInputTokens,
-      totalOutputTokens
+      totalOutputTokens,
+      totalCacheReadTokens,
+      totalCacheCreationTokens
     };
   }
 
@@ -227,6 +302,8 @@ export class BudgetMonitoringService {
     globalRequests: number;
     globalInputTokens: number;
     globalOutputTokens: number;
+    globalCacheReadTokens: number;
+    globalCacheCreationTokens: number;
     currency: string;
   }> {
     const projects = await this.listAllProjects();
@@ -234,6 +311,8 @@ export class BudgetMonitoringService {
     let globalRequests = 0;
     let globalInputTokens = 0;
     let globalOutputTokens = 0;
+    let globalCacheReadTokens = 0;
+    let globalCacheCreationTokens = 0;
     const allSessionIds = new Set<string>();
 
     for (const project of projects) {
@@ -244,6 +323,8 @@ export class BudgetMonitoringService {
         for (const entry of costs) {
           globalInputTokens += entry.inputTokens;
           globalOutputTokens += entry.outputTokens;
+          globalCacheReadTokens += entry.cacheReadTokens || 0;
+          globalCacheCreationTokens += entry.cacheCreationTokens || 0;
           if (entry.sessionId) {
             allSessionIds.add(entry.sessionId);
           }
@@ -257,6 +338,8 @@ export class BudgetMonitoringService {
       globalRequests,
       globalInputTokens,
       globalOutputTokens,
+      globalCacheReadTokens,
+      globalCacheCreationTokens,
       currency: this.costsCurrencyUnit
     };
   }

@@ -30,6 +30,17 @@ export interface UsageContext {
   totalTokens?: number;
   cacheReadTokens?: number;
   cacheCreationTokens?: number;
+  cacheCreation5mTokens?: number;
+  cacheCreation1hTokens?: number;
+}
+
+export interface CostContext {
+  /** Cost of this single request/run in the configured currency. */
+  requestCosts: number;
+  /** Running total for the project after this request. */
+  accumulatedCosts?: number;
+  /** Currency unit, e.g. "EUR". */
+  currency: string;
 }
 
 export interface SpanUpdateContext {

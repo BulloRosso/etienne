@@ -1236,8 +1236,8 @@ export class ClaudeSdkOrchestratorService {
                 usedTokens,
                 maxTokens,
                 model: currentModel ?? 'unknown',
-                cacheReadTokens: (usage as any).cache_read_input_tokens,
-                cacheCreationTokens: (usage as any).cache_creation_input_tokens,
+                cacheReadTokens: usage.cache_read_input_tokens,
+                cacheCreationTokens: usage.cache_creation_input_tokens,
               }
             });
 
@@ -1247,8 +1247,10 @@ export class ClaudeSdkOrchestratorService {
                 inputTokens: usage.input_tokens,
                 outputTokens: usage.output_tokens,
                 totalTokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
-                cacheReadTokens: (usage as any).cache_read_input_tokens,
-                cacheCreationTokens: (usage as any).cache_creation_input_tokens,
+                cacheReadTokens: usage.cache_read_input_tokens,
+                cacheCreationTokens: usage.cache_creation_input_tokens,
+                cacheCreation5mTokens: usage.cache_creation_ephemeral_5m_input_tokens,
+                cacheCreation1hTokens: usage.cache_creation_ephemeral_1h_input_tokens,
               });
             }
           }
@@ -1304,6 +1306,26 @@ export class ClaudeSdkOrchestratorService {
                 },
               });
             }
+            // Record the computed EUR cost on the conversation span for
+            // attribution, before the span ends. Persistence (with the
+            // accumulated running total) happens after the stream loop.
+            if (usage.input_tokens || usage.output_tokens) {
+              const requestCosts = this.budgetMonitoringService.calculateCosts(
+                usage.input_tokens || 0,
+                usage.output_tokens || 0,
+                {
+                  cacheReadTokens: usage.cache_read_input_tokens,
+                  cacheCreationTokens: usage.cache_creation_input_tokens,
+                  cacheCreation5mTokens: usage.cache_creation_ephemeral_5m_input_tokens,
+                  cacheCreation1hTokens: usage.cache_creation_ephemeral_1h_input_tokens,
+                }
+              );
+              this.telemetryService.recordCost(processId, {
+                requestCosts,
+                currency: process.env.COSTS_CURRENCY_UNIT || 'EUR',
+              });
+            }
+
             // End telemetry span successfully
             this.telemetryService.endConversationSpan(processId, assistantText);
           }
@@ -1400,9 +1422,15 @@ export class ClaudeSdkOrchestratorService {
             projectDir,
             usage.input_tokens,
             usage.output_tokens,
-            sessionId
+            sessionId,
+            {
+              cacheReadTokens: usage.cache_read_input_tokens,
+              cacheCreationTokens: usage.cache_creation_input_tokens,
+              cacheCreation5mTokens: usage.cache_creation_ephemeral_5m_input_tokens,
+              cacheCreation1hTokens: usage.cache_creation_ephemeral_1h_input_tokens,
+            }
           );
-          this.logger.log(`💰 Tracked costs: ${usage.input_tokens} input, ${usage.output_tokens} output tokens (session: ${sessionId})`);
+          this.logger.log(`💰 Tracked costs: ${usage.input_tokens} input, ${usage.output_tokens} output, ${usage.cache_read_input_tokens || 0} cache-read, ${usage.cache_creation_input_tokens || 0} cache-write tokens (session: ${sessionId})`);
         } catch (err) {
           this.logger.error('Failed to track budget costs:', err);
         }

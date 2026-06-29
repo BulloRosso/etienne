@@ -6,6 +6,7 @@ import {
   ToolSpanContext,
   ToolCompletionContext,
   UsageContext,
+  CostContext,
   SpanUpdateContext,
 } from './telemetry.types';
 
@@ -184,8 +185,34 @@ export class TelemetryService {
     if (usage.cacheCreationTokens !== undefined) {
       span.setAttribute('llm.token_count.cache_creation', usage.cacheCreationTokens);
     }
+    if (usage.cacheCreation5mTokens !== undefined) {
+      span.setAttribute('llm.token_count.cache_creation_5m', usage.cacheCreation5mTokens);
+    }
+    if (usage.cacheCreation1hTokens !== undefined) {
+      span.setAttribute('llm.token_count.cache_creation_1h', usage.cacheCreation1hTokens);
+    }
 
     this.logger.debug(`Recorded usage for process: ${processId}`);
+  }
+
+  /**
+   * Record the computed monetary cost of the run on the conversation span.
+   * Anthropic only reports token usage once per run (not per tool call), so
+   * cost attribution lives on the conversation span, not on tool spans.
+   */
+  recordCost(processId: string, cost: CostContext): void {
+    if (!isOtelEnabled) return;
+
+    const span = this.activeSpans.get(processId);
+    if (!span) return;
+
+    span.setAttribute('gen_ai.usage.cost', cost.requestCosts);
+    span.setAttribute('gen_ai.usage.cost.currency', cost.currency);
+    if (cost.accumulatedCosts !== undefined) {
+      span.setAttribute('gen_ai.usage.cost.accumulated', cost.accumulatedCosts);
+    }
+
+    this.logger.debug(`Recorded cost for process: ${processId} (${cost.requestCosts} ${cost.currency})`);
   }
 
   /**
