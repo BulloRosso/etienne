@@ -8,6 +8,7 @@ import { OpenCodeSdkService } from './opencode-sdk.service';
 import { OpenCodeSessionManagerService } from './opencode-session-manager.service';
 import { OpenCodePermissionService } from './opencode-permission.service';
 import { SdkHookEmitterService } from '../sdk/sdk-hook-emitter.service';
+import { StreamRelayRegistry } from '../sdk/stream-relay.registry';
 import { MessageEvent, Usage } from '../types';
 import { openCodeEventToMessageEvents } from './opencode-event-adapter';
 import { translateMcpConfig } from './opencode-mcp-config.adapter';
@@ -39,6 +40,10 @@ import { SecretsManagerService } from '../../secrets-manager/secrets-manager.ser
  * - Native MCP support (config translation, no bridge needed)
  * - SSE event stream is global — must filter by sessionId
  */
+/** OpenCode tags its event-bus events with this source so the rule engine / loop-guard
+ *  can distinguish OpenCode activity from the Anthropic harness (self-event suppression). */
+const OPENCODE_SOURCE = 'open-code';
+
 @Injectable()
 export class OpenCodeOrchestratorService {
   private readonly logger = new Logger(OpenCodeOrchestratorService.name);
@@ -61,6 +66,7 @@ export class OpenCodeOrchestratorService {
     private readonly sessionManager: OpenCodeSessionManagerService,
     private readonly permissionService: OpenCodePermissionService,
     private readonly hookEmitter: SdkHookEmitterService,
+    private readonly streamRelayRegistry: StreamRelayRegistry,
     private readonly guardrailsService: GuardrailsService,
     private readonly outputGuardrailsService: OutputGuardrailsService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
@@ -97,32 +103,35 @@ export class OpenCodeOrchestratorService {
   ): Observable<MessageEvent> {
     const processId = `opencode_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
-    return new Observable<MessageEvent>((observer) => {
-      observer.next({
-        type: 'session',
-        data: { process_id: processId },
-      });
-
-      this.runStreamPrompt(
-        observer,
-        projectDir,
-        prompt,
-        agentMode,
-        memoryEnabled,
-        skipChatPersistence,
-        processId,
-      ).catch((error) => {
-        this.logger.error(`OpenCode stream prompt failed: ${error.message}`, error.stack);
-        observer.next({ type: 'error', data: { message: error.message } });
-        observer.complete();
-      });
-
-      return () => {
-        // Mark as aborted on unsubscribe
-        const active = this.activeSessions.get(processId);
-        if (active) active.aborted = true;
-      };
+    // Route events through a StreamRelay so a reload / transport hiccup can re-attach
+    // and replay instead of aborting the run (parity with anthropic/codex/pi-mono).
+    // The relay aborts the run only after the grace window with no client attached.
+    const relay = this.streamRelayRegistry.createRelay(processId, {
+      onAbandoned: () => { this.abortProcess(processId).catch(() => {}); },
     });
+
+    relay.next({ type: 'session', data: { process_id: processId } });
+
+    this.runStreamPrompt(
+      relay,
+      projectDir,
+      prompt,
+      agentMode,
+      memoryEnabled,
+      skipChatPersistence,
+      processId,
+    ).catch((error) => {
+      this.logger.error(`OpenCode stream prompt failed: ${error.message}`, error.stack);
+      relay.next({ type: 'error', data: { message: error.message } });
+      relay.complete();
+    });
+
+    return relay.asObservable();
+  }
+
+  /** Re-attach a reloaded client to a buffered OpenCode run. */
+  attachToStream(processId: string, lastSeq?: number): Observable<MessageEvent> {
+    return this.streamRelayRegistry.attach(processId, lastSeq);
   }
 
   /**
@@ -301,6 +310,7 @@ export class OpenCodeOrchestratorService {
         prompt: finalPrompt,
         session_id: sessionId,
         timestamp: new Date().toISOString(),
+        source: OPENCODE_SOURCE,
       });
 
       // === Start Telemetry ===
@@ -486,6 +496,7 @@ export class OpenCodeOrchestratorService {
                 path: m.data.path,
                 session_id: sessionId,
                 timestamp: new Date().toISOString(),
+                source: OPENCODE_SOURCE,
               });
             }
 

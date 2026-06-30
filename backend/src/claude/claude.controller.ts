@@ -223,6 +223,12 @@ export class ClaudeController {
     if (processId.startsWith('pimono_')) {
       return this.piMonoOrchestrator.attachToStream(processId, seq);
     }
+    if (processId.startsWith('codex_')) {
+      return this.codexOrchestrator.attachToStream(processId, seq);
+    }
+    if (processId.startsWith('opencode_')) {
+      return this.openCodeOrchestrator.attachToStream(processId, seq);
+    }
     return this.sdkOrchestrator.attachToStream(processId, seq);
   }
 

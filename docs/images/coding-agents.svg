@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 720" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1180" height="720" fill="#ffffff"/>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#888"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2e7d32"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="590" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="#222">Supported Coding Agents</text>
+  <text x="590" y="70" text-anchor="middle" font-size="14" fill="#666">Swap the harness behind a shared core with <tspan font-family="Consolas, monospace" fill="#444">CODING_AGENT=&lt;value&gt;</tspan></text>
+
+  <!-- Legend -->
+  <g transform="translate(40, 96)">
+    <rect x="0" y="0" width="210" height="74" fill="#fafafa" stroke="#ddd" rx="6"/>
+    <text x="12" y="22" font-size="12" font-weight="600" fill="#333">Legend</text>
+    <rect x="12" y="32" width="14" height="14" fill="#c8e6c9" stroke="#2e7d32"/>
+    <text x="34" y="44" font-size="11" fill="#333">Reference / default harness</text>
+    <rect x="12" y="52" width="14" height="14" fill="#e3f2fd" stroke="#1976d2"/>
+    <text x="34" y="64" font-size="11" fill="#333">Alternative harness</text>
+  </g>
+
+  <!-- ===================== Core (center) ===================== -->
+  <g>
+    <rect x="430" y="300" width="320" height="160" rx="10" fill="#ede7f6" stroke="#5e35b1" stroke-width="2"/>
+    <text x="590" y="330" text-anchor="middle" font-size="17" font-weight="700" fill="#4527a0">Etienne Core</text>
+    <text x="590" y="352" text-anchor="middle" font-size="12" fill="#5e35b1">shared across every harness</text>
+    <line x1="455" y1="364" x2="725" y2="364" stroke="#d1c4e9"/>
+    <text x="590" y="385" text-anchor="middle" font-size="11.5" fill="#444">SSE stream  ·  Stream Relay (reload-safe)</text>
+    <text x="590" y="404" text-anchor="middle" font-size="11.5" fill="#444">Event Bus  ·  Rule Engine  ·  Interceptors</text>
+    <text x="590" y="423" text-anchor="middle" font-size="11.5" fill="#444">Permissions  ·  Budget &amp; Token Economy</text>
+    <text x="590" y="442" text-anchor="middle" font-size="11.5" fill="#444">Guardrails  ·  Memory / RAG  ·  Sessions</text>
+  </g>
+
+  <!-- ===================== Harness boxes ===================== -->
+  <!-- anthropic (reference / default) - top center, green -->
+  <g>
+    <rect x="445" y="120" width="290" height="92" rx="8" fill="#c8e6c9" stroke="#2e7d32" stroke-width="2"/>
+    <text x="590" y="146" text-anchor="middle" font-size="16" font-weight="700" fill="#1b5e20">Anthropic — Claude Agent SDK</text>
+    <text x="590" y="167" text-anchor="middle" font-size="12" font-family="Consolas, monospace" fill="#2e7d32">CODING_AGENT=anthropic  (default)</text>
+    <text x="590" y="187" text-anchor="middle" font-size="11.5" fill="#33691e">Reference depth: native MCP, subagents,</text>
+    <text x="590" y="203" text-anchor="middle" font-size="11.5" fill="#33691e">plan mode, AskUserQuestion, skills</text>
+  </g>
+
+  <!-- pi-mono - left -->
+  <g>
+    <rect x="70" y="334" width="290" height="92" rx="8" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="215" y="360" text-anchor="middle" font-size="15" font-weight="700" fill="#0d47a1">pi-mono</text>
+    <text x="215" y="380" text-anchor="middle" font-size="12" font-family="Consolas, monospace" fill="#1976d2">CODING_AGENT=pi-mono</text>
+    <text x="215" y="400" text-anchor="middle" font-size="11.5" fill="#1565c0">50+ providers · OAuth subscriptions</text>
+    <text x="215" y="416" text-anchor="middle" font-size="11.5" fill="#1565c0">extension tool-gate · session fork</text>
+  </g>
+
+  <!-- codex - right -->
+  <g>
+    <rect x="820" y="334" width="290" height="92" rx="8" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="965" y="360" text-anchor="middle" font-size="15" font-weight="700" fill="#0d47a1">OpenAI Codex</text>
+    <text x="965" y="380" text-anchor="middle" font-size="12" font-family="Consolas, monospace" fill="#1976d2">CODING_AGENT=openai</text>
+    <text x="965" y="400" text-anchor="middle" font-size="11.5" fill="#1565c0">codex-sdk 0.142 · native MCP</text>
+    <text x="965" y="416" text-anchor="middle" font-size="11.5" fill="#1565c0">cache-aware tokens · stream replay</text>
+  </g>
+
+  <!-- opencode - bottom center -->
+  <g>
+    <rect x="445" y="548" width="290" height="92" rx="8" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="590" y="574" text-anchor="middle" font-size="15" font-weight="700" fill="#0d47a1">OpenCode</text>
+    <text x="590" y="594" text-anchor="middle" font-size="12" font-family="Consolas, monospace" fill="#1976d2">CODING_AGENT=open-code</text>
+    <text x="590" y="614" text-anchor="middle" font-size="11.5" fill="#1565c0">native MCP/subagents/skills · LSP</text>
+    <text x="590" y="630" text-anchor="middle" font-size="11.5" fill="#1565c0">75+ models across providers</text>
+  </g>
+
+  <!-- ===================== Connectors to core ===================== -->
+  <!-- anthropic (green, reference) -->
+  <path d="M 590 212 L 590 298" fill="none" stroke="#2e7d32" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+  <!-- pi-mono -->
+  <path d="M 360 380 L 428 380" fill="none" stroke="#888" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <!-- codex -->
+  <path d="M 820 380 L 752 380" fill="none" stroke="#888" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <!-- opencode -->
+  <path d="M 590 548 L 590 462" fill="none" stroke="#888" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Footnote -->
+  <text x="590" y="684" text-anchor="middle" font-size="12" fill="#777">Every harness streams through the same SSE + event bus; the core (permissions, budget,</text>
+  <text x="590" y="702" text-anchor="middle" font-size="12" fill="#777">stream replay, rule engine, memory) is harness-agnostic — only the agent runtime swaps.</text>
+</svg>

@@ -1,8 +1,17 @@
 # Codex SDK — Elicitation & Approval Bridge
 
-This module integrates the OpenAI Codex app-server with the existing SSE eventing infrastructure used by the Anthropic Claude SDK. The Codex app-server communicates via a custom JSON-RPC protocol over JSONL (stdin/stdout), while the frontend expects events delivered through SSE streams and responses submitted via HTTP POST endpoints.
+This module integrates the OpenAI Codex agent with the existing SSE eventing infrastructure used by the Anthropic Claude SDK, so the frontend receives events through the same SSE streams and responds via the same HTTP POST endpoints.
 
-The bridge translates between these two worlds without modifying the existing SSE eventing layer (`InterceptorsService`, `SdkPermissionController`, etc.).
+> **SDK version:** pinned to `@openai/codex-sdk@^0.142.4` (Node `>=18`; no Node bump). The published TypeScript SDK API surface is byte-for-byte identical to 0.133.0 — the bump advances the bundled `@openai/codex` CLI engine (notably 0.142.2: *MCP tools use tool-search by default*). The orchestrator uses the typed `Codex` / `Thread.runStreamed()` API with `AbortSignal` cancellation, not the older raw JSON-RPC app-server protocol that parts of the diagram below still describe.
+
+## Parity status (vs. the Anthropic reference + pi-mono)
+
+Closed in the 0.142.4 hardening pass:
+- **Cache-token economy** — `Usage.cached_input_tokens` is mapped onto the SSE `cache_read_input_tokens` and threaded into `BudgetMonitoringService.trackCosts` (5th `cache` arg), so prompt-cache savings reach the token-economy UI and cost accounting. (Codex has no cache-*write* concept, so the 5m/1h ephemeral buckets stay undefined.)
+- **Stream replay** — events route through a `StreamRelay`; a page reload re-attaches via `streamPrompt/attach/:processId` (controller routes `codex_*` ids) instead of dropping the run.
+- **Loop-guard source** — bus events (`UserPromptSubmit`, `file_added`, `file_changed`) are tagged `source: 'codex'` so the rule-engine's self-event suppression / cooldown can distinguish Codex activity (2026-05-18 credit-drain guard).
+
+Known gap (unchanged): the **Codex permission service** is still unimplemented — `approvalPolicy` defaults from `CODEX_APPROVAL_POLICY` and approvals are not yet surfaced as `permission_request` SSE dialogs. The protocol-mapping section below describes the intended design.
 
 ## Architecture Overview
 

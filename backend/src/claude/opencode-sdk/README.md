@@ -1,12 +1,14 @@
 # OpenCode coding agent
 
-Integration of [OpenCode](https://github.com/anomalyco/opencode) (by SST) via the official `@opencode-ai/sdk` TypeScript SDK as a `CODING_AGENT=open-code` option alongside the existing Anthropic, Codex, OpenAI-Agents, and pi-mono orchestrators.
+Integration of [OpenCode](https://github.com/sst/opencode) (by SST) via the official `@opencode-ai/sdk` TypeScript SDK as a `CODING_AGENT=open-code` option alongside the existing Anthropic, Codex, and pi-mono orchestrators.
 
-OpenCode is a TypeScript-based terminal AI coding assistant with 75+ model support, LSP integration, and first-class MCP support. It is MIT-licensed and actively maintained by the SST team (Anomaly).
+OpenCode is a TypeScript-based terminal AI coding assistant with 75+ model support, LSP integration, and first-class MCP support. It is MIT-licensed and actively maintained by the SST team.
+
+> **SDK version:** pinned to `@opencode-ai/sdk` + `opencode-ai` `^1.17.11` (lockstep; no `engines.node` constraint). The v1 SDK type surface is unchanged from 1.14.44 — the published `.d.ts` are identical apart from additive optional fields (e.g. session `metadata`), and the new `./v2` API is a separate opt-in subpath this adapter doesn't use. The bump is a safe re-pin; no adapter changes were required.
 
 ## Status
 
-The orchestrator streams text, thinking, tool-call, tool-result, usage, subagent, and completion events via the OpenCode SDK's SSE event stream. Permission bridge, MCP config translation, skill provisioning, context interceptors, chat persistence, budget tracking, and subagent configuration are wired end-to-end.
+The orchestrator streams text, thinking, tool-call, tool-result, usage, subagent, and completion events via the OpenCode SDK's SSE event stream. Permission bridge, MCP config translation, skill provisioning, context interceptors, chat persistence, budget tracking (cache-aware), and subagent configuration are wired end-to-end. Hardened to harness parity: events route through a **`StreamRelay`** (reload-survivable; `streamPrompt/attach/:processId` covers `opencode_*` ids) and bus events are tagged **`source: 'open-code'`** so the rule-engine loop-guard can distinguish OpenCode activity.
 
 ## When to pick `open-code` vs `anthropic`
 
@@ -30,8 +32,10 @@ The orchestrator streams text, thinking, tool-call, tool-result, usage, subagent
 | Streaming text | yes | yes |
 | Streaming thinking deltas | yes | yes |
 | Tool call streaming | yes | yes |
-| Token + cost usage | yes | yes |
+| Token + cost usage | yes | yes (cache-aware) |
 | Multi-provider models | via gateway | native (75+) |
+| Stream replay on reload | yes | yes (StreamRelay + attach) |
+| Loop-guard event source | yes | yes (`source: open-code`) |
 | Session resume | yes | yes (SQLite) |
 | Compaction | yes | yes (auto-compact) |
 | Hooks (PreToolUse / PostToolUse / UserPromptSubmit) | yes | permission.asked only |

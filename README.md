@@ -390,31 +390,32 @@ See [Self-Healing Capabilities](self-healing.md).
 Though Etienne was initially implemented for the Anthropic Claude Agent SDK you can use other (coding) models by setting the **CODING_AGENT** variable in the .env file in the backend:
 
 <div align="center">
-<img src="/docs/images/coding-agents.jpg" alt="Coding agents" width="700">
+<img src="/docs/images/coding-agents.svg" alt="Coding agents" width="760">
 </div>
 
 The main drawback with other models is limited support for MCP tools or agent skills which becomes obvious with more complex agentic tasks. **OpenCode** (`CODING_AGENT=open-code`) is a notable exception — it provides native MCP, subagent, skill, and elicitation support on par with the Anthropic harness, plus LSP integration and 75+ model support.
 
 ### Coding Agent Feature Matrix
 
-| Feature | Anthropic | Codex | OpenAI Agents | pi-mono | OpenCode |
-|---|:-:|:-:|:-:|:-:|:-:|
-| **Subagents** | Native SDK | Understands defs | Agents-as-tools | Simulated (Task tool) | Native (agent system) |
-| **MCP tools** | Native | Native | Native | Bridge (tools only) | Native |
-| **MCP resources/prompts/sampling** | Yes | Yes | Partial | No | Yes |
-| **Agent skills** | agentskills.io | Via AGENTS.md | Via AGENTS.md | Via skills dir | Native skill tool |
-| **Elicitations (AskUserQuestion)** | AskUserQuestion tool | No | No | Via beforeToolCall | question tool |
-| **Plan mode** | Built-in | No | No | No | Custom modes |
-| **File Explorer** | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST |
-| **Multi-provider models** | Anthropic only | OpenAI only | OpenAI only | 50+ providers | 75+ providers |
-| **LSP / code intelligence** | No | No | No | No | 30+ languages |
-| **Permission prompts** | canUseTool callback | No | No | beforeToolCall bridge | permission.asked events |
-| **Streaming text** | Yes | Yes | Yes | Yes | Yes |
-| **Streaming thinking** | Yes | Reasoning events | No | Yes | Yes (reasoning field) |
-| **Token/cost tracking** | Yes | Yes | Yes | Yes | Yes |
-| **Session resume** | Yes | Yes | No | Yes | Yes (SQLite) |
-| **Guardrails (input/output)** | Yes | Yes | Yes | Partial | Yes |
-| **Memory / RAG** | Yes | Yes | Yes | Yes | Yes |
+| Feature | Anthropic | Codex | pi-mono | OpenCode |
+|---|:-:|:-:|:-:|:-:|
+| **Subagents** | Native SDK | Understands defs | Simulated (Task tool) | Native (agent system) |
+| **MCP tools** | Native | Native | Bridge (tools only) | Native |
+| **MCP resources/prompts/sampling** | Yes | Yes | No | Yes |
+| **Agent skills** | agentskills.io | Via AGENTS.md | Via skills dir | Native skill tool |
+| **Elicitations (AskUserQuestion)** | AskUserQuestion tool | No | Via extension `tool_call` | question tool |
+| **Plan mode** | Built-in | No | No | Custom modes |
+| **File Explorer** | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST | Agent-agnostic REST |
+| **Multi-provider models** | Anthropic only | OpenAI only | 50+ providers | 75+ providers |
+| **LSP / code intelligence** | No | No | No | 30+ languages |
+| **Permission prompts** | canUseTool callback | No | extension `tool_call` gate | permission.asked events |
+| **Streaming text** | Yes | Yes | Yes | Yes |
+| **Streaming thinking** | Yes | Reasoning events | Yes | Yes (reasoning field) |
+| **Token/cost tracking** | Yes (cache-aware) | Yes (cache-aware) | Yes (cache-aware) | Yes (cache-aware) |
+| **Stream replay on reload** | Yes | Yes | Yes | Yes |
+| **Session resume** | Yes | Yes | Yes | Yes (SQLite) |
+| **Guardrails (input/output)** | Yes | Yes | Partial | Yes |
+| **Memory / RAG** | Yes | Yes | Yes | Yes |
 
 For detailed configuration and architecture of each agent, see:
 - [CODEX_SUPPORT.md](CODEX_SUPPORT.md) — OpenAI Codex integration

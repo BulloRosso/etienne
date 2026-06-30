@@ -5,6 +5,7 @@ import * as jwt from 'jsonwebtoken';
 import { CodexSdkService } from './codex-sdk.service';
 import { CodexSessionManagerService } from './codex-session-manager.service';
 import { SdkHookEmitterService } from '../sdk/sdk-hook-emitter.service';
+import { StreamRelayRegistry } from '../sdk/stream-relay.registry';
 import { getContextLimit } from '../sdk/model-context-limits';
 import { MessageEvent, Usage } from '../types';
 import { GuardrailsService } from '../../input-guardrails/guardrails.service';
@@ -25,6 +26,10 @@ import { SecretsManagerService } from '../../secrets-manager/secrets-manager.ser
  * telemetry, and persistence services but communicates with the Codex app-server
  * via JSON-RPC stdio protocol.
  */
+/** Codex tags its event-bus events with this source so the rule engine / loop-guard
+ *  can distinguish Codex activity from the Anthropic harness (self-event suppression). */
+const CODEX_SOURCE = 'codex';
+
 @Injectable()
 export class CodexSdkOrchestratorService {
   private readonly logger = new Logger(CodexSdkOrchestratorService.name);
@@ -47,6 +52,7 @@ export class CodexSdkOrchestratorService {
     private readonly codexSdkService: CodexSdkService,
     private readonly sessionManager: CodexSessionManagerService,
     private readonly hookEmitter: SdkHookEmitterService,
+    private readonly streamRelayRegistry: StreamRelayRegistry,
     private readonly guardrailsService: GuardrailsService,
     private readonly outputGuardrailsService: OutputGuardrailsService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
@@ -83,28 +89,34 @@ export class CodexSdkOrchestratorService {
   ): Observable<MessageEvent> {
     const processId = `codex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    return new Observable<MessageEvent>((observer) => {
-      observer.next({
-        type: 'session',
-        data: { process_id: processId }
-      });
-
-      this.runStreamPrompt(
-        observer,
-        projectDir,
-        prompt,
-        memoryEnabled,
-        skipChatPersistence,
-        processId
-      ).catch((error) => {
-        this.logger.error(`Codex stream prompt failed: ${error.message}`, error.stack);
-        observer.error(error);
-      });
-
-      return () => {
-        // Cleanup on unsubscribe
-      };
+    // Route all events through a StreamRelay so a page reload / transport hiccup can
+    // re-attach and replay buffered events instead of aborting the run (parity with
+    // the anthropic + pi-mono harnesses). The relay is observer-compatible, so
+    // runStreamPrompt writes to it unchanged.
+    const relay = this.streamRelayRegistry.createRelay(processId, {
+      onAbandoned: () => { this.abortProcess(processId).catch(() => {}); },
     });
+
+    relay.next({ type: 'session', data: { process_id: processId } });
+
+    this.runStreamPrompt(
+      relay,
+      projectDir,
+      prompt,
+      memoryEnabled,
+      skipChatPersistence,
+      processId
+    ).catch((error) => {
+      this.logger.error(`Codex stream prompt failed: ${error.message}`, error.stack);
+      relay.error(error);
+    });
+
+    return relay.asObservable();
+  }
+
+  /** Re-attach a reloaded client to a buffered Codex run. */
+  attachToStream(processId: string, lastSeq?: number): Observable<MessageEvent> {
+    return this.streamRelayRegistry.attach(processId, lastSeq);
   }
 
   /**
@@ -242,7 +254,8 @@ export class CodexSdkOrchestratorService {
       this.hookEmitter.emitUserPromptSubmit(projectDir, {
         prompt: finalPrompt,
         session_id: threadId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        source: CODEX_SOURCE
       });
 
       // === Start Telemetry ===
@@ -377,9 +390,15 @@ export class CodexSdkOrchestratorService {
             // Turn completed — emit usage, context_state, completed; run output guardrails
             case 'turn.completed': {
               if (event.usage) {
+                // Codex Usage carries cached_input_tokens (prompt-cache reads) and
+                // reasoning_output_tokens. Map cached_input_tokens onto the SSE
+                // cache-read field so the token-economy UI + budget tracking see
+                // cache savings (parity with anthropic/pi-mono). Codex has no cache
+                // *write* concept, so the ephemeral 5m/1h fields stay undefined.
                 usage = {
                   input_tokens: event.usage.input_tokens,
                   output_tokens: event.usage.output_tokens,
+                  cache_read_input_tokens: event.usage.cached_input_tokens,
                   model: currentModel
                 };
                 observer.next({ type: 'usage', data: usage });
@@ -524,8 +543,11 @@ export class CodexSdkOrchestratorService {
       // === Budget Tracking ===
       if (!skipChatPersistence && usage.input_tokens && usage.output_tokens) {
         try {
+          // Thread the cache-read breakdown through trackCosts (5th arg) so cache
+          // savings are reflected in cost accounting — Codex reports cached_input_tokens.
           await this.budgetMonitoringService.trackCosts(
-            projectDir, usage.input_tokens, usage.output_tokens, threadId
+            projectDir, usage.input_tokens, usage.output_tokens, threadId,
+            { cacheReadTokens: usage.cache_read_input_tokens }
           );
         } catch (err) {
           this.logger.error('Failed to track budget costs:', err);
@@ -753,14 +775,16 @@ export class CodexSdkOrchestratorService {
             this.hookEmitter.emitFileAdded(projectDir, {
               path: change.path,
               session_id: threadId,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              source: CODEX_SOURCE
             });
             observer.next({ type: 'file_added', data: { path: change.path } });
           } else {
             this.hookEmitter.emitFileChanged(projectDir, {
               path: change.path,
               session_id: threadId,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              source: CODEX_SOURCE
             });
             observer.next({ type: 'file_changed', data: { path: change.path } });
           }
