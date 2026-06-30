@@ -1,7 +1,7 @@
 # Etienne Multi-Service Docker Image
 # Builds and runs oauth-server, backend, and frontend services
 
-FROM node:22-bookworm
+FROM node:24-bookworm
 
 # Install Python 3.12, pip, and curl
 RUN apt-get update && apt-get install -y --no-install-recommends \

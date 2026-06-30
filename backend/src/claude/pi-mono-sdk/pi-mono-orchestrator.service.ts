@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import * as path from 'path';
+import * as os from 'os';
 import * as fs from 'fs-extra';
 import { MessageEvent } from '../types';
-import { piEventToMessageEvents, PiEvent } from './pi-mono-event-adapter';
+import { PiUsage, piUsageToCacheUsage } from './pi-mono-event-adapter';
 import { SdkPermissionService } from '../sdk/sdk-permission.service';
-import { createPiMonoPermissionHook } from './pi-mono-permission.bridge';
-import { buildPiMcpBridge, PiMcpBridge } from './mcp-bridge.extension';
+import { SdkHookEmitterService } from '../sdk/sdk-hook-emitter.service';
+import { StreamRelay, StreamRelayRegistry } from '../sdk/stream-relay.registry';
+import { buildPiMcpBridge, PiMcpBridge, PiAgentTool } from './mcp-bridge.extension';
+import { toPiToolDefinition, PiToolDefinition } from './pi-tool-adapter';
+import { createPiExtension } from './pi-mono.extension';
+import { PiModelConfig, resolveModel } from './pi-model-resolver';
 import { SessionsService } from '../../sessions/sessions.service';
 import { BudgetMonitoringService } from '../../budget-monitoring/budget-monitoring.service';
 import { ContextInterceptorService } from '../../contexts/context-interceptor.service';
@@ -15,17 +20,14 @@ import { buildSubagentTool } from './subagent-tool.extension';
 
 type PiAgentSession = {
   prompt(input: string): Promise<void>;
-  subscribe(handler: (ev: PiEvent) => void): { unsubscribe: () => void } | void;
+  subscribe(handler: (ev: any) => void): (() => void) | { unsubscribe: () => void } | void;
   abort?(): void | Promise<void>;
+  sessionId?: string;
 };
 
-type PiModelConfig = {
-  provider?: string;
-  model?: string;
-  baseUrl?: string;
-  token?: string;
-  isActive?: boolean;
-};
+/** pi-mono uses 'pi-mono' as its event-bus source so the rule engine / loop-guard
+ *  can distinguish it from the Anthropic harness (self-event suppression keying). */
+const PI_MONO_SOURCE = 'pi-mono';
 
 @Injectable()
 export class PiMonoOrchestratorService {
@@ -34,9 +36,12 @@ export class PiMonoOrchestratorService {
   private readonly activeSessions = new Map<string, PiAgentSession>();
   private readonly activeBridges = new Map<string, PiMcpBridge>();
   private readonly nestedSessions = new Map<string, { abort?: () => void | Promise<void> }>();
+  private readonly relays = new Map<string, StreamRelay>();
 
   constructor(
     private readonly permissionService: SdkPermissionService,
+    private readonly hookEmitter: SdkHookEmitterService,
+    private readonly streamRelayRegistry: StreamRelayRegistry,
     private readonly sessionsService: SessionsService,
     private readonly budgetMonitoringService: BudgetMonitoringService,
     private readonly contextInterceptor: ContextInterceptorService,
@@ -51,15 +56,18 @@ export class PiMonoOrchestratorService {
     this.activeSessions.delete(projectDir);
   }
 
+  /** Re-attach a reloaded client to a buffered pi-mono run. */
+  attachToStream(processId: string, lastSeq?: number): Observable<MessageEvent> {
+    return this.streamRelayRegistry.attach(processId, lastSeq);
+  }
+
   async abortProcess(processId: string): Promise<{ success: boolean }> {
-    // Abort nested subagent sessions first.
     for (const [key, nested] of this.nestedSessions.entries()) {
       if (key.includes(processId) || processId.includes(key)) {
         try { await nested.abort?.(); } catch { /* ignore */ }
         this.nestedSessions.delete(key);
       }
     }
-
     for (const [key, session] of this.activeSessions.entries()) {
       if (key.includes(processId) && session.abort) {
         try { await session.abort(); } catch { /* ignore */ }
@@ -80,25 +88,20 @@ export class PiMonoOrchestratorService {
   ): Observable<MessageEvent> {
     const processId = `pimono_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
-    return new Observable<MessageEvent>((observer) => {
-      let disposed = false;
-      let unsubscribe: (() => void) | undefined;
-
-      observer.next({ type: 'session', data: { process_id: processId } });
-
-      this.runPrompt(projectDir, prompt, processId, !!skipChatPersistence, observer, (u) => { unsubscribe = u; })
-        .catch((err: any) => {
-          this.logger.error(`pi-mono stream failed: ${err?.message}`, err?.stack);
-          if (!disposed) observer.error(err);
-        });
-
-      return () => {
-        disposed = true;
-        if (unsubscribe) {
-          try { unsubscribe(); } catch { /* ignore */ }
-        }
-      };
+    const relay = this.streamRelayRegistry.createRelay(processId, {
+      onAbandoned: () => { this.abortProcess(processId).catch(() => {}); },
     });
+    this.relays.set(processId, relay);
+
+    relay.next({ type: 'session', data: { process_id: processId } });
+
+    this.runPrompt(projectDir, prompt, processId, !!skipChatPersistence, relay)
+      .catch((err: any) => {
+        this.logger.error(`pi-mono stream failed: ${err?.message}`, err?.stack);
+        relay.error(err);
+      });
+
+    return relay.asObservable();
   }
 
   private async runPrompt(
@@ -106,45 +109,44 @@ export class PiMonoOrchestratorService {
     prompt: string,
     processId: string,
     skipChatPersistence: boolean,
-    observer: { next: (v: MessageEvent) => void; complete: () => void; error: (e: any) => void },
-    setUnsubscribe: (fn: () => void) => void,
+    relay: StreamRelay,
   ): Promise<void> {
+    const emit = (ev: MessageEvent) => relay.next(ev);
+
+    // --- budget pre-check (loop-guard: source budget pre-check) ---
     try {
       const budgetCheck = await this.budgetMonitoringService.checkBudgetLimit(projectDir);
       if (budgetCheck.exceeded) {
-        this.logger.warn(
-          `pi-mono budget limit exceeded for ${projectDir}: ${budgetCheck.currentCosts} / ${budgetCheck.limit} ${budgetCheck.currency}`,
-        );
-        observer.next({
+        this.logger.warn(`pi-mono budget limit exceeded for ${projectDir}: ${budgetCheck.currentCosts} / ${budgetCheck.limit} ${budgetCheck.currency}`);
+        emit({
           type: 'error',
           data: {
             error: `Budget limit exceeded. Current costs: ${budgetCheck.currentCosts.toFixed(2)} ${budgetCheck.currency}, limit: ${budgetCheck.limit.toFixed(2)} ${budgetCheck.currency}. Please increase the budget limit or disable budget monitoring to continue.`,
           },
         });
-        observer.complete();
+        relay.complete();
         return;
       }
     } catch (err: any) {
       this.logger.error(`pi-mono budget check failed: ${err?.message}`);
     }
 
+    // --- dynamic import (ESM-only packages) ---
     let pi: any;
+    let piAi: any;
     try {
-      // Runtime-only import so tsc doesn't fail when the optional dep isn't installed.
       const dynamicImport = new Function('m', 'return import(m)') as (m: string) => Promise<any>;
-      pi = await dynamicImport('@mariozechner/pi-coding-agent');
+      pi = await dynamicImport('@earendil-works/pi-coding-agent');
+      piAi = await dynamicImport('@earendil-works/pi-ai/compat');
     } catch (err: any) {
       throw new Error(
-        `pi-mono package not installed. Run: npm install @mariozechner/pi-coding-agent @mariozechner/pi-agent-core. Underlying: ${err?.message}`,
+        `pi-mono package not installed. Run: npm install @earendil-works/pi-coding-agent @earendil-works/pi-agent-core @earendil-works/pi-ai. Underlying: ${err?.message}`,
       );
     }
 
     const projectRoot = path.join(this.workspaceRoot, projectDir);
     const modelConfig = await this.loadModelConfig(projectRoot);
 
-    // Resolve sessionId up front for context interception + chat persistence.
-    // May be null for a brand-new project — in that case context injection/validation
-    // silently skip (matches the Anthropic/Codex pattern).
     let sessionId: string | null = null;
     try {
       sessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
@@ -164,126 +166,136 @@ export class PiMonoOrchestratorService {
     }
 
     const createAgentSession = pi.createAgentSession ?? pi.default?.createAgentSession;
+    const DefaultResourceLoader = pi.DefaultResourceLoader ?? pi.default?.DefaultResourceLoader;
     const SessionManager = pi.SessionManager ?? pi.default?.SessionManager;
-
     if (typeof createAgentSession !== 'function') {
       throw new Error('pi-mono: createAgentSession export not found — check installed package version.');
     }
 
+    // --- build custom tools (MCP bridge + subagent Task) ---
     const mcpBridge = await buildPiMcpBridge({ logger: this.logger, projectRoot });
     this.activeBridges.set(processId, mcpBridge);
+    const rawTools: PiAgentTool[] = [...mcpBridge.tools];
 
-    // Build the tools array: MCP bridge tools + subagent Task tool.
-    const allTools = [...mcpBridge.tools];
-
-    const beforeToolCall = createPiMonoPermissionHook({
-      logger: this.logger,
-      permissionService: this.permissionService,
-      contextInterceptor: this.contextInterceptor,
-      projectName: projectDir,
-      sessionId: sessionId ?? undefined,
-      requireAllPermissions: false,
-      emit: (ev) => observer.next(ev),
-    });
-
-    // Post-tool filtering — strips disallowed files from tool results before the
-    // model sees them. pi's `afterToolCall` hook may not exist in every version;
-    // if pi ignores it the worst case is no post-filtering (pre-call validation
-    // still blocks access, so this is best-effort).
-    const afterToolCall = async (toolCall: { name: string; result: any }) => {
-      if (!sessionId) return toolCall.result;
-      try {
-        return await this.contextInterceptor.filterToolResults(
-          projectDir,
-          sessionId,
-          toolCall.name,
-          toolCall.result,
-        );
-      } catch (err: any) {
-        this.logger.warn(`pi-mono context filter failed for ${toolCall.name}: ${err?.message}`);
-        return toolCall.result;
-      }
-    };
-
-    // Build the subagent Task tool from .claude/agents/*.md definitions.
     try {
       const subagentTool = await buildSubagentTool({
         logger: this.logger,
         subagentsService: this.subagentsService,
         projectDir,
         parentProcessId: processId,
-        parentTools: allTools,
+        parentTools: rawTools,
         piModule: pi,
-        modelConfig: modelConfig ? {
-          model: modelConfig.model,
-          provider: modelConfig.provider,
-          baseUrl: modelConfig.baseUrl,
-          token: modelConfig.token,
-        } : undefined,
+        piAi,
+        modelConfig,
         projectRoot,
-        beforeToolCall,
-        emit: (ev) => observer.next(ev),
+        emit,
         nestedSessions: this.nestedSessions,
         depth: 0,
       });
-      if (subagentTool) allTools.push(subagentTool);
+      if (subagentTool) rawTools.push(subagentTool);
     } catch (err: any) {
       this.logger.warn(`pi-mono subagent tool build failed: ${err?.message}`);
     }
 
-    const { session } = await createAgentSession({
-      cwd: projectRoot,
-      sessionManager: SessionManager?.inMemory ? SessionManager.inMemory() : undefined,
-      model: modelConfig?.model,
-      provider: modelConfig?.provider,
-      baseUrl: modelConfig?.baseUrl,
-      apiKey: modelConfig?.token,
-      tools: allTools,
-      beforeToolCall,
-      afterToolCall,
+    const customTools: PiToolDefinition[] = rawTools.map(t => toPiToolDefinition(t, this.logger));
+
+    // --- usage capture + chat persistence on stop ---
+    let assistantText = '';
+    let usage: PiUsage | undefined;
+
+    // --- the in-process pi extension: permissions, filtering, events, bus ---
+    const extensionFactory = createPiExtension({
+      logger: this.logger,
+      permissionService: this.permissionService,
+      contextInterceptor: this.contextInterceptor,
+      projectName: projectDir,
+      projectRoot,
+      sessionId: sessionId ?? undefined,
+      requireAllPermissions: false,
+      customTools,
+      emit,
+      onUsage: (u) => { usage = u; },
+      bus: {
+        onAgentStart: () => {
+          this.hookEmitter.emitUserPromptSubmit(projectDir, { prompt, session_id: sessionId ?? undefined, source: PI_MONO_SOURCE })
+            .catch((e: any) => this.logger.debug(`pi-mono emitUserPromptSubmit failed: ${e?.message}`));
+          if (sessionId) this.hookEmitter.emitSessionStart(projectDir, { session_id: sessionId });
+        },
+        onPreToolUse: (d) => this.hookEmitter.emitPreToolUse(projectDir, { ...d, session_id: sessionId ?? undefined }),
+        onPostToolUse: (d) => this.hookEmitter.emitPostToolUse(projectDir, { ...d, session_id: sessionId ?? undefined }),
+        onFileChanged: (filePath, kind) => {
+          const fn = kind === 'added' ? this.hookEmitter.emitFileAdded : this.hookEmitter.emitFileChanged;
+          fn.call(this.hookEmitter, projectDir, { path: filePath, session_id: sessionId ?? undefined, source: PI_MONO_SOURCE })
+            .catch((e: any) => this.logger.debug(`pi-mono emitFile* failed: ${e?.message}`));
+        },
+        onPreCompact: () => this.hookEmitter.emitPreCompact(projectDir, { session_id: sessionId ?? undefined }),
+        onStop: (u) => this.hookEmitter.emitStop(projectDir, { reason: 'completed', session_id: sessionId ?? undefined, usage: u }),
+      },
     });
 
-    this.activeSessions.set(processId, session);
+    // capture assistant text from the relay's stdout events for persistence
+    const textCapture = (ev: MessageEvent) => { if (ev.type === 'stdout') assistantText += (ev.data as any)?.chunk ?? ''; };
 
-    let assistantText = '';
-    let usage: { input_tokens?: number; output_tokens?: number; total_cost_usd?: number } = {};
-
-    const handler = (ev: PiEvent) => {
-      try {
-        if (ev.type === 'text_delta') assistantText += (ev as any).delta ?? '';
-        const mapped = piEventToMessageEvents(ev, { processId });
-        for (const m of mapped) {
-          if (m.type === 'usage') usage = { ...usage, ...m.data };
-          observer.next(m);
-        }
-        if (ev.type === 'agent_end') {
-          observer.next({ type: 'completed', data: { usage } });
-          observer.complete();
-          this.activeSessions.delete(processId);
-          this.closeBridge(processId);
-          if (!skipChatPersistence) {
-            this.persistChat(projectDir, projectRoot, prompt, assistantText, usage).catch((err: any) =>
-              this.logger.error(`pi-mono chat persistence failed: ${err?.message}`),
-            );
-          }
-        }
-      } catch (err: any) {
-        this.logger.error(`pi-mono event handler error: ${err?.message}`);
-      }
-    };
-
-    const sub = session.subscribe?.(handler);
-    if (sub && typeof sub.unsubscribe === 'function') {
-      setUnsubscribe(() => sub.unsubscribe());
+    // --- resource loader carrying our extension ---
+    // agentDir is required by DefaultResourceLoader. Use PI_CODING_AGENT_DIR for
+    // per-project multi-tenant isolation, else pi's default ~/.pi/agent.
+    const agentDir = process.env.PI_CODING_AGENT_DIR || path.join(os.homedir(), '.pi', 'agent');
+    const resourceLoader = DefaultResourceLoader
+      ? new DefaultResourceLoader({ cwd: projectRoot, agentDir, extensionFactories: [extensionFactory] })
+      : undefined;
+    if (resourceLoader?.reload) {
+      try { await resourceLoader.reload(); } catch (err: any) { this.logger.debug(`pi-mono resourceLoader reload failed: ${err?.message}`); }
     }
 
+    // --- model + provider resolution ---
+    const resolvedModel = resolveModel(piAi, modelConfig);
+
+    // Custom provider with its own baseUrl+token (e.g. local Ollama) — register it
+    // on a transient ModelRegistry-less path via the extension is out of scope here;
+    // env-var fallback (ANTHROPIC_API_KEY, ...) covers built-in providers.
+    if (modelConfig?.baseUrl) {
+      this.logger.warn(`pi-mono: custom baseUrl provider '${modelConfig.provider}' configured; ensure the corresponding API key env var is set (provider registration via extension is a follow-up).`);
+    }
+
+    // --- session resume (continueRecent) ---
+    const sessionManager = SessionManager?.continueRecent
+      ? SessionManager.continueRecent(projectRoot)
+      : (SessionManager?.inMemory ? SessionManager.inMemory(projectRoot) : undefined);
+
+    const { session } = await createAgentSession({
+      cwd: projectRoot,
+      sessionManager,
+      model: resolvedModel,
+      resourceLoader,
+    });
+    this.activeSessions.set(processId, session as PiAgentSession);
+
+    // bridge relay → text capture + completion/persistence
+    const sub = (session as PiAgentSession).subscribe?.((ev: any) => {
+      if (ev?.type === 'agent_end') {
+        relay.complete();
+        this.activeSessions.delete(processId);
+        this.closeBridge(processId);
+        this.relays.delete(processId);
+        if (!skipChatPersistence) {
+          this.persistChat(projectDir, projectRoot, prompt, assistantText, usage)
+            .catch((err: any) => this.logger.error(`pi-mono chat persistence failed: ${err?.message}`));
+        }
+      }
+    });
+
+    // also capture stdout text by tapping the relay's emit — wrap emit above already
+    // forwards via the extension; mirror that text here for persistence.
+    relay.asObservable().subscribe({ next: textCapture, error: () => {}, complete: () => {} });
+
     try {
-      // Use the context-injected prompt, but persistChat still stores the original.
       await session.prompt(finalPrompt);
     } catch (err: any) {
-      observer.error(err);
+      relay.error(err);
       this.activeSessions.delete(processId);
       this.closeBridge(processId);
+      this.relays.delete(processId);
+      if (sub && typeof (sub as any).unsubscribe === 'function') (sub as any).unsubscribe();
     }
   }
 
@@ -292,7 +304,7 @@ export class PiMonoOrchestratorService {
     projectRoot: string,
     prompt: string,
     assistantText: string,
-    usage: { input_tokens?: number; output_tokens?: number; total_cost_usd?: number },
+    usage: PiUsage | undefined,
   ): Promise<void> {
     const sessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
     if (!sessionId) {
@@ -300,22 +312,22 @@ export class PiMonoOrchestratorService {
       return;
     }
     const timestamp = new Date().toISOString();
-    const costs =
-      usage.input_tokens || usage.output_tokens
-        ? { input_tokens: usage.input_tokens ?? 0, output_tokens: usage.output_tokens ?? 0 }
-        : undefined;
+    const hasTokens = !!(usage?.input || usage?.output);
+    const costs = hasTokens ? { input_tokens: usage?.input ?? 0, output_tokens: usage?.output ?? 0 } : undefined;
     await this.sessionsService.appendMessages(projectRoot, sessionId, [
       { timestamp, isAgent: false, message: prompt, costs: undefined },
       { timestamp, isAgent: true, message: assistantText || '', costs },
     ]);
 
-    if (usage.input_tokens || usage.output_tokens) {
+    if (hasTokens) {
       try {
+        // Cache-token economy: thread the full breakdown through trackCosts (5th arg).
         await this.budgetMonitoringService.trackCosts(
           projectDir,
-          usage.input_tokens ?? 0,
-          usage.output_tokens ?? 0,
+          usage?.input ?? 0,
+          usage?.output ?? 0,
           sessionId,
+          piUsageToCacheUsage(usage),
         );
       } catch (err: any) {
         this.logger.error(`pi-mono budget tracking failed: ${err?.message}`);
@@ -327,9 +339,7 @@ export class PiMonoOrchestratorService {
     const bridge = this.activeBridges.get(processId);
     if (!bridge) return;
     this.activeBridges.delete(processId);
-    bridge.close().catch((err: any) =>
-      this.logger.debug(`pi-mono bridge close failed: ${err?.message}`),
-    );
+    bridge.close().catch((err: any) => this.logger.debug(`pi-mono bridge close failed: ${err?.message}`));
   }
 
   private async loadModelConfig(projectRoot: string): Promise<PiModelConfig | undefined> {

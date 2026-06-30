@@ -23,13 +23,13 @@ export class SdkHookEmitterService {
   /**
    * Helper to publish event to event router
    */
-  private async publishToEventRouter(projectName: string, eventName: string, payload: any) {
+  private async publishToEventRouter(projectName: string, eventName: string, payload: any, source = 'Claude Agent SDK') {
     if (this.eventRouter) {
       try {
         await this.eventRouter.publishEvent({
           name: eventName,
           group: 'Claude Code',
-          source: 'Claude Agent SDK',
+          source,
           projectName: projectName,
           payload,
         });
@@ -46,6 +46,7 @@ export class SdkHookEmitterService {
     prompt: string;
     timestamp?: string;
     session_id?: string;
+    source?: string;
   }) {
     const event = {
       event_type: 'UserPromptSubmit',
@@ -58,7 +59,7 @@ export class SdkHookEmitterService {
     this.interceptorsService.addInterceptor(projectName, event);
 
     // Publish to event router
-    await this.publishToEventRouter(projectName, 'UserPromptSubmit', event);
+    await this.publishToEventRouter(projectName, 'UserPromptSubmit', event, data.source);
   }
 
   /**
@@ -215,6 +216,7 @@ export class SdkHookEmitterService {
     path: string;
     timestamp?: string;
     session_id?: string;
+    source?: string;
   }) {
     const event = {
       event_type: 'file_added',
@@ -227,7 +229,7 @@ export class SdkHookEmitterService {
     this.interceptorsService.addInterceptor(projectName, event);
 
     // Publish to event router as "File Created"
-    await this.publishToEventRouter(projectName, 'File Created', event);
+    await this.publishToEventRouter(projectName, 'File Created', event, data.source);
   }
 
   /**
@@ -237,6 +239,7 @@ export class SdkHookEmitterService {
     path: string;
     timestamp?: string;
     session_id?: string;
+    source?: string;
   }) {
     const event = {
       event_type: 'file_changed',
@@ -249,6 +252,6 @@ export class SdkHookEmitterService {
     this.interceptorsService.addInterceptor(projectName, event);
 
     // Publish to event router as "File Modified"
-    await this.publishToEventRouter(projectName, 'File Modified', event);
+    await this.publishToEventRouter(projectName, 'File Modified', event, data.source);
   }
 }

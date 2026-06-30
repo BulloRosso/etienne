@@ -219,10 +219,11 @@ export class ClaudeController {
     @Query('lastEventId') lastEventId?: string
   ): Observable<MessageEvent> {
     const lastSeq = lastEventId ? parseInt(lastEventId, 10) : undefined;
-    return this.sdkOrchestrator.attachToStream(
-      processId,
-      Number.isFinite(lastSeq) ? lastSeq : undefined
-    );
+    const seq = Number.isFinite(lastSeq) ? lastSeq : undefined;
+    if (processId.startsWith('pimono_')) {
+      return this.piMonoOrchestrator.attachToStream(processId, seq);
+    }
+    return this.sdkOrchestrator.attachToStream(processId, seq);
   }
 
   @Roles('guest')

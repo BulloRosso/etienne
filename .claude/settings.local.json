@@ -128,7 +128,8 @@
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_evaluate",
       "mcp__playwright__browser_navigate",
-      "mcp__playwright__browser_take_screenshot"
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(node -e \"const f=new Function\\('m','return import\\(m\\)'\\); f\\('@earendil-works/pi-coding-agent'\\).then\\(m=>{console.log\\('OK exports:', Object.keys\\(m\\).filter\\(k=>/createAgentSession|SessionManager|getModel/.test\\(k\\)\\).join\\(', '\\)||Object.keys\\(m\\).slice\\(0,8\\).join\\(', '\\)\\)}\\).catch\\(e=>console.error\\('IMPORT FAIL:', e.message\\)\\)\")"
     ],
     "deny": [],
     "ask": []

@@ -1,24 +1,28 @@
 import { Logger } from '@nestjs/common';
+import * as os from 'os';
+import * as path from 'path';
 import { SubagentsService, SubagentConfig } from '../../subagents/subagents.service';
 import { MessageEvent } from '../types';
 import { piEventToMessageEvents, PiEvent } from './pi-mono-event-adapter';
 import { PiAgentTool } from './mcp-bridge.extension';
+import { toPiToolDefinition, PiToolDefinition } from './pi-tool-adapter';
+import { PiModelConfig, resolveModel, resolveModelId } from './pi-model-resolver';
 
 const MAX_SUBAGENT_DEPTH = 2;
 const SUBAGENT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Translates Anthropic-format subagent definitions (.claude/agents/*.md) into a pi
- * `Task` AgentTool that the main agent calls like Claude Code's native subagent tool.
+ * `Task` tool that the main agent calls like Claude Code's native subagent tool.
  *
- * On each invocation the tool:
- * 1. Reads the subagent definition via SubagentsService (same files the UI manages).
- * 2. Spawns a nested pi session with the subagent's systemPrompt and tool allowlist.
- * 3. Forwards events to the parent observer as subagent_start / subagent_end plus
- *    nested text/thinking/tool events.
- * 4. Returns the final assistant text as the tool result.
+ * Rewritten for pi-coding-agent 0.80.2: nested sessions use `createAgentSession`
+ * with a `DefaultResourceLoader({ extensionFactories: [...] })` carrying a minimal
+ * child extension that registers the filtered tool set and forwards events. The
+ * subagent's system prompt is injected as the first message (0.80.2 has no
+ * `systemPrompt` option on createAgentSession; the resource loader owns the system
+ * prompt, so we prepend the role to the task prompt).
  *
- * Recursion is capped at MAX_SUBAGENT_DEPTH. Timeout kills runaway subagents.
+ * Recursion is capped at MAX_SUBAGENT_DEPTH; a timeout kills runaway subagents.
  */
 
 export interface SubagentToolOpts {
@@ -26,11 +30,14 @@ export interface SubagentToolOpts {
   subagentsService: SubagentsService;
   projectDir: string;
   parentProcessId: string;
+  /** The parent's custom tools (MCP bridge etc.) the child may inherit. */
   parentTools: PiAgentTool[];
+  /** Dynamically-imported `@earendil-works/pi-coding-agent` module. */
   piModule: any;
-  modelConfig?: { model?: string; provider?: string; baseUrl?: string; token?: string };
+  /** Dynamically-imported `@earendil-works/pi-ai/compat` module (for getModel). */
+  piAi: any;
+  modelConfig?: PiModelConfig;
   projectRoot: string;
-  beforeToolCall?: (toolCall: { name: string; args?: any; id?: string }) => Promise<any>;
   emit: (ev: MessageEvent) => void;
   depth?: number;
   /** Track nested sessions here so the parent can abort them. */
@@ -38,11 +45,7 @@ export interface SubagentToolOpts {
 }
 
 export async function buildSubagentTool(opts: SubagentToolOpts): Promise<PiAgentTool | null> {
-  const {
-    logger, subagentsService, projectDir, parentProcessId,
-    parentTools, piModule, modelConfig, projectRoot,
-    beforeToolCall, emit, nestedSessions,
-  } = opts;
+  const { logger, subagentsService, projectDir } = opts;
   const depth = opts.depth ?? 0;
 
   if (depth >= MAX_SUBAGENT_DEPTH) {
@@ -50,7 +53,6 @@ export async function buildSubagentTool(opts: SubagentToolOpts): Promise<PiAgent
     return null;
   }
 
-  // Read all available subagent definitions to build the enum + description.
   let subagents: SubagentConfig[];
   try {
     subagents = await subagentsService.listSubagents(projectDir);
@@ -66,10 +68,7 @@ export async function buildSubagentTool(opts: SubagentToolOpts): Promise<PiAgent
 
   const subagentNames = subagents.map(s => s.name);
   const subagentIndex = new Map(subagents.map(s => [s.name, s]));
-
-  const subagentDescriptions = subagents
-    .map(s => `- **${s.name}**: ${s.description}`)
-    .join('\n');
+  const subagentDescriptions = subagents.map(s => `- **${s.name}**: ${s.description}`).join('\n');
 
   return {
     name: 'Task',
@@ -81,14 +80,8 @@ export async function buildSubagentTool(opts: SubagentToolOpts): Promise<PiAgent
       type: 'object',
       required: ['description', 'prompt'],
       properties: {
-        description: {
-          type: 'string',
-          description: 'Short description of the task to delegate.',
-        },
-        prompt: {
-          type: 'string',
-          description: 'Self-contained task description for the subagent.',
-        },
+        description: { type: 'string', description: 'Short description of the task to delegate.' },
+        prompt: { type: 'string', description: 'Self-contained task description for the subagent.' },
         subagent_type: {
           type: 'string',
           enum: subagentNames,
@@ -106,121 +99,107 @@ export async function buildSubagentTool(opts: SubagentToolOpts): Promise<PiAgent
       }
 
       const callId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-      // Emit subagent_start
-      emit({
-        type: 'subagent_start',
-        data: { name: config.name, status: 'active', callId, parentProcessId },
-      });
+      opts.emit({ type: 'subagent_start', data: { name: config.name, status: 'active', callId, parentProcessId: opts.parentProcessId } });
 
       try {
-        const result = await runNestedSession({
-          logger,
-          piModule,
-          config,
-          taskPrompt,
-          callId,
-          parentTools,
-          modelConfig,
-          projectRoot,
-          beforeToolCall,
-          emit,
-          nestedSessions,
-          subagentsService,
-          projectDir,
-          parentProcessId,
-          depth: depth + 1,
-        });
-
-        // Emit subagent_end
-        emit({
-          type: 'subagent_end',
-          data: { name: config.name, status: 'complete', callId, content: result.text },
-        });
-
+        const result = await runNestedSession({ ...opts, config, taskPrompt, callId, depth: depth + 1 });
+        opts.emit({ type: 'subagent_end', data: { name: config.name, status: 'complete', callId, content: result.text } });
         return result.text || '(subagent returned no text)';
       } catch (err: any) {
-        emit({
-          type: 'subagent_end',
-          data: { name: config.name, status: 'complete', callId, content: `Error: ${err?.message}` },
-        });
+        opts.emit({ type: 'subagent_end', data: { name: config.name, status: 'complete', callId, content: `Error: ${err?.message}` } });
         return `Subagent error: ${err?.message}`;
       }
     },
   };
 }
 
-interface NestedRunOpts {
-  logger: Logger;
-  piModule: any;
+interface NestedRunOpts extends SubagentToolOpts {
   config: SubagentConfig;
   taskPrompt: string;
   callId: string;
-  parentTools: PiAgentTool[];
-  modelConfig?: { model?: string; provider?: string; baseUrl?: string; token?: string };
-  projectRoot: string;
-  beforeToolCall?: (toolCall: { name: string; args?: any; id?: string }) => Promise<any>;
-  emit: (ev: MessageEvent) => void;
-  nestedSessions: Map<string, { abort?: () => void | Promise<void> }>;
-  subagentsService: SubagentsService;
-  projectDir: string;
-  parentProcessId: string;
   depth: number;
 }
 
 async function runNestedSession(opts: NestedRunOpts): Promise<{ text: string }> {
   const {
-    logger, piModule, config, taskPrompt, callId,
-    parentTools, modelConfig, projectRoot,
-    beforeToolCall, emit, nestedSessions,
-    subagentsService, projectDir, parentProcessId, depth,
+    logger, piModule, piAi, config, taskPrompt, callId,
+    parentTools, modelConfig, projectRoot, emit, nestedSessions, depth,
   } = opts;
 
   const createAgentSession = piModule.createAgentSession ?? piModule.default?.createAgentSession;
+  const DefaultResourceLoader = piModule.DefaultResourceLoader ?? piModule.default?.DefaultResourceLoader;
   const SessionManager = piModule.SessionManager ?? piModule.default?.SessionManager;
 
   if (typeof createAgentSession !== 'function') {
     throw new Error('pi-mono: createAgentSession not available for nested session');
   }
 
-  // Filter parent tools to the subagent's allowlist.
+  // Filter the parent's tools to the subagent's allowlist, then adapt to pi tools.
   const childTools = filterToolsForSubagent(parentTools, config.tools);
 
-  // Recursively build a Task tool for the child (will return null if depth >= max).
-  const childTaskTool = await buildSubagentTool({
-    logger,
-    subagentsService,
-    projectDir,
-    parentProcessId,
-    parentTools,
-    piModule,
-    modelConfig,
-    projectRoot,
-    beforeToolCall,
-    emit,
-    nestedSessions,
-    depth,
-  });
+  // Recursively expose a child Task tool (null at depth cap).
+  const childTaskTool = await buildSubagentTool({ ...opts, depth });
   if (childTaskTool) childTools.push(childTaskTool);
 
-  // Resolve the model — honour the subagent's model override.
-  const resolvedModel = resolveModel(config.model, modelConfig?.model);
+  const childToolDefs: PiToolDefinition[] = childTools.map(t => toPiToolDefinition(t, logger));
+
+  // Resolve the model — honour the subagent's override, else inherit parent.
+  const resolvedModel = resolveModel(piAi, {
+    ...modelConfig,
+    model: resolveModelId(config.model, modelConfig?.model),
+  });
+
+  let assistantText = '';
+
+  // Minimal child extension: register tools + forward events to the parent observer.
+  const childExtension = (pi: any) => {
+    for (const tool of childToolDefs) {
+      try { pi.registerTool(tool); } catch (err: any) { logger.warn(`pi-mono subagent registerTool failed: ${err?.message}`); }
+    }
+    pi.on('message_update', (ev: any) => {
+      const ame = ev?.assistantMessageEvent;
+      if (ame?.type === 'text_delta' && typeof ame.delta === 'string') {
+        assistantText += ame.delta;
+        for (const m of forward({ type: 'text_delta', delta: ame.delta })) emit(m);
+      } else if (ame?.type === 'thinking_delta' && typeof ame.delta === 'string') {
+        for (const m of forward({ type: 'thinking_delta', delta: ame.delta })) emit(m);
+      }
+    });
+    pi.on('tool_execution_start', (ev: any) => {
+      for (const m of forward({ type: 'tool_execution_start', toolCallId: ev?.toolCallId, toolName: ev?.toolName, args: ev?.args })) emit(m);
+    });
+    pi.on('tool_execution_end', (ev: any) => {
+      for (const m of forward({ type: 'tool_execution_end', toolCallId: ev?.toolCallId, toolName: ev?.toolName, result: ev?.result, isError: ev?.isError })) emit(m);
+    });
+  };
+  const forward = (ev: PiEvent): MessageEvent[] => piEventToMessageEvents(ev, { processId: callId });
+
+  const agentDir = process.env.PI_CODING_AGENT_DIR || path.join(os.homedir(), '.pi', 'agent');
+  const resourceLoader = DefaultResourceLoader
+    ? new DefaultResourceLoader({
+        cwd: projectRoot,
+        agentDir,
+        extensionFactories: [childExtension],
+        // Subagent role is its system prompt; suppress project skills/themes for isolation.
+        systemPrompt: config.systemPrompt || undefined,
+        noSkills: true,
+        noThemes: true,
+      })
+    : undefined;
+  if (resourceLoader?.reload) {
+    try { await resourceLoader.reload(); } catch (err: any) { logger.debug(`pi-mono subagent resourceLoader reload failed: ${err?.message}`); }
+  }
 
   const { session } = await createAgentSession({
     cwd: projectRoot,
-    sessionManager: SessionManager?.inMemory ? SessionManager.inMemory() : undefined,
-    systemPrompt: config.systemPrompt || undefined,
+    sessionManager: SessionManager?.inMemory ? SessionManager.inMemory(projectRoot) : undefined,
     model: resolvedModel,
-    provider: modelConfig?.provider,
-    baseUrl: modelConfig?.baseUrl,
-    apiKey: modelConfig?.token,
-    tools: childTools,
-    beforeToolCall,
+    resourceLoader,
   });
 
   nestedSessions.set(callId, session);
 
-  let assistantText = '';
+  const fullPrompt = taskPrompt;
 
   return new Promise<{ text: string }>((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -229,27 +208,20 @@ async function runNestedSession(opts: NestedRunOpts): Promise<{ text: string }> 
       reject(new Error(`Subagent ${config.name} timed out after ${SUBAGENT_TIMEOUT_MS / 1000}s`));
     }, SUBAGENT_TIMEOUT_MS);
 
-    const handler = (ev: PiEvent) => {
+    const unsubscribe = session.subscribe?.((ev: any) => {
       try {
-        if (ev.type === 'text_delta') assistantText += (ev as any).delta ?? '';
-
-        // Forward nested events to the parent observer so the frontend can render them.
-        const mapped = piEventToMessageEvents(ev, { processId: callId });
-        for (const m of mapped) emit(m);
-
-        if (ev.type === 'agent_end') {
+        if (ev?.type === 'agent_end') {
           clearTimeout(timeout);
           nestedSessions.delete(callId);
+          if (typeof unsubscribe === 'function') unsubscribe();
           resolve({ text: assistantText });
         }
       } catch (err: any) {
         logger.error(`pi-mono nested event handler error: ${err?.message}`);
       }
-    };
+    });
 
-    session.subscribe?.(handler);
-
-    session.prompt(taskPrompt).catch((err: any) => {
+    session.prompt(fullPrompt).catch((err: any) => {
       clearTimeout(timeout);
       nestedSessions.delete(callId);
       reject(err);
@@ -258,38 +230,11 @@ async function runNestedSession(opts: NestedRunOpts): Promise<{ text: string }> 
 }
 
 /**
- * Filter the parent's tool set to match the subagent's frontmatter `tools` field.
- * `tools` is a comma-separated list like "WebSearch, WebFetch, Read".
- * If empty/undefined, all parent tools are available (matching Anthropic behavior).
+ * Filter the parent's tool set to match the subagent's frontmatter `tools` field
+ * (comma-separated). Empty/undefined → all parent tools (matches Anthropic behavior).
  */
 function filterToolsForSubagent(parentTools: PiAgentTool[], toolsField?: string): PiAgentTool[] {
-  if (!toolsField || !toolsField.trim()) {
-    // No restriction — clone to avoid mutation.
-    return [...parentTools];
-  }
-
-  const allowed = new Set(
-    toolsField.split(',').map(t => t.trim()).filter(Boolean),
-  );
-
+  if (!toolsField || !toolsField.trim()) return [...parentTools];
+  const allowed = new Set(toolsField.split(',').map(t => t.trim()).filter(Boolean));
   return parentTools.filter(t => allowed.has(t.name));
-}
-
-/**
- * Resolve model for a subagent.
- * Frontmatter values: 'sonnet', 'haiku', 'opus', 'inherit', or empty.
- * Translate short names to full model IDs used by pi-mono.
- */
-function resolveModel(subagentModel?: string, parentModel?: string): string | undefined {
-  if (!subagentModel || subagentModel === 'inherit' || subagentModel === '') {
-    return parentModel;
-  }
-
-  const modelMap: Record<string, string> = {
-    sonnet: 'claude-sonnet-4-6',
-    haiku: 'claude-haiku-4-5-20251001',
-    opus: 'claude-opus-4-6',
-  };
-
-  return modelMap[subagentModel] ?? subagentModel ?? parentModel;
 }
