@@ -1,9 +1,18 @@
 import {
   ActivityHandler,
   TurnContext,
-  TeamsInfo,
 } from 'botbuilder';
 import { SessionManagerClientService } from './services/session-manager-client.service';
+
+/**
+ * Channel conversations arrive as '19:...@thread.tacv2;messageid=123' — a new
+ * suffix per thread. One logical channel = one pairing, so strip the suffix
+ * wherever the conversation id is used as the session key. The full id (with
+ * messageid) stays inside the ConversationReference so replies land in-thread.
+ */
+export function normalizeConversationId(id: string): string {
+  return (id || '').split(';messageid=')[0];
+}
 
 export class TeamsBot extends ActivityHandler {
   constructor(private readonly sessionManagerClient: SessionManagerClientService) {
@@ -30,12 +39,24 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleMessage(context: TurnContext): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    // In channels the bot only receives messages it is @-mentioned in —
+    // strip the leading '@BotName' so commands and prompts parse cleanly.
+    TurnContext.removeRecipientMention(context.activity);
+
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     const text = (context.activity.text || '').trim();
     const userId = context.activity.from.id;
     const userName = context.activity.from.name;
 
-    console.log(`[Message] conversationId=${conversationId} text="${text.substring(0, 50)}..."`);
+    const channelData: any = context.activity.channelData || {};
+    const teamId: string | undefined = channelData.team?.id;
+    const teamChannelId: string | undefined = channelData.channel?.id;
+
+    console.log(
+      `[Message] conversationId=${conversationId}` +
+      (teamId ? ` team=${teamId} channel=${teamChannelId}` : '') +
+      ` text="${text.substring(0, 50)}..."`
+    );
 
     // Handle commands
     if (text.startsWith('/')) {
@@ -98,7 +119,7 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleCommand(context: TurnContext, command: string): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     const cmd = command.toLowerCase().split(' ')[0];
 
     switch (cmd) {
@@ -130,7 +151,7 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleStartCommand(context: TurnContext): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     const userId = context.activity.from.id;
     const userName = context.activity.from.name;
 
@@ -165,7 +186,7 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleStatusCommand(context: TurnContext): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     const session = await this.sessionManagerClient.getSession(conversationId);
 
     if (!session) {
@@ -193,7 +214,7 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleProjectsCommand(context: TurnContext): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     const session = await this.sessionManagerClient.getSession(conversationId);
 
     if (!session) {
@@ -226,7 +247,7 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleDisconnectCommand(context: TurnContext): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     const success = await this.sessionManagerClient.disconnect(conversationId);
 
     if (success) {
@@ -255,9 +276,10 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async requestPairing(context: TurnContext): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     const userId = context.activity.from.id;
     const userName = context.activity.from.name;
+    const isChannel = context.activity.conversation.conversationType === 'channel';
 
     await context.sendActivity(
       '👋 Welcome! You need to pair this chat before using Etienne.\n\n' +
@@ -267,7 +289,9 @@ export class TeamsBot extends ActivityHandler {
     const result = await this.sessionManagerClient.requestPairing(
       conversationId,
       userId,
-      undefined, // Teams doesn't have username like Telegram
+      // Shown in the admin pairing modal — mark channel-scope pairings so the
+      // admin knows the whole channel (not one person) gets access.
+      isChannel ? `${userName} (Teams channel)` : undefined,
       userName,
       undefined,
     );
@@ -283,7 +307,7 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleProjectSelection(context: TurnContext, projectName: string): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     console.log(`[Project] Selecting "${projectName}" for conversationId=${conversationId}`);
 
     const result = await this.sessionManagerClient.selectProject(conversationId, projectName);
@@ -310,7 +334,7 @@ export class TeamsBot extends ActivityHandler {
   }
 
   private async handleFileDownload(context: TurnContext, filename: string): Promise<void> {
-    const conversationId = context.activity.conversation.id;
+    const conversationId = normalizeConversationId(context.activity.conversation.id);
     console.log(`[Download] Requesting file "${filename}" for conversationId=${conversationId}`);
 
     const session = await this.sessionManagerClient.getSession(conversationId);

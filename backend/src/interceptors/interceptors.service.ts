@@ -174,8 +174,9 @@ export class InterceptorsService {
     code: string;
     provider: string;
     remoteSession: {
-      chatId: number;
-      userId?: number;
+      // Telegram uses numeric ids, Teams uses conversation-id strings
+      chatId: number | string;
+      userId?: number | string;
       username?: string;
       firstName?: string;
       lastName?: string;

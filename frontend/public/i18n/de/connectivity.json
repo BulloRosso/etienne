@@ -1,4 +1,5 @@
-{
-  "tabA2a": "A2A-Protokoll",
-  "tabMcp": "MCP-Protokoll"
+﻿{
+    "tabA2a":  "A2A-Protokoll",
+    "tabMcp":  "MCP-Protokoll",
+    "tabMsTeams":  "MS Teams"
 }

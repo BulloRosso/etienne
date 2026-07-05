@@ -16,6 +16,41 @@ export interface DriveItem {
   root?: Record<string, unknown>;
 }
 
+export interface TeamRef {
+  id: string;
+  displayName: string;
+  description?: string;
+}
+
+export interface ChannelRef {
+  id: string;
+  displayName: string;
+  description?: string;
+  membershipType?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  replyToId?: string | null;
+  messageType?: string; // 'message' | 'systemEventMessage' | ...
+  createdDateTime?: string;
+  lastModifiedDateTime?: string;
+  lastEditedDateTime?: string | null;
+  deletedDateTime?: string | null;
+  subject?: string | null;
+  webUrl?: string;
+  from?: {
+    user?: { id?: string; displayName?: string } | null;
+    application?: { id?: string; displayName?: string } | null;
+  } | null;
+  body?: { contentType?: string; content?: string };
+  attachments?: Array<{ id?: string; contentType?: string; name?: string; contentUrl?: string; content?: string }>;
+  mentions?: Array<{ id?: number; mentionText?: string; mentioned?: any }>;
+  reactions?: Array<{ reactionType?: string; user?: { user?: { id?: string; displayName?: string } } }>;
+  replies?: ChatMessage[];
+  'replies@odata.nextLink'?: string;
+}
+
 @Injectable()
 export class GraphClientService {
   private readonly logger = new Logger(GraphClientService.name);
@@ -221,6 +256,94 @@ export class GraphClientService {
       nextLink: data['@odata.nextLink'],
       deltaLink: data['@odata.deltaLink'],
     };
+  }
+
+  // ============================================
+  // Teams channel operations (Teams observer)
+  // ============================================
+
+  private stripGraphBase(link: string): string {
+    return link.replace('https://graph.microsoft.com/v1.0', '');
+  }
+
+  async listJoinedTeams(project: string): Promise<TeamRef[]> {
+    const data = await this.get<{ value: TeamRef[] }>(project, '/me/joinedTeams');
+    return data.value;
+  }
+
+  async listChannels(project: string, teamId: string): Promise<ChannelRef[]> {
+    const data = await this.get<{ value: ChannelRef[] }>(project, `/teams/${encodeURIComponent(teamId)}/channels`);
+    return data.value;
+  }
+
+  /**
+   * List channel root messages, newest first. No $filter support on this endpoint —
+   * paging is via @odata.nextLink only (pass it back as nextLink).
+   */
+  async listChannelMessages(
+    project: string,
+    teamId: string,
+    channelId: string,
+    nextLink?: string,
+  ): Promise<{ messages: ChatMessage[]; nextLink?: string }> {
+    const url = nextLink
+      ? this.stripGraphBase(nextLink)
+      : `/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/messages?$top=50&$expand=replies`;
+    const data = await this.get<{ value: ChatMessage[]; '@odata.nextLink'?: string }>(project, url);
+    return { messages: data.value, nextLink: data['@odata.nextLink'] };
+  }
+
+  async listMessageReplies(
+    project: string,
+    teamId: string,
+    channelId: string,
+    messageId: string,
+    nextLink?: string,
+  ): Promise<{ messages: ChatMessage[]; nextLink?: string }> {
+    const url = nextLink
+      ? this.stripGraphBase(nextLink)
+      : `/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/messages/${encodeURIComponent(messageId)}/replies?$top=50`;
+    const data = await this.get<{ value: ChatMessage[]; '@odata.nextLink'?: string }>(project, url);
+    return { messages: data.value, nextLink: data['@odata.nextLink'] };
+  }
+
+  /**
+   * Incremental channel-message sync (delegated ChannelMessage.Read.All).
+   * Returns root messages only; replies must be paged separately.
+   * Known Graph issue: stored delta tokens can start returning 400 — callers
+   * must fall back to a high-water-mark strategy on 400/403.
+   */
+  async getChannelMessagesDelta(
+    project: string,
+    teamId: string,
+    channelId: string,
+    deltaLink?: string,
+  ): Promise<{ messages: ChatMessage[]; nextLink?: string; deltaLink?: string }> {
+    const url = deltaLink
+      ? this.stripGraphBase(deltaLink)
+      : `/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/messages/delta?$top=50`;
+    const data = await this.get<{ value: ChatMessage[]; '@odata.nextLink'?: string; '@odata.deltaLink'?: string }>(project, url);
+    return { messages: data.value, nextLink: data['@odata.nextLink'], deltaLink: data['@odata.deltaLink'] };
+  }
+
+  /** Inline image bytes embedded in a channel message body. */
+  async getHostedContentBytes(
+    project: string,
+    teamId: string,
+    channelId: string,
+    messageId: string,
+    hostedContentId: string,
+    replyId?: string,
+  ): Promise<{ bytes: Buffer; contentType?: string }> {
+    const base = `/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/messages/${encodeURIComponent(messageId)}`;
+    const url = replyId
+      ? `${base}/replies/${encodeURIComponent(replyId)}/hostedContents/${encodeURIComponent(hostedContentId)}/$value`
+      : `${base}/hostedContents/${encodeURIComponent(hostedContentId)}/$value`;
+    return this.withRetry(project, async () => {
+      const headers = await this.authHeaders(project);
+      const resp = await this.http.get<ArrayBuffer>(url, { headers, responseType: 'arraybuffer' });
+      return { bytes: Buffer.from(resp.data), contentType: resp.headers?.['content-type'] as string | undefined };
+    });
   }
 
   async listSites(project: string, search?: string): Promise<Array<{ id: string; displayName: string; webUrl: string }>> {

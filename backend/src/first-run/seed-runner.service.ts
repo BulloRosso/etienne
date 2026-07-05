@@ -60,6 +60,15 @@ export const DEMO_SEEDS: Readonly<DemoSeed[]> = Object.freeze([
     estimatedDurationLabel: '~4 min',
     timeoutMs: 8 * 60 * 1000,
   },
+  {
+    id: 'teams-comms-observer',
+    scriptPath: 'scripts/seed-teams-comms-observer/seed-teams-comms-observer.ts',
+    displayName: 'Teams communication observer',
+    description:
+      'Silent observer for MS Teams channels diagnosing the "Hyperactive Hive Mind" — pattern knowledge graph, per-person style profiles, hive-analytics metrics, three hyperscreen dashboards, and an evidence-based team-agreement draft. Ships sample transcripts; no Teams tenant required.',
+    estimatedDurationLabel: '~3 min',
+    timeoutMs: 8 * 60 * 1000,
+  },
 ]);
 
 function findSeed(id: string): DemoSeed | undefined {

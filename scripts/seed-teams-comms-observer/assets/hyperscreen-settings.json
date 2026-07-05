@@ -1,0 +1,37 @@
+{
+  "background": "#eef2f8",
+  "cards": [
+    {
+      "id": "hive-pulse",
+      "title": "Hive Pulse",
+      "subtitle": "Communication health, trends & per-person signals",
+      "image": "pulse.png",
+      "previewFile": "reports/hive-pulse.html",
+      "contextMenu": [
+        { "id": "ctx-report", "icon": "PiFileTextLight", "title": "Standing report (markdown)", "previewFile": "out/hive-mind-report.md" },
+        { "id": "ctx-log", "icon": "PiListBulletsLight", "title": "Insights log", "previewFile": "reports/comms-insights-log.md" }
+      ]
+    },
+    {
+      "id": "pattern-radar",
+      "title": "Pattern Radar",
+      "subtitle": "Defect heatmap, incident timeline & evidence links",
+      "image": "patterns.png",
+      "previewFile": "reports/pattern-radar.html",
+      "contextMenu": [
+        { "id": "ctx-taxonomy", "icon": "PiTreeStructureLight", "title": "Pattern taxonomy (wiki)", "previewFile": "wiki/topics/hive-mind-pattern-taxonomy.md" }
+      ]
+    },
+    {
+      "id": "agreement-scoreboard",
+      "title": "Agreement Scoreboard",
+      "subtitle": "Remedies: norms, compliance & prevention potential",
+      "image": "agreement.png",
+      "previewFile": "reports/agreement-scoreboard.html",
+      "contextMenu": [
+        { "id": "ctx-draft", "icon": "PiHandshakeLight", "title": "Team agreement draft", "previewFile": "out/team-agreement-draft.md" },
+        { "id": "ctx-research", "icon": "PiBooksLight", "title": "Research basis (wiki)", "previewFile": "wiki/sources/research-basis.md" }
+      ]
+    }
+  ]
+}

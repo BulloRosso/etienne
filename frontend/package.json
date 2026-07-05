@@ -42,8 +42,7 @@
     "react-icons": "^5.5.0",
     "react-json-tree": "^0.20.0",
     "vis-network": "^10.0.2",
-    "x-data-spreadsheet": "^1.1.9",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
@@ -54,7 +53,12 @@
     "@vitejs/plugin-react": "^4.3.0",
     "jsdom": "^25.0.0",
     "less": "^4.4.2",
-    "vite": "^5.4.0",
-    "vitest": "^2.1.0"
+    "vite": "^7.3.6",
+    "vitest": "^4.1.9"
+  },
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "^3.4.11"
+    }
   }
 }

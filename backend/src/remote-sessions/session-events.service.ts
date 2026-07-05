@@ -28,7 +28,7 @@ export class SessionEventsService {
    */
   emitClaudeResponse(
     provider: string,
-    chatId: number,
+    chatId: number | string,
     response: string,
     success: boolean,
     tokenUsage?: { input_tokens: number; output_tokens: number },
@@ -57,7 +57,7 @@ export class SessionEventsService {
   /**
    * Emit pairing approved event to provider
    */
-  emitPairingApproved(provider: string, chatId: number, sessionId: string): void {
+  emitPairingApproved(provider: string, chatId: number | string, sessionId: string): void {
     const subject = this.subjects.get(provider);
     if (!subject) {
       this.logger.warn(`No subscribers for provider: ${provider}`);
@@ -80,7 +80,7 @@ export class SessionEventsService {
   /**
    * Emit pairing denied event to provider
    */
-  emitPairingDenied(provider: string, chatId: number, message?: string): void {
+  emitPairingDenied(provider: string, chatId: number | string, message?: string): void {
     const subject = this.subjects.get(provider);
     if (!subject) {
       this.logger.warn(`No subscribers for provider: ${provider}`);
@@ -103,7 +103,7 @@ export class SessionEventsService {
   /**
    * Emit error event to provider
    */
-  emitError(provider: string, chatId: number, error: string): void {
+  emitError(provider: string, chatId: number | string, error: string): void {
     const subject = this.subjects.get(provider);
     if (!subject) {
       this.logger.warn(`No subscribers for provider: ${provider}`);
@@ -130,7 +130,7 @@ export class SessionEventsService {
    */
   emitHITLVerification(
     provider: string,
-    chatId: number,
+    chatId: number | string,
     renderedPayload: any,
   ): void {
     const subject = this.subjects.get(provider);

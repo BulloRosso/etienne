@@ -1,16 +1,20 @@
-import { IsString, IsNumber } from 'class-validator';
+import { IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class SendMessageDto {
-  @IsNumber()
-  chatId!: number;
+  // Telegram numeric ids and Teams conversation-id strings both normalize to string.
+  @Transform(({ value }) => (value === undefined || value === null ? value : String(value)))
+  @IsString()
+  chatId!: string;
 
   @IsString()
   message!: string;
 }
 
 export class SelectProjectDto {
-  @IsNumber()
-  chatId!: number;
+  @Transform(({ value }) => (value === undefined || value === null ? value : String(value)))
+  @IsString()
+  chatId!: string;
 
   @IsString()
   projectName!: string;
@@ -44,7 +48,7 @@ export interface SessionResponse {
       sessionId: string;
     };
     remoteSession: {
-      chatId: number;
+      chatId: number | string;
       username?: string;
       firstName?: string;
     };

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hive Pulse — communication health</title>
+<style>
+  .viz-root {
+    --surface-1: #fcfcfb; --page: #f9f9f7;
+    --ink-1: #0b0b0b; --ink-2: #52514e; --ink-3: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6; --series-2: #1baf7a;
+    --seq-150: #b7d3f6; --seq-300: #6da7ec; --seq-500: #256abf;
+    --deemph: #c3c2b7;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --delta-good: #006300; --delta-bad: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --ink-1: #ffffff; --ink-2: #c3c2b7; --ink-3: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5; --series-2: #199e70;
+      --seq-150: #104281; --seq-300: #1c5cab; --seq-500: #3987e5;
+      --deemph: #52514e;
+      --delta-good: #0ca30c; --delta-bad: #e66767;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page); }
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink-1); background: var(--page);
+    padding: 20px; max-width: 1100px; margin: 0 auto;
+  }
+  h1 { font-size: 18px; font-weight: 600; }
+  .sub { color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+  .hero-row { display: flex; gap: 16px; align-items: stretch; margin-top: 16px; flex-wrap: wrap; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .hero { flex: 0 0 240px; display: flex; flex-direction: column; justify-content: center; }
+  .hero .label { font-size: 12.5px; color: var(--ink-2); }
+  .hero .value { font-size: 52px; font-weight: 600; line-height: 1.1; }
+  .meter { height: 8px; border-radius: 4px; background: var(--seq-150); margin-top: 10px; overflow: hidden; }
+  .meter > div { height: 100%; border-radius: 4px 0 0 4px; background: var(--seq-500); }
+  .hero .delta { font-size: 12.5px; margin-top: 8px; }
+  .tiles { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; min-width: 300px; }
+  .tile .label { font-size: 12px; color: var(--ink-2); }
+  .tile .value { font-size: 24px; font-weight: 600; margin-top: 2px; }
+  .tile .delta { font-size: 11.5px; margin-top: 2px; }
+  .delta.up-good, .delta.down-good { color: var(--delta-good); }
+  .delta.up-bad, .delta.down-bad { color: var(--delta-bad); }
+  .delta.flat { color: var(--ink-3); }
+  .tile svg { display: block; margin-top: 6px; }
+  section { margin-top: 20px; }
+  section h2 { font-size: 14px; font-weight: 600; }
+  .hint { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .chart-wrap { position: relative; margin-top: 10px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .key { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+  .tooltip {
+    position: absolute; pointer-events: none; display: none; z-index: 5;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.12); min-width: 130px;
+  }
+  .tooltip .t-date { color: var(--ink-2); margin-bottom: 4px; }
+  .tooltip .t-row { display: flex; align-items: center; gap: 6px; }
+  .tooltip .t-val { font-weight: 600; }
+  .tooltip .t-name { color: var(--ink-2); }
+  details { margin-top: 12px; }
+  summary { font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+  table { border-collapse: collapse; font-size: 12px; margin-top: 8px; width: 100%; }
+  th, td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 500; }
+  .empty { padding: 40px; text-align: center; color: var(--ink-3); font-size: 13px; }
+  .fade { opacity: 0.55; transition: opacity .2s; }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root"><div class="empty">Loading metrics…</div></div>
+<script>
+(function () {
+  'use strict';
+  const root = document.getElementById('root');
+  let firstRender = true;
+
+  // ── formatting ───────────────────────────────────────────────────────────
+  const fmt = (v) => v === null || v === undefined ? '–'
+    : (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'K' : String(v));
+  const fmtMin = (v) => v === null || v === undefined ? '–'
+    : v >= 90 ? (v / 60).toFixed(1) + ' h' : Math.round(v) + ' min';
+
+  // KPI definitions: which direction is good, how to render
+  const KPIS = [
+    { key: 'messages',              label: 'Messages',            fmt: fmt,                      upIsGood: null },
+    { key: 'medianReplyLatencyMin', label: 'Median reply latency', fmt: fmtMin,                  upIsGood: true  },  // toward the 4h ceiling = pressure easing
+    { key: 'afterHoursSharePct',    label: 'After-hours share',   fmt: (v)=>v==null?'–':v+' %',  upIsGood: false },
+    { key: 'burstIndexPct',         label: 'Burst index',         fmt: (v)=>v==null?'–':v+' %',  upIsGood: false },
+    { key: 'unansweredBlockers',    label: 'Unanswered blockers', fmt: fmt,                      upIsGood: false },
+    { key: 'cascadeDepth',          label: 'Cascade depth',       fmt: fmt,                      upIsGood: false },
+  ];
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function sparkline(values, w, h, accent, deemph) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    const vals = values.map(v => v === null || v === undefined ? 0 : v);
+    const max = Math.max(...vals, 1), min = Math.min(...vals, 0);
+    const x = (i) => 2 + (i * (w - 8)) / Math.max(vals.length - 1, 1);
+    const y = (v) => h - 4 - ((v - min) * (h - 8)) / Math.max(max - min, 1e-9);
+    const d = vals.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+    const path = document.createElementNS(svg.namespaceURI, 'path');
+    path.setAttribute('d', d); path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', deemph); path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    const dot = document.createElementNS(svg.namespaceURI, 'circle');
+    dot.setAttribute('cx', x(vals.length - 1)); dot.setAttribute('cy', y(vals[vals.length - 1]));
+    dot.setAttribute('r', '4'); dot.setAttribute('fill', accent);
+    dot.setAttribute('stroke', 'var(--surface-1)'); dot.setAttribute('stroke-width', '2');
+    svg.appendChild(dot);
+    return svg;
+  }
+
+  function deltaText(cur, prev, kpi) {
+    if (cur == null || prev == null) return { text: '', cls: 'flat' };
+    const diff = cur - prev;
+    if (Math.abs(diff) < 1e-9) return { text: '— vs prev day', cls: 'flat' };
+    const arrow = diff > 0 ? '↑' : '↓';
+    let cls = 'flat';
+    if (kpi.upIsGood !== null) {
+      const good = (diff > 0) === kpi.upIsGood;
+      cls = (diff > 0 ? 'up-' : 'down-') + (good ? 'good' : 'bad');
+    }
+    const mag = kpi.key === 'medianReplyLatencyMin' ? fmtMin(Math.abs(diff)) : fmt(Math.round(Math.abs(diff) * 10) / 10);
+    return { text: arrow + ' ' + mag + ' vs prev day', cls };
+  }
+
+  // ── multi-series day line chart with crosshair tooltip ───────────────────
+  function lineChart(days, seriesDefs, valueOf, opts) {
+    const W = 1040, H = 220, PL = 44, PR = 110, PT = 12, PB = 26;
+    const wrap = el('div', 'chart-wrap');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('width', '100%');
+    wrap.appendChild(svg);
+
+    const allVals = [];
+    for (const s of seriesDefs) for (const d of days) { const v = valueOf(d, s); if (v != null) allVals.push(v); }
+    const maxV = Math.max(...allVals, opts && opts.max || 0, 1);
+    const minV = 0;
+    const x = (i) => PL + (i * (W - PL - PR)) / Math.max(days.length - 1, 1);
+    const y = (v) => PT + (H - PT - PB) - ((v - minV) * (H - PT - PB)) / (maxV - minV);
+
+    // gridlines: 4 clean steps
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+      const v = Math.round((maxV / steps) * i);
+      const gy = y(v);
+      const line = document.createElementNS(svg.namespaceURI, 'line');
+      line.setAttribute('x1', PL); line.setAttribute('x2', W - PR);
+      line.setAttribute('y1', gy); line.setAttribute('y2', gy);
+      line.setAttribute('stroke', i === 0 ? 'var(--axis)' : 'var(--grid)');
+      line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+      const t = document.createElementNS(svg.namespaceURI, 'text');
+      t.setAttribute('x', PL - 8); t.setAttribute('y', gy + 4);
+      t.setAttribute('text-anchor', 'end'); t.setAttribute('font-size', '11');
+      t.setAttribute('fill', 'var(--ink-3)'); t.style.fontVariantNumeric = 'tabular-nums';
+      t.textContent = String(v);
+      svg.appendChild(t);
+    }
+    // x labels
+    days.forEach((d, i) => {
+      const t = document.createElementNS(svg.namespaceURI, 'text');
+      t.setAttribute('x', x(i)); t.setAttribute('y', H - 8);
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '11');
+      t.setAttribute('fill', 'var(--ink-3)');
+      t.textContent = d.date.slice(5);
+      svg.appendChild(t);
+    });
+
+    for (const s of seriesDefs) {
+      const pts = days.map((d, i) => ({ x: x(i), y: y(valueOf(d, s) ?? 0) }));
+      const path = document.createElementNS(svg.namespaceURI, 'path');
+      path.setAttribute('d', pts.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' '));
+      path.setAttribute('fill', 'none'); path.setAttribute('stroke', s.color);
+      path.setAttribute('stroke-width', '2'); path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(path);
+      const last = pts[pts.length - 1];
+      const dot = document.createElementNS(svg.namespaceURI, 'circle');
+      dot.setAttribute('cx', last.x); dot.setAttribute('cy', last.y); dot.setAttribute('r', '4');
+      dot.setAttribute('fill', s.color); dot.setAttribute('stroke', 'var(--surface-1)'); dot.setAttribute('stroke-width', '2');
+      svg.appendChild(dot);
+      // direct end-label (≤ 3 series here)
+      const t = document.createElementNS(svg.namespaceURI, 'text');
+      t.setAttribute('x', last.x + 10); t.setAttribute('y', last.y + 4);
+      t.setAttribute('font-size', '11.5'); t.setAttribute('fill', 'var(--ink-2)');
+      t.textContent = s.name;
+      svg.appendChild(t);
+    }
+
+    // crosshair + tooltip
+    const cross = document.createElementNS(svg.namespaceURI, 'line');
+    cross.setAttribute('y1', PT); cross.setAttribute('y2', H - PB);
+    cross.setAttribute('stroke', 'var(--axis)'); cross.setAttribute('stroke-width', '1');
+    cross.style.display = 'none';
+    svg.appendChild(cross);
+    const tip = el('div', 'tooltip');
+    wrap.appendChild(tip);
+
+    svg.addEventListener('pointermove', (ev) => {
+      const rect = svg.getBoundingClientRect();
+      const relX = ((ev.clientX - rect.left) / rect.width) * W;
+      let idx = 0, best = Infinity;
+      for (let i = 0; i < days.length; i++) { const dd = Math.abs(x(i) - relX); if (dd < best) { best = dd; idx = i; } }
+      cross.style.display = ''; cross.setAttribute('x1', x(idx)); cross.setAttribute('x2', x(idx));
+      tip.style.display = 'block';
+      while (tip.firstChild) tip.removeChild(tip.firstChild);
+      tip.appendChild(el('div', 't-date', days[idx].date));
+      for (const s of seriesDefs) {
+        const row = el('div', 't-row');
+        const key = el('span', 'key'); key.style.background = s.color;
+        row.appendChild(key);
+        row.appendChild(el('span', 't-val', String(valueOf(days[idx], s) ?? '–')));
+        row.appendChild(el('span', 't-name', s.name));
+        tip.appendChild(row);
+      }
+      const px = (x(idx) / W) * rect.width;
+      tip.style.left = Math.min(px + 14, rect.width - 150) + 'px';
+      tip.style.top = '10px';
+    });
+    svg.addEventListener('pointerleave', () => { cross.style.display = 'none'; tip.style.display = 'none'; });
+    return wrap;
+  }
+
+  // ── render ────────────────────────────────────────────────────────────────
+  function render(data) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(el('h1', null, 'Hive Pulse — communication health'));
+    frag.appendChild(el('div', 'sub',
+      'Channels: ' + data.channels.join(', ') + ' · window ' + data.days[0].date + ' … ' +
+      data.days[data.days.length - 1].date + ' · targets = proposed team-agreement norms'));
+
+    const days = data.days;
+    const last = days[days.length - 1], prev = days.length > 1 ? days[days.length - 2] : null;
+
+    // hero: health score + meter
+    const heroRow = el('div', 'hero-row');
+    const hero = el('div', 'card hero');
+    hero.appendChild(el('div', 'label', 'Hive health score (latest day)'));
+    hero.appendChild(el('div', 'value', String(last.overall.healthScore)));
+    const meter = el('div', 'meter'); const fill = el('div');
+    fill.style.width = Math.max(0, Math.min(100, last.overall.healthScore)) + '%';
+    meter.appendChild(fill); hero.appendChild(meter);
+    if (prev) {
+      const d = deltaText(last.overall.healthScore, prev.overall.healthScore, { upIsGood: true, key: 'healthScore' });
+      hero.appendChild(el('div', 'delta ' + d.cls, d.text));
+    }
+    heroRow.appendChild(hero);
+
+    // KPI tiles with sparklines
+    const tiles = el('div', 'tiles');
+    const accent = getComputedStyle(document.querySelector('.viz-root')).getPropertyValue('--series-1').trim() || '#2a78d6';
+    const deemph = getComputedStyle(document.querySelector('.viz-root')).getPropertyValue('--deemph').trim() || '#c3c2b7';
+    for (const kpi of KPIS) {
+      const tile = el('div', 'card tile');
+      tile.appendChild(el('div', 'label', kpi.label));
+      tile.appendChild(el('div', 'value', kpi.fmt(last.overall[kpi.key])));
+      if (prev) {
+        const d = deltaText(last.overall[kpi.key], prev.overall[kpi.key], kpi);
+        tile.appendChild(el('div', 'delta ' + d.cls, d.text));
+      }
+      tile.appendChild(sparkline(days.map((d) => d.overall[kpi.key]), 130, 30, accent, deemph));
+      tiles.appendChild(tile);
+    }
+    heroRow.appendChild(tiles);
+    frag.appendChild(heroRow);
+
+    // health trend per channel (≤ 3 series: overall + channels)
+    const sec = el('section', 'card');
+    sec.appendChild(el('h2', null, 'Health score by day'));
+    sec.appendChild(el('div', 'hint', 'Higher is healthier. Hover for exact values.'));
+    const rootStyle = getComputedStyle(document.querySelector('.viz-root'));
+    const seriesDefs = data.channels.slice(0, 2).map((slug, i) => ({
+      name: slug, key: slug,
+      color: rootStyle.getPropertyValue('--series-' + (i + 1)).trim(),
+    }));
+    const chart = lineChart(days, seriesDefs, (d, s) => (d.channels[s.key] || {}).healthScore ?? null, { max: 100 });
+    sec.appendChild(chart);
+    const legend = el('div', 'legend');
+    for (const s of seriesDefs) {
+      const item = el('span'); const key = el('span', 'key'); key.style.background = s.color;
+      item.appendChild(key); item.appendChild(document.createTextNode(s.name));
+      legend.appendChild(item);
+    }
+    sec.appendChild(legend);
+    frag.appendChild(sec);
+
+    // persons table (the accessible twin + the person metrics themselves)
+    const psec = el('section', 'card');
+    psec.appendChild(el('h2', null, 'Per person'));
+    psec.appendChild(el('div', 'hint',
+      'Read as workflow signals, not scores: a very low median latency means the person absorbs response pressure.'));
+    const pt = document.createElement('table');
+    const ph = el('tr'); ['Person', 'Messages', 'Median reply latency', 'After-hours %', 'Burst index %']
+      .forEach((h) => ph.appendChild(el('th', null, h)));
+    pt.appendChild(ph);
+    for (const p of data.persons) {
+      const tr = el('tr');
+      tr.appendChild(el('td', null, p.name));
+      tr.appendChild(el('td', null, String(p.messages)));
+      tr.appendChild(el('td', null, fmtMin(p.medianReplyLatencyMin)));
+      tr.appendChild(el('td', null, p.afterHoursSharePct == null ? '–' : p.afterHoursSharePct + ' %'));
+      tr.appendChild(el('td', null, p.burstIndexPct == null ? '–' : p.burstIndexPct + ' %'));
+      pt.appendChild(tr);
+    }
+    psec.appendChild(pt);
+    frag.appendChild(psec);
+
+    // table view of the day series
+    const det = document.createElement('details');
+    det.appendChild(el('summary', null, 'Table view — all days, overall metrics'));
+    const tbl = document.createElement('table');
+    const hr = el('tr'); ['Date', 'Health', 'Messages', 'Median latency', 'After-hours %', 'Burst %', 'Blockers', 'Cascade']
+      .forEach((h) => hr.appendChild(el('th', null, h)));
+    tbl.appendChild(hr);
+    for (const d of days) {
+      const tr = el('tr'); const o = d.overall;
+      [d.date, o.healthScore, o.messages, fmtMin(o.medianReplyLatencyMin),
+       (o.afterHoursSharePct ?? '–') + ' %', (o.burstIndexPct ?? '–') + ' %',
+       o.unansweredBlockers, o.cascadeDepth]
+        .forEach((v) => tr.appendChild(el('td', null, String(v))));
+      tbl.appendChild(tr);
+    }
+    det.appendChild(tbl);
+    frag.appendChild(det);
+
+    root.classList.remove('fade');
+    while (root.firstChild) root.removeChild(root.firstChild);
+    root.appendChild(frag);
+    firstRender = false;
+  }
+
+  async function load() {
+    try {
+      if (!firstRender) root.classList.add('fade'); // hold previous render, no skeleton
+      const resp = await fetch('./data/hive-metrics.json', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      if (!data.days || data.days.length === 0) throw new Error('no days in metrics');
+      render(data);
+    } catch (err) {
+      root.classList.remove('fade');
+      if (firstRender) {
+        while (root.firstChild) root.removeChild(root.firstChild);
+        const e = el('div', 'empty');
+        e.textContent = 'No metrics yet — run the hive-analytics skill (npx tsx .claude/skills/hive-analytics/scripts/compute-metrics.ts). (' + err.message + ')';
+        root.appendChild(e);
+      }
+    }
+  }
+
+  load();
+  setInterval(load, 60000); // refetch keeps the frame; render replaces in place
+})();
+</script>
+</body>
+</html>

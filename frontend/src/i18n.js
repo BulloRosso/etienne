@@ -44,7 +44,7 @@ i18n
       'skillIndicator', 'skillsSelector',
       'stickyNote', 'strategy', 'streamingTimeline', 'structuredMessage',
       'subagent',
-      'tagManager', 'todoWriteTimeline', 'tokenConsumption', 'toolCallTimeline',
+      'tagManager', 'teamsObserver', 'todoWriteTimeline', 'tokenConsumption', 'toolCallTimeline',
       'useCasesTab', 'userOrders',
       'vectorStore',
       'webHooksTab', 'welcome', 'wizard', 'workflowVisualizer',

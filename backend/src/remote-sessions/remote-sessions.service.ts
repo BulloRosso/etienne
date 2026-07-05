@@ -8,7 +8,8 @@ import { SessionsService } from '../sessions/sessions.service';
 import { InterceptorsService } from '../interceptors/interceptors.service';
 import {
   RemoteSessionMapping,
-  TelegramSession,
+  RemoteSession,
+  RemoteProvider,
   MessageForwardResult,
   PairingResult,
 } from './interfaces/remote-session.interface';
@@ -31,11 +32,11 @@ export class RemoteSessionsService {
   }
 
   /**
-   * Request pairing for a Telegram user
+   * Request pairing for a remote user (Telegram or Teams)
    */
   async requestPairing(
-    provider: 'telegram',
-    remoteSession: TelegramSession,
+    provider: RemoteProvider,
+    remoteSession: RemoteSession,
   ): Promise<PairingResult> {
     return this.pairingService.requestPairing(provider, remoteSession);
   }
@@ -57,10 +58,10 @@ export class RemoteSessionsService {
         if (action === 'approve') {
           const session = await this.storage.findByChatId(pairing.remoteSession.chatId);
           if (session) {
-            this.sessionEvents.emitPairingApproved('telegram', pairing.remoteSession.chatId, session.id);
+            this.sessionEvents.emitPairingApproved(pairing.provider, pairing.remoteSession.chatId, session.id);
           }
         } else {
-          this.sessionEvents.emitPairingDenied('telegram', pairing.remoteSession.chatId, message);
+          this.sessionEvents.emitPairingDenied(pairing.provider, pairing.remoteSession.chatId, message);
         }
       }
     }
@@ -71,7 +72,7 @@ export class RemoteSessionsService {
   /**
    * Get session by chat ID
    */
-  async getSessionByChatId(chatId: number): Promise<RemoteSessionMapping | null> {
+  async getSessionByChatId(chatId: number | string): Promise<RemoteSessionMapping | null> {
     return this.storage.findByChatId(chatId);
   }
 
@@ -79,7 +80,7 @@ export class RemoteSessionsService {
    * Select a project for a session
    */
   async selectProject(
-    chatId: number,
+    chatId: number | string,
     projectName: string,
   ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
     const session = await this.storage.findByChatId(chatId);
@@ -138,7 +139,7 @@ export class RemoteSessionsService {
    * Emits SSE events for frontend real-time updates.
    * Note: Chat history persistence is handled by the unattended endpoint.
    */
-  async forwardMessage(chatId: number, message: string): Promise<MessageForwardResult> {
+  async forwardMessage(chatId: number | string, message: string): Promise<MessageForwardResult> {
     const session = await this.storage.findByChatId(chatId);
     if (!session) {
       return { success: false, error: 'Session not found. Please pair first.' };
@@ -159,10 +160,7 @@ export class RemoteSessionsService {
     let sessionId = session.project.sessionId;
     if (!sessionId) {
       // Try to get most recent session ID, or generate a new one
-      sessionId = await this.sessionsService.getMostRecentSessionId(projectRoot);
-      if (!sessionId) {
-        sessionId = `session-${Date.now()}`;
-      }
+      sessionId = (await this.sessionsService.getMostRecentSessionId(projectRoot)) || `session-${Date.now()}`;
       // Update session mapping with sessionId
       await this.storage.updateSession(session.id, {
         project: { name: projectName, sessionId },
@@ -275,7 +273,7 @@ export class RemoteSessionsService {
   /**
    * Check if a chat is paired
    */
-  async isPaired(chatId: number): Promise<boolean> {
+  async isPaired(chatId: number | string): Promise<boolean> {
     const session = await this.storage.findByChatId(chatId);
     return session !== null;
   }
@@ -283,7 +281,7 @@ export class RemoteSessionsService {
   /**
    * Disconnect a session
    */
-  async disconnectSession(chatId: number): Promise<boolean> {
+  async disconnectSession(chatId: number | string): Promise<boolean> {
     const session = await this.storage.findByChatId(chatId);
     if (!session) {
       return false;
@@ -299,7 +297,7 @@ export class RemoteSessionsService {
    * Returns null if session not found, project not selected, or file not found
    */
   async getProjectFile(
-    chatId: number,
+    chatId: number | string,
     filename: string,
   ): Promise<{ content: Buffer; mimeType: string; filename: string } | null> {
     const session = await this.storage.findByChatId(chatId);
@@ -331,7 +329,7 @@ export class RemoteSessionsService {
         timeout: 60000, // 1 minute timeout
       });
 
-      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const contentType = String(response.headers['content-type'] || 'application/octet-stream');
 
       this.logger.log(`File retrieved: ${normalizedFilename} from project ${projectName}`);
 
@@ -354,7 +352,7 @@ export class RemoteSessionsService {
    * List files in the project workspace (or a subdirectory)
    */
   async listProjectFiles(
-    chatId: number,
+    chatId: number | string,
     path?: string,
   ): Promise<{ files: string[]; error?: string } | null> {
     const session = await this.storage.findByChatId(chatId);

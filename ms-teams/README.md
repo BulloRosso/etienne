@@ -140,6 +140,18 @@ Or use the start script:
 7. Select a project: `project 'your-project-name'`
 8. Start chatting!
 
+## Using the Bot inside a Team Channel
+
+The Azure "Microsoft Teams" channel alone only enables **personal** chats.
+To @-mention the bot inside a channel (e.g. so team members can address an
+observer project like `teams-comms-observer`), build the Teams app package
+in [`appPackage/`](appPackage/) and install it into the team — see
+[appPackage/README.md](appPackage/README.md). In channels the bot only
+receives messages it is @-mentioned in; one pairing covers the whole channel
+(thread ids are normalized), and replies land in the mentioning thread.
+Channel *observation* (reading the full conversation) is a separate Graph
+mechanism — see [`../ms-teams-integration.md`](../ms-teams-integration.md).
+
 ## Available Commands
 
 | Command | Description |

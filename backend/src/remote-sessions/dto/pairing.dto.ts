@@ -1,16 +1,22 @@
-import { IsString, IsNumber, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsIn } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { RemoteProvider } from '../interfaces/remote-session.interface';
 
 export class PairingRequestDto {
   @IsString()
-  @IsIn(['telegram'])
-  provider!: 'telegram';
+  @IsIn(['telegram', 'teams'])
+  provider!: RemoteProvider;
 
-  @IsNumber()
-  chatId!: number;
+  // Telegram sends numeric ids, Teams sends conversation-id strings
+  // (19:...@thread.tacv2) — normalize both to string.
+  @Transform(({ value }) => (value === undefined || value === null ? value : String(value)))
+  @IsString()
+  chatId!: string;
 
   @IsOptional()
-  @IsNumber()
-  userId?: number;
+  @Transform(({ value }) => (value === undefined || value === null ? value : String(value)))
+  @IsString()
+  userId?: string;
 
   @IsOptional()
   @IsString()

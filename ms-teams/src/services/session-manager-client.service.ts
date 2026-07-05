@@ -203,8 +203,8 @@ export class SessionManagerClientService {
         }
       );
 
-      const contentType = response.headers['content-type'] || 'application/octet-stream';
-      const contentDisposition = response.headers['content-disposition'] || '';
+      const contentType = String(response.headers['content-type'] || 'application/octet-stream');
+      const contentDisposition = String(response.headers['content-disposition'] || '');
 
       // Extract filename from content-disposition header if available
       let downloadFilename = filename;

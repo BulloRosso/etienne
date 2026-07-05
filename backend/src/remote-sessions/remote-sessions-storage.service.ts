@@ -86,9 +86,11 @@ export class RemoteSessionsStorageService {
     this.logger.log(`Removed session: ${id}`);
   }
 
-  async findByChatId(chatId: number): Promise<RemoteSessionMapping | null> {
+  async findByChatId(chatId: number | string): Promise<RemoteSessionMapping | null> {
     const data = await this.loadData();
-    return data['remote-sessions'].find((s) => s.remoteSession.chatId === chatId) || null;
+    // String-compare: Telegram ids are stored as numbers in legacy JSON,
+    // Teams conversation ids are strings.
+    return data['remote-sessions'].find((s) => String(s.remoteSession.chatId) === String(chatId)) || null;
   }
 
   async findByProject(projectName: string): Promise<RemoteSessionMapping[]> {
@@ -105,9 +107,9 @@ export class RemoteSessionsStorageService {
   async addPendingPairing(pairing: PendingPairing): Promise<void> {
     const data = await this.loadData();
 
-    // Remove any existing pairing for this chatId
+    // Remove any existing pairing for this chatId (string-compare for legacy numeric ids)
     data['pending-pairings'] = data['pending-pairings'].filter(
-      (p) => p.remoteSession.chatId !== pairing.remoteSession.chatId
+      (p) => String(p.remoteSession.chatId) !== String(pairing.remoteSession.chatId)
     );
 
     data['pending-pairings'].push(pairing);
@@ -125,9 +127,9 @@ export class RemoteSessionsStorageService {
     return data['pending-pairings'].find((p) => p.code === code) || null;
   }
 
-  async findPairingByChatId(chatId: number): Promise<PendingPairing | null> {
+  async findPairingByChatId(chatId: number | string): Promise<PendingPairing | null> {
     const data = await this.loadData();
-    return data['pending-pairings'].find((p) => p.remoteSession.chatId === chatId) || null;
+    return data['pending-pairings'].find((p) => String(p.remoteSession.chatId) === String(chatId)) || null;
   }
 
   async removePairing(id: string): Promise<void> {

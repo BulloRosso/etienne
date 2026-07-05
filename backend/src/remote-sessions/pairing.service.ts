@@ -6,7 +6,8 @@ import { RemoteSessionsStorageService } from './remote-sessions-storage.service'
 import {
   PendingPairing,
   RemoteSessionMapping,
-  TelegramSession,
+  RemoteSession,
+  RemoteProvider,
   PairingResult,
 } from './interfaces/remote-session.interface';
 
@@ -40,13 +41,13 @@ export class PairingService {
   }
 
   /**
-   * Request a new pairing for a Telegram user
+   * Request a new pairing for a remote user (Telegram or Teams)
    * Emits SSE event to frontend and returns immediately.
-   * The approval/denial will be sent via SSE to the Telegram provider.
+   * The approval/denial will be sent via SSE to the provider.
    */
   async requestPairing(
-    provider: 'telegram',
-    remoteSession: TelegramSession,
+    provider: RemoteProvider,
+    remoteSession: RemoteSession,
   ): Promise<PairingResult> {
     // Check if user is already paired
     const existingSession = await this.storage.findByChatId(remoteSession.chatId);
@@ -136,16 +137,16 @@ export class PairingService {
       // Remove from pending pairings
       await this.storage.removePairing(id);
 
-      // Notify Telegram provider via SSE
-      this.emitPairingApproved(pairing.remoteSession.chatId, mapping.id);
+      // Notify the provider via SSE
+      this.emitPairingApproved(pairing.provider, pairing.remoteSession.chatId, mapping.id);
 
       this.logger.log(`Pairing approved for chatId ${pairing.remoteSession.chatId}`);
     } else {
       // Remove from pending pairings
       await this.storage.removePairing(id);
 
-      // Notify Telegram provider via SSE
-      this.emitPairingDenied(pairing.remoteSession.chatId, message);
+      // Notify the provider via SSE
+      this.emitPairingDenied(pairing.provider, pairing.remoteSession.chatId, message);
 
       this.logger.log(`Pairing denied for chatId ${pairing.remoteSession.chatId}`);
     }
@@ -159,7 +160,7 @@ export class PairingService {
   private async approvePairingDirect(pairing: PendingPairing): Promise<boolean> {
     const mapping = await this.createSessionFromPairing(pairing);
     await this.storage.removePairing(pairing.id);
-    this.emitPairingApproved(pairing.remoteSession.chatId, mapping.id);
+    this.emitPairingApproved(pairing.provider, pairing.remoteSession.chatId, mapping.id);
     return true;
   }
 
@@ -188,20 +189,18 @@ export class PairingService {
   }
 
   /**
-   * Emit pairing approved event to Telegram provider via SessionEventsService
+   * Emit pairing approved event to the provider via SessionEventsService
    */
-  private emitPairingApproved(chatId: number, sessionId: string): void {
-    // Send to Telegram provider via SessionEventsService
-    this.sessionEventsService.emitPairingApproved('telegram', chatId, sessionId);
+  private emitPairingApproved(provider: RemoteProvider, chatId: number | string, sessionId: string): void {
+    this.sessionEventsService.emitPairingApproved(provider, chatId, sessionId);
     this.logger.log(`Emitted pairing_approved event for chatId ${chatId}`);
   }
 
   /**
-   * Emit pairing denied event to Telegram provider via SessionEventsService
+   * Emit pairing denied event to the provider via SessionEventsService
    */
-  private emitPairingDenied(chatId: number, message?: string): void {
-    // Send to Telegram provider via SessionEventsService
-    this.sessionEventsService.emitPairingDenied('telegram', chatId, message);
+  private emitPairingDenied(provider: RemoteProvider, chatId: number | string, message?: string): void {
+    this.sessionEventsService.emitPairingDenied(provider, chatId, message);
     this.logger.log(`Emitted pairing_denied event for chatId ${chatId}`);
   }
 
@@ -216,7 +215,7 @@ export class PairingService {
   /**
    * Check if a chatId has a pending pairing
    */
-  async hasPendingPairing(chatId: number): Promise<boolean> {
+  async hasPendingPairing(chatId: number | string): Promise<boolean> {
     const pairing = await this.storage.findPairingByChatId(chatId);
     return pairing !== null;
   }

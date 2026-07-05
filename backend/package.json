@@ -2,7 +2,7 @@
   "name": "claude-backend",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_ENV=development node -r ts-node/register/transpile-only src/main.ts 2>&1 | tee -a runtime.log",
+    "dev": "cross-env NODE_ENV=development node -r ts-node/register/transpile-only src/main.ts 2>&1 | node scripts/tee.js runtime.log",
     "typecheck": "tsc --noEmit",
     "typecheck:fast": "tsgo --noEmit -p tsconfig.fast.json",
     "typecheck:watch": "tsc --noEmit --watch --preserveWatchOutput"
@@ -11,6 +11,7 @@
     "@ai-sdk/anthropic": "^3.0.44",
     "@ai-sdk/openai": "^3.0.29",
     "@ai-sdk/openai-compatible": "^2.0.47",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.201",
     "@arizeai/openinference-semantic-conventions": "^2.1.7",
     "@aws-crypto/sha256-js": "^5.2.0",
     "@aws-sdk/client-bedrock-agentcore-control": "^3.1034.0",
@@ -38,7 +39,7 @@
     "@opencode-ai/sdk": "^1.17.11",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/core": "^2.2.0",
-    "@opentelemetry/exporter-trace-otlp-proto": "^0.208.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.220.0",
     "@opentelemetry/resources": "^2.2.0",
     "@opentelemetry/sdk-trace-base": "^2.2.0",
     "@opentelemetry/sdk-trace-node": "^2.2.0",
@@ -65,12 +66,12 @@
     "express": "^4.21.2",
     "fs-extra": "^11.3.2",
     "imap": "^0.8.19",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.3.0",
     "jsonwebtoken": "^9.0.3",
     "mailparser": "^3.9.0",
     "marked": "^18.0.1",
     "mqtt": "^5.14.1",
-    "multer": "^2.0.2",
+    "multer": "^2.2.0",
     "officeparser": "^6.0.7",
     "openai": "^6.27.0",
     "opencode-ai": "^1.17.11",
@@ -79,12 +80,23 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "smol-toml": "^1.6.0",
-    "smtp-connection": "^4.0.2",
     "sparqljs": "^3.7.3",
-    "uuid": "^11.0.3",
+    "uuid": "^11.1.1",
     "xstate": "^5.28.0",
     "zeromq": "^6.5.0",
     "zod": "^3.24.0"
+  },
+  "overrides": {
+    "@nestjs/common": {
+      "file-type": "^21.3.2"
+    },
+    "js-yaml": "$js-yaml",
+    "multer": "$multer",
+    "qs": "^6.15.3",
+    "uuid": "$uuid",
+    "utf7": {
+      "semver": "^5.7.2"
+    }
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",

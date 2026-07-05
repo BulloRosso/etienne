@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Query, Req, Res, Logger } from '@nestjs/c
 import { Request, Response } from 'express';
 import { Public } from '../auth/public.decorator';
 import { Ms365TokenService } from './ms365-token.service';
+import { ms365Scopes } from './ms365-scopes';
 import { randomBytes } from 'crypto';
 import axios from 'axios';
 
@@ -35,7 +36,7 @@ export class Ms365OAuthController {
   }
 
   private get scopes(): string {
-    return process.env.MS365_SCOPES || 'offline_access Files.ReadWrite.All Sites.ReadWrite.All User.Read';
+    return ms365Scopes();
   }
 
   @Get(':project/connect')

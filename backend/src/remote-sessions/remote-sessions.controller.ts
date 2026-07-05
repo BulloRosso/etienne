@@ -6,7 +6,6 @@ import {
   Param,
   Sse,
   Logger,
-  ParseIntPipe,
   Query,
   Res,
   HttpStatus,
@@ -109,7 +108,7 @@ export class RemoteSessionsController {
    */
   @Public()
   @Get('session/:chatId')
-  async getSession(@Param('chatId', ParseIntPipe) chatId: number) {
+  async getSession(@Param('chatId') chatId: string) {
     const session = await this.remoteSessionsService.getSessionByChatId(chatId);
 
     if (!session) {
@@ -157,7 +156,7 @@ export class RemoteSessionsController {
    */
   @Public()
   @Get('paired/:chatId')
-  async isPaired(@Param('chatId', ParseIntPipe) chatId: number) {
+  async isPaired(@Param('chatId') chatId: string) {
     const isPaired = await this.remoteSessionsService.isPaired(chatId);
     return { paired: isPaired };
   }
@@ -167,7 +166,7 @@ export class RemoteSessionsController {
    */
   @Public()
   @Post('disconnect/:chatId')
-  async disconnect(@Param('chatId', ParseIntPipe) chatId: number) {
+  async disconnect(@Param('chatId') chatId: string) {
     const success = await this.remoteSessionsService.disconnectSession(chatId);
     return { success };
   }
@@ -195,7 +194,7 @@ export class RemoteSessionsController {
   @Public()
   @Get('file/:chatId/:filename')
   async downloadFile(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: string,
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
@@ -223,7 +222,7 @@ export class RemoteSessionsController {
   @Public()
   @Get('files/:chatId')
   async listFiles(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: string,
     @Query('path') path?: string,
   ) {
     const result = await this.remoteSessionsService.listProjectFiles(chatId, path);

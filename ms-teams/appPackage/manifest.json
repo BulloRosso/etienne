@@ -1,0 +1,35 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "REPLACE_WITH_MICROSOFT_APP_ID",
+  "developer": {
+    "name": "Etienne",
+    "websiteUrl": "https://github.com/etienne",
+    "privacyUrl": "https://github.com/etienne",
+    "termsOfUseUrl": "https://github.com/etienne"
+  },
+  "name": {
+    "short": "Etienne",
+    "full": "Etienne Agent for Microsoft Teams"
+  },
+  "description": {
+    "short": "Chat with the Etienne agent from Teams",
+    "full": "Etienne bridges Microsoft Teams and your Etienne projects. In a personal chat or when @-mentioned in a channel, messages are forwarded to the paired Etienne project agent and answered in-thread. Installing the bot into a team enables channel @-mentions (required for observer projects that are occasionally addressed by team members)."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#4B53BC",
+  "bots": [
+    {
+      "botId": "REPLACE_WITH_MICROSOFT_APP_ID",
+      "scopes": ["personal", "team"],
+      "supportsFiles": false,
+      "isNotificationOnly": false
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": []
+}

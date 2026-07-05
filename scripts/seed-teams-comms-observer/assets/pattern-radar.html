@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern Radar — communication defects</title>
+<style>
+  .viz-root {
+    --surface-1: #fcfcfb; --page: #f9f9f7;
+    --ink-1: #0b0b0b; --ink-2: #52514e; --ink-3: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    /* sequential blue ramp, light mode (100→700) */
+    --seq-0: transparent; --seq-100: #cde2fb; --seq-200: #9ec5f4; --seq-300: #6da7ec;
+    --seq-400: #3987e5; --seq-500: #256abf; --seq-600: #184f95; --seq-700: #0d366b;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --ink-1: #ffffff; --ink-2: #c3c2b7; --ink-3: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      /* dark mode: same hue, stepped for the dark surface (low count = near surface) */
+      --seq-100: #16273f; --seq-200: #10315c; --seq-300: #104281;
+      --seq-400: #1c5cab; --seq-500: #2a78d6; --seq-600: #3987e5; --seq-700: #86b6ef;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page); }
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink-1); background: var(--page);
+    padding: 20px; max-width: 1100px; margin: 0 auto;
+  }
+  h1 { font-size: 18px; font-weight: 600; }
+  .sub { color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+  .filters { display: flex; gap: 10px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+  .filters label { font-size: 12px; color: var(--ink-2); }
+  .filters select {
+    font: inherit; font-size: 12.5px; color: var(--ink-1);
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px;
+  }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  h2 { font-size: 14px; font-weight: 600; }
+  .hint { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .chart-wrap { position: relative; margin-top: 10px; overflow-x: auto; }
+  .tooltip {
+    position: absolute; pointer-events: none; display: none; z-index: 5;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    white-space: nowrap;
+  }
+  .tooltip .t-val { font-weight: 600; }
+  .tooltip .t-name { color: var(--ink-2); }
+  .scale { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
+  .scale .swatches { display: flex; }
+  .scale .swatches span { width: 22px; height: 10px; display: inline-block; }
+  .incident { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--grid); align-items: flex-start; }
+  .incident:last-child { border-bottom: none; }
+  .sev { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+         font-size: 11.5px; font-weight: 600; border-radius: 6px; padding: 3px 8px; color: #fff; }
+  .sev.critical { background: var(--critical); }
+  .sev.serious  { background: var(--serious); color: #1a1a19; }
+  .sev.warning  { background: var(--warning); color: #1a1a19; }
+  .sev.minor    { background: var(--axis); color: var(--ink-1); }
+  .inc-body { flex: 1; min-width: 0; }
+  .inc-head { font-size: 13px; font-weight: 600; }
+  .inc-meta { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  .inc-sum { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+  .inc-link { font-size: 11.5px; margin-top: 4px; }
+  .inc-link a { color: var(--series-1); }
+  .type-chip { display: inline-block; font-size: 11px; border: 1px solid var(--border); border-radius: 999px;
+               padding: 1px 8px; color: var(--ink-2); margin-left: 8px; vertical-align: 1px; }
+  .bar-row { display: grid; grid-template-columns: 190px 1fr 40px; align-items: center; gap: 10px; margin-top: 8px; }
+  .bar-label { font-size: 12.5px; color: var(--ink-2); text-align: right; }
+  .bar-track { height: 18px; position: relative; }
+  .bar-fill { height: 100%; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .bar-val { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-1); }
+  details { margin-top: 12px; }
+  summary { font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+  table { border-collapse: collapse; font-size: 12px; margin-top: 8px; width: 100%; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-2); font-weight: 500; }
+  .empty { padding: 40px; text-align: center; color: var(--ink-3); font-size: 13px; }
+  .fade { opacity: 0.55; transition: opacity .2s; }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root"><div class="empty">Loading…</div></div>
+<script>
+(function () {
+  'use strict';
+  const root = document.getElementById('root');
+  let firstRender = true;
+  let state = { channel: 'all', type: 'all' };
+  let cache = null;
+
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const SEV = (s) => s >= 5 ? { cls: 'critical', label: 'critical', icon: '⛔' }
+            : s >= 4 ? { cls: 'serious', label: 'serious', icon: '▲' }
+            : s >= 3 ? { cls: 'warning', label: 'warning', icon: '◆' }
+            : { cls: 'minor', label: 'minor', icon: '·' };
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  // ── heatmap ───────────────────────────────────────────────────────────────
+  function heatmap(grid, coreHours) {
+    const CELL = 34, CH = 20, PL = 40, PT = 22;
+    const W = PL + 24 * CELL + 8, H = PT + 7 * CH + 26;
+    const wrap = el('div', 'chart-wrap');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    wrap.appendChild(svg);
+    const tip = el('div', 'tooltip'); wrap.appendChild(tip);
+
+    const max = Math.max(1, ...grid.flat());
+    const styles = getComputedStyle(document.querySelector('.viz-root'));
+    const ramp = [100, 200, 300, 400, 500, 600, 700].map((s) => styles.getPropertyValue('--seq-' + s).trim());
+    const colorFor = (v) => v === 0 ? null : ramp[Math.min(ramp.length - 1, Math.floor((v / max) * ramp.length))] || ramp[ramp.length - 1];
+
+    // hour labels + core-time boundary hairlines
+    for (let h = 0; h < 24; h += 3) {
+      const t = document.createElementNS(svg.namespaceURI, 'text');
+      t.setAttribute('x', PL + h * CELL + CELL / 2); t.setAttribute('y', 14);
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '10.5');
+      t.setAttribute('fill', 'var(--ink-3)'); t.textContent = String(h).padStart(2, '0');
+      svg.appendChild(t);
+    }
+    for (const bound of [coreHours.startUtc, coreHours.endUtc]) {
+      const lx = PL + bound * CELL - 1;
+      const line = document.createElementNS(svg.namespaceURI, 'line');
+      line.setAttribute('x1', lx); line.setAttribute('x2', lx);
+      line.setAttribute('y1', PT - 4); line.setAttribute('y2', PT + 7 * CH + 2);
+      line.setAttribute('stroke', 'var(--axis)'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+    }
+    const ct = document.createElementNS(svg.namespaceURI, 'text');
+    ct.setAttribute('x', PL + ((coreHours.startUtc + coreHours.endUtc) / 2) * CELL);
+    ct.setAttribute('y', PT + 7 * CH + 18); ct.setAttribute('text-anchor', 'middle');
+    ct.setAttribute('font-size', '10.5'); ct.setAttribute('fill', 'var(--ink-3)');
+    ct.textContent = 'core time ' + String(coreHours.startUtc).padStart(2, '0') + ':00–' + String(coreHours.endUtc).padStart(2, '0') + ':00 UTC';
+    svg.appendChild(ct);
+
+    // Mon..Sun rows (start week on Monday)
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    order.forEach((dow, r) => {
+      const t = document.createElementNS(svg.namespaceURI, 'text');
+      t.setAttribute('x', PL - 8); t.setAttribute('y', PT + r * CH + CH / 2 + 4);
+      t.setAttribute('text-anchor', 'end'); t.setAttribute('font-size', '10.5');
+      t.setAttribute('fill', 'var(--ink-3)'); t.textContent = DOW[dow];
+      svg.appendChild(t);
+      for (let h = 0; h < 24; h++) {
+        const v = grid[dow][h];
+        const fill = colorFor(v);
+        const rect = document.createElementNS(svg.namespaceURI, 'rect');
+        rect.setAttribute('x', PL + h * CELL + 1); rect.setAttribute('y', PT + r * CH + 1);
+        rect.setAttribute('width', CELL - 2); rect.setAttribute('height', CH - 2); // 2px surface gap
+        rect.setAttribute('rx', '3');
+        rect.setAttribute('fill', fill || 'transparent');
+        if (!fill) { rect.setAttribute('stroke', 'var(--grid)'); rect.setAttribute('stroke-width', '1'); }
+        rect.addEventListener('pointermove', (ev) => {
+          tip.style.display = 'block';
+          while (tip.firstChild) tip.removeChild(tip.firstChild);
+          tip.appendChild(el('span', 't-val', v + ' msg'));
+          tip.appendChild(el('span', 't-name', ' · ' + DOW[dow] + ' ' + String(h).padStart(2, '0') + ':00'));
+          const wrapRect = wrap.getBoundingClientRect();
+          tip.style.left = Math.min(ev.clientX - wrapRect.left + 12, wrapRect.width - 140) + 'px';
+          tip.style.top = (ev.clientY - wrapRect.top - 34) + 'px';
+        });
+        rect.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+        svg.appendChild(rect);
+      }
+    });
+
+    const scale = el('div', 'scale');
+    scale.appendChild(el('span', null, '0'));
+    const sw = el('span', 'swatches');
+    for (const c of ramp) { const s = el('span'); s.style.background = c; sw.appendChild(s); }
+    scale.appendChild(sw);
+    scale.appendChild(el('span', null, String(max) + ' messages'));
+    const box = el('div');
+    box.appendChild(wrap); box.appendChild(scale);
+    return box;
+  }
+
+  // ── render ────────────────────────────────────────────────────────────────
+  function render() {
+    const { metrics, patterns } = cache;
+    const occ = patterns.occurrences.filter((o) =>
+      (state.channel === 'all' || o.channel === state.channel) &&
+      (state.type === 'all' || o.type === state.type));
+
+    const frag = document.createDocumentFragment();
+    frag.appendChild(el('h1', null, 'Pattern Radar — communication defects'));
+    frag.appendChild(el('div', 'sub', 'Every occurrence links to its evidence. Severity: 5 blocked work · 4 lost decision · 3 measurable focus cost · 2 friction.'));
+
+    // filter row (scopes everything below)
+    const filters = el('div', 'filters');
+    const mkSelect = (label, key, options) => {
+      const l = el('label', null, label + ' ');
+      const sel = document.createElement('select');
+      for (const [v, text] of options) {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = text; if (state[key] === v) o.selected = true;
+        sel.appendChild(o);
+      }
+      sel.addEventListener('change', () => { state[key] = sel.value; render(); });
+      l.appendChild(sel);
+      return l;
+    };
+    const channels = [['all', 'All channels'], ...metrics.channels.map((c) => [c, c])];
+    const types = [['all', 'All patterns'], ...[...new Set(patterns.occurrences.map((o) => o.type))].map((t) => [t, t])];
+    filters.appendChild(mkSelect('Channel', 'channel', channels));
+    filters.appendChild(mkSelect('Pattern', 'type', types));
+    frag.appendChild(filters);
+
+    // heatmap card
+    const hm = el('div', 'card');
+    hm.appendChild(el('h2', null, 'When the channel talks — weekday × hour'));
+    hm.appendChild(el('div', 'hint', 'Message density over the observation window. Marks outside the core-time hairlines are after-hours activity; the 09:00–10:00 spike is the ping-storm window.'));
+    const grid = state.channel === 'all'
+      ? metrics.activity.overall
+      : (metrics.activity.channels[state.channel] || metrics.activity.overall);
+    hm.appendChild(heatmap(grid, metrics.coreHours));
+    frag.appendChild(hm);
+
+    // frequency bars (one series → one color)
+    const freq = el('div', 'card');
+    freq.appendChild(el('h2', null, 'Occurrences by pattern type'));
+    const counts = new Map();
+    for (const o of occ) counts.set(o.type, (counts.get(o.type) || 0) + 1);
+    const maxC = Math.max(1, ...counts.values());
+    for (const [type, n] of [...counts.entries()].sort((a, b) => b[1] - a[1])) {
+      const row = el('div', 'bar-row');
+      row.appendChild(el('div', 'bar-label', type));
+      const track = el('div', 'bar-track');
+      const fill = el('div', 'bar-fill');
+      fill.style.width = (n / maxC) * 100 + '%';
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(el('div', 'bar-val', String(n)));
+      freq.appendChild(row);
+    }
+    if (counts.size === 0) freq.appendChild(el('div', 'hint', 'No occurrences for this filter.'));
+    frag.appendChild(freq);
+
+    // incident timeline
+    const tl = el('div', 'card');
+    tl.appendChild(el('h2', null, 'Incident timeline (' + occ.length + ')'));
+    for (const o of [...occ].sort((a, b) => b.timestamp.localeCompare(a.timestamp))) {
+      const item = el('div', 'incident');
+      const sev = SEV(o.severity);
+      const badge = el('span', 'sev ' + sev.cls);
+      badge.appendChild(el('span', null, sev.icon));
+      badge.appendChild(el('span', null, sev.label + ' ' + o.severity));
+      item.appendChild(badge);
+      const body = el('div', 'inc-body');
+      const head = el('div', 'inc-head');
+      head.textContent = o.type;
+      const chip = el('span', 'type-chip', o.channel);
+      head.appendChild(chip);
+      body.appendChild(head);
+      body.appendChild(el('div', 'inc-meta',
+        o.timestamp.replace('T', ' ').slice(0, 16) + ' UTC · participants: ' + o.participants.join(', ') +
+        (o.wouldPrevent && o.wouldPrevent.length ? ' · prevented by: ' + o.wouldPrevent.join(', ') : '')));
+      body.appendChild(el('div', 'inc-sum', o.summary));
+      const link = el('div', 'inc-link');
+      const a = document.createElement('a');
+      a.href = o.evidenceUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.textContent = 'Open evidence in Teams ↗';
+      link.appendChild(a);
+      body.appendChild(link);
+      item.appendChild(body);
+      tl.appendChild(item);
+    }
+    if (occ.length === 0) tl.appendChild(el('div', 'hint', 'No occurrences for this filter.'));
+    frag.appendChild(tl);
+
+    // table view
+    const det = document.createElement('details');
+    det.appendChild(el('summary', null, 'Table view — all occurrences (unfiltered)'));
+    const tbl = document.createElement('table');
+    const hr = el('tr'); ['When (UTC)', 'Type', 'Severity', 'Channel', 'Participants', 'Summary']
+      .forEach((h) => hr.appendChild(el('th', null, h)));
+    tbl.appendChild(hr);
+    for (const o of patterns.occurrences) {
+      const tr = el('tr');
+      [o.timestamp.replace('T', ' ').slice(0, 16), o.type, String(o.severity), o.channel,
+       o.participants.join(', '), o.summary].forEach((v) => tr.appendChild(el('td', null, v)));
+      tbl.appendChild(tr);
+    }
+    det.appendChild(tbl);
+    frag.appendChild(det);
+
+    root.classList.remove('fade');
+    while (root.firstChild) root.removeChild(root.firstChild);
+    root.appendChild(frag);
+    firstRender = false;
+  }
+
+  async function load() {
+    try {
+      if (!firstRender) root.classList.add('fade');
+      const [mResp, pResp] = await Promise.all([
+        fetch('./data/hive-metrics.json', { cache: 'no-store' }),
+        fetch('./data/pattern-occurrences.json', { cache: 'no-store' }),
+      ]);
+      if (!mResp.ok || !pResp.ok) throw new Error('HTTP ' + mResp.status + '/' + pResp.status);
+      cache = { metrics: await mResp.json(), patterns: await pResp.json() };
+      if (!cache.metrics.activity) throw new Error('metrics missing activity grid — rerun hive-analytics');
+      render();
+    } catch (err) {
+      root.classList.remove('fade');
+      if (firstRender) {
+        while (root.firstChild) root.removeChild(root.firstChild);
+        root.appendChild(el('div', 'empty', 'No data yet — run the hive-analytics skill first. (' + err.message + ')'));
+      }
+    }
+  }
+
+  load();
+  setInterval(load, 60000);
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SecretsManagerService } from '../secrets-manager/secrets-manager.service';
 import axios from 'axios';
+import { ms365Scopes } from './ms365-scopes';
 
 export interface Ms365TokenSet {
   accessToken: string;
@@ -103,7 +104,7 @@ export class Ms365TokenService {
       client_id: clientId,
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      scope: process.env.MS365_SCOPES || 'offline_access Files.ReadWrite.All Sites.ReadWrite.All User.Read',
+      scope: ms365Scopes(),
     });
     if (clientSecret) body.set('client_secret', clientSecret);
 

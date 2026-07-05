@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
 
+export type FilesystemEventSource = 'onedrive' | 'teams';
+
 export type FilesystemEvent =
-  | { type: 'fs.added'; project: string; path: string; isDir?: boolean; source: 'onedrive' }
-  | { type: 'fs.removed'; project: string; path: string; source: 'onedrive' }
-  | { type: 'fs.renamed'; project: string; from: string; to: string; source: 'onedrive' }
-  | { type: 'fs.changed'; project: string; path: string; source: 'onedrive' };
+  | { type: 'fs.added'; project: string; path: string; isDir?: boolean; source: FilesystemEventSource }
+  | { type: 'fs.removed'; project: string; path: string; source: FilesystemEventSource }
+  | { type: 'fs.renamed'; project: string; from: string; to: string; source: FilesystemEventSource }
+  | { type: 'fs.changed'; project: string; path: string; source: FilesystemEventSource };
 
 @Injectable()
 export class FilesystemEventsService {

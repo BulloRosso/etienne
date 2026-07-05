@@ -3,6 +3,7 @@ import { Box, Tabs, Tab } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import MCPServerConfiguration from './MCPServerConfiguration';
 import A2ASettings from './A2ASettings';
+import TeamsObserverSettings from './TeamsObserverSettings';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -36,6 +37,10 @@ export default function ConnectivitySettings({ projectName, showBackgroundInfo }
           label={t('connectivity:tabA2a')}
           sx={{ minHeight: 42, textTransform: 'none' }}
         />
+        <Tab
+          label={t('connectivity:tabMsTeams')}
+          sx={{ minHeight: 42, textTransform: 'none' }}
+        />
       </Tabs>
 
       <TabPanel value={tabValue} index={0}>
@@ -44,6 +49,10 @@ export default function ConnectivitySettings({ projectName, showBackgroundInfo }
 
       <TabPanel value={tabValue} index={1}>
         <A2ASettings projectName={projectName} showBackgroundInfo={showBackgroundInfo} />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={2}>
+        <TeamsObserverSettings projectName={projectName} />
       </TabPanel>
     </Box>
   );

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team Agreement Scoreboard</title>
+<style>
+  .viz-root {
+    --surface-1: #fcfcfb; --page: #f9f9f7;
+    --ink-1: #0b0b0b; --ink-2: #52514e; --ink-3: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6; --seq-150: #b7d3f6; --seq-500: #256abf;
+    --deemph: #c3c2b7;
+    --good: #0ca30c; --warning: #fab219;
+    --delta-good: #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --ink-1: #ffffff; --ink-2: #c3c2b7; --ink-3: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5; --seq-150: #104281; --seq-500: #3987e5;
+      --deemph: #52514e;
+      --delta-good: #0ca30c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page); }
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink-1); background: var(--page);
+    padding: 20px; max-width: 1000px; margin: 0 auto;
+  }
+  h1 { font-size: 18px; font-weight: 600; }
+  .sub { color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 16px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .kpi .label { font-size: 12px; color: var(--ink-2); }
+  .kpi .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .norm { margin-top: 14px; }
+  .norm-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .norm-title { font-size: 14px; font-weight: 600; }
+  .status { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 9px; letter-spacing: .02em; }
+  .status.proposed { border: 1px solid var(--series-1); color: var(--series-1); }
+  .status.adopted  { background: var(--good); color: #fff; }
+  .status.deferred { border: 1px solid var(--axis); color: var(--ink-3); }
+  .norm-grid { display: grid; grid-template-columns: 1fr 150px 130px; gap: 18px; align-items: center; margin-top: 10px; }
+  .meter-wrap { position: relative; }
+  .meter-label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-3); margin-bottom: 4px; }
+  .meter-label b { color: var(--ink-1); font-weight: 600; }
+  .meter { position: relative; height: 10px; border-radius: 5px; background: var(--seq-150); }
+  .meter-fill { height: 100%; border-radius: 5px 0 0 5px; background: var(--seq-500); min-width: 2px; }
+  .meter-target { position: absolute; top: -3px; width: 2px; height: 16px; background: var(--ink-2); border-radius: 1px; }
+  .metric-note { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+  .trend .label, .prevent .label { font-size: 11.5px; color: var(--ink-3); }
+  .prevent .num { font-size: 22px; font-weight: 600; }
+  .rationale { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; }
+  details { margin-top: 16px; }
+  summary { font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+  table { border-collapse: collapse; font-size: 12px; margin-top: 8px; width: 100%; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th { color: var(--ink-2); font-weight: 500; }
+  .empty { padding: 40px; text-align: center; color: var(--ink-3); font-size: 13px; }
+  .fade { opacity: 0.55; transition: opacity .2s; }
+  @media (max-width: 720px) { .norm-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root"><div class="empty">Loading…</div></div>
+<script>
+(function () {
+  'use strict';
+  const root = document.getElementById('root');
+  let firstRender = true;
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function sparkline(values, w, h) {
+    const styles = getComputedStyle(document.querySelector('.viz-root'));
+    const accent = styles.getPropertyValue('--series-1').trim();
+    const deemph = styles.getPropertyValue('--deemph').trim();
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    const max = Math.max(...values, 1), min = Math.min(...values, 0);
+    const x = (i) => 3 + (i * (w - 10)) / Math.max(values.length - 1, 1);
+    const y = (v) => h - 5 - ((v - min) * (h - 10)) / Math.max(max - min, 1e-9);
+    const path = document.createElementNS(svg.namespaceURI, 'path');
+    path.setAttribute('d', values.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' '));
+    path.setAttribute('fill', 'none'); path.setAttribute('stroke', deemph);
+    path.setAttribute('stroke-width', '2'); path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+    const dot = document.createElementNS(svg.namespaceURI, 'circle');
+    dot.setAttribute('cx', x(values.length - 1)); dot.setAttribute('cy', y(values[values.length - 1]));
+    dot.setAttribute('r', '4'); dot.setAttribute('fill', accent);
+    dot.setAttribute('stroke', 'var(--surface-1)'); dot.setAttribute('stroke-width', '2');
+    svg.appendChild(dot);
+    return svg;
+  }
+
+  function render(data) {
+    const norms = data.norms;
+    const frag = document.createDocumentFragment();
+    frag.appendChild(el('h1', null, 'Team Agreement Scoreboard'));
+    frag.appendChild(el('div', 'sub',
+      'Which remedies are proposed, what they would have prevented, and how compliance trends. Living draft: out/team-agreement-draft.md'));
+
+    // KPI row
+    const kpis = el('div', 'kpis');
+    const adopted = norms.filter((n) => n.status === 'adopted').length;
+    const proposed = norms.filter((n) => n.status === 'proposed').length;
+    const preventable = norms.reduce((s, n) => s + (n.wouldPrevent || 0), 0);
+    const mk = (label, value) => {
+      const c = el('div', 'card kpi');
+      c.appendChild(el('div', 'label', label));
+      c.appendChild(el('div', 'value', String(value)));
+      return c;
+    };
+    kpis.appendChild(mk('Norms adopted', adopted));
+    kpis.appendChild(mk('Norms proposed', proposed));
+    kpis.appendChild(mk('Occurrence–norm prevention links', preventable));
+    frag.appendChild(kpis);
+
+    // norm rows
+    for (const n of norms) {
+      const card = el('div', 'card norm');
+      const head = el('div', 'norm-head');
+      head.appendChild(el('span', 'norm-title', n.title));
+      head.appendChild(el('span', 'status ' + n.status, n.status + (n.adoptionDate ? ' · ' + n.adoptionDate : '')));
+      card.appendChild(head);
+
+      const grid = el('div', 'norm-grid');
+
+      // compliance meter with target tick
+      const mw = el('div', 'meter-wrap');
+      const ml = el('div', 'meter-label');
+      const cur = n.compliance.currentPct, tgt = n.compliance.targetPct;
+      const lb = el('span'); lb.appendChild(el('b', null, cur + ' %')); lb.appendChild(document.createTextNode(' compliance'));
+      ml.appendChild(lb);
+      ml.appendChild(el('span', null, 'target ' + tgt + ' %'));
+      mw.appendChild(ml);
+      const meter = el('div', 'meter');
+      const fill = el('div', 'meter-fill');
+      fill.style.width = Math.max(0, Math.min(100, cur)) + '%';
+      meter.appendChild(fill);
+      const tick = el('div', 'meter-target');
+      tick.style.left = 'calc(' + Math.max(0, Math.min(100, tgt)) + '% - 1px)';
+      meter.appendChild(tick);
+      mw.appendChild(meter);
+      mw.appendChild(el('div', 'metric-note', n.compliance.metric));
+      grid.appendChild(mw);
+
+      // trend sparkline
+      const tr = el('div', 'trend');
+      tr.appendChild(el('div', 'label', 'compliance trend'));
+      tr.appendChild(sparkline(n.trend || [cur], 140, 34));
+      grid.appendChild(tr);
+
+      // prevention potential
+      const pv = el('div', 'prevent');
+      pv.appendChild(el('div', 'label', 'would have prevented'));
+      pv.appendChild(el('div', 'num', String(n.wouldPrevent || 0)));
+      pv.appendChild(el('div', 'label', (n.wouldPrevent === 1 ? 'occurrence' : 'occurrences') + ' in window'));
+      grid.appendChild(pv);
+
+      card.appendChild(grid);
+      card.appendChild(el('div', 'rationale', n.rationale));
+      frag.appendChild(card);
+    }
+
+    // table view
+    const det = document.createElement('details');
+    det.appendChild(el('summary', null, 'Table view'));
+    const tbl = document.createElement('table');
+    const hr = el('tr');
+    ['Norm', 'Status', 'Compliance %', 'Target %', 'Would prevent', 'Metric'].forEach((h, i) =>
+      hr.appendChild(el('th' + '', i >= 2 && i <= 4 ? 'num' : null, h)));
+    tbl.appendChild(hr);
+    for (const n of norms) {
+      const tr2 = el('tr');
+      tr2.appendChild(el('td', null, n.title));
+      tr2.appendChild(el('td', null, n.status));
+      tr2.appendChild(el('td', 'num', String(n.compliance.currentPct)));
+      tr2.appendChild(el('td', 'num', String(n.compliance.targetPct)));
+      tr2.appendChild(el('td', 'num', String(n.wouldPrevent || 0)));
+      tr2.appendChild(el('td', null, n.compliance.metric));
+      tbl.appendChild(tr2);
+    }
+    det.appendChild(tbl);
+    frag.appendChild(det);
+
+    root.classList.remove('fade');
+    while (root.firstChild) root.removeChild(root.firstChild);
+    root.appendChild(frag);
+    firstRender = false;
+  }
+
+  async function load() {
+    try {
+      if (!firstRender) root.classList.add('fade');
+      const resp = await fetch('./data/agreement-norms.json', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      if (!data.norms) throw new Error('no norms in data');
+      render(data);
+    } catch (err) {
+      root.classList.remove('fade');
+      if (firstRender) {
+        while (root.firstChild) root.removeChild(root.firstChild);
+        root.appendChild(el('div', 'empty', 'No agreement data yet — the nightly analysis generates reports/data/agreement-norms.json. (' + err.message + ')'));
+      }
+    }
+  }
+
+  load();
+  setInterval(load, 60000);
+})();
+</script>
+</body>
+</html>

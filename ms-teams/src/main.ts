@@ -6,7 +6,7 @@ import {
   ConversationReference,
 } from 'botbuilder';
 import { loadConfig } from './config/config';
-import { TeamsBot } from './bot';
+import { TeamsBot, normalizeConversationId } from './bot';
 import { SessionManagerClientService } from './services/session-manager-client.service';
 import { SSEListenerService } from './services/sse-listener.service';
 import { ProviderEvent } from './types';
@@ -120,9 +120,12 @@ async function main() {
   // Webhook endpoint for Bot Framework
   app.post('/api/messages', async (req, res) => {
     await adapter.process(req, res, async (context) => {
-      // Store conversation reference for proactive messaging
+      // Store conversation reference for proactive messaging. Keyed by the
+      // NORMALIZED conversation id (channel thread suffix stripped) so SSE
+      // events addressed by the backend's chatId find the reference; the
+      // reference itself keeps the full thread id so replies land in-thread.
       const reference = TurnContext.getConversationReference(context.activity);
-      conversationReferences.set(context.activity.conversation.id, reference);
+      conversationReferences.set(normalizeConversationId(context.activity.conversation.id), reference);
 
       await bot.run(context);
     });
