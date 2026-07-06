@@ -9,6 +9,6 @@ import { EventHandlingModule } from '../event-handling/event-handling.module';
   imports: [TagsModule, EventHandlingModule],
   controllers: [ContentManagementController],
   providers: [ContentManagementService, RfpRegistryService],
-  exports: [RfpRegistryService],
+  exports: [ContentManagementService, RfpRegistryService],
 })
 export class ContentManagementModule {}

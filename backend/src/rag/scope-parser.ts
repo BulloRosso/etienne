@@ -16,10 +16,20 @@ export interface ScopeMapping {
  * - "project_<name>"  → project documents library (default)
  * - "global"          → cross-project shared library
  * - "domain_<name>"   → topic-specific library (e.g. domain_legal)
+ * - "reqtrack_<name>" → requirements-tracking search projections (rebuildable
+ *                       cache over requirement/service/issue texts) — kept in
+ *                       their own collection/FTS table so they never pollute
+ *                       the project's documents library
  */
 export function parseScopeName(scopeName: string, dimension: number): ScopeMapping {
   if (scopeName === 'global') {
     return { project: '_global', collection: `rag_${dimension}`, ftsTable: 'rag_fts' };
+  }
+
+  if (scopeName.startsWith('reqtrack_')) {
+    const projectName = scopeName.substring(9);
+    if (!projectName) throw new Error('Project name cannot be empty. Use format: reqtrack_<name>');
+    return { project: projectName, collection: `reqtrack_${dimension}`, ftsTable: 'reqtrack_fts' };
   }
 
   if (scopeName.startsWith('domain_')) {

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif">
+<rect width="640" height="400" fill="#fdfdfb"/>
+<path d="M 7.5 7.4 L 632.6 4.7 L 635.1 394.8 L 6.5 393.4 Z" fill="none" stroke="#5b5b56" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 6.3 6.3 L 634.3 4.9 L 633.8 37.7 L 6.7 39.6 Z" fill="#f3f2ec" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="20" y="27" font-size="12" fill="#3c3c38" text-anchor="start" font-weight="600">TenderTrace</text>
+<text x="120" y="27" font-size="11" fill="#6b6b64" text-anchor="start">/  Tender workspace</text>
+<path d="M 577.4 13.1 L 621.8 12.3 L 620.5 29.5 L 575.9 30.4 Z" fill="#eef0ea" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="599" y="26" font-size="9" fill="#6b6b64" text-anchor="middle">user</text>
+<circle cx="60" cy="60" r="10" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.3"/>
+<text x="60" y="84" font-size="9.5" fill="#3c3c38" text-anchor="middle">Intake</text>
+<path d="M 71.6 61.3 L 178.1 60.2" stroke="#6b4fbb" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<circle cx="190" cy="60" r="10" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.3"/>
+<text x="190" y="84" font-size="9.5" fill="#3c3c38" text-anchor="middle">Bid</text>
+<path d="M 201.2 58.5 L 307.4 58.8" stroke="#6b4fbb" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<circle cx="320" cy="60" r="10" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.3"/>
+<text x="320" y="84" font-size="9.5" fill="#3c3c38" text-anchor="middle">Baseline</text>
+<path d="M 332.0 61.6 L 438.6 59.0" stroke="#6b4fbb" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<circle cx="450" cy="60" r="10" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.3"/>
+<text x="450" y="84" font-size="9.5" fill="#3c3c38" text-anchor="middle">Implementation</text>
+<path d="M 463.3 60.9 L 568.8 61.3" stroke="#6b4fbb" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<circle cx="580" cy="60" r="10" fill="none" stroke="#6b4fbb" stroke-width="1.3"/>
+<text x="580" y="84" font-size="9.5" fill="#3c3c38" text-anchor="middle">Claims</text>
+<text x="24" y="112" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Documents</text>
+<path d="M 24.8 120.9 L 313.5 121.5 L 315.5 318.9 L 24.8 320.7 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="36" y="138" font-size="9.5" fill="#3c3c38" text-anchor="start">Leistungsbeschreibung.pdf</text>
+<path d="M 229.9 127.1 L 272.4 128.4 L 272.4 143.1 L 229.5 143.2 Z" fill="#e1f5ee" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="235" y="138" font-size="9" fill="#0f6e56" text-anchor="start">parsed</text>
+<text x="36" y="168" font-size="9.5" fill="#3c3c38" text-anchor="start">Anlage_Technik.docx</text>
+<path d="M 231.3 156.9 L 272.6 158.3 L 273.1 172.0 L 229.1 171.4 Z" fill="#e1f5ee" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="235" y="168" font-size="9" fill="#0f6e56" text-anchor="start">parsed</text>
+<text x="36" y="198" font-size="9.5" fill="#3c3c38" text-anchor="start">Vertrag.pdf</text>
+<path d="M 230.6 185.9 L 273.7 186.3 L 273.7 201.4 L 231.5 202.7 Z" fill="#e1f5ee" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="235" y="198" font-size="9" fill="#0f6e56" text-anchor="start">parsed</text>
+<text x="36" y="228" font-size="9.5" fill="#3c3c38" text-anchor="start">Protokoll_JF_09.docx</text>
+<path d="M 230.0 217.1 L 289.1 217.3 L 288.0 231.1 L 230.0 233.4 Z" fill="#e1f5ee" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="235" y="228" font-size="9" fill="#0f6e56" text-anchor="start">drift run</text>
+<path d="M 36.4 286.6 L 85.8 288.7 L 86.1 306.0 L 36.8 305.6 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.2" stroke-linejoin="round"/>
+<text x="60" y="301" font-size="9.5" fill="#3c3489" text-anchor="middle">upload</text>
+<text x="340" y="112" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">KPIs</text>
+<path d="M 340.5 119.3 L 467.1 121.2 L 466.7 164.1 L 341.1 163.2 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="350" y="147" font-size="9.5" fill="#3c3c38" text-anchor="start">212 requirements</text>
+<path d="M 479.1 121.2 L 607.8 120.7 L 606.5 163.6 L 479.0 164.6 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="490" y="147" font-size="9.5" fill="#3c3c38" text-anchor="start">9 change orders</text>
+<path d="M 338.7 175.5 L 466.5 174.7 L 466.5 217.2 L 341.0 216.9 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="350" y="201" font-size="9.5" fill="#3c3c38" text-anchor="start">4 open cards</text>
+<path d="M 479.0 174.6 L 607.6 172.5 L 609.6 216.9 L 478.5 217.5 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="490" y="201" font-size="9.5" fill="#3c3c38" text-anchor="start">2 conflicts</text>
+<text x="340" y="250" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Activity / SSE feed</text>
+<path d="M 340.4 258.8 L 606.8 257.5 L 606.5 319.8 L 340.9 320.8 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<path d="M 350.8 275.2 L 569.3 273.9" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 350.5 282.4 L 502.4 282.8" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 348.8 292.3 L 565.6 292.0" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 351.5 300.2 L 496.1 300.7" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

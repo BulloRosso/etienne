@@ -207,6 +207,7 @@ const BUILTIN_DEFAULTS = [
   { viewer: 'simulator', extensions: ['.simulator.html'] },
   { viewer: 'cheatsheet', extensions: ['.cheatsheet.json'] },
   { viewer: 'qAndA', extensions: ['.q-and-a.json'] },
+  { viewer: 'requirements-tracking', extensions: ['.tendertrace.json'] },
 ];
 
 /**

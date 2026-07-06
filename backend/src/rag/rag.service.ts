@@ -452,6 +452,132 @@ export class RagService {
   }
 
   /**
+   * Index text under a caller-supplied stable documentId (replace-on-update).
+   * Used by the requirements-tracking search projections, whose entries are keyed
+   * `req:REQ-047:v3`, `svc:SVC-012:v3`, `issue:PORTAL-231` and must be rebuildable —
+   * indexText's random ids cannot be replaced. Accepts arbitrary length (chunked)
+   * and extra metadata that is stored on every chunk.
+   */
+  async indexTextWithId(
+    scopeName: string,
+    textPart: string,
+    stableId: string,
+    metadata: Record<string, any> = {},
+  ): Promise<IndexResult> {
+    if (!textPart.trim()) {
+      throw new Error('Text cannot be empty.');
+    }
+
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    await this.ensureCollection(project, collection);
+
+    const documentId = crypto.createHash('sha256').update(stableId).digest('hex').substring(0, 16);
+    try {
+      await this.removeChunksByDocumentId(project, collection, ftsTable, documentId);
+    } catch {
+      // never indexed before — fine
+    }
+
+    const chunks = await this.splitText(textPart);
+    const embeddings = await this.embeddingsService.embedBatch(chunks);
+
+    const chunkDocs = chunks.map((chunkContent, i) => ({
+      id: `${documentId}-${i}`,
+      content: chunkContent,
+      embedding: embeddings[i],
+      metadata: {
+        ...metadata,
+        documentId,
+        stableId,
+        source: 'projection',
+        scope: scopeName,
+        chunkNumber: i,
+        totalChunks: chunks.length,
+        contentLength: chunkContent.length,
+        indexedAt: new Date().toISOString(),
+      },
+    }));
+
+    await this.addChunks(project, collection, chunkDocs);
+    try {
+      this.bm25Service.indexChunks(
+        project,
+        ftsTable,
+        chunkDocs.map((c) => ({ id: c.id, content: c.content, metadata: c.metadata })),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`BM25 indexChunks failed for ${stableId}: ${message}. Rolling back Chroma write.`);
+      try {
+        await this.removeChunksByDocumentId(project, collection, ftsTable, documentId);
+      } catch (rollbackError) {
+        const rbMessage = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        this.logger.error(`Rollback failed: ${rbMessage}`);
+      }
+      throw error;
+    }
+
+    return {
+      success: true,
+      documentId,
+      scope: scopeName,
+      chunkCount: chunks.length,
+      contentLength: textPart.length,
+    };
+  }
+
+  /** Remove a stable-id entry from a projection scope. */
+  async deleteTextWithId(scopeName: string, stableId: string): Promise<number> {
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    await this.ensureCollection(project, collection);
+    const documentId = crypto.createHash('sha256').update(stableId).digest('hex').substring(0, 16);
+    return this.removeChunksByDocumentId(project, collection, ftsTable, documentId);
+  }
+
+  /**
+   * Hybrid search with a ChromaDB metadata where-clause on the dense side; the
+   * sparse (BM25) side is post-filtered on the same metadata keys. Used by the
+   * requirements-tracking projections to search one entity kind at a time.
+   */
+  async indexSearchWhere(
+    scopeName: string,
+    searchQuery: string,
+    where: Record<string, any> | undefined,
+    topK: number = 10,
+  ): Promise<{ results: SearchResult[]; query: string; scope: string }> {
+    if (!searchQuery.trim()) {
+      throw new Error('Search query cannot be empty.');
+    }
+
+    const { project, collection, ftsTable } = parseScopeName(scopeName, this.embeddingsService.dimension);
+    await this.ensureCollection(project, collection);
+
+    const queryEmbedding = await this.embeddingsService.embed(searchQuery);
+    const hybrid = this.hybridEnabled;
+    const candidatePoolSize = hybrid ? Math.max(20, topK * 2) : topK;
+
+    const matchesWhere = (m: Record<string, any>) =>
+      !where || Object.entries(where).every(([key, value]) => m?.[key] === value);
+
+    const [denseResults, sparseResults] = await Promise.all([
+      this.queryCollection(project, collection, queryEmbedding, candidatePoolSize, where),
+      hybrid
+        ? Promise.resolve(
+            this.bm25Service
+              .search(project, ftsTable, searchQuery, candidatePoolSize * 2)
+              .filter((r) => matchesWhere(r.metadata)),
+          )
+        : Promise.resolve([] as SearchResult[]),
+    ]);
+
+    const results = hybrid
+      ? fuseRRF(denseResults, sparseResults, 60, topK)
+      : denseResults.slice(0, topK);
+
+    return { results, query: searchQuery, scope: scopeName };
+  }
+
+  /**
    * Return the set of document paths that have been indexed in the given scope.
    */
   async getIndexedPaths(scopeName: string): Promise<string[]> {

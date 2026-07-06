@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif">
+<rect width="640" height="400" fill="#fdfdfb"/>
+<path d="M 6.9 7.0 L 634.0 5.2 L 632.4 394.5 L 5.9 394.8 Z" fill="none" stroke="#5b5b56" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 5.6 6.9 L 633.3 7.0 L 634.7 37.7 L 6.1 38.6 Z" fill="#f3f2ec" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="20" y="27" font-size="12" fill="#3c3c38" text-anchor="start" font-weight="600">TenderTrace</text>
+<text x="120" y="27" font-size="11" fill="#6b6b64" text-anchor="start">/  Service catalog</text>
+<path d="M 575.0 13.2 L 623.0 12.2 L 623.0 31.6 L 577.1 30.5 Z" fill="#eef0ea" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="599" y="26" font-size="9" fill="#6b6b64" text-anchor="middle">user</text>
+<path d="M 22.7 49.0 L 225.0 47.8 L 222.7 67.0 L 24.4 67.3 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="32" y="62" font-size="9" fill="#8a8a84" text-anchor="start">search…</text>
+<path d="M 237.4 50.3 L 277.4 50.5 L 278.0 66.4 L 237.3 65.0 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="241" y="61" font-size="9" fill="#55554f" text-anchor="start">portal</text>
+<path d="M 298.5 50.6 L 325.2 51.5 L 322.7 64.6 L 298.3 64.4 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="303" y="61" font-size="9" fill="#55554f" text-anchor="start">sla</text>
+<path d="M 360.3 48.7 L 409.0 50.1 L 406.6 65.5 L 359.4 64.0 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="365" y="61" font-size="9" fill="#55554f" text-anchor="start">betrieb</text>
+<path d="M 421.9 48.8 L 474.3 51.2 L 475.8 63.4 L 422.9 63.5 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="427" y="61" font-size="9" fill="#55554f" text-anchor="start">schulung</text>
+<path d="M 23.5 81.3 L 224.4 79.4 L 223.6 365.6 L 22.8 367.6 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="36" y="100" font-size="9.5" fill="#3c3c38" text-anchor="start" font-weight="600">Kundenportal-Modul</text>
+<path d="M 158.6 88.8 L 181.6 88.7 L 182.3 103.2 L 161.5 105.3 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="165" y="100" font-size="9" fill="#55554f" text-anchor="start">v3</text>
+<text x="36" y="130" font-size="9.5" fill="#3c3c38" text-anchor="start">Betrieb &amp; SLA</text>
+<path d="M 160.5 120.2 L 180.6 120.1 L 181.7 134.1 L 159.9 134.7 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="165" y="130" font-size="9" fill="#55554f" text-anchor="start">v1</text>
+<text x="36" y="160" font-size="9.5" fill="#3c3c38" text-anchor="start">Schulungspaket</text>
+<path d="M 159.7 147.7 L 181.6 148.3 L 180.8 164.9 L 159.0 162.5 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="165" y="160" font-size="9" fill="#55554f" text-anchor="start">v1</text>
+<text x="36" y="190" font-size="9.5" fill="#3c3c38" text-anchor="start">Migrationsservice</text>
+<path d="M 158.8 179.3 L 180.4 178.2 L 180.6 195.4 L 159.2 193.7 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="165" y="190" font-size="9" fill="#55554f" text-anchor="start">v1</text>
+<text x="36" y="220" font-size="9.5" fill="#3c3c38" text-anchor="start">Support 2nd Level</text>
+<path d="M 161.2 209.4 L 180.1 208.9 L 180.7 222.9 L 159.6 223.4 Z" fill="#eef0ea" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="165" y="220" font-size="9" fill="#55554f" text-anchor="start">v1</text>
+<text x="244" y="74" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Kundenportal-Modul  ·  v3 (published)</text>
+<path d="M 245.0 81.4 L 614.5 83.5 L 615.4 231.6 L 244.3 231.4 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<path d="M 256.0 102.9 L 413.4 101.3" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 255.8 109.6 L 376.0 111.9" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 256.7 119.6 L 388.3 121.1" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 255.0 130.4 L 382.8 128.8" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 257.0 138.0 L 445.7 136.7" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 489.6 94.9 L 600.4 96.3 L 598.9 166.4 L 488.7 164.7 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<path d="M 490.5 95.9 L 601.3 166.4" stroke="#c3c2ba" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M 600.6 94.8 L 491.1 164.7" stroke="#c3c2ba" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<text x="545" y="134" font-size="9" fill="#8a8a84" text-anchor="middle">img-0001.png</text>
+<path d="M 257.3 153.3 L 528.3 151.8" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 256.9 159.8 L 538.8 162.3" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 256.9 169.8 L 502.2 170.7" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<text x="244" y="252" font-size="10" fill="#3c3c38" text-anchor="start" font-weight="600">Scope</text>
+<path d="M 242.6 259.0 L 331.5 257.3 L 331.4 322.7 L 245.1 323.3 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="250" y="272" font-size="8.5" fill="#0f6e56" text-anchor="start" font-weight="600">included</text>
+<path d="M 249.8 285.4 L 314.1 282.7" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 250.4 292.1 L 309.9 291.0" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 248.6 301.6 L 299.7 301.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 338.6 257.5 L 422.6 258.7 L 422.8 324.2 L 337.9 324.0 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="344" y="272" font-size="8.5" fill="#a32d2d" text-anchor="start" font-weight="600">excluded</text>
+<path d="M 342.6 284.1 L 383.1 284.1" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 343.3 290.9 L 386.9 291.6" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 343.1 300.2 L 390.1 299.7" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 430.9 257.4 L 517.2 258.2 L 518.9 324.2 L 431.0 323.4 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="438" y="272" font-size="8.5" fill="#854f0b" text-anchor="start" font-weight="600">prereq.</text>
+<path d="M 437.8 283.7 L 488.8 284.2" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 438.7 292.5 L 496.0 291.6" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 439.5 298.9 L 495.6 299.6" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 524.6 256.5 L 612.8 256.8 L 612.7 322.7 L 525.6 322.5 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="532" y="272" font-size="8.5" fill="#185fa5" text-anchor="start" font-weight="600">deliver.</text>
+<path d="M 532.9 283.1 L 585.9 285.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 531.9 292.7 L 579.9 290.9" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 530.8 298.8 L 590.6 298.6" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<text x="244" y="344" font-size="9" fill="#6b6b64" text-anchor="start">Versions:  v1 — v2 — v3   ·   usage: 3 tenders</text>
+<path d="M 501.3 334.8 L 578.4 334.7 L 578.3 352.3 L 499.8 352.0 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.2" stroke-linejoin="round"/>
+<text x="539" y="347" font-size="9.5" fill="#3c3489" text-anchor="middle">new version</text>
+</svg>

@@ -68,6 +68,7 @@ sequenceDiagram
 | Frontend | [StreamingTimeline.jsx](frontend/src/components/StreamingTimeline.jsx) | Detects MCP App tools, renders `McpAppRenderer` inline |
 | MCP App | [mcp-app-etienne-config/server.ts](mcp-app-etienne-config/server.ts) | Standalone MCP App server (development/testing) |
 | MCP App | [mcp-app-etienne-config/src/mcp-app.tsx](mcp-app-etienne-config/src/mcp-app.tsx) | React dashboard UI (Services + Configuration tabs) |
+| MCP App | [mcp-app-requirements-tracking/src/mcp-app.tsx](mcp-app-requirements-tracking/src/mcp-app.tsx) | TenderTrace requirements tracking (14 pages, one app; `.tendertrace.json` sentinels route pages; backend group `requirements-tracking`, tools in [requirements-tracking-tools.ts](backend/src/mcpserver/requirements-tracking-tools.ts)) |
 
 ## Adding a New MCP App
 

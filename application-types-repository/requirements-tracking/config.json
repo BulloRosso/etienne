@@ -1,0 +1,189 @@
+{
+  "id": "requirements-tracking",
+  "version": "1.0",
+  "labels": {
+    "en": "TenderTrace",
+    "de": "TenderTrace",
+    "it": "TenderTrace",
+    "zh": "TenderTrace"
+  },
+  "sidebar": {
+    "bgColor": "#E8F5E9",
+    "headingLabels": {
+      "en": "TenderTrace",
+      "de": "TenderTrace",
+      "it": "TenderTrace",
+      "zh": "TenderTrace"
+    }
+  },
+  "menuItems": [
+    {
+      "id": "drift-inbox",
+      "type": "document",
+      "icon": "Inbox",
+      "labels": {
+        "en": "Drift Inbox",
+        "de": "Drift-Inbox",
+        "it": "Inbox delle derive",
+        "zh": "偏移收件箱"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/drift-inbox.tendertrace.json"
+      }
+    },
+    {
+      "id": "dashboard",
+      "type": "document",
+      "icon": "Dashboard",
+      "labels": {
+        "en": "Dashboard",
+        "de": "Dashboard",
+        "it": "Dashboard",
+        "zh": "仪表板"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/dashboard.tendertrace.json"
+      }
+    },
+    {
+      "id": "workspace",
+      "type": "document",
+      "icon": "FolderOpen",
+      "labels": {
+        "en": "Tender workspace",
+        "de": "Tender-Workspace",
+        "it": "Area di gara",
+        "zh": "招标工作区"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/workspace.tendertrace.json"
+      }
+    },
+    {
+      "id": "review-queue",
+      "type": "document",
+      "icon": "FactCheck",
+      "labels": {
+        "en": "Review queue",
+        "de": "Review-Queue",
+        "it": "Coda di revisione",
+        "zh": "审核队列"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/review-queue.tendertrace.json"
+      }
+    },
+    {
+      "id": "compliance-matrix",
+      "type": "document",
+      "icon": "TableView",
+      "labels": {
+        "en": "Compliance matrix",
+        "de": "Compliance-Matrix",
+        "it": "Matrice di conformità",
+        "zh": "合规矩阵"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/compliance-matrix.tendertrace.json"
+      }
+    },
+    {
+      "id": "service-catalog",
+      "type": "document",
+      "icon": "LibraryBooks",
+      "labels": {
+        "en": "Service catalog",
+        "de": "Service-Katalog",
+        "it": "Catalogo dei servizi",
+        "zh": "服务目录"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/service-catalog.tendertrace.json"
+      }
+    },
+    {
+      "id": "link-review",
+      "type": "document",
+      "icon": "Link",
+      "labels": {
+        "en": "Link review",
+        "de": "Link-Review",
+        "it": "Revisione dei collegamenti",
+        "zh": "链接审核"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/link-review.tendertrace.json"
+      }
+    },
+    {
+      "id": "deviation-report",
+      "type": "document",
+      "icon": "Difference",
+      "labels": {
+        "en": "Deviation report",
+        "de": "Abweichungsbericht",
+        "it": "Report delle deviazioni",
+        "zh": "偏差报告"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/deviation-report.tendertrace.json"
+      }
+    },
+    {
+      "id": "claims",
+      "type": "document",
+      "icon": "RequestQuote",
+      "labels": {
+        "en": "Claims",
+        "de": "Claims (Nachträge)",
+        "it": "Claim (varianti)",
+        "zh": "索赔"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/claims.tendertrace.json"
+      }
+    },
+    {
+      "id": "quick-capture",
+      "type": "document",
+      "icon": "ContentPaste",
+      "labels": {
+        "en": "Quick capture",
+        "de": "Quick-Capture",
+        "it": "Cattura rapida",
+        "zh": "快速捕获"
+      },
+      "payload": {
+        "path": "out/tendertrace/pages/quick-capture.tendertrace.json"
+      }
+    },
+    {
+      "id": "baseline-drift-summary",
+      "type": "subagent",
+      "icon": "ChangeHistory",
+      "labels": {
+        "en": "What changed since baseline v1.0?",
+        "de": "Was hat sich seit Baseline v1.0 geändert?",
+        "it": "Cosa è cambiato dalla baseline v1.0?",
+        "zh": "自基线 v1.0 以来有哪些变化？"
+      },
+      "payload": {
+        "prompt": "Use the requirements-tracking MCP tools (search_requirements, get_requirement, get_document_section, search_issues, get_issue) to reconstruct everything that changed since baseline v1.0 (frozen 2026-04-30). For every changed requirement, show: the baseline text, each approved diff with its verbatim evidence quote (source, speaker, date) and scope decision (in-scope vs. change order), the current text, and the derived implementation status from linked tracker issues. Also list pending proposals (the unresolved Cloud-vs-On-Premises conflict card, the pending review-queue card, the shadow-scope card for PORTAL-310) and any stale requirement↔issue links. You are reporting, not deciding: never approve, reject, or resolve anything on your own authority — every proposal is decided by a human (Sara or Lena) in the TenderTrace UI."
+      }
+    },
+    {
+      "id": "analyze-latest-email",
+      "type": "subagent",
+      "icon": "MarkEmailUnread",
+      "labels": {
+        "en": "Analyse the latest email for scope drift",
+        "de": "Analysiere die neueste E-Mail auf Scope-Drift",
+        "it": "Analizza l'ultima e-mail per scope drift",
+        "zh": "分析最新邮件中的范围偏移"
+      },
+      "payload": {
+        "prompt": "Take the most recent inbound email artifact (e.g. the 'E-Mail Cloud-Anbindung' from Fr. Kern, 2026-06-18) and analyse it for scope drift against the baselined requirement set. Use the requirements-tracking MCP tools: get_document_section to read the artifact, search_requirements/get_requirement to find the affected baseline requirements, and search_issues for related tracker work. For each requirement-relevant statement, classify it (CONFIRMATION / MODIFICATION / NEW_REQUIREMENT / CONFLICT), cite the verbatim quote with author and date, and assess scope (likely in-scope vs. likely change). If a statement is not yet covered by an existing drift card, submit it via submit_proposal — that is your ONLY write path, and the proposal card will wait in the Drift Inbox. Never decide scope yourself: a human (Sara) decides every card. Close with a summary of what now awaits human decision."
+      }
+    }
+  ]
+}

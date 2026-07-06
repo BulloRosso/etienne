@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif">
+<rect width="640" height="400" fill="#fdfdfb"/>
+<path d="M 5.9 6.5 L 634.5 4.9 L 632.4 393.6 L 5.3 395.0 Z" fill="none" stroke="#5b5b56" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 6.6 6.3 L 634.2 6.5 L 632.9 37.8 L 4.9 39.3 Z" fill="#f3f2ec" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="20" y="27" font-size="12" fill="#3c3c38" text-anchor="start" font-weight="600">TenderTrace</text>
+<text x="120" y="27" font-size="11" fill="#6b6b64" text-anchor="start">/  Claims</text>
+<path d="M 574.6 14.0 L 620.6 13.6 L 621.5 30.7 L 577.1 29.5 Z" fill="#eef0ea" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="599" y="26" font-size="9" fill="#6b6b64" text-anchor="middle">user</text>
+<text x="24" y="58" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Claims</text>
+<path d="M 22.6 67.3 L 194.0 64.7 L 195.6 367.4 L 22.8 365.8 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="36" y="86" font-size="9.5" fill="#3c3c38" text-anchor="start">Nachtrag 01</text>
+<path d="M 108.8 74.4 L 142.0 73.9 L 142.2 88.6 L 108.9 91.0 Z" fill="#e1f5ee" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="115" y="86" font-size="9" fill="#55554f" text-anchor="start">sent</text>
+<text x="36" y="126" font-size="9.5" fill="#3c3c38" text-anchor="start" font-weight="600">Nachtrag 02</text>
+<path d="M 109.7 114.7 L 147.3 114.9 L 146.6 128.5 L 110.7 131.5 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="115" y="126" font-size="9" fill="#55554f" text-anchor="start">draft</text>
+<path d="M 37.5 340.5 L 113.3 339.6 L 114.4 359.6 L 34.8 358.2 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.2" stroke-linejoin="round"/>
+<text x="75" y="353" font-size="9.5" fill="#3c3489" text-anchor="middle">+ new claim</text>
+<text x="214" y="58" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Nachtrag 02  ·  items</text>
+<path d="M 213.6 66.0 L 615.0 66.0 L 612.5 197.0 L 213.8 196.1 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="228" y="92" font-size="9" fill="#3c3c38" text-anchor="start">REQ-047 v1.3  ·  CSV/XML export  ·  14.09.2026</text>
+<path d="M 539.1 79.8 L 571.2 80.9 L 570.3 95.2 L 539.0 95.6 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="545" y="91" font-size="9" fill="#55554f" text-anchor="start">diff</text>
+<text x="228" y="118" font-size="9" fill="#3c3c38" text-anchor="start">REQ-081 v2.1  ·  Zusätzl. Mandant  ·  28.10.2026</text>
+<path d="M 538.5 105.3 L 571.1 106.4 L 570.2 120.9 L 539.1 120.3 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="545" y="117" font-size="9" fill="#55554f" text-anchor="start">diff</text>
+<text x="228" y="144" font-size="9" fill="#3c3c38" text-anchor="start">NEW REQ-201  ·  XSD-Validierung  ·  02.10.2026</text>
+<path d="M 539.9 133.5 L 571.5 133.5 L 570.5 148.4 L 539.6 146.0 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="545" y="143" font-size="9" fill="#55554f" text-anchor="start">diff</text>
+<path d="M 228.8 169.3 L 292.6 167.3 L 295.1 186.5 L 227.2 185.4 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.2" stroke-linejoin="round"/>
+<text x="261" y="181" font-size="9.5" fill="#3c3489" text-anchor="middle">add items</text>
+<path d="M 308.5 168.4 L 424.1 169.6 L 422.6 185.5 L 309.4 187.9 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.2" stroke-linejoin="round"/>
+<text x="366" y="181" font-size="9.5" fill="#3c3489" text-anchor="middle">generate document</text>
+<text x="214" y="222" font-size="10" fill="#3c3c38" text-anchor="start" font-weight="600">Document preview</text>
+<path d="M 215.1 230.4 L 613.1 230.1 L 613.9 366.4 L 213.2 367.4 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<path d="M 226.9 249.3 L 556.0 249.3" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 228.0 259.6 L 562.6 258.1" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 227.2 268.6 L 467.7 266.8" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 227.7 276.2 L 553.4 278.5" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<text x="228" y="300" font-size="8.5" fill="#8a8a84" text-anchor="start">baseline → change → evidence → approval trail</text>
+<path d="M 228.4 315.3 L 508.1 314.8" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 228.3 324.3 L 487.1 323.3" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 227.6 332.8 L 476.2 330.5" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 530.7 337.3 L 579.8 337.3 L 580.1 355.1 L 530.9 354.6 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.2" stroke-linejoin="round"/>
+<text x="554" y="349" font-size="9.5" fill="#3c3489" text-anchor="middle">export</text>
+</svg>

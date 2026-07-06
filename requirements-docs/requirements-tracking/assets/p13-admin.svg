@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif">
+<rect width="640" height="400" fill="#fdfdfb"/>
+<path d="M 5.2 6.6 L 634.6 7.1 L 633.0 393.1 L 4.9 393.1 Z" fill="none" stroke="#5b5b56" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 6.7 4.8 L 634.1 5.1 L 633.3 37.8 L 7.1 38.3 Z" fill="#f3f2ec" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="20" y="27" font-size="12" fill="#3c3c38" text-anchor="start" font-weight="600">TenderTrace</text>
+<text x="120" y="27" font-size="11" fill="#6b6b64" text-anchor="start">/  Admin &amp; audit</text>
+<path d="M 574.4 12.3 L 620.9 14.2 L 623.0 32.0 L 577.0 31.8 Z" fill="#eef0ea" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="599" y="26" font-size="9" fill="#6b6b64" text-anchor="middle">user</text>
+<text x="24" y="58" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Agent runs</text>
+<path d="M 25.4 66.9 L 443.2 67.1 L 444.0 246.8 L 24.2 245.8 Z" fill="none" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<path d="M 23.6 95.8 L 443.4 94.8" stroke="#dedcd4" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M 25.0 127.0 L 445.6 126.6" stroke="#dedcd4" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M 24.2 156.8 L 442.8 156.6" stroke="#dedcd4" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M 23.8 185.0 L 443.0 186.1" stroke="#dedcd4" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M 23.2 215.9 L 444.3 215.7" stroke="#dedcd4" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<text x="34" y="84" font-size="8.5" fill="#8a8a84" text-anchor="start">pipeline · session · prompt ver · tokens · outcome</text>
+<text x="34" y="114" font-size="8.5" fill="#3c3c38" text-anchor="start">drift  ·  s-8812  ·  P-DRIFT-A v1.2  ·  41k  ·  ok</text>
+<text x="34" y="144" font-size="8.5" fill="#3c3c38" text-anchor="start">extract  ·  s-8809  ·  P-EXTRACT v1.4  ·  102k  ·  ok</text>
+<text x="34" y="174" font-size="8.5" fill="#3c3c38" text-anchor="start">mapping  ·  s-8801  ·  P-CAT-M v1.0  ·  12k  ·  retry(1)</text>
+<text x="34" y="204" font-size="8.5" fill="#3c3c38" text-anchor="start">compliance  ·  s-8797  ·  P-RESP-C v1.1  ·  18k  ·  ok</text>
+<text x="34" y="234" font-size="8.5" fill="#3c3c38" text-anchor="start">report  ·  s-8790  ·  P-DEVREP v1.0  ·  6k  ·  ok</text>
+<text x="464" y="58" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Usage / cost</text>
+<path d="M 462.8 66.0 L 613.2 65.2 L 613.0 165.6 L 462.6 166.5 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<path d="M 479.5 125.6 L 494.7 127.4 L 492.5 154.9 L 479.0 157.1 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1" stroke-linejoin="round"/>
+<path d="M 504.4 110.9 L 519.7 113.2 L 521.2 157.0 L 503.0 157.1 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1" stroke-linejoin="round"/>
+<path d="M 529.6 130.7 L 544.8 131.5 L 546.3 156.7 L 529.1 156.4 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1" stroke-linejoin="round"/>
+<path d="M 556.3 98.3 L 571.5 98.7 L 571.5 155.3 L 554.9 156.6 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1" stroke-linejoin="round"/>
+<path d="M 580.8 117.1 L 596.6 118.5 L 598.2 156.1 L 580.5 155.8 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1" stroke-linejoin="round"/>
+<text x="464" y="190" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Prompt versions</text>
+<path d="M 463.5 196.7 L 612.4 199.6 L 612.8 317.4 L 463.3 318.3 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<path d="M 473.9 215.6 L 549.4 214.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 474.0 229.5 L 561.6 227.9" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 473.3 238.5 L 578.7 241.3" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 473.2 252.6 L 583.3 251.2" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 473.5 263.2 L 573.8 263.1" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<text x="24" y="270" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Tracker connections</text>
+<path d="M 23.5 276.5 L 443.7 276.7 L 444.8 366.3 L 22.4 366.9 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="36" y="300" font-size="9" fill="#3c3c38" text-anchor="start">Jira  ·  stadtwerke.atlassian.net  ·  PORTAL  ·  synced 2 min ago</text>
+<text x="36" y="326" font-size="9" fill="#8a8a84" text-anchor="start">Azure DevOps  ·  (adapter #2, planned)</text>
+</svg>

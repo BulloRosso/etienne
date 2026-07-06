@@ -19,6 +19,7 @@ http://localhost:5000 after seeding.
 | <img src="requirements-hv.jpg" height="250" alt="requirements-hv"/> | [`seed-requirements-hv/`](seed-requirements-hv/) | `requirements-hv` — turning ~900 pages of German grid-connection requirements (525 kV / 2 GW HVDC converter station bid) into a complete, traceable, German technical specification through the parse → normalize-EARS → structure → transform → export pipeline | [Part 3 — From requirements to specification](https://www.linkedin.com/pulse/agents-help-humans-decide-part-3-from-requirements-ralph-navasardyan-1jvjf/) |
 | <img src="long-horizon-commitments.jpg" height="250" alt="long-horizon-commitments"/> | [`seed-long-horizon-commitments/`](seed-long-horizon-commitments/) | `tanker-long-horizon` — a 5-vessel midsize crude tanker fleet whose only job is to keep multi-year bets honest (expired assumptions, breached projection cones, gate countdown) | [Part 4 — Projection vs. reality on a tanker fleet](https://www.linkedin.com/pulse/agents-help-humans-decide-part-4-projection-vs-tanker-navasardyan-h545f/?lipi=urn%3Ali%3Apage%3Ad_flagship3_publishing_published%3BLax6UkZOQbarJqL5ffu5Fw%3D%3D) |
 | | [`seed-teams-comms-observer/`](seed-teams-comms-observer/) | `teams-comms-observer` — a silent observer for MS Teams channels diagnosing the "Hyperactive Hive Mind" (Cal Newport): pattern knowledge graph, per-person communication-style profiles, deterministic hive-analytics metrics, three hyperscreen dashboards (Hive Pulse / Pattern Radar / Agreement Scoreboard), and an evidence-based team-agreement draft. Ships five days of sample transcripts — no Teams tenant needed; live-tenant hookup via `ms-teams-integration.md` | — |
+| | [`seed-requirements-tracking/`](seed-requirements-tracking/) | `tendertrace-stadtwerke` — the **TenderTrace** requirements-tracking feature mid-story: German tender T-2026-014 "Kundenselfservice-Portal Stadtwerke Musterstadt" extracted into 22 baselined EARS requirements (baseline v1.0, 2026-04-30), service-catalog verdicts + mappings, mock Jira board with a stale link, a June drift timeline (export-formats change order, in-scope load clarification, one **unresolved Cloud-vs-On-Premises conflict card**), a pending shadow-scope ticket, a deviation report and claim "Nachtrag 01". Seeded entirely through the product's own MCP tools at `/mcp/requirements-tracking` | — |
 
 ## Setup
 
@@ -72,6 +73,7 @@ npx tsx scripts/seed-desalination/seed-desalination.ts
 npx tsx scripts/seed-requirements-hv/seed-requirements-hv.ts
 npx tsx scripts/seed-long-horizon-commitments/seed-long-horizon-commitments.ts
 npx tsx scripts/seed-teams-comms-observer/seed-teams-comms-observer.ts
+npx tsx scripts/seed-requirements-tracking/seed-requirements-tracking.ts
 ```
 
 Each seed takes a few minutes (the dreaming step waits up to 5 min for the
@@ -84,6 +86,7 @@ re-run instructions live in each seed's own README:
 - [seed-requirements-hv/README.md](seed-requirements-hv/README.md)
 - [seed-long-horizon-commitments/README.md](seed-long-horizon-commitments/README.md)
 - [seed-teams-comms-observer/README.md](seed-teams-comms-observer/README.md)
+- [seed-requirements-tracking/README.md](seed-requirements-tracking/README.md)
 
 ### Shared environment variables
 

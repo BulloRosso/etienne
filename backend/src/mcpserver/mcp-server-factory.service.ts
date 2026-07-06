@@ -91,6 +91,13 @@ import { OneDriveSyncService } from '../ms365/onedrive-sync.service';
 import { WritebackWatcherService } from '../ms365/writeback-watcher.service';
 import { ApplicationTypesService } from '../application-types/application-types.service';
 import { WikiService } from '../wiki/wiki.service';
+import {
+  createRequirementsTrackingToolsService,
+  loadRequirementsTrackingResourceHtml,
+  REQUIREMENTS_TRACKING_RESOURCE_URI,
+  REQUIREMENTS_TRACKING_RESOURCE_MIME,
+} from './requirements-tracking-tools';
+import { RequirementsTrackingService } from '../requirements-tracking/requirements-tracking.service';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -132,6 +139,7 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly writebackWatcher: WritebackWatcherService,
     private readonly applicationTypesService: ApplicationTypesService,
     private readonly wikiService: WikiService,
+    private readonly requirementsTrackingService: RequirementsTrackingService,
   ) {
     const scopedLlm = this.createProjectScopedLlm();
     this.groupConfigs = {
@@ -239,6 +247,19 @@ export class McpServerFactoryService implements OnModuleInit {
             description: 'Interactive compliance-matrix cockpit for .compliance.json files',
             mimeType: COMPLIANCE_MATRIX_RESOURCE_MIME,
             loadContent: loadComplianceMatrixResourceHtml,
+          },
+        ],
+      },
+      'requirements-tracking': {
+        toolServices: [createRequirementsTrackingToolsService(this.requirementsTrackingService)],
+        resources: [
+          {
+            uri: REQUIREMENTS_TRACKING_RESOURCE_URI,
+            name: 'TenderTrace Requirements Tracking',
+            description:
+              'Interactive requirements-tracking app (EARS extraction, drift inbox, threads, deviation reports) for .tendertrace.json files',
+            mimeType: REQUIREMENTS_TRACKING_RESOURCE_MIME,
+            loadContent: loadRequirementsTrackingResourceHtml,
           },
         ],
       },

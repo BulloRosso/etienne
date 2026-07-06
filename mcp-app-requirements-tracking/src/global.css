@@ -1,0 +1,49 @@
+/*
+ * Roboto webfont — bundled into the single-file build via @fontsource/roboto
+ * because the sandboxed MCP App iframe can't reach the host's font CDN.
+ */
+@import "@fontsource/roboto/300.css";
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/700.css";
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+  color-scheme: light dark;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+}
+
+/* Slim scrollbars to match the host shell. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(127, 127, 127, 0.4); border-radius: 3px; }
+* { scrollbar-width: thin; }
+
+/* Word-level diff marks (EarsDiff component) */
+mark.tt-diff-add {
+  background: rgba(46, 160, 67, 0.25);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+mark.tt-diff-del {
+  background: rgba(248, 81, 73, 0.25);
+  color: inherit;
+  text-decoration: line-through;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Provenance highlight in the Review Queue source pane */
+mark.tt-quote-highlight {
+  background: rgba(255, 213, 79, 0.45);
+  color: inherit;
+  border-radius: 2px;
+}

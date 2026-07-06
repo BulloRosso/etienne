@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif">
+<rect width="640" height="400" fill="#fdfdfb"/>
+<path d="M 4.8 7.1 L 634.8 5.2 L 634.0 393.8 L 6.5 394.9 Z" fill="none" stroke="#5b5b56" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 4.7 4.5 L 635.1 5.8 L 634.8 36.4 L 5.8 38.7 Z" fill="#f3f2ec" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="20" y="27" font-size="12" fill="#3c3c38" text-anchor="start" font-weight="600">TenderTrace</text>
+<text x="120" y="27" font-size="11" fill="#6b6b64" text-anchor="start">/  Dashboard</text>
+<path d="M 575.1 14.4 L 623.3 11.5 L 620.5 31.1 L 577.4 30.6 Z" fill="#eef0ea" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="599" y="26" font-size="9" fill="#6b6b64" text-anchor="middle">user</text>
+<path d="M 499.1 49.8 L 582.1 49.1 L 583.4 69.0 L 499.1 68.1 Z" fill="#ece7f7" stroke="#6b4fbb" stroke-width="1.2" stroke-linejoin="round"/>
+<text x="542" y="63" font-size="9.5" fill="#3c3489" text-anchor="middle">+ new tender</text>
+<text x="24" y="62" font-size="12" fill="#3c3c38" text-anchor="start" font-weight="600">Active tenders</text>
+<path d="M 23.1 75.9 L 207.3 74.5 L 209.1 188.2 L 24.5 187.0 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="34" y="96" font-size="10.5" fill="#3c3c38" text-anchor="start" font-weight="600">Stadtwerke Portal</text>
+<path d="M 35.6 107.2 L 118.4 105.5 L 120.3 121.7 L 35.4 120.8 Z" fill="#e6f1fb" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="39" y="117" font-size="9" fill="#185fa5" text-anchor="start">implementation</text>
+<path d="M 34.5 137.4 L 175.4 139.2" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 34.0 147.3 L 174.7 146.2" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 33.7 155.0 L 173.2 156.6" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 34.6 163.6 L 108.6 164.0 L 109.7 179.1 L 33.7 179.0 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="39" y="175" font-size="9" fill="#854f0b" text-anchor="start">3 open cards</text>
+<path d="M 222.5 74.5 L 408.7 77.5 L 408.3 187.7 L 222.9 188.0 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="234" y="96" font-size="10.5" fill="#3c3c38" text-anchor="start" font-weight="600">Klinikum ERP</text>
+<path d="M 235.5 106.9 L 260.3 107.2 L 259.3 121.0 L 235.4 121.2 Z" fill="#e6f1fb" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="239" y="117" font-size="9" fill="#185fa5" text-anchor="start">bid</text>
+<path d="M 233.3 138.2 L 352.8 136.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 235.0 148.2 L 372.9 148.0" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 234.2 155.8 L 353.8 157.2" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 234.2 163.0 L 308.8 164.0 L 308.3 178.5 L 234.1 179.4 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="239" y="175" font-size="9" fill="#854f0b" text-anchor="start">3 open cards</text>
+<path d="M 424.4 75.9 L 606.5 75.1 L 607.0 188.3 L 425.2 189.0 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="434" y="96" font-size="10.5" fill="#3c3c38" text-anchor="start" font-weight="600">Landkreis DMS</text>
+<path d="M 435.0 107.0 L 475.6 107.1 L 477.0 119.7 L 432.5 119.4 Z" fill="#e6f1fb" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="439" y="117" font-size="9" fill="#185fa5" text-anchor="start">intake</text>
+<path d="M 433.2 136.8 L 570.8 137.5" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 432.9 147.1 L 525.4 146.3" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 433.9 155.4 L 567.5 154.5" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 433.6 163.7 L 507.8 162.7 L 510.1 179.0 L 433.1 179.3 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="439" y="175" font-size="9" fill="#854f0b" text-anchor="start">3 open cards</text>
+<path d="M 25.0 204.5 L 206.5 204.9 L 208.7 316.9 L 24.7 318.6 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="34" y="226" font-size="10.5" fill="#3c3c38" text-anchor="start" font-weight="600">Netz GmbH SCADA</text>
+<path d="M 34.1 235.1 L 61.7 237.0 L 60.3 250.1 L 34.5 250.7 Z" fill="#e6f1fb" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="39" y="247" font-size="9" fill="#185fa5" text-anchor="start">bid</text>
+<path d="M 33.4 268.4 L 157.4 267.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 35.2 276.4 L 185.1 276.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 34.8 285.7 L 181.3 284.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 35.2 292.5 L 109.8 295.5 L 109.0 307.9 L 35.2 310.5 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="39" y="305" font-size="9" fill="#854f0b" text-anchor="start">3 open cards</text>
+<path d="M 224.7 206.0 L 407.6 205.5 L 407.1 318.6 L 223.8 317.0 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="234" y="226" font-size="10.5" fill="#3c3c38" text-anchor="start" font-weight="600">Uni Portal Relaunch</text>
+<path d="M 232.7 236.5 L 275.7 236.0 L 275.8 252.2 L 235.3 249.5 Z" fill="#e6f1fb" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="239" y="247" font-size="9" fill="#185fa5" text-anchor="start">closed</text>
+<path d="M 233.4 269.6 L 335.8 267.5" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 234.6 278.1 L 337.0 276.5" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 234.6 286.0 L 380.0 285.2" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 234.7 292.7 L 307.7 295.3 L 307.9 309.8 L 234.3 310.1 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="239" y="305" font-size="9" fill="#854f0b" text-anchor="start">3 open cards</text>
+<path d="M 423.6 205.5 L 607.3 207.2 L 608.3 319.5 L 425.2 316.8 Z" fill="#ffffff" stroke="#5b5b56" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="434" y="226" font-size="10.5" fill="#3c3c38" text-anchor="start" font-weight="600">Messe Ticketing</text>
+<path d="M 434.2 234.7 L 518.1 234.6 L 520.8 251.9 L 435.1 250.5 Z" fill="#e6f1fb" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="439" y="247" font-size="9" fill="#185fa5" text-anchor="start">implementation</text>
+<path d="M 434.9 267.6 L 561.6 267.1" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 433.3 278.3 L 527.4 278.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 433.3 286.9 L 552.3 284.4" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 434.5 292.7 L 507.6 295.2 L 507.3 308.2 L 435.6 308.7 Z" fill="#faeeda" stroke="#9a9a92" stroke-width="1" stroke-linejoin="round"/>
+<text x="439" y="305" font-size="9" fill="#854f0b" text-anchor="start">3 open cards</text>
+<text x="24" y="356" font-size="11" fill="#3c3c38" text-anchor="start" font-weight="600">Recent activity</text>
+<path d="M 22.9 367.2 L 358.7 366.7" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M 23.6 381.5 L 537.3 379.3" stroke="#c3c2ba" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

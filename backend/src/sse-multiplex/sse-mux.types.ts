@@ -23,6 +23,7 @@ export type MuxChannel =
   | 'events'
   | 'filesystem'
   | 'adaptive-memory'
+  | 'reqtrack'
   | 'system'
   | 'heartbeat';
 

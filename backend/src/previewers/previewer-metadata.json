@@ -116,6 +116,16 @@
     "actions": []
   },
   {
+    "viewer": "requirements-tracking",
+    "type": "mcpui",
+    "mcpGroup": "requirements-tracking",
+    "mcpToolName": "render_requirements_tracking",
+    "extensions": [
+      ".tendertrace.json"
+    ],
+    "actions": []
+  },
+  {
     "viewer": "onedrive",
     "type": "folder",
     "folderPatterns": ["onedrive*"],

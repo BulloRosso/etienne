@@ -8,6 +8,7 @@ import { SSEPublisherService } from '../event-handling/publishers/sse-publisher.
 import { FilesystemEventsService } from '../ms365/filesystem-events.service';
 import { AdaptiveMemoryAgent } from '../adaptive-memory/agent/adaptive-memory-agent.service';
 import { Ponderer } from '../adaptive-memory/subagents/ponderer.service';
+import { TtEventsService } from '../requirements-tracking/events.service';
 import { MuxChannel, MuxEventType, MuxEnvelope } from './sse-mux.types';
 
 /**
@@ -40,6 +41,8 @@ export class SseMultiplexController {
     // should still be able to instantiate this controller.
     @Optional() private readonly adaptiveAgent?: AdaptiveMemoryAgent,
     @Optional() private readonly ponderer?: Ponderer,
+    // Requirements tracking (TenderTrace) is optional for the same reason.
+    @Optional() private readonly ttEvents?: TtEventsService,
   ) {}
 
   @Get('stream/:project')
@@ -101,7 +104,7 @@ export class SseMultiplexController {
     // Parse requested channels (default: all)
     const requested = channels
       ? new Set(channels.split(','))
-      : new Set(['interceptor', 'interceptor-global', 'research', 'budget', 'events', 'filesystem', 'adaptive-memory']);
+      : new Set(['interceptor', 'interceptor-global', 'research', 'budget', 'events', 'filesystem', 'adaptive-memory', 'reqtrack']);
 
     // 1. Project interceptors
     if (requested.has('interceptor')) {
@@ -164,6 +167,16 @@ export class SseMultiplexController {
           );
         subscriptions.push(sub);
       }
+    }
+
+    // 4d. Requirements tracking (TenderTrace) — pipeline progress, proposal
+    // cards, capture questions. The MCP-app iframe cannot open SSE and polls
+    // rt_get_events instead; this channel serves the host frontend.
+    if (requested.has('reqtrack') && this.ttEvents) {
+      const sub = this.ttEvents
+        .stream(project)
+        .subscribe((event) => send('reqtrack', event.type as MuxEventType, event));
+      subscriptions.push(sub);
     }
 
     // 5. Event handling (condition monitoring, prompt/workflow execution)
