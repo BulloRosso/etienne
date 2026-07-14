@@ -4,7 +4,7 @@ Integration of [OpenCode](https://github.com/sst/opencode) (by SST) via the offi
 
 OpenCode is a TypeScript-based terminal AI coding assistant with 75+ model support, LSP integration, and first-class MCP support. It is MIT-licensed and actively maintained by the SST team.
 
-> **SDK version:** pinned to `@opencode-ai/sdk` + `opencode-ai` `^1.17.11` (lockstep; no `engines.node` constraint). The v1 SDK type surface is unchanged from 1.14.44 — the published `.d.ts` are identical apart from additive optional fields (e.g. session `metadata`), and the new `./v2` API is a separate opt-in subpath this adapter doesn't use. The bump is a safe re-pin; no adapter changes were required.
+> **SDK version:** pinned to `@opencode-ai/sdk` + `opencode-ai` `^1.17.20` (lockstep; no `engines.node` constraint). The v1 event discriminators and `SessionPromptData` are identical between 1.17.13 and 1.17.20 (verified against the published `.d.ts`), and the `./v2` API is a separate opt-in subpath this adapter deliberately doesn't use yet. Upgrades within 1.17.x are safe re-pins.
 
 ## Status
 
@@ -16,11 +16,10 @@ The orchestrator streams text, thinking, tool-call, tool-result, usage, subagent
 |---|---|
 | Lowest-risk, production-grade harness | `anthropic` |
 | Native subagents with shared prompt cache | `anthropic` |
-| PreToolUse / PostToolUse hook system | `anthropic` |
+| Elicitations / AskUserQuestion dialogs | `anthropic` |
 | 75+ models without a gateway (Anthropic, OpenAI, Google, Groq, Mistral, Ollama, ...) | `open-code` |
 | LSP integration (30+ language servers, code intelligence) | `open-code` |
 | Full MCP support (tools + resources + prompts + sampling) without a bridge | `open-code` |
-| Richer user elicitations (multi-select, custom text, structured options) | `open-code` |
 | Native subagents with hierarchical delegation | `open-code` |
 | Auto-compact (automatic context summarization) | `open-code` |
 | Custom modes (different tools/models/temperatures) | `open-code` |
@@ -37,16 +36,17 @@ The orchestrator streams text, thinking, tool-call, tool-result, usage, subagent
 | Stream replay on reload | yes | yes (StreamRelay + attach) |
 | Loop-guard event source | yes | yes (`source: open-code`) |
 | Session resume | yes | yes (SQLite) |
-| Compaction | yes | yes (auto-compact) |
-| Hooks (PreToolUse / PostToolUse / UserPromptSubmit) | yes | permission.asked only |
-| Permission prompts | yes (canUseTool) | yes (permission.asked) |
-| Elicitations (AskUserQuestion) | yes | yes (question tool, richer) |
+| Compaction | yes | yes (auto-compact + manual `POST /api/claude/compactSession/:projectDir`) |
+| Hooks (PreToolUse / PostToolUse / UserPromptSubmit) | yes | yes (provisioned plugin bridge, event-derived fallback) |
+| Permission prompts | yes (canUseTool) | yes (`permission.updated`) |
+| Elicitations (AskUserQuestion) | yes | **no** (v1 API has no question surface; v2-only) |
 | Guardrails (input / output) | yes | yes |
 | MCP tools | yes (native) | yes (native) |
 | MCP resources / prompts / sampling | yes | yes |
 | Subagents (Task tool) | yes (native SDK) | yes (native agent system) |
-| TodoWrite / todo tracking | yes | yes |
-| Plan mode | yes | yes (custom modes) |
+| TodoWrite / todo tracking | yes | yes (`todowrite` normalized to `TodoWrite`) |
+| Plan mode | yes | yes (built-in `plan` agent, per-prompt `agent` field) |
+| Context meter (`context_state`) | yes | yes (derived from usage) |
 | Skills | yes (agentskills.io) | yes (native skill tool) |
 | Memory / RAG (external) | yes | yes |
 | LSP / code intelligence | no | yes (30+ languages) |
@@ -54,21 +54,35 @@ The orchestrator streams text, thinking, tool-call, tool-result, usage, subagent
 
 ## Event mapping
 
-OpenCode emits `GlobalEvent` objects via SSE. Each has a `payload: Event` discriminated by `type`. The translation lives in [opencode-event-adapter.ts](./opencode-event-adapter.ts):
+OpenCode emits `Event` objects via SSE, discriminated by `type` with data under `properties` (a `delta` string accompanies streaming part updates). The translation lives in [opencode-event-adapter.ts](./opencode-event-adapter.ts); a few event types are handled directly in the orchestrator loop. Tool names are normalized to Claude Code conventions (`todowrite` → `TodoWrite`, ...) via [opencode-tool-name.util.ts](./opencode-tool-name.util.ts).
 
 | OpenCode event | `MessageEvent.type` | Notes |
 |---|---|---|
-| `message.part.delta` (text) | `stdout` | `{ chunk }` |
-| `message.part.delta` (reasoning) | `thinking` | `{ content }` |
-| `message.part.updated` (tool, running) | `tool_call` | `{ callId, toolName, args, status: 'running' }` |
-| `message.part.updated` (tool, completed/error) | `tool_result` | `{ callId, result }` |
-| `message.updated` (assistant, tokens) | `usage` | `inputTokens`, `outputTokens`, `cost` |
+| `message.part.updated` (text) | `stdout` | `{ chunk }` — prefers `properties.delta` |
+| `message.part.updated` (reasoning) | `thinking` | `{ content }` |
+| `message.part.updated` (tool, running/pending) | `tool_call` | `{ callId, toolName, args, status: 'running' }` |
+| `message.part.updated` (tool, completed/error) | `tool_result` | `{ callId, toolName, result }` |
+| `message.part.updated` (tool = `task`) | `subagent_start` / `subagent_end` | Subagent runs surface via the Task tool |
+| `message.part.updated` (retry) | `status` | `{ status: 'retrying', attempt, message }` |
+| `message.part.updated` (patch) | `file_changed` | One event per file in the patch |
+| `message.part.updated` (compaction) | `compaction` | `{ trigger: auto\|manual }` |
+| `message.part.updated` (step-start/step-finish) | — | Provider API request boundaries, intentionally ignored (NOT subagents) |
+| `message.updated` (assistant, tokens) | `usage` (+ `context_state`) | input/output/cache tokens, cost; context meter derived in orchestrator |
+| `session.status` (busy/idle) | `session_state` | `{ state: running\|idle }` |
+| `session.status` (retry) | `status` | `{ status: 'retrying' }` |
+| `session.compacted` | `compaction` | Deduped against the compaction part (10s window) |
 | `session.created` | `session` | `{ session_id }` |
 | `session.error` | `error` | `{ message }` |
-| `session.updated` (idle) | `completed` | Signals end of turn |
+| `session.idle` | `completed` | Handled in orchestrator — authoritative end of turn |
 | `file.edited` | `file_changed` | `{ path }` |
-| `permission.asked` | (handled by permission service) | Tool approval dialog |
-| `question.asked` | (handled by permission service) | User question dialog |
+| `permission.updated` | (handled by permission service) | Tool approval dialog + `tool_call` timeline entry |
+| `permission.replied` | — | Settles the pending record if answered out-of-band |
+
+Everything else (`lsp.*`, `installation.*`, `pty.*`, `tui.*`, `vcs.branch.updated`, `file.watcher.updated`, ...) is intentionally ignored.
+
+## Hook bridge (PreToolUse / PostToolUse)
+
+A plugin is provisioned into `<project>/.opencode/plugin/etienne-hooks.js` at run start ([opencode-hook-plugin.provisioner.ts](./opencode-hook-plugin.provisioner.ts)). It runs inside the embedded OpenCode server and POSTs `tool.execute.before` / `tool.execute.after` callbacks to `POST /api/opencode/hooks/:project` ([opencode-hooks.controller.ts](./opencode-hooks.controller.ts)), authenticated with a per-boot shared secret. [opencode-hook-bridge.service.ts](./opencode-hook-bridge.service.ts) translates them into the same `PreToolUse`/`PostToolUse` interceptor events the Claude path emits. When the plugin hasn't phoned home recently, the orchestrator falls back to emitting `PostToolUse` from `tool_result` stream events (no PreToolUse in fallback mode).
 
 ## MCP configuration
 
@@ -113,16 +127,15 @@ Skills from `.claude/skills/` are copied to `.opencode/skills/` at session start
 
 See [opencode-skill-provisioner.ts](./opencode-skill-provisioner.ts).
 
-## Permission & elicitation bridge
+## Permission bridge & plan mode
 
-[opencode-permission.service.ts](./opencode-permission.service.ts) handles both event types:
+[opencode-permission.service.ts](./opencode-permission.service.ts) bridges `permission.updated` events -> `InterceptorsService.emitPermissionRequest()` -> frontend permission dialog. Responses flow back via `POST /session/{id}/permissions/{permissionID}` with `'once' | 'always' | 'reject'`. Replies observed on the stream from another client (`permission.replied`) settle the pending record without waiting for the timeout.
 
-- `permission.asked` -> `InterceptorsService.emitPermissionRequest()` -> frontend permission dialog
-- `question.asked` -> `InterceptorsService.emitAskUserQuestion()` -> frontend question dialog
+Default timeout: 300 seconds, then auto-deny (configurable via `OPENCODE_PERMISSION_TIMEOUT_MS`).
 
-Responses flow back via `client.permission.reply(id, 'once' | 'always' | 'reject')` or `client.question.reply(id, answers)`.
+The frontend's plan/work toggle maps onto OpenCode's built-in agents via the per-prompt `agent` field: `plan` (edit/bash default to "ask", surfaced through the permission dialog) or `build` (full access). Agent-level permissions override the global `permission` block in `opencode.json` (seeded from [templates/opencode-config.json](../../coding-agent-configuration/templates/opencode-config.json) on first run).
 
-Default timeout: 300 seconds (configurable via `OPENCODE_PERMISSION_TIMEOUT_MS`).
+There is **no question/elicitation surface in the v1 API** — the `question.asked` handling in the permission service is dead code kept for a future `./v2` client migration (v2 adds `question.asked/replied/rejected` events).
 
 ## Model configuration
 
@@ -162,9 +175,12 @@ Then send a prompt via the existing `/api/claude/streamPrompt/sdk` SSE endpoint 
 
 ## Known gaps
 
-1. **Hooks** — PreToolUse/PostToolUse hooks are not available; OpenCode uses `permission.asked` events instead.
+1. **AskUserQuestion / elicitations** — the v1 API has no question surface. Possible future paths: a plugin-registered custom tool calling back to the backend, or the `./v2` SDK client (adds `question.asked` events plus fine-grained `session.next.*` streaming deltas and `permission.v2`).
 2. **Shared prompt cache** — Each OpenCode session is independent; no cross-session cache.
 3. **SDK maturity** — The `@opencode-ai/sdk` is under active development. Pin the version and upgrade deliberately.
+4. **Message-level revert** — `session.revert/unrevert` is intentionally unused; etienne's checkpoints module (git/gitea) owns restore, and the two would fight over the working tree.
+5. **Slash commands** — `command.list` / `session.command` exist server-side but etienne has no slash-command surface yet.
+6. **Code-mode MCP adapter** — added in opencode 1.17.14 (confined orchestration scripts, `execute` tool); not integrated.
 
 ## Operational notes
 

@@ -25,6 +25,8 @@ interface PendingPermission {
   type: 'permission' | 'question';
   resolve: (action: 'allow' | 'deny' | 'allow_always') => void;
   reject: (err: Error) => void;
+  /** Raw promise resolver — settles the wait WITHOUT sending a reply to OpenCode. */
+  finish?: () => void;
   createdAt: Date;
   projectName: string;
   resolved: ResolvedModel;
@@ -90,6 +92,7 @@ export class OpenCodePermissionService {
           }
         },
         reject,
+        finish: () => resolve(),
         createdAt: new Date(),
         projectName,
         resolved,
@@ -204,6 +207,25 @@ export class OpenCodePermissionService {
     }
 
     return true;
+  }
+
+  /**
+   * Settle a pending permission whose reply arrived out-of-band — observed as
+   * a `permission.replied` event on the stream (e.g. answered from another
+   * OpenCode client). Resolves the waiting promise WITHOUT sending another
+   * reply to OpenCode.
+   */
+  settleExternally(openCodeRequestId: string): boolean {
+    for (const [id, pending] of this.pendingRequests) {
+      if (pending.openCodeRequestId !== openCodeRequestId) continue;
+      this.pendingRequests.delete(id);
+      if ((pending as PendingPermission).finish) {
+        (pending as PendingPermission).finish!();
+      }
+      this.logger.debug(`OpenCode request ${id} settled externally (reply for ${openCodeRequestId})`);
+      return true;
+    }
+    return false;
   }
 
   /**

@@ -1,34 +1,45 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Tab visibility is tracked by file path, not by index into the files array —
+// indices go stale whenever files are added/removed/reordered, which used to
+// leave open tabs invisible until the list happened to be rebuilt.
 const useTabStore = create(
   persist(
     (set, get) => ({
       tabPaths: {},
-      activeTab: {},
-      visibleIndices: {},
+      activeTabPath: {},
+      visiblePaths: {},
 
       setTabPaths: (project, paths) =>
         set(state => ({
           tabPaths: { ...state.tabPaths, [project]: paths }
         })),
 
-      setActiveTab: (project, index) =>
+      setActiveTabPath: (project, path) =>
         set(state => ({
-          activeTab: { ...state.activeTab, [project]: index }
+          activeTabPath: { ...state.activeTabPath, [project]: path }
         })),
 
-      setVisibleIndices: (project, indices) =>
+      setVisiblePaths: (project, paths) =>
         set(state => ({
-          visibleIndices: { ...state.visibleIndices, [project]: indices }
+          visiblePaths: { ...state.visiblePaths, [project]: paths }
         })),
 
       getTabPaths: (project) => get().tabPaths[project] || [],
-      getActiveTab: (project) => get().activeTab[project] ?? 0,
-      getVisibleIndices: (project) => get().visibleIndices[project] || [],
+      getActiveTabPath: (project) => get().activeTabPath[project] ?? null,
+      getVisiblePaths: (project) => get().visiblePaths[project] || [],
     }),
     {
       name: 'preview-tabs',
+      version: 1,
+      // v0 persisted numeric activeTab/visibleIndices; keep the open tab
+      // paths (used for restore) and drop the index-based state.
+      migrate: (persisted) => ({
+        tabPaths: persisted?.tabPaths || {},
+        activeTabPath: {},
+        visiblePaths: {},
+      }),
       storage: {
         getItem: (name) => {
           const str = sessionStorage.getItem(name);

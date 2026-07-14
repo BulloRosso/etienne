@@ -1,4 +1,5 @@
 import { MessageEvent } from '../types';
+import { normalizeOpenCodeToolName } from './opencode-tool-name.util';
 
 /**
  * OpenCode SDK SSE event types — consumed directly from
@@ -76,7 +77,33 @@ export function openCodeEventToMessageEvents(
         if (!state) return [];
 
         const callId = part.callID ?? part.id ?? `tool_${Date.now()}`;
-        const toolName = part.tool ?? 'unknown';
+        const toolName = normalizeOpenCodeToolName(part.tool);
+
+        // OpenCode runs subagents via the `task` tool — surface those as
+        // subagent lifecycle events (parity with the Claude path's
+        // task_started/task_notification system messages).
+        if (toolName === 'Task') {
+          const name =
+            state.input?.description ?? state.input?.subagent_type ?? state.title ?? 'subagent';
+          if (state.status === 'running' || state.status === 'pending') {
+            return [{
+              type: 'subagent_start',
+              data: { agent_type: state.input?.subagent_type, description: name, tool_use_id: callId, source: 'task_message' },
+            }];
+          }
+          if (state.status === 'completed' || state.status === 'error') {
+            return [{
+              type: 'subagent_end',
+              data: {
+                tool_use_id: callId,
+                status: state.status === 'completed' ? 'completed' : 'failed',
+                summary: typeof state.output === 'string' ? state.output.slice(0, 500) : undefined,
+                source: 'task_message',
+              },
+            }];
+          }
+          return [];
+        }
 
         if (state.status === 'running' || state.status === 'pending') {
           return [{
@@ -106,16 +133,38 @@ export function openCodeEventToMessageEvents(
         return [];
       }
 
-      if (part.type === 'step-start') {
+      // `step-start`/`step-finish` mark provider API request boundaries within
+      // one assistant turn — NOT subagents. Usage is reported via
+      // `message.updated`, so these carry nothing the frontend needs.
+      if (part.type === 'step-start' || part.type === 'step-finish') {
+        return [];
+      }
+
+      // Transient provider error being retried by OpenCode.
+      if (part.type === 'retry') {
+        const message = part.error?.data?.message ?? part.error?.message ?? 'transient error';
         return [{
-          type: 'subagent_start',
-          data: { name: part.id ?? 'subagent', status: 'active' },
+          type: 'status',
+          data: { status: 'retrying', attempt: part.attempt, message },
         }];
       }
-      if (part.type === 'step-finish') {
+
+      // A patch part lists files changed by an applied patch.
+      if (part.type === 'patch' && Array.isArray(part.files)) {
+        return part.files.map((file: string): MessageEvent => ({
+          type: 'file_changed',
+          data: { path: file },
+        }));
+      }
+
+      // Context compaction happened inside the session.
+      if (part.type === 'compaction') {
         return [{
-          type: 'subagent_end',
-          data: { name: part.id ?? 'subagent', status: 'complete' },
+          type: 'compaction',
+          data: {
+            trigger: part.auto ? 'auto' : 'manual',
+            timestamp: new Date().toISOString(),
+          },
         }];
       }
 
@@ -148,6 +197,28 @@ export function openCodeEventToMessageEvents(
     }
 
     // ── Session lifecycle ───────────────────────────────────────────────
+    case 'session.status': {
+      const status = props.status;
+      if (!status) return [];
+      if (status.type === 'retry') {
+        return [{
+          type: 'status',
+          data: { status: 'retrying', attempt: status.attempt, message: status.message },
+        }];
+      }
+      return [{
+        type: 'session_state',
+        data: { state: status.type === 'busy' ? 'running' : 'idle', session_id: props.sessionID },
+      }];
+    }
+
+    case 'session.compacted': {
+      return [{
+        type: 'compaction',
+        data: { trigger: 'auto', timestamp: new Date().toISOString() },
+      }];
+    }
+
     case 'session.created': {
       const info = props.info;
       return [{

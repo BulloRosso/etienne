@@ -284,6 +284,20 @@ export class ClaudeController {
     return this.svc.clearSession(projectDir);
   }
 
+  /**
+   * Manually compact the coding-agent session (context summarization).
+   * Currently only supported for OpenCode (`session.summarize`); other agents
+   * compact automatically or not at all.
+   */
+  @Roles('user')
+  @Post('compactSession/:projectDir')
+  async compactSession(@Param('projectDir') projectDir: string) {
+    if (this.activeCodingAgent === 'open-code') {
+      return this.openCodeOrchestrator.compactSession(projectDir);
+    }
+    return { success: false, message: `Manual compaction not supported for agent '${this.activeCodingAgent}'` };
+  }
+
   @Roles('user')
   @Post('unattended/:project')
   async executeUnattendedOperation(

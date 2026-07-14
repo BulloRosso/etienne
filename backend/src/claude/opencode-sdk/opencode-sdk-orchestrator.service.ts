@@ -13,6 +13,8 @@ import { MessageEvent, Usage } from '../types';
 import { openCodeEventToMessageEvents } from './opencode-event-adapter';
 import { translateMcpConfig } from './opencode-mcp-config.adapter';
 import { provisionSkillsForOpenCode } from './opencode-skill-provisioner';
+import { provisionHookPlugin } from './opencode-hook-plugin.provisioner';
+import { OpenCodeHookBridgeService } from './opencode-hook-bridge.service';
 import { GuardrailsService } from '../../input-guardrails/guardrails.service';
 import { OutputGuardrailsService } from '../../output-guardrails/output-guardrails.service';
 import { BudgetMonitoringService } from '../../budget-monitoring/budget-monitoring.service';
@@ -26,6 +28,9 @@ import { buildCitationInstruction } from '../shared/citation-prompt';
 import { sanitize_user_message } from '../../input-guardrails/index';
 import { TelemetryService } from '../../observability/telemetry.service';
 import { SecretsManagerService } from '../../secrets-manager/secrets-manager.service';
+import { CodingAgentConfigurationService } from '../../coding-agent-configuration/coding-agent-configuration.service';
+import { getContextLimit } from '../sdk/model-context-limits';
+import { normalizeOpenCodeToolName } from './opencode-tool-name.util';
 
 /**
  * Orchestrator service for OpenCode SDK conversations.
@@ -76,6 +81,8 @@ export class OpenCodeOrchestratorService {
     private readonly mcpConfigService: McpServerConfigService,
     private readonly telemetryService: TelemetryService,
     private readonly secretsManager: SecretsManagerService,
+    private readonly codingAgentConfigService: CodingAgentConfigurationService,
+    private readonly hookBridge: OpenCodeHookBridgeService,
   ) {}
 
   async onModuleInit() {
@@ -88,6 +95,28 @@ export class OpenCodeOrchestratorService {
    */
   async clearSession(projectDir: string): Promise<void> {
     await this.sessionManager.clearSession(projectDir);
+  }
+
+  /**
+   * Manually compact the project's OpenCode session (`session.summarize`).
+   * The resulting `session.compacted` event surfaces as a `compaction`
+   * MessageEvent on the next streamed turn.
+   */
+  async compactSession(projectDir: string): Promise<{ success: boolean; message: string }> {
+    const sessionId = await this.sessionManager.loadSessionId(projectDir);
+    if (!sessionId) {
+      return { success: false, message: 'No active OpenCode session for this project' };
+    }
+    try {
+      const projectRoot = safeRoot(this.config.hostRoot, projectDir);
+      const resolved = await this.config.resolveModelForProject(projectDir);
+      this.hookEmitter.emitPreCompact(projectDir, { session_id: sessionId });
+      await this.openCodeSdkService.summarizeSession(sessionId, resolved, projectRoot);
+      return { success: true, message: 'Session compaction started' };
+    } catch (err: any) {
+      this.logger.error(`OpenCode compactSession failed: ${err?.message}`);
+      return { success: false, message: err?.message ?? 'Compaction failed' };
+    }
   }
 
   /**
@@ -203,6 +232,25 @@ export class OpenCodeOrchestratorService {
         await provisionSkillsForOpenCode({ logger: this.logger, projectRoot });
       } catch (err: any) {
         this.logger.warn(`Skill provisioning failed: ${err?.message}`);
+      }
+
+      // === Provision the hook-bridge plugin (PreToolUse/PostToolUse parity) ===
+      try {
+        await provisionHookPlugin({
+          logger: this.logger,
+          projectRoot,
+          projectDir,
+          token: this.hookBridge.token,
+        });
+      } catch (err: any) {
+        this.logger.warn(`Hook plugin provisioning failed: ${err?.message}`);
+      }
+
+      // === Seed opencode.json from the template (permission block etc.) ===
+      try {
+        await this.seedOpenCodeConfig(projectRoot);
+      } catch (err: any) {
+        this.logger.warn(`OpenCode config seeding failed: ${err?.message}`);
       }
 
       // === Configure MCP servers ===
@@ -342,8 +390,12 @@ export class OpenCodeOrchestratorService {
       const eventStream = await this.openCodeSdkService.subscribeEvents(projectRoot, resolved);
 
       // === Send prompt (fire-and-forget — output streams over SSE) ===
+      // Map the UI's plan/work toggle onto OpenCode's built-in agents: the
+      // `plan` agent defaults edit/bash to "ask" (surfaced via the existing
+      // permission bridge), `build` is the full-access default.
+      const openCodeAgent = agentMode === 'plan' ? 'plan' : 'build';
       this.openCodeSdkService
-        .sendPrompt(sessionId, finalPrompt, resolved, projectRoot, systemPrompt)
+        .sendPrompt(sessionId, finalPrompt, resolved, projectRoot, systemPrompt, openCodeAgent)
         .catch((err: any) => this.logger.error(`OpenCode sendPrompt rejected: ${err?.message}`));
 
       // === Process SSE event stream ===
@@ -356,6 +408,10 @@ export class OpenCodeOrchestratorService {
           ?? e?.properties?.part?.sessionID
           ?? e?.properties?.info?.sessionID
           ?? e?.properties?.info?.id;
+
+      // One compaction can surface both as a `compaction` message part and a
+      // `session.compacted` event — suppress the duplicate within a short window.
+      let lastCompactionEmit = 0;
 
       for await (const rawEvent of eventStream) {
         // Check if aborted
@@ -383,7 +439,7 @@ export class OpenCodeOrchestratorService {
           if (permission?.id) {
             const compat = {
               id: permission.id,
-              toolName: permission.type ?? 'unknown',
+              toolName: normalizeOpenCodeToolName(permission.type),
               args: permission.metadata,
               title: permission.title,
             };
@@ -400,6 +456,15 @@ export class OpenCodeOrchestratorService {
               },
             });
           }
+          continue;
+        }
+
+        // A reply that did not come through our own permission service (e.g.
+        // answered from another OpenCode client) — settle the pending record
+        // so the run doesn't hang until the timeout auto-deny.
+        if (ev.type === 'permission.replied') {
+          const permissionId = ev.properties?.permissionID;
+          if (permissionId) this.permissionService.settleExternally(permissionId);
           continue;
         }
 
@@ -486,7 +551,30 @@ export class OpenCodeOrchestratorService {
             // Accumulate usage
             if (m.type === 'usage') {
               usage = { ...usage, ...m.data };
+              // Emit a live context meter update (parity with the Claude path).
+              const usedTokens = (usage.input_tokens ?? 0) + (usage.output_tokens ?? 0)
+                + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+              if (usedTokens > 0) {
+                const maxTokens = getContextLimit(usage.model);
+                observer.next({
+                  type: 'context_state',
+                  data: {
+                    percentFull: Math.min(100, (usedTokens / maxTokens) * 100),
+                    usedTokens,
+                    maxTokens,
+                    model: usage.model ?? 'unknown',
+                    cacheReadTokens: usage.cache_read_input_tokens,
+                    cacheCreationTokens: usage.cache_creation_input_tokens,
+                  },
+                });
+              }
               continue; // Usage emitted at completion
+            }
+
+            // Deduplicate compaction signals (part + session.compacted event).
+            if (m.type === 'compaction') {
+              if (Date.now() - lastCompactionEmit < 10_000) continue;
+              lastCompactionEmit = Date.now();
             }
 
             // Emit file change hooks
@@ -500,8 +588,10 @@ export class OpenCodeOrchestratorService {
               });
             }
 
-            // Emit tool hooks
-            if (m.type === 'tool_result') {
+            // Emit tool hooks — fallback only: when the provisioned hook
+            // plugin is phoning home, it delivers richer PreToolUse AND
+            // PostToolUse events itself; emitting here too would duplicate.
+            if (m.type === 'tool_result' && !this.hookBridge.isActive(projectDir)) {
               this.hookEmitter.emitPostToolUse(projectDir, {
                 tool_name: m.data.toolName ?? 'unknown',
                 tool_output: m.data.result,
@@ -642,6 +732,42 @@ export class OpenCodeOrchestratorService {
   }
 
   /**
+   * Seed <projectRoot>/opencode.json from the opencode config template so the
+   * permission block (edit/bash/webfetch/...) is actually in effect. Runs once
+   * per project (skipped when a `permission` key already exists) and migrates
+   * the legacy invalid keys older versions wrote (`permissions` plural,
+   * `agents` array) which the OpenCode schema rejects with ConfigInvalidError.
+   */
+  private async seedOpenCodeConfig(projectRoot: string): Promise<void> {
+    const configPath = path.join(projectRoot, 'opencode.json');
+    let existingConfig: any = {};
+    try {
+      const raw = await fs.readFile(configPath, 'utf-8');
+      existingConfig = JSON.parse(raw);
+    } catch { /* file doesn't exist */ }
+
+    let dirty = false;
+    if ('permissions' in existingConfig) { delete existingConfig.permissions; dirty = true; }
+    if ('agents' in existingConfig) { delete existingConfig.agents; dirty = true; }
+
+    if (!existingConfig.permission) {
+      try {
+        const template = JSON.parse(await this.codingAgentConfigService.getConfigForProject('open-code'));
+        // Template values fill gaps; anything already present in the project wins.
+        existingConfig = { ...template, ...existingConfig };
+        dirty = true;
+      } catch (err: any) {
+        this.logger.warn(`Could not load opencode config template: ${err?.message}`);
+      }
+    }
+
+    if (dirty) {
+      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
+      this.logger.debug(`Seeded OpenCode config at ${configPath}`);
+    }
+  }
+
+  /**
    * Translate project MCP servers to OpenCode format and write to opencode.json.
    */
   private async configureMcpServers(projectDir: string, projectRoot: string): Promise<void> {
@@ -697,7 +823,7 @@ export class OpenCodeOrchestratorService {
 
           if (full.model && full.model !== 'inherit') {
             const modelMap: Record<string, string> = {
-              sonnet: 'anthropic/claude-sonnet-4-5-20250514',
+              sonnet: 'anthropic/claude-sonnet-4-5',
               opus: 'anthropic/claude-opus-4-6',
               haiku: 'anthropic/claude-haiku-4-5-20251001',
             };

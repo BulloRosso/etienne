@@ -23,6 +23,8 @@ import { OpenCodeSdkService } from './claude/opencode-sdk/opencode-sdk.service';
 import { OpenCodeOrchestratorService } from './claude/opencode-sdk/opencode-sdk-orchestrator.service';
 import { OpenCodeSessionManagerService } from './claude/opencode-sdk/opencode-session-manager.service';
 import { OpenCodePermissionService } from './claude/opencode-sdk/opencode-permission.service';
+import { OpenCodeHookBridgeService } from './claude/opencode-sdk/opencode-hook-bridge.service';
+import { OpenCodeHooksController } from './claude/opencode-sdk/opencode-hooks.controller';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -93,7 +95,7 @@ import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
 
 @Module({
   imports: [SecretsManagerModule, EmbeddingsModule.register(), AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, QuickActionsModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule.forRoot({ providers: [{ kind: 'json-file' }], secrets: { keyVaultUrl: process.env.AZURE_KEY_VAULT_URL } }), AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, RecentItemsModule, SseMultiplexModule, CollaborationModule, HitlProtocolModule, FoundryAdapterModule.register(), DreamingModule, Ms365Module, WikiModule, CheatsheetModule, QAndAModule, AdaptiveMemoryModule, ApplicationTypesModule, PackagesModule],
-  controllers: [ClaudeController, SdkPermissionController, OpenAIAgentsPermissionController, FirstRunController],
+  controllers: [ClaudeController, SdkPermissionController, OpenAIAgentsPermissionController, OpenCodeHooksController, FirstRunController],
   providers: [
     ClaudeService,
     ClaudeSdkService,
@@ -115,6 +117,7 @@ import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
     OpenCodeOrchestratorService,
     OpenCodeSessionManagerService,
     OpenCodePermissionService,
+    OpenCodeHookBridgeService,
     GuardrailsService,
     OutputGuardrailsService,
     CodingAgentConfigurationService,

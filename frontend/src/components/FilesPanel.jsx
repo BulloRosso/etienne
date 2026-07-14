@@ -10,6 +10,7 @@ import McpUIPreview from './McpUIPreview';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useUxMode } from '../contexts/UxModeContext.jsx';
 import useTabStore from '../stores/useTabStore';
+import { reconcileVisiblePaths } from '../utils/tabVisibility';
 import useTabStateStore from '../stores/useTabStateStore';
 import useTabStateSSE from '../hooks/useTabStateSSE';
 import { useTranslation } from 'react-i18next';
@@ -21,72 +22,55 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
   const { t } = useTranslation(["filesPanel","common"]);
   const { mode: themeMode } = useThemeMode();
   const { isMinimalistic } = useUxMode();
-  const { getActiveTab, setActiveTab: storeSetActiveTab, getVisibleIndices, setVisibleIndices: storeSetVisibleIndices } = useTabStore();
+  const { getActiveTabPath, setActiveTabPath: storeSetActiveTabPath, getVisiblePaths, setVisiblePaths: storeSetVisiblePaths } = useTabStore();
   const indicators = useTabStateStore(s => s.indicators);
   const getTabState = useTabStateStore(s => s.getTabState);
   const clearTabState = useTabStateStore(s => s.clearTabState);
   const openFilePaths = useMemo(() => files.map(f => f.path), [files]);
   useTabStateSSE(projectName, openFilePaths);
-  const [activeTab, setActiveTabLocal] = useState(() => getActiveTab(projectName));
+  const [activePath, setActivePathLocal] = useState(() => getActiveTabPath(projectName));
   const [anchorEl, setAnchorEl] = useState(null);
-  const [visibleIndices, setVisibleIndicesLocal] = useState(() => getVisibleIndices(projectName));
+  const [visiblePaths, setVisiblePathsLocal] = useState(() => getVisiblePaths(projectName));
   const [isMaximized, setIsMaximized] = useState(false);
 
   const handleMaximizeToggled = useCallback(() => setIsMaximized(prev => !prev), []);
   useClaudeEvent(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE, handleMaximizeToggled, [handleMaximizeToggled]);
 
-  const setActiveTab = (val) => {
-    setActiveTabLocal(val);
-    storeSetActiveTab(projectName, val);
+  const setActivePath = (path) => {
+    setActivePathLocal(path);
+    storeSetActiveTabPath(projectName, path);
   };
 
-  const setVisibleIndices = (val) => {
-    setVisibleIndicesLocal(val);
-    storeSetVisibleIndices(projectName, val);
+  const setVisiblePaths = (paths) => {
+    setVisiblePathsLocal(paths);
+    storeSetVisiblePaths(projectName, paths);
   };
   const prevFilesRef = React.useRef([]);
   const MAX_VISIBLE_TABS = 6;
 
-  // Initialize visible indices when files change
+  // Reconcile visible tabs whenever the set of open files changes. Visibility
+  // is tracked by path, so adds/removes/reorders of `files` can't leave the
+  // tab strip pointing at the wrong entries. Handles any number of files
+  // added in a single update (e.g. batched setFiles calls during tab restore).
   useEffect(() => {
-    const prevFiles = prevFilesRef.current;
-    const prevPaths = prevFiles.map(f => f.path);
+    const prevPaths = prevFilesRef.current.map(f => f.path);
     const currPaths = files.map(f => f.path);
+    prevFilesRef.current = files;
 
     // Skip if only content changed (same paths, same order)
     if (prevPaths.length === currPaths.length && prevPaths.every((p, i) => p === currPaths[i])) {
-      prevFilesRef.current = files;
       return;
     }
 
-    // Check if a new file was added
-    const newFile = files.find(f => !prevFiles.some(pf => pf.path === f.path));
-    if (newFile) {
-      const newFileIndex = files.indexOf(newFile);
-      // Add new file to visible indices at the beginning and make it active
-      const newVisibleIndices = [newFileIndex, ...visibleIndices.filter(i => i !== newFileIndex)].slice(0, MAX_VISIBLE_TABS);
-      setVisibleIndices(newVisibleIndices);
-      setActiveTab(0);
-      prevFilesRef.current = files;
-      return;
-    }
+    const { visible, newPaths } = reconcileVisiblePaths(prevPaths, currPaths, visiblePaths, MAX_VISIBLE_TABS);
+    setVisiblePaths(visible);
 
-    // Otherwise, reset visible indices to first MAX_VISIBLE_TABS files
-    const newIndices = files.map((_, i) => i).slice(0, MAX_VISIBLE_TABS);
-    setVisibleIndices(newIndices);
-    if (files.length > 0 && activeTab >= files.length) {
-      setActiveTab(0);
+    if (newPaths.length > 0) {
+      setActivePath(newPaths[0]);
+    } else if (!visible.includes(activePath)) {
+      setActivePath(visible[0] ?? null);
     }
-
-    prevFilesRef.current = files;
   }, [files]);
-
-  // Reset active tab if it exceeds visible indices
-  useEffect(() => {
-    if (visibleIndices.length > 0 && activeTab >= visibleIndices.length) {
-      setActiveTab(0);
-    }
-  }, [activeTab, visibleIndices]);
 
   // When a preview is requested for a file that's already open, promote it to
   // a visible tab and activate it. Without this, requesting a file that lives
@@ -103,27 +87,22 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
       const isService = data.filePath.startsWith('#');
       const servicePrefix = isService ? '#' + data.filePath.substring(1).split('/')[0] : null;
 
-      const fileIndex = files.findIndex(f =>
+      const targetFile = files.find(f =>
         isService ? f.path.startsWith(servicePrefix) : f.path === data.filePath
       );
-      if (fileIndex === -1) return; // New file — the files-change effect will handle activation.
+      if (!targetFile) return; // New file — the files-change effect will handle activation.
 
-      const currentVisible = visibleIndices.includes(fileIndex)
-        ? visibleIndices
-        : [fileIndex, ...visibleIndices.filter(i => i !== fileIndex)].slice(0, MAX_VISIBLE_TABS);
-
-      if (currentVisible !== visibleIndices) {
-        setVisibleIndices(currentVisible);
+      if (!visiblePaths.includes(targetFile.path)) {
+        setVisiblePaths([targetFile.path, ...visiblePaths].slice(0, MAX_VISIBLE_TABS));
       }
-      const newActive = currentVisible.indexOf(fileIndex);
-      if (newActive !== -1 && newActive !== activeTab) {
-        setActiveTab(newActive);
+      if (activePath !== targetFile.path) {
+        setActivePath(targetFile.path);
       }
     };
 
     const unsubscribe = claudeEventBus.subscribe(ClaudeEvents.FILE_PREVIEW_REQUEST, handlePreviewRequest);
     return () => unsubscribe();
-  }, [files, visibleIndices, activeTab]);
+  }, [files, visiblePaths, activePath]);
 
   const extensionMap = useMemo(
     () => buildExtensionMap(previewersConfig || [], autoFilePreviewExtensions || []),
@@ -137,17 +116,18 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
     return path.split(/[/\\]/).pop();
   };
 
-  const handleCloseTab = (event, index) => {
+  const handleCloseTab = (event, path) => {
     event.stopPropagation();
-    // Get the actual file index from visible indices
-    const fileIndex = visibleIndices[index];
-    // Adjust active tab before closing
-    if (activeTab >= index && activeTab > 0) {
-      setActiveTab(activeTab - 1);
+    // If the active tab is being closed, hand focus to its right neighbor
+    // (or left, if it was last). The files-change effect prunes the closed
+    // path from visiblePaths and promotes an overflow file into the free slot.
+    if (path === activePath) {
+      const idx = visiblePaths.indexOf(path);
+      setActivePath(visiblePaths[idx + 1] ?? visiblePaths[idx - 1] ?? null);
     }
     // Call parent callback to actually remove the file
-    if (onCloseTab && files[fileIndex]) {
-      onCloseTab(files[fileIndex].path);
+    if (onCloseTab) {
+      onCloseTab(path);
     }
   };
 
@@ -159,11 +139,11 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
     setAnchorEl(null);
   };
 
-  const handleOverflowItemClick = (fileIndex) => {
-    // Replace first visible tab with the clicked overflow file
-    const newVisibleIndices = [fileIndex, ...visibleIndices.slice(1)];
-    setVisibleIndices(newVisibleIndices);
-    setActiveTab(0);
+  const handleOverflowItemClick = (path) => {
+    // Promote the clicked overflow file to the front; the last visible tab
+    // drops into the overflow menu if the strip is full.
+    setVisiblePaths([path, ...visiblePaths.filter(p => p !== path)].slice(0, MAX_VISIBLE_TABS));
+    setActivePath(path);
     handleOverflowMenuClose();
   };
 
@@ -175,13 +155,18 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
     }
   };
 
-  // Compute visible files based on visible indices
-  const visibleFiles = visibleIndices.map(i => files[i]).filter(f => f);
+  // Compute visible files based on visible paths
+  const visibleFiles = visiblePaths.map(p => files.find(f => f.path === p)).filter(Boolean);
 
-  // Compute overflow files (files not in visible indices)
-  const overflowIndices = files.map((_, i) => i).filter(i => !visibleIndices.includes(i));
-  const overflowFiles = overflowIndices.map(i => ({ file: files[i], index: i })).filter(item => item.file);
+  // Compute overflow files (open files without a visible tab)
+  const overflowFiles = files.filter(f => !visiblePaths.includes(f.path));
   const hasOverflow = overflowFiles.length > 0;
+
+  const activeFile = visibleFiles.find(f => f.path === activePath) || null;
+  // MUI Tabs warns if `value` doesn't match a rendered tab (transiently
+  // possible between a close and the reconciliation effect), so fall back
+  // to `false` (no selection) in that case.
+  const tabsValue = activeFile ? activeFile.path : false;
 
   const HIDDEN_OVERFLOW_VIEWERS = new Set(['workflow', 'excel', 'prompt', 'scrapbook', 'knowledge']);
 
@@ -296,11 +281,10 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
       {/* Tab Strip */}
       <Box sx={{ borderBottom: 0, borderColor: 'divider', display: 'flex', alignItems: 'center', backgroundColor: themeMode === 'dark' ? 'transparent' : (isMinimalistic ? '#fafafa' : '#efefef') }}>
         <Tabs
-          value={activeTab}
+          value={tabsValue}
           onChange={(e, newValue) => {
-            const targetFile = visibleFiles[newValue];
-            if (targetFile) clearTabState(projectName, targetFile.path);
-            setActiveTab(newValue);
+            clearTabState(projectName, newValue);
+            setActivePath(newValue);
           }}
           variant="scrollable"
           scrollButtons="auto"
@@ -315,15 +299,16 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
             },
           }}
         >
-          {visibleFiles.map((file, index) => (
+          {visibleFiles.map((file) => (
             <Tab
               key={file.path}
+              value={file.path}
               onDoubleClick={() => claudeEventBus.publish(ClaudeEvents.PREVIEW_MAXIMIZE_TOGGLE)}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                     <CiFileOn size={14} />
-                    {index !== activeTab && (() => {
+                    {file.path !== activePath && (() => {
                       const state = getTabState(projectName, file.path);
                       if (!state) return null;
                       const colorMap = { green: '#4caf50', orange: '#ff9800', red: '#f44336' };
@@ -347,7 +332,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
                   <span>{getFilename(file.path)}</span>
                   <Box
                     component="span"
-                    onClick={(e) => handleCloseTab(e, index)}
+                    onClick={(e) => handleCloseTab(e, file.path)}
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -400,13 +385,13 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
-              {overflowFiles.map((item) => (
+              {overflowFiles.map((file) => (
                 <MenuItem
-                  key={item.file.path}
-                  onClick={() => handleOverflowItemClick(item.index)}
+                  key={file.path}
+                  onClick={() => handleOverflowItemClick(file.path)}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  {item.file.path}
+                  {file.path}
                 </MenuItem>
               ))}
               <Divider />
@@ -429,7 +414,7 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
 
       {/* Content Area */}
       <Box sx={{ flex: 1, overflow: 'hidden', border: 0, position: 'relative', backgroundColor: themeMode === 'dark' ? '#2c2c2c' : '#ffffff' }}>
-        {visibleFiles[activeTab] && renderFileContent(visibleFiles[activeTab])}
+        {activeFile && renderFileContent(activeFile)}
       </Box>
     </Box>
   );

@@ -230,6 +230,7 @@ export class OpenCodeSdkService implements OnModuleDestroy {
     resolved: ResolvedModel,
     projectRoot?: string,
     system?: string,
+    agent?: string,
   ): Promise<any> {
     const inst = await this.getInstanceFor(resolved);
     const opts = {
@@ -237,6 +238,7 @@ export class OpenCodeSdkService implements OnModuleDestroy {
       query: projectRoot ? { directory: projectRoot } : undefined,
       body: {
         model: OpenCodeSdkService.modelArg(resolved),
+        ...(agent ? { agent } : {}),
         ...(system ? { system } : {}),
         parts: [{ type: 'text', text: prompt }],
       },
@@ -285,9 +287,29 @@ export class OpenCodeSdkService implements OnModuleDestroy {
   }
 
   /**
-   * The current OpenCode SDK ('1.4.x') does not expose a question/elicitation API.
-   * These are kept as no-ops so the existing handlers don't crash if a future
-   * SDK version emits `question.asked` events.
+   * Manually compact a session: OpenCode summarizes the conversation with the
+   * given model and continues from the summary (equivalent of /compact).
+   * Completion is signalled by a `session.compacted` event on the stream.
+   */
+  async summarizeSession(
+    sessionId: string,
+    resolved: ResolvedModel,
+    projectRoot?: string,
+  ): Promise<void> {
+    const inst = await this.getInstanceFor(resolved);
+    const result = await inst.client.session.summarize({
+      path: { id: sessionId },
+      query: projectRoot ? { directory: projectRoot } : undefined,
+      body: OpenCodeSdkService.modelArg(resolved),
+    });
+    this.unwrap(result, 'session.summarize');
+  }
+
+  /**
+   * The OpenCode v1 API has no question/elicitation endpoint — AskUserQuestion
+   * parity is not possible on this SDK generation (the v2 client adds
+   * `question.asked` events). These no-op stubs keep the handlers compiling
+   * until a future v2 migration wires them up.
    */
   async replyQuestion(_requestId: string, _answers: string[], _resolved: ResolvedModel): Promise<void> {
     this.logger.debug('replyQuestion: not supported by current OpenCode SDK — ignoring');

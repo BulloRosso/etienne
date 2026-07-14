@@ -47,7 +47,7 @@ export class OpenCodeConfig {
     this.openAiApiKey = process.env.OPENAI_API_KEY ?? '';
     this.deepseekApiKey = process.env.DEEPSEEK_API_KEY ?? '';
     this.defaultProvider = process.env.OPENCODE_PROVIDER ?? 'anthropic';
-    this.defaultModel = process.env.OPENCODE_MODEL ?? 'claude-sonnet-4-5-20250514';
+    this.defaultModel = process.env.OPENCODE_MODEL ?? 'claude-sonnet-4-5';
     this.defaultBaseUrl = process.env.OPENCODE_BASE_URL || undefined;
     this.permissionTimeoutMs = parseInt(process.env.OPENCODE_PERMISSION_TIMEOUT_MS ?? '300000', 10);
     this.serverPort = parseInt(process.env.OPENCODE_SERVER_PORT ?? '0', 10);
@@ -95,7 +95,7 @@ export class OpenCodeConfig {
    * Resolve the effective model for a project. Order of precedence:
    *   1. `<project>/.etienne/ai-model.json` (if active)
    *   2. Env-level `OPENCODE_PROVIDER` / `OPENCODE_MODEL` / `OPENCODE_BASE_URL`
-   *   3. Built-in defaults (`anthropic`/`claude-sonnet-4-5-20250514`)
+   *   3. Built-in defaults (`anthropic`/`claude-sonnet-4-5`)
    *
    * The api key is resolved from the project config's `token`, or from the
    * env var matching the provider (DEEPSEEK_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY).
