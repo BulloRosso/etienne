@@ -119,7 +119,7 @@ export default function App() {
   const [contexts, setContexts] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [showConfigurationRequired, setShowConfigurationRequired] = useState(null); // null = checking, true = show onboarding, false = show app
-  const [codingAgent, setCodingAgent] = useState('anthropic'); // 'anthropic' or 'openai' — from CODING_AGENT env var
+  const [codingAgent, setCodingAgent] = useState('anthropic'); // 'anthropic' | 'openai' | 'openai-agents' | 'pi-mono' | 'open-code' | 'kimi-code' — from CODING_AGENT env var
   const [previewersConfig, setPreviewersConfig] = useState([]);
 
   const mux = useMultiplexSSE(currentProject);
@@ -388,7 +388,8 @@ export default function App() {
     fetchPreviewers();
   }, []);
 
-  // When Codex (OpenAI) is active, force mode to 'work' — plan mode is not supported
+  // When Codex (OpenAI) is active, force mode to 'work' — plan mode is not supported.
+  // (kimi-code keeps the toggle: Kimi has native plan mode via setPlanMode.)
   useEffect(() => {
     if (codingAgent === 'openai') {
       setMode('work');

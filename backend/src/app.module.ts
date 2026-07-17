@@ -25,6 +25,9 @@ import { OpenCodeSessionManagerService } from './claude/opencode-sdk/opencode-se
 import { OpenCodePermissionService } from './claude/opencode-sdk/opencode-permission.service';
 import { OpenCodeHookBridgeService } from './claude/opencode-sdk/opencode-hook-bridge.service';
 import { OpenCodeHooksController } from './claude/opencode-sdk/opencode-hooks.controller';
+import { KimiCodeSdkService } from './claude/kimi-code-sdk/kimi-code-sdk.service';
+import { KimiCodeOrchestratorService } from './claude/kimi-code-sdk/kimi-code-orchestrator.service';
+import { KimiCodeSessionManagerService } from './claude/kimi-code-sdk/kimi-code-session-manager.service';
 import { InterceptorsModule } from './interceptors/interceptors.module';
 import { ContentManagementModule } from './content-management/content-management.module';
 import { McpServerModule } from './mcpserver/mcp-server.module';
@@ -118,6 +121,9 @@ import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
     OpenCodeSessionManagerService,
     OpenCodePermissionService,
     OpenCodeHookBridgeService,
+    KimiCodeSdkService,
+    KimiCodeOrchestratorService,
+    KimiCodeSessionManagerService,
     GuardrailsService,
     OutputGuardrailsService,
     CodingAgentConfigurationService,

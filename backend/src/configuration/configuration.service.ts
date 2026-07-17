@@ -10,6 +10,10 @@ interface ConfigurationDto {
   OPENAI_AGENTS_MODEL?: string;
   OPENAI_AGENTS_ENABLE_CODEX_TOOL?: string;
   OPENAI_AGENTS_PERMISSION_TIMEOUT_MS?: string;
+  MOONSHOT_API_KEY?: string;
+  KIMI_MODEL?: string;
+  KIMI_THINKING?: string;
+  KIMI_BINARY_PATH?: string;
   ANTHROPIC_MODELS?: string;
   OPENAI_MODELS?: string;
   WORKSPACE_ROOT?: string;
@@ -74,6 +78,7 @@ const ENV_SECTIONS: { comment: string; keys: string[] }[] = [
   { comment: '# OpenAI API Key', keys: ['OPENAI_API_KEY'] },
   { comment: '# Model tiers per provider (comma-separated: small,regular)', keys: ['ANTHROPIC_MODELS', 'OPENAI_MODELS'] },
   { comment: '# OpenAI Agents SDK Configuration', keys: ['OPENAI_AGENTS_MODEL', 'OPENAI_AGENTS_ENABLE_CODEX_TOOL', 'OPENAI_AGENTS_PERMISSION_TIMEOUT_MS'] },
+  { comment: '# Kimi Code Configuration (only used when CODING_AGENT=kimi-code)', keys: ['MOONSHOT_API_KEY', 'KIMI_MODEL', 'KIMI_THINKING', 'KIMI_BINARY_PATH'] },
   { comment: '# Workspace', keys: ['WORKSPACE_ROOT', 'FORCE_PROJECT_SCOPE'] },
   { comment: '# Memory Management Configuration', keys: ['MEMORY_MANAGEMENT_URL', 'MEMORY_DECAY_DAYS'] },
   { comment: '# Budget Control Configuration', keys: ['COSTS_CURRENCY_UNIT', 'COSTS_PER_MIO_INPUT_TOKENS', 'COSTS_PER_MIO_OUTPUT_TOKENS'] },

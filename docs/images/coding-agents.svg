@@ -74,6 +74,15 @@
     <text x="590" y="630" text-anchor="middle" font-size="11.5" fill="#1565c0">75+ models across providers</text>
   </g>
 
+  <!-- kimi-code - bottom right -->
+  <g>
+    <rect x="820" y="548" width="290" height="92" rx="8" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="965" y="574" text-anchor="middle" font-size="15" font-weight="700" fill="#0d47a1">Kimi Code</text>
+    <text x="965" y="594" text-anchor="middle" font-size="12" font-family="Consolas, monospace" fill="#1976d2">CODING_AGENT=kimi-code</text>
+    <text x="965" y="614" text-anchor="middle" font-size="11.5" fill="#1565c0">Kimi Agent SDK · spawns kimi CLI</text>
+    <text x="965" y="630" text-anchor="middle" font-size="11.5" fill="#1565c0">native MCP/skills · plan mode · yolo tools</text>
+  </g>
+
   <!-- ===================== Connectors to core ===================== -->
   <!-- anthropic (green, reference) -->
   <path d="M 590 212 L 590 298" fill="none" stroke="#2e7d32" stroke-width="2.5" marker-end="url(#arrow-green)"/>
@@ -83,6 +92,8 @@
   <path d="M 820 380 L 752 380" fill="none" stroke="#888" stroke-width="1.8" marker-end="url(#arrow)"/>
   <!-- opencode -->
   <path d="M 590 548 L 590 462" fill="none" stroke="#888" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <!-- kimi-code -->
+  <path d="M 910 548 L 742 464" fill="none" stroke="#888" stroke-width="1.8" marker-end="url(#arrow)"/>
 
   <!-- Footnote -->
   <text x="590" y="684" text-anchor="middle" font-size="12" fill="#777">Every harness streams through the same SSE + event bus; the core (permissions, budget,</text>

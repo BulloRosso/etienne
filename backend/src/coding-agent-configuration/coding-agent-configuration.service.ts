@@ -39,6 +39,11 @@ export class CodingAgentConfigurationService {
       projectDir: '.opencode',
       templateFile: 'opencode-config.json',
     },
+    'kimi-code': {
+      fileName: 'config.toml',
+      projectDir: '.kimi',
+      templateFile: 'kimi-config.toml',
+    },
   };
 
   private get templatesDir(): string {
@@ -86,6 +91,7 @@ export class CodingAgentConfigurationService {
     if (agentType === 'open-code') return '.opencode';
     if (agentType === 'openai-agents') return '.openai-agents';
     if (agentType === 'pi-mono') return '.pi-mono';
+    if (agentType === 'kimi-code') return '.kimi';
     return '.codex';
   }
 

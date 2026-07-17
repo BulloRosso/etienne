@@ -10,6 +10,7 @@ import { CodexSdkOrchestratorService } from './codex-sdk/codex-sdk-orchestrator.
 import { OpenAIAgentsOrchestratorService } from './openai-agent-sdk/openai-agents-orchestrator.service';
 import { PiMonoOrchestratorService } from './pi-mono-sdk/pi-mono-orchestrator.service';
 import { OpenCodeOrchestratorService } from './opencode-sdk/opencode-sdk-orchestrator.service';
+import { KimiCodeOrchestratorService } from './kimi-code-sdk/kimi-code-orchestrator.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 import { AddFileDto, GetFileDto, ListFilesDto, GetStrategyDto, SaveStrategyDto, GetMissionDto, SaveMissionDto, GetFilesystemDto, GetPermissionsDto, SavePermissionsDto, GetAssistantDto, GetChatHistoryDto, GetMcpConfigDto, SaveMcpConfigDto } from './dto';
@@ -29,14 +30,16 @@ export class ClaudeController {
     private readonly openaiAgentsOrchestrator: OpenAIAgentsOrchestratorService,
     private readonly piMonoOrchestrator: PiMonoOrchestratorService,
     private readonly openCodeOrchestrator: OpenCodeOrchestratorService,
+    private readonly kimiCodeOrchestrator: KimiCodeOrchestratorService,
     private readonly sessionsService: SessionsService,
     private readonly budgetMonitoringService: BudgetMonitoringService
   ) {
     this.workspaceRoot = process.env.WORKSPACE_ROOT || join(process.cwd(), '..', 'workspace');
   }
 
-  private get activeCodingAgent(): 'anthropic' | 'openai' | 'openai-agents' | 'pi-mono' | 'open-code' {
+  private get activeCodingAgent(): 'anthropic' | 'openai' | 'openai-agents' | 'pi-mono' | 'open-code' | 'kimi-code' {
     const agent = process.env.CODING_AGENT || 'anthropic';
+    if (agent === 'kimi-code') return 'kimi-code';
     if (agent === 'open-code') return 'open-code';
     if (agent === 'pi-mono') return 'pi-mono';
     if (agent === 'openai-agents') return 'openai-agents';
@@ -140,6 +143,17 @@ export class ClaudeController {
       this.pendingViewerState.delete(projectDir); // consume once
     }
 
+    if (this.activeCodingAgent === 'kimi-code') {
+      return this.kimiCodeOrchestrator.streamPrompt(
+        projectDir,
+        prompt,
+        agentMode,
+        memoryEnabledBool,
+        false,
+        maxTurnsNum
+      );
+    }
+
     if (this.activeCodingAgent === 'open-code') {
       return this.openCodeOrchestrator.streamPrompt(
         projectDir,
@@ -229,6 +243,9 @@ export class ClaudeController {
     if (processId.startsWith('opencode_')) {
       return this.openCodeOrchestrator.attachToStream(processId, seq);
     }
+    if (processId.startsWith('kimi_')) {
+      return this.kimiCodeOrchestrator.attachToStream(processId, seq);
+    }
     return this.sdkOrchestrator.attachToStream(processId, seq);
   }
 
@@ -259,6 +276,11 @@ export class ClaudeController {
       return this.openCodeOrchestrator.abortProcess(processId);
     }
 
+    if (processId.startsWith('kimi_')) {
+      console.log(`[ClaudeController] Attempting Kimi orchestrator abort for: ${processId}`);
+      return this.kimiCodeOrchestrator.abortProcess(processId);
+    }
+
     // If not found in legacy processes, try SDK orchestrator
     if (processId.startsWith('sdk_')) {
       console.log(`[ClaudeController] Attempting SDK orchestrator abort for: ${processId}`);
@@ -272,7 +294,9 @@ export class ClaudeController {
   @Roles('guest')
   @Post('clearSession/:projectDir')
   async clearSession(@Param('projectDir') projectDir: string) {
-    if (this.activeCodingAgent === 'open-code') {
+    if (this.activeCodingAgent === 'kimi-code') {
+      await this.kimiCodeOrchestrator.clearSession(projectDir);
+    } else if (this.activeCodingAgent === 'open-code') {
       await this.openCodeOrchestrator.clearSession(projectDir);
     } else if (this.activeCodingAgent === 'pi-mono') {
       await this.piMonoOrchestrator.clearSession(projectDir);
@@ -294,6 +318,9 @@ export class ClaudeController {
   async compactSession(@Param('projectDir') projectDir: string) {
     if (this.activeCodingAgent === 'open-code') {
       return this.openCodeOrchestrator.compactSession(projectDir);
+    }
+    if (this.activeCodingAgent === 'kimi-code') {
+      return this.kimiCodeOrchestrator.compactSession(projectDir);
     }
     return { success: false, message: `Manual compaction not supported for agent '${this.activeCodingAgent}'` };
   }
@@ -329,7 +356,9 @@ export class ClaudeController {
     let sawApiError = false;
 
     try {
-      const orchestrator = this.activeCodingAgent === 'open-code'
+      const orchestrator = this.activeCodingAgent === 'kimi-code'
+        ? this.kimiCodeOrchestrator
+        : this.activeCodingAgent === 'open-code'
         ? this.openCodeOrchestrator
         : this.activeCodingAgent === 'pi-mono'
           ? this.piMonoOrchestrator

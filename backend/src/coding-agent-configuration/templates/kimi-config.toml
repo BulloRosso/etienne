@@ -1,0 +1,17 @@
+# Seed config for the Kimi CLI, written to <project>/.kimi/config.toml on
+# first use so a default model/provider exist even without a global
+# `kimi login`. API keys are NEVER stored here — the backend forwards
+# MOONSHOT_API_KEY into the CLI process as KIMI_API_KEY, which overrides
+# the provider's api_key.
+
+default_model = "kimi-for-coding"
+
+[providers.kimi]
+type = "kimi"
+base_url = "https://api.kimi.com/coding/v1"
+api_key = ""
+
+[models.kimi-for-coding]
+provider = "kimi"
+model = "kimi-for-coding"
+max_context_size = 262144

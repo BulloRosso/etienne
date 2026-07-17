@@ -9,9 +9,9 @@ export class CodingAgentConfigurationController {
 
   @Get(':agentType')
   async getConfig(@Param('agentType') agentType: string) {
-    if (!['anthropic', 'openai'].includes(agentType)) {
+    if (!['anthropic', 'openai', 'kimi-code'].includes(agentType)) {
       throw new HttpException(
-        { success: false, message: 'Invalid agent type. Must be "anthropic" or "openai".' },
+        { success: false, message: 'Invalid agent type. Must be "anthropic", "openai" or "kimi-code".' },
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -31,7 +31,7 @@ export class CodingAgentConfigurationController {
     @Param('agentType') agentType: string,
     @Body() body: { content: string },
   ) {
-    if (!['anthropic', 'openai'].includes(agentType)) {
+    if (!['anthropic', 'openai', 'kimi-code'].includes(agentType)) {
       throw new HttpException(
         { success: false, message: 'Invalid agent type.' },
         HttpStatus.BAD_REQUEST,
@@ -50,7 +50,7 @@ export class CodingAgentConfigurationController {
 
   @Delete(':agentType')
   async deleteConfig(@Param('agentType') agentType: string) {
-    if (!['anthropic', 'openai'].includes(agentType)) {
+    if (!['anthropic', 'openai', 'kimi-code'].includes(agentType)) {
       throw new HttpException(
         { success: false, message: 'Invalid agent type.' },
         HttpStatus.BAD_REQUEST,
