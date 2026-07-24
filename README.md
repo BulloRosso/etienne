@@ -617,6 +617,21 @@ Compositions can be saved as named **profiles** for reuse — `legal-intake`, `l
 
 Document parsing is provided by the standard skill **office-and-pdf-documents** (PDF, Word, PowerPoint, Excel, images via OCR). Non-PDF formats require **LibreOffice** (`soffice`) on the host. See [CLAUDE.md](CLAUDE.md#working-with-pdf-and-office-format-documents) for the full format list and the binary dependency.
 
+## Import/Export Open Knowledge Format (OKF)
+
+A project's workspace data can be exported to and imported from the [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) (OKF v0.1) — Google's open, vendor-neutral standard for packaging knowledge as plain markdown files with YAML frontmatter. An OKF bundle is just a directory of markdown "concept" documents (only the `type` frontmatter field is required; `title`, `description`, `resource`, `tags` and `timestamp` are the reserved queryable fields), linked into a concept graph via ordinary markdown links and navigable through per-directory `index.md` files. That makes exported knowledge readable by humans, versionable in git, and ingestible by any OKF consumer (e.g. Google Cloud's Knowledge Catalog) — and lets externally produced bundles be dropped into a project where the agent can search them.
+
+**Export** (file explorer toolbar, or right-click a folder → *Export folder as OKF*): choose the whole project or any subfolder and download it as an OKF bundle zip. Every workspace file becomes a concept document with derived frontmatter (`type` mapped from the file extension, `resource` pointing at the project-relative source path, `timestamp` from the file's mtime, file tags carried over):
+
+- Markdown files keep their content byte-identically; existing frontmatter is preserved and only missing OKF fields are added.
+- PDF and Office documents get their text extracted into the concept body via the built-in LiteParse pipeline (with OCR). Extraction is optional and capped per file (`OKF_EXTRACT_MAX_MB`, default 20 MB).
+- Small text/code files are embedded in fenced code blocks; other binaries become metadata-only concepts.
+- Internal folders (`.claude/`, `node_modules/`, dotfiles, …) are always excluded, and per-directory `index.md` navigation files are generated (hand-written ones win).
+
+**Import** (file explorer toolbar): upload an OKF bundle zip, pick a target folder (defaults to `okf/<bundle-name>`, auto-suffixed on collision — never destructive) and optionally tick **Index concepts into RAG** (default on) so imported concepts are immediately searchable by the agent through hybrid RAG retrieval. Validation is deliberately lenient: spec violations such as a missing `type` field produce warnings, not failures; only an archive without any markdown concepts is rejected.
+
+API: `POST /api/workspace/:project/okf/export` (JSON body `{ path?, extractText? }` → zip download, warnings in the `X-OKF-Warnings` header) and `POST /api/workspace/:project/okf/import` (multipart `file`, `targetPath?`, `indexRag?`).
+
 ## Messenger and MCP UI Integrations
 
 * [Messenger Integration](messenger-integration.md) — Telegram and Microsoft Teams as alternative UIs

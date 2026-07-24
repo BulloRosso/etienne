@@ -26,7 +26,7 @@ export interface SearchResult {
 }
 
 /** File extensions that need liteparse conversion */
-const BINARY_EXTENSIONS = new Set([
+export const BINARY_EXTENSIONS = new Set([
   '.pdf', '.doc', '.docx', '.docm', '.odt', '.rtf',
   '.ppt', '.pptx', '.pptm', '.odp',
   '.xls', '.xlsx', '.xlsm', '.ods',
@@ -193,7 +193,7 @@ export class RagService {
    * Extract text content from a file, using LiteParse for binary formats (PDF, Office docs).
    * LiteParse provides local parsing with built-in OCR — no external API needed.
    */
-  private async extractContent(absolutePath: string): Promise<string> {
+  async extractContent(absolutePath: string): Promise<string> {
     const ext = path.extname(absolutePath).toLowerCase();
 
     if (BINARY_EXTENSIONS.has(ext)) {

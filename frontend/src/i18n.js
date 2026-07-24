@@ -35,7 +35,7 @@ i18n
       'mcpAppRenderer', 'mcpServer', 'mcpToolsIndicator',
       'memoryPanel', 'mermaidViewer', 'mission', 'mqttSettings',
       'notificationMenu',
-      'offerGenerator', 'onboarding',
+      'offerGenerator', 'okf', 'onboarding',
       'pairingRequest', 'permission', 'permissionList', 'planApproval',
       'previewersManager', 'progressViewer', 'promptEditor',
       'reqViewer', 'responsePane', 'rulesTab',

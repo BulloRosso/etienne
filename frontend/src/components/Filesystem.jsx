@@ -46,6 +46,8 @@ import DocumentCreationModal from './DocumentCreationModal';
 import ExtractSectionsModal from './ExtractSectionsModal';
 import ExportComplianceModal from './ExportComplianceModal';
 import { getContextMenuActions, buildExtensionMap, getViewerForFile, getFolderContextMenuActions, evaluateActionStates } from './viewerRegistry';
+import OkfExportDialog from './OkfExportDialog';
+import OkfImportDialog from './OkfImportDialog';
 import { callMcp } from '../services/mcpClient';
 import useMultiplexSSE from '../hooks/useMultiplexSSE';
 
@@ -61,7 +63,7 @@ const CONTEXT_MENU_MODALS = {
 };
 
 export default function Filesystem({ projectName, showBackgroundInfo, previewersConfig = [] }) {
-  const { t } = useTranslation(["filesystem","common"]);
+  const { t } = useTranslation(["filesystem","common","okf"]);
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
   const isGuest = hasRole('guest');
@@ -88,6 +90,8 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
   const [renameDialog, setRenameDialog] = useState({ open: false, row: null, newName: '' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, row: null });
   const [newFolderDialog, setNewFolderDialog] = useState({ open: false, folderName: '' });
+  const [okfExportDialog, setOkfExportDialog] = useState({ open: false, initialPath: '' });
+  const [okfImportOpen, setOkfImportOpen] = useState(false);
 
   // ── Tags ──
   const [fileTags, setFileTags] = useState({});
@@ -385,6 +389,21 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
   }, []);
 
   const extensionMap = useMemo(() => buildExtensionMap(previewersConfig), [previewersConfig]);
+
+  // All folder paths in the loaded tree — scope options for the OKF export dialog.
+  const folderPaths = useMemo(() => {
+    const out = [];
+    const visit = (nodes, parentPath) => {
+      for (const node of nodes || []) {
+        if (node.type !== 'folder') continue;
+        const p = parentPath ? `${parentPath}/${node.label}` : node.label;
+        out.push(p);
+        visit(node.children, p);
+      }
+    };
+    visit(tree, '');
+    return out.sort();
+  }, [tree]);
 
   // ── Folder context-menu actions: compute matches + evaluate state when menu opens ──
   const currentFolderActions = useMemo(() => {
@@ -876,6 +895,23 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
                 </IconButton>
               </span>
             </Tooltip>
+            <Tooltip title={isGuest ? t('okf:guestTooltip') : t('okf:exportTooltip')}>
+              <span>
+                <IconButton
+                  onClick={() => setOkfExportDialog({ open: true, initialPath: '' })}
+                  disabled={isGuest}
+                >
+                  <i className="codicon codicon-package" style={{ fontSize: 20 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={isGuest ? t('okf:guestTooltip') : t('okf:importTooltip')}>
+              <span>
+                <IconButton onClick={() => setOkfImportOpen(true)} disabled={isGuest}>
+                  <i className="codicon codicon-archive" style={{ fontSize: 20 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
             <Tooltip title={t('common.refresh')}>
               <IconButton onClick={loadFilesystem}>
                 <i className="codicon codicon-refresh" style={{ fontSize: 20 }} />
@@ -953,6 +989,17 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
           <MenuItem onClick={() => handleUploadClick(contextMenu.row)}>
             <i className="codicon codicon-cloud-upload" style={{ fontSize: 16, marginRight: 8 }} />
             {t('filesystem:uploadToFolder')}
+          </MenuItem>
+        )}
+        {contextMenu?.row?.type === 'folder' && !isGuest && (
+          <MenuItem
+            onClick={() => {
+              setOkfExportDialog({ open: true, initialPath: contextMenu.row.path });
+              handleCloseContextMenu();
+            }}
+          >
+            <i className="codicon codicon-package" style={{ fontSize: 16, marginRight: 8 }} />
+            {t('okf:exportFolderMenu')}
           </MenuItem>
         )}
         {!isGuest && (
@@ -1101,6 +1148,24 @@ export default function Filesystem({ projectName, showBackgroundInfo, previewers
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── OKF Export/Import ── */}
+      <OkfExportDialog
+        open={okfExportDialog.open}
+        onClose={() => setOkfExportDialog({ open: false, initialPath: '' })}
+        projectName={projectName}
+        initialPath={okfExportDialog.initialPath}
+        folderOptions={folderPaths}
+      />
+      <OkfImportDialog
+        open={okfImportOpen}
+        onClose={() => setOkfImportOpen(false)}
+        projectName={projectName}
+        onImported={() => {
+          loadFilesystem();
+          loadIndexedPaths();
+        }}
+      />
     </Box>
   );
 }
