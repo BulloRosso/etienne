@@ -41,6 +41,7 @@ interface ConfigurationDto {
   AWS_OTEL_ENDPOINT?: string;
   DIFFBOT_TOKEN?: string;
   VAPI_TOKEN?: string;
+  ARD_FINDERS?: string;
   AGENT_BUS_LOG_CMS?: string;
   AGENT_BUS_LOG_DSS?: string;
   AGENT_BUS_LOG_SWE?: string;
@@ -82,7 +83,7 @@ const ENV_SECTIONS: { comment: string; keys: string[] }[] = [
   { comment: '# Workspace', keys: ['WORKSPACE_ROOT', 'FORCE_PROJECT_SCOPE'] },
   { comment: '# Memory Management Configuration', keys: ['MEMORY_MANAGEMENT_URL', 'MEMORY_DECAY_DAYS'] },
   { comment: '# Budget Control Configuration', keys: ['COSTS_CURRENCY_UNIT', 'COSTS_PER_MIO_INPUT_TOKENS', 'COSTS_PER_MIO_OUTPUT_TOKENS'] },
-  { comment: '# MCP Tools', keys: ['DIFFBOT_TOKEN', 'VAPI_TOKEN'] },
+  { comment: '# MCP Tools\n# ARD_FINDERS: JSON map of Agent Finder endpoints, overrides the built-in defaults.\n# {"github":{"search_url":"https://.../search","token":"..."}}', keys: ['DIFFBOT_TOKEN', 'VAPI_TOKEN', 'ARD_FINDERS'] },
   { comment: '# Checkpoint Provider Configuration', keys: ['CHECKPOINT_PROVIDER', 'GITEA_URL', 'GITEA_USERNAME', 'GITEA_PASSWORD', 'GITEA_REPO'] },
   {
     comment: '# Email Configuration\n# SMTP_CONNECTION format: host|port|secure|user|password\n# IMAP_CONNECTION format: host|port|secure|user|password',

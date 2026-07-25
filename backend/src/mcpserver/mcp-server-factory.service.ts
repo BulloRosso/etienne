@@ -98,6 +98,8 @@ import {
   REQUIREMENTS_TRACKING_RESOURCE_MIME,
 } from './requirements-tracking-tools';
 import { RequirementsTrackingService } from '../requirements-tracking/requirements-tracking.service';
+import { createArdToolsService } from './ard-tools';
+import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
 
 @Injectable()
 export class McpServerFactoryService implements OnModuleInit {
@@ -140,6 +142,7 @@ export class McpServerFactoryService implements OnModuleInit {
     private readonly applicationTypesService: ApplicationTypesService,
     private readonly wikiService: WikiService,
     private readonly requirementsTrackingService: RequirementsTrackingService,
+    private readonly mcpServerConfigService: McpServerConfigService,
   ) {
     const scopedLlm = this.createProjectScopedLlm();
     this.groupConfigs = {
@@ -185,6 +188,9 @@ export class McpServerFactoryService implements OnModuleInit {
       },
       'confirmation': {
         toolServices: [confirmationToolsService],
+      },
+      'ard': {
+        toolServices: [createArdToolsService(mcpServerConfigService, () => this.currentProjectRoot)],
       },
       'workflows': {
         toolServices: [createWorkflowToolsService(workflowsService, ruleEngineService)],

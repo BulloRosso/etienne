@@ -48,8 +48,8 @@ export default function QuickActions({ onSelectAction, currentProject, extraActi
     });
   }, [visible, extraActions]);
 
-  // The Hyperscreen launcher is always available; only the action list itself
-  // is hidden when empty.
+  // The launcher is only passed in for projects that have a hyperscreen/ config;
+  // with no actions and no launcher there is nothing to render.
   if (sorted.length === 0 && !onOpenHyperscreen) return null;
 
   const handleClick = (action) => {

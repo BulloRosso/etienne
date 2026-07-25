@@ -44,19 +44,24 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
   const [sessionPaneOpen, setSessionPaneOpen] = useState(false);
   const [isChatMaximized, setIsChatMaximized] = useState(false);
   const [hyperscreenOpen, setHyperscreenOpen] = useState(false);
+  // Whether the current project actually has a hyperscreen/ config. Gates both the
+  // auto-open and the launcher icon in the quick action bar.
+  const [hasHyperscreen, setHasHyperscreen] = useState(false);
   // Projects for which we've already auto-opened the Hyperscreen this session, so
   // it only pops up once per project (not again after the user closes it).
   const hyperscreenAutoOpened = useRef(new Set());
 
-  // On project load: if a hyperscreen/settings.json exists, auto-open the
-  // Hyperscreen once for that project.
+  // On project load: probe for hyperscreen/settings.json. If it exists, enable the
+  // launcher icon and auto-open the Hyperscreen once for that project.
   useEffect(() => {
+    setHasHyperscreen(false);
     if (!projectName) return;
-    if (hyperscreenAutoOpened.current.has(projectName)) return;
     let cancelled = false;
     apiFetch(`/api/workspace/${encodeURIComponent(projectName)}/files/hyperscreen/settings.json`)
       .then((res) => {
         if (cancelled || !res.ok) return;
+        setHasHyperscreen(true);
+        if (hyperscreenAutoOpened.current.has(projectName)) return;
         hyperscreenAutoOpened.current.add(projectName);
         setHyperscreenOpen(true);
       })
@@ -584,7 +589,7 @@ export default function ChatPane({ messages, structuredMessages = [], contextSta
           onSelectAction={(prompt) => setEditingMessage(prompt)}
           currentProject={projectName}
           extraActions={isMinimalistic ? (uiConfig?.welcomePage?.quickActions || []) : []}
-          onOpenHyperscreen={projectName ? () => setHyperscreenOpen((p) => !p) : undefined}
+          onOpenHyperscreen={projectName && hasHyperscreen ? () => setHyperscreenOpen((p) => !p) : undefined}
         />
         <ChatInput onSend={onSendMessage} onAbort={onAbort} streaming={streaming} disabled={!projectExists} minimal={hideHeader} initialMessage={editingMessage} onInitialMessageConsumed={() => setEditingMessage(null)} onType={() => hyperscreenOpen && setHyperscreenOpen(false)} />
       </Box>

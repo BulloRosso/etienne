@@ -21,11 +21,13 @@ import { Ms365Module } from '../ms365/ms365.module';
 import { ApplicationTypesModule } from '../application-types/application-types.module';
 import { WikiModule } from '../wiki/wiki.module';
 import { RequirementsTrackingModule } from '../requirements-tracking/requirements-tracking.module';
+import { CodingAgentConfigurationModule } from '../coding-agent-configuration/coding-agent-configuration.module';
+import { McpServerConfigService } from '../claude/mcpserverconfig/mcp.server.config';
 
 @Module({
-  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule, RagModule, Ms365Module, ApplicationTypesModule, WikiModule, RequirementsTrackingModule],
+  imports: [DeepResearchModule, KnowledgeGraphModule, EmailModule, ScrapbookModule, A2AClientModule, A2ASettingsModule, InterceptorsModule, ProjectToolsModule, StatefulWorkflowsModule, EventHandlingModule, ProcessManagerModule, ConfigurationModule, UserOrdersModule, CollaborationModule, RagModule, Ms365Module, ApplicationTypesModule, WikiModule, RequirementsTrackingModule, CodingAgentConfigurationModule],
   controllers: [McpServerController],
-  providers: [McpServerFactoryService, McpAuthGuard],
+  providers: [McpServerFactoryService, McpAuthGuard, McpServerConfigService],
   exports: [McpServerFactoryService],
 })
 export class McpServerModule {}

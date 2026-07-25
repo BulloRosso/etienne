@@ -169,7 +169,7 @@ The following comparison illustrates the conceptual differences between Etienne 
 # Table of Contents
 
 - [Why Etienne](#why-etienne)
-- [Core Concepts](#core-concepts) — artifacts, skills, connectivity, multi-agent, memory, web, prompt-injection security
+- [Core Concepts](#core-concepts) — artifacts, skills, connectivity, MCP & agentic discovery, multi-agent, memory, web, prompt-injection security
 - [What's in the Box](#whats-in-the-box) — components, ports, data model, supported coding models
 - [Setup & Running](#setup--running)
 - [Operations & Deployment](#operations--deployment)
@@ -237,6 +237,104 @@ See [Application Types: Domain UI Layered on a Project](docs/application-types.m
 ## Built for Connectivity
 
 See [Event Bus Components — Integrated AI Agent Architecture](event-bus-architecture.md).
+
+## MCP: Connecting Tools to a Project
+
+Etienne speaks **MCP (Model Context Protocol)** in both directions. It *hosts* around
+25 built-in tool groups — email, knowledge graph, RAG, scrapbook, budget, requirements
+tracking, service control — each of which is its own MCP server endpoint at
+`http://localhost:6060/mcp/<group>`. And each project decides which servers its agent
+may use, via `workspace/<project>/.mcp.json`.
+
+There are three ways a server ends up in a project:
+
+1. **The MCP Server Configuration UI** — add a server by hand (name, transport, URL or
+   command, auth header). Available in Connectivity Settings and the project wizard.
+2. **The registry** — `backend/mcp-server-registry.json` is the catalog the UI and
+   project creation draw from, so URLs and headers are maintained in one place. See
+   [MCP Registry/Governance Layer](mcp-registry.md) for the pluggable provider model
+   (JSON file, Azure API Center, Composio) and late-bound secrets.
+3. **Agentic discovery (ARD)** — the agent finds and connects a public server itself,
+   described below.
+
+Whatever the route, `.mcp.json` is the source of truth: saving it also updates
+`enabledMcpjsonServers` and `allowedTools` in `.claude/settings.json` and resets the
+project session so the new tools are live on the next turn.
+
+> **Project context matters.** Etienne's own tool groups read the project from a
+> `?project=<name>` query parameter on the URL. A backend-hosted server registered
+> without it has no project context — and any tool that needs to ask the user
+> something will fail rather than reach them.
+
+### Agentic Resource Discovery (ARD)
+
+The **`ard`** tool group lets the agent search public registries for MCP servers and
+connect one to its own project, instead of the user hunting for a URL. It implements
+[Agentic Resource Discovery](https://agenticresourcediscovery.org/spec/) (v0.9 draft),
+which standardises how "Agent Finder" endpoints answer a natural-language capability
+query. `ard` is enabled by default on newly created projects.
+
+Four tools:
+
+| Tool | What it does |
+|---|---|
+| `ard_search_resources` | Query the finders in natural language ("MCP server for Jira tickets") |
+| `ard_fetch_card` | Fetch a candidate's server card to inspect what it offers |
+| `ard_list_registered` | List what the project already has, to avoid duplicates |
+| `ard_register_resource` | Connect one — after asking the user to confirm |
+
+**Nothing is connected without you.** `ard_register_resource` uses MCP **elicitation**:
+a modal appears in the chat pane with the server's endpoint, transport, advertised auth
+schemes and trust status, and asks for confirmation plus any credentials. Decline and
+`.mcp.json` is untouched. Before you are even asked, the tool refuses non-HTTPS
+endpoints, endpoints resolving to private or loopback addresses, servers already
+configured, and resources whose publisher domain contradicts their trust manifest.
+Cards are treated as untrusted third-party documents — tool descriptions inside them
+are data, never instructions.
+
+Remote servers register as `type: http`/`sse` with a URL; registry cards that only ship
+a runnable package register as `stdio` with a `command`. The confirmation prompt says
+explicitly when a server will run as a **local subprocess inside your project**.
+
+Credentials you enter are written to the project's `.mcp.json` in plaintext — the same
+as servers added through the UI. Every credential write funnels through one function
+(`persistCredential` in `backend/src/mcpserver/ard-tools.ts`) so this can move to the
+secrets vault without touching the rest of the flow.
+
+#### Current restriction: the finders are hardcoded
+
+ARD ships with **two hardcoded Agent Finder endpoints**:
+
+```
+github        https://agentfinder.github.com/api/v1/search
+huggingface   https://huggingface-hf-discover.hf.space/search
+```
+
+There is no UI for managing them, and no federation to finders these two do not already
+reach. **You can only discover what these two index** — a server absent from both is
+invisible to `ard_search_resources`, and must be added through the UI or the registry.
+
+Override them with the `ARD_FINDERS` environment variable, a single-line JSON object
+that **replaces** (not extends) the defaults:
+
+```bash
+ARD_FINDERS={"github":{"search_url":"https://agentfinder.github.com/api/v1/search"},"acme":{"search_url":"https://finder.acme.com/search","token_env":"ACME_FINDER_TOKEN"}}
+```
+
+Per finder: `search_url` is required; `token` or `token_env` (naming an env var) supply
+a bearer token. Malformed JSON logs a warning and falls back to the defaults rather than
+breaking the tool. The value must not contain `#`, which the `.env` parser treats as a
+comment.
+
+Two further caveats worth knowing:
+
+- **The `score` in results is semantic relevance only** — not a trust, security or
+  compliance rating.
+- **The trust gate is advisory.** It compares the publisher domain in the `urn:air:`
+  identifier against the identity in the card's `trustManifest`, and nothing is verified
+  cryptographically (`verified` is always `false`). In practice most public cards carry
+  no trust manifest at all, so the gate abstains rather than blocks. Treat a discovered
+  server the way you would treat any third-party dependency.
 
 ## Multi-agent Orchestration
 

@@ -71,6 +71,13 @@
       "description": "Elicitation/confirmation example tools"
     },
     {
+      "name": "ard",
+      "transport": "http",
+      "url": "http://localhost:6060/mcp/ard",
+      "headers": { "Authorization": "test123" },
+      "description": "Discover public MCP servers and connect them to this project"
+    },
+    {
       "name": "workflows",
       "transport": "http",
       "url": "http://localhost:6060/mcp/workflows",

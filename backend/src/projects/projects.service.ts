@@ -74,6 +74,62 @@ export class ProjectsService {
   }
 
   /**
+   * MCP servers every new project gets unless the caller already specified them.
+   *
+   * `ard` lets the agent discover public MCP servers and connect them to its own
+   * project (registration always goes through a user confirmation), so it is on
+   * by default rather than something a user has to know to enable.
+   */
+  private static readonly DEFAULT_MCP_SERVERS = ['ard'];
+
+  /**
+   * Merge the default MCP servers into the DTO, resolving each from the MCP
+   * registry so the URL and headers stay authoritative in one place.
+   *
+   * Mutates `dto.mcpServers`. An explicit entry of the same name always wins,
+   * and a registry lookup failure is non-fatal — project creation must not
+   * break because a default server is missing from the registry.
+   */
+  private async applyDefaultMcpServers(dto: CreateProjectDto): Promise<void> {
+    for (const name of ProjectsService.DEFAULT_MCP_SERVERS) {
+      if (dto.mcpServers?.[name]) continue;
+      try {
+        const entry = await this.mcpRegistryService.getServerResolved(name);
+        if (!entry) {
+          this.logger.warn(`Default MCP server '${name}' is not in the registry — skipping.`);
+          continue;
+        }
+        // Backend-hosted groups read the project from ?project=; without it
+        // the server has no project context and elicitation auto-declines.
+        // (ClaudeService.saveMcpConfig does this rewrite for the UI path, but
+        // project creation writes through McpServerConfigService directly.)
+        let url = entry.url;
+        if (url && (entry.transport === 'http' || entry.transport === 'sse')) {
+          try {
+            const parsed = new URL(url);
+            parsed.searchParams.set('project', dto.projectName);
+            url = parsed.toString();
+          } catch {
+            // Invalid URL — leave it as-is.
+          }
+        }
+
+        dto.mcpServers = {
+          ...(dto.mcpServers ?? {}),
+          [name]: {
+            type: entry.transport,
+            ...(url ? { url } : {}),
+            ...(entry.headers ? { headers: entry.headers } : {}),
+            ...(entry.description ? { description: entry.description } : {}),
+          },
+        };
+      } catch (error: any) {
+        this.logger.warn(`Failed to add default MCP server '${name}': ${error.message}`);
+      }
+    }
+  }
+
+  /**
    * Create a new project with full configuration.
    *
    * Thin adapter around the shared PackageMaterializerService: builds a
@@ -91,6 +147,11 @@ export class ProjectsService {
         errors: [`Project '${dto.projectName}' already exists`],
       };
     }
+
+    // Every new project gets the ARD discovery server so the agent can find
+    // and connect further MCP servers itself. Opt out by passing an explicit
+    // `ard` entry in dto.mcpServers, or by removing it afterwards in the UI.
+    await this.applyDefaultMcpServers(dto);
 
     const manifest = this.dtoToManifest(dto);
     // Phase 1: skip the resolver in the wizard path so behavior stays
