@@ -120,8 +120,20 @@ export class FoundryAdapterService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const projectDir =
-      this.sessionService.resolveProjectDir(foundrySessionId);
+    const requestedProject =
+      (body.metadata?.project as string | undefined) ||
+      (req.headers['x-etienne-project'] as string | undefined);
+
+    let projectDir: string;
+    try {
+      projectDir = this.sessionService.resolveProjectDir(
+        foundrySessionId,
+        requestedProject,
+      );
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Invalid project' });
+      return;
+    }
     const responseId = `resp_${uuid().replace(/-/g, '')}`;
 
     // Non-streaming: collect full response
@@ -242,8 +254,20 @@ export class FoundryAdapterService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const projectDir =
-      this.sessionService.resolveProjectDir(foundrySessionId);
+    const requestedProject =
+      body.context?.project ||
+      (req.headers['x-etienne-project'] as string | undefined);
+
+    let projectDir: string;
+    try {
+      projectDir = this.sessionService.resolveProjectDir(
+        foundrySessionId,
+        requestedProject,
+      );
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Invalid project' });
+      return;
+    }
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');

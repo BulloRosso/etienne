@@ -27,8 +27,15 @@ export interface ResponsesRequest {
   tools?: any[];
   /** If true, the response is streamed as SSE events. */
   stream?: boolean;
-  /** Foundry-managed metadata. */
-  metadata?: Record<string, unknown>;
+  /**
+   * Foundry-managed metadata.
+   *
+   * `metadata.project` selects the workspace project directory for this
+   * session; it takes precedence over the `x-etienne-project` header.
+   * The Responses protocol has no dedicated context channel, so metadata
+   * is the only in-body route available here.
+   */
+  metadata?: { project?: string } & Record<string, unknown>;
 }
 
 /** Shape of a non-streaming response (simplified). */

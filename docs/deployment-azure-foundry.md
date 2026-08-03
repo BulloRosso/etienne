@@ -123,6 +123,26 @@ curl https://<endpoint>/readiness
 
 Publishing creates an Agent Application resource with a stable URL, dedicated blueprint, and one-click distribution to M365 Copilot and Teams via the Activity protocol.
 
+## Project Routing
+
+Each Foundry session maps to one project directory under the workspace root. A caller selects the project in one of three ways, in precedence order:
+
+1. **In-body** — `context.project` on `/invocations`, or `metadata.project` on `/responses`
+2. **Header** — `x-etienne-project: test-project` (works on both protocols)
+3. **Default** — `FOUNDRY_DEFAULT_PROJECT`, falling back to `foundry`
+
+```bash
+curl -X POST https://<endpoint>/invocations \
+  -H 'Content-Type: application/json' \
+  -H 'x-session-id: conv-42' \
+  -H 'x-etienne-project: test-project' \
+  -d '{"prompt":"summarise the latest report"}'
+```
+
+Once mapped, a session is **sticky** — subsequent requests without a project keep the same directory, and the mapping survives scale-to-zero via `.foundry-sessions.json`. Sending a *different* project re-points the session; the stored Claude session ID is dropped at that point, since resuming it against another project would splice two unrelated conversations together.
+
+Project names must be a single path segment matching `[A-Za-z0-9._-]+`. Anything else — separators, `..`, absolute paths — is rejected with HTTP 400, because the value arrives from an external caller and is joined into a filesystem path. A blank or absent value means "unspecified" and falls through to the existing mapping or the default.
+
 ## MCP IQ Configuration
 
 The MCP server registry includes pre-configured entries for Foundry IQ, Work IQ, and Fabric IQ with `authType: "UserEntraToken"`. When `FOUNDRY_TOOLBOX_MCP_ENDPOINT` is set, these servers are automatically routed through the Foundry Toolbox endpoint with OBO identity passthrough — no manual MSAL plumbing required.

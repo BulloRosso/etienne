@@ -10,8 +10,13 @@
 export interface InvocationsRequest {
   /** User prompt / instruction. */
   prompt: string;
-  /** Optional context from the calling agent or user. */
-  context?: Record<string, unknown>;
+  /**
+   * Optional context from the calling agent or user.
+   *
+   * `context.project` selects the workspace project directory for this
+   * session; it takes precedence over the `x-etienne-project` header.
+   */
+  context?: { project?: string } & Record<string, unknown>;
   /** Optional session identifier (client-managed). */
   session_id?: string;
   /** Maximum agent turns before returning. */
