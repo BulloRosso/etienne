@@ -13,6 +13,16 @@ export class AnthropicKeyCheck implements DiagnosticCheck {
   async run() {
     const present = !!process.env.ANTHROPIC_API_KEY;
     if (!present) {
+      // Keyless is fine when the coding agent runs against a local LM Studio
+      // server — don't show a permanent critical failure on local-only setups.
+      if (process.env.LMSTUDIO_ENABLED === 'true') {
+        return {
+          status: 'warn' as const,
+          severity: 'low' as const,
+          message: 'No Anthropic API key is set, but LM Studio is active — cloud models are unavailable.',
+          evidence: { envVar: 'ANTHROPIC_API_KEY', present: false, lmStudioEnabled: true },
+        };
+      }
       return {
         status: 'fail' as const,
         severity: 'critical' as const,

@@ -112,6 +112,11 @@ export class ClaudeSdkService {
       // Load alternative AI model configuration
       const altModelConfig = await this.loadAlternativeModelConfig(projectDir);
 
+      // Global LM Studio config — per-project ai-model.json and Foundry mode win
+      const lmStudio = (!altModelConfig && !process.env.AZURE_FOUNDRY_AGENT_ID)
+        ? this.getLmStudioConfig()
+        : null;
+
       // Map agentMode to permissionMode
       // - 'plan': Planning mode - Claude creates a plan without executing tools
       // - 'work': Work mode - Claude executes tools and makes changes
@@ -131,7 +136,7 @@ export class ClaudeSdkService {
       // Note: systemPrompt is not included - Claude Code SDK will automatically
       // pick it up from .claude/CLAUDE.md in the project directory
       const queryOptions: any = {
-        model: altModelConfig?.model || 'claude-opus-4-6',
+        model: altModelConfig?.model || lmStudio?.model || 'claude-opus-4-6',
         cwd: projectRoot,  // Set working directory to workspace/<project>
         ...(sandbox && { sandbox }),
         allowedTools: tools,
@@ -148,10 +153,14 @@ export class ClaudeSdkService {
 
       // Configure environment for the spawned Claude Code subprocess.
       // Allowlist only — never spread process.env into the agent's env.
+      // LM Studio needs no API key (auth travels via ANTHROPIC_AUTH_TOKEN below);
+      // omitting it also skips the secrets-manager round-trip on keyless installs.
       queryOptions.env = this.buildSubprocessEnv(
-        altModelConfig?.token
-          || await this.secretsManager.getSecret('ANTHROPIC_API_KEY')
-          || process.env.ANTHROPIC_API_KEY
+        lmStudio
+          ? undefined
+          : altModelConfig?.token
+            || await this.secretsManager.getSecret('ANTHROPIC_API_KEY')
+            || process.env.ANTHROPIC_API_KEY
       );
 
       // Foundry hosted agent — use managed identity token for model access
@@ -176,6 +185,25 @@ export class ClaudeSdkService {
           queryOptions.env.ANTHROPIC_MODEL = altModelConfig.model;
         }
         this.logger.log(`Using alternative AI model: ${altModelConfig.model} @ ${altModelConfig.baseUrl}`);
+      }
+
+      // Global LM Studio: point the CLI at the local Anthropic-compatible server.
+      // All model tiers map to the single loaded model — background calls
+      // (subagents, haiku-class tasks) would otherwise request unknown ids.
+      if (lmStudio) {
+        Object.assign(queryOptions.env, {
+          ANTHROPIC_BASE_URL: lmStudio.baseUrl,
+          ANTHROPIC_AUTH_TOKEN: lmStudio.token,
+          ANTHROPIC_MODEL: lmStudio.model,
+          ANTHROPIC_DEFAULT_SONNET_MODEL: lmStudio.model,
+          ANTHROPIC_DEFAULT_OPUS_MODEL: lmStudio.model,
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: lmStudio.model,
+          CLAUDE_CODE_SUBAGENT_MODEL: lmStudio.model,
+          // Local inference is slow — generous timeout, bounded output
+          API_TIMEOUT_MS: '600000',
+          CLAUDE_CODE_MAX_OUTPUT_TOKENS: '8192',
+        });
+        this.logger.log(`Using LM Studio: ${lmStudio.model} @ ${lmStudio.baseUrl}`);
       }
 
       // Add stderr handler to capture subprocess errors.
@@ -353,5 +381,18 @@ export class ClaudeSdkService {
     }
 
     return null;
+  }
+
+  /**
+   * Global LM Studio configuration from the environment. Read at call time —
+   * ConfigurationService.exportToEnvironment keeps process.env live, so a
+   * settings change applies to the next conversation without a restart.
+   */
+  private getLmStudioConfig(): { baseUrl: string; model: string; token: string } | null {
+    if (process.env.LMSTUDIO_ENABLED !== 'true') return null;
+    const baseUrl = process.env.LMSTUDIO_BASE_URL;
+    const model = process.env.LMSTUDIO_MODEL;
+    if (!baseUrl || !model) return null;
+    return { baseUrl: baseUrl.replace(/\/+$/, ''), model, token: process.env.LMSTUDIO_AUTH_TOKEN || 'lmstudio' };
   }
 }

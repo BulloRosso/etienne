@@ -4,6 +4,7 @@ import { AnthropicNetworkCheck } from './anthropic-network.check';
 import { ClaudeSdkInstalledCheck } from './claude-sdk.check';
 import { EmbeddingsCheck } from './embeddings.check';
 import { FrontendReachableCheck } from './frontend-reachable.check';
+import { LmStudioCheck } from './lm-studio.check';
 import { NodeVersionCheck } from './node-version.check';
 import { OauthReachableCheck } from './oauth-reachable.check';
 import { PortsCheck } from './ports.check';
@@ -18,6 +19,7 @@ export const CHECK_PROVIDERS: Provider[] = [
   ClaudeSdkInstalledCheck,
   EmbeddingsCheck,
   FrontendReachableCheck,
+  LmStudioCheck,
   NodeVersionCheck,
   OauthReachableCheck,
   PortsCheck,
@@ -34,6 +36,7 @@ export const CHECK_CLASSES = [
   ClaudeSdkInstalledCheck,
   EmbeddingsCheck,
   FrontendReachableCheck,
+  LmStudioCheck,
   NodeVersionCheck,
   OauthReachableCheck,
   PortsCheck,

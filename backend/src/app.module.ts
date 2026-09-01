@@ -96,10 +96,12 @@ import { DiagnosticsRunnerService } from './first-run/diagnostics-runner.service
 import { SupportAgentService } from './first-run/support-agent/support-agent.service';
 import { SeedRunnerService } from './first-run/seed-runner.service';
 import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
+import { LmStudioController } from './lmstudio/lmstudio.controller';
+import { LmStudioService } from './lmstudio/lmstudio.service';
 
 @Module({
   imports: [SecretsManagerModule, EmbeddingsModule.register(), AuthModule, LlmModule, TelemetryModule, InterceptorsModule, ContentManagementModule, McpServerModule, MemoriesModule, BudgetMonitoringModule, SchedulerModule, CheckpointsModule, GuardrailsModule, OutputGuardrailsModule, SessionsModule, SubagentsModule, ExternalEventsModule, DeepResearchModule, KnowledgeGraphModule, SearchModule, SkillsModule, TagsModule, ContextsModule, EventHandlingModule, ScrapbookModule, ConfigurationModule, QuickActionsModule, A2ASettingsModule, A2AClientModule, FeedbackModule, ProcessManagerModule, RemoteSessionsModule, McpRegistryModule.forRoot({ providers: [{ kind: 'json-file' }], secrets: { keyVaultUrl: process.env.AZURE_KEY_VAULT_URL } }), AgentRoleRegistryModule, ProjectsModule, ComplianceModule, CodingAgentConfigurationModule, StatefulWorkflowsModule, PreviewersModule, OntologyCoreModule, AgentBusModule, UserNotificationsModule, AutoConfigurationModule, IssuesModule, PersonaManagerModule, UserOrdersModule, RecentItemsModule, SseMultiplexModule, CollaborationModule, HitlProtocolModule, FoundryAdapterModule.register(), DreamingModule, Ms365Module, WikiModule, CheatsheetModule, QAndAModule, AdaptiveMemoryModule, ApplicationTypesModule, PackagesModule, OkfModule],
-  controllers: [ClaudeController, SdkPermissionController, OpenAIAgentsPermissionController, OpenCodeHooksController, FirstRunController],
+  controllers: [ClaudeController, SdkPermissionController, OpenAIAgentsPermissionController, OpenCodeHooksController, FirstRunController, LmStudioController],
   providers: [
     ClaudeService,
     ClaudeSdkService,
@@ -131,6 +133,7 @@ import { CHECK_PROVIDERS, CHECK_CLASSES } from './first-run/checks';
     McpServerConfigService,
     SupportAgentService,
     SeedRunnerService,
+    LmStudioService,
     ...CHECK_PROVIDERS,
     {
       provide: DiagnosticsRunnerService,

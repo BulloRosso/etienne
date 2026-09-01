@@ -13,10 +13,16 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  Radio,
+  RadioGroup,
   Stack,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../services/api';
 import {
   IoCheckmarkCircle,
   IoCloseCircle,
@@ -256,7 +262,9 @@ function AgentTranscript({ chunks }) {
 }
 
 export default function FirstRunPage({ onComplete }) {
-  const [step, setStep] = useState('diagnostics'); // 'diagnostics' | 'seed'
+  const { t } = useTranslation();
+  const { hasRole } = useAuth();
+  const [step, setStep] = useState('diagnostics'); // 'diagnostics' | 'llm-provider' | 'seed'
   const [checks, setChecks] = useState([]);
   const [overall, setOverall] = useState(null); // 'ok' | 'warn' | 'fail' | null
   const [running, setRunning] = useState(false);
@@ -266,6 +274,14 @@ export default function FirstRunPage({ onComplete }) {
   const [completing, setCompleting] = useState(false);
   // Per-check fix sessions: { [checkId]: { running, chunks: string[] } }
   const [fixState, setFixState] = useState({});
+  // LLM provider step state (LM Studio detected by the lmstudio.detect check).
+  const [llmChoice, setLlmChoice] = useState('cloud'); // 'cloud' | 'local'
+  const [llmModel, setLlmModel] = useState('');
+  const [llmToken, setLlmToken] = useState('');
+  const [llmProbe, setLlmProbe] = useState(null); // re-check result overriding check evidence
+  const [llmRechecking, setLlmRechecking] = useState(false);
+  const [llmSaving, setLlmSaving] = useState(false);
+  const [sawLlmStep, setSawLlmStep] = useState(false);
   // Seed step state.
   const [selectedSeedIds, setSelectedSeedIds] = useState([]); // none checked by default
   const [seedRunning, setSeedRunning] = useState(false);
@@ -400,11 +416,96 @@ export default function FirstRunPage({ onComplete }) {
     return byStatus;
   }, [checks]);
 
-  // Diagnostics → Seed step transition. NO API call; first-run is only marked
-  // complete after the seed step (or skip).
+  // LM Studio detection from the diagnostics results (lmstudio.detect check).
+  // A later re-check via /api/lmstudio/models overrides the check evidence.
+  const lmEvidence = useMemo(() => {
+    if (llmProbe) {
+      return {
+        applicable: true,
+        baseUrl: llmProbe.baseUrl,
+        models: llmProbe.models || [],
+        authRequired: !!llmProbe.authRequired,
+      };
+    }
+    const lmCheck = checks.find((c) => c.id === 'lmstudio.detect');
+    return lmCheck?.evidence || {};
+  }, [checks, llmProbe]);
+
+  const lmDetected = !!lmEvidence.applicable && !!lmEvidence.baseUrl
+    && ((lmEvidence.models?.length ?? 0) > 0 || !!lmEvidence.authRequired);
+  // Persisting the choice hits POST /api/configuration (admin-only); skip the
+  // step entirely for non-admins and when LM Studio was already enabled.
+  const shouldShowLlmStep = lmDetected && hasRole('admin') && !lmEvidence.alreadyEnabled;
+
+  // Diagnostics → LLM provider / Seed step transition. NO API call; first-run
+  // is only marked complete after the seed step (or skip).
   const handleAdvanceToSeed = () => {
     setError(null);
-    setStep('seed');
+    if (shouldShowLlmStep) {
+      setSawLlmStep(true);
+      if (!llmModel && (lmEvidence.models?.length ?? 0) > 0) {
+        setLlmModel(lmEvidence.models[0]);
+      }
+      setStep('llm-provider');
+    } else {
+      setStep('seed');
+    }
+  };
+
+  // Re-probe LM Studio (optionally with a not-yet-saved auth token).
+  const handleLlmRecheck = async () => {
+    setLlmRechecking(true);
+    setError(null);
+    try {
+      const params = llmToken ? `?token=${encodeURIComponent(llmToken)}` : '';
+      const res = await apiFetch(`/api/lmstudio/models${params}`);
+      if (!res.ok) throw new Error(t('firstRunLlm.recheckFailed'));
+      const probe = await res.json();
+      setLlmProbe(probe);
+      if (probe.models?.length > 0 && !probe.models.includes(llmModel)) {
+        setLlmModel(probe.models[0]);
+      }
+    } catch (err) {
+      setError(err.message || t('firstRunLlm.recheckFailed'));
+    } finally {
+      setLlmRechecking(false);
+    }
+  };
+
+  // Persist the LM Studio choice. saveConfiguration rewrites the whole .env,
+  // so always GET → merge → POST the full object.
+  const handleLlmContinue = async () => {
+    setError(null);
+    if (llmChoice !== 'local') {
+      setStep('seed');
+      return;
+    }
+    setLlmSaving(true);
+    try {
+      const cfgRes = await apiFetch('/api/configuration');
+      const cfg = cfgRes.ok ? await cfgRes.json() : {};
+      const saveRes = await apiFetch('/api/configuration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...cfg,
+          LMSTUDIO_ENABLED: 'true',
+          LMSTUDIO_BASE_URL: lmEvidence.baseUrl,
+          LMSTUDIO_MODEL: llmModel,
+          ...(llmToken ? { LMSTUDIO_AUTH_TOKEN: llmToken } : {}),
+        }),
+      });
+      if (!saveRes.ok) {
+        throw new Error(
+          saveRes.status === 403 ? t('firstRunLlm.saveForbidden') : t('firstRunLlm.saveFailed'),
+        );
+      }
+      setStep('seed');
+    } catch (err) {
+      setError(err.message || t('firstRunLlm.saveFailed'));
+    } finally {
+      setLlmSaving(false);
+    }
   };
 
   // Final completion — called from the seed step (skip or after seeds finish).
@@ -688,6 +789,148 @@ export default function FirstRunPage({ onComplete }) {
       </>
     );
 
+  const renderLlmProviderView = () => {
+    const models = lmEvidence.models || [];
+    const localSelectable = models.length > 0;
+    return (
+      <>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={2}
+          sx={{ mb: 3 }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h5" gutterBottom>
+              {t('firstRunLlm.title')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('firstRunLlm.subtitle', { baseUrl: lmEvidence.baseUrl })}
+            </Typography>
+          </Box>
+          <Box
+            component="img"
+            src="/claude-is-charged.png"
+            alt="Claude"
+            sx={{ width: 200, height: 'auto', flexShrink: 0 }}
+          />
+        </Stack>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <RadioGroup value={llmChoice} onChange={(e) => setLlmChoice(e.target.value)}>
+          <Card
+            variant="outlined"
+            sx={{ mb: 1, borderColor: llmChoice === 'cloud' ? 'primary.main' : 'divider' }}
+          >
+            <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <FormControlLabel
+                value="cloud"
+                control={<Radio />}
+                label={
+                  <Box>
+                    <Typography variant="subtitle2">{t('firstRunLlm.optionCloudTitle')}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('firstRunLlm.optionCloudDescription')}
+                    </Typography>
+                  </Box>
+                }
+                sx={{ alignItems: 'flex-start', m: 0 }}
+              />
+            </CardContent>
+          </Card>
+          <Card
+            variant="outlined"
+            sx={{ mb: 1, borderColor: llmChoice === 'local' ? 'primary.main' : 'divider' }}
+          >
+            <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <FormControlLabel
+                value="local"
+                control={<Radio />}
+                label={
+                  <Box>
+                    <Typography variant="subtitle2">
+                      {t('firstRunLlm.optionLocalTitle', { baseUrl: lmEvidence.baseUrl })}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('firstRunLlm.optionLocalDescription')}
+                    </Typography>
+                  </Box>
+                }
+                sx={{ alignItems: 'flex-start', m: 0 }}
+              />
+              {llmChoice === 'local' && (
+                <Box sx={{ mt: 2, pl: 4 }}>
+                  {lmEvidence.authRequired && (
+                    <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                      <TextField
+                        size="small"
+                        type="password"
+                        label={t('firstRunLlm.authTokenLabel')}
+                        value={llmToken}
+                        onChange={(e) => setLlmToken(e.target.value)}
+                        sx={{ flex: 1 }}
+                      />
+                      <Button
+                        variant="outlined"
+                        onClick={handleLlmRecheck}
+                        disabled={llmRechecking}
+                        startIcon={llmRechecking ? <CircularProgress size={14} /> : <IoRefresh />}
+                      >
+                        {t('firstRunLlm.recheck')}
+                      </Button>
+                    </Stack>
+                  )}
+                  {localSelectable ? (
+                    <TextField
+                      size="small"
+                      select
+                      fullWidth
+                      SelectProps={{ native: true }}
+                      label={t('firstRunLlm.modelLabel')}
+                      value={llmModel}
+                      onChange={(e) => setLlmModel(e.target.value)}
+                      helperText={t('firstRunLlm.modelHelperText')}
+                    >
+                      {models.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </TextField>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">
+                      {t('firstRunLlm.noModels')}
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </RadioGroup>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="flex-end">
+          <Button onClick={() => setStep('diagnostics')} disabled={llmSaving}>
+            {t('firstRunLlm.back')}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleLlmContinue}
+            disabled={llmSaving || (llmChoice === 'local' && !llmModel)}
+            startIcon={llmSaving ? <CircularProgress size={16} /> : null}
+          >
+            {llmSaving ? t('firstRunLlm.saving') : t('firstRunLlm.continue')}
+          </Button>
+        </Stack>
+      </>
+    );
+  };
+
   const renderSeedView = () => (
     <>
       <Stack
@@ -807,7 +1050,10 @@ export default function FirstRunPage({ onComplete }) {
       <Divider sx={{ my: 3 }} />
 
       <Stack direction="row" spacing={2} alignItems="center" justifyContent="flex-end">
-        <Button onClick={() => setStep('diagnostics')} disabled={seedRunning || completing}>
+        <Button
+          onClick={() => setStep(sawLlmStep ? 'llm-provider' : 'diagnostics')}
+          disabled={seedRunning || completing}
+        >
           Back
         </Button>
         {!seedRunStarted && (
@@ -855,7 +1101,11 @@ export default function FirstRunPage({ onComplete }) {
       }}
     >
       <Box sx={{ maxWidth: 900, mx: 'auto' }}>
-        {step === 'diagnostics' ? renderDiagnosticsView() : renderSeedView()}
+        {step === 'diagnostics'
+          ? renderDiagnosticsView()
+          : step === 'llm-provider'
+            ? renderLlmProviderView()
+            : renderSeedView()}
       </Box>
     </Box>
   );

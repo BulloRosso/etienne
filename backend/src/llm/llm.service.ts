@@ -7,9 +7,31 @@ import { SecretsManagerService } from '../secrets-manager/secrets-manager.servic
 import { BudgetMonitoringService } from '../budget-monitoring/budget-monitoring.service';
 
 export type ModelTier = 'small' | 'regular';
-export type LlmProvider = 'anthropic' | 'openai' | 'deepseek';
+export type LlmProvider = 'anthropic' | 'openai' | 'deepseek' | 'lmstudio';
 
 const DEEPSEEK_ANTHROPIC_BASE_URL = 'https://api.deepseek.com/anthropic';
+
+/** True when a local LM Studio server is configured for the anthropic harness. */
+function lmStudioConfigured(): boolean {
+  return process.env.LMSTUDIO_ENABLED === 'true'
+    && !!process.env.LMSTUDIO_BASE_URL
+    && !!process.env.LMSTUDIO_MODEL;
+}
+
+/**
+ * Signature of the env vars that influence provider resolution for the
+ * anthropic/lmstudio paths. When it changes at runtime (settings save exports
+ * into process.env), the provider is rebuilt lazily on the next call.
+ */
+function lmStudioEnvSignature(): string {
+  return [
+    process.env.CODING_AGENT || 'anthropic',
+    process.env.LMSTUDIO_ENABLED || '',
+    process.env.LMSTUDIO_BASE_URL || '',
+    process.env.LMSTUDIO_MODEL || '',
+    process.env.LMSTUDIO_AUTH_TOKEN || '',
+  ].join('|');
+}
 
 /**
  * Decide which provider this service should use. Honours `CODING_AGENT` for
@@ -26,14 +48,18 @@ function resolveLlmProvider(): LlmProvider {
     if (openCodeProvider === 'openai' || openCodeProvider === 'openai-compatible') return 'openai';
     return 'anthropic';
   }
+  // Local LM Studio replaces the Anthropic API for the default harness so a
+  // local setup stays fully local (coding agent + background calls).
+  if (lmStudioConfigured()) return 'lmstudio';
   return 'anthropic';
 }
 
 @Injectable()
 export class LlmService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(LlmService.name);
-  private readonly provider: LlmProvider;
-  private readonly models: { small: string; regular: string };
+  private provider: LlmProvider;
+  private models: { small: string; regular: string };
+  private lmStudioSignature = lmStudioEnvSignature();
   private providerInstance: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenAI>;
   private managedIdentityToken: string | null = null;
   private tokenRefreshInterval: NodeJS.Timeout | null = null;
@@ -60,6 +86,10 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
         baseURL: DEEPSEEK_ANTHROPIC_BASE_URL,
         apiKey: process.env.DEEPSEEK_API_KEY,
       });
+    } else if (this.provider === 'lmstudio') {
+      const { providerInstance, models } = this.createLmStudioProvider();
+      this.models = models;
+      this.providerInstance = providerInstance;
     } else {
       const modelStr = process.env.ANTHROPIC_MODELS || 'claude-haiku-4-5,claude-sonnet-4-6';
       const [small, regular] = modelStr.split(',');
@@ -110,6 +140,61 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     return createAnthropic({ apiKey: directApiKey });
   }
 
+  /**
+   * LM Studio's Anthropic-compatible server. The AI SDK appends /messages to
+   * baseURL, so the /v1 suffix belongs here (unlike the Claude Code CLI, which
+   * appends /v1/messages to ANTHROPIC_BASE_URL). Both tiers map to the single
+   * loaded model.
+   */
+  private createLmStudioProvider(): {
+    providerInstance: ReturnType<typeof createAnthropic>;
+    models: { small: string; regular: string };
+  } {
+    const baseUrl = (process.env.LMSTUDIO_BASE_URL || '').replace(/\/+$/, '');
+    const model = process.env.LMSTUDIO_MODEL || '';
+    this.logger.log(`Using LM Studio endpoint: ${baseUrl}/v1 (model: ${model})`);
+    return {
+      providerInstance: createAnthropic({
+        baseURL: `${baseUrl}/v1`,
+        apiKey: process.env.LMSTUDIO_AUTH_TOKEN || 'lmstudio',
+      }),
+      models: { small: model, regular: model },
+    };
+  }
+
+  /**
+   * Provider selection is fixed in the constructor, but the LM Studio choice
+   * can change at runtime (first-run wizard / settings save exports into
+   * process.env). Rebuild the provider lazily when those env vars change so
+   * the switch applies without a backend restart. Foundry paths manage their
+   * own token lifecycle and are left untouched.
+   */
+  private async refreshProviderIfChanged(): Promise<void> {
+    if (process.env.AZURE_FOUNDRY_AGENT_ID || process.env.CLAUDE_CODE_USE_FOUNDRY) return;
+    const signature = lmStudioEnvSignature();
+    if (signature === this.lmStudioSignature) return;
+    this.lmStudioSignature = signature;
+
+    const resolved = resolveLlmProvider();
+    if (resolved === this.provider && resolved !== 'lmstudio') return;
+
+    if (resolved === 'lmstudio') {
+      const { providerInstance, models } = this.createLmStudioProvider();
+      this.provider = 'lmstudio';
+      this.models = models;
+      this.providerInstance = providerInstance;
+    } else if (this.provider === 'lmstudio' && resolved === 'anthropic') {
+      const modelStr = process.env.ANTHROPIC_MODELS || 'claude-haiku-4-5,claude-sonnet-4-6';
+      const [small, regular] = modelStr.split(',');
+      const directApiKey = await this.secretsManager.getSecret('ANTHROPIC_API_KEY')
+        || process.env.ANTHROPIC_API_KEY;
+      this.provider = 'anthropic';
+      this.models = { small, regular };
+      this.providerInstance = this.createAnthropicProvider(undefined, undefined, directApiKey);
+    }
+    this.logger.log(`LLM provider switched to: ${this.provider}, models: ${JSON.stringify(this.models)}`);
+  }
+
   async onModuleInit() {
     // Re-initialize provider with secrets from vault.
     // SecretsManagerService.onModuleInit runs first (NestJS dependency order) and
@@ -126,6 +211,8 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
           apiKey: key,
         });
       }
+    } else if (this.provider === 'lmstudio') {
+      // Local server, no secrets to resolve — constructor setup stands.
     } else if (process.env.AZURE_FOUNDRY_AGENT_ID) {
       // Foundry hosted agent — acquire token via managed identity
       await this.acquireManagedIdentityToken();
@@ -190,6 +277,7 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     maxOutputTokens?: number;
     projectDir?: string;
   }): Promise<string> {
+    await this.refreshProviderIfChanged();
     const modelId = this.models[opts.tier];
     const result = await generateText({
       model: this.providerInstance(modelId),
@@ -207,6 +295,7 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     temperature?: number;
     projectDir?: string;
   }): Promise<string> {
+    await this.refreshProviderIfChanged();
     const modelId = this.models[opts.tier];
     const result = await generateText({
       model: this.providerInstance(modelId),
@@ -236,6 +325,7 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     temperature?: number;
     projectDir?: string;
   }): Promise<T> {
+    await this.refreshProviderIfChanged();
     const modelId = this.models[opts.tier];
     const result = await generateObject({
       model: this.providerInstance(modelId),
@@ -250,9 +340,14 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     return result.object as T;
   }
 
-  /** True when the active provider can be trusted with tool-mode JSON (ADR-012). */
+  /**
+   * True when the active provider can be trusted with tool-mode JSON (ADR-012).
+   * LM Studio is excluded like DeepSeek: whether the Anthropic-compat endpoint
+   * honours tool-mode JSON depends on the loaded local model, so callers use
+   * the text + Zod fallback path.
+   */
   supportsStructuredOutput(): boolean {
-    return this.provider !== 'deepseek';
+    return this.provider !== 'deepseek' && this.provider !== 'lmstudio';
   }
 
   /**
@@ -286,6 +381,7 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
     maxOutputTokens?: number;
     projectDir?: string;
   }): Promise<{ text: string; toolCalls: number; steps: number }> {
+    await this.refreshProviderIfChanged();
     const modelId = this.models[opts.tier];
     const result = await generateText({
       model: this.providerInstance(modelId),
@@ -314,6 +410,11 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
   }
 
   async hasApiKey(): Promise<boolean> {
+    await this.refreshProviderIfChanged();
+    if (this.provider === 'lmstudio') {
+      // Local server — no API key required (auth token is optional).
+      return true;
+    }
     if (this.provider === 'openai') {
       const key = await this.secretsManager.getSecret('OPENAI_API_KEY');
       return !!key;
@@ -339,6 +440,7 @@ export class LlmService implements OnModuleInit, OnModuleDestroy {
   getKeyEnvName(): string {
     if (this.provider === 'openai') return 'OPENAI_API_KEY';
     if (this.provider === 'deepseek') return 'DEEPSEEK_API_KEY';
+    if (this.provider === 'lmstudio') return 'LMSTUDIO_AUTH_TOKEN';
     if (process.env.CLAUDE_CODE_USE_FOUNDRY) return 'ANTHROPIC_FOUNDRY_API_KEY';
     return 'ANTHROPIC_API_KEY';
   }

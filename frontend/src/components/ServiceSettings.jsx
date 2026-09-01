@@ -5,7 +5,7 @@ import {
   Accordion, AccordionSummary, AccordionDetails,
   CircularProgress, Alert
 } from '@mui/material';
-import { Close } from '@mui/icons-material';
+import { Close, Refresh } from '@mui/icons-material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../services/api';
@@ -16,6 +16,16 @@ const SETTINGS_GROUPS = (t) => [
     label: t('serviceSettings.sectionCodingAgent'),
     fields: [
       { key: 'CODING_AGENT', label: t('serviceSettings.codingAgentLabel'), type: 'select', options: ['anthropic', 'openai', 'openai-agents', 'pi-mono', 'open-code', 'kimi-code'], helperText: t('serviceSettings.codingAgentHelperText') },
+    ]
+  },
+  {
+    key: 'lmStudio',
+    label: t('serviceSettings.sectionLmStudio'),
+    fields: [
+      { key: 'LMSTUDIO_ENABLED', label: t('serviceSettings.lmstudioEnabledLabel'), type: 'select', options: ['false', 'true'], helperText: t('serviceSettings.lmstudioEnabledHelperText'), showWhen: { key: 'CODING_AGENT', value: ['anthropic', ''] } },
+      { key: 'LMSTUDIO_BASE_URL', label: t('serviceSettings.lmstudioBaseUrlLabel'), type: 'text', helperText: t('serviceSettings.lmstudioBaseUrlHelperText'), showWhen: { key: 'CODING_AGENT', value: ['anthropic', ''] } },
+      { key: 'LMSTUDIO_MODEL', label: t('serviceSettings.lmstudioModelLabel'), type: 'lmstudio-model', helperText: t('serviceSettings.lmstudioModelHelperText'), showWhen: { key: 'CODING_AGENT', value: ['anthropic', ''] } },
+      { key: 'LMSTUDIO_AUTH_TOKEN', label: t('serviceSettings.lmstudioAuthTokenLabel'), type: 'password', helperText: t('serviceSettings.lmstudioAuthTokenHelperText'), showWhen: { key: 'CODING_AGENT', value: ['anthropic', ''] } },
     ]
   },
   {
@@ -154,6 +164,9 @@ export default function ServiceSettings({ open, onClose, service, serviceStatus,
   const [success, setSuccess] = useState(null);
   const [isCloudVault, setIsCloudVault] = useState(false);
   const [vaultProvider, setVaultProvider] = useState('');
+  // null = not probed yet; [] = probed but nothing found (free-text fallback)
+  const [lmModels, setLmModels] = useState(null);
+  const [lmProbing, setLmProbing] = useState(false);
 
   const isRunning = serviceStatus?.status === 'running';
 
@@ -180,6 +193,10 @@ export default function ServiceSettings({ open, onClose, service, serviceStatus,
       if (configRes.ok) {
         const data = await configRes.json();
         setConfig(data);
+        // Probe LM Studio for the model dropdown when the group is visible.
+        if (!data.CODING_AGENT || data.CODING_AGENT === 'anthropic') {
+          loadLmModels();
+        }
       } else if (configRes.status === 404) {
         setConfig({});
       } else {
@@ -193,6 +210,19 @@ export default function ServiceSettings({ open, onClose, service, serviceStatus,
       setError(t('serviceSettings.errorLoad'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLmModels = async () => {
+    setLmProbing(true);
+    try {
+      const res = await apiFetch('/api/lmstudio/models');
+      const probe = res.ok ? await res.json() : null;
+      setLmModels(probe?.models || []);
+    } catch {
+      setLmModels([]);
+    } finally {
+      setLmProbing(false);
     }
   };
 
@@ -321,6 +351,53 @@ export default function ServiceSettings({ open, onClose, service, serviceStatus,
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </TextField>
+      );
+    }
+
+    if (field.type === 'lmstudio-model') {
+      const current = config[field.key] || '';
+      // Dropdown when the probe found models; free-text fallback otherwise.
+      const options = lmModels && lmModels.length > 0
+        ? (current && !lmModels.includes(current) ? [current, ...lmModels] : lmModels)
+        : null;
+      return (
+        <Box key={field.key} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
+          {options ? (
+            <TextField
+              fullWidth
+              label={field.label}
+              value={current}
+              onChange={handleChange(field.key)}
+              size="small"
+              select
+              SelectProps={{ native: true }}
+              helperText={field.helperText || undefined}
+            >
+              <option value=""></option>
+              {options.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </TextField>
+          ) : (
+            <TextField
+              fullWidth
+              label={field.label}
+              value={current}
+              onChange={handleChange(field.key)}
+              size="small"
+              helperText={field.helperText || undefined}
+            />
+          )}
+          <IconButton
+            size="small"
+            onClick={loadLmModels}
+            disabled={lmProbing}
+            title={t('serviceSettings.lmstudioModelRefresh')}
+            sx={{ mt: 0.5 }}
+          >
+            {lmProbing ? <CircularProgress size={18} /> : <Refresh fontSize="small" />}
+          </IconButton>
+        </Box>
       );
     }
 

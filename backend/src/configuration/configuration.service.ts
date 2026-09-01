@@ -6,6 +6,10 @@ import { join } from 'path';
 interface ConfigurationDto {
   CODING_AGENT?: string;
   ANTHROPIC_API_KEY?: string;
+  LMSTUDIO_ENABLED?: string;
+  LMSTUDIO_BASE_URL?: string;
+  LMSTUDIO_MODEL?: string;
+  LMSTUDIO_AUTH_TOKEN?: string;
   OPENAI_API_KEY?: string;
   OPENAI_AGENTS_MODEL?: string;
   OPENAI_AGENTS_ENABLE_CODEX_TOOL?: string;
@@ -76,6 +80,10 @@ interface ConfigurationDto {
 const ENV_SECTIONS: { comment: string; keys: string[] }[] = [
   { comment: '# Coding Agent Selection', keys: ['CODING_AGENT'] },
   { comment: '# Anthropic API Key', keys: ['ANTHROPIC_API_KEY'] },
+  {
+    comment: '# LM Studio local models (only used when CODING_AGENT=anthropic)\n# LMSTUDIO_BASE_URL: server origin without /v1 (Docker: http://host.docker.internal:1234)',
+    keys: ['LMSTUDIO_ENABLED', 'LMSTUDIO_BASE_URL', 'LMSTUDIO_MODEL', 'LMSTUDIO_AUTH_TOKEN'],
+  },
   { comment: '# OpenAI API Key', keys: ['OPENAI_API_KEY'] },
   { comment: '# Model tiers per provider (comma-separated: small,regular)', keys: ['ANTHROPIC_MODELS', 'OPENAI_MODELS'] },
   { comment: '# OpenAI Agents SDK Configuration', keys: ['OPENAI_AGENTS_MODEL', 'OPENAI_AGENTS_ENABLE_CODEX_TOOL', 'OPENAI_AGENTS_PERMISSION_TIMEOUT_MS'] },
