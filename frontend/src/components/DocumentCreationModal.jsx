@@ -49,8 +49,7 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { apiFetch, apiAxios } from '../services/api';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import {
   mergeMappings,
   buildMappingFile,
@@ -283,7 +282,7 @@ export default function DocumentCreationModal({ open, onClose, projectName }) {
       });
       const client = new Client(
         { name: 'doc-creation-sections', version: '1.0.0' },
-        { capabilities: {} },
+        { versionNegotiation: { mode: 'auto' } },
       );
       await client.connect(transport);
       const result = await client.callTool(
@@ -291,7 +290,6 @@ export default function DocumentCreationModal({ open, onClose, projectName }) {
           name: 'extract_document_sections',
           arguments: { document_path: `${projectName}/${docPath}` },
         },
-        undefined,
         { timeout: 10 * 60 * 1000, resetTimeoutOnProgress: true },
       );
       const textContent = result.content?.find((c) => c.type === 'text');
@@ -328,7 +326,7 @@ export default function DocumentCreationModal({ open, onClose, projectName }) {
       });
       const client = new Client(
         { name: 'doc-creation-headings', version: '1.0.0' },
-        { capabilities: {} },
+        { versionNegotiation: { mode: 'auto' } },
       );
       await client.connect(transport);
       const result = await client.callTool(
@@ -336,7 +334,6 @@ export default function DocumentCreationModal({ open, onClose, projectName }) {
           name: 'extract_document_headings',
           arguments: { document_path: `${projectName}/${docPath}` },
         },
-        undefined,
         { timeout: 5 * 60 * 1000 },
       );
       const textContent = result.content?.find((c) => c.type === 'text');

@@ -96,7 +96,7 @@ If `ai-model.json` is missing the orchestrator falls back to pi-mono's defaults 
 
 ## MCP bridge
 
-pi-mono itself has no MCP client. [mcp-bridge.extension.ts](./mcp-bridge.extension.ts) runs its own `@modelcontextprotocol/sdk` clients against the project's existing `.mcp.json` servers and exposes **a selected subset of MCP tools** as pi `AgentTool`s. Only tools are bridged — resources, prompts, and sampling are out of scope.
+pi-mono itself has no MCP client. [mcp-bridge.extension.ts](./mcp-bridge.extension.ts) runs its own MCP clients (`@modelcontextprotocol/client` v2 with automatic 2026-07-28/legacy era negotiation for `http`/`stdio` servers; the v1 SDK's `SSEClientTransport` for legacy `sse` servers) against the project's existing `.mcp.json` servers and exposes **a selected subset of MCP tools** as pi `AgentTool`s. Only tools are bridged — resources, prompts, and sampling are out of scope.
 
 **Enable it** by creating `<project>/.etienne/pi-mcp-bridge.json`:
 

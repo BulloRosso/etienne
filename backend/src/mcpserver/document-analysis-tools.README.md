@@ -146,28 +146,28 @@ extract / translate steps (page-based for `document_analysis_ears`, chunk-based
 for `extract_document_sections`), so an MCP client showing progress will see
 live status messages.
 
-## Example (initialize + call)
+## Example (stateless call, MCP 2026-07-28)
+
+The 2026-07-28 protocol revision is stateless: no `initialize` handshake, no
+`mcp-session-id` — a single POST per call, carrying the protocol version and
+client identity in `params._meta` and the mirrored `MCP-Protocol-Version` /
+`Mcp-Method` / `Mcp-Name` headers. (Legacy 2025-era clients that still send
+`initialize` are served through the SDK's stateless fallback.)
 
 ```bash
-# 1. Initialize a session (note the returned mcp-session-id response header)
-curl -i http://localhost:6060/mcp/document-analysis \
-  -H "Authorization: test123" \
-  -H "X-Project-Name: my-project" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize",
-       "params":{"protocolVersion":"2024-11-05","capabilities":{},
-                 "clientInfo":{"name":"curl","version":"1.0"}}}'
-
-# 2. Call the EARS analysis tool (reuse the session id from step 1)
 curl http://localhost:6060/mcp/document-analysis \
   -H "Authorization: test123" \
   -H "X-Project-Name: my-project" \
-  -H "mcp-session-id: <id-from-step-1>" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call",
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: tools/call" \
+  -H "Mcp-Name: document_analysis_ears" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
        "params":{"name":"document_analysis_ears",
                  "arguments":{"document_path":"my-project/documents/tender.pdf",
-                              "output_format":"json"}}}'
+                              "output_format":"json"},
+                 "_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+                          "io.modelcontextprotocol/clientInfo":{"name":"curl","version":"1.0"},
+                          "io.modelcontextprotocol/clientCapabilities":{}}}}'
 ```

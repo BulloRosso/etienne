@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Req, Res, UseGuards, Logger, All, Body, Param } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { createMcpHandler } from '@modelcontextprotocol/server';
+import { toNodeHandler, NodeMcpRequestHandler } from '@modelcontextprotocol/node';
 import { McpServerFactoryService } from './mcp-server-factory.service';
 import { McpAuthGuard } from './auth.guard';
 import { Public } from '../auth/public.decorator';
-import { randomUUID } from 'crypto';
 import { ElicitationResponse } from './types';
 
 /**
@@ -27,7 +27,38 @@ export class McpServerController {
   private readonly logger = new Logger(McpServerController.name);
   private readonly workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace';
 
+  // One MCP HTTP handler per tool group. createMcpHandler serves 2026-07-28
+  // (per-request envelope) traffic natively and 2025-era clients through its
+  // stateless legacy fallback, building a fresh Server per exchange.
+  private readonly groupHandlers = new Map<string, NodeMcpRequestHandler>();
+
   constructor(private readonly factory: McpServerFactoryService) {}
+
+  private getGroupHandler(group: string): NodeMcpRequestHandler | null {
+    const cached = this.groupHandlers.get(group);
+    if (cached) return cached;
+
+    const instance = this.factory.getGroupInstance(group);
+    if (!instance) return null;
+
+    // The factory runs per exchange (modern era and legacy stateless alike),
+    // so each Server instance captures its own request's project root and
+    // scopes tool execution to it via the factory service's ALS.
+    const handler = createMcpHandler(
+      (mcpCtx) => instance.createServer(this.getProjectRootFromWebRequest(mcpCtx.requestInfo)),
+      {
+        legacy: 'stateless',
+        onerror: (error) =>
+          this.logger.warn(`[${group}] MCP handler error: ${error.message}`),
+      },
+    );
+    const nodeHandler = toNodeHandler(handler, {
+      onerror: (error) =>
+        this.logger.error(`[${group}] MCP transport error: ${error.message}`),
+    });
+    this.groupHandlers.set(group, nodeHandler);
+    return nodeHandler;
+  }
 
   /**
    * Extract project root from request headers or query params
@@ -38,6 +69,18 @@ export class McpServerController {
       return `${this.workspaceRoot}/${projectName}`;
     }
     return null;
+  }
+
+  /**
+   * Same extraction from the web-standard Request that createMcpHandler
+   * passes to the per-request server factory.
+   */
+  private getProjectRootFromWebRequest(requestInfo: globalThis.Request | undefined): string | null {
+    if (!requestInfo) return null;
+    const projectName =
+      requestInfo.headers.get('x-project-name') ||
+      new URL(requestInfo.url).searchParams.get('project');
+    return projectName ? `${this.workspaceRoot}/${projectName}` : null;
   }
 
   // ============================================
@@ -120,31 +163,30 @@ export class McpServerController {
         return;
       }
 
-      this.factory.setProjectContext(`/workspace/${projectName}`);
-
       const elicitationType = body?.type || 'multi';
       this.logger.log(`Testing elicitation (${elicitationType}) for project: ${projectName}`);
 
-      const elicit = this.factory.createElicitationCallback('test_elicitation');
+      const result = await this.factory.runWithProjectContext(`/workspace/${projectName}`, async () => {
+        const elicit = this.factory.createElicitationCallback('test_elicitation');
 
-      let result;
-      if (elicitationType === 'simple') {
-        result = await elicit(
-          'Test Confirmation\n\nThis is a test of the elicitation system. Please confirm to proceed.',
-          {
-            type: 'object',
-            properties: {
-              confirm: {
-                type: 'boolean',
-                title: 'Confirm',
-                description: 'Check this box to confirm',
+        if (elicitationType === 'simple') {
+          return elicit(
+            'Test Confirmation\n\nThis is a test of the elicitation system. Please confirm to proceed.',
+            {
+              type: 'object',
+              properties: {
+                confirm: {
+                  type: 'boolean',
+                  title: 'Confirm',
+                  description: 'Check this box to confirm',
+                },
               },
+              required: ['confirm'],
             },
-            required: ['confirm'],
-          },
-        );
-      } else {
-        result = await elicit(
+          );
+        }
+
+        return elicit(
           'Test Multi-Field Form\n\nThis is a test of the elicitation system with multiple form fields.',
           {
             type: 'object',
@@ -178,7 +220,7 @@ export class McpServerController {
             required: ['priority', 'count'],
           },
         );
-      }
+      });
 
       res.json({ success: true, elicitationResult: result });
     } catch (error) {
@@ -216,9 +258,9 @@ export class McpServerController {
     @Res() res: Response,
   ): Promise<void> {
     try {
-      // Validate group exists
-      const instance = this.factory.getGroupInstance(group);
-      if (!instance) {
+      // Validate group exists (also lazily builds the group's MCP handler)
+      const handler = this.getGroupHandler(group);
+      if (!handler) {
         res.status(404).json({
           error: 'Unknown tool group',
           message: `Tool group '${group}' not found. Available groups: ${this.factory.getAvailableGroups().join(', ')}`,
@@ -228,43 +270,14 @@ export class McpServerController {
 
       this.logger.log(`Handling ${req.method} request to /mcp/${group}`);
 
-      // Set project context for dynamic tools
+      // Project context travels via the server factory (see getGroupHandler):
+      // each per-exchange Server captures its request's project root.
       const projectRoot = this.getProjectRoot(req);
-      this.factory.setProjectContext(projectRoot);
       if (projectRoot) {
-        this.logger.log(`Project context set to: ${projectRoot}`);
+        this.logger.log(`Project context: ${projectRoot}`);
       }
 
-      // Get or create a session (Server + Transport) for this request.
-      // Each session gets its own Server instance because the MCP SDK Server
-      // only supports one transport at a time.
-      const sessionId = req.headers['mcp-session-id'] as string | undefined;
-      let transport: StreamableHTTPServerTransport;
-
-      if (sessionId && instance.sessions.has(sessionId)) {
-        transport = instance.sessions.get(sessionId)!.transport;
-        this.logger.log(`[${group}] Reusing session: ${sessionId}`);
-      } else {
-        // Create a new Server instance and transport for this session
-        const server = instance.createServer();
-
-        transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => randomUUID(),
-          onsessioninitialized: (newSessionId) => {
-            this.logger.log(`[${group}] Session initialized: ${newSessionId}`);
-            instance.sessions.set(newSessionId, { server, transport });
-          },
-          onsessionclosed: (closedSessionId) => {
-            this.logger.log(`[${group}] Session closed: ${closedSessionId}`);
-            instance.sessions.delete(closedSessionId);
-          },
-        });
-
-        await server.connect(transport);
-        this.logger.log(`[${group}] New server+transport created for session`);
-      }
-
-      await transport.handleRequest(req as any, res as any, req.body);
+      await handler(req, res, req.body);
     } catch (error) {
       this.logger.error(`Error handling /mcp/${group} request: ${error.message}`, error.stack);
 

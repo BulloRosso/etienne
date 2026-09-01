@@ -1,8 +1,11 @@
 import { Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs-extra';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+// Legacy HTTP+SSE transport (deprecated in MCP, removed from the v2 SDK):
+// servers declared with type 'sse' still connect through the v1 SDK client.
+import { Client as LegacySseClient } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { McpServerConfig } from '../mcpserverconfig/mcp.server.config';
 
@@ -63,7 +66,7 @@ export async function buildPiMcpBridge(opts: {
   const allowedServers = new Set(allowlist.servers ?? Object.keys(mcpJson.mcpServers));
   const allowedTools = allowlist.tools ? new Set(allowlist.tools) : undefined;
 
-  const clients: Array<{ server: string; client: Client }> = [];
+  const clients: Array<{ server: string; client: BridgeClient }> = [];
   const tools: PiAgentTool[] = [];
 
   for (const [serverName, serverCfg] of Object.entries(mcpJson.mcpServers)) {
@@ -125,12 +128,30 @@ async function readMcpJson(projectRoot: string): Promise<McpJsonFile> {
   }
 }
 
-async function connectMcpClient(serverName: string, cfg: McpServerConfig): Promise<Client> {
-  const client = new Client({ name: `pi-mono-bridge-${serverName}`, version: '0.1.0' }, { capabilities: {} });
+type BridgeClient = Pick<Client, 'listTools' | 'callTool' | 'close'>;
 
-  if (cfg.type === 'sse' || cfg.type === 'http') {
+async function connectMcpClient(serverName: string, cfg: McpServerConfig): Promise<BridgeClient> {
+  if (cfg.type === 'sse') {
+    // Legacy HTTP+SSE server: keep the v1 client/transport pair.
     if (!cfg.url) throw new Error(`MCP server ${serverName} has no url`);
+    const client = new LegacySseClient({ name: `pi-mono-bridge-${serverName}`, version: '0.1.0' }, { capabilities: {} });
     const transport = new SSEClientTransport(new URL(cfg.url));
+    await client.connect(transport);
+    return client as unknown as BridgeClient;
+  }
+
+  // 'auto' probes server/discover (2026-07-28) and falls back to the 2025
+  // initialize handshake, so both modern and legacy servers work.
+  const client = new Client(
+    { name: `pi-mono-bridge-${serverName}`, version: '0.1.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  if (cfg.type === 'http') {
+    if (!cfg.url) throw new Error(`MCP server ${serverName} has no url`);
+    const transport = new StreamableHTTPClientTransport(new URL(cfg.url), {
+      requestInit: cfg.headers ? { headers: cfg.headers } : undefined,
+    });
     await client.connect(transport);
     return client;
   }

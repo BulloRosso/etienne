@@ -25,41 +25,37 @@ The MCP server will be available at: `http://localhost:6060/mcp`
 
 ### API Endpoints
 
-#### 1. Initialize Connection
+The server speaks MCP protocol revision **2026-07-28** (stateless Streamable
+HTTP: no `initialize` handshake, no `Mcp-Session-Id`). Every request carries
+its protocol version and client identity in `params._meta` and mirrors the
+method/tool name into the `MCP-Protocol-Version`, `Mcp-Method`, and
+`Mcp-Name` headers. Legacy 2025-era clients that still send `initialize`
+first are served through the SDK's stateless fallback.
+
+#### 1. List Available Tools
 
 ```bash
 curl -X POST http://localhost:6060/mcp/message \
   -H "Authorization: my-mcp-access-token!" \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: tools/list" \
   -d '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "initialize",
+    "method": "tools/list",
     "params": {
-      "protocolVersion": "2024-11-05",
-      "capabilities": {},
-      "clientInfo": {
-        "name": "test-client",
-        "version": "1.0.0"
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": { "name": "test-client", "version": "1.0.0" },
+        "io.modelcontextprotocol/clientCapabilities": {}
       }
     }
   }'
 ```
 
-#### 2. List Available Tools
-
-```bash
-curl -X POST http://localhost:6060/mcp/message \
-  -H "Authorization: my-mcp-access-token!" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "tools/list"
-  }'
-```
-
-#### 3. Call a Tool
+#### 2. Call a Tool
 
 Get bird promotions under 100€:
 
@@ -67,34 +63,24 @@ Get bird promotions under 100€:
 curl -X POST http://localhost:6060/mcp/message \
   -H "Authorization: my-mcp-access-token!" \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: tools/call" \
+  -H "Mcp-Name: get_current_week_promotions" \
   -d '{
     "jsonrpc": "2.0",
-    "id": 3,
+    "id": 2,
     "method": "tools/call",
     "params": {
       "name": "get_current_week_promotions",
       "arguments": {
         "category": "birds",
         "max_price": 100
-      }
-    }
-  }'
-```
-
-Get all cat promotions:
-
-```bash
-curl -X POST http://localhost:6060/mcp/message \
-  -H "Authorization: my-mcp-access-token!" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 4,
-    "method": "tools/call",
-    "params": {
-      "name": "get_current_week_promotions",
-      "arguments": {
-        "category": "cats"
+      },
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": { "name": "test-client", "version": "1.0.0" },
+        "io.modelcontextprotocol/clientCapabilities": {}
       }
     }
   }'

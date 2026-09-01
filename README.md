@@ -6,6 +6,11 @@
 
 Meet Etienne — a proactive AI coworker built to work alongside you on your local data and navigate even the most complex IT systems on your behalf.
 
+## Recent Features
+
+* **MCP 2026-07-28 (stateless) upgrade** — all built-in MCP servers and clients now speak the latest [MCP specification](https://modelcontextprotocol.io/specification/2026-07-28/changelog). The backend's per-group MCP endpoints (`/mcp/<group>`) are served through the v2 TypeScript SDK's `createMcpHandler`, which handles the new stateless per-request protocol natively while still answering legacy 2025-era clients (Claude Code, Copilot Studio) through the built-in stateless fallback — no `initialize` handshake, no `Mcp-Session-Id`, project context is scoped per request. Frontend and script clients send the new `_meta` envelope and `MCP-Protocol-Version` / `Mcp-Method` / `Mcp-Name` headers; SDK-based clients negotiate the era automatically via `server/discover`.
+* **LM Studio with Anthropic Messages API + Claude Agent SDK** — Etienne detects a locally running [LM Studio](https://lmstudio.ai/) server (Anthropic-compatible `/v1/messages` since LM Studio 0.4.1) during first-run diagnostics, enumerates the loaded models, and can route the Claude Agent SDK against it (`ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN`), so the full agent harness — tools, MCP servers, subagents — runs on local models with no Anthropic API key required.
+
 <div align="center">
 <img src="/docs/images/core-workflow.jpg" alt="Core Workflow" style="marginBottom: 24px" width="900">
 </div> 

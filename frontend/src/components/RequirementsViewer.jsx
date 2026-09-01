@@ -28,8 +28,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { apiFetch, apiAxios } from '../services/api';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
 /**
  * RequirementsViewer — previewer for .requirements.json files.
@@ -682,7 +681,7 @@ async function callEarsExtraction(projectName, pdfBaseName, onProgress) {
   });
   const mcpClient = new Client(
     { name: 'requirements-viewer-extractor', version: '1.0.0' },
-    { capabilities: {} },
+    { versionNegotiation: { mode: 'auto' } },
   );
 
   try {
@@ -695,7 +694,6 @@ async function callEarsExtraction(projectName, pdfBaseName, onProgress) {
         name: 'document_analysis_ears',
         arguments: { document_path: documentPath, output_format: 'json' },
       },
-      undefined,
       {
         timeout: 30 * 60 * 1000,
         resetTimeoutOnProgress: true,

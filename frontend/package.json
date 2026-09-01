@@ -16,8 +16,9 @@
     "@emotion/styled": "^11.14.1",
     "@mcp-ui/client": "^6.1.0",
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@modelcontextprotocol/client": "^2.0.0",
     "@modelcontextprotocol/ext-apps": "^1.0.1",
-    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@monaco-editor/react": "^4.6.0",
     "@mui/icons-material": "^7.3.2",
     "@mui/lab": "^7.0.1-beta.18",
@@ -46,10 +47,10 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
-    "@types/dompurify": "^3.2.0",
-    "@types/marked": "^6.0.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.0.0",
+    "@types/dompurify": "^3.2.0",
+    "@types/marked": "^6.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "jsdom": "^25.0.0",
     "less": "^4.4.2",

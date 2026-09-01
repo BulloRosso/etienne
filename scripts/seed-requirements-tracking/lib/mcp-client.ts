@@ -1,26 +1,30 @@
 /**
- * Minimal Streamable-HTTP MCP client for the seed script.
+ * Minimal Streamable-HTTP MCP client for the seed script (protocol 2026-07-28).
  *
  * The backend serves each tool group as an MCP server at
- * http://localhost:6060/mcp/<group> via the SDK's
- * StreamableHTTPServerTransport (see backend/src/mcpserver/
+ * http://localhost:6060/mcp/<group> (see backend/src/mcpserver/
  * mcp-server.controller.ts). Rather than pulling the client half of the
  * SDK into scripts/ (which has no node_modules of its own), this is a
- * plain-fetch JSON-RPC 2.0 client that speaks just enough of the
- * Streamable HTTP transport for a linear seed replay:
+ * plain-fetch JSON-RPC 2.0 client speaking the stateless 2026-07-28
+ * revision of the Streamable HTTP transport:
  *
- *   1. POST {method:'initialize'}   → captures the `mcp-session-id` header
- *   2. POST notifications/initialized
- *   3. POST tools/call with the session header for every tool invocation
+ *   - no initialize handshake and no mcp-session-id — every POST is
+ *     self-contained
+ *   - each request carries its protocol version and client identity in
+ *     `params._meta` (io.modelcontextprotocol/* envelope keys)
+ *   - the body's method/tool name are mirrored into the required
+ *     MCP-Protocol-Version, Mcp-Method, and Mcp-Name headers
  *
- * Responses may arrive as `application/json` or as `text/event-stream`
- * (the transport streams a single message per POST in practice); both are
- * handled. Tool results come back as MCP content blocks; `callTool`
- * unwraps the JSON in the first text block — including the double-wrapped
- * case where that text is itself a serialized content-block array.
+ * Responses may arrive as `application/json` or as `text/event-stream`;
+ * both are handled. Tool results come back as MCP content blocks;
+ * `callTool` unwraps the JSON in the first text block — including the
+ * double-wrapped case where that text is itself a serialized
+ * content-block array.
  */
 
 const JSONRPC = '2.0';
+const PROTOCOL_VERSION = '2026-07-28';
+const CLIENT_INFO = { name: 'seed-requirements-tracking', version: '1.0.0' };
 
 export class McpToolError extends Error {
   constructor(message: string, public readonly detail?: unknown) {
@@ -30,7 +34,6 @@ export class McpToolError extends Error {
 }
 
 export class McpClient {
-  private sessionId: string | null = null;
   private nextId = 1;
 
   constructor(
@@ -38,29 +41,8 @@ export class McpClient {
     private readonly headers: Record<string, string> = {},
   ) {}
 
-  /** initialize + notifications/initialized handshake */
-  async connect(): Promise<void> {
-    const { response, message } = await this.post({
-      jsonrpc: JSONRPC,
-      id: this.nextId++,
-      method: 'initialize',
-      params: {
-        protocolVersion: '2025-03-26',
-        capabilities: {},
-        clientInfo: { name: 'seed-requirements-tracking', version: '1.0.0' },
-      },
-    });
-    const sid = response.headers.get('mcp-session-id');
-    if (!sid) {
-      throw new McpToolError('initialize response carried no mcp-session-id header');
-    }
-    this.sessionId = sid;
-    if (message?.error) {
-      throw new McpToolError(`initialize failed: ${message.error.message}`, message.error);
-    }
-    // Required by the Streamable HTTP transport before any request.
-    await this.post({ jsonrpc: JSONRPC, method: 'notifications/initialized' }, true);
-  }
+  /** Stateless transport: nothing to do, kept for call-site compatibility. */
+  async connect(): Promise<void> {}
 
   /**
    * Call one tool and return the parsed JSON payload from its first text
@@ -68,13 +50,23 @@ export class McpClient {
    * contains a serialized `[{type:'text', text:'…'}]` array.
    */
   async callTool<T = any>(name: string, args: Record<string, unknown>): Promise<T> {
-    if (!this.sessionId) await this.connect();
-    const { message } = await this.post({
-      jsonrpc: JSONRPC,
-      id: this.nextId++,
-      method: 'tools/call',
-      params: { name, arguments: args },
-    });
+    const { message } = await this.post(
+      {
+        jsonrpc: JSONRPC,
+        id: this.nextId++,
+        method: 'tools/call',
+        params: {
+          name,
+          arguments: args,
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': PROTOCOL_VERSION,
+            'io.modelcontextprotocol/clientInfo': CLIENT_INFO,
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
+        },
+      },
+      { mcpName: name },
+    );
     if (!message) throw new McpToolError(`tools/call ${name}: empty response`);
     if (message.error) {
       throw new McpToolError(`tools/call ${name}: ${message.error.message}`, message.error);
@@ -110,18 +102,8 @@ export class McpClient {
     return parsed as T;
   }
 
-  async close(): Promise<void> {
-    if (!this.sessionId) return;
-    try {
-      await fetch(this.url, {
-        method: 'DELETE',
-        headers: { ...this.headers, 'mcp-session-id': this.sessionId },
-      });
-    } catch {
-      /* best effort */
-    }
-    this.sessionId = null;
-  }
+  /** Stateless transport: no session to tear down. */
+  async close(): Promise<void> {}
 
   // ── transport plumbing ─────────────────────────────────────────────────────
 
@@ -132,16 +114,29 @@ export class McpClient {
     return block ? block.text : null;
   }
 
+  /**
+   * Encode a value for an Mcp-* header: plain ASCII passes through,
+   * anything unsafe uses the spec's Base64 sentinel format (=?base64?...?=).
+   */
+  private encodeHeaderValue(value: string): string {
+    const isPlainAscii = /^[\x21-\x7e]([\x20\x21-\x7e]*[\x21-\x7e])?$/.test(value);
+    const matchesSentinel = value.startsWith('=?base64?') && value.endsWith('?=');
+    if (isPlainAscii && !matchesSentinel) return value;
+    return `=?base64?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+  }
+
   private async post(
     body: Record<string, unknown>,
-    isNotification = false,
+    opts: { mcpName?: string; isNotification?: boolean } = {},
   ): Promise<{ response: Response; message: any | null }> {
     const headers: Record<string, string> = {
       'content-type': 'application/json',
       accept: 'application/json, text/event-stream',
+      'mcp-protocol-version': PROTOCOL_VERSION,
+      'mcp-method': String(body.method),
       ...this.headers,
     };
-    if (this.sessionId) headers['mcp-session-id'] = this.sessionId;
+    if (opts.mcpName) headers['mcp-name'] = this.encodeHeaderValue(opts.mcpName);
 
     const response = await fetch(this.url, {
       method: 'POST',
@@ -154,7 +149,7 @@ export class McpClient {
         `MCP POST ${body.method} → HTTP ${response.status}: ${text.slice(0, 400)}`,
       );
     }
-    if (isNotification || response.status === 202) {
+    if (opts.isNotification || response.status === 202) {
       // notifications get 202 Accepted with no body
       await response.text().catch(() => '');
       return { response, message: null };

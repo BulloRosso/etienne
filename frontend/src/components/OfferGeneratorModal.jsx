@@ -38,8 +38,7 @@ import { BsMagic } from 'react-icons/bs';
 import Editor from '@monaco-editor/react';
 import { useTranslation } from 'react-i18next';
 import { apiFetch, apiAxios } from '../services/api';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
 const DEFAULT_GUIDANCE_STRUCTURE = `1. Executive Summary
 1.1 Project Overview
@@ -301,7 +300,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
       });
       const client = new Client(
         { name: 'heading-extractor', version: '1.0.0' },
-        { capabilities: {} },
+        { versionNegotiation: { mode: 'auto' } },
       );
       await client.connect(transport);
 
@@ -310,7 +309,6 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
           name: 'extract_document_headings',
           arguments: { document_path: `${projectName}/${docPath}` },
         },
-        undefined,
         { timeout: 5 * 60 * 1000 },
       );
 
@@ -391,7 +389,7 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
       });
       const mcpClient = new Client(
         { name: 'offer-generator', version: '1.0.0' },
-        { capabilities: {} },
+        { versionNegotiation: { mode: 'auto' } },
       );
       mcpClientRef.current = mcpClient;
 
@@ -422,7 +420,6 @@ export default function OfferGeneratorModal({ open, onClose, projectName }) {
             output_language: outputLanguage,
           },
         },
-        undefined,
         {
           timeout: 60 * 60 * 1000, // 1 hour
           resetTimeoutOnProgress: true,

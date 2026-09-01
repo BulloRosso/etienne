@@ -48,12 +48,16 @@ export interface ToolService {
 }
 
 // ============================================
-// Elicitation Types (MCP 2025-06-18 spec)
+// Elicitation Types
 // ============================================
 
 /**
  * Elicitation allows MCP servers to request structured input from users
  * during tool execution, enabling human-in-the-loop workflows.
+ *
+ * Note: this platform routes elicitation out-of-band (SSE event to the
+ * frontend + REST respond endpoint) while the tool call stays open, so it
+ * works identically on 2025-era and 2026-07-28 (MRTR) protocol clients.
  */
 
 /**
@@ -159,22 +163,14 @@ export interface ToolGroupConfig {
 }
 
 /**
- * A live session: one Server + its transport.
- */
-export interface McpSession {
-  server: import('@modelcontextprotocol/sdk/server/index.js').Server;
-  transport: import('@modelcontextprotocol/sdk/server/streamableHttp.js').StreamableHTTPServerTransport;
-}
-
-/**
  * Runtime instance of a tool group's MCP server.
  * Created lazily by the factory on first access.
- * Each session gets its own Server instance because the MCP SDK Server
- * only supports one transport at a time.
+ * createServer is handed to createMcpHandler, which builds a fresh Server
+ * per exchange — protocol sessions were removed in MCP 2026-07-28, and
+ * legacy (2025-era) traffic is served through the stateless fallback.
  */
 export interface McpGroupInstance {
-  createServer: () => import('@modelcontextprotocol/sdk/server/index.js').Server;
+  createServer: (projectRoot: string | null) => import('@modelcontextprotocol/server').Server;
   toolMap: Map<string, ToolService>;
-  sessions: Map<string, McpSession>;
   config: ToolGroupConfig;
 }

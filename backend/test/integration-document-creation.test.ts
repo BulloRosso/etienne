@@ -63,6 +63,10 @@ function repoRoot(): string {
 // ---------------------------------------------------------------------------
 // Minimal StreamableHTTP MCP client (initialize → tools/call), no SDK dep.
 // The backend allows unauthenticated localhost requests.
+// Deliberately speaks the legacy 2025-era handshake: the backend serves
+// protocol 2026-07-28 natively and legacy clients through its stateless
+// fallback, so this test doubles as a backward-compatibility regression
+// check (no mcp-session-id is minted in stateless mode; rpc() tolerates that).
 // ---------------------------------------------------------------------------
 
 async function rpc(

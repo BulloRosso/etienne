@@ -1,17 +1,11 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  ListToolsRequestSchema,
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { Server } from '@modelcontextprotocol/server';
 import { randomUUID } from 'crypto';
+import { AsyncLocalStorage } from 'async_hooks';
 import {
   ToolService,
   ToolGroupConfig,
   McpGroupInstance,
-  McpSession,
   ElicitationCallback,
   ElicitationResult,
   ElicitationSchema,
@@ -107,8 +101,17 @@ export class McpServerFactoryService implements OnModuleInit {
   private readonly groups = new Map<string, McpGroupInstance>();
   private readonly groupConfigs: Record<string, ToolGroupConfig>;
 
-  // Current project context for dynamic tools
-  private currentProjectRoot: string | null = null;
+  // Per-request project context for dynamic tools. Requests run inside
+  // runWithProjectContext() so concurrent requests for different projects
+  // never observe each other's project root; the fallback field covers
+  // non-request callers (e.g. the elicitation test endpoint).
+  private readonly projectContextStorage = new AsyncLocalStorage<{ projectRoot: string | null }>();
+  private fallbackProjectRoot: string | null = null;
+
+  private get currentProjectRoot(): string | null {
+    const store = this.projectContextStorage.getStore();
+    return store ? store.projectRoot : this.fallbackProjectRoot;
+  }
 
   // Shared elicitation state (across all groups)
   private pendingElicitations = new Map<string, PendingElicitation>();
@@ -400,10 +403,20 @@ export class McpServerFactoryService implements OnModuleInit {
   }
 
   /**
-   * Set the current project context for dynamic tools
+   * Set the fallback project context for callers outside a request scope.
+   * Request handling should use runWithProjectContext() instead.
    */
   setProjectContext(projectRoot: string | null) {
-    this.currentProjectRoot = projectRoot;
+    this.fallbackProjectRoot = projectRoot;
+  }
+
+  /**
+   * Run fn with the given project root as the ambient project context.
+   * All async work started inside fn (tool execution, dynamic tool loading,
+   * elicitation callbacks) sees this project root via currentProjectRoot.
+   */
+  runWithProjectContext<T>(projectRoot: string | null, fn: () => T): T {
+    return this.projectContextStorage.run({ projectRoot }, fn);
   }
 
   /**
@@ -536,16 +549,36 @@ export class McpServerFactoryService implements OnModuleInit {
     }
 
     // Factory: create a fresh Server instance with all handlers registered.
-    // The MCP SDK Server only supports one transport at a time, so each
-    // concurrent session (Claude SDK, AppRenderer, etc.) needs its own Server.
-    const createServer = (): Server => {
+    // createMcpHandler invokes this per request (2026-07-28 protocol) or per
+    // legacy stateless exchange, so each instance serves exactly one exchange
+    // and can capture that exchange's project root. Handlers enter the
+    // project ALS themselves: the SDK dispatches through its own async
+    // paths, so a context wrapped around the HTTP handler would not reach
+    // tool execution.
+    const createServer = (projectRoot: string | null): Server => {
+      const scoped = <A extends unknown[], R>(fn: (...args: A) => R) =>
+        (...args: A): R => this.runWithProjectContext(projectRoot, () => fn(...args));
+
       const server = new Server(
         { name: `mcp-${groupName}`, version: '1.0.0' },
-        { capabilities: { tools: {}, elicitation: {}, ...(hasResources ? { resources: {} } : {}) } },
+        {
+          capabilities: { tools: {}, ...(hasResources ? { resources: {} } : {}) },
+          // 2026-07-28 requires ttlMs/cacheScope on list/read results.
+          // Tool lists vary per project (dynamic tools), so mark them private.
+          cacheHints: {
+            'tools/list': { ttlMs: 60_000, cacheScope: 'private' },
+            ...(hasResources
+              ? {
+                  'resources/list': { ttlMs: 300_000, cacheScope: 'private' } as const,
+                  'resources/read': { ttlMs: 300_000, cacheScope: 'private' } as const,
+                }
+              : {}),
+          },
+        },
       );
 
       // ListTools handler
-      server.setRequestHandler(ListToolsRequestSchema, async () => {
+      server.setRequestHandler('tools/list', scoped(async () => {
         this.logger.log(`[${groupName}] tools/list called, projectRoot = ${this.currentProjectRoot || 'NULL'}`);
         const allTools = [];
 
@@ -567,10 +600,10 @@ export class McpServerFactoryService implements OnModuleInit {
         }
 
         return { tools: allTools };
-      });
+      }));
 
       // CallTool handler
-      server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+      server.setRequestHandler('tools/call', scoped(async (request, ctx) => {
         const { name, arguments: args } = request.params;
 
         if (!name) {
@@ -593,10 +626,10 @@ export class McpServerFactoryService implements OnModuleInit {
           const elicitCallback = this.createElicitationCallback(name);
 
           // Build progress callback if the client sent a progressToken
-          const progressToken = request.params._meta?.progressToken;
+          const progressToken = ctx.mcpReq._meta?.progressToken;
           const onProgress = progressToken
             ? async (progress: number, total?: number, message?: string) => {
-                await extra.sendNotification({
+                await ctx.mcpReq.notify({
                   method: 'notifications/progress' as const,
                   params: { progressToken, progress, ...(total != null && { total }), ...(message != null && { message }) },
                 });
@@ -623,11 +656,11 @@ export class McpServerFactoryService implements OnModuleInit {
             isError: true,
           };
         }
-      });
+      }));
 
       // Resource handlers (for MCP App HTML serving)
       if (hasResources) {
-        server.setRequestHandler(ListResourcesRequestSchema, async () => {
+        server.setRequestHandler('resources/list', scoped(async () => {
           const resources = (config.resources || []).map((r) => ({
             uri: r.uri,
             name: r.name,
@@ -636,9 +669,9 @@ export class McpServerFactoryService implements OnModuleInit {
           }));
           this.logger.log(`[${groupName}] resources/list: returning ${resources.length} resources`);
           return { resources };
-        });
+        }));
 
-        server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+        server.setRequestHandler('resources/read', scoped(async (request) => {
           const { uri } = request.params;
           const resource = (config.resources || []).find((r) => r.uri === uri);
           if (!resource) {
@@ -652,13 +685,13 @@ export class McpServerFactoryService implements OnModuleInit {
           return {
             contents: [{ uri, mimeType: resource.mimeType, text: content }],
           };
-        });
+        }));
       }
 
       return server;
     };
 
-    return { createServer, toolMap, sessions: new Map(), config };
+    return { createServer, toolMap, config };
   }
 
   // ============================================

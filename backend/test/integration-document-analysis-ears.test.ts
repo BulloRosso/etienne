@@ -49,6 +49,9 @@ function repoRoot(): string {
 
 // ---------------------------------------------------------------------------
 // Minimal StreamableHTTP MCP client (initialize → tools/call), no SDK dep.
+// Deliberately speaks the legacy 2025-era handshake: the backend serves
+// protocol 2026-07-28 natively and legacy clients through its stateless
+// fallback, so this test doubles as a backward-compatibility regression check.
 // ---------------------------------------------------------------------------
 
 async function rpc(
