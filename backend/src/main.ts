@@ -10,11 +10,22 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { RedocModule } from '@jozefazz/nestjs-redoc';
 import { AppModule } from './app.module';
+import { applyAzureAiConnection } from './azure-ai/azure-ai-connection';
 
 // Increase default socket limits so long-running requests (e.g. image generation)
 // don't block other outbound HTTP connections
 http.globalAgent.maxSockets = 50;
 https.globalAgent.maxSockets = 50;
+
+// AZURE_AI_CONNECTION expands into the Foundry env vars that LlmService reads in
+// its constructor — so it has to happen before NestFactory.create().
+try {
+  const azureAi = applyAzureAiConnection();
+  if (azureAi) console.log(`[azure-ai] ${azureAi.summary}`);
+} catch (err: any) {
+  console.error(`[azure-ai] ${err?.message || err}`);
+  process.exit(1);
+}
 
 async function bootstrap() {
   // In Foundry mode the backend is only reachable via the adapter proxy

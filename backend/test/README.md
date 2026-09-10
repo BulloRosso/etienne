@@ -13,7 +13,7 @@ The tests fall into three groups:
 
 | Group | Filename pattern | What they cover | Requires |
 |---|---|---|---|
-| Unit | `memory-*.test.ts`, `adaptive-memory-{fakes,config,sessions-store,skills-store,personality-store,picker,packer,writeback,agent,quality-scoring,review-queue,ponderer}.test.ts` | Pure logic + fakes. No network, no live services. | nothing |
+| Unit | `memory-*.test.ts`, `adaptive-memory-{fakes,config,sessions-store,skills-store,personality-store,picker,packer,writeback,agent,quality-scoring,review-queue,ponderer}.test.ts`, `azure-ai-connection.test.ts` | Pure logic + fakes. No network, no live services. | nothing |
 | Wiki skill smoke | `skill-repository/standard/wiki/scripts/test-roundtrip.mjs` | The `wiki-add` + `wiki-delete` + frontmatter round-trip through the actual `tsx` scripts. | A node_modules dir provisioned somewhere (the test borrows from `workspace/wiki-test/.claude/skills/wiki/node_modules`) |
 | **Integration** | `integration-*.test.ts` | Real adapters / orchestrator against live Chroma + Quadstore. | Vector store on `:7100`, RDF store on `:7000` (see below) |
 
@@ -41,6 +41,7 @@ test in a loop works whether the live stores are up or not.
 | `adaptive-memory-quality-scoring.test.ts` | PRD §6.1 quality formula. The PRD-critical ordering property: clean > corrective > retry-spam with the same workspace change. | 10 |
 | `adaptive-memory-review-queue.test.ts` | JSONL append-only with tombstones, latest-verdict-wins replay, per-project + cross-project indexes, malformed-line tolerance. | 10 |
 | `adaptive-memory-ponderer.test.ts` | End-to-end 5-stage cycle: quality scoring → maintenance → personality induction → self-edit → publish-review. Activation gate. Event emission. | 7 |
+| `azure-ai-connection.test.ts` | `backend/src/azure-ai/azure-ai-connection.ts` — `AZURE_AI_CONNECTION` grammar (shorthands, portal-paste tolerance, `=` inside secrets), managed-identity vs api-key env projection, deployment-name/tier aliasing, explicit-env-wins, no secret in the log summary. | 13 |
 
 Total: **161 assertions** across 14 unit-style files. Run them all:
 

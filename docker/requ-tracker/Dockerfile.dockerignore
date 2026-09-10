@@ -1,0 +1,67 @@
+# BuildKit reads <dockerfile>.dockerignore in preference to the context root's
+# .dockerignore, so this file scopes the requ-tracker build context only.
+#
+# Without it the whole repo — every node_modules tree plus the local workspace —
+# is uploaded to the daemon on each build.
+
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+**/dist
+**/build
+**/coverage
+
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+**/.playwright-mcp
+
+# Secrets never belong in the image; .env is mounted or supplied as App Settings.
+**/.env
+**/.env.*
+!**/.env.template
+
+**/*.log
+**/runtime.log
+**/.tsbuildinfo*
+
+# Local project data — the container gets its workspace from a volume or an
+# Azure File Share, and the seed creates the demo project itself.
+workspace/
+demo-project-folders/
+demo-data/
+tests/
+.playwright-mcp/
+
+# Large sibling apps this image does not build.
+a2a-server/
+a2ui-app-restaurant-booking/
+imap/
+litellm-proxy/
+mcp-app-alignment/
+mcp-app-budget/
+mcp-app-compliance-matrix/
+mcp-app-etienne-config/
+ms-teams/
+portal-example/
+secrets-manager/
+telegram/
+web-scraper/
+webserver/
+examples/
+sample-use-cases/
+requirements-docs/
+feature-export/
+adrs/
+docs/
+
+# NB: do NOT exclude images globally — frontend/public ships the UI artwork.
+**/.DS_Store
+**/Thumbs.db
+
+# Repo-root screenshots that are documentation, not application assets.
+/*.png
+/*.jpg

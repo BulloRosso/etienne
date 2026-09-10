@@ -2,6 +2,12 @@
 
 This Docker configuration builds and runs the core Etienne services in a single container.
 
+> **Looking for the requirements-tracking appliance?** `docker/requ-tracker/` is a
+> separate image that also starts vector-store and rdf-store, builds the
+> TenderTrace viewer, seeds a requirements-tracking project on first boot, and
+> adds `WORKSPACE_ROOT_AZURE_FILESHARE` + `AZURE_AI_CONNECTION` for Azure App
+> Service. See [docs/requ-tracker-configuration.md](../docs/requ-tracker-configuration.md).
+
 ## Architecture
 
 The Docker image includes all 6 project folders but only starts 3 services:

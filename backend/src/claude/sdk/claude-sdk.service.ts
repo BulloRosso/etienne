@@ -175,6 +175,19 @@ export class ClaudeSdkService {
         if (process.env._FOUNDRY_MODEL_TOKEN) {
           queryOptions.env.ANTHROPIC_API_KEY = process.env._FOUNDRY_MODEL_TOKEN;
         }
+        // Foundry serves *deployments*, not public model ids. Without these
+        // aliases the CLI requests e.g. "claude-sonnet-4-5-20250929" and the
+        // endpoint 404s. AZURE_AI_CONNECTION populates them (see
+        // azure-ai/azure-ai-connection.ts); they can also be set directly.
+        for (const key of [
+          'ANTHROPIC_DEFAULT_OPUS_MODEL',
+          'ANTHROPIC_DEFAULT_SONNET_MODEL',
+          'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+          'CLAUDE_CODE_SUBAGENT_MODEL',
+        ]) {
+          const value = process.env[key];
+          if (value) queryOptions.env[key] = value;
+        }
       }
 
       // Add alternative model configuration via environment variables if present
