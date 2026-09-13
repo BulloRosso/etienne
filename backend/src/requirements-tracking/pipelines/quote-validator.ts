@@ -9,6 +9,14 @@ const normalize = (text: string): string =>
   text
     .replace(/[­]/g, '') // soft hyphens
     .replace(/(\w)-\s*\n\s*(\w)/g, '$1$2') // line-break hyphenation
+    // markdown punctuation escapes (mammoth emits `18\.500`, `Kontraktlogistik\-X`);
+    // the model quotes what a reader sees, so both sides are compared unescaped
+    .replace(/\\([\\`*_{}\[\]()#+\-.!>|~])/g, '$1')
+    // typographic variants that Word and the model disagree on
+    .replace(/[‘’‚′]/g, "'")
+    .replace(/[“”„″]/g, '"')
+    .replace(/[‐‑‒–—−]/g, '-')
+    .replace(/ /g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 

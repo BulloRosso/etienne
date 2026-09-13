@@ -1,0 +1,107 @@
+- generic [ref=f16e4]:
+  - banner [ref=f16e5]:
+    - generic [ref=f16e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f16e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f16e8] [cursor=pointer]
+      - button "Präsentation" [ref=f16e12] [cursor=pointer]
+      - generic [ref=f16e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f16e24]
+      - button [ref=f16e25] [cursor=pointer]
+  - generic [ref=f16e54]:
+    - generic [ref=f16e58]:
+      - generic [ref=f16e59]:
+        - button "Neue Sitzung starten" [ref=f16e60] [cursor=pointer]
+        - generic [ref=f16e63]:
+          - generic [ref=f16e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f16e65]
+            - generic "Arbeitsmodus" [ref=f16e76]
+          - generic [ref=f16e80]: Arbeitsmodus
+        - generic [ref=f16e81]:
+          - button "Benachrichtigungen" [ref=f16e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f16e85] [cursor=pointer]
+      - generic [ref=f16e89]:
+        - img "Agent avatar" [ref=f16e91]
+        - generic [ref=f16e93]:
+          - paragraph [ref=f16e95]:
+            - strong [ref=f16e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f16e97]: 14:06
+      - generic [ref=f16e101]:
+        - button "Dateianhänge hinzufügen" [ref=f16e103] [cursor=pointer]
+        - generic [ref=f16e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f16e108]
+          - group [aria-hidden]
+        - button [ref=f16e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f16e117]:
+      - generic [ref=f16e118]:
+        - tablist [ref=f16e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f16e122] [cursor=pointer]
+          - tab "Rolle" [ref=f16e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f16e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f16e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f16e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f16e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f16e132] [cursor=pointer]
+      - tabpanel [ref=f16e135]:
+        - generic [ref=f16e137]:
+          - generic [ref=f16e139]:
+            - tablist [ref=f16e143]:
+              - tab "t-2026-031-analysis.md" [ref=f16e179] [cursor=pointer]
+              - tab "analysis.tendertrace.json" [selected] [ref=f16e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f16e154] [cursor=pointer]
+            - button [ref=f16e165] [cursor=pointer]
+          - generic [ref=f16e885]:
+            - iframe [active] [ref=f16e887]:
+              - iframe [active] [ref=f19e2]:
+                - generic [ref=f20e3]:
+                  - banner [ref=f20e4]:
+                    - generic [ref=f20e5]:
+                      - generic "Back" [ref=f20e6]:
+                        - button [ref=f20e122] [cursor=pointer]
+                      - button "Dashboard" [ref=f20e7] [cursor=pointer]
+                      - heading "TenderTrace — Requirement Thread" [level=6] [ref=f20e705]
+                  - generic [ref=f20e706]:
+                    - generic [ref=f20e707]:
+                      - heading "REQ-108" [level=6] [ref=f20e708]
+                      - generic [ref=f20e709]: draft
+                      - generic [ref=f20e711]: unplanned
+                      - generic [ref=f20e713]: MUSS
+                      - button "Add relation" [ref=f20e715] [cursor=pointer]
+                    - generic [ref=f20e716]:
+                      - generic [ref=f20e717]:
+                        - heading "Tender clause — 01-leistungsbeschreibung-lagerlogistik Leistungsbeschreibung Betrieb Logistikzentrum Nord > 6 Retourenabwicklung p.1" [level=6] [ref=f20e719]
+                        - separator [ref=f20e720]
+                        - paragraph [ref=f20e725]: Retouren sind zeitnah zu bearbeiten und nach Prüfung wieder einzulagern oder zu verschrotten.
+                      - generic [ref=f20e726]:
+                        - generic [ref=f20e729]:
+                          - heading "v1" [level=6] [ref=f20e730]
+                          - generic [ref=f20e731]: 2026-09-13
+                        - separator [ref=f20e732]
+                        - paragraph [ref=f20e733]: Der Auftragnehmer muss Retouren zeitnah bearbeiten.
+                      - generic [ref=f20e734]:
+                        - heading "Relations" [level=6] [ref=f20e736]
+                        - separator [ref=f20e737]
+                        - generic [ref=f20e738]:
+                          - generic [ref=f20e739]:
+                            - generic [ref=f20e740]: derived from same clause
+                            - button "REQ-020" [ref=f20e742] [cursor=pointer]
+                          - generic [ref=f20e744]:
+                            - generic [ref=f20e745]: derived from same clause
+                            - button "REQ-079" [ref=f20e747] [cursor=pointer]
+                          - generic [ref=f20e749]:
+                            - generic [ref=f20e750]: derived from same clause
+                            - button "REQ-093" [ref=f20e752] [cursor=pointer]
+                          - generic [ref=f20e754]:
+                            - generic [ref=f20e755]: derived from same clause
+                            - button "REQ-094" [ref=f20e757] [cursor=pointer]
+                          - generic [ref=f20e759]:
+                            - generic [ref=f20e760]: derived from same clause
+                            - button "REQ-109" [ref=f20e762] [cursor=pointer]
+                          - generic [ref=f20e764]:
+                            - generic [ref=f20e765]: derived from same clause
+                            - button "REQ-150" [ref=f20e767] [cursor=pointer]
+                          - generic [ref=f20e769]:
+                            - generic [ref=f20e770]: derived from same clause
+                            - button "REQ-151" [ref=f20e772] [cursor=pointer]
+            - button "MCP UI Status" [ref=f16e888] [cursor=pointer]

@@ -48,6 +48,7 @@ export class SearchProjectionService {
   async indexRequirementVersion(project: string, version: RequirementVersion): Promise<void> {
     const text = [
       version.earsText,
+      version.domainText && version.domainText !== version.earsText ? version.domainText : undefined,
       version.sourceRef?.quote,
       version.category,
       version.modality,
@@ -87,7 +88,14 @@ export class SearchProjectionService {
       ...version.scope.prerequisites.map((s) => `Voraussetzung: ${s}`),
       ...version.scope.deliverables.map((s) => `Liefergegenstand: ${s}`),
     ];
-    const text = [service.title, version.tags.join(', '), scopeLines.join('\n'), bodyMarkdown]
+    const capabilityLines = (version.earsCapabilities ?? []).map((statement) => statement.earsText);
+    const text = [
+      service.title,
+      version.tags.join(', '),
+      scopeLines.join('\n'),
+      capabilityLines.join('\n'),
+      bodyMarkdown,
+    ]
       .filter(Boolean)
       .join('\n\n');
     try {

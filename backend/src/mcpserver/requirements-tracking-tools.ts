@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { McpTool, ToolService } from './types';
 import type { RequirementsTrackingService } from '../requirements-tracking/requirements-tracking.service';
+import { isRunLive } from '../requirements-tracking/pipelines/tender-analysis.pipeline';
 import type {
   ProposalDecision,
   ProposalKind,
@@ -120,6 +121,92 @@ const tools: McpTool[] = [
         limit: { type: 'number' },
       },
       required: ['projectName'],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Tender analysis (two-phase run behind the Analyse-Cockpit)
+  // ---------------------------------------------------------------------------
+  {
+    name: 'rt_run_tender_analysis',
+    description:
+      'Start phase A of the tender analysis: read every file in tender/ (PDF, Word, Excel), ' +
+      'extract EARS requirements in our domain vocabulary, cross-check figures against the ' +
+      'Excel quantity sheet, import servicecatalog/*.md and express it as EARS. Runs in the ' +
+      'background; progress arrives as analysis.progress events; the run then waits for the ' +
+      'human review of the requirement cards (Review Queue) and of figure contradictions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ...projectNameProp,
+        force: { type: 'boolean', description: 'Re-parse and re-extract even when files are unchanged (creates duplicate cards)' },
+        minMappingConfidence: { type: 'number', description: 'Clear-match threshold for phase B mapping proposals (default 0.75)' },
+        extractWorkbooks: { type: 'boolean', description: 'Also extract requirements from workbook rows (default false)' },
+        autoPublishCatalog: { type: 'boolean', description: 'Publish catalog entries without the wizard (default true)' },
+        language: { type: 'string' },
+      },
+      required: ['projectName'],
+    },
+  },
+  {
+    name: 'rt_get_analysis_status',
+    description:
+      'Cockpit model of the (current or given) tender-analysis run: state with percent/step/file, ' +
+      'the 5 stages with status + headline, readiness (phase B unlocked? analysis reliable?) and ' +
+      'the figure contradictions with their resolution.',
+    inputSchema: {
+      type: 'object',
+      properties: { ...projectNameProp, runId: { type: 'string' } },
+      required: ['projectName'],
+    },
+  },
+  {
+    name: 'rt_continue_tender_analysis',
+    description:
+      'Start phase B once the Review Queue and the contradiction list are clear: clear-match ' +
+      'auto-mapping against the catalog, compliance verdicts, management analysis (Markdown + DOCX). ' +
+      'Refuses while requirement cards or contradictions are open unless allowOpen is set.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ...projectNameProp,
+        runId: { type: 'string' },
+        allowOpen: { type: 'boolean', description: 'Proceed with only the approved requirements' },
+      },
+      required: ['projectName'],
+    },
+  },
+  {
+    name: 'rt_regenerate_analysis_report',
+    description: 'Re-render the management analysis over the current decisions (no new mapping/verdict run).',
+    inputSchema: {
+      type: 'object',
+      properties: { ...projectNameProp, runId: { type: 'string' } },
+      required: ['projectName'],
+    },
+  },
+  {
+    name: 'rt_list_analysis_runs',
+    description: 'All tender-analysis runs of the project, newest first.',
+    inputSchema: { type: 'object', properties: { ...projectNameProp }, required: ['projectName'] },
+  },
+  {
+    name: 'rt_resolve_consistency_alert',
+    description:
+      'Resolve one figure contradiction on an extraction card: "tender" keeps the tender value, ' +
+      '"excel" takes the workbook value into the card (only while the card is still proposed), ' +
+      '"clarify" turns it into a customer clarification question. Unresolved alerts block phase B.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ...projectNameProp,
+        proposalId: { type: 'string' },
+        alertIndex: { type: 'number' },
+        resolution: { type: 'string', enum: ['tender', 'excel', 'clarify'] },
+        note: { type: 'string' },
+        actor: { type: 'string' },
+      },
+      required: ['projectName', 'proposalId', 'alertIndex', 'resolution'],
     },
   },
 
@@ -1206,6 +1293,87 @@ export function createRequirementsTrackingToolsService(
       }
 
       // -----------------------------------------------------------------------
+      // Tender analysis
+      // -----------------------------------------------------------------------
+      case 'rt_run_tender_analysis': {
+        const project = requireProject(projectName);
+        // guard synchronously (live run / missing folders surface as errors), then detach
+        const current = await rt.analysis.getStatus(project);
+        // status alone is not enough: getStatus is a pure read, so an abandoned
+        // run stays "running" forever. Only a fresh heartbeat means live.
+        if (isRunLive(current.state)) {
+          return { success: false, error: `Analyse ${current.state!.runId} läuft bereits (${current.state!.percent} %).` };
+        }
+        const started = new Promise<{ runId: string }>((resolve, reject) => {
+          const unsubscribe = rt.events.stream(project).subscribe((event) => {
+            if (event.type === 'analysis.started') {
+              unsubscribe.unsubscribe();
+              resolve({ runId: event.payload.runId });
+            }
+          });
+          rt.analysis
+            .runPhaseA(project, {
+              force: args.force,
+              minMappingConfidence: args.minMappingConfidence,
+              extractWorkbooks: args.extractWorkbooks,
+              autoPublishCatalog: args.autoPublishCatalog,
+              language: args.language,
+            })
+            .catch((error) => {
+              unsubscribe.unsubscribe();
+              reject(error);
+            });
+        });
+        try {
+          const { runId } = await started;
+          return { started: true, runId };
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
+      }
+      case 'rt_get_analysis_status': {
+        return rt.analysis.getStatus(requireProject(projectName), args.runId);
+      }
+      case 'rt_continue_tender_analysis': {
+        const project = requireProject(projectName);
+        const status = await rt.analysis.getStatus(project, args.runId);
+        if (!status.state) return { success: false, error: 'Kein Analyse-Lauf vorhanden.' };
+        if (!args.allowOpen && !status.readiness.phaseB) {
+          return {
+            success: false,
+            error:
+              `Noch nicht bereit: ${status.readiness.openReviews} offene Anforderungskarte(n), ` +
+              `${status.readiness.unresolvedAlerts} ungeklärte(r) Widerspruch/-sprüche.`,
+          };
+        }
+        rt.analysis
+          .runPhaseB(project, args.runId, { allowOpen: args.allowOpen })
+          .catch((error) => rt.events.emit(project, 'run.failed', { pipeline: 'tender-analysis', error: error.message }));
+        return { started: true, runId: status.state.runId };
+      }
+      case 'rt_regenerate_analysis_report': {
+        const project = requireProject(projectName);
+        try {
+          const state = await rt.analysis.regenerateReport(project, args.runId);
+          return { success: true, report: state.report };
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
+      }
+      case 'rt_list_analysis_runs': {
+        return { runs: await rt.analysis.listRuns(requireProject(projectName)) };
+      }
+      case 'rt_resolve_consistency_alert': {
+        return rt.analysis.resolveAlert(requireProject(projectName), {
+          proposalId: args.proposalId,
+          alertIndex: Number(args.alertIndex),
+          resolution: args.resolution,
+          note: args.note,
+          actor: args.actor ?? 'user',
+        });
+      }
+
+      // -----------------------------------------------------------------------
       // Proposals
       // -----------------------------------------------------------------------
       case 'rt_list_proposals': {
@@ -1748,9 +1916,19 @@ export function createRequirementsTrackingToolsService(
               (mapping) =>
                 mapping.requirementId === requirement.id && mapping.status === 'approved',
             ),
+            // Carry enough detail for the matrix to NAME the proposed services:
+            // bare ids left the "Mapped services" column empty for every row
+            // that only had proposals, which reads as "nothing was mapped".
             pendingMappingProposals: pendingMappings
               .filter((proposal) => proposal.payload?.requirement_id === requirement.id)
-              .map((proposal) => proposal.id),
+              .map((proposal) => ({
+                proposalId: proposal.id,
+                serviceId: proposal.payload?.service_id,
+                serviceVersionNo: proposal.payload?.service_version_no,
+                coverage: proposal.payload?.coverage,
+                confidence: proposal.confidence,
+                gapOrExclusion: proposal.payload?.gap_or_exclusion ?? null,
+              })),
           });
         }
         return { rows };

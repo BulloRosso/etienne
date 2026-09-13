@@ -30,6 +30,17 @@ Prompt files live verbatim (extracted from spec §5) under [backend/src/requirem
 
 `mcp-app-requirements-tracking/` — one MCP app, all 14 spec pages, internal navigation (every REQ id links to the Thread view). Hosted as the backend group `requirements-tracking` (`:6060/mcp/requirements-tracking`); `.tendertrace.json` sentinel files route to pages via the previewer (`backend/src/previewers/previewer-metadata.json`). Build it with `npm install && npm run build` in the app folder — the backend serves `dist/mcp-app.html` at runtime (not committed).
 
+## Tender analysis (Analyse-Cockpit)
+
+The two-phase run behind the cockpit page (`mcp-app-requirements-tracking/src/pages/Analysis.tsx`, sentinel `out/tendertrace/pages/analysis.tendertrace.json`), orchestrated by [tender-analysis.pipeline.ts](../backend/src/requirements-tracking/pipelines/tender-analysis.pipeline.ts) over the project's folder contract `tender/` (PDF, Word, Excel), `servicecatalog/*.md` (+ `glossary.md`), `analysis-template/*.md` → `out/analysis/`:
+
+| Phase | Steps | Where the human decides |
+|---|---|---|
+| A (`rt_run_tender_analysis`) | discover → register + parse (PDF via LiteParse JSON with `<!-- page: N -->` markers, DOCX via mammoth, XLSX via ExcelJS row lines + `cells.json`) → figure index → glossary (P-GLOSSARY) → EARS extraction with `domain_text` in OUR vocabulary (P-EXTRACT v2) → Excel consistency check (P-CONSIST; alert only when the same quantity differs) → catalog import + auto-publish + EARS capability statements (P-CAT-EARS) → **awaiting review** | Review Queue (`rt_decide_proposal`), cockpit stage 3 (`rt_resolve_consistency_alert`: tender / excel / clarify) |
+| B (`rt_continue_tender_analysis`, unlocked at 0 open cards + 0 unresolved contradictions) | clear-match auto-mapping (P-CAT-M v2, confidence ≥ 0.75, no `related`) → compliance verdicts (P-RESP-C) → management analysis (P-ANALYSIS over deterministic blocks) as Markdown + DOCX + snapshot | Compliance Matrix; the report's reliability banner ("belastbar" vs. "mit Vorbehalten") |
+
+State: `requirements-tracking/analysis/<AN-id>/state.json` (+ `current.json`, `figures.json`, `glossary.json`, `catalog-source.json`); progress + stage model via `rt_get_analysis_status`; events `analysis.started|progress|phase_changed|alert|alert_resolved|ready_for_phase_b|report_ready|finished|failed`. Supporting services live under [backend/src/requirements-tracking/analysis/](../backend/src/requirements-tracking/analysis/) and [ingestion/](../backend/src/requirements-tracking/ingestion/); unit tests `backend/test/reqtrack-*.test.ts`, end-to-end `backend/test/integration-reqtrack-tender-analysis.test.ts`.
+
 ## Seed
 
-`scripts/seed-requirements-tracking/` provisions the demo project `tendertrace-stadtwerke` mid-story (German content, spec §2 narrative) by replaying phases through the product's own MCP tools; mutating tools accept a seed-only `_seed {at, by}` backdating override (admin-guarded endpoint). Sidebar menu: `application-types-repository/requirements-tracking/config.json`.
+`scripts/seed-requirements-tracking/` provisions the demo project `tendertrace-analysis` — the Lagerlogistik tender-analysis showcase: folder contract + synthetic customer documents (2 DOCX, 1 XLSX with one deliberate figure contradiction, catalog in our vocabulary, glossary, management template); `SEED_RUN_ANALYSIS=1` starts phase A right away. Sidebar menu: `application-types-repository/requirements-tracking/config.json` (cockpit first).

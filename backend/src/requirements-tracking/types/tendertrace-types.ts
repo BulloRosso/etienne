@@ -67,6 +67,35 @@ export interface Ambiguity {
   clarification_question_draft: string;
 }
 
+/** customer term → our catalog vocabulary (P-EXTRACT v2 DOMAIN LANGUAGE rule) */
+export interface TermMapping {
+  customerTerm: string;
+  ourTerm: string;
+}
+
+/** A figure that exists both in the tender text and in the quantity workbook — and differs. */
+export interface ConsistencyAlert {
+  figureId: string; // "Mengen!B3"
+  sheet: string;
+  cell: string;
+  label: string;
+  tenderValue: number;
+  tenderUnit: string;
+  tenderRaw: string;
+  excelValue: number;
+  excelUnit: string;
+  excelRaw: string;
+  deviationAbs: number;
+  deviationPct: number;
+  note: string;
+  severity: 'warning' | 'error';
+  /** set by a human in the cockpit; unresolved alerts block phase B */
+  resolution?: 'tender' | 'excel' | 'clarify';
+  resolvedBy?: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
+}
+
 export type RequirementStatus = 'draft' | 'baselined' | 'retired';
 
 export type ImplementationStatus =
@@ -92,6 +121,12 @@ export interface RequirementVersion {
   createdAt: string; // ISO
   supersedesVersionId?: string;
   language?: string; // 'de' | 'en'
+  /** the obligation in OUR domain vocabulary (falls back to earsText) */
+  domainText?: string;
+  termMappings?: TermMapping[];
+  consistencyAlerts?: ConsistencyAlert[];
+  /** rule-based EARS validator flags (advisory) */
+  validationFlags?: string[];
 }
 
 export interface Requirement {
@@ -224,6 +259,15 @@ export interface ServiceScope {
   deliverables: string[];
 }
 
+/** A catalog service's capability (or limitation) expressed as an EARS statement (P-CAT-EARS). */
+export interface CapabilityStatement {
+  earsText: string;
+  pattern: EarsPattern;
+  kind: 'capability' | 'limitation';
+  scopeRef: 'included' | 'excluded' | 'prerequisites' | 'deliverables' | 'body';
+  evidenceQuote: string;
+}
+
 export interface ServiceVersion {
   id: string; // SVC-012/v/3
   serviceId: string;
@@ -237,6 +281,8 @@ export interface ServiceVersion {
   status: 'draft' | 'published';
   publishedAt?: string;
   publishedBy?: string;
+  /** EARS capability statements generated from the published body (tender analysis) */
+  earsCapabilities?: CapabilityStatement[];
 }
 
 export interface CatalogService {
@@ -337,6 +383,12 @@ export interface TenderDocument {
   sha256?: string;
   artifactDate?: string;
   artifactParties?: string;
+  /** 'markers' = real page numbers from the parser; 'estimated' = ~3000 chars/page */
+  pageSource?: 'markers' | 'estimated';
+  sectionCount?: number;
+  /** workbook documents carry parsed/<docId>/cells.json */
+  hasCells?: boolean;
+  parseNotes?: string;
 }
 
 export interface DocumentSection {

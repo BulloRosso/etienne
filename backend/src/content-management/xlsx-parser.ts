@@ -262,7 +262,7 @@ export function isXlsxPath(path: string): boolean {
 // strings ("25", "25.5", "25,5"), formula results, and percent strings
 // ("25%" → 25). Anything else returns undefined so callers can distinguish
 // "no weight" from "weight is zero".
-function cellValueToNumber(value: unknown): number | undefined {
+export function cellValueToNumber(value: unknown): number | undefined {
   if (value == null || value === '') return undefined;
   if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
   if (typeof value === 'boolean') return undefined;
@@ -279,7 +279,7 @@ function cellValueToNumber(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function cellValueToText(value: unknown): string {
+export function cellValueToText(value: unknown): string {
   if (value == null) return '';
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
@@ -294,7 +294,7 @@ function cellValueToText(value: unknown): string {
   return String(value);
 }
 
-function columnNumberToLetter(n: number): string {
+export function columnNumberToLetter(n: number): string {
   let s = '';
   let x = n;
   while (x > 0) {

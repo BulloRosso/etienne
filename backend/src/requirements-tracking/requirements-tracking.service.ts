@@ -29,6 +29,11 @@ import { AutoMappingPipeline } from './pipelines/auto-mapping.pipeline';
 import { CompliancePipeline } from './pipelines/compliance.pipeline';
 import { ResponseService } from './response.service';
 import { ClaimsService } from './claims.service';
+import { TenderAnalysisPipeline } from './pipelines/tender-analysis.pipeline';
+import { AnalysisReportService } from './analysis/analysis-report.service';
+import { GlossaryService } from './analysis/glossary.service';
+import { ConsistencyCheckService } from './analysis/consistency-check';
+import { CatalogEarsService } from './analysis/catalog-ears.service';
 import { CLASS } from './graph/tt-vocab';
 import { Proposal, TenderMeta } from './types/tendertrace-types';
 
@@ -86,6 +91,11 @@ export class RequirementsTrackingService {
     public readonly compliance: CompliancePipeline,
     public readonly response: ResponseService,
     public readonly claims: ClaimsService,
+    public readonly analysis: TenderAnalysisPipeline,
+    public readonly analysisReport: AnalysisReportService,
+    public readonly glossary: GlossaryService,
+    public readonly consistency: ConsistencyCheckService,
+    public readonly catalogEars: CatalogEarsService,
   ) {}
 
   /** Create a capture and run the conversational pipeline in the background. */

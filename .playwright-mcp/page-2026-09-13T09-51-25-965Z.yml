@@ -1,0 +1,107 @@
+- generic [ref=f1e4]:
+  - banner [ref=f1e5]:
+    - generic [ref=f1e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f1e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f1e8] [cursor=pointer]
+      - button "Präsentation" [ref=f1e12] [cursor=pointer]
+      - generic [ref=f1e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f1e24]
+      - button [ref=f1e25] [cursor=pointer]
+  - generic [ref=f1e54]:
+    - generic [ref=f1e58]:
+      - generic [ref=f1e59]:
+        - button "Neue Sitzung starten" [ref=f1e60] [cursor=pointer]
+        - generic [ref=f1e63]:
+          - generic [ref=f1e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f1e65]
+            - generic "Arbeitsmodus" [ref=f1e76]
+          - generic [ref=f1e80]: Arbeitsmodus
+        - generic [ref=f1e81]:
+          - button "Benachrichtigungen" [ref=f1e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f1e85] [cursor=pointer]
+      - generic [ref=f1e89]:
+        - img "Agent avatar" [ref=f1e91]
+        - generic [ref=f1e93]:
+          - paragraph [ref=f1e95]:
+            - strong [ref=f1e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f1e97]: 11:49
+      - generic [ref=f1e101]:
+        - button "Dateianhänge hinzufügen" [ref=f1e103] [cursor=pointer]
+        - generic [ref=f1e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f1e108]
+          - group [aria-hidden]
+        - button [ref=f1e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f1e117]:
+      - generic [ref=f1e118]:
+        - tablist [ref=f1e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f1e122] [cursor=pointer]
+          - tab "Rolle" [ref=f1e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f1e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f1e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f1e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f1e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f1e132] [cursor=pointer]
+      - tabpanel [ref=f1e135]:
+        - generic [ref=f1e137]:
+          - generic [ref=f1e139]:
+            - tablist [ref=f1e143]:
+              - tab "analysis.tendertrace.json" [selected] [ref=f1e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f1e154] [cursor=pointer]
+            - button [ref=f1e165] [cursor=pointer]
+          - generic [ref=f1e173]:
+            - iframe [active] [ref=f1e175]:
+              - iframe [active] [ref=f2e2]:
+                - generic [ref=f3e3]:
+                  - banner [ref=f3e4]:
+                    - generic [ref=f3e5]:
+                      - generic "Back" [ref=f3e6]:
+                        - button [ref=f3e76] [cursor=pointer]
+                      - button "Dashboard" [ref=f3e7] [cursor=pointer]
+                      - heading "TenderTrace — Review Queue" [level=6] [ref=f3e192]
+                  - generic [ref=f3e193]:
+                    - generic [ref=f3e195]:
+                      - generic [ref=f3e196]: D-01 · Leistungsbeschreibung Betrieb Logistikzentrum Nord > 1 Gegenstand der Ausschreibung · p.1
+                      - generic [ref=f3e197]:
+                        - text: "## 1 Gegenstand der Ausschreibung Die Nordland Handels AG (Auftraggeber) schreibt den Betrieb ihres Logistikzentrums Nord in Bremen als Kontraktlogistik-Dienstleistung aus."
+                        - mark [ref=f3e198]: Der Auftragnehmer übernimmt Wareneingang, Lagerung, Kommissionierung, Warenausgang und Retourenabwicklung für das Sortiment Haushaltswaren und Elektrokleingeräte.
+                        - text: Der Betrieb erfolgt im bestehenden Gebäude des Auftraggebers. Der Auftraggeber stellt Gebäude, Regaltechnik und Flurförderzeuge bereit.
+                    - generic [ref=f3e199]:
+                      - generic [ref=f3e200]:
+                        - tablist [ref=f3e203]:
+                          - tab "Queue (26)" [selected] [ref=f3e204] [cursor=pointer]
+                          - tab "Ambiguities (4)" [ref=f3e205] [cursor=pointer]
+                        - generic "Bulk-approve confidence ≥ 0.85 without ambiguities" [ref=f3e207]:
+                          - button [ref=f3e208] [cursor=pointer]
+                      - generic [ref=f3e213]:
+                        - generic [ref=f3e214]:
+                          - generic [ref=f3e215]: P-0011 · R-001
+                          - generic [ref=f3e216]: ubiquitous
+                          - generic [ref=f3e218]: functional
+                          - generic [ref=f3e220]: MUSS
+                          - generic "Confidence 95%" [ref=f3e222]:
+                            - progressbar [ref=f3e223]
+                            - generic [ref=f3e225]: 95%
+                        - paragraph [ref=f3e226]: Der Auftragnehmer muss Wareneingang, Lagerung, Kommissionierung, Warenausgang und Retourenabwicklung für das Sortiment Haushaltswaren und Elektrokleingeräte übernehmen.
+                        - paragraph [ref=f3e227]: "In unserer Terminologie: Der Auftragnehmer muss Inbound-Handling, Bestandsführung & permanente Inventur, Order Fulfillment (Picking & Packing), Outbound-Handling & Versandkonsolidierung und Returns Management für das Sortiment Haushaltswaren und Elektrokleingeräte übernehmen."
+                        - generic [ref=f3e228]:
+                          - generic [ref=f3e229]: Wareneingang → Inbound-Handling
+                          - generic [ref=f3e231]: Lagerung → Bestandsführung & permanente Inventur
+                          - generic [ref=f3e233]: Kommissionierung → Order Fulfillment (Picking & Packing)
+                          - generic [ref=f3e235]: Warenausgang → Outbound-Handling & Versandkonsolidierung
+                          - generic [ref=f3e237]: Retourenabwicklung → Returns Management
+                        - generic [ref=f3e239]:
+                          - paragraph [ref=f3e243]: Der Auftragnehmer übernimmt Wareneingang, Lagerung, Kommissionierung, Warenausgang und Retourenabwicklung für das Sortiment Haushaltswaren und Elektrokleingeräte.
+                          - text: Leistungsbeschreibung Betrieb Logistikzentrum Nord > 1 Gegenstand der Ausschreibung
+                        - generic [ref=f3e244]:
+                          - group [ref=f3e245]:
+                            - button "Approve (A)" [ref=f3e246] [cursor=pointer]
+                            - button "Reject (R)" [ref=f3e247] [cursor=pointer]
+                          - button "Edit (E)" [ref=f3e248] [cursor=pointer]
+                      - separator [ref=f3e249]
+                      - generic [ref=f3e250]:
+                        - button [ref=f3e251] [cursor=pointer]
+                        - button [ref=f3e254] [cursor=pointer]
+                        - generic [ref=f3e257]: "1 / 26 · keys: ↑↓ navigate · A approve · E edit · R reject"
+            - button "MCP UI Status" [ref=f1e176] [cursor=pointer]

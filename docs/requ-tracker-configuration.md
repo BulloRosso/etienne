@@ -282,34 +282,38 @@ image works unchanged against the public Anthropic API.
 ## The seeded project
 
 On first boot the container installs the **`seed-requirements-tracking`**
-project — `tendertrace-stadtwerke`, the TenderTrace story caught mid-flight
-(spec: `requirements-docs/requirements-tracking/`).
+project — `tendertrace-analysis`, the TenderTrace **tender-analysis showcase**
+(domain: Lagerlogistik / Kontraktlogistik; see
+`scripts/seed-requirements-tracking/README.md`).
 
-It is not a file copy: the seed replays the whole history through the product's
-own MCP tools with backdated timestamps, so the state is exactly what the app
-produces in real use. That is why every service must be live first.
+The seed writes the folder contract of the Analyse-Cockpit with synthetic
+customer documents and, because `SEED_RUN_ANALYSIS=true`, starts phase A of the
+analysis through the product's own MCP tool — that is why every service (and the
+LLM connection) must be live first.
 
 What you get:
 
-- tender `T-2026-014` "Kundenselfservice-Portal Stadtwerke Musterstadt", 3 German
-  tender documents + 2 implementation artifacts
-- **22 approved requirements** (REQ-001…REQ-022), 1 pending extraction card,
-  1 rejected; baseline **v1.0** frozen 2026-04-30
-- 5 catalog services with mappings and compliance verdicts (FULL / PARTIAL /
-  NEEDS_INPUT), 3 response sections
-- 12 mock Jira issues, 5 requirement↔issue links (1 auto-staled by a change order)
-- 4 drift cards — including the **unresolved Cloud vs. On-Premises conflict**
-  that blocks in the Drift Inbox
-- 1 deviation report, 1 priced claim ("Nachtrag 01 — Exportformate")
-- 14 viewer pages under `out/tendertrace/pages/*.tendertrace.json`, the German
-  `documentation.md`, and the **TenderTrace** sidebar
-  (`application-types-repository/requirements-tracking/config.json`)
+- tender `T-2026-031` "Betrieb Logistikzentrum Nord — Nordland Handels AG":
+  `tender/01-leistungsbeschreibung-lagerlogistik.docx`,
+  `tender/02-vertragsbedingungen.docx`, `tender/Mengengeruest.xlsx`
+- `servicecatalog/leistungskatalog.md` (our vocabulary) + `glossary.md`
+  (customer term → our term), `analysis-template/management-analyse.md`
+- after phase A: EARS requirement cards in the Review Queue (in our
+  vocabulary), **exactly one figure contradiction** (12.400 vs 12.000
+  Palettenstellplätze) waiting in cockpit step 3, the catalog published with
+  EARS capability statements
+- 15 viewer pages under `out/tendertrace/pages/*.tendertrace.json` (the
+  cockpit auto-opens), the German `documentation.md`, and the **TenderTrace**
+  sidebar (`application-types-repository/requirements-tracking/config.json`)
+
+Drop your own PDF/Word/Excel files into `tender/` on the file share and press
+**Erneut einlesen** in the cockpit — unchanged files are skipped by content hash.
 
 Seeding is **idempotent** — it is skipped when the project directory already
 exists, so restarts and redeploys against a persistent share are safe:
 
 ```
-[seed] Project 'tendertrace-stadtwerke' already exists at /mnt/fileshare/tendertrace-stadtwerke — skipping.
+[seed] Project 'tendertrace-analysis' already exists at /mnt/fileshare/tendertrace-analysis — skipping.
 ```
 
 A failed seed never takes the container down; it removes the partial directory
@@ -333,7 +337,8 @@ docker exec <container> /app/docker-lib/seed-project.sh
 | `WORKSPACE_ROOT` | `/app/workspace` | workspace path when no file share is configured |
 | `FRONTEND_PORT` | `80` | published port; App Service's injected `PORT` also works |
 | `SKIP_SEED` | `false` | `true` disables first-boot seeding |
-| `SEED_PROJECT_NAME` | `tendertrace-stadtwerke` | the directory the seed guard checks |
+| `SEED_PROJECT_NAME` | `tendertrace-analysis` | the directory the seed guard checks |
+| `SEED_RUN_ANALYSIS` | `true` | start phase A of the tender analysis right after seeding (needs the LLM connection) |
 | `SEED_USERNAME` / `SEED_PASSWORD` | `admin` / `admin123` | credentials the seed logs in with |
 
 > **`PORT` is deliberately not set in the image.** oauth-server reads

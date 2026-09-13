@@ -1,0 +1,26 @@
+- generic [ref=e22]:
+  - banner [ref=e23]:
+    - generic [ref=e24]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=e654]
+      - button "20.48€ global ausgegeben (10%)" [ref=e655] [cursor=pointer]
+      - button "Präsentation" [ref=e659] [cursor=pointer]
+      - generic [ref=e30] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=e660]
+      - button [active] [ref=e39] [cursor=pointer]
+  - generic [ref=e661]:
+    - generic [ref=e662] [cursor=pointer]:
+      - button [ref=e663]
+      - generic [ref=e666]: Vorherige Gespräche / Einstellungen
+    - generic [ref=e667]:
+      - heading "Guten Abend, Benutzer" [level=3] [ref=e668]
+      - generic [ref=e669]:
+        - button [ref=e670] [cursor=pointer]
+        - generic [ref=e674]:
+          - textbox "Bitte beschreiben Sie so genau wie möglich, was wir in unserer Sitzung erreichen wollen. Das ist entscheidend für hochwertige Antworten!" [ref=e675]
+          - group [aria-hidden]
+        - button [ref=e676] [cursor=pointer]
+        - button [disabled]
+      - generic [ref=e679]:
+        - button "Wo steht die Analyse?" [ref=e680] [cursor=pointer]
+        - button "Offene Klärungen" [ref=e682] [cursor=pointer]
+        - button "Bericht erklären" [ref=e684] [cursor=pointer]

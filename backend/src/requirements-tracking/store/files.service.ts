@@ -22,7 +22,10 @@ export class TtFilesService {
   private readonly workspaceDir = path.join(process.cwd(), '..', 'workspace');
 
   private static readonly PATH_ALLOW =
-    /^(uploads|parsed|artifacts|response|exports|catalog|tracker|reports|captures|tmp)\//;
+    /^(uploads|parsed|artifacts|response|exports|catalog|tracker|reports|captures|tmp|analysis)\//;
+
+  /** The only project-root locations this service may write to (deliverables). */
+  private static readonly PROJECT_WRITE_ALLOW = /^out\/analysis\//;
 
   rootDir(project: string): string {
     return path.join(this.workspaceDir, project, 'requirements-tracking');
@@ -144,6 +147,89 @@ export class TtFilesService {
     }
     const buffer = await fs.readFile(resolved);
     return this.writeFile(project, targetRelativePath, buffer);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project-root access (tender/, servicecatalog/, analysis-template/, out/analysis/)
+  // ---------------------------------------------------------------------------
+
+  /** Resolve a project-relative path, refusing anything that escapes the project. */
+  projectAbsolutePath(project: string, projectRelativePath: string): string {
+    if (
+      !projectRelativePath ||
+      projectRelativePath.includes('..') ||
+      projectRelativePath.includes('\\') ||
+      path.isAbsolute(projectRelativePath)
+    ) {
+      throw new Error(`Invalid project path: ${projectRelativePath}`);
+    }
+    const resolved = path.resolve(path.join(this.projectDir(project), ...projectRelativePath.split('/')));
+    if (!resolved.startsWith(path.resolve(this.projectDir(project)))) {
+      throw new Error(`Path escapes the project: ${projectRelativePath}`);
+    }
+    return resolved;
+  }
+
+  async projectFileExists(project: string, projectRelativePath: string): Promise<boolean> {
+    try {
+      await fs.access(this.projectAbsolutePath(project, projectRelativePath));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async readProjectText(project: string, projectRelativePath: string): Promise<string> {
+    return fs.readFile(this.projectAbsolutePath(project, projectRelativePath), 'utf-8');
+  }
+
+  async readProjectBuffer(project: string, projectRelativePath: string): Promise<Buffer> {
+    return fs.readFile(this.projectAbsolutePath(project, projectRelativePath));
+  }
+
+  /** Non-recursive file listing of a project folder (empty when the folder is missing). */
+  async listProjectDir(project: string, projectRelativeDir: string): Promise<string[]> {
+    try {
+      const dir = this.projectAbsolutePath(project, projectRelativeDir.replace(/\/$/, ''));
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      return entries.filter((entry) => entry.isFile()).map((entry) => entry.name).sort();
+    } catch {
+      return [];
+    }
+  }
+
+  /** Atomic write into the project root — restricted to `out/analysis/` deliverables. */
+  async writeProjectFile(
+    project: string,
+    projectRelativePath: string,
+    content: Buffer | string,
+  ): Promise<{ relativePath: string; sha256: string; byteCount: number }> {
+    if (!TtFilesService.PROJECT_WRITE_ALLOW.test(projectRelativePath)) {
+      throw new Error(`Refusing to write outside out/analysis/: ${projectRelativePath}`);
+    }
+    const absolute = this.projectAbsolutePath(project, projectRelativePath);
+    await fs.mkdir(path.dirname(absolute), { recursive: true });
+    const buffer = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
+    const tempPath = `${absolute}.tmp-${crypto.randomBytes(4).toString('hex')}`;
+    const handle = await fs.open(tempPath, 'w');
+    try {
+      await handle.writeFile(buffer);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    await fs.rename(tempPath, absolute);
+    return {
+      relativePath: projectRelativePath,
+      sha256: crypto.createHash('sha256').update(buffer).digest('hex'),
+      byteCount: buffer.length,
+    };
+  }
+
+  /** sha256 of a project file (for idempotent re-runs). */
+  async projectFileSha256(project: string, projectRelativePath: string): Promise<string> {
+    const buffer = await this.readProjectBuffer(project, projectRelativePath);
+    return crypto.createHash('sha256').update(buffer).digest('hex');
   }
 
   /** Remove tmp/ staging files older than the grace period (default 24 h). */

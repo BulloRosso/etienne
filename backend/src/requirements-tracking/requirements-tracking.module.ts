@@ -35,6 +35,12 @@ import { AutoMappingPipeline } from './pipelines/auto-mapping.pipeline';
 import { CompliancePipeline } from './pipelines/compliance.pipeline';
 import { ResponseService } from './response.service';
 import { ClaimsService } from './claims.service';
+import { GlossaryService } from './analysis/glossary.service';
+import { ExcelFigureService } from './analysis/excel-figures';
+import { ConsistencyCheckService } from './analysis/consistency-check';
+import { CatalogEarsService } from './analysis/catalog-ears.service';
+import { AnalysisReportService } from './analysis/analysis-report.service';
+import { TenderAnalysisPipeline } from './pipelines/tender-analysis.pipeline';
 
 /**
  * TenderTrace — requirements tracking (spec: requirements-docs/requirements-tracking/).
@@ -83,6 +89,13 @@ import { ClaimsService } from './claims.service';
     CompliancePipeline,
     ResponseService,
     ClaimsService,
+    // tender analysis (two-phase run behind the cockpit)
+    GlossaryService,
+    ExcelFigureService,
+    ConsistencyCheckService,
+    CatalogEarsService,
+    AnalysisReportService,
+    TenderAnalysisPipeline,
     RequirementsTrackingService,
   ],
   exports: [RequirementsTrackingService, TtEventsService],

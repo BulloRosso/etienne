@@ -42,12 +42,23 @@ test in a loop works whether the live stores are up or not.
 | `adaptive-memory-review-queue.test.ts` | JSONL append-only with tombstones, latest-verdict-wins replay, per-project + cross-project indexes, malformed-line tolerance. | 10 |
 | `adaptive-memory-ponderer.test.ts` | End-to-end 5-stage cycle: quality scoring → maintenance → personality induction → self-edit → publish-review. Activation gate. Event emission. | 7 |
 | `azure-ai-connection.test.ts` | `backend/src/azure-ai/azure-ai-connection.ts` — `AZURE_AI_CONNECTION` grammar (shorthands, portal-paste tolerance, `=` inside secrets), managed-identity vs api-key env projection, deployment-name/tier aliasing, explicit-env-wins, no secret in the log summary. | 13 |
+| `reqtrack-sectionizer.test.ts` | `requirements-tracking/ingestion/sectionizer.ts` — numbered / ALL-CAPS / keyword headings, TOC + quantity lines rejected, `<!-- page: N -->` markers → real pages, contiguous char offsets, estimated-page fallback. | 5 |
+| `reqtrack-units.test.ts` | `requirements-tracking/analysis/units.ts` — German numbers, unit normalisation (T€/Mio €/qm/Std.), numbers-in-text extraction (skips §/dates/times/years), tolerance rules. | 4 |
+| `reqtrack-excel-figures.test.ts` | workbook → quotable row lines + cell records; figure index unit detection (header › adjacent › numFmt › row label), percent scaling, calendar years excluded. | 3 |
+| `reqtrack-consistency.test.ts` | Excel consistency check with a stubbed LLM: alert ONLY when the same quantity differs; equal + unmatched silent; no LLM call without numbers; resolutions survive re-runs. | 4 |
+| `reqtrack-one-shall.test.ts` | atomicity heuristic: "muss … können" = 1 obligation, "darf … nicht", "sind … zu buchen", two-obligation sentences still rejected. | 1 |
+| `reqtrack-glossary.test.ts` | user glossary parser (table + bullets, merge by our term) and bounded `<glossary>` rendering. | 2 |
+| `reqtrack-analysis-report-blocks.test.ts` | management-analysis blocks (KPI/verdict/alert tables), token substitution with appendix, deterministic fallback document. | 3 |
+| `reqtrack-quote-validator.test.ts` | **Live-run regression (2026-09-12).** mammoth escapes markdown punctuation (`18\.500 m²`), which failed every verbatim-quote check and produced 0 requirements. Covers `unescapeMarkdownPunctuation`, escape/smart-quote/dash normalisation, and that invented or altered quotes are still rejected. | 4 |
+| `reqtrack-analysis-run-recovery.test.ts` | **Live-run regression (2026-09-13).** `getStatus` must be a pure read (a stale heartbeat is annotated, never flipped to `failed` — the status poller used to kill its own live run at 56 %), `rejectOrphanedImports` must clear undecided catalog-import cards left by a crashed run, and `isRunLive` is the one staleness rule every guard shares (status alone blocked all new runs after a crash). | 5 |
+| `reqtrack-resolve-alert-version-sync.test.ts` | **Live-run regression (2026-09-13).** A contradiction resolved AFTER its card was approved never reached the frozen requirement version, so the drafted bidder question vanished from the report while the cockpit still counted it (15 vs 14). Covers: resolve-after-approve mirrors question + resolution onto the version in place, resolve-before-approve writes only the card, an "excel" resolution records the decision without a question, re-deciding is idempotent (three resolves leave one draft), and switching away from "clarify" removes the stale question. | 5 |
+| `reqtrack-project-lock.test.ts` | **Live-run regression (2026-09-13).** `ProjectLockService` must be re-entrant per project: `decide()` → catalog_import effect → `createService`/`publish` all take the same lock and deadlocked the project forever. Covers the real nested chain, serialisation of separate operations, cross-project independence, no held-set leakage, release on throw. Each check has a 2 s deadlock timeout. | 5 |
 
-Total: **161 assertions** across 14 unit-style files. Run them all:
+Total: **217 passing checks** across 26 unit-style files (175 in the memory/adaptive-memory/azure set, 42 in the `reqtrack-*` set). Counted from the `PASS` lines each file prints, not from the per-file numbers above. Run them all:
 
 ```bash
 cd backend
-for f in test/memory-*.test.ts test/adaptive-memory-*.test.ts; do
+for f in test/memory-*.test.ts test/adaptive-memory-*.test.ts test/reqtrack-*.test.ts; do
   echo "--- $f"
   npx tsx "$f" 2>&1 | tail -1
 done

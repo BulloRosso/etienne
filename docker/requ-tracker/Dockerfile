@@ -4,7 +4,8 @@
 #   * vector-store + rdf-store are first-class services started at boot, not
 #     opt-in extras — requirements-tracking needs both.
 #   * the mcp-app-requirements-tracking viewer is built into the image.
-#   * a seed-requirements-tracking project is installed on first boot.
+#   * a seed-requirements-tracking project (tendertrace-analysis, the tender-analysis
+#     showcase) is installed on first boot.
 #   * WORKSPACE_ROOT_AZURE_FILESHARE resolves the workspace at runtime.
 #   * AZURE_AI_CONNECTION points the coding agent and the LLM service at
 #     Claude models in Azure AI Foundry using a managed identity.
@@ -50,8 +51,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Docker Hub + PyPI reachability (ghcr.io often needs auth behind a proxy).
 RUN pip3 install --no-cache-dir --break-system-packages uv
 
-# tsx runs the seed script (plain TypeScript, no build step).
-RUN npm install -g tsx
+# tsx runs the seed script (plain TypeScript, no build step); liteparse is installed
+# globally so the office-and-pdf-documents skill works from a workspace outside /app.
+RUN npm install -g tsx @llamaindex/liteparse
 
 WORKDIR /app
 
@@ -182,7 +184,9 @@ ENV CHROMADB_URL=http://localhost:7100
 
 # --- Seed ------------------------------------------------------------------
 ENV SKIP_SEED=false
-ENV SEED_PROJECT_NAME=tendertrace-stadtwerke
+ENV SEED_PROJECT_NAME=tendertrace-analysis
+# Start phase A of the tender analysis right after seeding (needs an LLM connection).
+ENV SEED_RUN_ANALYSIS=true
 
 # The container's single published port. Deliberately NOT named PORT: App
 # Service injects PORT, and oauth-server reads it (`process.env.PORT || 5950`),

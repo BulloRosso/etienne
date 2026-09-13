@@ -1,0 +1,181 @@
+- generic [ref=e1]:
+  - generic [ref=e22]:
+    - banner [ref=e23]:
+      - generic [ref=e24]:
+        - heading [level=6] [ref=e136]: "Etienne: ein Coding-Agent-Harness"
+        - button [ref=e137] [cursor=pointer]
+        - generic [ref=e30] [cursor=pointer]
+        - heading [level=6] [ref=e138]: "[Projekt auswählen/erstellen]"
+        - button [ref=e39] [cursor=pointer]
+    - generic [ref=e43]:
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - button [ref=e139] [cursor=pointer]
+          - generic [ref=e52]:
+            - generic [ref=e53] [cursor=pointer]
+            - generic [ref=e69]: Arbeitsmodus
+          - generic [ref=e70]:
+            - button [ref=e142] [cursor=pointer]
+            - button [ref=e143] [cursor=pointer]
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - button [disabled]
+          - generic [ref=e84]:
+            - textbox [disabled] [ref=e144]:
+              - /placeholder: Nachricht eingeben und @ verwenden, um Dateien zu erwähnen...
+            - group [aria-hidden]
+          - button [disabled]
+          - button [disabled]
+      - generic [ref=e91]:
+        - tablist [ref=e95]:
+          - tab [selected] [ref=e145] [cursor=pointer]: Arbeitsbereich
+        - tabpanel [ref=e98]:
+          - generic [ref=e100]:
+            - paragraph [ref=e132]: Ihre letzten Aufträge
+            - paragraph [ref=e135]: Hier werden ausgewählte Dokumente aus Ihrem Workspace als Vorschau angezeigt
+  - menu [ref=e149]:
+    - generic [ref=e150]:
+      - generic [ref=e152]:
+        - generic [ref=e154]:
+          - heading "Etienne" [level=6] [ref=e155]
+          - button [ref=e156] [cursor=pointer]
+        - generic [ref=e160] [cursor=pointer]:
+          - button "Passwort ändern" [ref=e162]
+          - generic [ref=e165]:
+            - paragraph [ref=e166]: Administrator
+            - text: admin
+        - generic [ref=e169]:
+          - generic [ref=e170]:
+            - img "Subagenten" [ref=e172]
+            - generic "Subagenten" [ref=e173]
+          - generic [ref=e174]:
+            - img "Skills" [ref=e176]
+            - generic "Skills" [ref=e177]
+          - generic [ref=e178]:
+            - img "Wissensdatenbank" [ref=e180]
+            - generic "Wissensdatenbank" [ref=e181]
+          - generic [ref=e182]:
+            - img "Externe Ereignisse" [ref=e184]
+            - generic "Externe Ereignisse" [ref=e185]
+          - generic [ref=e186]:
+            - img "Zeitplanung" [ref=e188]
+            - generic "Zeitplanung" [ref=e189]
+          - generic [ref=e190]:
+            - img "Leitplanken" [ref=e192]
+            - generic "Leitplanken" [ref=e193]
+          - generic [ref=e194]:
+            - img "Budget-Einstellungen" [ref=e196]
+            - generic "Budget-Einstellungen" [ref=e197]
+          - generic [ref=e198]:
+            - img "Träumen" [ref=e200]
+            - generic "Träumen" [ref=e201]
+          - generic [ref=e202]:
+            - img "Adaptives Gedächtnis" [ref=e204]
+            - generic "Adaptives Gedächtnis" [ref=e205]
+          - generic [ref=e206]:
+            - img "Benutzeroberfläche anpassen" [ref=e208]
+            - generic "Benutzeroberfläche anpassen" [ref=e209]
+          - generic [ref=e210] [cursor=pointer]:
+            - img "Schnellaktionen" [ref=e212]
+            - generic "Schnellaktionen" [ref=e213]
+          - generic [ref=e214]:
+            - img "Kontext/Tagging" [ref=e216]
+            - generic "Kontext/Tagging" [ref=e217]
+          - generic [ref=e218]:
+            - img "Zustandsüberwachung" [ref=e220]
+            - generic "Zustandsüberwachung" [ref=e221]
+          - generic [ref=e222]:
+            - img "Workflows" [ref=e224]
+            - generic "Workflows" [ref=e225]
+          - generic [ref=e226]:
+            - img "Notizbuch" [ref=e228]
+            - generic "Notizbuch" [ref=e229]
+          - generic [ref=e230]:
+            - img "Probleme" [ref=e232]
+            - generic "Probleme" [ref=e233]
+          - generic [ref=e234]:
+            - img "Entscheidungsunterstützung" [ref=e236]
+            - generic "Entscheidungsunterstützung" [ref=e237]
+          - generic [ref=e238]:
+            - img "Team up!" [ref=e240]
+            - generic "Team up!" [ref=e241]
+          - generic [ref=e242] [cursor=pointer]:
+            - img "Skill Store" [ref=e244]
+            - generic "Skill Store" [ref=e245]
+          - generic [ref=e246] [cursor=pointer]:
+            - img "Vorschau-Viewer" [ref=e248]
+            - generic "Vorschau-Viewer" [ref=e249]
+          - generic [ref=e250]:
+            - img "OneDrive" [ref=e252]
+            - generic "OneDrive" [ref=e253]
+        - generic [ref=e254]:
+          - generic [ref=e255] [cursor=pointer]: Dienstesteuerung
+          - generic [ref=e259] [cursor=pointer]: Agent Persona
+          - generic "Compose a new Agent Package from scratch" [ref=e263] [cursor=pointer]: Compose package
+      - generic [ref=e268]:
+        - menuitem "Deine Projekte" [disabled]
+        - generic [ref=e269]:
+          - menuitem "acme" [ref=e270] [cursor=pointer]
+          - menuitem "adr-test" [ref=e276] [cursor=pointer]
+          - menuitem "agent-browser-3" [ref=e282] [cursor=pointer]
+          - menuitem "agent-sdk" [ref=e288] [cursor=pointer]
+          - menuitem "agent-sdk-petstore" [ref=e294] [cursor=pointer]
+          - menuitem "analysis" [ref=e300] [cursor=pointer]
+          - menuitem "analysis-copy" [ref=e306] [cursor=pointer]
+          - menuitem "ard-e2e-test" [ref=e312] [cursor=pointer]
+          - menuitem "compliance" [ref=e318] [cursor=pointer]
+          - menuitem "condition-monitoring" [ref=e324] [cursor=pointer]
+          - menuitem "data" [ref=e330] [cursor=pointer]
+          - menuitem "desalination-devices" [ref=e336] [cursor=pointer]
+          - menuitem "diffbot" [ref=e342] [cursor=pointer]
+          - menuitem "document-creation-demo" [ref=e348] [cursor=pointer]
+          - menuitem "document-demo" [ref=e354] [cursor=pointer]
+          - menuitem "ev-exploration" [ref=e360] [cursor=pointer]
+          - menuitem "factory-line-sim" [ref=e366] [cursor=pointer]
+          - menuitem "global" [ref=e372] [cursor=pointer]
+          - menuitem "guiding-documents" [ref=e378] [cursor=pointer]
+          - menuitem "image-generation" [ref=e384] [cursor=pointer]
+          - menuitem "int-ds-5632c2d5" [ref=e390] [cursor=pointer]
+          - menuitem "int-ds-7d71c4dc" [ref=e396] [cursor=pointer]
+          - menuitem "int-ds-96a36ffd" [ref=e402] [cursor=pointer]
+          - menuitem "int-ds-d16e43c3" [ref=e408] [cursor=pointer]
+          - menuitem "int-ds-f31427c5" [ref=e414] [cursor=pointer]
+          - menuitem "int-kg-7af5cc53" [ref=e420] [cursor=pointer]
+          - menuitem "int-kg-a35a54ee" [ref=e426] [cursor=pointer]
+          - menuitem "int-kg-b8cb2ed4" [ref=e432] [cursor=pointer]
+          - menuitem "int-pond-987d483b" [ref=e438] [cursor=pointer]
+          - menuitem "int-pond-a47bd303" [ref=e444] [cursor=pointer]
+          - menuitem "learning-agent-3" [ref=e450] [cursor=pointer]
+          - menuitem "lumitec-led-onboarding" [ref=e456] [cursor=pointer]
+          - menuitem "mb-config" [ref=e462] [cursor=pointer]
+          - menuitem "notifications" [ref=e468] [cursor=pointer]
+          - menuitem "office-parser" [ref=e474] [cursor=pointer]
+          - menuitem "onboarding" [ref=e480] [cursor=pointer]
+          - menuitem "ontology" [ref=e486] [cursor=pointer]
+          - menuitem "opencode-deepseek-v4-pro" [ref=e492] [cursor=pointer]
+          - menuitem "pet-store" [ref=e498] [cursor=pointer]
+          - menuitem "public-dashboard" [ref=e504] [cursor=pointer]
+          - menuitem "quote-configurator" [ref=e510] [cursor=pointer]
+          - menuitem "rag-example" [ref=e516] [cursor=pointer]
+          - menuitem "requirements-hv" [ref=e522] [cursor=pointer]
+          - menuitem "scrapbook-desalination-devices" [ref=e528] [cursor=pointer]
+          - menuitem "scrapbook-desalination-devices-design" [ref=e534] [cursor=pointer]
+          - menuitem "scrapbook-diffbot" [ref=e540] [cursor=pointer]
+          - menuitem "scrapbook-guiding-documents" [ref=e546] [cursor=pointer]
+          - menuitem "scrapbook-int-ds-d16e43c3" [ref=e552] [cursor=pointer]
+          - menuitem "scrapbook-ontology-house-planning" [ref=e558] [cursor=pointer]
+          - menuitem "scrapbook-scrapbook-crawler" [ref=e564] [cursor=pointer]
+          - menuitem "scrapbook-scrapbook-ontology" [ref=e570] [cursor=pointer]
+          - menuitem "scrapbook-scrapbook-scrapbook-todo-list" [ref=e576] [cursor=pointer]
+          - menuitem "scrapbook-scraper-3" [ref=e582] [cursor=pointer]
+          - menuitem "scrapbook-tanker-long-horizon" [ref=e588] [cursor=pointer]
+          - menuitem "scrapbook-tanker-long-horizon-fleet" [ref=e594] [cursor=pointer]
+          - menuitem "scraper-3" [ref=e600] [cursor=pointer]
+          - menuitem "tanker-long-horizon" [ref=e606] [cursor=pointer]
+          - menuitem "tender-basics" [ref=e612] [cursor=pointer]
+          - menuitem "tendertrace-analysis" [ref=e618] [cursor=pointer]
+          - menuitem "test-ux" [ref=e624] [cursor=pointer]
+          - menuitem "vapi-demo" [ref=e630] [cursor=pointer]
+          - menuitem "web-test" [ref=e636] [cursor=pointer]
+          - menuitem "wiki-test" [ref=e642] [cursor=pointer]
+        - button "Neues Projekt erstellen" [ref=e649] [cursor=pointer]

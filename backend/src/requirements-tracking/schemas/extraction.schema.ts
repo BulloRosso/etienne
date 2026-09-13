@@ -64,11 +64,19 @@ export const sourceSchema = z.object({
   quote: z.string(),
 });
 
+export const termMappingSchema = z.object({
+  customer_term: z.string(),
+  our_term: z.string(),
+});
+
 export const extractedRequirementSchema = z.object({
   temp_id: z.string(),
   ears_pattern: earsPatternSchema,
   ears_fields: earsFieldsSchema,
   ears_text: z.string(),
+  /** the same obligation re-expressed in OUR domain vocabulary (P-EXTRACT v2 rule 11) */
+  domain_text: z.string(),
+  term_mappings: z.array(termMappingSchema),
   category: categorySchema,
   modality: modalitySchema,
   quantities: z.array(quantitySchema),

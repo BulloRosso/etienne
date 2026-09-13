@@ -1,0 +1,138 @@
+- generic [ref=f13e4]:
+  - banner [ref=f13e5]:
+    - generic [ref=f13e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f13e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f13e8] [cursor=pointer]
+      - button "Präsentation" [ref=f13e12] [cursor=pointer]
+      - generic [ref=f13e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f13e24]
+      - button [ref=f13e25] [cursor=pointer]
+  - generic [ref=f13e54]:
+    - generic [ref=f13e58]:
+      - generic [ref=f13e59]:
+        - button "Neue Sitzung starten" [ref=f13e60] [cursor=pointer]
+        - generic [ref=f13e63]:
+          - generic [ref=f13e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f13e65]
+            - generic "Arbeitsmodus" [ref=f13e76]
+          - generic [ref=f13e80]: Arbeitsmodus
+        - generic [ref=f13e81]:
+          - button "Benachrichtigungen" [ref=f13e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f13e85] [cursor=pointer]
+      - generic [ref=f13e89]:
+        - img "Agent avatar" [ref=f13e91]
+        - generic [ref=f13e93]:
+          - paragraph [ref=f13e95]:
+            - strong [ref=f13e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f13e97]: 13:46
+      - generic [ref=f13e101]:
+        - button "Dateianhänge hinzufügen" [ref=f13e103] [cursor=pointer]
+        - generic [ref=f13e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f13e108]
+          - group [aria-hidden]
+        - button [ref=f13e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f13e117]:
+      - generic [ref=f13e118]:
+        - tablist [ref=f13e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f13e122] [cursor=pointer]
+          - tab "Rolle" [ref=f13e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f13e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f13e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f13e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f13e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f13e132] [cursor=pointer]
+      - tabpanel [ref=f13e135]:
+        - generic [ref=f13e137]:
+          - generic [ref=f13e139]:
+            - tablist [ref=f13e143]:
+              - tab "analysis.tendertrace.json" [selected] [ref=f13e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f13e154] [cursor=pointer]
+            - button [ref=f13e165] [cursor=pointer]
+          - generic [ref=f13e173]:
+            - iframe [ref=f13e175]:
+              - iframe [ref=f14e2]:
+                - generic [ref=f15e3]:
+                  - banner [ref=f15e4]:
+                    - generic [ref=f15e5]:
+                      - generic "Back" [ref=f15e6]:
+                        - button [disabled]
+                      - button "Dashboard" [ref=f15e7] [cursor=pointer]
+                      - heading "TenderTrace — Analyse-Cockpit" [level=6] [ref=f15e10]
+                  - generic [ref=f15e12]:
+                    - heading "Betrieb Logistikzentrum Nord — Nordland Handels AG" [level=5] [ref=f15e13]
+                    - 'heading "Sie sind in Schritt 4 von 5: Abgleich mit Leistungskatalog · Lauf AN-005" [level=6] [ref=f15e14]'
+                    - generic [ref=f15e15]:
+                      - progressbar [ref=f15e16]
+                      - paragraph [ref=f15e18]:
+                        - generic [ref=f15e19]: 64 %
+                        - text: · Abgleich Anforderungen ↔ Leistungskatalog
+                      - text: REQ-126 (7/40)
+                    - generic [ref=f15e20]:
+                      - generic [ref=f15e21]:
+                        - generic [ref=f15e22]: "1"
+                        - generic [ref=f15e23]:
+                          - generic [ref=f15e24]:
+                            - heading "Dokumente einlesen" [level=6] [ref=f15e25]
+                            - generic [ref=f15e26]: erledigt
+                          - paragraph [ref=f15e28]: 3 von 3 Dateien gelesen, 40 Anforderungen vorgeschlagen
+                          - generic [ref=f15e29]: REQ-126 (7/40)
+                          - generic [ref=f15e30]:
+                            - button "Erneut einlesen" [disabled]
+                            - generic [ref=f15e31]: Unveränderte Dateien werden übersprungen; neue Dateien in tender/ werden ergänzt.
+                      - generic [ref=f15e32]:
+                        - generic [ref=f15e33]: "2"
+                        - generic [ref=f15e34]:
+                          - generic [ref=f15e35]:
+                            - heading "Anforderungen prüfen" [level=6] [ref=f15e36]
+                            - generic [ref=f15e37]: erledigt
+                          - paragraph [ref=f15e39]: 40 Anforderungen freigegeben, 0 verworfen
+                          - generic [ref=f15e40]: Jede Karte wird von einem Menschen freigegeben oder verworfen (Review-Queue).
+                          - button [ref=f15e42] [cursor=pointer]
+                      - generic [ref=f15e46]:
+                        - generic [ref=f15e47]: "3"
+                        - generic [ref=f15e48]:
+                          - generic [ref=f15e49]:
+                            - heading "Widersprüche klären" [level=6] [ref=f15e50]
+                            - generic [ref=f15e51]: erledigt
+                          - paragraph [ref=f15e53]: 2 Widerspruch/-sprüche geklärt
+                          - generic [ref=f15e54]: Nur Kennzahlen, die in beiden Quellen vorkommen und abweichen, werden gemeldet.
+                          - generic [ref=f15e55]:
+                            - generic [ref=f15e56]:
+                              - heading "Mengen › Palettenstellplätze › Anzahl (P-0224)" [level=6] [ref=f15e57]:
+                                - text: Mengen › Palettenstellplätze › Anzahl
+                                - generic [ref=f15e58]: (P-0224)
+                              - paragraph [ref=f15e59]: "Ausschreibung: 12400 Palettenstellplätze · Excel: 12.000 (Mengen!B2) · Abweichung 3,3 %"
+                              - generic [ref=f15e60]: Der Auftragnehmer muss im Hochregallager und im Blocklager insgesamt 12.400 Palettenstellplätze vorhalten.
+                              - generic [ref=f15e61]: beim Kunden zu klären
+                            - generic [ref=f15e63]:
+                              - heading "KPIs › Wareneingangsbuchung nach Entladung › Zielwert (P-0227)" [level=6] [ref=f15e64]:
+                                - text: KPIs › Wareneingangsbuchung nach Entladung › Zielwert
+                                - generic [ref=f15e65]: (P-0227)
+                              - paragraph [ref=f15e66]: "Ausschreibung: 4 Stunden · Excel: 6 Std. (KPIs!B4) · Abweichung 33,3 %"
+                              - generic [ref=f15e67]: Der Auftragnehmer muss angelieferte Ware innerhalb von 4 Stunden nach Entladung im Lagerverwaltungssystem des Auftraggebers buchen.
+                              - generic [ref=f15e68]: beim Kunden zu klären
+                      - generic [ref=f15e70]:
+                        - generic [ref=f15e71]: "4"
+                        - generic [ref=f15e72]:
+                          - generic [ref=f15e73]:
+                            - heading "Abgleich mit Leistungskatalog" [level=6] [ref=f15e74]
+                            - generic [ref=f15e75]: läuft
+                          - paragraph [ref=f15e77]: 64 % · Abgleich Anforderungen ↔ Leistungskatalog
+                          - generic [ref=f15e78]: Nur klare Übereinstimmungen werden zugeordnet; jede Zuordnung bleibt ein Vorschlag.
+                          - generic [ref=f15e79]:
+                            - button "Abgleich starten" [disabled]
+                      - generic [ref=f15e80]:
+                        - generic [ref=f15e81]: "5"
+                        - generic [ref=f15e82]:
+                          - generic [ref=f15e83]:
+                            - heading "Management-Analyse" [level=6] [ref=f15e84]
+                            - generic [ref=f15e85]: offen
+                          - paragraph [ref=f15e87]: Management-Analyse nach der Vorlage erzeugen (Markdown + Word)
+                          - generic [ref=f15e89]:
+                            - button "Bericht öffnen (MD)" [disabled]
+                            - button "Bericht öffnen (DOCX)" [disabled]
+                            - button "Neu erzeugen" [disabled]
+                    - button [ref=f15e91] [cursor=pointer]
+            - button "MCP UI Status" [ref=f13e176] [cursor=pointer]

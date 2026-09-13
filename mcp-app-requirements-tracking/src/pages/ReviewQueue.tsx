@@ -116,6 +116,29 @@ export function ReviewQueue() {
     [app, project, current, editing, editedText, visible.length, refreshSummary],
   );
 
+  const resolveAlert = useCallback(
+    async (alertIndex: number, resolution: "tender" | "excel" | "clarify") => {
+      if (!current) return;
+      try {
+        await callTool(app, "rt_resolve_consistency_alert", {
+          projectName: project,
+          proposalId: current.id,
+          alertIndex,
+          resolution,
+        });
+        const refreshed = await callTool<{ proposal: Proposal }>(app, "rt_get_proposal", {
+          projectName: project,
+          proposalId: current.id,
+        });
+        setProposals((prev) => prev.map((p) => (p.id === current.id ? refreshed.proposal : p)));
+        setEditedText(refreshed.proposal?.payload?.ears_text ?? "");
+      } catch (err: any) {
+        setError(err.message);
+      }
+    },
+    [app, project, current],
+  );
+
   const bulkApprove = useCallback(async () => {
     setBulkBusy(true);
     try {
@@ -234,6 +257,22 @@ export function ReviewQueue() {
                 </Typography>
               )}
 
+              {current.payload?.domain_text && current.payload.domain_text !== current.payload.ears_text && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  In unserer Terminologie: {current.payload.domain_text}
+                </Typography>
+              )}
+              {((current.payload?.term_mappings?.length ?? 0) > 0 || (current.payload?.validation_flags?.length ?? 0) > 0) && (
+                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
+                  {(current.payload?.term_mappings ?? []).map((mapping: any, index: number) => (
+                    <Chip key={`t${index}`} size="small" variant="outlined" color="primary" label={`${mapping.customer_term} → ${mapping.our_term}`} />
+                  ))}
+                  {(current.payload?.validation_flags ?? []).map((flag: string) => (
+                    <Chip key={flag} size="small" variant="outlined" color="warning" label={flag} />
+                  ))}
+                </Stack>
+              )}
+
               <EvidenceQuote
                 evidence={
                   current.evidence ?? {
@@ -242,6 +281,34 @@ export function ReviewQueue() {
                   }
                 }
               />
+
+              {(current.payload?.consistency_alerts?.length ?? 0) > 0 && (
+                <Box sx={{ mt: 1.5 }}>
+                  {current.payload.consistency_alerts.map((alert: any, index: number) => (
+                    <Alert key={index} severity={alert.resolution ? "info" : "error"} sx={{ mb: 0.5 }}>
+                      <b>Zahlenabweichung zur Excel-Datei</b> — {alert.label}: Ausschreibung {alert.tenderRaw}, Mengengerüst{" "}
+                      {alert.excelRaw} ({alert.sheet}!{alert.cell}), Abweichung {alert.deviationPct} %
+                      {alert.resolution ? (
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          Entscheidung: {alert.resolution === "tender" ? "Ausschreibungswert übernommen" : alert.resolution === "excel" ? "Excel-Wert übernommen" : "beim Kunden zu klären"}
+                        </Typography>
+                      ) : (
+                        <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
+                          <Button size="small" variant="outlined" onClick={() => void resolveAlert(index, "tender")}>
+                            Ausschreibungswert übernehmen
+                          </Button>
+                          <Button size="small" variant="outlined" onClick={() => void resolveAlert(index, "excel")}>
+                            Excel-Wert übernehmen
+                          </Button>
+                          <Button size="small" variant="contained" color="warning" onClick={() => void resolveAlert(index, "clarify")}>
+                            Beim Kunden klären
+                          </Button>
+                        </Stack>
+                      )}
+                    </Alert>
+                  ))}
+                </Box>
+              )}
 
               {(current.payload?.quantities?.length ?? 0) > 0 && (
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }}>

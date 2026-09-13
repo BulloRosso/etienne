@@ -49,10 +49,12 @@ import { CatalogImportWizard } from "./pages/CatalogImportWizard";
 import { ResponseBuilder } from "./pages/ResponseBuilder";
 import { Claims } from "./pages/Claims";
 import { AdminAudit } from "./pages/AdminAudit";
+import { Analysis } from "./pages/Analysis";
 
 const EVENT_POLL_MS = 5000;
 
 const VALID_PAGES: PageId[] = [
+  "analysis",
   "dashboard",
   "workspace",
   "review-queue",
@@ -84,6 +86,8 @@ function ComingSoon({ page }: { page: PageId }) {
 function PageSwitch() {
   const { location } = useNav();
   switch (location.page) {
+    case "analysis":
+      return <Analysis />;
     case "dashboard":
       return <Dashboard />;
     case "workspace":

@@ -391,6 +391,21 @@ export class TtRepository {
     return requirements.sort((a, b) => a.id.localeCompare(b.id));
   }
 
+  /**
+   * Patch an existing requirement version in place (same version number).
+   * Used when a human decision that lands AFTER approval must reach the
+   * frozen version — e.g. resolving a figure contradiction, which injects a
+   * drafted bidder question the report reads from the version, not the card.
+   */
+  async updateVersion(project: string, version: RequirementVersion): Promise<void> {
+    await this.updateNode(
+      project,
+      IRI.reqVersion(version.requirementId, version.versionNo),
+      GRAPH_TENDER,
+      version,
+    );
+  }
+
   async getVersion(
     project: string,
     reqId: string,

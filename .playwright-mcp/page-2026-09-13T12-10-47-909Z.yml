@@ -1,0 +1,265 @@
+- generic [ref=f16e4]:
+  - banner [ref=f16e5]:
+    - generic [ref=f16e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f16e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f16e8] [cursor=pointer]
+      - button "Präsentation" [ref=f16e12] [cursor=pointer]
+      - generic [ref=f16e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f16e24]
+      - button [ref=f16e25] [cursor=pointer]
+  - generic [ref=f16e54]:
+    - generic [ref=f16e58]:
+      - generic [ref=f16e59]:
+        - button "Neue Sitzung starten" [ref=f16e60] [cursor=pointer]
+        - generic [ref=f16e63]:
+          - generic [ref=f16e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f16e65]
+            - generic "Arbeitsmodus" [ref=f16e76]
+          - generic [ref=f16e80]: Arbeitsmodus
+        - generic [ref=f16e81]:
+          - button "Benachrichtigungen" [ref=f16e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f16e85] [cursor=pointer]
+      - generic [ref=f16e89]:
+        - img "Agent avatar" [ref=f16e91]
+        - generic [ref=f16e93]:
+          - paragraph [ref=f16e95]:
+            - strong [ref=f16e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f16e97]: 14:06
+      - generic [ref=f16e101]:
+        - button "Dateianhänge hinzufügen" [ref=f16e103] [cursor=pointer]
+        - generic [ref=f16e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f16e108]
+          - group [aria-hidden]
+        - button [ref=f16e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f16e117]:
+      - generic [ref=f16e118]:
+        - tablist [ref=f16e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f16e122] [cursor=pointer]
+          - tab "Rolle" [ref=f16e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f16e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f16e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f16e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f16e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f16e132] [cursor=pointer]
+      - tabpanel [ref=f16e135]:
+        - generic [ref=f16e137]:
+          - generic [ref=f16e139]:
+            - tablist [ref=f16e143]:
+              - tab "t-2026-031-analysis.md" [ref=f16e179] [cursor=pointer]
+              - tab "analysis.tendertrace.json" [selected] [ref=f16e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f16e154] [cursor=pointer]
+            - button [ref=f16e165] [cursor=pointer]
+          - generic [ref=f16e885]:
+            - iframe [active] [ref=f16e887]:
+              - iframe [active] [ref=f19e2]:
+                - generic [ref=f20e3]:
+                  - banner [ref=f20e4]:
+                    - generic [ref=f20e5]:
+                      - generic "Back" [ref=f20e6]:
+                        - button [ref=f20e122] [cursor=pointer]
+                      - button "Dashboard" [ref=f20e7] [cursor=pointer]
+                      - heading "TenderTrace — Compliance Matrix" [level=6] [ref=f20e774]
+                  - generic [ref=f20e775]:
+                    - generic [ref=f20e776]:
+                      - generic [ref=f20e777]:
+                        - heading "Compliance matrix (159 requirements)" [level=6] [ref=f20e778]
+                        - button [ref=f20e779] [cursor=pointer]
+                        - button [ref=f20e783] [cursor=pointer]
+                      - generic [ref=f20e788]:
+                        - grid [ref=f20e789]:
+                          - row [ref=f20e790]:
+                            - columnheader "REQ" [ref=f20e791] [cursor=pointer]
+                            - columnheader "Requirement" [ref=f20e795] [cursor=pointer]
+                            - columnheader "Mod." [ref=f20e799] [cursor=pointer]
+                            - columnheader "Verdict" [ref=f20e803] [cursor=pointer]
+                            - columnheader "Mapped services" [ref=f20e807] [cursor=pointer]
+                          - rowgroup [ref=f20e811]:
+                            - row [ref=f20e1083]:
+                              - gridcell [ref=f20e1084]:
+                                - button "REQ-101" [ref=f20e1085] [cursor=pointer]
+                              - gridcell "Wenn die Inventurgenauigkeit in zwei aufeinanderfolgenden Monaten unter 99,5 % liegt, muss der Auftragnehmer einen Malus von 2 % der Monatsvergütung leisten." [ref=f20e1087]
+                              - gridcell "MUSS" [ref=f20e1088]
+                              - gridcell "—" [ref=f20e1091]
+                              - gridcell [ref=f20e1092]
+                            - row [ref=f20e1093]:
+                              - gridcell [ref=f20e1094]:
+                                - button "REQ-102" [ref=f20e1095] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss für Bestandsdifferenzen oberhalb der vereinbarten Inventurgenauigkeit bis zu einer Höhe von 250.000 € je Vertragsjahr haften." [ref=f20e1097]
+                              - gridcell "MUSS" [ref=f20e1098]
+                              - gridcell "—" [ref=f20e1101]
+                              - gridcell [ref=f20e1102]
+                            - row [ref=f20e1103]:
+                              - gridcell [ref=f20e1104]:
+                                - button "REQ-103" [ref=f20e1105] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss eine Lagerhaftpflichtversicherung mit einer Deckungssumme von mindestens 5 Mio. € nachweisen." [ref=f20e1107]
+                              - gridcell "MUSS" [ref=f20e1108]
+                              - gridcell "—" [ref=f20e1111]
+                              - gridcell [ref=f20e1112]
+                            - row [ref=f20e1113]:
+                              - gridcell [ref=f20e1114]:
+                                - button "REQ-104" [ref=f20e1115] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss im Hochregallager und im Blocklager insgesamt 12.400 Palettenstellplätze vorhalten." [ref=f20e1117]
+                              - gridcell "MUSS" [ref=f20e1118]
+                              - gridcell "pending" [ref=f20e1121]
+                              - gridcell [ref=f20e1124]
+                            - row [ref=f20e1125]:
+                              - gridcell [ref=f20e1126]:
+                                - button "REQ-105" [ref=f20e1127] [cursor=pointer]
+                              - gridcell "Die Bestände müssen jederzeit im Lagerverwaltungssystem des Auftraggebers in Echtzeit abrufbar sein." [ref=f20e1129]
+                              - gridcell "MUSS" [ref=f20e1130]
+                              - gridcell "pending" [ref=f20e1133]
+                              - gridcell [ref=f20e1136]
+                            - row [ref=f20e1137]:
+                              - gridcell [ref=f20e1138]:
+                                - button "REQ-106" [ref=f20e1139] [cursor=pointer]
+                              - gridcell "Wenn Mehrfachbestellungen eines Kunden vorliegen, soll der Auftragnehmer diese zu einer Sendung konsolidieren." [ref=f20e1141]
+                              - gridcell "SOLL" [ref=f20e1142]
+                              - gridcell "pending" [ref=f20e1145]
+                              - gridcell [ref=f20e1148]
+                            - row [ref=f20e1149]:
+                              - gridcell [ref=f20e1150]:
+                                - button "REQ-107" [ref=f20e1151] [cursor=pointer]
+                              - gridcell "Wenn der Warenausgang erfolgt, muss der Auftragnehmer diesen elektronisch mit Sendungsnummer an den Auftraggeber melden." [ref=f20e1153]
+                              - gridcell "MUSS" [ref=f20e1154]
+                              - gridcell "pending" [ref=f20e1157]
+                              - gridcell [ref=f20e1160]
+                            - row [ref=f20e1161]:
+                              - gridcell [ref=f20e1162]:
+                                - button "REQ-108" [ref=f20e1163] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss Retouren zeitnah bearbeiten." [ref=f20e1165]
+                              - gridcell "MUSS" [ref=f20e1166]
+                              - gridcell "pending" [ref=f20e1169]
+                              - gridcell [ref=f20e1172]
+                            - row [ref=f20e1173]:
+                              - gridcell [ref=f20e1174]:
+                                - button "REQ-109" [ref=f20e1175] [cursor=pointer]
+                              - gridcell "Nach Prüfung muss der Auftragnehmer Retouren wieder einlagern oder verschrotten." [ref=f20e1177]
+                              - gridcell "MUSS" [ref=f20e1178]
+                              - gridcell "pending" [ref=f20e1181]
+                              - gridcell [ref=f20e1184]
+                            - row [ref=f20e1185]:
+                              - gridcell [ref=f20e1186]:
+                                - button "REQ-110" [ref=f20e1187] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss sein Lagerverwaltungssystem über eine Schnittstelle an das ERP-System des Auftraggebers (SAP S/4HANA) anbinden." [ref=f20e1189]
+                              - gridcell "MUSS" [ref=f20e1190]
+                              - gridcell "pending" [ref=f20e1193]
+                              - gridcell [ref=f20e1196]
+                            - row [ref=f20e1197]:
+                              - gridcell [ref=f20e1198]:
+                                - button "REQ-111" [ref=f20e1199] [cursor=pointer]
+                              - gridcell "Sofern das Lagerverwaltungssystem des Auftraggebers genutzt wird, kann der Auftragnehmer das Lagerverwaltungssystem des Auftraggebers nutzen." [ref=f20e1201]
+                              - gridcell "KANN" [ref=f20e1202]
+                              - gridcell "pending" [ref=f20e1205]
+                              - gridcell [ref=f20e1208]
+                            - row [ref=f20e1209]:
+                              - gridcell [ref=f20e1210]:
+                                - button "REQ-112" [ref=f20e1211] [cursor=pointer]
+                              - gridcell "Das Lagerverwaltungssystem muss alle Buchungen revisionssicher protokollieren." [ref=f20e1213]
+                              - gridcell "MUSS" [ref=f20e1214]
+                              - gridcell "pending" [ref=f20e1217]
+                              - gridcell [ref=f20e1220]
+                            - row [ref=f20e1221]:
+                              - gridcell [ref=f20e1222]:
+                                - button "REQ-113" [ref=f20e1223] [cursor=pointer]
+                              - gridcell "Wenn Störungen des Lagerbetriebs auftreten, muss der Auftragnehmer diese innerhalb von 2 Stunden dem Ansprechpartner des Auftraggebers melden." [ref=f20e1225]
+                              - gridcell "MUSS" [ref=f20e1226]
+                              - gridcell "pending" [ref=f20e1229]
+                              - gridcell [ref=f20e1232]
+                            - row [ref=f20e1233]:
+                              - gridcell [ref=f20e1234]:
+                                - button "REQ-114" [ref=f20e1235] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer soll Vorschläge zur Prozessoptimierung quartalsweise einbringen." [ref=f20e1237]
+                              - gridcell "SOLL" [ref=f20e1238]
+                              - gridcell "pending" [ref=f20e1241]
+                              - gridcell [ref=f20e1244]
+                            - row [ref=f20e1245]:
+                              - gridcell [ref=f20e1246]:
+                                - button "REQ-115" [ref=f20e1247] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss die Preise für die Vertragslaufzeit fest anbieten." [ref=f20e1249]
+                              - gridcell "MUSS" [ref=f20e1250]
+                              - gridcell "pending" [ref=f20e1253]
+                              - gridcell [ref=f20e1256]
+                            - row [ref=f20e1257]:
+                              - gridcell [ref=f20e1258]:
+                                - button "REQ-116" [ref=f20e1259] [cursor=pointer]
+                              - gridcell "Wenn eine Änderung des Tariflohns um mehr als 3 % eintritt, kann der Auftragnehmer eine Anpassung der Preise vornehmen." [ref=f20e1261]
+                              - gridcell "KANN" [ref=f20e1262]
+                              - gridcell "pending" [ref=f20e1265]
+                              - gridcell [ref=f20e1268]
+                            - row [ref=f20e1269]:
+                              - gridcell [ref=f20e1270]:
+                                - button "REQ-117" [ref=f20e1271] [cursor=pointer]
+                              - gridcell "Wenn die Inventurgenauigkeit in zwei aufeinanderfolgenden Monaten unter 99,5 % liegt, muss der Auftragnehmer einen Malus von 2 % der Monatsvergütung leisten." [ref=f20e1273]
+                              - gridcell "MUSS" [ref=f20e1274]
+                              - gridcell "pending" [ref=f20e1277]
+                              - gridcell [ref=f20e1280]
+                            - row [ref=f20e1281]:
+                              - gridcell [ref=f20e1282]:
+                                - button "REQ-118" [ref=f20e1283] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss für Bestandsdifferenzen oberhalb der vereinbarten Inventurgenauigkeit bis zu einer Höhe von 250.000 € je Vertragsjahr haften." [ref=f20e1285]
+                              - gridcell "MUSS" [ref=f20e1286]
+                              - gridcell "pending" [ref=f20e1289]
+                              - gridcell [ref=f20e1292]
+                            - row [ref=f20e1293]:
+                              - gridcell [ref=f20e1294]:
+                                - button "REQ-119" [ref=f20e1295] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss eine Lagerhaftpflichtversicherung mit einer Deckungssumme von mindestens 5 Mio. € nachweisen." [ref=f20e1297]
+                              - gridcell "MUSS" [ref=f20e1298]
+                              - gridcell "pending" [ref=f20e1301]
+                              - gridcell [ref=f20e1304]
+                            - row [ref=f20e1305]:
+                              - gridcell [ref=f20e1306]:
+                                - button "REQ-120" [ref=f20e1307] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss Wareneingang, Lagerung, Kommissionierung, Warenausgang und Retourenabwicklung für das Sortiment Haushaltswaren und Elektrokleingeräte übernehmen." [ref=f20e1309]
+                              - gridcell "MUSS" [ref=f20e1310]
+                              - gridcell "pending" [ref=f20e1313]
+                              - gridcell [ref=f20e1316]
+                            - row [ref=f20e1317]:
+                              - gridcell [ref=f20e1318]:
+                                - button "REQ-121" [ref=f20e1319] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss eine Lagerfläche von 18.500 m² Hallenfläche bereitstellen." [ref=f20e1321]
+                              - gridcell "MUSS" [ref=f20e1322]
+                              - gridcell "pending" [ref=f20e1325]
+                              - gridcell [ref=f20e1328]
+                            - row [ref=f20e1329]:
+                              - gridcell [ref=f20e1330]:
+                                - button "REQ-122" [ref=f20e1331] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss davon 1.200 m² als temperaturgeführte Kühlzone (2–8 °C) betreiben." [ref=f20e1333]
+                              - gridcell "MUSS" [ref=f20e1334]
+                              - gridcell "pending" [ref=f20e1337]
+                              - gridcell [ref=f20e1340]
+                            - row [ref=f20e1341]:
+                              - gridcell [ref=f20e1342]:
+                                - button "REQ-123" [ref=f20e1343] [cursor=pointer]
+                              - gridcell "Der Auftragnehmer muss im Durchschnitt 2.300 Pickpositionen pro Tag kommissionieren." [ref=f20e1345]
+                              - gridcell "MUSS" [ref=f20e1346]
+                              - gridcell "pending" [ref=f20e1349]
+                              - gridcell [ref=f20e1352]
+                        - generic [ref=f20e1046]:
+                          - paragraph [ref=f20e1047]: "Rows per page:"
+                          - generic [ref=f20e1048]:
+                            - 'combobox "Rows per page: 100" [ref=f20e1049] [cursor=pointer]': "100"
+                            - textbox [aria-hidden]: "100"
+                          - paragraph [ref=f20e1050]: 101–159 of 159
+                          - generic [ref=f20e1051]:
+                            - button "Go to previous page" [ref=f20e1353] [cursor=pointer]
+                            - button "Go to next page" [disabled]
+                    - separator [ref=f20e1055]
+                    - generic [ref=f20e1056]:
+                      - paragraph [ref=f20e1057]: Select a row to see verdict, evidence and pending proposals.
+                      - separator [ref=f20e1058]
+                      - heading "Catalog (drag onto a row to map)" [level=6] [ref=f20e1059]
+                      - generic [ref=f20e1060]:
+                        - generic [ref=f20e1061]: SVC-001 · Inbound-Handling
+                        - generic [ref=f20e1063]: SVC-002 · Bestandsführung & permanente Inventur
+                        - generic [ref=f20e1065]: SVC-003 · Temperaturgeführte Lagerung 2–8 °C
+                        - generic [ref=f20e1067]: SVC-004 · Order Fulfillment (Picking & Packing)
+                        - generic [ref=f20e1069]: SVC-005 · Outbound-Handling & Versandkonsolidierung
+                        - generic [ref=f20e1071]: SVC-006 · Returns Management
+                        - generic [ref=f20e1073]: SVC-007 · WMS-Integration (SAP EWM, API)
+                        - generic [ref=f20e1075]: SVC-008 · Value Added Services (Co-Packing)
+                        - generic [ref=f20e1077]: SVC-009 · Betriebsübernahme & Personal
+                        - generic [ref=f20e1079]: SVC-010 · Reporting & Service-Level
+            - button "MCP UI Status" [ref=f16e888] [cursor=pointer]

@@ -1,51 +1,30 @@
 # seed-requirements-tracking
 
-Seeds a fresh **`tendertrace-stadtwerke`** example project: the
-**TenderTrace** requirements-tracking feature caught *mid-story*
-(spec: `requirements-docs/requirements-tracking/requirements-tracking.md` §2).
+Seeds a fresh **`tendertrace-analysis`** example project: the TenderTrace
+**tender-analysis showcase** (domain: Lagerlogistik / Kontraktlogistik).
 
-Lena, bid manager at **NovaSys GmbH**, wins tender **T-2026-014
-"Kundenselfservice-Portal Stadtwerke Musterstadt"**; Sara leads the
-implementation after award. The seed replays the whole history with
-backdated timestamps (the `_seed {at, by}` override on the MCP tools) so
-that "today" (2026-07-06) the project looks lived-in:
+The Nordland Handels AG tenders the operation of its central warehouse
+("Logistikzentrum Nord", `T-2026-031`); we are Hansa Logistik GmbH and want
+to know how well our service catalog fulfils the tender and what must be
+clarified with the customer before bidding. The project ships the folder
+contract of the **Analyse-Cockpit** and synthetic customer documents:
 
-- **2026-04-01** — 3 German tender documents registered and parsed
-  (Leistungsbeschreibung, Technische Anlage Sicherheit & Betrieb,
-  Vertragsbedingungen)
-- **early April** — 24 extraction proposals reviewed by Lena:
-  **22 approved → REQ-001..REQ-022** (incl. the failover sentence split
-  into TWO requirements sharing one quote → `derived_from_same_clause`),
-  1 rejected (a client duty misread), **1 still pending** in the Review
-  Queue
-- **2026-04-12** — 5 service-catalog entries published (v1); mappings +
-  compliance verdicts approved: FULL (Schulung, Verbrauchsübersicht),
-  **PARTIAL** for the PDF-export requirement citing the catalog's
-  `XML-Export` scope exclusion, **NEEDS_INPUT** naming the Security
-  Officer; 3 response sections, one with a saved body carrying
-  `<!-- trace: … -->` markers and a visible `[MISSING: …]` placeholder
-- **2026-04-30** — **baseline v1.0 frozen** (Lena)
-- **2026-05-12** — mock Jira board seeded (12 issues) + 5 approved
-  requirement↔issue links (PORTAL-231 "Berichtsexport PDF" →
-  the export requirement)
-- **2026-06-02/03** — Jour-Fixe KW23 drift: export formats
-  *PDF → PDF, CSV oder XML* accepted as **change order** (which
-  auto-stales the PORTAL-231 link and drafts the Jira notice), the
-  500-concurrent-users load clarification accepted **in-scope**, plus a
-  noted CONFIRMATION
-- **2026-06-18** — Cloud-storage email from Fr. Kern → **CONFLICT card**
-  against the On-Premises requirement, **left undecided** (the blocking
-  card in the Drift Inbox)
-- **2026-06-25** — shadow-scope card for the unlinked **PORTAL-310**
-  ("XML-Export gegen Kunden-XSD validieren"), left undecided
-- **today** — deviation report since v1.0 + claim
-  **"Nachtrag 01 — Exportformate"** (1 priced change-order item)
+| Path | Content |
+|---|---|
+| `tender/01-leistungsbeschreibung-lagerlogistik.docx` | 8 numbered chapters: Mengengerüst, Wareneingang, Lagerung, Kommissionierung, Retouren, IT, Service-Level |
+| `tender/02-vertragsbedingungen.docx` | Laufzeit 48 Monate, Jahresbudget 1,45 Mio. €, Bonus/Malus, § 613a, Haftung |
+| `tender/Mengengeruest.xlsx` | sheets Flächen / Mengen / Budget / KPIs — the raw figures (two cells deliberately disagree with the text) |
+| `servicecatalog/leistungskatalog.md` | OUR catalog in OUR vocabulary (Inbound-Handling, Order Fulfillment, WMS, Returns Management …) |
+| `servicecatalog/glossary.md` | customer term → our term (Kommissionierung → Order Fulfillment, LVS → WMS, …) |
+| `analysis-template/management-analyse.md` | the house template for the management analysis |
 
-Everything flows through the product's own MCP group
-(`http://localhost:6060/mcp/requirements-tracking`, headers
-`Authorization: test123` + `X-Project-Name`), so the seeded state is
-exactly what the app produces in real use — REQ/SVC/proposal ids are
-**captured from tool results**, never hardcoded.
+Built-in demo hooks (asserted by the dry run and the integration test):
+
+- **two contradictions**, in different sheets and units: 12.400 Palettenstellplätze (text) vs 12.000 (`Mengen!B2`), and Wareneingangsbuchung 4 Stunden (text) vs 6 Std. (`KPIs!B3`)
+- **no false alert** on the budget: "1,45 Mio. €" equals 1.450.000 €
+- a **vague clause** ("Retouren sind zeitnah zu bearbeiten") → customer clarification
+- **Gefahrgut Klasse 3** is excluded in our catalog → PARTIAL / NON_COMPLIANT
+- a "muss … buchen können" sentence → exercises the one-obligation heuristic
 
 ## Prerequisites
 
@@ -54,91 +33,68 @@ exactly what the app produces in real use — REQ/SVC/proposal ids are
 | Backend (NestJS) | 6060 | yes |
 | OAuth server | 5950 | yes |
 | RDF store (Quadstore) | 7000 | yes |
-| Vector store (Chroma) | 7100 | optional — powers `search_requirements` / `search_catalog` / `search_issues`; seeding works without it |
+| Vector store (Chroma) | 7100 | optional — without it phase B compares all services directly |
+| LLM key (or `AZURE_AI_CONNECTION`) | — | needed for phase A (`SEED_RUN_ANALYSIS=1`) and for the cockpit |
 
-**Build the viewer first** — otherwise the `.tendertrace.json` pages show
-nothing:
+**Build the viewer first** — otherwise the `.tendertrace.json` pages show nothing:
 
 ```bash
 cd mcp-app-requirements-tracking
 npm install && npm run build
 ```
 
-An LLM API key is **optional**: the deviation-report and claim
-*narratives* degrade gracefully without one (the deterministic data is
-still snapshotted); the seed tolerates those failures.
-
 ## Run
 
 ```bash
-# from the repo root
+# from the repo root — creates the project and the files, nothing else
 npx tsx scripts/seed-requirements-tracking/seed-requirements-tracking.ts
+
+# additionally start phase A and wait until the run is "awaiting review"
+SEED_RUN_ANALYSIS=1 npx tsx scripts/seed-requirements-tracking/seed-requirements-tracking.ts
 ```
 
-Dry run — validates fixture integrity offline (every evidence quote must
-be a verbatim substring of its source document, section refs must match
-the backend's sectionizer, all cross-references must resolve) and exits 0
-without touching the network:
+Dry run — validates fixture integrity offline (every headline figure of the
+DOCX text exists in the workbook except the two deliberate contradictions,
+each of which is asserted cell by cell; the catalog excludes Gefahrgut; the
+template carries the mandatory blocks) and renders the DOCX/XLSX into a
+temp folder:
 
 ```bash
 SEED_DRY_RUN=1 npx tsx scripts/seed-requirements-tracking/seed-requirements-tracking.ts
 ```
 
-Environment variables (same defaults as the other seeds):
-
 | Variable | Default |
 |---|---|
 | `WORKSPACE_ROOT` | `C:/Data/GitHub/claude-multitenant/workspace` |
-| `OAUTH_BASE` | `http://localhost:5950` |
-| `BACKEND_BASE` | `http://localhost:6060` |
+| `OAUTH_BASE` / `BACKEND_BASE` | `http://localhost:5950` / `http://localhost:6060` |
 | `SEED_USERNAME` / `SEED_PASSWORD` | `admin` / `admin123` |
-| `SEED_FORCE` | unset — set `1` to seed even if the project dir exists |
-| `SEED_DRY_RUN` | unset — set `1` for the offline fixture check |
+| `SEED_PROJECT_NAME` | `tendertrace-analysis` |
+| `SEED_RUN_ANALYSIS` | unset — `1` starts phase A after seeding |
+| `SEED_ANALYSIS_TIMEOUT_MS` | `1200000` (20 min) |
+| `SEED_FORCE` | unset — `1` seeds even if the project dir exists |
+| `SEED_DRY_RUN` | unset — `1` for the offline fixture check |
 
-The seed **refuses to run** if `workspace/tendertrace-stadtwerke/`
-already exists (delete it — plus matching Chroma/Quadstore entries — or
-set `SEED_FORCE=1`).
+The seed **refuses to run** if `workspace/tendertrace-analysis/` already exists.
 
-## What gets seeded
+## Demo walkthrough (the cockpit)
 
-- Project `tendertrace-stadtwerke` with mission brief, `.claude/CLAUDE.md`
-  (agent contract: `submit_proposal` is the only write path; a human
-  decides every proposal) and `.mcp.json` (`requirements-tracking` + `kg`)
-- Tender meta `T-2026-014`, phase `implementation`, language `de`
-- 3 tender docs + 2 implementation artifacts (KW23 minutes, Cloud email)
-- 22 approved requirements + 1 pending + 1 rejected extraction card;
-  manual `depends_on`/`refines` relations; baseline **v1.0**
-- 5 published catalog services, 5 approved mappings, 5 approved verdicts
-- 3 response sections (one saved body with trace markers + `[MISSING]`)
-- 12 mock Jira issues, 5 links (1 auto-staled by the change order,
-  with a drafted stale notice), 1 pending shadow-scope card
-- 4 drift cards (change_order / in_scope / noted / **pending CONFLICT**)
-- 1 accepted requirement (Abnahme by Sara), 1 deviation report,
-  1 claim with pricing
-- 14 page sentinels under `out/tendertrace/pages/*.tendertrace.json`,
-  `documentation.md` (German quick tour), `.etienne/user-interface.json`
-  (auto-opens Drift Inbox + Dashboard + documentation) and
-  `.etienne/application-type.json` → the **TenderTrace** sidebar menu
-  (`application-types-repository/requirements-tracking/config.json`)
-
-## Demo walkthrough
-
-1. Open the project — the **Drift Inbox** auto-opens with the unresolved
-   **Cloud vs. On-Premises CONFLICT** card.
-2. Decide cards: the conflict blocks until a human resolves which
-   requirement wins; the KW23 cards show what decided cards look like.
-3. Open the export requirement's **Thread**: tender quote → v1.0 →
-   change-order diff with evidence → current text → stale PORTAL-231 link
-   with the drafted Jira comment.
-4. **Simulate an issue event** (e.g. PORTAL-240 → done) and watch the
-   derived implementation status react.
-5. Generate/open the **deviation report** since v1.0.
-6. Open **Claims**: "Nachtrag 01 — Exportformate" with baseline text,
-   changed text, evidence and pricing.
+1. Open the project — the **Analyse-Cockpit** auto-opens at step 1.
+2. **Analyse starten** — the progress bar names every file and action
+   (parse → figures → glossary → extract → consistency → catalog).
+3. Step 2 **Zur Prüfung** — approve cards in the Review Queue (domain text in
+   our vocabulary, term chips, the Palettenstellplatz alert card is excluded
+   from bulk approve).
+4. Step 3 — resolve both contradictions: *Beim Kunden klären*.
+5. Step 4 unlocks only now — **Abgleich starten**; the verdict chips show the
+   Gefahrgut requirement as not/partially covered.
+6. Step 5 — **Bericht öffnen** (MD/DOCX). The banner reads "Analyse mit
+   Vorbehalten: n Kundenklärungen …"; the clarification section lists both
+   figure questions (Palettenstellplätze, Wareneingangsbuchung) and the
+   vague "zeitnah".
 
 ## Re-running
 
-Delete `workspace/tendertrace-stadtwerke/`, drop the project's Chroma
-collections and Quadstore graphs, and re-run. (`SEED_FORCE=1` skips the
-guard but re-seeds *on top* of existing state — ids will diverge; prefer
-a clean delete.)
+Delete `workspace/tendertrace-analysis/`, drop the project's Chroma
+collections and Quadstore graphs, and re-run. Dropping new documents into
+`tender/` and pressing **Erneut einlesen** in the cockpit is the intended
+way to iterate — unchanged files are skipped by content hash.

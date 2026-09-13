@@ -66,6 +66,14 @@ export class RequirementService {
       createdFromProposalId: proposal.id,
       createdAt: at,
       language: payload.language,
+      // tender-analysis fields (P-EXTRACT v2 + consistency check); optional for legacy cards
+      domainText: payload.domain_text || payload.ears_text,
+      termMappings: (payload.term_mappings ?? []).map((mapping: any) => ({
+        customerTerm: mapping.customer_term ?? mapping.customerTerm ?? '',
+        ourTerm: mapping.our_term ?? mapping.ourTerm ?? '',
+      })),
+      consistencyAlerts: payload.consistency_alerts ?? [],
+      validationFlags: payload.validation_flags ?? [],
       ...safeEdits,
       id: `${reqId}/v/1`,
       requirementId: reqId,
@@ -147,6 +155,8 @@ export class RequirementService {
       id: `${reqId}/v/${nextNo}`,
       versionNo: nextNo,
       earsText: diff.after_ears_text ?? current.earsText,
+      // a reworded obligation invalidates the vocabulary translation unless the diff carries one
+      domainText: payload.domain_text ?? (diff.after_ears_text ? diff.after_ears_text : current.domainText),
       earsFields: this.applyChangedFields(current.earsFields, diff.changed_fields),
       modality: diff.modality_change?.after ?? current.modality,
       quantities: payload.quantities ?? current.quantities,

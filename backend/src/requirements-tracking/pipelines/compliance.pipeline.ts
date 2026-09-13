@@ -10,6 +10,8 @@ import { loadPrompt } from './prompt-loader';
 import { runStructured } from './structured-run';
 import { complianceVerdictSchema, ComplianceVerdictResult } from '../schemas/catalog.schema';
 import { ServiceVersion } from '../types/tendertrace-types';
+import { CatalogEarsService } from '../analysis/catalog-ears.service';
+import { AutoMappingPipeline } from './auto-mapping.pipeline';
 
 /**
  * Compliance classification pipeline (P-RESP-C, spec §4 pipeline 3): per
@@ -37,8 +39,10 @@ export class CompliancePipeline {
   async run(
     project: string,
     requirementIds?: string[],
-  ): Promise<{ runId: string; proposalIds: string[] }> {
+    opts: { runTag?: string } = {},
+  ): Promise<{ runId: string; proposalIds: string[]; verdicts: Record<string, number> }> {
     const prompt = loadPrompt('p-resp-c.v1');
+    const verdicts: Record<string, number> = { FULL: 0, PARTIAL: 0, NON_COMPLIANT: 0, NEEDS_INPUT: 0 };
     const run = await this.runs.start(project, {
       pipeline: 'compliance',
       promptVersion: prompt.version,
@@ -62,6 +66,7 @@ export class CompliancePipeline {
         step: index + 1,
         total: targets.length,
         message: requirement.id,
+        analysisRunId: opts.runTag,
       });
 
       const versions = await this.repository.getVersions(project, requirement.id);
@@ -90,11 +95,16 @@ export class CompliancePipeline {
             `coverage="${mapping.coverage}" mapping_rationale="${mapping.rationale ?? ''}" ` +
             `kind="${bundle.service.kind}" title="${bundle.service.title}" ` +
             `tags="${bundle.version.tags.join(',')}">\n` +
-            `scope: ${JSON.stringify(bundle.version.scope)}\n\n${bundle.bodyMarkdown}\n</service>`,
+            `scope: ${JSON.stringify(bundle.version.scope)}\n\n` +
+            `${CatalogEarsService.renderCapabilities(bundle.version)}\n\n${bundle.bodyMarkdown}\n</service>`,
         );
       }
 
-      const hits = await this.projections.searchServices(project, current.earsText, 4);
+      const hits = await this.projections.searchServices(
+        project,
+        current.domainText || current.earsText,
+        4,
+      );
       for (const hit of hits) {
         const serviceId = hit.metadata?.serviceId ?? hit.refId.split('/')[0];
         if (scopeByService.has(serviceId)) continue;
@@ -105,7 +115,8 @@ export class CompliancePipeline {
           `<service id="${serviceId}" version_no="${bundle.version.versionNo}" mapped="false" ` +
             `kind="${bundle.service.kind}" title="${bundle.service.title}" ` +
             `tags="${bundle.version.tags.join(',')}">\n` +
-            `scope: ${JSON.stringify(bundle.version.scope)}\n\n${bundle.bodyMarkdown}\n</service>`,
+            `scope: ${JSON.stringify(bundle.version.scope)}\n\n` +
+            `${CatalogEarsService.renderCapabilities(bundle.version)}\n\n${bundle.bodyMarkdown}\n</service>`,
         );
       }
 
@@ -113,10 +124,7 @@ export class CompliancePipeline {
         schema: complianceVerdictSchema,
         systemPrompt: prompt.text,
         userMessage:
-          `<requirement id="${requirement.id}" modality="${current.modality}" ` +
-          `category="${current.category}">\n${current.earsText}\n` +
-          `quantities: ${JSON.stringify(current.quantities)}\n` +
-          `tender_quote: ${current.sourceRef?.quote ?? ''}\n</requirement>\n\n` +
+          `${AutoMappingPipeline.renderRequirementBlock(requirement.id, current)}\n\n` +
           `<services>\n${serviceBlocks.join('\n\n') || '(no catalog evidence found)'}\n</services>`,
         tier: 'regular',
         temperature: 0,
@@ -133,7 +141,7 @@ export class CompliancePipeline {
 
       const submitted = await this.proposals.submit(project, {
         kind: 'compliance',
-        payload: { ...outcome.data, requirement_id: requirement.id },
+        payload: { ...outcome.data, requirement_id: requirement.id, analysis_run_id: opts.runTag },
         evidence: null,
         affectedRequirementIds: [requirement.id],
         confidence: outcome.data.confidence,
@@ -141,7 +149,10 @@ export class CompliancePipeline {
         promptVersion: prompt.version,
         skipQuoteCheck: true,
       });
-      if ('id' in submitted) proposalIds.push(submitted.id);
+      if ('id' in submitted) {
+        proposalIds.push(submitted.id);
+        verdicts[outcome.data.verdict] = (verdicts[outcome.data.verdict] ?? 0) + 1;
+      }
     }
 
     await this.runs.finish(project, run, 'ok', { proposalIds });
@@ -149,8 +160,10 @@ export class CompliancePipeline {
       runId: run.id,
       pipeline: 'compliance',
       proposals: proposalIds.length,
+      verdicts,
+      analysisRunId: opts.runTag,
     });
-    return { runId: run.id, proposalIds };
+    return { runId: run.id, proposalIds, verdicts };
   }
 
   /** Deterministic grounding checks (spec §4 compliance chain, enforced twice). */

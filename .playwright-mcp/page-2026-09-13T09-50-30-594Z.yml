@@ -1,0 +1,143 @@
+- generic [ref=f1e4]:
+  - banner [ref=f1e5]:
+    - generic [ref=f1e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f1e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f1e8] [cursor=pointer]
+      - button "Präsentation" [ref=f1e12] [cursor=pointer]
+      - generic [ref=f1e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f1e24]
+      - button [ref=f1e25] [cursor=pointer]
+  - generic [ref=f1e54]:
+    - generic [ref=f1e58]:
+      - generic [ref=f1e59]:
+        - button "Neue Sitzung starten" [ref=f1e60] [cursor=pointer]
+        - generic [ref=f1e63]:
+          - generic [ref=f1e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f1e65]
+            - generic "Arbeitsmodus" [ref=f1e76]
+          - generic [ref=f1e80]: Arbeitsmodus
+        - generic [ref=f1e81]:
+          - button "Benachrichtigungen" [ref=f1e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f1e85] [cursor=pointer]
+      - generic [ref=f1e89]:
+        - img "Agent avatar" [ref=f1e91]
+        - generic [ref=f1e93]:
+          - paragraph [ref=f1e95]:
+            - strong [ref=f1e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f1e97]: 11:49
+      - generic [ref=f1e101]:
+        - button "Dateianhänge hinzufügen" [ref=f1e103] [cursor=pointer]
+        - generic [ref=f1e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f1e108]
+          - group [aria-hidden]
+        - button [ref=f1e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f1e117]:
+      - generic [ref=f1e118]:
+        - tablist [ref=f1e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f1e122] [cursor=pointer]
+          - tab "Rolle" [ref=f1e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f1e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f1e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f1e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f1e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f1e132] [cursor=pointer]
+      - tabpanel [ref=f1e135]:
+        - generic [ref=f1e137]:
+          - generic [ref=f1e139]:
+            - tablist [ref=f1e143]:
+              - tab "analysis.tendertrace.json" [selected] [ref=f1e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f1e154] [cursor=pointer]
+            - button [ref=f1e165] [cursor=pointer]
+          - generic [ref=f1e173]:
+            - iframe [active] [ref=f1e175]:
+              - iframe [active] [ref=f2e2]:
+                - generic [ref=f3e1]:
+                  - generic [ref=f3e3]:
+                    - banner [ref=f3e4]:
+                      - generic [ref=f3e5]:
+                        - generic "Back" [ref=f3e6]:
+                          - button [ref=f3e76] [cursor=pointer]
+                        - button "Dashboard" [active] [ref=f3e7] [cursor=pointer]
+                        - heading "TenderTrace — Dashboard" [level=6] [ref=f3e79]
+                    - generic [ref=f3e80]:
+                      - heading "Betrieb Logistikzentrum Nord — Nordland Handels AG T-2026-031" [level=5] [ref=f3e81]:
+                        - text: Betrieb Logistikzentrum Nord — Nordland Handels AG
+                        - generic [ref=f3e82]: T-2026-031
+                      - generic [ref=f3e84]:
+                        - generic [ref=f3e85]: Intake
+                        - generic [ref=f3e95]:
+                          - img [aria-hidden] [ref=f3e97]:
+                            - generic [ref=f3e99]: "2"
+                          - generic [ref=f3e100]: Bid
+                        - generic [ref=f3e105]:
+                          - img [aria-hidden] [ref=f3e107]:
+                            - generic [ref=f3e109]: "3"
+                          - generic [ref=f3e110]: Implementation
+                        - generic [ref=f3e115]:
+                          - img [aria-hidden] [ref=f3e117]:
+                            - generic [ref=f3e119]: "4"
+                          - generic [ref=f3e120]: Closed
+                      - generic [ref=f3e122]:
+                        - generic [ref=f3e123]:
+                          - heading "3" [level=5] [ref=f3e124]
+                          - text: Documents
+                        - generic [ref=f3e125]:
+                          - heading "0" [level=5] [ref=f3e126]
+                          - text: Requirements
+                        - generic [ref=f3e127]:
+                          - heading "0" [level=5] [ref=f3e128]
+                          - text: Conflicts
+                        - generic [ref=f3e129]:
+                          - heading "0" [level=5] [ref=f3e130]
+                          - text: Stale links
+                        - generic [ref=f3e131]:
+                          - heading "0" [level=5] [ref=f3e132]
+                          - text: Open captures
+                      - heading "Open work" [level=6] [ref=f3e133]
+                      - generic [ref=f3e134]:
+                        - button [ref=f3e136] [cursor=pointer]:
+                          - generic [ref=f3e137]:
+                            - heading "Analyse-Cockpit" [level=6] [ref=f3e138]
+                            - paragraph [ref=f3e139]: tender/ → EARS → Excel-Abgleich → Leistungskatalog → Management-Analyse, Schritt für Schritt.
+                        - button "Review Queue 0 open Proposed requirements awaiting review" [ref=f3e141] [cursor=pointer]:
+                          - generic [ref=f3e142]:
+                            - generic [ref=f3e143]:
+                              - heading "Review Queue" [level=6] [ref=f3e144]
+                              - generic [ref=f3e145]: 0 open
+                            - paragraph [ref=f3e147]: Proposed requirements awaiting review
+                        - button "Drift Inbox 0 open Scope-drift cards awaiting a decision" [ref=f3e149] [cursor=pointer]:
+                          - generic [ref=f3e150]:
+                            - generic [ref=f3e151]:
+                              - heading "Drift Inbox" [level=6] [ref=f3e152]
+                              - generic [ref=f3e153]: 0 open
+                            - paragraph [ref=f3e155]: Scope-drift cards awaiting a decision
+                        - button "Link Review 0 open Issue links and shadow-scope items" [ref=f3e157] [cursor=pointer]:
+                          - generic [ref=f3e158]:
+                            - generic [ref=f3e159]:
+                              - heading "Link Review" [level=6] [ref=f3e160]
+                              - generic [ref=f3e161]: 0 open
+                            - paragraph [ref=f3e163]: Issue links and shadow-scope items
+                        - button "Compliance Matrix 0 open Mappings and verdicts to approve" [ref=f3e165] [cursor=pointer]:
+                          - generic [ref=f3e166]:
+                            - generic [ref=f3e167]:
+                              - heading "Compliance Matrix" [level=6] [ref=f3e168]
+                              - generic [ref=f3e169]: 0 open
+                            - paragraph [ref=f3e171]: Mappings and verdicts to approve
+                        - button "Catalog Import 10 open Catalog import segmentations" [ref=f3e173] [cursor=pointer]:
+                          - generic [ref=f3e174]:
+                            - generic [ref=f3e175]:
+                              - heading "Catalog Import" [level=6] [ref=f3e176]
+                              - generic [ref=f3e177]: 10 open
+                            - paragraph [ref=f3e179]: Catalog import segmentations
+                        - button [ref=f3e181] [cursor=pointer]:
+                          - generic [ref=f3e182]:
+                            - heading "Deviation Report" [level=6] [ref=f3e183]
+                            - paragraph [ref=f3e184]: What changed since the baseline — on demand, snapshotted.
+                        - button [ref=f3e186] [cursor=pointer]:
+                          - generic [ref=f3e187]:
+                            - heading "Quick Capture" [level=6] [ref=f3e188]
+                            - paragraph [ref=f3e189]: Paste an email — the agent asks, you answer, cards appear.
+                  - tooltip "Dashboard" [ref=f3e190]
+            - button "MCP UI Status" [ref=f1e176] [cursor=pointer]

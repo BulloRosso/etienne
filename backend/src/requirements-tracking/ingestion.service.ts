@@ -5,12 +5,19 @@ import { TtRepository } from './graph/tt-repository';
 import { TtGraphClient, q } from './graph/tt-graph.client';
 import { CLASS, GRAPH_TENDER, IRI, P, RDF_TYPE, XSD } from './graph/tt-vocab';
 import { DocumentSection, TenderDocument } from './types/tendertrace-types';
+import { joinPages, sectionizeDocument } from './ingestion/sectionizer';
+import { XlsxCellRecord, renderWorkbookToMarkdown } from './ingestion/xlsx-markdown';
 
-const BINARY_EXTENSIONS = new Set([
-  '.pdf', '.doc', '.docx', '.docm', '.odt', '.rtf',
+/** Formats LiteParse handles (LibreOffice → PDF → text/OCR). */
+const LITEPARSE_EXTENSIONS = new Set([
+  '.pdf', '.doc', '.docm', '.odt', '.rtf',
   '.ppt', '.pptx', '.pptm', '.odp',
-  '.xls', '.xlsx', '.xlsm', '.ods',
+  '.xls', '.ods',
 ]);
+/** Workbooks are read cell-by-cell with ExcelJS (sheet names + addresses survive). */
+const WORKBOOK_EXTENSIONS = new Set(['.xlsx', '.xlsm']);
+/** Word documents go through mammoth so headings survive as markdown. */
+const MAMMOTH_EXTENSIONS = new Set(['.docx']);
 
 export interface RegisterDocumentInput {
   /** path relative to the project root (e.g. 'documents/leistungsbeschreibung.docx') */
@@ -24,11 +31,33 @@ export interface RegisterDocumentInput {
   artifactParties?: string;
 }
 
+interface ExtractedDocument {
+  markdown: string;
+  cells?: XlsxCellRecord[];
+  notes: string[];
+}
+
+/**
+ * mammoth escapes markdown punctuation, so a tender sentence is stored as
+ * `18\.500 m² … Kontraktlogistik\-Dienstleistung`. Downstream every quote is
+ * checked verbatim against this text, but the model (correctly) quotes what a
+ * reader sees — so the escapes have to go before the text is stored. Only
+ * escapes of real markdown punctuation are unwrapped; `\\` stays a backslash.
+ */
+export function unescapeMarkdownPunctuation(markdown: string): string {
+  return markdown.replace(/\\([\\`*_{}\[\]()#+\-.!>|~])/g, '$1');
+}
+
 /**
  * Document/artifact intake: register originals under requirements-tracking/uploads|artifacts,
- * parse to normalized markdown + sections with char offsets (LiteParse for binary formats),
- * and write the tt:Document/tt:File nodes. Everything downstream consumes sections, never
+ * parse to normalized markdown + sections with char offsets, and write the
+ * tt:Document/tt:File nodes. Everything downstream consumes sections, never
  * raw files (spec §3.2 IngestionModule).
+ *
+ * Parsing routes by format: PDF/OCR → LiteParse (JSON mode, so real page
+ * numbers survive as `<!-- page: N -->` markers), DOCX → mammoth markdown
+ * (headings survive), XLSX → ExcelJS row lines (sheet + cell addresses
+ * survive, `cells.json` feeds the figure index), everything else → text.
  */
 @Injectable()
 export class IngestionService {
@@ -73,6 +102,10 @@ export class IngestionService {
       '.pdf': 'application/pdf',
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.doc': 'application/msword',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+      '.xls': 'application/vnd.ms-excel',
+      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       '.md': 'text/markdown',
       '.eml': 'message/rfc822',
       '.txt': 'text/plain',
@@ -140,9 +173,9 @@ export class IngestionService {
   }
 
   /**
-   * Parse the original into parsed/<docId>/document.md + sections.json.
-   * Binary formats go through LiteParse (built-in OCR); a document that yields no
-   * text is flagged needs_ocr and blocked from extraction (spec §12.11).
+   * Parse the original into parsed/<docId>/document.md + sections.json (+ cells.json
+   * for workbooks). A document that yields no text is flagged needs_ocr and blocked
+   * from extraction (spec §12.11).
    */
   async parseDocument(project: string, docId: string): Promise<TenderDocument> {
     const document = await this.repository.getDocument(project, docId);
@@ -151,42 +184,42 @@ export class IngestionService {
 
     await this.repository.saveDocument(project, { ...document, parseStatus: 'parsing' });
 
-    let markdown: string;
+    let extracted: ExtractedDocument;
     try {
-      markdown = await this.extractText(project, document.originalPath);
+      extracted = await this.extractDocument(project, document.originalPath);
     } catch (error: any) {
       this.logger.warn(`Parse failed for ${docId}: ${error.message}`);
-      const failed: TenderDocument = { ...document, parseStatus: 'failed' };
+      const failed: TenderDocument = { ...document, parseStatus: 'failed', parseNotes: error.message };
       await this.repository.saveDocument(project, failed);
       return failed;
     }
 
-    if (!markdown || markdown.trim().length < 20) {
+    const markdown = extracted.markdown;
+    if (!markdown || markdown.replace(/<!--[^>]*-->/g, '').trim().length < 20) {
       const needsOcr: TenderDocument = { ...document, parseStatus: 'needs_ocr' };
       await this.repository.saveDocument(project, needsOcr);
       return needsOcr;
     }
 
-    const sections = this.sectionize(docId, markdown);
-    const parsedMd = await this.files.writeFile(
-      project,
-      `parsed/${docId}/document.md`,
-      markdown,
-    );
+    const { sections, pageSource } = sectionizeDocument(docId, markdown);
+    const parsedMd = await this.files.writeFile(project, `parsed/${docId}/document.md`, markdown);
     await this.files.writeJson(project, `parsed/${docId}/sections.json`, sections);
-    await this.writeFileNode(
-      project,
-      IRI.doc(docId),
-      P.parsedMarkdown,
-      parsedMd,
-      'text/markdown',
-    );
+    if (extracted.cells) {
+      await this.files.writeJson(project, `parsed/${docId}/cells.json`, extracted.cells);
+    }
+    await this.writeFileNode(project, IRI.doc(docId), P.parsedMarkdown, parsedMd, 'text/markdown');
     await this.repository.saveSections(project, sections);
 
+    const notes = [...extracted.notes];
+    if (pageSource === 'estimated') notes.push('page numbers estimated (~3000 chars/page)');
     const parsed: TenderDocument = {
       ...document,
       parseStatus: 'parsed',
       parsedPath: `parsed/${docId}/`,
+      pageSource,
+      sectionCount: sections.length,
+      hasCells: Boolean(extracted.cells?.length),
+      parseNotes: notes.length > 0 ? notes.join('; ') : undefined,
     };
     await this.repository.saveDocument(project, parsed);
     return parsed;
@@ -207,77 +240,77 @@ export class IngestionService {
     }
   }
 
-  private async extractText(project: string, relativePath: string): Promise<string> {
-    const absolute = this.files.absolutePath(project, relativePath);
-    const extension = path.extname(absolute).toLowerCase();
-    if (BINARY_EXTENSIONS.has(extension)) {
-      this.logger.log(`Parsing binary file with LiteParse: ${absolute}`);
-      // ESM-only package — real dynamic import, not transpiled require()
-      const { LiteParse } = await new Function('return import("@llamaindex/liteparse")')();
-      const parser = new LiteParse({ ocrEnabled: true, outputFormat: 'text' });
-      const result = await parser.parse(absolute, true /* quiet */);
-      return result.text ?? '';
+  /** Cell records of a parsed workbook (empty for non-workbook documents). */
+  async getCells(project: string, docId: string): Promise<XlsxCellRecord[]> {
+    try {
+      return await this.files.readJson<XlsxCellRecord[]>(project, `parsed/${docId}/cells.json`);
+    } catch {
+      return [];
     }
-    return this.files.readText(project, relativePath);
   }
 
-  /**
-   * Split normalized markdown into sections at heading boundaries, with char offsets.
-   * Page numbers are taken from `\f` form feeds when the parser emitted them; otherwise
-   * estimated at ~3000 chars/page — provenance keeps exact char offsets either way.
-   */
+  /** Backward-compatible wrapper around the heading-aware sectionizer. */
   sectionize(docId: string, markdown: string): DocumentSection[] {
-    const lines = markdown.split('\n');
-    interface Raw {
-      headingPath: string;
-      charFrom: number;
-      charTo: number;
-      text: string;
+    return sectionizeDocument(docId, markdown).sections;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Format routing
+  // ---------------------------------------------------------------------------
+
+  private async extractDocument(project: string, relativePath: string): Promise<ExtractedDocument> {
+    const absolute = this.files.absolutePath(project, relativePath);
+    const extension = path.extname(absolute).toLowerCase();
+    const notes: string[] = [];
+
+    if (WORKBOOK_EXTENSIONS.has(extension)) {
+      this.logger.log(`Parsing workbook with ExcelJS: ${absolute}`);
+      const rendered = await renderWorkbookToMarkdown(absolute);
+      notes.push(`${rendered.sheets.length} sheet(s), ${rendered.cells.length} cells`);
+      return { markdown: rendered.markdown, cells: rendered.cells, notes };
     }
-    const sections: Raw[] = [];
-    const headingStack: string[] = [];
-    let current: Raw | null = null;
-    let offset = 0;
 
-    const pushCurrent = (end: number) => {
-      if (current && current.text.trim().length > 0) {
-        current.charTo = end;
-        sections.push(current);
+    if (MAMMOTH_EXTENSIONS.has(extension)) {
+      try {
+        this.logger.log(`Parsing DOCX with mammoth: ${absolute}`);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mammoth = require('mammoth');
+        const result = await mammoth.convertToMarkdown({ path: absolute });
+        const markdown = unescapeMarkdownPunctuation(String(result.value ?? ''));
+        if (markdown.trim().length >= 20) {
+          return { markdown, notes };
+        }
+        notes.push('mammoth returned no text; fell back to LiteParse');
+      } catch (error: any) {
+        notes.push(`mammoth failed (${error.message}); fell back to LiteParse`);
       }
-    };
-
-    for (const line of lines) {
-      const headingMatch = /^(#{1,4})\s+(.*)$/.exec(line);
-      if (headingMatch) {
-        pushCurrent(offset);
-        const level = headingMatch[1].length;
-        headingStack.length = level - 1;
-        headingStack[level - 1] = headingMatch[2].trim();
-        current = {
-          headingPath: headingStack.filter(Boolean).join(' > '),
-          charFrom: offset,
-          charTo: offset,
-          text: '',
-        };
-      }
-      if (!current) {
-        current = { headingPath: '(preamble)', charFrom: 0, charTo: 0, text: '' };
-      }
-      current.text += `${line}\n`;
-      offset += line.length + 1;
+      return { markdown: await this.parseWithLiteParse(absolute), notes };
     }
-    pushCurrent(offset);
 
-    const charsPerPage = 3000;
-    return sections.map((raw, index) => ({
-      id: `${docId}/sec/${index + 1}`,
-      documentId: docId,
-      headingPath: raw.headingPath,
-      pageFrom: Math.floor(raw.charFrom / charsPerPage) + 1,
-      pageTo: Math.floor(Math.max(raw.charTo - 1, 0) / charsPerPage) + 1,
-      charFrom: raw.charFrom,
-      charTo: raw.charTo,
-      text: raw.text.trim(),
-    }));
+    if (LITEPARSE_EXTENSIONS.has(extension)) {
+      return { markdown: await this.parseWithLiteParse(absolute), notes };
+    }
+
+    return { markdown: await this.files.readText(project, relativePath), notes };
+  }
+
+  /** LiteParse in JSON mode → page-marked text (built-in OCR for scans). */
+  private async parseWithLiteParse(absolute: string): Promise<string> {
+    this.logger.log(`Parsing binary file with LiteParse: ${absolute}`);
+    // ESM-only package — real dynamic import, not transpiled require()
+    const { LiteParse } = await new Function('return import("@llamaindex/liteparse")')();
+    const parser = new LiteParse({ ocrEnabled: true, outputFormat: 'json' });
+    const result = await parser.parse(absolute, true /* quiet */);
+    const pages: Array<{ page?: number; pageNum?: number; text?: string }> =
+      result?.json?.pages ?? result?.pages ?? [];
+    if (Array.isArray(pages) && pages.length > 0) {
+      return joinPages(
+        pages.map((page, index) => ({
+          pageNum: page.page ?? page.pageNum ?? index + 1,
+          text: page.text ?? '',
+        })),
+      );
+    }
+    return result?.text ?? '';
   }
 }

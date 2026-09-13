@@ -274,10 +274,13 @@ export class ProposalService {
           (proposal) => (proposal.confidence ?? 0) >= input.minConfidence!,
         );
       }
-      // cards with ambiguities or low confidence cannot be bulk-approved (spec §5.1 notes)
+      // cards with ambiguities, unresolved Excel contradictions or low confidence
+      // cannot be bulk-approved (spec §5.1 notes; tender-analysis consistency check)
       candidates = candidates.filter(
         (proposal) =>
-          !(proposal.payload?.ambiguities?.length > 0) && (proposal.confidence ?? 0) >= 0.7,
+          !(proposal.payload?.ambiguities?.length > 0) &&
+          !(proposal.payload?.consistency_alerts ?? []).some((alert: any) => !alert?.resolution) &&
+          (proposal.confidence ?? 0) >= 0.7,
       );
     }
 

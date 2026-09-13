@@ -13,6 +13,7 @@ import {
   Paper,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
@@ -41,7 +42,17 @@ interface MatrixRow {
   verdict: any | null;
   pendingVerdictProposal: string | null;
   mappings: any[];
-  pendingMappingProposals: string[];
+  pendingMappingProposals: PendingMapping[];
+}
+
+/** A mapping the agent proposed; a human still has to approve it. */
+interface PendingMapping {
+  proposalId: string;
+  serviceId: string;
+  serviceVersionNo?: number;
+  coverage: string;
+  confidence?: number;
+  gapOrExclusion?: string | null;
 }
 
 export function ComplianceMatrix() {
@@ -207,20 +218,45 @@ export function ComplianceMatrix() {
     {
       field: "mappings",
       headerName: "Mapped services",
-      width: 230,
-      renderCell: (params) => (
-        <Stack direction="row" spacing={0.5} sx={{ overflow: "hidden" }}>
-          {(params.value ?? []).map((mapping: any) => (
-            <Chip
-              key={mapping.id}
-              label={`${mapping.serviceVersionId.split("/")[0]} (${mapping.coverage})${mapping.staleSince ? "!" : ""}`}
-              size="small"
-              color={mapping.staleSince ? "warning" : "default"}
-              variant="outlined"
-            />
-          ))}
-        </Stack>
-      ),
+      width: 300,
+      // Approved mappings AND proposed ones. Showing only approved left the
+      // column empty for every row whose mappings were still proposals, which
+      // reads as "the catalog was never matched".
+      renderCell: (params) => {
+        const row = params.row as MatrixRow;
+        const approved = (params.value ?? []) as any[];
+        const proposed = row.pendingMappingProposals ?? [];
+        if (approved.length === 0 && proposed.length === 0) return null;
+        return (
+          <Stack direction="row" spacing={0.5} sx={{ overflow: "hidden", alignItems: "center" }}>
+            {approved.map((mapping: any) => (
+              <Chip
+                key={mapping.id}
+                label={`${mapping.serviceVersionId.split("/")[0]} (${mapping.coverage})${mapping.staleSince ? "!" : ""}`}
+                size="small"
+                color={mapping.staleSince ? "warning" : "default"}
+                variant="outlined"
+              />
+            ))}
+            {proposed.map((proposal) => (
+              <Tooltip
+                key={proposal.proposalId}
+                title={`Vorgeschlagen — noch nicht freigegeben${
+                  proposal.confidence !== undefined ? ` · Konfidenz ${Math.round(proposal.confidence * 100)}%` : ""
+                }${proposal.gapOrExclusion ? ` · ${proposal.gapOrExclusion}` : ""}`}
+              >
+                <Chip
+                  label={`${proposal.serviceId} (${proposal.coverage})`}
+                  size="small"
+                  color="info"
+                  variant="outlined"
+                  sx={{ borderStyle: "dashed", fontStyle: "italic" }}
+                />
+              </Tooltip>
+            ))}
+          </Stack>
+        );
+      },
     },
   ];
 

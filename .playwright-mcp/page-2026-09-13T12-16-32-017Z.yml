@@ -1,0 +1,66 @@
+- generic [ref=f21e4]:
+  - banner [ref=f21e5]:
+    - generic [ref=f21e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f21e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f21e8] [cursor=pointer]
+      - button "Präsentation" [ref=f21e12] [cursor=pointer]
+      - generic [ref=f21e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f21e24]
+      - button [ref=f21e25] [cursor=pointer]
+  - generic [ref=f21e54]:
+    - generic [ref=f21e58]:
+      - generic [ref=f21e59]:
+        - button "Neue Sitzung starten" [ref=f21e60] [cursor=pointer]
+        - generic [ref=f21e63]:
+          - generic [ref=f21e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f21e65]
+            - generic "Arbeitsmodus" [ref=f21e76]
+          - generic [ref=f21e80]: Arbeitsmodus
+        - generic [ref=f21e81]:
+          - button "Benachrichtigungen" [ref=f21e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f21e85] [cursor=pointer]
+      - generic [ref=f21e89]:
+        - img "Agent avatar" [ref=f21e91]
+        - generic [ref=f21e93]:
+          - paragraph [ref=f21e95]:
+            - strong [ref=f21e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f21e97]: 14:16
+      - generic [ref=f21e101]:
+        - button "Dateianhänge hinzufügen" [ref=f21e103] [cursor=pointer]
+        - generic [ref=f21e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f21e108]
+          - group [aria-hidden]
+        - button [ref=f21e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f21e117]:
+      - generic [ref=f21e118]:
+        - tablist [ref=f21e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f21e122] [cursor=pointer]
+          - tab "Rolle" [ref=f21e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f21e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f21e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f21e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f21e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f21e132] [cursor=pointer]
+      - tabpanel [ref=f21e135]:
+        - generic [ref=f21e137]:
+          - generic [ref=f21e139]:
+            - tablist [ref=f21e143]:
+              - tab "analysis.tendertrace.json" [selected] [ref=f21e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f21e154] [cursor=pointer]
+            - button [ref=f21e165] [cursor=pointer]
+          - generic [ref=f21e173]:
+            - iframe [ref=f21e175]:
+              - iframe [ref=f22e2]:
+                - generic [ref=f23e3]:
+                  - banner [ref=f23e4]:
+                    - generic [ref=f23e5]:
+                      - generic "Back" [ref=f23e6]:
+                        - button [disabled]
+                      - button "Dashboard" [ref=f23e7] [cursor=pointer]
+                      - heading "TenderTrace — Analyse-Cockpit" [level=6] [ref=f23e10]
+                  - generic [ref=f23e12]:
+                    - heading "Betrieb Logistikzentrum Nord — Nordland Handels AG" [level=5] [ref=f23e13]
+                    - 'heading "Sie sind in Schritt 1 von 5: Dokumente einlesen" [level=6] [ref=f23e14]'
+            - button "MCP UI Status" [ref=f21e176] [cursor=pointer]

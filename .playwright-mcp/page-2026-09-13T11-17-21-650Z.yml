@@ -1,0 +1,706 @@
+- generic [ref=f4e4]:
+  - banner [ref=f4e5]:
+    - generic [ref=f4e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f4e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f4e8] [cursor=pointer]
+      - button "Präsentation" [ref=f4e12] [cursor=pointer]
+      - generic [ref=f4e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f4e24]
+      - button [ref=f4e25] [cursor=pointer]
+  - generic [ref=f4e54]:
+    - generic [ref=f4e58]:
+      - generic [ref=f4e59]:
+        - button "Neue Sitzung starten" [ref=f4e60] [cursor=pointer]
+        - generic [ref=f4e63]:
+          - generic [ref=f4e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f4e65]
+            - generic "Arbeitsmodus" [ref=f4e76]
+          - generic [ref=f4e80]: Arbeitsmodus
+        - generic [ref=f4e81]:
+          - button "Benachrichtigungen" [ref=f4e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f4e85] [cursor=pointer]
+      - generic [ref=f4e89]:
+        - img "Agent avatar" [ref=f4e91]
+        - generic [ref=f4e93]:
+          - paragraph [ref=f4e95]:
+            - strong [ref=f4e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f4e97]: 13:15
+      - generic [ref=f4e101]:
+        - button "Dateianhänge hinzufügen" [ref=f4e103] [cursor=pointer]
+        - generic [ref=f4e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f4e108]
+          - group [aria-hidden]
+        - button [ref=f4e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f4e117]:
+      - generic [ref=f4e118]:
+        - tablist [ref=f4e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f4e122] [cursor=pointer]
+          - tab "Rolle" [ref=f4e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f4e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f4e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f4e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f4e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f4e132] [cursor=pointer]
+      - tabpanel [ref=f4e135]:
+        - generic [ref=f4e137]:
+          - generic [ref=f4e139]:
+            - tablist [ref=f4e143]:
+              - tab "t-2026-031-analysis.md" [selected] [ref=f4e179] [cursor=pointer]
+              - tab "analysis.tendertrace.json" [ref=f4e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f4e154] [cursor=pointer]
+            - button [ref=f4e165] [cursor=pointer]
+          - generic [ref=f4e189]:
+            - generic [ref=f4e190]:
+              - heading "Management-Analyse Ausschreibung" [level=1] [ref=f4e191]
+              - blockquote [ref=f4e192]:
+                - paragraph [ref=f4e193]:
+                  - text: ⚠️
+                  - strong [ref=f4e194]: Analyse mit Vorbehalten
+                  - text: — 17 Klärungsfrage(n) an den Kunden, 11 interne Rückfrage(n), 0 ungeklärte(r) Zahlenwiderspruch/-sprüche. Die Bewertung gilt unter diesen Vorbehalten.
+              - heading "Management Summary" [level=2] [ref=f4e195]
+              - paragraph [ref=f4e196]: "Die Nordland Handels AG schreibt den Vollbetrieb eines Logistikzentrums Nord mit 12.400 Palettenstellplätzen aus. Unser Leistungskatalog deckt die Kernprozesse Wareneingang, Bestandsführung, Kommissionierung und Retouren ab; die Erfüllung der Anforderungen ist jedoch mit erheblichen Vorbehalten verbunden: Von 38 Anforderungen sind 11 als NEEDS_INPUT klassifiziert, 12 nur teilweise erfüllbar (PARTIAL) und 2 nicht erfüllbar (NON_COMPLIANT). 17 Kundenfragen und 11 interne Klärungspunkte sind offen."
+              - paragraph [ref=f4e197]: Die beiden kritischen Ausschlusskriterien sind REQ-061 (Gefahrgutlagerung Klasse 3 nach TRGS 510, die unser Katalog explizit ausschließt) und REQ-117 (Malus-Regelung bei Inventurgenauigkeit unter 99,5 %, für die keine vertragliche Akzeptanz dokumentiert ist). Hinzu kommen 14 ungemappte MUSS-Anforderungen, darunter kommerzielle Bedingungen (Festpreise über 48 Monate, Vertragsbeginn 01.04.2027, Haftungssummen) und operative Kapazitätsfragen (2.300 bzw. 3.800 Pickpositionen/Tag).
+              - paragraph [ref=f4e198]: Eine Angebotsabgabe ist erst nach Klärung der Gefahrgutanforderung und der kommerziellen Rahmenbedingungen möglich. Die Zahlendifferenz zwischen Leistungsbeschreibung (12.400 Stellplätze) und Mengengerüst (12.000 Stellplätze) wurde vom Kunden bereits als Klärungsbedarf identifiziert.
+              - heading "Erfüllungsgrad je Leistungsbereich" [level=2] [ref=f4e199]
+              - paragraph [ref=f4e200]: Prozesse (Wareneingang, Kommissionierung, Retouren) sind überwiegend abgedeckt, jedoch mit Abweichungen bei Cut-off-Zeiten (15:00 statt 14:00 Uhr). Kommerzielle und rechtliche Anforderungen (7 von 8) erfordern interne Entscheidungen. Die Sicherheitsanforderung REQ-061 ist nicht erfüllbar.
+              - table [ref=f4e201]:
+                - rowgroup [ref=f4e202]:
+                  - row [ref=f4e203]:
+                    - columnheader "Leistungsbereich" [ref=f4e204]
+                    - columnheader "gesamt" [ref=f4e205]
+                    - columnheader "erfüllt" [ref=f4e206]
+                    - columnheader "teilweise" [ref=f4e207]
+                    - columnheader "nicht erfüllt" [ref=f4e208]
+                    - columnheader "intern zu klären" [ref=f4e209]
+                    - columnheader "offen" [ref=f4e210]
+                - rowgroup [ref=f4e211]:
+                  - row [ref=f4e212]:
+                    - cell "process" [ref=f4e213]
+                    - cell "18" [ref=f4e214]
+                    - cell "8" [ref=f4e215]
+                    - cell "9" [ref=f4e216]
+                    - cell "0" [ref=f4e217]
+                    - cell "1" [ref=f4e218]
+                    - cell "0" [ref=f4e219]
+                  - row [ref=f4e220]:
+                    - cell "commercial" [ref=f4e221]
+                    - cell "7" [ref=f4e222]
+                    - cell "0" [ref=f4e223]
+                    - cell "0" [ref=f4e224]
+                    - cell "1" [ref=f4e225]
+                    - cell "6" [ref=f4e226]
+                    - cell "0" [ref=f4e227]
+                  - row [ref=f4e228]:
+                    - cell "performance" [ref=f4e229]
+                    - cell "4" [ref=f4e230]
+                    - cell "1" [ref=f4e231]
+                    - cell "1" [ref=f4e232]
+                    - cell "0" [ref=f4e233]
+                    - cell "2" [ref=f4e234]
+                    - cell "0" [ref=f4e235]
+                  - row [ref=f4e236]:
+                    - cell "interface" [ref=f4e237]
+                    - cell "4" [ref=f4e238]
+                    - cell "3" [ref=f4e239]
+                    - cell "1" [ref=f4e240]
+                    - cell "0" [ref=f4e241]
+                    - cell "0" [ref=f4e242]
+                    - cell "0" [ref=f4e243]
+                  - row [ref=f4e244]:
+                    - cell "functional" [ref=f4e245]
+                    - cell "2" [ref=f4e246]
+                    - cell "0" [ref=f4e247]
+                    - cell "1" [ref=f4e248]
+                    - cell "0" [ref=f4e249]
+                    - cell "1" [ref=f4e250]
+                    - cell "0" [ref=f4e251]
+                  - row [ref=f4e252]:
+                    - cell "security" [ref=f4e253]
+                    - cell "1" [ref=f4e254]
+                    - cell "0" [ref=f4e255]
+                    - cell "0" [ref=f4e256]
+                    - cell "1" [ref=f4e257]
+                    - cell "0" [ref=f4e258]
+                    - cell "0" [ref=f4e259]
+                  - row [ref=f4e260]:
+                    - cell "data" [ref=f4e261]
+                    - cell "1" [ref=f4e262]
+                    - cell "1" [ref=f4e263]
+                    - cell "0" [ref=f4e264]
+                    - cell "0" [ref=f4e265]
+                    - cell "0" [ref=f4e266]
+                    - cell "0" [ref=f4e267]
+                  - row [ref=f4e268]:
+                    - cell "legal" [ref=f4e269]
+                    - cell "1" [ref=f4e270]
+                    - cell "0" [ref=f4e271]
+                    - cell "0" [ref=f4e272]
+                    - cell "0" [ref=f4e273]
+                    - cell "1" [ref=f4e274]
+                    - cell "0" [ref=f4e275]
+              - heading "Kennzahlen" [level=2] [ref=f4e276]
+              - table [ref=f4e277]:
+                - rowgroup [ref=f4e278]:
+                  - row [ref=f4e279]:
+                    - columnheader "Kennzahl" [ref=f4e280]
+                    - columnheader "Wert" [ref=f4e281]
+                - rowgroup [ref=f4e282]:
+                  - row [ref=f4e283]:
+                    - cell "Anforderungen gesamt" [ref=f4e284]
+                    - cell "38" [ref=f4e285]
+                  - row [ref=f4e286]:
+                    - cell "davon MUSS / SOLL / KANN" [ref=f4e287]
+                    - cell "34 / 2 / 2" [ref=f4e288]
+                  - row [ref=f4e289]:
+                    - cell "erfüllt" [ref=f4e290]
+                    - cell "13" [ref=f4e291]
+                  - row [ref=f4e292]:
+                    - cell "teilweise erfüllt" [ref=f4e293]
+                    - cell "12" [ref=f4e294]
+                  - row [ref=f4e295]:
+                    - cell "nicht erfüllt" [ref=f4e296]
+                    - cell "2" [ref=f4e297]
+                  - row [ref=f4e298]:
+                    - cell "intern zu klären" [ref=f4e299]
+                    - cell "11" [ref=f4e300]
+                  - row [ref=f4e301]:
+                    - cell "noch ohne Bewertung" [ref=f4e302]
+                    - cell "0" [ref=f4e303]
+                  - row [ref=f4e304]:
+                    - cell "Erfüllungsgrad (erfüllt = 1, teilweise = 0,5)" [ref=f4e305]
+                    - cell "50 %" [ref=f4e306]
+                  - row [ref=f4e307]:
+                    - cell "Anforderungen ohne Katalog-Zuordnung" [ref=f4e308]
+                    - 'cell "15 (davon MUSS: 14)" [ref=f4e309]'
+                  - row [ref=f4e310]:
+                    - cell "Zahlenwidersprüche Text ↔ Mengengerüst" [ref=f4e311]
+                    - 'cell "1 (ungeklärt: 0)" [ref=f4e312]'
+                  - row [ref=f4e313]:
+                    - cell "Klärungsfragen an den Kunden" [ref=f4e314]
+                    - cell "17" [ref=f4e315]
+                  - row [ref=f4e316]:
+                    - cell "Interne Rückfragen" [ref=f4e317]
+                    - cell "11" [ref=f4e318]
+                  - row [ref=f4e319]:
+                    - cell "Anforderungskarten noch in Prüfung" [ref=f4e320]
+                    - cell "0" [ref=f4e321]
+              - heading "Risiken & Abweichungen" [level=2] [ref=f4e322]
+              - paragraph [ref=f4e323]:
+                - strong [ref=f4e324]: "REQ-061 (Gefahrgutlagerung Klasse 3):"
+                - text: "Der Katalog schließt die Lagerung von Gefahrgut der Klassen 1–3 explizit aus (SVC-002). Die Anforderung verlangt jedoch ein separates Gefahrgutlager gemäß TRGS 510 für entzündbare Flüssigkeiten (Reinigungsmittel). Da dies eine MUSS-Anforderung ist, besteht hohes Ausschlussrisiko. Konsequenz: Ohne Gefahrgutfähigkeit ist das Angebot nicht wettbewerbsfähig; Prüfung, ob Gefahrgut durch Subunternehmer abgedeckt werden kann."
+              - paragraph [ref=f4e325]:
+                - strong [ref=f4e326]: "REQ-117 (Malus-Regelung Inventurgenauigkeit):"
+                - text: "Die Anforderung verlangt einen Malus von 2 % der Monatsvergütung bei Unterschreitung von 99,5 % Inventurgenauigkeit in zwei aufeinanderfolgenden Monaten. Unser Service SVC-002 garantiert 99,7 %, jedoch fehlt die vertragliche Akzeptanz der Pönale-Regelung. Konsequenz: Ohne Zustimmung zur Malus-Klausel droht Ausschluss; Geschäftsführung muss Haftungsrisiko bewerten."
+              - paragraph [ref=f4e327]:
+                - strong [ref=f4e328]: "REQ-063, REQ-064, REQ-065 (Cut-off-Zeit 14:00 vs. 15:00 Uhr):"
+                - text: "Unser Same-Day-Versand gilt für Aufträge bis 15:00 Uhr, die Ausschreibung fordert 14:00 Uhr für Kommissionierung, Verpackung und KEP-Übergabe. Abweichung: 1 Stunde. Konsequenz: Bei MUSS-Anforderungen Zuschlagsrisiko, da Frist nicht exakt eingehalten wird; Klärung, ob 15:00-Uhr-Frist akzeptabel ist oder Prozessanpassung erforderlich."
+              - table [ref=f4e329]:
+                - rowgroup [ref=f4e330]:
+                  - row [ref=f4e331]:
+                    - columnheader "Kennzahl" [ref=f4e332]
+                    - columnheader "Leistungsbeschreibung" [ref=f4e333]
+                    - columnheader "Mengengerüst" [ref=f4e334]
+                    - columnheader "Abweichung" [ref=f4e335]
+                    - columnheader "Status" [ref=f4e336]
+                - rowgroup [ref=f4e337]:
+                  - row [ref=f4e338]:
+                    - cell "Mengen › Palettenstellplätze › Anzahl (REQ-104)" [ref=f4e339]
+                    - cell "12400 Palettenstellplätze" [ref=f4e340]
+                    - cell "12.000 (Mengen!B2)" [ref=f4e341]
+                    - cell "3,3 %" [ref=f4e342]
+                    - cell "beim Kunden zu klären" [ref=f4e343]
+              - paragraph [ref=f4e344]: "MUSS-Anforderungen ohne Entsprechung im Leistungskatalog:"
+              - list [ref=f4e345]:
+                - listitem [ref=f4e346]:
+                  - strong [ref=f4e347]: REQ-053
+                  - text: — Der Auftragnehmer muss im Durchschnitt 2.300 Pickpositionen pro Tag kommissionieren.
+                - listitem [ref=f4e348]:
+                  - strong [ref=f4e349]: REQ-054
+                  - text: — Während der Spitzenzeiten (November/Dezember) muss der Auftragnehmer bis zu 3.800 Pickpositionen pro Tag kommissionieren.
+                - listitem [ref=f4e350]:
+                  - strong [ref=f4e351]: REQ-061
+                  - text: — Der Auftragnehmer muss Gefahrgüter der Klasse 3 (entzündbare Flüssigkeiten, z. B. Reinigungsmittel) in einem separaten Gefahrgutlager gemäß TRGS 510 lagern.
+                - listitem [ref=f4e352]:
+                  - strong [ref=f4e353]: REQ-065
+                  - text: — Wenn Aufträge bis 14:00 Uhr im Lagerverwaltungssystem freigegeben werden, muss der Auftragnehmer diese am selben Werktag an den Paketdienst übergeben.
+                - listitem [ref=f4e354]:
+                  - strong [ref=f4e355]: REQ-069
+                  - text: — Der Vertrag muss am 01.04.2027 beginnen.
+                - listitem [ref=f4e356]:
+                  - strong [ref=f4e357]: REQ-070
+                  - text: — Der Vertrag muss eine feste Laufzeit von 48 Monaten haben.
+                - listitem [ref=f4e358]:
+                  - strong [ref=f4e359]: REQ-071
+                  - text: — Wenn die Termintreue über ein Quartal 99 % überschreitet, muss der Auftragnehmer einen Bonus von 1 % der Quartalsvergütung erhalten.
+                - listitem [ref=f4e360]:
+                  - strong [ref=f4e361]: REQ-073
+                  - text: — Vor Betriebsstart muss der Auftragnehmer die Mitarbeitenden in einer Schulung von 3 Tagen in die Prozesse und das Lagerverwaltungssystem einweisen.
+                - listitem [ref=f4e362]:
+                  - strong [ref=f4e363]: REQ-074
+                  - text: — Der Bieter muss das Angebot bis zum 15.11.2026, 12:00 Uhr elektronisch über die Vergabeplattform einreichen.
+                - listitem [ref=f4e364]:
+                  - strong [ref=f4e365]: REQ-104
+                  - text: — Der Auftragnehmer muss im Hochregallager und im Blocklager insgesamt 12.400 Palettenstellplätze vorhalten.
+                - listitem [ref=f4e366]:
+                  - strong [ref=f4e367]: REQ-115
+                  - text: — Der Auftragnehmer muss die Preise für die Vertragslaufzeit fest anbieten.
+                - listitem [ref=f4e368]:
+                  - strong [ref=f4e369]: REQ-117
+                  - text: — Wenn die Inventurgenauigkeit in zwei aufeinanderfolgenden Monaten unter 99,5 % liegt, muss der Auftragnehmer einen Malus von 2 % der Monatsvergütung leisten.
+                - listitem [ref=f4e370]:
+                  - strong [ref=f4e371]: REQ-118
+                  - text: — Der Auftragnehmer muss für Bestandsdifferenzen oberhalb der vereinbarten Inventurgenauigkeit bis zu einer Höhe von 250.000 € je Vertragsjahr haften.
+                - listitem [ref=f4e372]:
+                  - strong [ref=f4e373]: REQ-119
+                  - text: — Der Auftragnehmer muss eine Lagerhaftpflichtversicherung mit einer Deckungssumme von mindestens 5 Mio. € nachweisen.
+              - heading "Klärungsbedarf beim Kunden" [level=2] [ref=f4e374]
+              - paragraph [ref=f4e375]: "Diese Fragen gehen als Bieterfragen an den Kunden. Nur was hier steht, wird gefragt:"
+              - list [ref=f4e376]:
+                - listitem [ref=f4e377]:
+                  - text: "Zu „Mengen › Palettenstellplätze › Anzahl“: Die Leistungsbeschreibung nennt 12400 Palettenstellplätze, das Mengengerüst (Mengen!B2) nennt 12000. Welcher Wert ist verbindlich?"
+                  - emphasis [ref=f4e378]: (REQ-104)
+                - listitem [ref=f4e379]:
+                  - text: "Bitte bestätigen Sie den gültigen Wert für „Mengen › Palettenstellplätze › Anzahl“: die Leistungsbeschreibung nennt 12400 Palettenstellplätze, das Mengengerüst (Mengen!B2) nennt 12.000."
+                  - emphasis [ref=f4e380]: (REQ-104, Mengen!B2)
+                - listitem [ref=f4e381]:
+                  - text: "Zu Abschnitt 4 Lagerung und Bestandsführung: Welche maximale Latenz ist für die Echtzeit-Abrufbarkeit der Bestände im Lagerverwaltungssystem zulässig?"
+                  - emphasis [ref=f4e382]: (REQ-105)
+                - listitem [ref=f4e383]:
+                  - text: "Zu Abschnitt 5 Kommissionierung und Warenausgang: Unter welchen Bedingungen sollen Mehrfachbestellungen eines Kunden zu einer Sendung konsolidiert werden (z.B. innerhalb welches Zeitfensters, bei gleichem Versandziel)?"
+                  - emphasis [ref=f4e384]: (REQ-106)
+                - listitem [ref=f4e385]:
+                  - text: "Zu Abschnitt 5 Kommissionierung und Warenausgang: Innerhalb welcher Frist muss die elektronische Meldung des Warenausgangs mit Sendungsnummer an den Auftraggeber erfolgen?"
+                  - emphasis [ref=f4e386]: (REQ-107)
+                - listitem [ref=f4e387]:
+                  - text: "Zu Abschnitt 6 Retourenabwicklung: Innerhalb welcher Frist müssen Retouren nach Eingang bearbeitet werden?"
+                  - emphasis [ref=f4e388]: (REQ-108)
+                - listitem [ref=f4e389]:
+                  - text: "Zu Abschnitt 6 Retourenabwicklung: Innerhalb welcher Frist müssen geprüfte Retouren wieder eingelagert oder verschrottet werden?"
+                  - emphasis [ref=f4e390]: (REQ-109)
+                - listitem [ref=f4e391]:
+                  - text: "Zu Abschnitt 7 IT-Anbindung: Welche Art von Schnittstelle ist für die Anbindung des Lagerverwaltungssystems an SAP S/4HANA vorgesehen (z.B. IDoc, REST-API, Batch-Datei) und welche technischen Spezifikationen sind zu beachten?"
+                  - emphasis [ref=f4e392]: (REQ-110)
+                - listitem [ref=f4e393]:
+                  - text: "Zu Abschnitt 7 IT-Anbindung: Ist die Nutzung des Lagerverwaltungssystems des Auftraggebers eine vom Auftragnehmer wählbare Alternative oder eine vom Auftraggeber vorgegebene Option?"
+                  - emphasis [ref=f4e394]: (REQ-111)
+                - listitem [ref=f4e395]:
+                  - text: "Zu Abschnitt 7 IT-Anbindung: Welche Aufbewahrungsfrist ist für die revisionssichere Protokollierung der Buchungen einzuhalten?"
+                  - emphasis [ref=f4e396]: (REQ-112)
+                - listitem [ref=f4e397]:
+                  - text: "Zu Abschnitt 8 Service-Level und Berichtswesen: Welche Ereignisse sind als 'Störungen des Lagerbetriebs' zu klassifizieren und unterliegen der 2-Stunden-Meldepflicht? Gibt es eine Kategorisierung nach Schweregrad?"
+                  - emphasis [ref=f4e398]: (REQ-113)
+                - listitem [ref=f4e399]:
+                  - text: "Zu Abschnitt 8 Service-Level und Berichtswesen: In welcher Form und mit welchem Detaillierungsgrad sind die quartalsweisen Vorschläge zur Prozessoptimierung einzureichen?"
+                  - emphasis [ref=f4e400]: (REQ-114)
+                - listitem [ref=f4e401]:
+                  - text: "Zu Abschnitt 2 Vergütung: Welche Vertragslaufzeit ist für die Festpreisbindung maßgeblich?"
+                  - emphasis [ref=f4e402]: (REQ-115)
+                - listitem [ref=f4e403]:
+                  - text: "Zu Abschnitt 2 Vergütung: Welcher Tariflohn ist für die Preisanpassungsklausel maßgeblich und wie wird die prozentuale Änderung berechnet?"
+                  - emphasis [ref=f4e404]: (REQ-116)
+                - listitem [ref=f4e405]:
+                  - text: "Zu Abschnitt 3 Bonus-Malus: Bezieht sich der Malus von 2 % der Monatsvergütung auf die Vergütung des zweiten Monats der Unterschreitung oder auf beide Monate, in denen die Inventurgenauigkeit unter 99,5 % lag?"
+                  - emphasis [ref=f4e406]: (REQ-117)
+                - listitem [ref=f4e407]:
+                  - text: "Zu Abschnitt Vergabe- und Vertragsbedingungen > 5 Haftung und Versicherung: Welche Inventurgenauigkeit ist vertraglich vereinbart, ab deren Überschreitung die Haftung für Bestandsdifferenzen greift?"
+                  - emphasis [ref=f4e408]: (REQ-118)
+                - listitem [ref=f4e409]:
+                  - text: "Zu Abschnitt Vergabe- und Vertragsbedingungen > 5 Haftung und Versicherung: Bis wann muss der Nachweis der Lagerhaftpflichtversicherung mit einer Deckungssumme von mindestens 5 Mio. € erbracht werden?"
+                  - emphasis [ref=f4e410]: (REQ-119)
+              - heading "Interne offene Punkte" [level=2] [ref=f4e411]
+              - paragraph [ref=f4e412]: "Was intern entschieden oder beschafft werden muss, mit verantwortlicher Rolle:"
+              - table [ref=f4e413]:
+                - rowgroup [ref=f4e414]:
+                  - row [ref=f4e415]:
+                    - columnheader "Anforderung" [ref=f4e416]
+                    - columnheader "Frage" [ref=f4e417]
+                    - columnheader "Verantwortlich" [ref=f4e418]
+                - rowgroup [ref=f4e419]:
+                  - row [ref=f4e420]:
+                    - cell "REQ-053" [ref=f4e421]
+                    - cell "Welche durchschnittliche Tageskapazität in Pickpositionen kann der Service Order Fulfillment (Picking & Packing) leisten? Die Ausschreibung fordert 2.300 Pickpositionen/Tag im Durchschnitt." [ref=f4e422]
+                    - cell "Operations Manager" [ref=f4e423]
+                  - row [ref=f4e424]:
+                    - cell "REQ-054" [ref=f4e425]
+                    - cell "Welche maximale Tageskapazität (Pickpositionen pro Tag) kann der Order Fulfillment Service während Spitzenzeiten (November/Dezember) leisten, und reicht diese für 3.800 Pickpositionen/Tag aus?" [ref=f4e426]
+                    - cell "Operations Manager" [ref=f4e427]
+                  - row [ref=f4e428]:
+                    - cell "REQ-069" [ref=f4e429]
+                    - cell "Kann das Unternehmen den Vertragsbeginn verbindlich auf den 01.04.2027 festlegen, und gibt es Vorlaufzeiten oder organisatorische Einschränkungen, die diesem Datum entgegenstehen könnten?" [ref=f4e430]
+                    - cell "Vertriebsleitung" [ref=f4e431]
+                  - row [ref=f4e432]:
+                    - cell "REQ-070" [ref=f4e433]
+                    - cell "Kann das Unternehmen einen Vertrag mit fester Laufzeit von 48 Monaten (01.04.2027 bis 31.03.2031) ohne Kündigungsmöglichkeit anbieten, oder gibt es standardmäßige Mindest-/Maximallaufzeiten in den Vertragsvorlagen?" [ref=f4e434]
+                    - cell "Vertriebsleiter" [ref=f4e435]
+                  - row [ref=f4e436]:
+                    - cell "REQ-071" [ref=f4e437]
+                    - cell "Akzeptiert das Unternehmen eine Bonusregelung von 1 % der Quartalsvergütung bei Termintreue über 99 % über ein Quartal? Welche vertraglichen und kalkulatorischen Rahmenbedingungen gelten für solche Bonusvereinbarungen?" [ref=f4e438]
+                    - cell "Commercial Manager" [ref=f4e439]
+                  - row [ref=f4e440]:
+                    - cell "REQ-074" [ref=f4e441]
+                    - cell "Verfügt das Unternehmen über die technischen und organisatorischen Voraussetzungen zur fristgerechten elektronischen Einreichung des Angebots über die Vergabeplattform bis zum 15.11.2026, 12:00 Uhr? Welche internen Prozesse und Verantwortlichkeiten sind für die Angebotserstellung und -einreichung etabliert?" [ref=f4e442]
+                    - cell "Bid Manager" [ref=f4e443]
+                  - row [ref=f4e444]:
+                    - cell "REQ-104" [ref=f4e445]
+                    - cell "Verfügt das Unternehmen über Hochregallager und Blocklager mit insgesamt mindestens 12.400 Palettenstellplätzen, oder kann diese Kapazität bis Betriebsstart bereitgestellt werden?" [ref=f4e446]
+                    - cell "Operations Manager" [ref=f4e447]
+                  - row [ref=f4e448]:
+                    - cell "REQ-115" [ref=f4e449]
+                    - cell "Kann das Unternehmen für die gesamte Vertragslaufzeit feste Preise garantieren, wobei Anpassungen nur bei Tariflohnänderungen über 3 % zulässig sind? Welche Preisanpassungsklauseln sind in den Standardverträgen vorgesehen?" [ref=f4e450]
+                    - cell "Kaufmännischer Leiter" [ref=f4e451]
+                  - row [ref=f4e452]:
+                    - cell "REQ-116" [ref=f4e453]
+                    - cell "Bietet das Unternehmen Festpreise über die gesamte Vertragslaufzeit an, und ist eine Preisanpassungsklausel bei Tariflohnänderungen über 3 % im Standardvertrag vorgesehen?" [ref=f4e454]
+                    - cell "Commercial Manager" [ref=f4e455]
+                  - row [ref=f4e456]:
+                    - cell "REQ-118" [ref=f4e457]
+                    - cell "Ist das Unternehmen bereit, eine vertragliche Haftung für Bestandsdifferenzen oberhalb der Inventurgenauigkeit von 99,7 % bis zu einer Höhe von 250.000 € je Vertragsjahr zu übernehmen? Falls ja, ist diese Haftungssumme versicherungstechnisch abgedeckt?" [ref=f4e458]
+                    - cell "Geschäftsführung / Vertragsmanagement" [ref=f4e459]
+                  - row [ref=f4e460]:
+                    - cell "REQ-119" [ref=f4e461]
+                    - cell "Verfügt das Unternehmen über eine Lagerhaftpflichtversicherung mit einer Deckungssumme von mindestens 5 Mio. €? Falls ja, bitte Police oder Versicherungsbestätigung zur Verfügung stellen." [ref=f4e462]
+                    - cell "Geschäftsführung oder Versicherungsbeauftragter" [ref=f4e463]
+              - heading "Empfehlung / nächste Schritte" [level=2] [ref=f4e464]
+              - list [ref=f4e465]:
+                - listitem [ref=f4e466]:
+                  - paragraph [ref=f4e467]:
+                    - strong [ref=f4e468]: "Keine Angebotsabgabe ohne Klärung REQ-061:"
+                    - text: "Prüfung durch Operations Manager, ob Gefahrgutlagerung Klasse 3 durch Subunternehmer oder Infrastrukturinvestition bis 01.04.2027 realisierbar ist. Alternativ: Ausschluss dieser Position aus dem Angebot mit Hinweis auf Katalogbeschränkung."
+                - listitem [ref=f4e469]:
+                  - paragraph [ref=f4e470]:
+                    - strong [ref=f4e471]: "Geschäftsführung entscheidet über kommerzielle Rahmenbedingungen:"
+                    - text: Akzeptanz der Malus-Regelung (REQ-117), Haftungssumme 250.000 € (REQ-118), Festpreisbindung über 48 Monate (REQ-115) und Lagerhaftpflichtversicherung 5 Mio. € (REQ-119) müssen vor Angebotsabgabe geklärt sein.
+                - listitem [ref=f4e472]:
+                  - paragraph [ref=f4e473]:
+                    - strong [ref=f4e474]: "Kapazitätsnachweis erbringen:"
+                    - text: Operations Manager bestätigt schriftlich, dass 2.300 Pickpositionen/Tag im Durchschnitt und 3.800 Pickpositionen/Tag in Spitzenzeiten (REQ-053, REQ-054) sowie 12.400 Palettenstellplätze (REQ-104) verfügbar sind.
+                - listitem [ref=f4e475]:
+                  - paragraph [ref=f4e476]:
+                    - strong [ref=f4e477]: "Kundenfragen priorisiert stellen:"
+                    - text: Die 17 Klärungsfragen (insbesondere zur Zahlendifferenz Palettenstellplätze, zur Cut-off-Zeit 14:00 vs. 15:00 Uhr und zu den kommerziellen Schwellenwerten) müssen vor Angebotserstellung beantwortet sein.
+                - listitem [ref=f4e478]:
+                  - paragraph [ref=f4e479]:
+                    - strong [ref=f4e480]: "Preisannahmen dokumentieren:"
+                    - text: Falls Kundenfragen bis Angebotsfrist nicht beantwortet werden, Angebot unter Vorbehalt mit expliziten Annahmen zu Gefahrgut-Ausschluss, 15:00-Uhr-Cut-off und Kapazitätsgrenzen abgeben.
+              - 'heading "Anhang: Bewertungsmatrix" [level=2] [ref=f4e481]'
+              - table [ref=f4e482]:
+                - rowgroup [ref=f4e483]:
+                  - row [ref=f4e484]:
+                    - columnheader "ID" [ref=f4e485]
+                    - columnheader "Anforderung" [ref=f4e486]
+                    - columnheader "Modalität" [ref=f4e487]
+                    - columnheader "Bewertung" [ref=f4e488]
+                    - columnheader "Katalog-Services" [ref=f4e489]
+                    - columnheader "Abweichung" [ref=f4e490]
+                - rowgroup [ref=f4e491]:
+                  - row [ref=f4e492]:
+                    - cell "REQ-053" [ref=f4e493]
+                    - cell "Der Auftragnehmer muss im Durchschnitt 2.300 Pickpositionen pro Tag für Order Fulfillment (Picking & Packing) bearbeiten." [ref=f4e494]
+                    - cell "MUSS" [ref=f4e495]
+                    - cell "intern zu klären *" [ref=f4e496]
+                    - cell "—" [ref=f4e497]
+                    - cell "—" [ref=f4e498]
+                  - row [ref=f4e499]:
+                    - cell "REQ-054" [ref=f4e500]
+                    - cell "Während der Spitzenzeiten (November/Dezember) muss der Auftragnehmer bis zu 3.800 Pickpositionen pro Tag für Order Fulfillment (Picking & Packing) bearbeiten." [ref=f4e501]
+                    - cell "MUSS" [ref=f4e502]
+                    - cell "intern zu klären *" [ref=f4e503]
+                    - cell "—" [ref=f4e504]
+                    - cell "—" [ref=f4e505]
+                  - row [ref=f4e506]:
+                    - cell "REQ-055" [ref=f4e507]
+                    - cell "Der Auftragnehmer muss angelieferte Ware innerhalb von 4 Stunden nach Entladung im WMS des Auftraggebers buchen." [ref=f4e508]
+                    - cell "MUSS" [ref=f4e509]
+                    - cell "teilweise *" [ref=f4e510]
+                    - cell "Inbound-Handling (partial, vorgeschlagen)" [ref=f4e511]
+                    - cell "Buchung erfolgt innerhalb von 2 Stunden statt der geforderten 4 Stunden nach Entladung" [ref=f4e512]
+                  - row [ref=f4e513]:
+                    - cell "REQ-056" [ref=f4e514]
+                    - cell "Wenn der Auftragnehmer eine Palette vereinnahmt, muss er diese auf Transportschäden prüfen." [ref=f4e515]
+                    - cell "MUSS" [ref=f4e516]
+                    - cell "erfüllt *" [ref=f4e517]
+                    - cell "Inbound-Handling (full, vorgeschlagen)" [ref=f4e518]
+                    - cell "—" [ref=f4e519]
+                  - row [ref=f4e520]:
+                    - cell "REQ-057" [ref=f4e521]
+                    - cell "Wenn Abweichungen festgestellt werden, muss der Auftragnehmer diese mit Foto dokumentieren." [ref=f4e522]
+                    - cell "MUSS" [ref=f4e523]
+                    - cell "erfüllt *" [ref=f4e524]
+                    - cell "Inbound-Handling (full, vorgeschlagen)" [ref=f4e525]
+                    - cell "—" [ref=f4e526]
+                  - row [ref=f4e527]:
+                    - cell "REQ-058" [ref=f4e528]
+                    - cell "Der Auftragnehmer muss Ladungsträger (Europaletten, Gitterboxen) im Tauschverfahren verwalten." [ref=f4e529]
+                    - cell "MUSS" [ref=f4e530]
+                    - cell "erfüllt *" [ref=f4e531]
+                    - cell "Inbound-Handling (full, vorgeschlagen)" [ref=f4e532]
+                    - cell "—" [ref=f4e533]
+                  - row [ref=f4e534]:
+                    - cell "REQ-059" [ref=f4e535]
+                    - cell "Der Auftragnehmer muss eine Inventurgenauigkeit von mindestens 99,5 % gewährleisten; der Nachweis erfolgt durch Bestandsführung & permanente Inventur mit monat…" [ref=f4e536]
+                    - cell "MUSS" [ref=f4e537]
+                    - cell "erfüllt *" [ref=f4e538]
+                    - cell "Bestandsführung & permanente Inventur (full, vorgeschlagen)" [ref=f4e539]
+                    - cell "—" [ref=f4e540]
+                  - row [ref=f4e541]:
+                    - cell "REQ-060" [ref=f4e542]
+                    - cell "Der Auftragnehmer muss Bestandsbewegungen innerhalb von 15 Minuten buchen können." [ref=f4e543]
+                    - cell "MUSS" [ref=f4e544]
+                    - cell "teilweise *" [ref=f4e545]
+                    - cell "Bestandsführung & permanente Inventur (full, vorgeschlagen)" [ref=f4e546]
+                    - cell "Buchung erfolgt innerhalb von 10 Minuten statt der geforderten 15 Minuten – dies ist eine positive Abweichung (schnelle…" [ref=f4e547]
+                  - row [ref=f4e548]:
+                    - cell "REQ-061" [ref=f4e549]
+                    - cell "Der Auftragnehmer muss Gefahrgüter der Klasse 3 (entzündbare Flüssigkeiten, z. B. Reinigungsmittel) in einem separaten Gefahrgutlager gemäß TRGS 510 lagern." [ref=f4e550]
+                    - cell "MUSS" [ref=f4e551]
+                    - cell "nicht erfüllt *" [ref=f4e552]
+                    - cell "—" [ref=f4e553]
+                    - cell "—" [ref=f4e554]
+                  - row [ref=f4e555]:
+                    - cell "REQ-062" [ref=f4e556]
+                    - cell "Wenn Ware der Kühlzone vorliegt, darf der Auftragnehmer diese nicht außerhalb des Temperaturbereichs von 2–8 °C lagern." [ref=f4e557]
+                    - cell "MUSS" [ref=f4e558]
+                    - cell "teilweise *" [ref=f4e559]
+                    - cell "Temperaturgeführte Lagerung 2–8 °C (partial, vorgeschlagen)" [ref=f4e560]
+                    - cell "Kühltechnik wird vom Auftraggeber gestellt (prerequisites von SVC-003). Der Auftragnehmer betreibt das Monitoring und d…" [ref=f4e561]
+                  - row [ref=f4e562]:
+                    - cell "REQ-063" [ref=f4e563]
+                    - cell "Wenn Aufträge bis 14:00 Uhr im WMS freigegeben werden, muss der Auftragnehmer diese am selben Werktag kommissionieren." [ref=f4e564]
+                    - cell "MUSS" [ref=f4e565]
+                    - cell "teilweise *" [ref=f4e566]
+                    - cell "Order Fulfillment (Picking & Packing) (partial, vorgeschlagen)" [ref=f4e567]
+                    - cell "Same-Day-Versand gilt für Aufträge bis 15:00 Uhr statt der geforderten 14:00 Uhr (1 Stunde Abweichung)" [ref=f4e568]
+                  - row [ref=f4e569]:
+                    - cell "REQ-064" [ref=f4e570]
+                    - cell "Wenn Aufträge bis 14:00 Uhr im WMS freigegeben werden, muss der Auftragnehmer diese am selben Werktag verpacken." [ref=f4e571]
+                    - cell "MUSS" [ref=f4e572]
+                    - cell "teilweise *" [ref=f4e573]
+                    - cell "Order Fulfillment (Picking & Packing) (partial, vorgeschlagen)" [ref=f4e574]
+                    - cell "Cutoff-Zeit 15:00 Uhr statt geforderter 14:00 Uhr für Same-Day-Verpackung" [ref=f4e575]
+                  - row [ref=f4e576]:
+                    - cell "REQ-065" [ref=f4e577]
+                    - cell "Wenn Aufträge bis 14:00 Uhr im WMS freigegeben werden, muss der Auftragnehmer diese am selben Werktag an den KEP-Dienstleister übergeben." [ref=f4e578]
+                    - cell "MUSS" [ref=f4e579]
+                    - cell "teilweise *" [ref=f4e580]
+                    - cell "—" [ref=f4e581]
+                    - cell "Cut-off-Zeitpunkt 15:00 Uhr statt geforderter 14:00 Uhr für Same-Day-Versand" [ref=f4e582]
+                  - row [ref=f4e583]:
+                    - cell "REQ-066" [ref=f4e584]
+                    - cell "Der Auftragnehmer muss eine Kommissionierfehlerquote von maximal 0,3 % der Auftragspositionen einhalten." [ref=f4e585]
+                    - cell "MUSS" [ref=f4e586]
+                    - cell "erfüllt *" [ref=f4e587]
+                    - cell "Order Fulfillment (Picking & Packing) (full, vorgeschlagen)" [ref=f4e588]
+                    - cell "—" [ref=f4e589]
+                  - row [ref=f4e590]:
+                    - cell "REQ-067" [ref=f4e591]
+                    - cell "Der Auftragnehmer muss die Retourenquote monatlich je Artikelgruppe berichten." [ref=f4e592]
+                    - cell "MUSS" [ref=f4e593]
+                    - cell "teilweise *" [ref=f4e594]
+                    - cell "Returns Management (partial, vorgeschlagen)" [ref=f4e595]
+                    - cell "SVC-010 nennt Retourenquote im KPI-Bericht, spezifiziert aber keine Aufschlüsselung je Artikelgruppe. SVC-006 bietet Re…" [ref=f4e596]
+                  - row [ref=f4e597]:
+                    - cell "REQ-068" [ref=f4e598]
+                    - cell "Der Auftragnehmer muss einen monatlichen Leistungsbericht mit den Kennzahlen Inventurgenauigkeit, Kommissionierfehlerquote, Termintreue und Retourenquote vorle…" [ref=f4e599]
+                    - cell "MUSS" [ref=f4e600]
+                    - cell "erfüllt *" [ref=f4e601]
+                    - cell "Reporting & Service-Level (full, vorgeschlagen)" [ref=f4e602]
+                    - cell "—" [ref=f4e603]
+                  - row [ref=f4e604]:
+                    - cell "REQ-069" [ref=f4e605]
+                    - cell "Der Vertrag muss am 01.04.2027 beginnen." [ref=f4e606]
+                    - cell "MUSS" [ref=f4e607]
+                    - cell "intern zu klären *" [ref=f4e608]
+                    - cell "—" [ref=f4e609]
+                    - cell "—" [ref=f4e610]
+                  - row [ref=f4e611]:
+                    - cell "REQ-070" [ref=f4e612]
+                    - cell "Der Vertrag muss eine feste Laufzeit von 48 Monaten haben." [ref=f4e613]
+                    - cell "MUSS" [ref=f4e614]
+                    - cell "intern zu klären *" [ref=f4e615]
+                    - cell "—" [ref=f4e616]
+                    - cell "—" [ref=f4e617]
+                  - row [ref=f4e618]:
+                    - cell "REQ-071" [ref=f4e619]
+                    - cell "Wenn die Termintreue über ein Quartal 99 % überschreitet, muss der Auftragnehmer einen Bonus von 1 % der Quartalsvergütung erhalten." [ref=f4e620]
+                    - cell "MUSS" [ref=f4e621]
+                    - cell "intern zu klären *" [ref=f4e622]
+                    - cell "—" [ref=f4e623]
+                    - cell "—" [ref=f4e624]
+                  - row [ref=f4e625]:
+                    - cell "REQ-072" [ref=f4e626]
+                    - cell "Der Auftragnehmer muss die derzeit im Logistikzentrum Nord beschäftigten 62 Mitarbeitenden gemäß § 613a BGB übernehmen." [ref=f4e627]
+                    - cell "MUSS" [ref=f4e628]
+                    - cell "teilweise *" [ref=f4e629]
+                    - cell "Betriebsübernahme & Personal (full, vorgeschlagen)" [ref=f4e630]
+                    - cell "Voraussetzung 'Personalunterlagen liegen 8 Wochen vor Betriebsstart vor' ist zusätzliche Bedingung, die in der Anforder…" [ref=f4e631]
+                  - row [ref=f4e632]:
+                    - cell "REQ-073" [ref=f4e633]
+                    - cell "Vor Betriebsstart muss der Auftragnehmer die Mitarbeitenden in einer Schulung von 3 Tagen in die Prozesse und das WMS einweisen." [ref=f4e634]
+                    - cell "MUSS" [ref=f4e635]
+                    - cell "teilweise *" [ref=f4e636]
+                    - cell "—" [ref=f4e637]
+                    - cell "Schulungsdauer beträgt 5 Tage statt der geforderten 3 Tage (+2 Tage Abweichung); keine explizite Evidenz zur WMS-Schulu…" [ref=f4e638]
+                  - row [ref=f4e639]:
+                    - cell "REQ-074" [ref=f4e640]
+                    - cell "Der Bieter muss das Angebot bis zum 15.11.2026, 12:00 Uhr elektronisch über die Vergabeplattform einreichen." [ref=f4e641]
+                    - cell "MUSS" [ref=f4e642]
+                    - cell "intern zu klären *" [ref=f4e643]
+                    - cell "—" [ref=f4e644]
+                    - cell "—" [ref=f4e645]
+                  - row [ref=f4e646]:
+                    - cell "REQ-104" [ref=f4e647]
+                    - cell "Der Auftragnehmer muss im Hochregallager und im Blocklager insgesamt 12.400 Palettenstellplätze vorhalten." [ref=f4e648]
+                    - cell "MUSS" [ref=f4e649]
+                    - cell "intern zu klären *" [ref=f4e650]
+                    - cell "—" [ref=f4e651]
+                    - cell "—" [ref=f4e652]
+                  - row [ref=f4e653]:
+                    - cell "REQ-105" [ref=f4e654]
+                    - cell "Die Bestände müssen jederzeit im WMS des Auftraggebers in Echtzeit abrufbar sein." [ref=f4e655]
+                    - cell "MUSS" [ref=f4e656]
+                    - cell "teilweise *" [ref=f4e657]
+                    - cell "Bestandsführung & permanente Inventur (partial, vorgeschlagen)" [ref=f4e658]
+                    - cell "Die Echtzeit-Bestandsführung im WMS des Auftraggebers setzt eine kundenseitige ERP-Schnittstelle (IDoc oder REST) vorau…" [ref=f4e659]
+                  - row [ref=f4e660]:
+                    - cell "REQ-106" [ref=f4e661]
+                    - cell "Wenn Mehrfachbestellungen eines Kunden vorliegen, soll der Auftragnehmer diese zu einer Sendung konsolidieren." [ref=f4e662]
+                    - cell "SOLL" [ref=f4e663]
+                    - cell "erfüllt *" [ref=f4e664]
+                    - cell "Outbound-Handling & Versandkonsolidierung (full, vorgeschlagen)" [ref=f4e665]
+                    - cell "—" [ref=f4e666]
+                  - row [ref=f4e667]:
+                    - cell "REQ-107" [ref=f4e668]
+                    - cell "Wenn der Warenausgang erfolgt, muss der Auftragnehmer diesen elektronisch mit Sendungsnummer an den Auftraggeber melden." [ref=f4e669]
+                    - cell "MUSS" [ref=f4e670]
+                    - cell "erfüllt *" [ref=f4e671]
+                    - cell "Outbound-Handling & Versandkonsolidierung (full, vorgeschlagen)" [ref=f4e672]
+                    - cell "—" [ref=f4e673]
+                  - row [ref=f4e674]:
+                    - cell "REQ-108" [ref=f4e675]
+                    - cell "Der Auftragnehmer muss Retouren zeitnah bearbeiten." [ref=f4e676]
+                    - cell "MUSS" [ref=f4e677]
+                    - cell "teilweise *" [ref=f4e678]
+                    - cell "Returns Management (full, vorgeschlagen)" [ref=f4e679]
+                    - cell "Bearbeitungszeit 48 Stunden nach Eingang (Anforderung fordert 'zeitnah' ohne konkrete Frist)" [ref=f4e680]
+                  - row [ref=f4e681]:
+                    - cell "REQ-109" [ref=f4e682]
+                    - cell "Nach Prüfung muss der Auftragnehmer Retouren wieder einlagern oder verschrotten." [ref=f4e683]
+                    - cell "MUSS" [ref=f4e684]
+                    - cell "erfüllt *" [ref=f4e685]
+                    - cell "Returns Management (full, vorgeschlagen)" [ref=f4e686]
+                    - cell "—" [ref=f4e687]
+                  - row [ref=f4e688]:
+                    - cell "REQ-110" [ref=f4e689]
+                    - cell "Der Auftragnehmer muss sein WMS über eine Schnittstelle an das ERP-System des Auftraggebers (SAP S/4HANA) anbinden." [ref=f4e690]
+                    - cell "MUSS" [ref=f4e691]
+                    - cell "erfüllt *" [ref=f4e692]
+                    - cell "WMS-Integration (SAP EWM, API) (full, vorgeschlagen)" [ref=f4e693]
+                    - cell "—" [ref=f4e694]
+                  - row [ref=f4e695]:
+                    - cell "REQ-111" [ref=f4e696]
+                    - cell "Sofern das WMS des Auftraggebers genutzt wird, kann der Auftragnehmer das WMS des Auftraggebers nutzen." [ref=f4e697]
+                    - cell "KANN" [ref=f4e698]
+                    - cell "erfüllt *" [ref=f4e699]
+                    - cell "WMS-Integration (SAP EWM, API) (full, vorgeschlagen)" [ref=f4e700]
+                    - cell "—" [ref=f4e701]
+                  - row [ref=f4e702]:
+                    - cell "REQ-112" [ref=f4e703]
+                    - cell "Das WMS muss alle Buchungen revisionssicher protokollieren." [ref=f4e704]
+                    - cell "MUSS" [ref=f4e705]
+                    - cell "erfüllt *" [ref=f4e706]
+                    - cell "WMS-Integration (SAP EWM, API) (full, vorgeschlagen)" [ref=f4e707]
+                    - cell "—" [ref=f4e708]
+                  - row [ref=f4e709]:
+                    - cell "REQ-113" [ref=f4e710]
+                    - cell "Wenn Störungen des Lagerbetriebs auftreten, muss der Auftragnehmer diese innerhalb von 2 Stunden dem Ansprechpartner des Auftraggebers melden." [ref=f4e711]
+                    - cell "MUSS" [ref=f4e712]
+                    - cell "teilweise *" [ref=f4e713]
+                    - cell "Reporting & Service-Level (partial, vorgeschlagen)" [ref=f4e714]
+                    - cell "Meldefrist beträgt 1 Stunde (besser als gefordert) statt exakt 2 Stunden wie spezifiziert" [ref=f4e715]
+                  - row [ref=f4e716]:
+                    - cell "REQ-114" [ref=f4e717]
+                    - cell "Der Auftragnehmer soll Vorschläge zur Prozessoptimierung quartalsweise einbringen." [ref=f4e718]
+                    - cell "SOLL" [ref=f4e719]
+                    - cell "erfüllt *" [ref=f4e720]
+                    - cell "Reporting & Service-Level (full, vorgeschlagen)" [ref=f4e721]
+                    - cell "—" [ref=f4e722]
+                  - row [ref=f4e723]:
+                    - cell "REQ-115" [ref=f4e724]
+                    - cell "Der Auftragnehmer muss die Preise für die Vertragslaufzeit fest anbieten." [ref=f4e725]
+                    - cell "MUSS" [ref=f4e726]
+                    - cell "intern zu klären *" [ref=f4e727]
+                    - cell "—" [ref=f4e728]
+                    - cell "—" [ref=f4e729]
+                  - row [ref=f4e730]:
+                    - cell "REQ-116" [ref=f4e731]
+                    - cell "Wenn eine Änderung des Tariflohns um mehr als 3 % eintritt, kann der Auftragnehmer eine Anpassung der Preise vornehmen." [ref=f4e732]
+                    - cell "KANN" [ref=f4e733]
+                    - cell "intern zu klären *" [ref=f4e734]
+                    - cell "—" [ref=f4e735]
+                    - cell "—" [ref=f4e736]
+                  - row [ref=f4e737]:
+                    - cell "REQ-117" [ref=f4e738]
+                    - cell "Wenn die Inventurgenauigkeit in zwei aufeinanderfolgenden Monaten unter 99,5 % liegt, muss der Auftragnehmer einen Malus von 2 % der Monatsvergütung leisten." [ref=f4e739]
+                    - cell "MUSS" [ref=f4e740]
+                    - cell "nicht erfüllt *" [ref=f4e741]
+                    - cell "—" [ref=f4e742]
+                    - cell "Die Anforderung ist eine kommerzielle Vertragsklausel (Malus bei Unterschreitung 99,5 %), während SVC-002 eine technisc…" [ref=f4e743]
+                  - row [ref=f4e744]:
+                    - cell "REQ-118" [ref=f4e745]
+                    - cell "Der Auftragnehmer muss für Bestandsdifferenzen oberhalb der vereinbarten Inventurgenauigkeit bis zu einer Höhe von 250.000 € je Vertragsjahr haften." [ref=f4e746]
+                    - cell "MUSS" [ref=f4e747]
+                    - cell "intern zu klären *" [ref=f4e748]
+                    - cell "—" [ref=f4e749]
+                    - cell "—" [ref=f4e750]
+                  - row [ref=f4e751]:
+                    - cell "REQ-119" [ref=f4e752]
+                    - cell "Der Auftragnehmer muss eine Lagerhaftpflichtversicherung mit einer Deckungssumme von mindestens 5 Mio. € nachweisen." [ref=f4e753]
+                    - cell "MUSS" [ref=f4e754]
+                    - cell "intern zu klären *" [ref=f4e755]
+                    - cell "—" [ref=f4e756]
+                    - cell "—" [ref=f4e757]
+              - paragraph [ref=f4e758]: "* Bewertung vom Agenten vorgeschlagen, noch nicht freigegeben."
+              - 'heading "Anhang: Terminologie" [level=2] [ref=f4e759]'
+              - table [ref=f4e760]:
+                - rowgroup [ref=f4e761]:
+                  - row [ref=f4e762]:
+                    - columnheader "Kundenbegriff" [ref=f4e763]
+                    - columnheader "Unser Begriff" [ref=f4e764]
+                    - columnheader "Vorkommen" [ref=f4e765]
+                - rowgroup [ref=f4e766]:
+                  - row [ref=f4e767]:
+                    - cell "Lagerverwaltungssystem" [ref=f4e768]
+                    - cell "WMS" [ref=f4e769]
+                    - cell "9" [ref=f4e770]
+                  - row [ref=f4e771]:
+                    - cell "kommissionieren" [ref=f4e772]
+                    - cell "Order Fulfillment (Picking & Packing)" [ref=f4e773]
+                    - cell "2" [ref=f4e774]
+                  - row [ref=f4e775]:
+                    - cell "Inventurgenauigkeit" [ref=f4e776]
+                    - cell "Inventurgenauigkeit" [ref=f4e777]
+                    - cell "2" [ref=f4e778]
+                  - row [ref=f4e779]:
+                    - cell "permanente Inventur" [ref=f4e780]
+                    - cell "Bestandsführung & permanente Inventur" [ref=f4e781]
+                    - cell "1" [ref=f4e782]
+                  - row [ref=f4e783]:
+                    - cell "Kühlzone" [ref=f4e784]
+                    - cell "Temperaturgeführte Lagerung 2–8 °C" [ref=f4e785]
+                    - cell "1" [ref=f4e786]
+                  - row [ref=f4e787]:
+                    - cell "Paketdienst" [ref=f4e788]
+                    - cell "KEP-Dienstleister" [ref=f4e789]
+                    - cell "1" [ref=f4e790]
+                  - row [ref=f4e791]:
+                    - cell "Termintreue" [ref=f4e792]
+                    - cell "Termintreue" [ref=f4e793]
+                    - cell "1" [ref=f4e794]
+            - generic [ref=f4e795]:
+              - button "Bearbeiten" [ref=f4e796] [cursor=pointer]
+              - generic [ref=f4e797]:
+                - button "Als PDF exportieren" [ref=f4e798] [cursor=pointer]
+                - button "Als Word exportieren" [ref=f4e801] [cursor=pointer]
+              - button "Datei neu laden" [ref=f4e804] [cursor=pointer]

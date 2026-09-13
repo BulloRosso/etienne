@@ -1,0 +1,133 @@
+- generic [ref=f4e4]:
+  - banner [ref=f4e5]:
+    - generic [ref=f4e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f4e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f4e8] [cursor=pointer]
+      - button "Präsentation" [ref=f4e12] [cursor=pointer]
+      - generic [ref=f4e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f4e24]
+      - button [ref=f4e25] [cursor=pointer]
+  - generic [ref=f4e54]:
+    - generic [ref=f4e58]:
+      - generic [ref=f4e59]:
+        - button "Neue Sitzung starten" [ref=f4e60] [cursor=pointer]
+        - generic [ref=f4e63]:
+          - generic [ref=f4e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f4e65]
+            - generic "Arbeitsmodus" [ref=f4e76]
+          - generic [ref=f4e80]: Arbeitsmodus
+        - generic [ref=f4e81]:
+          - button "Benachrichtigungen" [ref=f4e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f4e85] [cursor=pointer]
+      - generic [ref=f4e89]:
+        - img "Agent avatar" [ref=f4e91]
+        - generic [ref=f4e93]:
+          - paragraph [ref=f4e95]:
+            - strong [ref=f4e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f4e97]: 13:15
+      - generic [ref=f4e101]:
+        - button "Dateianhänge hinzufügen" [ref=f4e103] [cursor=pointer]
+        - generic [ref=f4e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f4e108]
+          - group [aria-hidden]
+        - button [ref=f4e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f4e117]:
+      - generic [ref=f4e118]:
+        - tablist [ref=f4e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f4e122] [cursor=pointer]
+          - tab "Rolle" [ref=f4e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f4e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f4e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f4e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f4e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f4e132] [cursor=pointer]
+      - tabpanel [ref=f4e135]:
+        - generic [ref=f4e137]:
+          - generic [ref=f4e139]:
+            - tablist [ref=f4e143]:
+              - tab "t-2026-031-analysis.md" [ref=f4e179] [cursor=pointer]
+              - tab "analysis.tendertrace.json" [active] [selected] [ref=f4e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f4e154] [cursor=pointer]
+            - button [ref=f4e165] [cursor=pointer]
+          - generic [ref=f4e807]:
+            - iframe [ref=f4e809]:
+              - iframe [ref=f7e2]:
+                - generic [ref=f8e3]:
+                  - banner [ref=f8e4]:
+                    - generic [ref=f8e5]:
+                      - generic "Back" [ref=f8e6]:
+                        - button [disabled]
+                      - button "Dashboard" [ref=f8e7] [cursor=pointer]
+                      - heading "TenderTrace — Analyse-Cockpit" [level=6] [ref=f8e10]
+                  - generic [ref=f8e12]:
+                    - heading "Betrieb Logistikzentrum Nord — Nordland Handels AG" [level=5] [ref=f8e13]
+                    - 'heading "Sie sind in Schritt 5 von 5: Management-Analyse · Lauf AN-004" [level=6] [ref=f8e14]'
+                    - generic [ref=f8e15]:
+                      - generic [ref=f8e16]:
+                        - generic [ref=f8e17]: "1"
+                        - generic [ref=f8e18]:
+                          - generic [ref=f8e19]:
+                            - heading "Dokumente einlesen" [level=6] [ref=f8e20]
+                            - generic [ref=f8e21]: erledigt
+                          - paragraph [ref=f8e23]: 3 von 3 Dateien gelesen, 38 Anforderungen vorgeschlagen
+                          - generic [ref=f8e24]: Analyse mit Vorbehalten
+                          - generic [ref=f8e25]:
+                            - button [ref=f8e26] [cursor=pointer]
+                            - generic [ref=f8e30]: Unveränderte Dateien werden übersprungen; neue Dateien in tender/ werden ergänzt.
+                      - generic [ref=f8e31]:
+                        - generic [ref=f8e32]: "2"
+                        - generic [ref=f8e33]:
+                          - generic [ref=f8e34]:
+                            - heading "Anforderungen prüfen" [level=6] [ref=f8e35]
+                            - generic [ref=f8e36]: erledigt
+                          - paragraph [ref=f8e38]: 38 Anforderungen freigegeben, 0 verworfen
+                          - generic [ref=f8e39]: Jede Karte wird von einem Menschen freigegeben oder verworfen (Review-Queue).
+                          - button [ref=f8e41] [cursor=pointer]
+                      - generic [ref=f8e45]:
+                        - generic [ref=f8e46]: "3"
+                        - generic [ref=f8e47]:
+                          - generic [ref=f8e48]:
+                            - heading "Widersprüche klären" [level=6] [ref=f8e49]
+                            - generic [ref=f8e50]: erledigt
+                          - paragraph [ref=f8e52]: 1 Widerspruch/-sprüche geklärt
+                          - generic [ref=f8e53]: Nur Kennzahlen, die in beiden Quellen vorkommen und abweichen, werden gemeldet.
+                          - generic [ref=f8e55]:
+                            - heading "Mengen › Palettenstellplätze › Anzahl (P-0112)" [level=6] [ref=f8e56]:
+                              - text: Mengen › Palettenstellplätze › Anzahl
+                              - generic [ref=f8e57]: (P-0112)
+                            - paragraph [ref=f8e58]: "Ausschreibung: 12400 Palettenstellplätze · Excel: 12.000 (Mengen!B2) · Abweichung 3,3 %"
+                            - generic [ref=f8e59]: Der Auftragnehmer muss im Hochregallager und im Blocklager insgesamt 12.400 Palettenstellplätze vorhalten.
+                            - generic [ref=f8e60]: beim Kunden zu klären
+                      - generic [ref=f8e62]:
+                        - generic [ref=f8e63]: "4"
+                        - generic [ref=f8e64]:
+                          - generic [ref=f8e65]:
+                            - heading "Abgleich mit Leistungskatalog" [level=6] [ref=f8e66]
+                            - generic [ref=f8e67]: erledigt
+                          - paragraph [ref=f8e69]: 23 Zuordnungen, 38 Bewertungen vorgeschlagen
+                          - generic [ref=f8e70]: erfüllt 13 · teilweise 12 · nicht erfüllt 2 · intern zu klären 11
+                          - generic [ref=f8e71]:
+                            - generic [ref=f8e72]: erfüllt 13
+                            - generic [ref=f8e74]: teilweise 12
+                            - generic [ref=f8e76]: nicht erfüllt 2
+                            - generic [ref=f8e78]: intern zu klären 11
+                            - button [ref=f8e80] [cursor=pointer]
+                      - generic [ref=f8e84]:
+                        - generic [ref=f8e85]: "5"
+                        - generic [ref=f8e86]:
+                          - generic [ref=f8e87]:
+                            - heading "Management-Analyse" [level=6] [ref=f8e88]
+                            - generic [ref=f8e89]: erledigt
+                          - paragraph [ref=f8e91]: "Analyse mit Vorbehalten: 17 Kundenklärung(en), 11 interne Rückfrage(n)"
+                          - generic [ref=f8e92]: Erzeugt 2026-09-13 11:13
+                          - generic [ref=f8e93]:
+                            - alert [ref=f8e94]:
+                              - generic [ref=f8e98]: "Analyse mit Vorbehalten: 17 Kundenklärung(en), 11 interne Rückfrage(n)."
+                            - generic [ref=f8e99]:
+                              - button [ref=f8e100] [cursor=pointer]
+                              - button [ref=f8e104] [cursor=pointer]
+                              - button "Neu erzeugen" [ref=f8e108] [cursor=pointer]
+                    - button [ref=f8e110] [cursor=pointer]
+            - button "MCP UI Status" [ref=f4e810] [cursor=pointer]

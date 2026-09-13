@@ -12,7 +12,7 @@
 set -u
 
 SEED_SCRIPT="${SEED_SCRIPT:-scripts/seed-requirements-tracking/seed-requirements-tracking.ts}"
-PROJECT_NAME="${SEED_PROJECT_NAME:-tendertrace-stadtwerke}"
+PROJECT_NAME="${SEED_PROJECT_NAME:-tendertrace-analysis}"
 PROJECT_DIR="${WORKSPACE_ROOT}/${PROJECT_NAME}"
 
 if [ -d "$PROJECT_DIR" ]; then
@@ -21,7 +21,7 @@ if [ -d "$PROJECT_DIR" ]; then
 fi
 
 echo "Seeding project '$PROJECT_NAME' (type: seed-requirements-tracking)..."
-echo "This replays ~3 minutes of tender history through the requirements-tracking MCP tools."
+echo "This writes the Lagerlogistik demo files and (SEED_RUN_ANALYSIS) starts phase A of the tender analysis."
 
 cd /app || exit 1
 
@@ -30,6 +30,8 @@ export OAUTH_BASE="${OAUTH_BASE:-http://localhost:5950}"
 export BACKEND_BASE="${BACKEND_BASE:-http://localhost:6060}"
 export SEED_USERNAME="${SEED_USERNAME:-admin}"
 export SEED_PASSWORD="${SEED_PASSWORD:-admin123}"
+export SEED_PROJECT_NAME="$PROJECT_NAME"
+export SEED_RUN_ANALYSIS="${SEED_RUN_ANALYSIS:-true}"
 
 if tsx "$SEED_SCRIPT"; then
     echo "Seed complete — open the project '$PROJECT_NAME' in the UI."

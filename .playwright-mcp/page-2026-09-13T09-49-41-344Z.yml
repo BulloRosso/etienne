@@ -1,0 +1,124 @@
+- generic [ref=f1e4]:
+  - banner [ref=f1e5]:
+    - generic [ref=f1e6]:
+      - heading "Analyse-Cockpit — T-2026-031" [level=6] [ref=f1e7]
+      - button "20.48€ global ausgegeben (10%)" [ref=f1e8] [cursor=pointer]
+      - button "Präsentation" [ref=f1e12] [cursor=pointer]
+      - generic [ref=f1e16] [cursor=pointer]
+      - heading "[tendertrace-analysis]" [level=6] [ref=f1e24]
+      - button [ref=f1e25] [cursor=pointer]
+  - generic [ref=f1e54]:
+    - generic [ref=f1e58]:
+      - generic [ref=f1e59]:
+        - button "Neue Sitzung starten" [ref=f1e60] [cursor=pointer]
+        - generic [ref=f1e63]:
+          - generic [ref=f1e64] [cursor=pointer]:
+            - generic "Planungsmodus" [ref=f1e65]
+            - generic "Arbeitsmodus" [ref=f1e76]
+          - generic [ref=f1e80]: Arbeitsmodus
+        - generic [ref=f1e81]:
+          - button "Benachrichtigungen" [ref=f1e82] [cursor=pointer]
+          - button "Einstellungen" [ref=f1e85] [cursor=pointer]
+      - generic [ref=f1e89]:
+        - img "Agent avatar" [ref=f1e91]
+        - generic [ref=f1e93]:
+          - paragraph [ref=f1e95]:
+            - strong [ref=f1e96]: Etienne
+            - text: ": Willkommen im TenderTrace-Arbeitsbereich für die Ausschreibung T-2026-031! Ich unterstütze Sie dabei, die Ausschreibungsunterlagen der Nordland Handels AG systematisch zu analysieren und mit unserem Leistungskatalog abzugleichen. Legen Sie am besten die Ausschreibungsdokumente im Ordner tender/ ab, damit ich mit der Extraktion der EARS-Anforderungen und der Prüfung des Mengengerüsts beginnen kann."
+          - generic [ref=f1e97]: 11:49
+      - generic [ref=f1e101]:
+        - button "Dateianhänge hinzufügen" [ref=f1e103] [cursor=pointer]
+        - generic [ref=f1e107]:
+          - textbox "Nachricht eingeben und @ verwenden, um Dateien zu erwähnen..." [ref=f1e108]
+          - group [aria-hidden]
+        - button [ref=f1e109] [cursor=pointer]
+        - button [disabled]
+    - generic [ref=f1e117]:
+      - generic [ref=f1e118]:
+        - tablist [ref=f1e121]:
+          - tab "Arbeitsbereich" [selected] [ref=f1e122] [cursor=pointer]
+          - tab "Rolle" [ref=f1e123] [cursor=pointer]
+          - tab "Berechtigungen" [ref=f1e124] [cursor=pointer]
+          - tab "Konnektivität" [ref=f1e125] [cursor=pointer]
+          - tab "Beobachtbarkeit" [ref=f1e126] [cursor=pointer]
+        - button "Agenten-Gedächtnis aktiviert" [ref=f1e128] [cursor=pointer]
+        - button "Dateisystem-Browser" [ref=f1e132] [cursor=pointer]
+      - tabpanel [ref=f1e135]:
+        - generic [ref=f1e137]:
+          - generic [ref=f1e139]:
+            - tablist [ref=f1e143]:
+              - tab "analysis.tendertrace.json" [selected] [ref=f1e144] [cursor=pointer]
+              - tab "documentation.md" [ref=f1e154] [cursor=pointer]
+            - button [ref=f1e165] [cursor=pointer]
+          - generic [ref=f1e173]:
+            - iframe [ref=f1e175]:
+              - iframe [ref=f2e2]:
+                - generic [ref=f3e3]:
+                  - banner [ref=f3e4]:
+                    - generic [ref=f3e5]:
+                      - generic "Back" [ref=f3e6]:
+                        - button [disabled]
+                      - button "Dashboard" [ref=f3e7] [cursor=pointer]
+                      - heading "TenderTrace — Analyse-Cockpit" [level=6] [ref=f3e10]
+                  - generic [ref=f3e12]:
+                    - heading "Betrieb Logistikzentrum Nord — Nordland Handels AG" [level=5] [ref=f3e13]
+                    - 'heading "Sie sind in Schritt 1 von 5: Dokumente einlesen · Lauf AN-002" [level=6] [ref=f3e14]'
+                    - generic [ref=f3e15]:
+                      - progressbar [ref=f3e16]
+                      - paragraph [ref=f3e18]:
+                        - generic [ref=f3e19]: 28 %
+                        - text: · Anforderungen (EARS) extrahieren · 01-leistungsbeschreibung-lagerlogistik.docx
+                      - text: Leistungsbeschreibung Betrieb Logistikzentrum Nord > 1 Gegenstand der Ausschreibung (2/9)
+                    - generic [ref=f3e20]:
+                      - generic [ref=f3e21]:
+                        - generic [ref=f3e22]: "1"
+                        - generic [ref=f3e23]:
+                          - generic [ref=f3e24]:
+                            - heading "Dokumente einlesen" [level=6] [ref=f3e25]
+                            - generic [ref=f3e26]: läuft
+                          - paragraph [ref=f3e28]: 28 % · Anforderungen (EARS) extrahieren · 01-leistungsbeschreibung-lagerlogistik.docx
+                          - generic [ref=f3e29]: Leistungsbeschreibung Betrieb Logistikzentrum Nord > 1 Gegenstand der Ausschreibung (2/9)
+                          - generic [ref=f3e30]:
+                            - button "Erneut einlesen" [disabled]
+                            - generic [ref=f3e31]: Unveränderte Dateien werden übersprungen; neue Dateien in tender/ werden ergänzt.
+                      - generic [ref=f3e32]:
+                        - generic [ref=f3e33]: "2"
+                        - generic [ref=f3e34]:
+                          - generic [ref=f3e35]:
+                            - heading "Anforderungen prüfen" [level=6] [ref=f3e36]
+                            - generic [ref=f3e37]: offen
+                          - paragraph [ref=f3e39]: Vorgeschlagene Anforderungen fachlich prüfen
+                          - generic [ref=f3e40]: Jede Karte wird von einem Menschen freigegeben oder verworfen (Review-Queue).
+                          - generic [ref=f3e41]:
+                            - button "Zur Prüfung" [disabled]
+                      - generic [ref=f3e42]:
+                        - generic [ref=f3e43]: "3"
+                        - generic [ref=f3e44]:
+                          - generic [ref=f3e45]:
+                            - heading "Widersprüche klären" [level=6] [ref=f3e46]
+                            - generic [ref=f3e47]: offen
+                          - paragraph [ref=f3e49]: Zahlen in Text und Mengengerüst abgleichen
+                          - generic [ref=f3e50]: Nur Kennzahlen, die in beiden Quellen vorkommen und abweichen, werden gemeldet.
+                      - generic [ref=f3e51]:
+                        - generic [ref=f3e52]: "4"
+                        - generic [ref=f3e53]:
+                          - generic [ref=f3e54]:
+                            - heading "Abgleich mit Leistungskatalog" [level=6] [ref=f3e55]
+                            - generic [ref=f3e56]: blockiert
+                          - paragraph [ref=f3e58]: Freigeschaltet, sobald 0 offene Anforderungen und 0 ungeklärte Widersprüche
+                          - generic [ref=f3e59]: Nur klare Übereinstimmungen werden zugeordnet; jede Zuordnung bleibt ein Vorschlag.
+                          - generic [ref=f3e60]:
+                            - button "Abgleich starten" [disabled]
+                      - generic [ref=f3e61]:
+                        - generic [ref=f3e62]: "5"
+                        - generic [ref=f3e63]:
+                          - generic [ref=f3e64]:
+                            - heading "Management-Analyse" [level=6] [ref=f3e65]
+                            - generic [ref=f3e66]: offen
+                          - paragraph [ref=f3e68]: Management-Analyse nach der Vorlage erzeugen (Markdown + Word)
+                          - generic [ref=f3e70]:
+                            - button "Bericht öffnen (MD)" [disabled]
+                            - button "Bericht öffnen (DOCX)" [disabled]
+                            - button "Neu erzeugen" [disabled]
+                    - button [ref=f3e72] [cursor=pointer]
+            - button "MCP UI Status" [ref=f1e176] [cursor=pointer]

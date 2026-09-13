@@ -10,6 +10,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import { postViewerState } from "./api";
 
 export type PageId =
+  | "analysis"
   | "dashboard"
   | "workspace"
   | "review-queue"
@@ -114,6 +115,7 @@ export function ReqTextLink({ reqId }: { reqId: string }) {
 }
 
 export const PAGE_TITLES: Record<PageId, string> = {
+  analysis: "Analyse-Cockpit",
   dashboard: "Dashboard",
   workspace: "Tender Workspace",
   "review-queue": "Review Queue",

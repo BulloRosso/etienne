@@ -61,6 +61,16 @@ export function Dashboard() {
         Open work
       </Typography>
       <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+        <Card variant="outlined" sx={{ width: 250, borderColor: "primary.main" }}>
+          <CardActionArea onClick={() => navigate("analysis")}>
+            <CardContent>
+              <Typography variant="subtitle1">Analyse-Cockpit</Typography>
+              <Typography variant="body2" color="text.secondary">
+                tender/ → EARS → Excel-Abgleich → Leistungskatalog → Management-Analyse, Schritt für Schritt.
+              </Typography>
+            </CardContent>
+          </CardActionArea>
+        </Card>
         {QUEUE_PAGES.map((queue) => {
           const open = openFor(queue.kinds);
           return (
