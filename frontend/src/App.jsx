@@ -372,21 +372,35 @@ export default function App() {
     checkConfiguration();
   }, [isAuthenticated]);
 
-  // Fetch registered previewers configuration on startup
+  // Fetch registered previewers configuration once authenticated.
+  //
+  // This endpoint is NOT @Public, so an unauthenticated (or expired-token)
+  // request 401s. apiFetch resolves such a response rather than throwing, so a
+  // bare `if (response.ok)` leaves previewersConfig at [] with no trace — and an
+  // empty config silently downgrades every mcpui previewer (requirements-tracking,
+  // compliance-matrix, alignment, budget) to the raw-JSON fallback in FilesPanel.
+  // Hence: gate on isAuthenticated, refetch when it changes, and log non-ok.
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchPreviewers = async () => {
       try {
         const response = await apiFetch('/api/previewers/configuration');
         if (response.ok) {
           const data = await response.json();
           setPreviewersConfig(data.previewers || []);
+        } else {
+          console.error(
+            `Failed to fetch previewers config: HTTP ${response.status}. ` +
+            'MCP UI previewers will fall back to raw content until this succeeds.'
+          );
         }
       } catch (err) {
         console.error('Failed to fetch previewers config:', err);
       }
     };
     fetchPreviewers();
-  }, []);
+  }, [isAuthenticated]);
 
   // When Codex (OpenAI) is active, force mode to 'work' — plan mode is not supported.
   // (kimi-code keeps the toggle: Kimi has native plan mode via setPlanMode.)

@@ -1,0 +1,14 @@
+{
+  "project": "tendertrace-sales",
+  "steps": [
+    {
+      "step": "phase_a",
+      "status": "awaiting_review",
+      "cards": 38,
+      "alerts": 2
+    },
+    {
+      "step": "narrated_review"
+    }
+  ]
+}

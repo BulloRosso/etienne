@@ -1,0 +1,15 @@
+{
+  "runId": "AN-006",
+  "status": "awaiting_review",
+  "percent": 60,
+  "openReviews": 41,
+  "unresolvedAlerts": 2,
+  "files": [
+    "01-leistungsbeschreibung-lagerlogistik.docx:extracted",
+    "02-vertragsbedingungen.docx:extracted",
+    "Mengengeruest.xlsx:parsed",
+    "leistungskatalog.md:pending",
+    "glossary.md:pending",
+    "management-analyse.md:pending"
+  ]
+}

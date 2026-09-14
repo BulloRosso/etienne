@@ -197,6 +197,19 @@ export default function FilesPanel({ files, projectName, showBackgroundInfo, onC
 
     const renderFn = viewerName ? VIEWER_COMPONENTS[viewerName] : null;
 
+    // A viewer was resolved from the extension map but has neither a config
+    // entry (mcpui dispatch above) nor a local component — a broken state, not
+    // a plain unknown file type. Most often previewersConfig is empty because
+    // /api/previewers/configuration failed, which would otherwise degrade to
+    // the raw-content fallback below with no indication of why.
+    if (viewerName && !renderFn) {
+      console.warn(
+        `[FilesPanel] Viewer "${viewerName}" resolved for ${file.path} but no renderer was found ` +
+        `(previewersConfig has ${previewersConfig?.length ?? 0} entries). ` +
+        'Falling back to raw content — check that the previewers configuration loaded.'
+      );
+    }
+
     if (renderFn) {
       const useHiddenOverflow = HIDDEN_OVERFLOW_VIEWERS.has(viewerName);
       return (

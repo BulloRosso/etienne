@@ -1,0 +1,68 @@
+{
+  "steps": [
+    {
+      "req": "REQ-166",
+      "before": [
+        "AUTO-MAP",
+        "CLASSIFY",
+        "APPROVE VERDICT",
+        "REJECT",
+        "APPROVE",
+        "REJECT"
+      ],
+      "after": [
+        "AUTO-MAP",
+        "CLASSIFY",
+        "APPROVE VERDICT",
+        "REJECT"
+      ]
+    },
+    {
+      "req": "REQ-167",
+      "before": [
+        "AUTO-MAP",
+        "CLASSIFY",
+        "APPROVE VERDICT",
+        "REJECT",
+        "APPROVE",
+        "REJECT"
+      ],
+      "after": [
+        "AUTO-MAP",
+        "CLASSIFY",
+        "APPROVE VERDICT",
+        "REJECT"
+      ]
+    },
+    {
+      "req": "REQ-168",
+      "before": [
+        "AUTO-MAP",
+        "CLASSIFY",
+        "APPROVE VERDICT",
+        "REJECT",
+        "APPROVE",
+        "REJECT"
+      ],
+      "after": [
+        "AUTO-MAP",
+        "CLASSIFY",
+        "APPROVE VERDICT",
+        "REJECT"
+      ]
+    },
+    {
+      "req": "REQ-161",
+      "afterApprove": {
+        "buttons": [
+          "AUTO-MAP",
+          "CLASSIFY",
+          "ASSIGN"
+        ],
+        "hasMapping": false,
+        "hasVerdict": false,
+        "hasAssign": false
+      }
+    }
+  ]
+}
